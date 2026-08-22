@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible problem in Cadran Budget
+title: 'fix: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Remove secrets, balances, transaction labels, exports and any other financial data before
+        submitting. Report security vulnerabilities privately through the Security policy.
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: What happens today?
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reproducible sequence and sanitized sample data.
+      placeholder: |
+        1. Open ...
+        2. Enter ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: financial-impact
+    attributes:
+      label: Financial invariant or impact
+      description: Mention precision, signs, rounding, totals or reconciliation if relevant.
+    validations:
+      required: false
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Commit/version, browser, OS and deployment mode. Do not include secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that prove the bug is fixed.
+    validations:
+      required: false

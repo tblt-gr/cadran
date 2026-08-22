@@ -1,0 +1,57 @@
+name: Feature or task
+description: Propose one vertical, testable product or engineering increment
+title: 'feat: '
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem and motivation
+      description: Who has which problem, and why should it be solved now?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: Describe the intended behavior and explicitly exclude adjacent work.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: Cover the happy path, errors, empty and non-calculable states where relevant.
+      placeholder: |
+        - [ ] Given ..., when ..., then ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Domain invariants and numerical precision
+      description: State signs, exactness, rounding, idempotency and consistency constraints.
+    validations:
+      required: false
+  - type: textarea
+    id: security
+    attributes:
+      label: Threats, authorization and sensitive data
+      description: Include workspace isolation, OWASP ASVS controls and logging constraints.
+    validations:
+      required: false
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test strategy
+      description: Identify domain, property, integration, contract, component or E2E coverage.
+    validations:
+      required: true
+  - type: textarea
+    id: documentation
+    attributes:
+      label: Documentation and decisions
+      description: Mention formulas, migrations, OpenAPI, catalog sources or ADRs to update.
+    validations:
+      required: false

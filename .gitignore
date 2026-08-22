@@ -1,0 +1,35 @@
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.bkp
+
+# Dependencies
+node_modules/
+.pnpm-store/
+vendor/
+
+# Build and generated output
+dist/
+build/
+coverage/
+var/
+packages/api-client/src/generated/
+*.tsbuildinfo
+
+# Runtime data and backups
+backups/
+data/
+*.log
+logs/
+
+# IDE and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Lefthook-generated wrappers; pre-push remains versioned.
+/.githooks/pre-commit
+/.githooks/commit-msg

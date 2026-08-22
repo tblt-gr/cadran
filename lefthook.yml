@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: false
+  commands:
+    prettier:
+      glob: '*.{cjs,css,html,js,json,jsx,md,mjs,scss,ts,tsx,yaml,yml}'
+      run: pnpm exec prettier --write {staged_files}
+      stage_fixed: true
+    markdownlint:
+      glob: '*.md'
+      run: pnpm exec markdownlint-cli2 {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
