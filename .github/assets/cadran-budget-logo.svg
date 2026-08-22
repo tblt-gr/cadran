@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="720"
+     height="160"
+     viewBox="0 0 720 160"
+     fill="none"
+     role="img"
+     aria-labelledby="logo-title logo-description">
+  <title id="logo-title">Cadran Budget</title>
+  <desc id="logo-description">Un cadran en forme de C contenant une courbe financière ascendante.</desc>
+
+  <g id="symbol" transform="translate(16 16)" stroke="#D7A85B">
+    <path d="M100 24C88 14 73 10 58 13C30 18 12 42 13 68C14 96 37 118 65 118C79 118 92 113 101 104"
+          stroke-width="14"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+
+    <path d="M32 70H24M39 45L33 39M63 34V25"
+          stroke-width="6"
+          stroke-linecap="round"/>
+
+    <path d="M32 91L52 70L66 82L93 52"
+          stroke-width="8"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    <circle cx="93" cy="52" r="6" fill="#D7A85B" stroke="none"/>
+  </g>
+
+  <g id="wordmark"
+     fill="#F4F1EA"
+     font-family="Manrope, Inter, Segoe UI, Arial, sans-serif"
+     font-size="54"
+     letter-spacing="-1.6">
+    <text x="168" y="99" font-weight="650">Cadran</text>
+    <text x="398" y="99" font-weight="450">Budget</text>
+  </g>
+</svg>

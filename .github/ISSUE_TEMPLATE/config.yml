@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/tblt-gr/cadran/security/policy
+    about: Report vulnerabilities privately. Never open a public security issue.
+  - name: Question or support
+    url: https://github.com/tblt-gr/cadran/discussions
+    about: Ask questions that are neither a bug report nor a scoped feature request.

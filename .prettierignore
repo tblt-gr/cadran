@@ -1,0 +1,9 @@
+LICENSE
+pnpm-lock.yaml
+node_modules/
+vendor/
+dist/
+build/
+coverage/
+var/
+packages/api-client/src/generated/
