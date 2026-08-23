@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.env.local
+.env.*.local
+node_modules
+.pnpm-store
+apps/api/vendor
+apps/api/var
+apps/web/dist
+apps/web/node_modules
+packages/api-client/src/generated
+**/.php-cs-fixer.cache
+**/.phpunit.cache
+**/*.tsbuildinfo

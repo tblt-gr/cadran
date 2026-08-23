@@ -1,0 +1,101 @@
+name: cadran
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    image: cadran_app:local
+    container_name: cadran_app
+    user: '33:33'
+    environment:
+      APP_ENV: prod
+      CADRAN_SERVER_NAME: ${CADRAN_SERVER_NAME:-localhost}
+      DEFAULT_URI: https://${CADRAN_SERVER_NAME:-localhost}:${CADRAN_HTTPS_PORT:-8443}
+    ports:
+      - name: https
+        target: 8443
+        published: ${CADRAN_HTTPS_PORT:-8443}
+        host_ip: ${CADRAN_HTTPS_BIND:-127.0.0.1}
+        protocol: tcp
+    depends_on:
+      db:
+        condition: service_healthy
+    secrets:
+      - app_secret
+      - db_password
+    networks:
+      - edge
+      - internal
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    tmpfs:
+      - /app/apps/api/var:uid=33,gid=33,mode=0700
+      - /tmp:uid=33,gid=33,mode=1777
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ['CMD', 'php', '/usr/local/bin/healthcheck.php']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+  db:
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    image: cadran_db:local
+    container_name: cadran_db
+    user: '70:70'
+    environment:
+      POSTGRES_DB: cadran
+      POSTGRES_USER: cadran
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    networks:
+      - internal
+    volumes:
+      - db_data:/var/lib/postgresql/18/docker
+    tmpfs:
+      - /var/run/postgresql:uid=70,gid=70,mode=0775
+      - /tmp:uid=70,gid=70,mode=1777
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready --dbname=cadran --username=cadran']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  edge:
+    name: cadran_edge
+  internal:
+    name: cadran_internal
+    internal: true
+
+volumes:
+  caddy_data:
+    name: cadran_caddy_data
+  caddy_config:
+    name: cadran_caddy_config
+  db_data:
+    name: cadran_db_data
+
+secrets:
+  app_secret:
+    file: ./var/docker-secrets/app_secret
+  db_password:
+    file: ./var/docker-secrets/db_password

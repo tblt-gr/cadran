@@ -1,0 +1,10 @@
+doctrine:
+  dbal:
+    url: '%env(DATABASE_URL)%'
+    server_version: '18'
+    profiling_collect_backtrace: '%kernel.debug%'
+
+when@test:
+  doctrine:
+    dbal:
+      dbname_suffix: '_test%env(default::TEST_TOKEN)%'
