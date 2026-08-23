@@ -49,9 +49,6 @@ The target scope includes:
 Bank synchronization, multi-user support, real-time market prices, and native mobile applications
 are outside the MVP.
 
-Local planning material remains the functional, technical, and visual source of truth. It is not
-published in the repository yet.
-
 ## Principles
 
 - **Accuracy first:** no amount, rate, price, or return is calculated with binary floating point.
@@ -145,6 +142,11 @@ they operate so the README never advertises placeholders.
 | [SUPPORT.md](./SUPPORT.md)                 | Support channels and data-sanitization guidance |
 | [CHANGELOG.md](./CHANGELOG.md)             | Notable unreleased and released changes         |
 
+### Releases
+
+The release workflow is installed but remains dormant until a signed `vMAJOR.MINOR.PATCH` tag
+matching the root package version is pushed from a successful commit already merged into `main`.
+
 ## Contributing
 
 Contributions are welcome. Read the [contributing guidelines](./CONTRIBUTING.md),
@@ -154,3 +156,4 @@ or pull request.
 ## License
 
 [MIT](./LICENSE) © 2026 tblt-gr.
+

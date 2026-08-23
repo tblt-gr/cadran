@@ -17,6 +17,7 @@ env:
 
 jobs:
   commitlint:
+    name: Conventional PR title
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -24,18 +25,16 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
-          fetch-depth: 0
       - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Lint pull request commits
+      - name: Lint the pull request title
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\\n' "$PR_TITLE" | pnpm exec commitlint
 
   docs:
     runs-on: ubuntu-latest
@@ -81,3 +80,4 @@ jobs:
           if echo "$RESULTS" | grep -qE 'failure|cancelled'; then
             exit 1
           fi
+

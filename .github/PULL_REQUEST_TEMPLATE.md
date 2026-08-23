@@ -16,6 +16,10 @@ Closes #
 
 <!-- Give a reviewer reproducible commands and manual steps. -->
 
+## Risks and rollback
+
+<!-- Security, financial data, compatibility, deployment risks, and recovery steps. -->
+
 ## Checklist
 
 - [ ] Acceptance criteria, errors and edge cases are covered
@@ -33,3 +37,4 @@ Closes #
 ## Visual changes
 
 <!-- Add sanitized desktop and mobile screenshots, or write "Not applicable". -->
+
