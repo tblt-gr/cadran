@@ -34,7 +34,7 @@ jobs:
       - name: Lint the pull request title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: printf '%s\\n' "$PR_TITLE" | pnpm exec commitlint
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint
 
   docs:
     runs-on: ubuntu-latest
@@ -80,5 +80,3 @@ jobs:
           if echo "$RESULTS" | grep -qE 'failure|cancelled'; then
             exit 1
           fi
-
-

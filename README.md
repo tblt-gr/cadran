@@ -156,4 +156,3 @@ or pull request.
 ## License
 
 [MIT](./LICENSE) © 2026 tblt-gr.
-

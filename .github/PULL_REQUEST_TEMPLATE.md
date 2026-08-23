@@ -37,4 +37,3 @@ Closes #
 ## Visual changes
 
 <!-- Add sanitized desktop and mobile screenshots, or write "Not applicable". -->
-

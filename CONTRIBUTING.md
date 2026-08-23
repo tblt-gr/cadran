@@ -126,4 +126,3 @@ git push origin v0.1.0
 
 Maintain the `Unreleased` section of `CHANGELOG.md` only when it adds editorial context such as
 migrations, breaking changes, or operator actions.
-
