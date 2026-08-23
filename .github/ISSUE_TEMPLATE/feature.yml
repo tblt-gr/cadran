@@ -1,0 +1,52 @@
+name: Feature or task
+description: Propose one vertical, testable product or engineering increment
+title: 'feat: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep the proposal focused on a user-visible or engineering outcome that can be delivered and verified independently.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What problem or opportunity does this address?
+      placeholder: Explain the current limitation, affected users, and why it matters.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Expected outcome
+      description: Describe the observable result, not only the implementation.
+      placeholder: A user can..., the API returns..., CI rejects...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List objective checks that make the work complete.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and constraints
+      description: Identify dependencies, compatibility requirements, security concerns, or explicit exclusions.
+      placeholder: In scope, out of scope, prerequisites, migration constraints...
+
+  - type: textarea
+    id: public-documentation
+    attributes:
+      label: Public documentation and decisions
+      description: Mention formulas, migrations, OpenAPI, and public catalog sources to update.
+      placeholder: README sections, OpenAPI paths, formulas, migrations, or source catalog entries.
