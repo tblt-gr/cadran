@@ -1,0 +1,32 @@
+{
+	admin off
+	frankenphp
+	persist_config off
+}
+
+https://{$CADRAN_SERVER_NAME:localhost}:8443 {
+	tls internal
+	encode zstd br gzip
+
+	@api path /api/*
+	handle @api {
+		root * /app/apps/api/public
+		php_server
+	}
+
+	handle {
+		root * /app/apps/web/dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		-Server
+		-X-Powered-By
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'"
+		Permissions-Policy "camera=(), geolocation=(), microphone=()"
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+}

@@ -10,6 +10,7 @@
     "format": "prettier --write . --ignore-path .prettierignore --ignore-path .git/info/exclude",
     "format:check": "prettier --check . --ignore-path .prettierignore --ignore-path .git/info/exclude",
     "lint:docs": "sh ./scripts/lint-docs.sh",
+    "lint:infrastructure": "node scripts/test-infrastructure.mjs",
     "generate:api": "pnpm --filter @cadran/api-client generate",
     "lint": "pnpm --recursive --if-present lint",
     "typecheck": "pnpm --recursive --if-present typecheck",
