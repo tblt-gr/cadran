@@ -6,8 +6,7 @@ vulnerability through a public issue or pull request; follow the [Security Polic
 ## Before you start
 
 Cadran Budget is in its foundation phase. Read the [README](./README.md) before proposing a change.
-Local planning material remains the product source of truth. Open an issue before significant work
-to confirm scope and domain invariants.
+Open an issue before significant work to confirm scope and domain invariants.
 
 Current requirements are Node.js 22.22 or newer, pnpm 9 or newer, and Git.
 
@@ -37,7 +36,7 @@ A functional ticket states:
 4. relevant threats and OWASP ASVS 5.0 controls;
 5. expected domain, integration, and interface tests;
 6. workspace authorization and logging constraints;
-7. migration, OpenAPI, documentation, or decision-record needs.
+7. migration, OpenAPI, public documentation, or decision-summary needs.
 
 Do not list files to change. Describe expected behavior and testable acceptance criteria instead.
 
@@ -114,7 +113,16 @@ Sprint 0.
 
 ## Releases
 
-There is no automated release while the repository contains only the project foundation. Maintain
-the `Unreleased` section of `CHANGELOG.md` as an editorial record of migrations, breaking changes
-and operator actions. Add a release workflow with the first deliverable, and require signed,
-annotated tags created from a successful commit already merged into `main`.
+Create releases only from a commit already merged into `main` with a successful `CI gate`. The
+release workflow also requires the tag to match the root package version. Create annotated, signed
+tags and never move a published tag:
+
+```bash
+git switch main
+git pull --ff-only
+git tag -s v0.1.0 -m "cadran v0.1.0"
+git push origin v0.1.0
+```
+
+Maintain the `Unreleased` section of `CHANGELOG.md` only when it adds editorial context such as
+migrations, breaking changes, or operator actions.
