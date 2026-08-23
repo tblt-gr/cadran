@@ -36,7 +36,8 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint
 
-  docs:
+  quality:
+    name: Application quality
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -50,6 +51,55 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm quality
+
+  markdown_changes:
+    name: Detect Markdown changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      changed: ${{ steps.markdown.outputs.changed }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect changed Markdown files
+        id: markdown
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            comparison_base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          else
+            comparison_base="$BEFORE_SHA"
+          fi
+
+          if git diff --quiet "$comparison_base" "$HEAD_SHA" -- '*.md'; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  markdown:
+    name: Markdown
+    needs: markdown_changes
+    if: needs.markdown_changes.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm lint:docs
 
   audit:
     runs-on: ubuntu-latest
@@ -67,7 +117,7 @@ jobs:
 
   ci:
     name: CI gate
-    needs: [commitlint, docs, audit]
+    needs: [commitlint, quality, markdown_changes, markdown, audit]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}

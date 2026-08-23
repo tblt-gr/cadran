@@ -16,7 +16,7 @@
     "test": "pnpm generate:api && pnpm --recursive --if-present test",
     "build": "pnpm generate:api && pnpm --recursive --if-present build",
     "audit": "pnpm audit --audit-level=high",
-    "quality": "pnpm generate:api && pnpm format:check && pnpm lint:docs && pnpm lint && pnpm typecheck"
+    "quality": "pnpm generate:api && pnpm format:check && pnpm lint && pnpm typecheck"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
