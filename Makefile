@@ -2,6 +2,7 @@
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 COMPOSE := docker compose --env-file $(COMPOSE_ENV)
+COMPOSE_DEFAULT := env -u CADRAN_HTTPS_BIND -u CADRAN_HTTPS_PORT -u CADRAN_SERVER_NAME docker compose --env-file .env.example
 TOOLS_IMAGE := cadran_tools:local
 HOST_UID := $(shell id -u)
 HOST_GID := $(shell id -g)
@@ -12,6 +13,7 @@ TOOLS_RUN_WITH_DB := $(TOOLS_DOCKER_RUN) --network cadran_internal --mount "type
 init:
 	sh scripts/init-local.sh
 	$(MAKE) install
+	$(MAKE) generate
 	$(COMPOSE) build
 	$(COMPOSE) up --detach --wait db
 	$(MAKE) migrate
@@ -23,6 +25,7 @@ tools:
 install: tools
 	$(TOOLS_RUN) composer install --working-dir=apps/api --no-interaction --no-progress --prefer-dist --no-scripts
 	$(TOOLS_RUN) pnpm install --frozen-lockfile --ignore-scripts
+	$(TOOLS_RUN) sh scripts/install-git-hooks.sh
 
 up:
 	sh scripts/check-local-runtime.sh
@@ -60,7 +63,7 @@ test-web: tools
 	$(TOOLS_RUN) pnpm test
 
 test-infrastructure: tools
-	$(COMPOSE) config --format json | $(TOOLS_DOCKER_RUN) --interactive --env COMPOSE_CONFIG_PATH=/dev/stdin $(TOOLS_IMAGE) node scripts/test-infrastructure.mjs
+	$(COMPOSE_DEFAULT) config --format json | $(TOOLS_DOCKER_RUN) --interactive --env COMPOSE_CONFIG_PATH=/dev/stdin $(TOOLS_IMAGE) node scripts/test-infrastructure.mjs
 
 architecture:
 	sh scripts/test-architecture.sh

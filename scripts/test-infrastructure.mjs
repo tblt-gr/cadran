@@ -81,6 +81,18 @@ if (!makefile.includes('$(MAKE) install') || !makefile.includes('TOOLS_RUN_WITH_
   fail('Initialization and database tests must use the reproducible tools image');
 }
 
+if (!makefile.includes('$(MAKE) generate')) {
+  fail('Initialization must generate the ignored API client in the workspace');
+}
+
+if (!makefile.includes('$(TOOLS_RUN) sh scripts/install-git-hooks.sh')) {
+  fail('The scriptless dependency install must explicitly enable repository hooks');
+}
+
+if (!makefile.includes('$(COMPOSE_DEFAULT) config --format json')) {
+  fail('Infrastructure assertions must validate Compose defaults, not local overrides');
+}
+
 const dockerignore = readFileSync(new URL('../.dockerignore', import.meta.url), 'utf8');
 
 if (!dockerignore.split('\n').includes('**/.env*')) {
