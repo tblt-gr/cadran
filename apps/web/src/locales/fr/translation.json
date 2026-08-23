@@ -1,0 +1,12 @@
+{
+  "app": {
+    "name": "Cadran Budget"
+  },
+  "foundation": {
+    "apiVersion": "API {{version}}",
+    "error": "L’API est actuellement indisponible.",
+    "loading": "Connexion à l’API…",
+    "ready": "Le socle de l’application est prêt.",
+    "retry": "Réessayer"
+  }
+}

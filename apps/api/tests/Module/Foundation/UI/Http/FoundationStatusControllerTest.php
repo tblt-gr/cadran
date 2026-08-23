@@ -32,7 +32,7 @@ final class FoundationStatusControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
         self::assertResponseHeaderSame('content-type', 'application/problem+json');
         self::assertJsonStringEqualsJsonString(
-            '{"type":"about:blank","title":"Not Found","status":404,"detail":"The requested API resource was not found."}',
+            '{"type":"about:blank","title":"Ressource introuvable","status":404,"detail":"La ressource d\'API demandée est introuvable."}',
             (string) $client->getResponse()->getContent(),
         );
     }

@@ -1,8 +1,10 @@
 import { getFoundationStatus } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import './App.css';
 
 function App() {
+  const { t } = useTranslation();
   const status = useQuery({
     queryKey: ['foundation-status'],
     queryFn: async ({ signal }) => {
@@ -20,8 +22,8 @@ function App() {
   if (status.isPending) {
     return (
       <main className="foundation-state" aria-labelledby="foundation-title">
-        <h1 id="foundation-title">Cadran Budget</h1>
-        <p role="status">Connecting to the API…</p>
+        <h1 id="foundation-title">{t('app.name')}</h1>
+        <p role="status">{t('foundation.loading')}</p>
       </main>
     );
   }
@@ -30,8 +32,8 @@ function App() {
     return (
       <main className="foundation-state" aria-labelledby="foundation-title">
         <div role="alert">
-          <h1 id="foundation-title">Cadran Budget</h1>
-          <p>The API is currently unavailable.</p>
+          <h1 id="foundation-title">{t('app.name')}</h1>
+          <p>{t('foundation.error')}</p>
         </div>
         <button
           type="button"
@@ -39,7 +41,7 @@ function App() {
             void status.refetch();
           }}
         >
-          Try again
+          {t('foundation.retry')}
         </button>
       </main>
     );
@@ -47,9 +49,9 @@ function App() {
 
   return (
     <main className="foundation-state" aria-labelledby="foundation-title">
-      <p className="eyebrow">API {status.data.apiVersion}</p>
-      <h1 id="foundation-title">Cadran Budget</h1>
-      <p role="status">The application foundation is ready.</p>
+      <p className="eyebrow">{t('foundation.apiVersion', { version: status.data.apiVersion })}</p>
+      <h1 id="foundation-title">{t('app.name')}</h1>
+      <p role="status">{t('foundation.ready')}</p>
     </main>
   );
 }

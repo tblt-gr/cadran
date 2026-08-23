@@ -10,10 +10,15 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsEventListener(event: KernelEvents::EXCEPTION)]
 final class ApiProblemResponseListener
 {
+    public function __construct(private readonly TranslatorInterface $translator)
+    {
+    }
+
     public function __invoke(ExceptionEvent $event): void
     {
         if (!str_starts_with($event->getRequest()->getPathInfo(), '/api/')) {
@@ -22,13 +27,14 @@ final class ApiProblemResponseListener
 
         $throwable = $event->getThrowable();
         $status = $throwable instanceof HttpExceptionInterface ? $throwable->getStatusCode() : 500;
+        $translationKey = self::translationKey($status);
 
         $event->setResponse(new JsonResponse(
             data: [
                 'type' => 'about:blank',
-                'title' => Response::$statusTexts[$status] ?? 'Error',
+                'title' => $this->translator->trans($translationKey.'.title'),
                 'status' => $status,
-                'detail' => self::safeDetail($status),
+                'detail' => $this->translator->trans($translationKey.'.detail'),
             ],
             status: $status,
             headers: [
@@ -38,12 +44,12 @@ final class ApiProblemResponseListener
         ));
     }
 
-    private static function safeDetail(int $status): string
+    private static function translationKey(int $status): string
     {
         return match ($status) {
-            404 => 'The requested API resource was not found.',
-            405 => 'The HTTP method is not allowed for this API resource.',
-            default => 'The API could not process the request.',
+            Response::HTTP_NOT_FOUND => 'api.problem.not_found',
+            Response::HTTP_METHOD_NOT_ALLOWED => 'api.problem.method_not_allowed',
+            default => 'api.problem.internal_error',
         };
     }
 }
