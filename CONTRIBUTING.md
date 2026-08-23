@@ -70,7 +70,7 @@ The `commit-msg` hook enforces this locally, and CI validates every pull request
 - Complete the pull request template and provide reproducible verification steps.
 - Include sanitized desktop and mobile screenshots for visual changes.
 - Do not include unrelated changes.
-- Prefer squash merges and delete the branch after merging.
+- Use squash merges only and delete the branch after merging.
 
 ## Current quality checks
 
@@ -107,5 +107,14 @@ without integrating it into the global command and CI.
 - `pre-push` blocks direct pushes to `main` on the official repository.
 
 Hooks are only a local safety net and can be bypassed. Configure GitHub branch protection for
-`main` as well: require pull requests, the `commitlint`, `docs`, and `audit` checks, an up-to-date
-branch, and prohibit force pushes and deletion. Add application checks during Sprint 0.
+`main` as well. The intended protection is versioned in `.github/rulesets/main.json`: it requires
+pull requests, a green `CI gate`, an up-to-date branch, resolved conversations, squash merges and
+linear history, with no permanent bypass. Add application checks to the aggregate gate during
+Sprint 0.
+
+## Releases
+
+There is no automated release while the repository contains only the project foundation. Maintain
+the `Unreleased` section of `CHANGELOG.md` as an editorial record of migrations, breaking changes
+and operator actions. Add a release workflow with the first deliverable, and require signed,
+annotated tags created from a successful commit already merged into `main`.

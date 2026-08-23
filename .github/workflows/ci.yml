@@ -65,3 +65,19 @@ jobs:
           node-version: 22
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm audit
+
+  ci:
+    name: CI gate
+    needs: [commitlint, docs, audit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    if: always()
+    steps:
+      - name: All checks passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          if echo "$RESULTS" | grep -qE 'failure|cancelled'; then
+            exit 1
+          fi
