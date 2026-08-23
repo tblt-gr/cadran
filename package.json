@@ -10,8 +10,13 @@
     "format": "prettier --write . --ignore-path .prettierignore --ignore-path .git/info/exclude",
     "format:check": "prettier --check . --ignore-path .prettierignore --ignore-path .git/info/exclude",
     "lint:docs": "sh ./scripts/lint-docs.sh",
+    "generate:api": "pnpm --filter @cadran/api-client generate",
+    "lint": "pnpm --recursive --if-present lint",
+    "typecheck": "pnpm --recursive --if-present typecheck",
+    "test": "pnpm generate:api && pnpm --recursive --if-present test",
+    "build": "pnpm generate:api && pnpm --recursive --if-present build",
     "audit": "pnpm audit --audit-level=high",
-    "quality": "pnpm format:check && pnpm lint:docs"
+    "quality": "pnpm generate:api && pnpm format:check && pnpm lint:docs && pnpm lint && pnpm typecheck"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
@@ -24,5 +29,10 @@
     "node": ">=22.22.0",
     "pnpm": ">=9"
   },
-  "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be"
+  "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be",
+  "pnpm": {
+    "overrides": {
+      "js-yaml": "4.3.1"
+    }
+  }
 }
