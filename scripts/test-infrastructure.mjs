@@ -76,3 +76,66 @@ const makefile = readFileSync(new URL('../Makefile', import.meta.url), 'utf8');
 if (!makefile.includes('doctrine:migrations:migrate')) {
   fail('Migrations must run through an explicit command');
 }
+
+if (!makefile.includes('$(MAKE) install') || !makefile.includes('TOOLS_RUN_WITH_DB')) {
+  fail('Initialization and database tests must use the reproducible tools image');
+}
+
+const dockerignore = readFileSync(new URL('../.dockerignore', import.meta.url), 'utf8');
+
+if (!dockerignore.split('\n').includes('**/.env*')) {
+  fail('Environment files must be excluded recursively from Docker build contexts');
+}
+
+if (!dockerignore.split('\n').includes('**/docker-secrets')) {
+  fail('Docker secret directories must be excluded recursively from build contexts');
+}
+
+const healthcheck = readFileSync(new URL('../docker/app/healthcheck.php', import.meta.url), 'utf8');
+
+if (
+  !healthcheck.includes("getenv('CADRAN_SERVER_NAME')") ||
+  !healthcheck.includes("'peer_name' => $serverName") ||
+  !healthcheck.includes('https://127.0.0.1:8443/')
+) {
+  fail('The app health check must use the configured TLS server name on loopback');
+}
+
+const caddyfile = readFileSync(new URL('../docker/app/Caddyfile', import.meta.url), 'utf8');
+
+if (caddyfile.includes('Strict-Transport-Security')) {
+  fail('The localhost runtime must not persist an HSTS policy in the browser');
+}
+
+const phpunitConfiguration = readFileSync(
+  new URL('../apps/api/phpunit.dist.xml', import.meta.url),
+  'utf8',
+);
+
+if (phpunitConfiguration.includes('127.0.0.1:5432')) {
+  fail('PHPUnit must connect to PostgreSQL through the internal Docker network');
+}
+
+const doctrineConfiguration = readFileSync(
+  new URL('../apps/api/config/packages/doctrine.yaml', import.meta.url),
+  'utf8',
+);
+const toolsEntrypoint = readFileSync(
+  new URL('../docker/tools/entrypoint.sh', import.meta.url),
+  'utf8',
+);
+const appEntrypoint = readFileSync(new URL('../docker/app/entrypoint.sh', import.meta.url), 'utf8');
+
+if (
+  !doctrineConfiguration.includes("dbname_suffix: '_test%env(default::TEST_TOKEN)%'") ||
+  !toolsEntrypoint.includes('@db:5432/cadran?')
+) {
+  fail('PHPUnit must derive cadran_test from the provisioned cadran database configuration');
+}
+
+if (
+  !appEntrypoint.includes('"disable_dotenv":true') ||
+  !toolsEntrypoint.includes('"disable_dotenv":true')
+) {
+  fail('Docker commands must not depend on excluded environment files');
+}

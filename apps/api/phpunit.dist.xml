@@ -20,7 +20,6 @@
         <server name="KERNEL_CLASS" value="App\Kernel" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
 
-        <env name="DATABASE_URL" value="postgresql://cadran_test:cadran_test@127.0.0.1:5432/cadran_test?serverVersion=18&amp;charset=utf8" />
     </php>
 
     <testsuites>

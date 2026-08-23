@@ -2,6 +2,10 @@
 
 set -eu
 
+if [ -z "${APP_RUNTIME_OPTIONS:-}" ]; then
+    export APP_RUNTIME_OPTIONS='{"disable_dotenv":true}'
+fi
+
 read_secret() {
     secret_path=$1
 

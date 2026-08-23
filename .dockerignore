@@ -1,8 +1,7 @@
 .git
 .github
-.env
-.env.local
-.env.*.local
+**/.env*
+**/docker-secrets
 node_modules
 .pnpm-store
 apps/api/vendor
