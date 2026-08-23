@@ -1,0 +1,11 @@
+api:
+  problem:
+    not_found:
+      title: 'Ressource introuvable'
+      detail: "La ressource d'API demandée est introuvable."
+    method_not_allowed:
+      title: 'Méthode non autorisée'
+      detail: "La méthode HTTP n'est pas autorisée pour cette ressource d'API."
+    internal_error:
+      title: 'Erreur interne du serveur'
+      detail: "L'API n'a pas pu traiter la requête."

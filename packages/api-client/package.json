@@ -1,0 +1,22 @@
+{
+  "name": "@cadran/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/generated/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "generate": "openapi-ts -i ../../apps/api/openapi/openapi.yaml -o src/generated",
+    "lint": "oxlint src --ignore-pattern src/generated",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "oxlint": "^1.75.0",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.1"
+  }
+}

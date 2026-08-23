@@ -1,0 +1,65 @@
+openapi: 3.1.0
+info:
+  title: Cadran Budget API
+  version: 0.1.0
+  description: Versioned HTTP contract for the Cadran Budget modular monolith.
+servers:
+  - url: /
+paths:
+  /api/v1/status:
+    get:
+      operationId: getFoundationStatus
+      summary: Check that the API foundation is available
+      tags:
+        - Foundation
+      responses:
+        '200':
+          description: The API foundation is ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FoundationStatus'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  responses:
+    InternalServerError:
+      description: An unexpected server error occurred.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    FoundationStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - apiVersion
+      properties:
+        status:
+          type: string
+          const: ready
+        apiVersion:
+          type: string
+          const: v1
+    Problem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
