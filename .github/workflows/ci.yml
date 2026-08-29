@@ -148,6 +148,7 @@ jobs:
       APP_ENV: prod
       APP_SECRET: ci-build-only
       DATABASE_URL: postgresql://cadran:cadran@127.0.0.1:5432/cadran?serverVersion=18&charset=utf8
+      DEFAULT_URI: https://localhost:8443
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:

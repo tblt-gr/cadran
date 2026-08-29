@@ -9,8 +9,12 @@
 set -eu
 
 # apps/api/.env is gitignored and absent in CI; keep the Symfony runtime from
-# trying to read it (matches the app container entrypoint).
-export APP_RUNTIME_OPTIONS="${APP_RUNTIME_OPTIONS:-{\"disable_dotenv\":true}}"
+# trying to read it (matches the app container entrypoint). Avoid a parameter
+# expansion with a JSON object as its default: the closing brace is parsed as
+# part of the shell expansion and corrupts an already supplied value.
+if [ -z "${APP_RUNTIME_OPTIONS:-}" ]; then
+    export APP_RUNTIME_OPTIONS='{"disable_dotenv":true}'
+fi
 
 console="php apps/api/bin/console"
 base_ref="${MIGRATION_BASE_REF:-origin/main}"
