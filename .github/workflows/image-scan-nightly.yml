@@ -1,0 +1,52 @@
+name: Image scan (nightly)
+
+# The pull-request gate in ci.yml ignores unfixable base-image CVEs so it only
+# blocks on regressions an author can act on. This job runs the same scans
+# without that exception, so an unpatched CRITICAL/HIGH in a base image is
+# surfaced daily rather than never.
+#
+# A failed scheduled run e-mails the account that last edited this file. GitHub
+# runs `schedule` only from the default branch and disables it after 60 days
+# without repository activity; a `workflow_dispatch` run re-arms it.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-scan-nightly
+  cancel-in-progress: false
+
+jobs:
+  image-scan-strict:
+    name: Strict runtime image scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Prepare local runtime files
+        run: sh scripts/init-local.sh
+      - name: Build the deployed images
+        run: docker compose --env-file .env.local build app db
+      - name: Scan the application image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: cadran_app:local
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          trivyignores: .trivyignore
+          exit-code: '1'
+      - name: Scan the database image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: cadran_db:local
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          trivyignores: .trivyignore
+          exit-code: '1'

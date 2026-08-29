@@ -1,0 +1,8 @@
+# Accepted image-scan findings, one CVE per line (`CVE-XXXX-NNNNN`), each
+# preceded by a comment with the reason and a review date (`# review: YYYY-MM-DD`).
+# An entry here suppresses the CVE in both scans below.
+#
+# The pull-request gate (ci.yml `image-scan`) fails on any unlisted CRITICAL or
+# HIGH finding that has a fix available. The nightly workflow
+# (image-scan-nightly.yml) additionally fails on unfixable ones, so base-image
+# exposure with no upstream patch is surfaced daily rather than silently passed.

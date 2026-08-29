@@ -1,0 +1,8 @@
+# Contract linting ruleset for `pnpm openapi:lint`. Pinned so the gate is
+# deterministic across @redocly/cli versions. Per-operation exceptions live in
+# .redocly.lint-ignore.yaml so a new endpoint fails by default.
+extends:
+  - recommended
+
+rules:
+  operation-4xx-response: error

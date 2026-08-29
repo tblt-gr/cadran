@@ -71,19 +71,29 @@ The `commit-msg` hook enforces this locally, and CI validates every pull request
 - Do not include unrelated changes.
 - Use squash merges only and delete the branch after merging.
 
-## Current quality checks
+## Quality checks
+
+`make quality`, `make test` and `make e2e` are the global entry points. `make quality` runs
+PHP-CS-Fixer, PHPStan, module-boundary checks, ESLint, strict TypeScript, the OpenAPI lint and
+the infrastructure checks; `make test` runs PHPUnit against PostgreSQL and the frontend suite;
+`make e2e` runs the browser smoke suite against the running stack. Do not add a tool without
+wiring it into the matching global command and into CI.
+
+Documentation and contract checks also run without Docker:
 
 ```bash
 pnpm format        # format supported files
 pnpm format:check  # verify formatting without modifying files
 pnpm lint:docs     # validate published Markdown files
-pnpm quality       # run every current quality check
-pnpm audit         # audit locked dependencies
+pnpm quality       # formatting, linting, OpenAPI lint and type checks
+pnpm audit         # audit locked npm dependencies
 ```
 
-Sprint 0 will make `make quality`, `make test`, and `make e2e` the global entry points for
-PHP-CS-Fixer, PHPStan, PHPUnit, ESLint, TypeScript, contract checks, and E2E tests. Do not add a tool
-without integrating it into the global command and CI.
+Every pull request runs the same gates in CI: the checks above, backend tests on a
+throwaway PostgreSQL, migrations from an empty database and from the released schema, an
+OpenAPI and generated-client drift check, a production build of both applications, Composer
+and npm audits, and a Trivy scan of the runtime images. The aggregate `CI gate` status is the
+one branch protection requires.
 
 ## Implementation principles
 
