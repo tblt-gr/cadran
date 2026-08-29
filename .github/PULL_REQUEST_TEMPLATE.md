@@ -22,6 +22,7 @@ Closes #
 
 ## Checklist
 
+- [ ] This PR has the same milestone and labels as the primary issue named above
 - [ ] Acceptance criteria, errors and edge cases are covered
 - [ ] Financial signs, precision, rounding and non-calculable states are tested where relevant
 - [ ] Positive and negative workspace authorization is tested where relevant
