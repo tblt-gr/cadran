@@ -1,12 +1,135 @@
 {
   "app": {
-    "name": "Cadran Budget"
+    "name": "Cadran Budget",
+    "shortName": "Cadran"
+  },
+  "accessibility": {
+    "skipToContent": "Aller au contenu"
+  },
+  "actions": {
+    "add": "Ajouter",
+    "backHome": "Revenir à la synthèse",
+    "close": "Fermer",
+    "collapse": "Réduire",
+    "expand": "Déployer",
+    "more": "Plus",
+    "search": "Rechercher"
   },
   "foundation": {
     "apiVersion": "API {{version}}",
     "error": "L’API est actuellement indisponible.",
     "loading": "Connexion à l’API…",
     "ready": "Le socle de l’application est prêt.",
+    "readyWithVersion": "API {{version}}. Le socle de l’application est prêt.",
     "retry": "Réessayer"
+  },
+  "header": {
+    "staleFreshness": "Mis à jour il y a {{count}} jours"
+  },
+  "foundationActions": {
+    "add": {
+      "description": "La création sera activée avec les premiers modules métier. Aucune donnée n’a été modifiée.",
+      "status": "Ajout bientôt disponible",
+      "title": "Ajouter une donnée"
+    },
+    "search": {
+      "description": "La recherche globale sera activée lorsque les premières données pourront être indexées.",
+      "status": "Recherche bientôt disponible",
+      "title": "Rechercher dans Cadran"
+    }
+  },
+  "navigation": {
+    "accounts": "Comptes",
+    "budget": "Budget",
+    "collapse": "Réduire la navigation",
+    "expand": "Déployer la navigation",
+    "explore": "Explorer Cadran",
+    "goals": "Objectifs",
+    "home": "Synthèse",
+    "investments": "Investissements",
+    "mainLabel": "Navigation principale",
+    "mobileLabel": "Navigation mobile",
+    "moreDialog": "Navigation complémentaire",
+    "reports": "Rapports",
+    "settings": "Paramètres",
+    "tax": "Impôts",
+    "transactions": "Transactions"
+  },
+  "routes": {
+    "accountDetail": "Détail du compte",
+    "allYearsReport": "Rapport pluriannuel",
+    "lifeInsurance": "Assurance-vie",
+    "notFound": "Page introuvable"
+  },
+  "states": {
+    "empty": {
+      "description": "Les rapprochements à vérifier apparaîtront ici.",
+      "title": "Aucun élément à traiter"
+    },
+    "error": {
+      "description": "L’API est actuellement indisponible. Vérifiez que le service local est démarré, puis réessayez.",
+      "title": "Connexion interrompue"
+    },
+    "loading": {
+      "title": "Préparation de votre espace"
+    },
+    "notCalculable": {
+      "explanation": "Une raison accompagne toujours une donnée non calculable.",
+      "label": "Non calculable",
+      "reason": "Revenus incomplets sur la période",
+      "title": "Valeur non disponible"
+    },
+    "placeholder": {
+      "description": "Cette route est prête à accueillir son prochain module métier.",
+      "title": "Fonctionnalité à venir"
+    },
+    "stale": {
+      "description": "Le dernier solde connu date du {{date}}.",
+      "label": "Données anciennes",
+      "title": "Mise à jour requise"
+    }
+  },
+  "dashboard": {
+    "allocation": {
+      "cash": "Liquidités",
+      "classLabel": "classes d’actifs",
+      "description": "Répartition des actifs",
+      "investments": "Investissements",
+      "realEstate": "Immobilier",
+      "title": "Allocation",
+      "viewAccounts": "Voir les comptes"
+    },
+    "chart": {
+      "monthColumn": "Mois",
+      "summary": "Le patrimoine progresse régulièrement entre {{startPeriod}} et {{endPeriod}}.",
+      "showTable": "Voir les données sous forme de tableau",
+      "title": "Évolution du patrimoine",
+      "valueColumn": "Patrimoine net"
+    },
+    "income": {
+      "description": "{{count}} opérations en {{period}}",
+      "title": "Revenus"
+    },
+    "netWorth": {
+      "deltaPeriod": "depuis {{period}}",
+      "increaseAccessible": "Hausse de {{amount}}",
+      "title": "Patrimoine net"
+    },
+    "period": {
+      "label": "Période affichée",
+      "next": "Mois suivant",
+      "previous": "Mois précédent"
+    },
+    "quality": {
+      "description": "Exemples des états du shell",
+      "title": "Qualité des données"
+    },
+    "savingRate": {
+      "title": "Taux d’épargne"
+    },
+    "spending": {
+      "description": "{{count}} opérations en {{period}}",
+      "title": "Dépenses"
+    }
   }
 }
