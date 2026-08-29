@@ -76,7 +76,9 @@ inside the ticket, never deferred to a later "security phase".
 
 - Risk-proportionate domain unit or property tests.
 - PostgreSQL and API integration tests, plus contract tests.
-- Component or E2E coverage for the critical path.
+- Component coverage for critical interface behaviour.
+- Browser E2E coverage is deferred until v1.0.0, when stable critical journeys exist;
+  before then it is neither a ticket requirement nor a pull-request gate.
 - Migrations are tested from an empty database **and** from the previous schema whenever
   persistence changes.
 

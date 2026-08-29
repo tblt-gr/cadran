@@ -127,7 +127,7 @@ make up         # start the stack over local HTTPS
 make down       # stop the stack
 make quality    # formatting, static analysis, module boundaries, types, OpenAPI, infrastructure
 make test       # module-boundary, infrastructure, backend (PHPUnit) and frontend (Vitest) tests
-make e2e        # critical-path browser tests against the running stack (Linux host)
+make e2e        # optional browser smoke scaffold against the running stack (Linux host)
 make audit      # Composer and npm dependency audits
 make build      # production build of both applications
 ```
@@ -143,9 +143,10 @@ pnpm lint:docs  # validate published Markdown
 `pnpm install` enables the local Git hooks. They format and validate staged files, enforce
 Conventional Commits, and block direct pushes to `main` on the official repository.
 
-`make e2e` runs the browser suite in a container on the host network, so it currently expects a
-Linux host. `make db-backup` and `make db-restore FILE=...` arrive with the backup capability in a
-later sprint.
+`make e2e` runs the optional browser suite in a container on the host network, so it currently
+expects a Linux host. It is not a pull-request gate before v1.0.0; browser E2E coverage enters the
+quality process once stable critical journeys exist. `make db-backup` and
+`make db-restore FILE=...` arrive with the backup capability in a later sprint.
 
 ### Project documents
 

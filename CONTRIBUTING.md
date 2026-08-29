@@ -73,11 +73,15 @@ The `commit-msg` hook enforces this locally, and CI validates every pull request
 
 ## Quality checks
 
-`make quality`, `make test` and `make e2e` are the global entry points. `make quality` runs
+`make quality` and `make test` are the global entry points. `make quality` runs
 PHP-CS-Fixer, PHPStan, module-boundary checks, ESLint, strict TypeScript, the OpenAPI lint and
-the infrastructure checks; `make test` runs PHPUnit against PostgreSQL and the frontend suite;
-`make e2e` runs the browser smoke suite against the running stack. Do not add a tool without
-wiring it into the matching global command and into CI.
+the infrastructure checks; `make test` runs PHPUnit against PostgreSQL and the frontend suite.
+Do not add a required quality tool without wiring it into the matching global command and into CI.
+
+`make e2e` keeps the Playwright scaffold available for explicit local experiments. Browser E2E
+tests are not required and do not run in pull-request CI before v1.0.0. They become part of the
+quality process once stable critical journeys exist and their runtime and resource cost has been
+measured.
 
 Documentation and contract checks also run without Docker:
 

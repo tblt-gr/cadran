@@ -241,22 +241,6 @@ jobs:
           trivyignores: .trivyignore
           exit-code: '1'
 
-  e2e:
-    name: End-to-end smoke
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-      - name: Prepare local runtime files
-        run: sh scripts/init-local.sh
-      - name: Browser smoke suite
-        run: make e2e
-      - name: Stop the stack
-        if: always()
-        run: docker compose --env-file .env.local down --volumes
-
   markdown_changes:
     name: Detect Markdown changes
     runs-on: ubuntu-latest
@@ -317,7 +301,6 @@ jobs:
       - composer-audit
       - audit
       - image-scan
-      - e2e
       - markdown_changes
       - markdown
     runs-on: ubuntu-latest
