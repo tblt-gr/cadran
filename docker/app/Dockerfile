@@ -33,7 +33,7 @@ RUN composer install \
     --prefer-dist \
     --ignore-platform-req=php
 
-FROM dunglas/frankenphp:1.12.6-php8.5-bookworm AS runtime
+FROM dunglas/frankenphp:1.12.7-php8.5-bookworm AS runtime
 
 RUN install-php-extensions pdo_pgsql \
     && setcap -r /usr/local/bin/frankenphp \

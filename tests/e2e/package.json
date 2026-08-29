@@ -1,0 +1,17 @@
+{
+  "name": "@cadran/e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test",
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "^24.13.3",
+    "oxlint": "^1.75.0",
+    "typescript": "~6.0.2"
+  }
+}

@@ -1,9 +1,12 @@
-.PHONY: init install tools up down migrate status tls-certificate generate test test-api test-web test-infrastructure architecture quality build audit
+.PHONY: init install tools up down migrate status tls-certificate generate test test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 COMPOSE := docker compose --env-file $(COMPOSE_ENV)
 COMPOSE_DEFAULT := env -u CADRAN_HTTPS_BIND -u CADRAN_HTTPS_PORT -u CADRAN_SERVER_NAME docker compose --env-file .env.example
 TOOLS_IMAGE := cadran_tools:local
+E2E_IMAGE := cadran_e2e:local
+# Host-published address of the running stack. Override when .env.local changes the port.
+E2E_BASE_URL ?= https://localhost:8443
 HOST_UID := $(shell id -u)
 HOST_GID := $(shell id -g)
 TOOLS_DOCKER_RUN := docker run --rm --user $(HOST_UID):$(HOST_GID) --env HOME=/tmp --mount "type=bind,source=$(CURDIR),target=/workspace" --workdir /workspace
@@ -77,4 +80,15 @@ build: tools
 
 audit: tools
 	$(TOOLS_RUN) composer audit --working-dir=apps/api --locked
-	$(TOOLS_RUN) pnpm audit
+	$(TOOLS_RUN) pnpm audit --audit-level=high
+
+e2e-image:
+	docker build --file docker/e2e/Dockerfile --tag $(E2E_IMAGE) .
+
+# Critical-path browser tests against the full local stack. Uses the host network
+# so the containerised runner reaches the published HTTPS port (Linux hosts).
+e2e: e2e-image
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait
+	$(MAKE) migrate
+	docker run --rm --network host --env CI=1 --env E2E_BASE_URL=$(E2E_BASE_URL) $(E2E_IMAGE)

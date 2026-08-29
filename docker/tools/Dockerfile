@@ -2,7 +2,7 @@ FROM node:22.22.0-bookworm-slim AS node
 
 FROM composer:2.9 AS composer
 
-FROM dunglas/frankenphp:1.12.6-php8.5-bookworm
+FROM dunglas/frankenphp:1.12.7-php8.5-bookworm
 
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 COPY --from=node /usr/local/bin/node /usr/local/bin/node

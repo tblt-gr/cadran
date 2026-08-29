@@ -3,6 +3,9 @@ info:
   title: Cadran Budget API
   version: 0.1.0
   description: Versioned HTTP contract for the Cadran Budget modular monolith.
+  license:
+    name: MIT
+    identifier: MIT
 servers:
   - url: /
 paths:
@@ -12,6 +15,8 @@ paths:
       summary: Check that the API foundation is available
       tags:
         - Foundation
+      # The foundation probe is deliberately public; it exposes no workspace data.
+      security: []
       responses:
         '200':
           description: The API foundation is ready.

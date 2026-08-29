@@ -13,6 +13,8 @@ vendor/
 dist/
 build/
 coverage/
+playwright-report/
+test-results/
 var/
 packages/api-client/src/generated/
 *.tsbuildinfo

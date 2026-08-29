@@ -115,22 +115,38 @@ data form the common exit gate.
 
 ## Development
 
-### Current documentation toolchain
+### Local commands
 
-Requirements: Node.js 22.22 or newer and pnpm 9 or newer.
+Requirements: Docker with the Compose plugin, GNU Make, Node.js 22.22 or newer, and pnpm 9 or
+newer. Every `make` target runs inside the pinned `cadran_tools` image so the toolchain is
+identical on every machine.
 
 ```bash
-pnpm install
-pnpm quality
-pnpm audit
+make init       # dependencies, containers, database, migrations on a clean machine
+make up         # start the stack over local HTTPS
+make down       # stop the stack
+make quality    # formatting, static analysis, module boundaries, types, OpenAPI, infrastructure
+make test       # module-boundary, infrastructure, backend (PHPUnit) and frontend (Vitest) tests
+make e2e        # optional browser smoke scaffold against the running stack (Linux host)
+make audit      # Composer and npm dependency audits
+make build      # production build of both applications
+```
+
+Documentation and contract checks also run without Docker:
+
+```bash
+pnpm install    # also enables the local Git hooks
+pnpm quality    # formatting, linting, OpenAPI lint and type checks
+pnpm lint:docs  # validate published Markdown
 ```
 
 `pnpm install` enables the local Git hooks. They format and validate staged files, enforce
 Conventional Commits, and block direct pushes to `main` on the official repository.
 
-Sprint 0 will introduce `make init`, `make up`, `make down`, `make test`, `make quality`, `make e2e`,
-`make db-backup`, and `make db-restore FILE=...`. These commands will be added together with the code
-they operate so the README never advertises placeholders.
+`make e2e` runs the optional browser suite in a container on the host network, so it currently
+expects a Linux host. It is not a pull-request gate before v1.0.0; browser E2E coverage enters the
+quality process once stable critical journeys exist. `make db-backup` and
+`make db-restore FILE=...` arrive with the backup capability in a later sprint.
 
 ### Project documents
 

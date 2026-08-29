@@ -19,6 +19,56 @@ updates:
           - minor
           - patch
 
+  - package-ecosystem: composer
+    directory: /apps/api
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Paris
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      composer-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: docker
+    directories:
+      - /docker/app
+      - /docker/postgres
+      - /docker/tools
+      - /docker/e2e
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Paris
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      docker:
+        patterns:
+          - '*'
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Paris
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      docker-compose:
+        patterns:
+          - '*'
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -33,6 +83,3 @@ updates:
       github-actions:
         patterns:
           - '*'
-
-# Add Composer, Dockerfile and Docker Compose entries in Sprint 0, together with the manifests and
-# directories they monitor. Dependabot rejects update blocks that point to non-existent manifests.

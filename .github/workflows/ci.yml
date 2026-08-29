@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+    # `edited` so a corrected PR title re-runs the Conventional-commit check.
+    types: [opened, synchronize, reopened, edited]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -37,7 +39,7 @@ jobs:
         run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint
 
   quality:
-    name: Application quality
+    name: Frontend and contract quality
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -51,7 +53,194 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm quality
+      - run: pnpm test
       - run: pnpm lint:infrastructure
+
+  backend:
+    name: Backend quality and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: cadran
+          POSTGRES_PASSWORD: cadran
+          POSTGRES_DB: cadran
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cadran -d cadran"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # apps/api/.env is gitignored and absent in CI; mirror the app container's
+      # entrypoint so the Symfony runtime does not try to read it.
+      APP_RUNTIME_OPTIONS: '{"disable_dotenv":true}'
+      # No APP_ENV: unset defaults to dev; PHPUnit forces test for `composer test`.
+      APP_SECRET: ci-backend-only
+      DATABASE_URL: postgresql://cadran:cadran@127.0.0.1:5432/cadran?serverVersion=18&charset=utf8
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch the base branch for the upgrade-path check
+        if: github.base_ref != ''
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: git fetch --no-tags origin "$GITHUB_BASE_REF"
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, pdo_pgsql
+          coverage: none
+          tools: composer:2.9.8
+      - name: Install Composer dependencies
+        run: composer install --working-dir=apps/api --no-interaction --no-progress --prefer-dist --no-scripts
+      - name: Coding standards
+        run: composer lint --working-dir=apps/api
+      - name: Static analysis
+        run: composer analyse --working-dir=apps/api
+      - name: Module dependency boundaries
+        run: sh scripts/test-architecture.sh
+      - name: Migrations from empty and from the released schema
+        env:
+          MIGRATION_BASE_REF: origin/${{ github.base_ref || 'main' }}
+        run: sh scripts/ci/check-migrations.sh
+      - name: Prepare the PHPUnit database
+        run: |
+          php apps/api/bin/console doctrine:database:create --env=test --if-not-exists --no-interaction
+          php apps/api/bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
+      - name: Tests
+        run: composer test --working-dir=apps/api
+
+  openapi:
+    name: OpenAPI and generated client
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Lint the OpenAPI document
+        run: pnpm openapi:lint
+      - name: Regenerate the TypeScript client
+        run: pnpm generate:api
+      - name: Type-check the regenerated client against the contract
+        run: pnpm --filter @cadran/api-client typecheck
+      - name: Assert the client and its request assertions still bind to the contract
+        run: pnpm --filter @cadran/api-client test
+
+  build:
+    name: Build both applications
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_RUNTIME_OPTIONS: '{"disable_dotenv":true}'
+      APP_ENV: prod
+      APP_SECRET: ci-build-only
+      DATABASE_URL: postgresql://cadran:cadran@127.0.0.1:5432/cadran?serverVersion=18&charset=utf8
+      DEFAULT_URI: https://localhost:8443
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, pdo_pgsql
+          coverage: none
+          tools: composer:2.9.8
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build the web application and API client
+        run: pnpm build
+      - name: Compile the API container for production
+        run: |
+          composer install --working-dir=apps/api --no-interaction --no-progress \
+            --prefer-dist --no-dev --optimize-autoloader --no-scripts
+          php apps/api/bin/console cache:clear
+
+  composer-audit:
+    name: Composer dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:2.9.8
+      - run: composer audit --working-dir=apps/api --locked --no-interaction
+
+  audit:
+    name: npm dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm audit --audit-level=high
+
+  image-scan:
+    name: Runtime image scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Prepare local runtime files
+        run: sh scripts/init-local.sh
+      - name: Build the deployed images
+        run: docker compose --env-file .env.local build app db
+      - name: Scan the application image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: cadran_app:local
+          severity: CRITICAL,HIGH
+          # The merge gate blocks on regressions a PR author can act on; unfixable
+          # base-image CVEs are chased by the nightly image-scan-nightly workflow.
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: '1'
+      - name: Scan the database image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: cadran_db:local
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: '1'
+      - name: Scan the Dockerfiles for misconfiguration
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: docker
+          severity: CRITICAL,HIGH
+          trivyignores: .trivyignore
+          exit-code: '1'
 
   markdown_changes:
     name: Detect Markdown changes
@@ -102,23 +291,19 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm lint:docs
 
-  audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
-        with:
-          node-version: 22
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm audit
-
   ci:
     name: CI gate
-    needs: [commitlint, quality, markdown_changes, markdown, audit]
+    needs:
+      - commitlint
+      - quality
+      - backend
+      - openapi
+      - build
+      - composer-audit
+      - audit
+      - image-scan
+      - markdown_changes
+      - markdown
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
