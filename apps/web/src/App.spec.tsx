@@ -16,17 +16,45 @@ function renderApp() {
   );
 }
 
-function respondWithReadyFoundation() {
+function jsonResponse(body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+const authenticatedSession = {
+  provisioned: true,
+  authenticated: true,
+  setupRequired: false,
+  user: { id: 'u1', email: 'owner@example.test', displayName: 'Owner' },
+  workspace: { id: 'w1', role: 'OWNER' },
+};
+
+/**
+ * The session probe always resolves authenticated here; `status` controls the
+ * foundation probe so the shell states can be exercised on their own.
+ */
+function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject' } = {}) {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () =>
-      Promise.resolve(
-        new Response(JSON.stringify({ status: 'ready', apiVersion: 'v1' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      ),
-    ),
+    vi.fn(async (input: Request | string) => {
+      const url = typeof input === 'string' ? input : input.url;
+
+      if (url.includes('/api/v1/session')) {
+        return jsonResponse(authenticatedSession);
+      }
+
+      if (status === 'pending') {
+        return new Promise<Response>(() => undefined);
+      }
+
+      if (status === 'reject') {
+        return Promise.reject(new Error('offline'));
+      }
+
+      return jsonResponse({ status: 'ready', apiVersion: 'v1' });
+    }),
   );
 }
 
@@ -37,15 +65,12 @@ describe('App', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('keeps the application shell visible while the API request is pending', () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => new Promise(() => undefined)),
-    );
+  it('keeps the application shell visible while the foundation probe is pending', async () => {
+    mockApi({ status: 'pending' });
 
     renderApp();
 
-    expect(screen.getByRole('navigation', { name: 'Navigation principale' })).toBeTruthy();
+    expect(await screen.findByRole('navigation', { name: 'Navigation principale' })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('Connexion à l’API');
   });
 
@@ -64,7 +89,7 @@ describe('App', () => {
     ['/settings/profile', 'Paramètres'],
   ])('scaffolds the route %s', async (path, title) => {
     window.history.replaceState({}, '', path);
-    respondWithReadyFoundation();
+    mockApi();
 
     renderApp();
 
@@ -72,7 +97,7 @@ describe('App', () => {
   });
 
   it('scaffolds application routes with client-side navigation', async () => {
-    respondWithReadyFoundation();
+    mockApi();
 
     renderApp();
     await screen.findByRole('heading', { name: 'Synthèse' });
@@ -84,11 +109,8 @@ describe('App', () => {
     await waitFor(() => expect(document.title).toBe('Transactions · Cadran Budget'));
   });
 
-  it('shows a recoverable error inside the shell for a network failure', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => Promise.reject(new Error('offline'))),
-    );
+  it('shows a recoverable error inside the shell for a foundation network failure', async () => {
+    mockApi({ status: 'reject' });
 
     renderApp();
 

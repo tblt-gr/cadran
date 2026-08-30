@@ -9,3 +9,27 @@ api:
     internal_error:
       title: 'Erreur interne du serveur'
       detail: "L'API n'a pas pu traiter la requête."
+    invalid_request:
+      title: 'Requête invalide'
+      detail: 'Le corps de la requête est absent ou mal formé.'
+    unsupported_media_type:
+      title: 'Type de média non supporté'
+      detail: 'Cette ressource attend un corps « application/json ».'
+    unauthorized:
+      title: 'Authentification requise'
+      detail: 'Cette ressource nécessite une session authentifiée.'
+    invalid_credentials:
+      title: 'Identifiants invalides'
+      detail: "L'adresse e-mail ou le mot de passe est incorrect."
+    account_disabled:
+      title: 'Compte désactivé'
+      detail: "Ce compte est désactivé. Contactez l'administrateur du serveur."
+    weak_password:
+      title: 'Mot de passe trop court'
+      detail: 'Le mot de passe doit comporter entre 12 et 128 caractères.'
+    password_already_set:
+      title: 'Mot de passe déjà défini'
+      detail: 'Le mot de passe du compte a déjà été défini.'
+    owner_not_provisioned:
+      title: 'Compte propriétaire absent'
+      detail: "Aucun compte propriétaire n'a été initialisé sur ce serveur."

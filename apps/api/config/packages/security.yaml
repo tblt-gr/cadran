@@ -1,0 +1,45 @@
+security:
+  password_hashers:
+    App\Module\Identity\Infrastructure\Security\SecurityUser:
+      # OWASP ASVS 5.0 V2.4: Argon2id, well above the 19 MiB / t=2 floor.
+      algorithm: argon2id
+      memory_cost: 65536 # 64 MiB
+      time_cost: 4
+
+  providers:
+    identity:
+      id: App\Module\Identity\Infrastructure\Security\IdentityUserProvider
+
+  firewalls:
+    dev:
+      pattern: ^/(_profiler|_wdt)/
+      security: false
+    api:
+      pattern: ^/api/
+      lazy: true
+      provider: identity
+      user_checker: App\Module\Identity\Infrastructure\Security\IdentityUserChecker
+      entry_point: App\Module\Identity\Infrastructure\Security\Http\ApiAuthenticationEntryPoint
+      json_login:
+        check_path: api_v1_session_create
+        username_path: email
+        password_path: password
+        success_handler: App\Module\Identity\Infrastructure\Security\Http\LoginSuccessHandler
+        failure_handler: App\Module\Identity\Infrastructure\Security\Http\LoginFailureHandler
+
+  # First match wins. The session endpoints and the status probe stay public;
+  # everything else under /api/ is denied to an anonymous request by default,
+  # so a new controller is fail-closed even before it adds its own #[IsGranted].
+  access_control:
+    - { path: ^/api/v1/status$, roles: PUBLIC_ACCESS }
+    - { path: ^/api/v1/session, roles: PUBLIC_ACCESS }
+    - { path: ^/api/, roles: ROLE_USER }
+
+when@test:
+  security:
+    password_hashers:
+      # Lowest values Sodium's Argon2id accepts, to keep the suite fast.
+      App\Module\Identity\Infrastructure\Security\SecurityUser:
+        algorithm: argon2id
+        memory_cost: 10
+        time_cost: 3

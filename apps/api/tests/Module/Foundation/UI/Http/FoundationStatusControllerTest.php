@@ -27,6 +27,8 @@ final class FoundationStatusControllerTest extends WebTestCase
     {
         $client = self::createClient();
 
+        // A path with no route 404s at the router, before the firewall runs, so
+        // it looks identical to an anonymous and an authenticated caller.
         $client->request('GET', '/api/v1/unknown');
 
         self::assertResponseStatusCodeSame(404);

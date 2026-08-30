@@ -26,10 +26,128 @@ paths:
                 $ref: '#/components/schemas/FoundationStatus'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/session:
+    get:
+      operationId: getSession
+      summary: Describe the current session
+      description: >-
+        Public. Reports whether the request carries an authenticated, active
+        session and whether first-run password setup is still pending.
+      tags:
+        - Session
+      security: []
+      responses:
+        '200':
+          description: The session state for the calling browser.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionState'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: openSession
+      summary: Open a session with email and password
+      tags:
+        - Session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '204':
+          description: The session cookie is set. Fetch GET /api/v1/session for details.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/InvalidCredentials'
+        '403':
+          $ref: '#/components/responses/AccountDisabled'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      operationId: closeSession
+      summary: Close the current session
+      tags:
+        - Session
+      security: []
+      responses:
+        '204':
+          description: The session is invalidated. A no-op when already anonymous.
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/session/password:
+    put:
+      operationId: defineInitialPassword
+      summary: Define the owner password on first run
+      description: >-
+        Public and one-time. Accepted only while the provisioned owner has no
+        password; afterwards it answers 409.
+      tags:
+        - Session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DefinePasswordRequest'
+      responses:
+        '204':
+          description: The password is stored. The owner can now open a session.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   responses:
     InternalServerError:
       description: An unexpected server error occurred.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnsupportedMediaType:
+      description: The endpoint requires an application/json request body.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    BadRequest:
+      description: The request body is missing or malformed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InvalidCredentials:
+      description: The email or password is incorrect. Identical for an unknown email.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    AccountDisabled:
+      description: The credentials were valid but the account is disabled.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: The owner password has already been defined.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: The password does not satisfy the account password policy.
       content:
         application/problem+json:
           schema:
@@ -48,6 +166,87 @@ components:
         apiVersion:
           type: string
           const: v1
+    SessionState:
+      type: object
+      additionalProperties: false
+      required:
+        - provisioned
+        - authenticated
+        - setupRequired
+        - user
+        - workspace
+      properties:
+        provisioned:
+          type: boolean
+          description: True once an owner account exists on this server.
+        authenticated:
+          type: boolean
+          description: True when an active, authenticated session is attached.
+        setupRequired:
+          type: boolean
+          description: True when the provisioned owner has no password yet.
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/SessionUser'
+            - type: 'null'
+        workspace:
+          oneOf:
+            - $ref: '#/components/schemas/SessionWorkspace'
+            - type: 'null'
+    SessionUser:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - email
+        - displayName
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+    SessionWorkspace:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - role
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum:
+            - OWNER
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    DefinePasswordRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - password
+      properties:
+        password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 128
     Problem:
       type: object
       additionalProperties: false

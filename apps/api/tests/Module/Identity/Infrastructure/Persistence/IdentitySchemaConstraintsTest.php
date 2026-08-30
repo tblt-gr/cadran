@@ -121,6 +121,36 @@ final class IdentitySchemaConstraintsTest extends KernelTestCase
         $this->connection->executeStatement('INSERT INTO identity_initial_provisionings (id) VALUES (true)');
     }
 
+    public function testOwnerPasswordAndDisableColumnsAreNullableAndPersisted(): void
+    {
+        $withoutAuth = '00000000-0000-7000-8000-000000000001';
+        $withAuth = '00000000-0000-7000-8000-000000000002';
+
+        // Nullable: the owner exists before a password or a disable timestamp.
+        $this->insertUser($withoutAuth, 'fresh@example.test');
+        self::assertNull($this->connection->fetchOne(
+            'SELECT password_hash FROM identity_users WHERE id = ?',
+            [$withoutAuth],
+        ));
+
+        $this->connection->insert('identity_users', [
+            'id' => $withAuth,
+            'email' => 'active@example.test',
+            'display_name' => 'Owner',
+            'created_at' => self::CREATED_AT,
+            'password_hash' => 'argon-hash',
+            'disabled_at' => '2026-08-30 09:00:00+00',
+        ]);
+
+        $row = $this->connection->fetchAssociative(
+            'SELECT password_hash, disabled_at FROM identity_users WHERE id = ?',
+            [$withAuth],
+        );
+        self::assertIsArray($row);
+        self::assertSame('argon-hash', $row['password_hash']);
+        self::assertNotNull($row['disabled_at']);
+    }
+
     public function testAWorkspaceWithAMembershipCannotBeDeleted(): void
     {
         $workspaceId = '00000000-0000-7000-8000-0000000000a0';

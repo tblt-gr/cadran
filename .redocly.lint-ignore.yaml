@@ -3,3 +3,5 @@
 apps/api/openapi/openapi.yaml:
   operation-4xx-response:
     - '#/paths/~1api~1v1~1status/get/responses'
+    - '#/paths/~1api~1v1~1session/get/responses'
+    - '#/paths/~1api~1v1~1session/delete/responses'
