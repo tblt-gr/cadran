@@ -8,4 +8,5 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ### Added
 
+- One-time local provisioning of the first owner, isolated workspace, and OWNER membership.
 - Initial project documentation, contribution guidelines, and repository automation.

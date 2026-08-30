@@ -132,6 +132,13 @@ make audit      # Composer and npm dependency audits
 make build      # production build of both applications
 ```
 
+A fresh install has no user until the first owner and workspace are provisioned. This is a
+one-time action; a second run is rejected.
+
+```bash
+make provision-owner EMAIL=you@example.test WORKSPACE="Household" NAME="You" CURRENCY=EUR
+```
+
 Documentation and contract checks also run without Docker:
 
 ```bash
