@@ -1,0 +1,125 @@
+:root {
+  color-scheme: dark;
+
+  /* Colors */
+  --color-transparent: transparent;
+  --bg-page: #050506;
+  --bg-shell: #08090d;
+  --bg-sidebar: #090a10;
+  --bg-surface-1: #101114;
+  --bg-surface-2: #181a21;
+  --bg-surface-hover: #1d1f27;
+  --bg-mobile-navigation: #111217;
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --chart-grid: rgba(255, 255, 255, 0.055);
+  --gold-200: #f7d58f;
+  --gold-300: #f0c77b;
+  --gold-500: #d3ac5f;
+  --gold-soft: rgba(211, 172, 95, 0.14);
+  --text-on-primary: #17130b;
+  --text-primary: #f5f4ef;
+  --text-secondary: #a5a9b5;
+  --text-muted: #7c818e;
+  --positive: #36c9a0;
+  --positive-soft: rgba(54, 201, 160, 0.12);
+  --negative: #f07878;
+  --negative-soft: rgba(240, 120, 120, 0.12);
+  --warning: #e3a56f;
+  --warning-soft: rgba(227, 165, 111, 0.12);
+  --info: #8ea8e8;
+  --info-soft: rgba(142, 168, 232, 0.12);
+  --allocation-real-estate: #a58bce;
+  --focus: #f4cf86;
+  --overlay-sheet: rgba(0, 0, 0, 0.72);
+
+  /* Effects */
+  --shadow-card: 0 1rem 3rem rgba(0, 0, 0, 0.26);
+  --shadow-mobile-navigation: 0 1rem 2.5rem rgba(0, 0, 0, 0.46);
+  --shadow-sheet: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
+
+  /* Layout dimensions */
+  --sidebar-width: 13.5rem;
+  --sidebar-width-collapsed: 4.75rem;
+  --header-height: 5rem;
+  --header-height-mobile: 6.25rem;
+  --control-height: 2.75rem;
+  --navigation-link-height: 2.875rem;
+  --mobile-navigation-height: 4.5rem;
+  --mobile-content-bottom-offset: 5.75rem;
+
+  /* Typography */
+  --font-family-sans:
+    Inter, Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  --font-size-2xs: 0.625rem;
+  --font-size-xs: 0.6875rem;
+  --font-size-sm: 0.75rem;
+  --font-size-label: 0.8125rem;
+  --font-size-body: 0.875rem;
+  --font-size-card-title: 0.9375rem;
+  --font-size-brand: 1.125rem;
+  --font-size-kpi: 1.375rem;
+  --font-size-allocation-total: 1.5rem;
+  --font-size-page-title: clamp(1.375rem, 2vw, 1.75rem);
+  --font-size-display: clamp(2rem, 2.65vw, 3.25rem);
+  --font-size-display-mobile: clamp(1.85rem, 10vw, 2.75rem);
+  --font-size-empty-title: clamp(1.5rem, 3vw, 2.25rem);
+  --font-weight-normal: 500;
+  --font-weight-medium: 520;
+  --font-weight-heading: 580;
+  --font-weight-semibold: 620;
+  --font-weight-strong: 650;
+  --font-weight-bold: 700;
+  --line-height-tight: 1;
+  --line-height-context: 1.45;
+  --line-height-body: 1.5;
+  --line-height-relaxed: 1.6;
+  --letter-spacing-card: -0.01em;
+  --letter-spacing-brand: -0.02em;
+  --letter-spacing-kpi: -0.025em;
+  --letter-spacing-title: -0.03em;
+  --letter-spacing-display: -0.035em;
+
+  /* Spacing */
+  --spacing-none: 0;
+  --spacing-0-5: 0.125rem;
+  --spacing-1: 0.25rem;
+  --spacing-1-5: 0.375rem;
+  --spacing-2: 0.5rem;
+  --spacing-control-block: 0.6875rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-12: 3rem;
+
+  /* Borders */
+  --border-none: 0;
+  --border-width-thin: 0.0625rem;
+  --border-width-focus: 0.1875rem;
+  --border-width-loading: 0.25rem;
+  --border-line-subtle: var(--border-width-thin) solid var(--border-subtle);
+  --border-line-strong: var(--border-width-thin) solid var(--border-strong);
+  --border-line-transparent: var(--border-width-thin) solid var(--color-transparent);
+  --outline-focus: var(--border-width-focus) solid var(--focus);
+  --radius-none: 0;
+  --radius-control: 0.375rem;
+  --radius-card: 0.5rem;
+  --radius-full: 999px;
+  --radius-circle: 50%;
+  --radius-button: var(--radius-full);
+
+  /* Icons */
+  --icon-size-sm: 2rem;
+  --icon-size-md: 2.25rem;
+  --icon-size-lg: 2.75rem;
+
+  /* Transitions */
+  --duration-reduced-motion: 0.01ms;
+  --duration-fast: 140ms;
+  --duration-medium: 200ms;
+  --duration-chart-draw: 560ms;
+  --duration-loading-spin: 900ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}

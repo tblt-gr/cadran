@@ -1,0 +1,116 @@
+.panel {
+  align-self: start;
+  min-width: 0;
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface-1);
+}
+
+.panel h2,
+.panel h3,
+.panel p {
+  margin: var(--spacing-none);
+}
+
+.panel h2 {
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-card);
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
+  gap: var(--spacing-4);
+}
+
+.heading p {
+  margin-top: var(--spacing-1);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.item {
+  display: flex;
+  padding: var(--spacing-4) var(--spacing-none);
+  border-bottom: var(--border-line-subtle);
+  gap: var(--spacing-3);
+}
+
+.item:last-child {
+  padding-bottom: var(--spacing-none);
+  border-bottom: var(--border-none);
+}
+
+.itemIcon {
+  display: grid;
+  flex: 0 0 auto;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  border-radius: var(--radius-control);
+  place-items: center;
+}
+
+.warning {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.info {
+  color: var(--info);
+  background: var(--info-soft);
+}
+
+.negative {
+  color: var(--negative);
+  background: var(--negative-soft);
+}
+
+.item h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+}
+
+.item p {
+  margin-top: var(--spacing-1);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-context);
+}
+
+@media (max-width: 1279px) {
+  .panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-4);
+  }
+
+  .heading {
+    grid-column: 1 / -1;
+  }
+
+  .item {
+    border: var(--border-none);
+  }
+}
+
+@media (max-width: 767px) {
+  .panel {
+    display: block;
+    margin-top: var(--spacing-3);
+  }
+
+  .item {
+    border-bottom: var(--border-line-subtle);
+  }
+
+  .item:last-child {
+    border: var(--border-none);
+  }
+}

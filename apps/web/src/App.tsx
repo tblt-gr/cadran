@@ -1,10 +1,20 @@
 import { getFoundationStatus } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import './App.css';
+import { AppShell } from './components/layout/app-shell/AppShell';
+import { DashboardContextPanel } from './features/dashboard/context-panel/DashboardContextPanel';
+import { DashboardPage } from './features/dashboard/DashboardPage';
+import { dashboardDemoData } from './features/dashboard/dashboardDemoData';
+import { formatDemoDay } from './features/dashboard/formatDemoDate';
+import { FoundationErrorState } from './features/foundation/FoundationErrorState';
+import { FoundationLoadingState } from './features/foundation/FoundationLoadingState';
+import { PlaceholderPage } from './features/not-found/PlaceholderPage';
+import { getRouteTitleKey } from './lib/navigation';
 
 function App() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const [path, setPath] = useState(() => window.location.pathname);
   const status = useQuery({
     queryKey: ['foundation-status'],
     queryFn: async ({ signal }) => {
@@ -19,40 +29,47 @@ function App() {
     retry: false,
   });
 
-  if (status.isPending) {
-    return (
-      <main className="foundation-state" aria-labelledby="foundation-title">
-        <h1 id="foundation-title">{t('app.name')}</h1>
-        <p role="status">{t('foundation.loading')}</p>
-      </main>
-    );
-  }
+  useEffect(() => {
+    function updatePath() {
+      setPath(window.location.pathname);
+    }
 
-  if (status.isError) {
-    return (
-      <main className="foundation-state" aria-labelledby="foundation-title">
-        <div role="alert">
-          <h1 id="foundation-title">{t('app.name')}</h1>
-          <p>{t('foundation.error')}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            void status.refetch();
-          }}
-        >
-          {t('foundation.retry')}
-        </button>
-      </main>
+    window.addEventListener('popstate', updatePath);
+    return () => window.removeEventListener('popstate', updatePath);
+  }, []);
+
+  useEffect(() => {
+    const routeTitle = t(getRouteTitleKey(path));
+    document.title = path === '/' ? t('app.name') : `${routeTitle} · ${t('app.name')}`;
+  }, [path, t]);
+
+  let content;
+  if (path !== '/') {
+    content = <PlaceholderPage />;
+  } else if (status.isPending) {
+    content = <FoundationLoadingState />;
+  } else if (status.isError) {
+    content = (
+      <FoundationErrorState
+        retry={() => {
+          void status.refetch();
+        }}
+      />
     );
+  } else {
+    content = <DashboardPage apiVersion={status.data.apiVersion} />;
   }
 
   return (
-    <main className="foundation-state" aria-labelledby="foundation-title">
-      <p className="eyebrow">{t('foundation.apiVersion', { version: status.data.apiVersion })}</p>
-      <h1 id="foundation-title">{t('app.name')}</h1>
-      <p role="status">{t('foundation.ready')}</p>
-    </main>
+    <AppShell
+      contextPanel={path === '/' && status.isSuccess ? <DashboardContextPanel /> : undefined}
+      freshnessLabel={t('header.staleFreshness', { count: dashboardDemoData.freshnessDays })}
+      headerDate={formatDemoDay(dashboardDemoData.asOfDate, i18n.language)}
+      path={path}
+      setPath={setPath}
+    >
+      {content}
+    </AppShell>
   );
 }
 

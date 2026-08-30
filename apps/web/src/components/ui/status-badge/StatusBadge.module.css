@@ -1,0 +1,31 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  gap: var(--spacing-1);
+}
+
+.warning {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.positive {
+  color: var(--positive);
+  background: var(--positive-soft);
+}
+
+.negative {
+  color: var(--negative);
+  background: var(--negative-soft);
+}
+
+.info {
+  color: var(--info);
+  background: var(--info-soft);
+}
