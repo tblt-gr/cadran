@@ -2,12 +2,12 @@
   display: inline-flex;
   align-items: center;
   min-height: 1.75rem;
-  padding: 0.25rem 0.5rem;
+  padding: var(--spacing-1) var(--spacing-2);
   border-radius: var(--radius-control);
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
   white-space: nowrap;
-  gap: var(--space-1);
+  gap: var(--spacing-1);
 }
 
 .warning {

@@ -2,17 +2,17 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  min-height: 2.875rem;
-  padding: 0.6875rem var(--space-3);
-  border: 0;
+  min-height: var(--navigation-link-height);
+  padding: var(--spacing-control-block) var(--spacing-3);
+  border: var(--border-none);
   border-radius: var(--radius-button);
   color: var(--text-secondary);
-  background: transparent;
+  background: var(--color-transparent);
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
   text-decoration: none;
   cursor: pointer;
-  gap: var(--space-3);
+  gap: var(--spacing-3);
   transition:
     color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
@@ -25,5 +25,5 @@
 
 .link[aria-current='page'] {
   color: var(--gold-300);
-  background: transparent;
+  background: var(--color-transparent);
 }

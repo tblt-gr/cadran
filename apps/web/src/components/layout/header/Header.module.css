@@ -2,23 +2,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 5rem;
-  padding: 0 var(--space-8);
-  border-bottom: 0.0625rem solid var(--border-subtle);
-  gap: var(--space-6);
+  min-height: var(--header-height);
+  padding: var(--spacing-none) var(--spacing-8);
+  border-bottom: var(--border-line-subtle);
+  gap: var(--spacing-6);
 }
 
 .header h1,
 .header p {
-  margin: 0;
+  margin: var(--spacing-none);
 }
 
 .header h1 {
-  margin-top: 0.125rem;
+  margin-top: var(--spacing-0-5);
   color: var(--text-primary);
-  font-size: clamp(1.375rem, 2vw, 1.75rem);
-  font-weight: 580;
-  letter-spacing: -0.03em;
+  font-size: var(--font-size-page-title);
+  font-weight: var(--font-weight-heading);
+  letter-spacing: var(--letter-spacing-title);
 }
 
 .date {
@@ -33,17 +33,17 @@
 }
 
 .actions {
-  gap: var(--space-3);
+  gap: var(--spacing-3);
 }
 
 .freshness {
   min-height: 2.5rem;
-  padding: 0 var(--space-3);
-  border: 0.0625rem solid var(--border-subtle);
+  padding: var(--spacing-none) var(--spacing-3);
+  border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  gap: var(--space-2);
+  gap: var(--spacing-2);
 }
 
 .freshnessDot {
@@ -56,12 +56,12 @@
 @media (max-width: 767px) {
   .header {
     align-items: flex-start;
-    min-height: 6.25rem;
-    padding: var(--space-4);
+    min-height: var(--header-height-mobile);
+    padding: var(--spacing-4);
   }
 
   .actions {
-    gap: var(--space-2);
+    gap: var(--spacing-2);
   }
 
   .freshness,

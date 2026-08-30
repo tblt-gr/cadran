@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRoot } from 'react-dom/client';
+import './styles/variables.css';
 import './styles/global.css';
 import './styles/primitives.css';
 import './i18n';

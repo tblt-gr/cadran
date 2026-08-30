@@ -1,5 +1,5 @@
 .chart {
-  margin: var(--space-4) 0 0;
+  margin: var(--spacing-4) var(--spacing-none) var(--spacing-none);
 }
 
 .chart figcaption {
@@ -20,7 +20,7 @@
 
 .grid {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.055);
+  stroke: var(--chart-grid);
   stroke-width: 1;
 }
 
@@ -79,13 +79,13 @@
 }
 
 .details {
-  margin-top: var(--space-2);
+  margin-top: var(--spacing-2);
 }
 
 .details summary {
   width: fit-content;
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   cursor: pointer;
 }
 
@@ -95,17 +95,17 @@
 
 .tableWrap {
   max-height: 11rem;
-  margin-top: var(--space-3);
+  margin-top: var(--spacing-3);
   overflow: auto;
 }
 
 .table th,
 .table td {
-  padding: 0.5rem 0;
-  border-bottom: 0.0625rem solid var(--border-subtle);
+  padding: var(--spacing-2) var(--spacing-none);
+  border-bottom: var(--border-line-subtle);
   color: var(--text-secondary);
-  font-size: 0.6875rem;
-  font-weight: 500;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
   text-align: left;
 }
 
@@ -118,7 +118,7 @@
 
 @media (max-width: 767px) {
   .chart {
-    margin-top: var(--space-6);
+    margin-top: var(--spacing-6);
   }
 
   .plot {

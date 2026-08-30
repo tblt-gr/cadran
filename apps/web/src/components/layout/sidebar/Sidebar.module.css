@@ -6,26 +6,26 @@
   height: 100vh;
   height: 100svh;
   overflow: hidden;
-  border-right: 0.0625rem solid var(--border-subtle);
+  border-right: var(--border-line-subtle);
   background: var(--bg-sidebar);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  min-height: 5rem;
-  padding: 0 var(--space-6);
-  gap: var(--space-3);
+  min-height: var(--header-height);
+  padding: var(--spacing-none) var(--spacing-6);
+  gap: var(--spacing-3);
   color: var(--text-primary);
-  font-size: 1.125rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-size: var(--font-size-brand);
+  font-weight: var(--font-weight-strong);
+  letter-spacing: var(--letter-spacing-brand);
 }
 
 .brandMark {
   flex: 0 0 auto;
-  width: 2rem;
-  height: 2rem;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
   color: var(--gold-300);
 }
 
@@ -33,26 +33,26 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  padding: var(--space-3);
-  gap: var(--space-1);
+  padding: var(--spacing-3);
+  gap: var(--spacing-1);
 }
 
 .collapse {
   display: flex;
   align-items: center;
   min-width: 0;
-  min-height: 2.875rem;
-  margin: var(--space-3);
-  padding: 0.6875rem var(--space-3);
-  border: 0;
-  border-top: 0.0625rem solid var(--border-subtle);
+  min-height: var(--navigation-link-height);
+  margin: var(--spacing-3);
+  padding: var(--spacing-control-block) var(--spacing-3);
+  border: var(--border-none);
+  border-top: var(--border-line-subtle);
   border-radius: var(--radius-button);
   color: var(--text-secondary);
-  background: transparent;
+  background: var(--color-transparent);
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
-  gap: var(--space-3);
+  gap: var(--spacing-3);
   transition:
     color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
@@ -66,7 +66,7 @@
 @media (max-width: 1279px) {
   .brand {
     justify-content: center;
-    padding: 0;
+    padding: var(--spacing-none);
   }
 
   .brand span,
@@ -85,14 +85,14 @@
   .link {
     justify-content: center;
     width: 2.875rem;
-    padding-inline: 0;
+    padding-inline: var(--spacing-none);
   }
 }
 
 @media (min-width: 1280px) {
   .collapsed .brand {
     justify-content: center;
-    padding: 0;
+    padding: var(--spacing-none);
   }
 
   .collapsed .brand span,
@@ -104,7 +104,7 @@
   .collapsed .link,
   .collapsed .collapse {
     justify-content: center;
-    padding-inline: 0;
+    padding-inline: var(--spacing-none);
   }
 }
 

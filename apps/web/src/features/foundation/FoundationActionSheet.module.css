@@ -2,21 +2,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: var(--space-4);
-  border-bottom: 0.0625rem solid var(--border-subtle);
-  gap: var(--space-4);
+  padding-bottom: var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
+  gap: var(--spacing-4);
 }
 
 .state {
   display: flex;
   align-items: center;
-  padding: var(--space-6) 0 var(--space-2);
-  gap: var(--space-4);
+  padding: var(--spacing-6) var(--spacing-none) var(--spacing-2);
+  gap: var(--spacing-4);
 }
 
 .state h3,
 .state p {
-  margin: 0;
+  margin: var(--spacing-none);
 }
 
 .state h3 {
@@ -26,7 +26,7 @@
 
 .state p {
   max-width: 34rem;
-  margin-top: var(--space-2);
+  margin-top: var(--spacing-2);
   color: var(--text-secondary);
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);

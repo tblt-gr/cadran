@@ -4,8 +4,8 @@
   align-items: flex-start;
   justify-content: center;
   min-height: min(35rem, calc(100svh - 9.5rem));
-  padding: var(--space-8);
-  gap: var(--space-4);
+  padding: var(--spacing-8);
+  gap: var(--spacing-4);
 }
 
 .mark {
@@ -20,10 +20,10 @@
 }
 
 .loadingMark {
-  border: 0.25rem solid var(--border-strong);
+  border: var(--border-width-loading) solid var(--border-strong);
   border-top-color: var(--gold-300);
   border-radius: var(--radius-circle);
-  animation: spin 900ms linear infinite;
+  animation: spin var(--duration-loading-spin) linear infinite;
 }
 
 .errorMark {
@@ -32,21 +32,21 @@
 }
 
 .state h2 {
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
-  letter-spacing: -0.03em;
+  font-size: var(--font-size-empty-title);
+  letter-spacing: var(--letter-spacing-title);
 }
 
 .state p {
   max-width: 36rem;
-  margin-top: var(--space-2) !important;
+  margin-top: var(--spacing-2) !important;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: var(--line-height-relaxed);
 }
 
 .skeletonStack {
   display: grid;
   width: min(100%, 36rem);
-  gap: var(--space-3);
+  gap: var(--spacing-3);
 }
 
 .skeletonStack span {
@@ -73,7 +73,7 @@
 @media (max-width: 767px) {
   .state {
     min-height: calc(100svh - 13rem);
-    padding: var(--space-6);
+    padding: var(--spacing-6);
   }
 }
 

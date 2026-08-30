@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint && pnpm lint:css-tokens",
+    "lint:css-tokens": "node scripts/check-css-tokens.mjs",
     "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
     "preview": "vite preview"

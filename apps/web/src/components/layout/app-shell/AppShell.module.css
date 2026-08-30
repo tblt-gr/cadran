@@ -1,6 +1,6 @@
 .shell {
   display: grid;
-  grid-template-columns: 13.5rem minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   min-height: 100vh;
   min-height: 100svh;
   background: var(--bg-page);
@@ -9,13 +9,13 @@
 .skipLink {
   position: fixed;
   z-index: 100;
-  top: 0.75rem;
-  left: 0.75rem;
-  padding: 0.75rem 1rem;
+  top: var(--spacing-3);
+  left: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
   border-radius: var(--radius-control);
   color: var(--bg-page);
   background: var(--gold-300);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   transform: translateY(-160%);
   transition: transform var(--duration-fast) var(--ease-out);
 }
@@ -33,17 +33,17 @@
 .body {
   display: grid;
   min-width: 0;
-  padding: var(--space-6);
+  padding: var(--spacing-6);
 }
 
 .bodyWithPanel {
   grid-template-columns: minmax(0, 1fr) 17.5rem;
-  gap: var(--space-6);
+  gap: var(--spacing-6);
 }
 
 @media (max-width: 1279px) {
   .shell {
-    grid-template-columns: 4.75rem minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-width-collapsed) minmax(0, 1fr);
   }
 
   .bodyWithPanel {
@@ -53,29 +53,29 @@
 
 @media (min-width: 1280px) {
   .collapsed {
-    grid-template-columns: 4.75rem minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-width-collapsed) minmax(0, 1fr);
   }
 }
 
 @media (max-width: 767px) {
   .shell {
     display: block;
-    padding: 0;
+    padding: var(--spacing-none);
     background: var(--bg-shell);
   }
 
   .workspace {
     min-height: 100vh;
     min-height: 100svh;
-    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--mobile-content-bottom-offset) + env(safe-area-inset-bottom));
     overflow: visible;
-    border: 0;
+    border: var(--border-none);
     border-radius: var(--radius-none);
   }
 
   .body,
   .bodyWithPanel {
     display: block;
-    padding: 0 var(--space-3) var(--space-6);
+    padding: var(--spacing-none) var(--spacing-3) var(--spacing-6);
   }
 }
