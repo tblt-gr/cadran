@@ -1,0 +1,85 @@
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: min(35rem, calc(100svh - 9.5rem));
+  padding: var(--space-8);
+  gap: var(--space-4);
+}
+
+.mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-control);
+  color: var(--info);
+  background: var(--info-soft);
+  place-items: center;
+}
+
+.loadingMark {
+  border: 0.25rem solid var(--border-strong);
+  border-top-color: var(--gold-300);
+  border-radius: 50%;
+  animation: spin 900ms linear infinite;
+}
+
+.errorMark {
+  color: var(--negative);
+  background: var(--negative-soft);
+}
+
+.state h2 {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  letter-spacing: -0.03em;
+}
+
+.state p {
+  max-width: 36rem;
+  margin-top: var(--space-2) !important;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.skeletonStack {
+  display: grid;
+  width: min(100%, 36rem);
+  gap: var(--space-3);
+}
+
+.skeletonStack span {
+  display: block;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--bg-surface-2);
+}
+
+.skeletonStack span:nth-child(2) {
+  width: 78%;
+}
+
+.skeletonStack span:nth-child(3) {
+  width: 54%;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .state {
+    min-height: calc(100svh - 13rem);
+    padding: var(--space-6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingMark {
+    animation: none;
+    border-color: var(--gold-300);
+  }
+}

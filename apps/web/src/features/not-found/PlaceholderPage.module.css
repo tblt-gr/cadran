@@ -1,0 +1,39 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: min(35rem, calc(100svh - 9.5rem));
+  padding: var(--space-8);
+  gap: var(--space-4);
+}
+
+.mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-control);
+  color: var(--info);
+  background: var(--info-soft);
+  place-items: center;
+}
+
+.page h2 {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  letter-spacing: -0.03em;
+}
+
+.page p {
+  max-width: 36rem;
+  margin-top: var(--space-2) !important;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media (max-width: 767px) {
+  .page {
+    min-height: calc(100svh - 13rem);
+    padding: var(--space-6);
+  }
+}

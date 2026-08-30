@@ -1,5 +1,5 @@
 import type { ParseKeys } from 'i18next';
-import type { IconName } from '../design-system/Icon';
+import type { IconName } from '../components/ui/icon/Icon';
 
 export interface NavigationItem {
   href: string;

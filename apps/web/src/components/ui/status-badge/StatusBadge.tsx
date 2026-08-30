@@ -1,4 +1,5 @@
-import { Icon, type IconName } from './Icon';
+import { Icon, type IconName } from '../icon/Icon';
+import styles from './StatusBadge.module.css';
 
 type StatusTone = 'info' | 'negative' | 'positive' | 'warning';
 
@@ -10,7 +11,7 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ children, icon = 'alert', tone }: StatusBadgeProps) {
   return (
-    <span className={`status-badge status-badge--${tone}`}>
+    <span className={`${styles.badge} ${styles[tone]}`}>
       <Icon name={icon} size={15} />
       <span>{children}</span>
     </span>

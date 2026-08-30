@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { Icon } from '../design-system/Icon';
-import { ModalSheet } from '../design-system/ModalSheet';
-import { navigationItems } from './navigation';
+import { navigationItems } from '../../../lib/navigation';
+import { Icon } from '../../ui/icon/Icon';
+import { ModalSheet } from '../../ui/modal-sheet/ModalSheet';
+import styles from './MobileMoreSheet.module.css';
 
 interface MobileMoreSheetProps {
   close: () => void;
@@ -14,7 +15,7 @@ export function MobileMoreSheet({ close, navigate, path }: MobileMoreSheetProps)
 
   return (
     <ModalSheet ariaLabel={t('navigation.moreDialog')} close={close}>
-      <div className="more-sheet__heading">
+      <div className={styles.heading}>
         <h2>{t('navigation.explore')}</h2>
         <button
           aria-label={t('actions.close')}
@@ -26,7 +27,7 @@ export function MobileMoreSheet({ close, navigate, path }: MobileMoreSheetProps)
           <Icon name="close" />
         </button>
       </div>
-      <nav aria-label={t('navigation.moreDialog')}>
+      <nav aria-label={t('navigation.moreDialog')} className={styles.navigation}>
         {navigationItems
           .filter((item) => !item.mobile)
           .map((item) => (

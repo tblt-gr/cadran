@@ -1,0 +1,38 @@
+.link {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 2.875rem;
+  padding: 0.6875rem var(--space-3);
+  border: 0;
+  border-radius: var(--radius-button);
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+  gap: var(--space-3);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.link:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.link[aria-current='page'] {
+  color: var(--gold-300);
+  background: var(--gold-soft);
+}
+
+.link[aria-current='page']::after {
+  width: 0.3rem;
+  height: 0.3rem;
+  margin-left: auto;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}

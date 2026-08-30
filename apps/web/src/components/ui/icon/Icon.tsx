@@ -1,3 +1,5 @@
+import styles from './Icon.module.css';
+
 type IconName =
   | 'accounts'
   | 'add'
@@ -72,7 +74,7 @@ export function Icon({ name, size = 20 }: IconProps) {
   return (
     <svg
       aria-hidden="true"
-      className="icon"
+      className={styles.icon}
       fill="none"
       height={size}
       viewBox="0 0 24 24"

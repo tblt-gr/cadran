@@ -1,0 +1,44 @@
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-4);
+  border-bottom: 0.0625rem solid var(--border-subtle);
+  gap: var(--space-4);
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  padding: var(--space-6) 0 var(--space-2);
+  gap: var(--space-4);
+}
+
+.state h3,
+.state p {
+  margin: 0;
+}
+
+.state h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+}
+
+.state p {
+  max-width: 34rem;
+  margin-top: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-control);
+  color: var(--info);
+  background: var(--info-soft);
+  place-items: center;
+}

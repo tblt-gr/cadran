@@ -1,0 +1,25 @@
+.backdrop {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--space-3);
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.sheet {
+  width: 100%;
+  max-height: min(80svh, 34rem);
+  overflow: auto;
+  padding: var(--space-4);
+  border: 0.0625rem solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface-2);
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
+}
+
+.sheet h2 {
+  margin: 0;
+}

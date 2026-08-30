@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --bg-page: #050506;
   --bg-shell: #08090d;
   --bg-sidebar: #090a10;
@@ -42,8 +43,8 @@
   --space-8: 2rem;
   --space-12: 3rem;
   --radius-control: 0.625rem;
-  --radius-card: 1.125rem;
-  --radius-shell: 1.5rem;
+  --radius-button: 999px;
+  --radius-card: 0.75rem;
   --shadow-card: 0 1rem 3rem rgba(0, 0, 0, 0.26);
   --duration-fast: 140ms;
   --duration-medium: 200ms;

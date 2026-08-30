@@ -1,0 +1,86 @@
+.card {
+  grid-column: span 7;
+  min-height: 20rem;
+  padding: var(--space-6);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.amount {
+  margin-top: var(--space-3) !important;
+  color: var(--text-primary);
+  font-size: clamp(2rem, 2.65vw, 3.25rem);
+  font-weight: 520;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.delta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: var(--space-3) !important;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  gap: var(--space-2);
+}
+
+.positiveDelta {
+  display: inline-flex;
+  align-items: center;
+  color: var(--positive);
+  font-weight: 700;
+  gap: var(--space-1);
+}
+
+.periodControl {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  border: 0.0625rem solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  background: var(--bg-surface-2);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.periodControl :global(.icon-button) {
+  border: 0;
+  background: transparent;
+}
+
+@media (max-width: 1279px) {
+  .card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 767px) {
+  .card {
+    grid-column: 1;
+    min-height: 0;
+    padding: var(--space-4);
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .amount {
+    max-width: 100%;
+    font-size: clamp(1.85rem, 10vw, 2.75rem);
+  }
+
+  .periodControl {
+    align-self: stretch;
+    justify-content: space-between;
+    order: 2;
+  }
+}

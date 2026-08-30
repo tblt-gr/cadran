@@ -1,11 +1,11 @@
 import type { ParseKeys } from 'i18next';
 
 interface AllocationDemoData {
-  className: string;
   dashArray: string;
   dashOffset: string;
   labelKey: ParseKeys;
   percentage: string;
+  tone: 'cash' | 'investment' | 'realEstate';
   value: string;
 }
 
@@ -31,27 +31,27 @@ export const dashboardDemoData: {
 } = {
   allocations: [
     {
-      className: 'allocation--cash',
       dashArray: '48.2 51.8',
       dashOffset: '0',
       labelKey: 'dashboard.allocation.cash',
       percentage: '48,2 %',
+      tone: 'cash',
       value: '60 104,00 €',
     },
     {
-      className: 'allocation--investment',
       dashArray: '36.8 63.2',
       dashOffset: '-48.2',
       labelKey: 'dashboard.allocation.investments',
       percentage: '36,8 %',
+      tone: 'investment',
       value: '45 884,00 €',
     },
     {
-      className: 'allocation--real-estate',
       dashArray: '15 85',
       dashOffset: '-85',
       labelKey: 'dashboard.allocation.realEstate',
       percentage: '15,0 %',
+      tone: 'realEstate',
       value: '18 692,00 €',
     },
   ],

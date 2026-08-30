@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import styles from './ModalSheet.module.css';
 
 interface ModalSheetProps {
   ariaLabel: string;
@@ -11,7 +12,7 @@ export function ModalSheet({ ariaLabel, children, close }: ModalSheetProps) {
   const sheet = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const appShell = document.querySelector<HTMLElement>('.app-shell');
+    const appShell = document.querySelector<HTMLElement>('[data-app-shell]');
     const previousOverflow = document.body.style.overflow;
     appShell?.setAttribute('inert', '');
     document.body.style.overflow = 'hidden';
@@ -52,11 +53,11 @@ export function ModalSheet({ ariaLabel, children, close }: ModalSheetProps) {
   }, [close]);
 
   return createPortal(
-    <div className="sheet-backdrop" onMouseDown={close}>
+    <div className={styles.backdrop} onMouseDown={close}>
       <section
         aria-label={ariaLabel}
         aria-modal="true"
-        className="more-sheet"
+        className={styles.sheet}
         onMouseDown={(event) => event.stopPropagation()}
         ref={sheet}
         role="dialog"

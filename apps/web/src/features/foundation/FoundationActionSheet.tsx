@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { Icon } from '../design-system/Icon';
-import { ModalSheet } from '../design-system/ModalSheet';
+import { Icon } from '../../components/ui/icon/Icon';
+import { ModalSheet } from '../../components/ui/modal-sheet/ModalSheet';
+import styles from './FoundationActionSheet.module.css';
 
 export type FoundationAction = 'add' | 'search';
 
@@ -14,7 +15,7 @@ export function FoundationActionSheet({ action, close }: FoundationActionSheetPr
 
   return (
     <ModalSheet ariaLabel={t(`foundationActions.${action}.title`)} close={close}>
-      <div className="more-sheet__heading">
+      <div className={styles.heading}>
         <h2>{t(`foundationActions.${action}.title`)}</h2>
         <button
           aria-label={t('actions.close')}
@@ -26,8 +27,8 @@ export function FoundationActionSheet({ action, close }: FoundationActionSheetPr
           <Icon name="close" />
         </button>
       </div>
-      <div className="foundation-action-state" role="status">
-        <div className="placeholder-page__mark">
+      <div className={styles.state} role="status">
+        <div className={styles.mark}>
           <Icon name={action === 'search' ? 'search' : 'add'} size={26} />
         </div>
         <div>
