@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Icon } from '../../components/ui/icon/Icon';
-import { ModalSheet } from '../../components/ui/modal-sheet/ModalSheet';
+import { Icon } from '@/components/ui/icon/Icon';
+import { ModalSheet } from '@/components/ui/modal-sheet/ModalSheet';
 import styles from './FoundationActionSheet.module.css';
 
 export type FoundationAction = 'add' | 'search';

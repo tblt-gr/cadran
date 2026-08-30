@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { MouseEvent } from 'react';
-import type { NavigationItem } from '../../../lib/navigation';
-import { Icon } from '../../ui/icon/Icon';
+import type { NavigationItem } from '@/lib/navigation';
+import { Icon } from '@/components/ui/icon/Icon';
 import styles from './NavigationLink.module.css';
 
 export type NavigationHandler = (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
