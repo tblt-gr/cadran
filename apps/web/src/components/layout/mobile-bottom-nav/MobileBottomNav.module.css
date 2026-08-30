@@ -14,7 +14,7 @@
     min-height: 4.5rem;
     padding: 0.375rem;
     border: 0.0625rem solid var(--border-strong);
-    border-radius: 1rem;
+    border-radius: var(--radius-card);
     background: #111217;
     box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.46);
   }
@@ -40,10 +40,6 @@
   .link[aria-current='page'] {
     color: var(--gold-300);
     background: var(--gold-soft);
-  }
-
-  .link::after {
-    display: none;
   }
 
   .add {

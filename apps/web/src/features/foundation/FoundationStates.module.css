@@ -22,7 +22,7 @@
 .loadingMark {
   border: 0.25rem solid var(--border-strong);
   border-top-color: var(--gold-300);
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   animation: spin 900ms linear infinite;
 }
 
@@ -52,7 +52,7 @@
 .skeletonStack span {
   display: block;
   height: 0.75rem;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--bg-surface-2);
 }
 

@@ -26,19 +26,51 @@
 
 .area {
   fill: var(--gold-soft);
+  animation: reveal-area var(--duration-chart-draw) var(--ease-out) both;
 }
 
 .line {
   fill: none;
   stroke: var(--gold-300);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
   stroke-linecap: round;
   stroke-width: 2;
+  animation: draw-line var(--duration-chart-draw) var(--ease-out) forwards;
 }
 
 .point {
   fill: var(--bg-surface-1);
   stroke: var(--gold-300);
   stroke-width: 2;
+  opacity: 0;
+  transform: scale(0.65);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: reveal-point var(--duration-fast) var(--ease-out) var(--duration-chart-draw) forwards;
+}
+
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes reveal-area {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes reveal-point {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .table {
@@ -91,5 +123,26 @@
 
   .plot {
     height: 8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .area,
+  .line,
+  .point {
+    animation: none;
+  }
+
+  .area {
+    clip-path: none;
+  }
+
+  .line {
+    stroke-dashoffset: 0;
+  }
+
+  .point {
+    opacity: 1;
+    transform: none;
   }
 }

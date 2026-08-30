@@ -31,6 +31,7 @@ export function WealthChart() {
         <path
           className={styles.line}
           d="M20 142 C78 139 104 124 140 126 S218 112 256 104 S330 91 374 88 S450 78 492 66 S558 46 600 31"
+          pathLength="1"
         />
         <circle className={styles.point} cx="600" cy="31" r="4" />
       </svg>

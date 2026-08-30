@@ -11,7 +11,7 @@
   height: 2.75rem;
   padding: 0;
   border: 0.0625rem solid var(--border-subtle);
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   color: var(--text-secondary);
   background: var(--bg-surface-2);
   place-items: center;

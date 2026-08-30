@@ -70,8 +70,7 @@
   }
 
   .brand span,
-  .link span,
-  .link::after {
+  .link span {
     display: none;
   }
 
@@ -98,7 +97,6 @@
 
   .collapsed .brand span,
   .collapsed .link span,
-  .collapsed .link::after,
   .collapsed .collapse span {
     display: none;
   }
