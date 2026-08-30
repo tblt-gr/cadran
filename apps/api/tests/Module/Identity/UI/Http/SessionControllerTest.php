@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Identity\UI\Http;
 
+use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Module\Identity\Domain\PlainPassword;
 use Doctrine\DBAL\Connection;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
@@ -23,6 +25,7 @@ final class SessionControllerTest extends WebTestCase
     private KernelBrowser $client;
     private Connection $connection;
     private bool $databaseReady = false;
+    private string $csrfToken = '';
 
     protected function setUp(): void
     {
@@ -40,6 +43,27 @@ final class SessionControllerTest extends WebTestCase
         $this->connection = $connection;
         $this->databaseReady = true;
         $this->clearIdentityData();
+        $this->resetLoginThrottling();
+
+        // A safe probe plants the double-submit CSRF cookie; echo it back on
+        // every following request the way the SPA does. Individual tests
+        // override HTTP_X_CSRF_TOKEN to exercise the rejection paths.
+        $this->client->request('GET', '/api/v1/session');
+        $csrf = $this->client->getCookieJar()->get(SignedCsrfToken::COOKIE_NAME);
+        self::assertNotNull($csrf);
+        $this->csrfToken = $csrf->getValue();
+        $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', $this->csrfToken);
+    }
+
+    /**
+     * The login rate limiter uses a persistent cache pool, so its counters would
+     * otherwise carry across tests and across suite runs.
+     */
+    private function resetLoginThrottling(): void
+    {
+        $pool = self::getContainer()->get('cache.rate_limiter');
+        self::assertInstanceOf(CacheItemPoolInterface::class, $pool);
+        $pool->clear();
     }
 
     protected function tearDown(): void
@@ -273,6 +297,135 @@ final class SessionControllerTest extends WebTestCase
         $this->client->request('GET', '/api/v1/status');
 
         self::assertResponseIsSuccessful();
+    }
+
+    public function testAMutationWithoutACsrfTokenIsRejected(): void
+    {
+        $this->provisionOwner(plainPassword: self::PASSWORD);
+
+        $this->client->request(
+            'POST',
+            '/api/v1/session',
+            server: self::jsonHeaders() + ['HTTP_X_CSRF_TOKEN' => ''],
+            content: (string) json_encode(['email' => self::EMAIL, 'password' => self::PASSWORD]),
+        );
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+        self::assertSame(403, $this->decode()['status']);
+    }
+
+    public function testAMutationWithAMalformedCsrfTokenIsRejected(): void
+    {
+        $this->provisionOwner(plainPassword: null);
+
+        $this->client->request(
+            'PUT',
+            '/api/v1/session/password',
+            server: self::jsonHeaders() + ['HTTP_X_CSRF_TOKEN' => 'not.a.token'],
+            content: (string) json_encode(['password' => self::PASSWORD]),
+        );
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+    }
+
+    public function testAValidTokenThatDoesNotMatchTheCookieIsRejected(): void
+    {
+        $this->provisionOwner(plainPassword: self::PASSWORD);
+        $minter = self::getContainer()->get(SignedCsrfToken::class);
+        self::assertInstanceOf(SignedCsrfToken::class, $minter);
+        $foreignButValid = $minter->issue();
+
+        $this->client->request(
+            'DELETE',
+            '/api/v1/session',
+            server: ['HTTP_X_CSRF_TOKEN' => $foreignButValid],
+        );
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+    }
+
+    public function testAMutationFromAForeignOriginIsRejectedEvenWithAValidToken(): void
+    {
+        $this->provisionOwner(plainPassword: self::PASSWORD);
+
+        $this->client->request(
+            'POST',
+            '/api/v1/session',
+            server: self::jsonHeaders() + ['HTTP_ORIGIN' => 'https://evil.example'],
+            content: (string) json_encode(['email' => self::EMAIL, 'password' => self::PASSWORD]),
+        );
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+    }
+
+    public function testTheSixthFailedLoginIsThrottledWithoutRevealingTheAccount(): void
+    {
+        $this->provisionOwner(plainPassword: self::PASSWORD);
+
+        for ($attempt = 1; $attempt <= 5; ++$attempt) {
+            $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: (string) json_encode(['email' => self::EMAIL, 'password' => 'wrong password value']));
+            self::assertResponseStatusCodeSame(401);
+        }
+
+        // The sixth attempt sends the *correct* password: it is still refused,
+        // so a caller cannot use throttling to confirm a guess.
+        $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: (string) json_encode(['email' => self::EMAIL, 'password' => self::PASSWORD]));
+
+        self::assertResponseStatusCodeSame(429);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+        // Retry-After tracks the limiter's own recovery estimate: positive and
+        // never past one interval plus a minute of rounding.
+        $retryAfter = (int) $this->client->getResponse()->headers->get('retry-after');
+        self::assertGreaterThan(0, $retryAfter);
+        self::assertLessThanOrEqual(960, $retryAfter);
+        $body = $this->decode();
+        self::assertSame(429, $body['status']);
+        self::assertStringNotContainsStringIgnoringCase(self::EMAIL, (string) json_encode($body));
+    }
+
+    public function testAMutationDeclaringACrossSiteFetchIsRejectedWithACsrfProblem(): void
+    {
+        $this->provisionOwner(plainPassword: self::PASSWORD);
+
+        $this->client->request(
+            'POST',
+            '/api/v1/session',
+            server: self::jsonHeaders() + ['HTTP_SEC_FETCH_SITE' => 'cross-site'],
+            content: (string) json_encode(['email' => self::EMAIL, 'password' => self::PASSWORD]),
+        );
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+        // A distinct type lets the SPA tell a stale token from a disabled account.
+        self::assertSame('/problems/csrf-token', $this->decode()['type']);
+    }
+
+    public function testTheCsrfCookieIsReadableAndLockedToTheSite(): void
+    {
+        $cookie = $this->client->getCookieJar()->get(SignedCsrfToken::COOKIE_NAME);
+
+        self::assertNotNull($cookie);
+        self::assertFalse($cookie->isHttpOnly());
+        self::assertSame('strict', $cookie->getSameSite());
+    }
+
+    public function testAnUnknownEmailIsThrottledOnTheSameCurveAsAKnownOne(): void
+    {
+        $this->provisionOwner(plainPassword: self::PASSWORD);
+
+        $statuses = [];
+        for ($attempt = 1; $attempt <= 6; ++$attempt) {
+            $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: (string) json_encode(['email' => 'ghost@example.test', 'password' => 'whatever value here']));
+            $statuses[] = $this->client->getResponse()->getStatusCode();
+        }
+
+        // Five 401s then a 429 — identical to the known-account curve above, so
+        // the throttle leaks nothing about which emails exist.
+        self::assertSame([401, 401, 401, 401, 401, 429], $statuses);
     }
 
     /**

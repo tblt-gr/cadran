@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Foundation\UI\Http;
 
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -29,18 +28,10 @@ final class ApiProblemResponseListener
         $status = $throwable instanceof HttpExceptionInterface ? $throwable->getStatusCode() : 500;
         $translationKey = self::translationKey($status);
 
-        $event->setResponse(new JsonResponse(
-            data: [
-                'type' => 'about:blank',
-                'title' => $this->translator->trans($translationKey.'.title'),
-                'status' => $status,
-                'detail' => $this->translator->trans($translationKey.'.detail'),
-            ],
-            status: $status,
-            headers: [
-                'Cache-Control' => 'no-store',
-                'Content-Type' => 'application/problem+json',
-            ],
+        $event->setResponse(ApiProblem::response(
+            $status,
+            $this->translator->trans($translationKey.'.title'),
+            $this->translator->trans($translationKey.'.detail'),
         ));
     }
 

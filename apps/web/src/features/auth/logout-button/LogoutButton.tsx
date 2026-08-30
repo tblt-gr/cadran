@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
+import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import styles from './LogoutButton.module.css';
 
 /**
@@ -19,7 +20,9 @@ export function LogoutButton() {
     setPending(true);
 
     try {
-      await closeSession({ ...authApiOptions() });
+      // withCsrfRetry: a tab open past the token's lifetime would otherwise get
+      // a 403 here and stay signed in.
+      await withCsrfRetry(() => closeSession({ ...authApiOptions() }));
     } catch {
       // Ignore: the cache reset below still returns the UI to a safe state.
     } finally {

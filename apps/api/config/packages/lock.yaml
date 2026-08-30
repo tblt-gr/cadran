@@ -1,0 +1,4 @@
+framework:
+  # flock: local file locks under the system temp dir. Enough to make the
+  # single-instance login limiter's read-modify-write atomic (ADR-0016).
+  lock: '%env(LOCK_DSN)%'

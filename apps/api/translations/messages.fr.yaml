@@ -21,6 +21,12 @@ api:
     invalid_credentials:
       title: 'Identifiants invalides'
       detail: "L'adresse e-mail ou le mot de passe est incorrect."
+    too_many_attempts:
+      title: 'Trop de tentatives'
+      detail: 'Trop de tentatives de connexion. Réessayez dans quelques minutes.'
+    csrf:
+      title: 'Jeton anti-CSRF absent ou invalide'
+      detail: "La requête doit présenter un jeton anti-CSRF valide dans l'en-tête « X-CSRF-TOKEN »."
     account_disabled:
       title: 'Compte désactivé'
       detail: "Ce compte est désactivé. Contactez l'administrateur du serveur."

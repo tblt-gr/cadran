@@ -15,3 +15,11 @@ services:
 
   App\:
     resource: '../src/'
+
+  # Replaces the security bundle's fixed-window login limiter (see ADR-0016).
+  security.login_throttling.limiter:
+    class: Symfony\Component\Security\Http\RateLimiter\DefaultLoginRateLimiter
+    arguments:
+      - '@limiter.login_global'
+      - '@limiter.login_local'
+      - '%env(APP_SECRET)%'

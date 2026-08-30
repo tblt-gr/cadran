@@ -19,7 +19,7 @@
         <server name="DEFAULT_URI" value="http://localhost" force="true" />
         <server name="KERNEL_CLASS" value="App\Kernel" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
-
+        <env name="LOCK_DSN" value="flock" />
     </php>
 
     <testsuites>

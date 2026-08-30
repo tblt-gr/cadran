@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { FormField } from '@/features/auth/form-field/FormField';
+import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import styles from './LoginForm.module.css';
 
-type LoginError = 'invalidCredentials' | 'disabled' | 'network';
+type LoginError = 'invalidCredentials' | 'disabled' | 'throttled' | 'network';
 
 /**
  * Email and password sign-in. Emits `onSuccess` once the server has set the
@@ -24,7 +25,9 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     setSubmitting(true);
 
     try {
-      const { response } = await openSession({ ...authApiOptions(), body: { email, password } });
+      const { response } = await withCsrfRetry(() =>
+        openSession({ ...authApiOptions(), body: { email, password } }),
+      );
 
       if (!response) {
         setError('network');
@@ -42,6 +45,8 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         setError('invalidCredentials');
       } else if (response.status === 403) {
         setError('disabled');
+      } else if (response.status === 429) {
+        setError('throttled');
       } else {
         // 4xx malformed request, 5xx server: not a credential problem.
         setError('network');

@@ -33,6 +33,7 @@
       "errors": {
         "invalidCredentials": "L’adresse e-mail ou le mot de passe est incorrect.",
         "disabled": "Ce compte est désactivé. Contactez l’administrateur du serveur.",
+        "throttled": "Trop de tentatives de connexion. Patientez quelques minutes avant de réessayer.",
         "network": "La connexion au service a échoué. Réessayez."
       }
     },
