@@ -7,8 +7,18 @@ framework:
     fallbacks:
       - fr
 
-  # Note that the session will be started ONLY if you read or write from it.
-  session: true
+  # The session will be started ONLY if you read or write from it.
+  # Storage stays on the native file handler, under a path that survives
+  # cache:clear so a deploy does not sign everyone out. Moving it to
+  # PdoSessionHandler in PostgreSQL is recorded as deferred in ADR-0015.
+  session:
+    name: cadran_session
+    cookie_httponly: true
+    cookie_samesite: lax
+    cookie_secure: auto
+    cookie_lifetime: 0 # cookie dies with the browser session
+    gc_maxlifetime: 1209600 # 14-day idle ceiling on the server side
+    save_path: '%kernel.project_dir%/var/sessions'
 
   #esi: true
   #fragments: true

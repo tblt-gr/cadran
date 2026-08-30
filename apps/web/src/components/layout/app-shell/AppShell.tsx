@@ -3,17 +3,18 @@ import { useTranslation } from 'react-i18next';
 import {
   FoundationActionSheet,
   type FoundationAction,
-} from '../../../features/foundation/FoundationActionSheet';
-import { useClientNavigation } from '../../../hooks/use-client-navigation';
-import { getRouteTitleKey } from '../../../lib/navigation';
-import { Header } from '../header/Header';
-import { MobileBottomNav } from '../mobile-bottom-nav/MobileBottomNav';
-import { MobileMoreSheet } from '../mobile-more-sheet/MobileMoreSheet';
-import { Sidebar } from '../sidebar/Sidebar';
+} from '@/features/foundation/FoundationActionSheet';
+import { useClientNavigation } from '@/hooks/use-client-navigation';
+import { getRouteTitleKey } from '@/lib/navigation';
+import { Header } from '@/components/layout/header/Header';
+import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav/MobileBottomNav';
+import { MobileMoreSheet } from '@/components/layout/mobile-more-sheet/MobileMoreSheet';
+import { Sidebar } from '@/components/layout/sidebar/Sidebar';
 import styles from './AppShell.module.css';
 
 interface AppShellProps {
   children: ReactNode;
+  accountSlot?: ReactNode;
   contextPanel?: ReactNode;
   freshnessLabel: string;
   headerDate: string;
@@ -23,6 +24,7 @@ interface AppShellProps {
 
 export function AppShell({
   children,
+  accountSlot,
   contextPanel,
   freshnessLabel,
   headerDate,
@@ -68,6 +70,7 @@ export function AppShell({
 
       <div className={styles.workspace}>
         <Header
+          accountSlot={accountSlot}
           freshnessLabel={freshnessLabel}
           headerDate={headerDate}
           onAction={openAction}
@@ -92,7 +95,12 @@ export function AppShell({
       />
 
       {isMoreOpen ? (
-        <MobileMoreSheet close={closeMoreSheet} navigate={navigate} path={path} />
+        <MobileMoreSheet
+          accountSlot={accountSlot}
+          close={closeMoreSheet}
+          navigate={navigate}
+          path={path}
+        />
       ) : null}
       {activeAction ? <FoundationActionSheet action={activeAction} close={closeAction} /> : null}
     </div>

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { dashboardDemoData } from '../dashboardDemoData';
-import { formatDemoMonth } from '../formatDemoDate';
+import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
+import { formatDemoMonth } from '@/features/dashboard/formatDemoDate';
 import styles from './WealthChart.module.css';
 
 export function WealthChart() {

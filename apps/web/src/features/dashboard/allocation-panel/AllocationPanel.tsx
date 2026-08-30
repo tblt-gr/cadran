@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { dashboardDemoData } from '../dashboardDemoData';
+import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
 import styles from './AllocationPanel.module.css';
 
 export function AllocationPanel() {

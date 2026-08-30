@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import '../../../i18n';
+import '@/i18n';
 import { AppShell } from './AppShell';
 
 function renderShell() {

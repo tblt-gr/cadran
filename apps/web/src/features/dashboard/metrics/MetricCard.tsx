@@ -1,4 +1,4 @@
-import { Icon, type IconName } from '../../../components/ui/icon/Icon';
+import { Icon, type IconName } from '@/components/ui/icon/Icon';
 import styles from './MetricCard.module.css';
 
 type MetricTone = 'negative' | 'positive' | 'warning';

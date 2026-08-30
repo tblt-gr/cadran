@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { Icon } from '../../../components/ui/icon/Icon';
-import { MoneyValue } from '../../../components/ui/money-value/MoneyValue';
-import { dashboardDemoData } from '../dashboardDemoData';
-import { formatDemoMonth } from '../formatDemoDate';
-import { WealthChart } from '../wealth-chart/WealthChart';
+import { Icon } from '@/components/ui/icon/Icon';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
+import { formatDemoMonth } from '@/features/dashboard/formatDemoDate';
+import { WealthChart } from '@/features/dashboard/wealth-chart/WealthChart';
 import styles from './NetWorthCard.module.css';
 
 export function NetWorthCard() {

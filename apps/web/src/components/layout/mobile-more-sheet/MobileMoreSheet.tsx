@@ -1,16 +1,18 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { navigationItems } from '../../../lib/navigation';
-import { Icon } from '../../ui/icon/Icon';
-import { ModalSheet } from '../../ui/modal-sheet/ModalSheet';
+import { navigationItems } from '@/lib/navigation';
+import { Icon } from '@/components/ui/icon/Icon';
+import { ModalSheet } from '@/components/ui/modal-sheet/ModalSheet';
 import styles from './MobileMoreSheet.module.css';
 
 interface MobileMoreSheetProps {
+  accountSlot?: ReactNode;
   close: () => void;
   navigate: (path: string) => void;
   path: string;
 }
 
-export function MobileMoreSheet({ close, navigate, path }: MobileMoreSheetProps) {
+export function MobileMoreSheet({ accountSlot, close, navigate, path }: MobileMoreSheetProps) {
   const { t } = useTranslation();
 
   return (
@@ -47,6 +49,7 @@ export function MobileMoreSheet({ close, navigate, path }: MobileMoreSheetProps)
             </a>
           ))}
       </nav>
+      {accountSlot ? <div className={styles.account}>{accountSlot}</div> : null}
     </ModalSheet>
   );
 }

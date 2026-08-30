@@ -6,6 +6,50 @@
   "accessibility": {
     "skipToContent": "Aller au contenu"
   },
+  "auth": {
+    "loading": "Vérification de la session…",
+    "logout": "Se déconnecter",
+    "error": {
+      "title": "Session indisponible",
+      "description": "Impossible de vérifier votre session. Vérifiez que le service local est démarré, puis réessayez.",
+      "retry": "Réessayer"
+    },
+    "notProvisioned": {
+      "title": "Serveur non initialisé",
+      "description": "Aucun compte propriétaire n’existe encore. Exécutez la commande de provisioning sur le serveur, puis rechargez la page.",
+      "command": "make provision-owner EMAIL=… WORKSPACE=… NAME=… CURRENCY=EUR"
+    },
+    "fields": {
+      "email": "Adresse e-mail",
+      "password": "Mot de passe",
+      "newPassword": "Nouveau mot de passe",
+      "confirmPassword": "Confirmer le mot de passe"
+    },
+    "login": {
+      "title": "Connexion",
+      "description": "Saisissez vos identifiants pour accéder à votre espace.",
+      "submit": "Se connecter",
+      "submitting": "Connexion…",
+      "errors": {
+        "invalidCredentials": "L’adresse e-mail ou le mot de passe est incorrect.",
+        "disabled": "Ce compte est désactivé. Contactez l’administrateur du serveur.",
+        "network": "La connexion au service a échoué. Réessayez."
+      }
+    },
+    "createPassword": {
+      "title": "Créer votre mot de passe",
+      "description": "Ce serveur n’a pas encore de mot de passe. Définissez-le pour terminer l’installation.",
+      "hint": "Au moins {{min}} caractères.",
+      "submit": "Enregistrer le mot de passe",
+      "submitting": "Enregistrement…",
+      "errors": {
+        "length": "Le mot de passe doit comporter entre {{min}} et {{max}} caractères.",
+        "mismatch": "Les deux mots de passe ne correspondent pas.",
+        "policy": "Le mot de passe ne respecte pas la politique de sécurité.",
+        "network": "L’enregistrement a échoué. Réessayez."
+      }
+    }
+  },
   "actions": {
     "add": "Ajouter",
     "backHome": "Revenir à la synthèse",

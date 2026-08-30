@@ -1,16 +1,18 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FoundationAction } from '../../../features/foundation/FoundationActionSheet';
-import { Icon } from '../../ui/icon/Icon';
+import type { FoundationAction } from '@/features/foundation/FoundationActionSheet';
+import { Icon } from '@/components/ui/icon/Icon';
 import styles from './Header.module.css';
 
 interface HeaderProps {
+  accountSlot?: ReactNode;
   freshnessLabel: string;
   headerDate: string;
   onAction: (action: FoundationAction, trigger: HTMLButtonElement) => void;
   title: string;
 }
 
-export function Header({ freshnessLabel, headerDate, onAction, title }: HeaderProps) {
+export function Header({ accountSlot, freshnessLabel, headerDate, onAction, title }: HeaderProps) {
   const { t } = useTranslation();
 
   return (
@@ -40,6 +42,7 @@ export function Header({ freshnessLabel, headerDate, onAction, title }: HeaderPr
           <Icon name="add" size={18} />
           {t('actions.add')}
         </button>
+        {accountSlot}
       </div>
     </header>
   );

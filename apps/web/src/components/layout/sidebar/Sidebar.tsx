@@ -1,7 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { navigationItems } from '../../../lib/navigation';
-import { Icon } from '../../ui/icon/Icon';
-import { NavigationLink, type NavigationHandler } from '../navigation-link/NavigationLink';
+import { navigationItems } from '@/lib/navigation';
+import { Icon } from '@/components/ui/icon/Icon';
+import {
+  NavigationLink,
+  type NavigationHandler,
+} from '@/components/layout/navigation-link/NavigationLink';
 import styles from './Sidebar.module.css';
 
 interface SidebarProps {

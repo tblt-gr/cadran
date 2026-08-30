@@ -65,7 +65,8 @@
   }
 
   .freshness,
-  .header :global(.primary-action) {
+  .header :global(.primary-action),
+  .header :global(.secondary-action) {
     display: none;
   }
 }

@@ -1,0 +1,15 @@
+.command {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface-2);
+  overflow-x: auto;
+}
+
+.command code {
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  white-space: pre;
+}

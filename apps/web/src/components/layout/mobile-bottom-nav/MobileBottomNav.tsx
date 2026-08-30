@@ -1,9 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import type { RefObject } from 'react';
-import type { FoundationAction } from '../../../features/foundation/FoundationActionSheet';
-import { navigationItems } from '../../../lib/navigation';
-import { Icon } from '../../ui/icon/Icon';
-import { NavigationLink, type NavigationHandler } from '../navigation-link/NavigationLink';
+import type { FoundationAction } from '@/features/foundation/FoundationActionSheet';
+import { navigationItems } from '@/lib/navigation';
+import { Icon } from '@/components/ui/icon/Icon';
+import {
+  NavigationLink,
+  type NavigationHandler,
+} from '@/components/layout/navigation-link/NavigationLink';
 import styles from './MobileBottomNav.module.css';
 
 interface MobileBottomNavProps {

@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { Icon } from '../../../components/ui/icon/Icon';
-import { StatusBadge } from '../../../components/ui/status-badge/StatusBadge';
-import { dashboardDemoData } from '../dashboardDemoData';
-import { formatDemoFullDate } from '../formatDemoDate';
+import { Icon } from '@/components/ui/icon/Icon';
+import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
+import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
+import { formatDemoFullDate } from '@/features/dashboard/formatDemoDate';
 import styles from './DashboardContextPanel.module.css';
 
 export function DashboardContextPanel() {

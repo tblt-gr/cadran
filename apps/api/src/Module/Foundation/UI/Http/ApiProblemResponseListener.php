@@ -47,8 +47,11 @@ final class ApiProblemResponseListener
     private static function translationKey(int $status): string
     {
         return match ($status) {
+            Response::HTTP_BAD_REQUEST => 'api.problem.invalid_request',
+            Response::HTTP_UNAUTHORIZED => 'api.problem.unauthorized',
             Response::HTTP_NOT_FOUND => 'api.problem.not_found',
             Response::HTTP_METHOD_NOT_ALLOWED => 'api.problem.method_not_allowed',
+            Response::HTTP_UNSUPPORTED_MEDIA_TYPE => 'api.problem.unsupported_media_type',
             default => 'api.problem.internal_error',
         };
     }

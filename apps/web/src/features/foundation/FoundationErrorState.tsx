@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Icon } from '../../components/ui/icon/Icon';
+import { Icon } from '@/components/ui/icon/Icon';
 import styles from './FoundationStates.module.css';
 
 export function FoundationErrorState({ retry }: { retry: () => void }) {
