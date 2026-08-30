@@ -110,6 +110,12 @@
             ".editorconfig"
         ]
     },
+    "symfony/lock": {
+        "version": "7.4.17"
+    },
+    "symfony/rate-limiter": {
+        "version": "7.4.16"
+    },
     "symfony/routing": {
         "version": "7.4",
         "recipe": {

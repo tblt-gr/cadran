@@ -1,0 +1,12 @@
+framework:
+  rate_limiter:
+    # sliding_window, not the login_throttling default fixed_window, so the cap
+    # cannot be doubled across a window boundary. Rationale in ADR-0016.
+    login_local:
+      policy: sliding_window
+      limit: 5
+      interval: '15 minutes'
+    login_global:
+      policy: sliding_window
+      limit: 25
+      interval: '15 minutes'

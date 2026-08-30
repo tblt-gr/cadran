@@ -55,6 +55,38 @@ describe('LoginForm', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('désactivé');
   });
 
+  it('reports a throttled sign-in without blaming the credentials', async () => {
+    respondWith(429);
+    render(<LoginForm onSuccess={vi.fn()} />);
+
+    fillAndSubmit();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Trop de tentatives');
+    expect(alert.textContent).not.toContain('incorrect');
+  });
+
+  it('recovers from a stale CSRF token by replanting it and retrying', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ type: '/problems/csrf-token' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/problem+json' },
+        }),
+      )
+      .mockResolvedValueOnce(new Response('{}', { status: 200 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const onSuccess = vi.fn();
+    render(<LoginForm onSuccess={onSuccess} />);
+
+    fillAndSubmit();
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it('surfaces a network failure', async () => {
     vi.stubGlobal(
       'fetch',

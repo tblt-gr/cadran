@@ -32,13 +32,21 @@ paths:
       summary: Describe the current session
       description: >-
         Public. Reports whether the request carries an authenticated, active
-        session and whether first-run password setup is still pending.
+        session and whether first-run password setup is still pending. Also
+        plants the `csrf_token` cookie when the request lacks a valid one.
       tags:
         - Session
       security: []
       responses:
         '200':
           description: The session state for the calling browser.
+          headers:
+            Set-Cookie:
+              description: >-
+                `csrf_token=<signed token>; Path=/; SameSite=Strict` (plus
+                `Secure` over HTTPS). Echo it in `X-CSRF-TOKEN` on every mutation.
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -48,9 +56,16 @@ paths:
     post:
       operationId: openSession
       summary: Open a session with email and password
+      description: >-
+        A same-origin browser mutation: it must send the X-CSRF-TOKEN header
+        matching the csrf_token cookie from a prior safe response, and its
+        Origin must be this server. Failed attempts are rate-limited per email
+        and source address.
       tags:
         - Session
       security: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
       requestBody:
         required: true
         content:
@@ -65,20 +80,29 @@ paths:
         '401':
           $ref: '#/components/responses/InvalidCredentials'
         '403':
-          $ref: '#/components/responses/AccountDisabled'
+          $ref: '#/components/responses/Forbidden'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
       operationId: closeSession
       summary: Close the current session
+      description: >-
+        A same-origin browser mutation: it must send the X-CSRF-TOKEN header
+        matching the csrf_token cookie, with an Origin of this server.
       tags:
         - Session
       security: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
       responses:
         '204':
           description: The session is invalidated. A no-op when already anonymous.
+        '403':
+          $ref: '#/components/responses/CsrfFailure'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/session/password:
@@ -87,10 +111,14 @@ paths:
       summary: Define the owner password on first run
       description: >-
         Public and one-time. Accepted only while the provisioned owner has no
-        password; afterwards it answers 409.
+        password; afterwards it answers 409. A same-origin browser mutation: it
+        must send the X-CSRF-TOKEN header matching the csrf_token cookie, with an
+        Origin of this server.
       tags:
         - Session
       security: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
       requestBody:
         required: true
         content:
@@ -102,6 +130,8 @@ paths:
           description: The password is stored. The owner can now open a session.
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/CsrfFailure'
         '409':
           $ref: '#/components/responses/Conflict'
         '422':
@@ -134,8 +164,30 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
-    AccountDisabled:
-      description: The credentials were valid but the account is disabled.
+    Forbidden:
+      description: >-
+        On sign-in, either the credentials were valid but the account is
+        disabled (`type: about:blank`), or the CSRF / Origin check failed
+        (`type: /problems/csrf-token`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    CsrfFailure:
+      description: 'The CSRF token or Origin check failed (`type: /problems/csrf-token`).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TooManyRequests:
+      description: >-
+        Too many failed sign-in attempts for this email and source address.
+        Identical whether or not the email exists. Retry after the window.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
       content:
         application/problem+json:
           schema:
@@ -152,6 +204,16 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+  parameters:
+    CsrfToken:
+      name: X-CSRF-TOKEN
+      in: header
+      required: true
+      description: >-
+        Double-submit CSRF token: the value of the `csrf_token` cookie from a
+        prior safe response. Rejected with 403 if missing, altered, or expired.
+      schema:
+        type: string
   schemas:
     FoundationStatus:
       type: object

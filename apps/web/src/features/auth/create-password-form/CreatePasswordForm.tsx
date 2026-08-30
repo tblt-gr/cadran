@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { FormField } from '@/features/auth/form-field/FormField';
+import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import styles from './CreatePasswordForm.module.css';
 
 // Mirrors the DefinePasswordRequest bounds in the API contract. The server
@@ -43,7 +44,9 @@ export function CreatePasswordForm({ onDone }: { onDone: () => void }) {
     setSubmitting(true);
 
     try {
-      const { response } = await defineInitialPassword({ ...authApiOptions(), body: { password } });
+      const { response } = await withCsrfRetry(() =>
+        defineInitialPassword({ ...authApiOptions(), body: { password } }),
+      );
 
       if (!response) {
         setSubmitError('network');

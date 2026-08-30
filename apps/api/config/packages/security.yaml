@@ -20,6 +20,8 @@ security:
       provider: identity
       user_checker: App\Module\Identity\Infrastructure\Security\IdentityUserChecker
       entry_point: App\Module\Identity\Infrastructure\Security\Http\ApiAuthenticationEntryPoint
+      login_throttling:
+        limiter: security.login_throttling.limiter
       json_login:
         check_path: api_v1_session_create
         username_path: email

@@ -12,7 +12,10 @@ use Symfony\Component\HttpFoundation\JsonResponse;
  */
 final class ApiProblemResponse
 {
-    public static function build(int $status, string $title, string $detail): JsonResponse
+    /**
+     * @param array<string, string> $headers extra response headers, e.g. Retry-After
+     */
+    public static function build(int $status, string $title, string $detail, array $headers = []): JsonResponse
     {
         return new JsonResponse(
             data: [
@@ -25,6 +28,7 @@ final class ApiProblemResponse
             headers: [
                 'Cache-Control' => 'no-store',
                 'Content-Type' => 'application/problem+json',
+                ...$headers,
             ],
         );
     }
