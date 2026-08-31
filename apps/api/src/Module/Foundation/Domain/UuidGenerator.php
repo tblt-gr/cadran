@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Module\Identity\Domain;
+namespace App\Module\Foundation\Domain;
 
 interface UuidGenerator
 {

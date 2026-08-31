@@ -7,8 +7,10 @@ namespace App\Module\Identity\UI\Http;
 use App\Module\Identity\Application\DefineInitialPassword;
 use App\Module\Identity\Application\DefineInitialPasswordInput;
 use App\Module\Identity\Application\DescribeSession;
+use App\Module\Identity\Application\IdentityAuditEvents;
 use App\Module\Identity\Application\InitialPasswordAlreadyDefined;
 use App\Module\Identity\Application\OwnerAccountNotProvisioned;
+use App\Module\Identity\Application\SessionAuditIntent;
 use App\Module\Identity\Application\SessionView;
 use App\Module\Identity\Domain\WeakPassword;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -51,8 +53,21 @@ final class SessionController
     }
 
     #[Route('/api/v1/session', name: 'api_v1_session_delete', methods: ['DELETE'])]
-    public function delete(Request $request, TokenStorageInterface $tokenStorage): Response
-    {
+    public function delete(
+        Request $request,
+        #[CurrentUser] ?UserInterface $user,
+        TokenStorageInterface $tokenStorage,
+    ): Response {
+        // The actor is captured before the token is dropped and written after
+        // the response, so a failed audit write cannot leave the caller signed
+        // in. A no-op logout records nothing.
+        if (null !== $user) {
+            $request->attributes->set(
+                SessionAuditIntent::REQUEST_ATTRIBUTE,
+                new SessionAuditIntent(IdentityAuditEvents::SESSION_CLOSED, $user->getUserIdentifier()),
+            );
+        }
+
         $tokenStorage->setToken(null);
         if ($request->hasSession()) {
             $request->getSession()->invalidate();

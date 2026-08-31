@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Identity\Application;
 
+use App\Module\Audit\Application\RecordAuditEvent;
+use App\Module\Audit\Domain\AuditEvent;
+use App\Module\Audit\Domain\AuditEventRepository;
+use App\Module\Foundation\Domain\UuidGenerator;
+use App\Module\Identity\Application\IdentityAuditEvents;
 use App\Module\Identity\Application\InitialProvisioningAlreadyCompleted;
 use App\Module\Identity\Application\InitialProvisioningGuard;
 use App\Module\Identity\Application\InitialWorkspaceProvisioningInput;
@@ -13,7 +18,6 @@ use App\Module\Identity\Domain\Membership;
 use App\Module\Identity\Domain\MembershipRepository;
 use App\Module\Identity\Domain\User;
 use App\Module\Identity\Domain\UserRepository;
-use App\Module\Identity\Domain\UuidGenerator;
 use App\Module\Identity\Domain\Workspace;
 use App\Module\Identity\Domain\WorkspaceRepository;
 use PHPUnit\Framework\TestCase;
@@ -26,6 +30,8 @@ final class ProvisionInitialWorkspaceTest extends TestCase
         $workspaces = new InMemoryWorkspaceRepository();
         $memberships = new InMemoryMembershipRepository();
         $transactionManager = new RecordingTransactionManager();
+        $auditEvents = new CollectingAuditEventRepository();
+        $uuidGenerator = new SequenceUuidGenerator();
 
         $provision = new ProvisionInitialWorkspace(
             transactionManager: $transactionManager,
@@ -33,7 +39,8 @@ final class ProvisionInitialWorkspaceTest extends TestCase
             userRepository: $users,
             workspaceRepository: $workspaces,
             membershipRepository: $memberships,
-            uuidGenerator: new SequenceUuidGenerator(),
+            uuidGenerator: $uuidGenerator,
+            recordAuditEvent: new RecordAuditEvent($auditEvents, $uuidGenerator),
         );
 
         $result = $provision(new InitialWorkspaceProvisioningInput(
@@ -50,6 +57,53 @@ final class ProvisionInitialWorkspaceTest extends TestCase
         self::assertSame('OWNER', $memberships->memberships[0]->role);
         self::assertSame($users->users[0]->id, $memberships->memberships[0]->userId);
         self::assertSame($workspaces->workspaces[0]->id, $memberships->memberships[0]->workspaceId);
+
+        // Provisioning is auditable from the first install: three events, all
+        // scoped to the new workspace and none carrying an authenticated actor,
+        // because the console command runs before any session can exist.
+        self::assertSame([
+            IdentityAuditEvents::WORKSPACE_CREATED,
+            IdentityAuditEvents::USER_CREATED,
+            IdentityAuditEvents::MEMBERSHIP_GRANTED,
+        ], array_column($auditEvents->events, 'eventType'));
+        self::assertSame(
+            [$workspaces->workspaces[0]->id],
+            array_unique(array_column($auditEvents->events, 'workspaceId')),
+        );
+        self::assertSame([null], array_unique(array_column($auditEvents->events, 'actorId')));
+        self::assertSame(
+            ['name' => 'Household', 'baseCurrency' => 'EUR', 'timezone' => 'Europe/Paris'],
+            $auditEvents->events[0]->diff->after,
+        );
+    }
+
+    public function testTheAuditTrailNeverCarriesTheOwnerEmail(): void
+    {
+        $auditEvents = new CollectingAuditEventRepository();
+        $uuidGenerator = new SequenceUuidGenerator();
+        $provision = new ProvisionInitialWorkspace(
+            transactionManager: new RecordingTransactionManager(),
+            provisioningGuard: new InMemoryInitialProvisioningGuard(),
+            userRepository: new InMemoryUserRepository(),
+            workspaceRepository: new InMemoryWorkspaceRepository(),
+            membershipRepository: new InMemoryMembershipRepository(),
+            uuidGenerator: $uuidGenerator,
+            recordAuditEvent: new RecordAuditEvent($auditEvents, $uuidGenerator),
+        );
+
+        $provision(new InitialWorkspaceProvisioningInput(
+            email: 'owner@example.test',
+            displayName: 'Owner',
+            workspaceName: 'Household',
+            baseCurrency: 'EUR',
+        ));
+
+        foreach ($auditEvents->events as $event) {
+            self::assertStringNotContainsString(
+                'owner@example.test',
+                (string) json_encode([$event->diff->before, $event->diff->after]),
+            );
+        }
     }
 
     public function testItRejectsAReplayWithoutCreatingASecondWorkspace(): void
@@ -62,6 +116,7 @@ final class ProvisionInitialWorkspaceTest extends TestCase
             workspaceRepository: new InMemoryWorkspaceRepository(),
             membershipRepository: new InMemoryMembershipRepository(),
             uuidGenerator: new SequenceUuidGenerator(),
+            recordAuditEvent: new RecordAuditEvent(new CollectingAuditEventRepository(), new SequenceUuidGenerator()),
         );
         $input = new InitialWorkspaceProvisioningInput(
             email: 'owner@example.test',
@@ -90,6 +145,7 @@ final class ProvisionInitialWorkspaceTest extends TestCase
             workspaceRepository: new InMemoryWorkspaceRepository(),
             membershipRepository: new InMemoryMembershipRepository(),
             uuidGenerator: new SequenceUuidGenerator(),
+            recordAuditEvent: new RecordAuditEvent(new CollectingAuditEventRepository(), new SequenceUuidGenerator()),
         );
 
         try {
@@ -167,6 +223,17 @@ final class InMemoryMembershipRepository implements MembershipRepository
     public function save(Membership $membership): void
     {
         $this->memberships[] = $membership;
+    }
+}
+
+final class CollectingAuditEventRepository implements AuditEventRepository
+{
+    /** @var list<AuditEvent> */
+    public array $events = [];
+
+    public function append(AuditEvent $event): void
+    {
+        $this->events[] = $event;
     }
 }
 

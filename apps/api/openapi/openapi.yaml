@@ -138,8 +138,67 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/audit-events:
+    get:
+      operationId: listAuditEvents
+      summary: Read the workspace audit trail
+      description: >-
+        Requires an authenticated session. Returns the calling workspace's
+        audit events, newest first. The workspace is resolved server-side from
+        the session; there is no way to ask for another one.
+      tags:
+        - Audit
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Page size, between 1 and 100. Defaults to 50.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: >-
+            Opaque cursor returned as `nextCursor` by the previous page. Omit it
+            to read the newest events.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: One page of the workspace audit trail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: cadran_session
+      description: >-
+        Same-origin session cookie issued by POST /api/v1/session. HttpOnly, so
+        the browser attaches it automatically and no script can read it.
   responses:
+    Unauthorized:
+      description: The request carries no authenticated session.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
     InternalServerError:
       description: An unexpected server error occurred.
       content:
@@ -153,7 +212,7 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
     BadRequest:
-      description: The request body is missing or malformed.
+      description: The request body or a query parameter is missing or malformed.
       content:
         application/problem+json:
           schema:
@@ -169,6 +228,12 @@ components:
         On sign-in, either the credentials were valid but the account is
         disabled (`type: about:blank`), or the CSRF / Origin check failed
         (`type: /problems/csrf-token`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    WorkspaceForbidden:
+      description: The session is attached to no workspace, so there is nothing to read.
       content:
         application/problem+json:
           schema:
@@ -309,6 +374,76 @@ components:
           format: password
           minLength: 12
           maxLength: 128
+    AuditEventPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        nextCursor:
+          description: Cursor for the following page, or null on the last page.
+          oneOf:
+            - type: string
+            - type: 'null'
+    AuditEvent:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - occurredAt
+        - actorId
+        - eventType
+        - entityType
+        - entityId
+        - before
+        - after
+      properties:
+        id:
+          type: string
+          format: uuid
+        occurredAt:
+          type: string
+          format: date-time
+        actorId:
+          description: >-
+            The user who performed the operation, or null when it had no
+            authenticated actor - console provisioning and the first-run
+            password flow.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        eventType:
+          type: string
+          examples:
+            - session.opened
+        entityType:
+          type: string
+          examples:
+            - user
+        entityId:
+          type: string
+          format: uuid
+        before:
+          $ref: '#/components/schemas/AuditDiffSide'
+        after:
+          $ref: '#/components/schemas/AuditDiffSide'
+    AuditDiffSide:
+      description: >-
+        Bounded structured attributes, or null when the event has no such side.
+        Sensitive attribute values are stored redacted, never in clear.
+      oneOf:
+        - type: object
+          additionalProperties:
+            oneOf:
+              - type: string
+              - type: 'null'
+        - type: 'null'
     Problem:
       type: object
       additionalProperties: false
