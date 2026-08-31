@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Module\Identity\Infrastructure\Uuid;
+namespace App\Tests\Module\Foundation\Infrastructure\Uuid;
 
-use App\Module\Identity\Infrastructure\Uuid\UuidV7Generator;
+use App\Module\Foundation\Infrastructure\Uuid\UuidV7Generator;
 use PHPUnit\Framework\TestCase;
 
 final class UuidV7GeneratorTest extends TestCase

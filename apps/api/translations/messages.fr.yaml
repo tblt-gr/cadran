@@ -39,3 +39,9 @@ api:
     owner_not_provisioned:
       title: 'Compte propriétaire absent'
       detail: "Aucun compte propriétaire n'a été initialisé sur ce serveur."
+    invalid_audit_query:
+      title: "Requête d'audit invalide"
+      detail: 'La taille de page doit être comprise entre 1 et 100 et le curseur doit provenir de la page précédente.'
+    audit_trail_forbidden:
+      title: "Journal d'audit inaccessible"
+      detail: "Cette session n'est rattachée à aucun espace de travail."

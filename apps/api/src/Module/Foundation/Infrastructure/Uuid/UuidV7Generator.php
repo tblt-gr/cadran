@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Module\Identity\Infrastructure\Uuid;
+namespace App\Module\Foundation\Infrastructure\Uuid;
 
-use App\Module\Identity\Domain\UuidGenerator;
+use App\Module\Foundation\Domain\UuidGenerator;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
 #[AsAlias(UuidGenerator::class)]

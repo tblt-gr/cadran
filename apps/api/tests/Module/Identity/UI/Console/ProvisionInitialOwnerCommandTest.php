@@ -103,6 +103,10 @@ final class ProvisionInitialOwnerCommandTest extends KernelTestCase
 
     private function clearIdentityData(): void
     {
+        // TRUNCATE, not DELETE: the append-only trigger on audit_events rejects
+        // row deletion, and the workspace and actor foreign keys make the trail
+        // block the identity cleanup that follows.
+        $this->connection->executeStatement('TRUNCATE TABLE audit_events');
         $this->connection->executeStatement('DELETE FROM identity_initial_provisionings');
         $this->connection->executeStatement('DELETE FROM identity_workspace_memberships');
         $this->connection->executeStatement('DELETE FROM identity_workspaces');

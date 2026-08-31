@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Identity\Infrastructure\Security\Http;
 
+use App\Module\Identity\Application\IdentityAuditEvents;
+use App\Module\Identity\Application\SessionAuditIntent;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AccountStatusException;
@@ -18,6 +20,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * other failure is the single generic 401, so a wrong password and an unknown
  * email cannot be told apart. Throttling answers 429 the same way regardless of
  * whether the submitted email exists. No credential or identifier is logged here.
+ *
+ * A failure against a known account is appended to that workspace's audit
+ * trail; an attempt on an unknown email records nothing, because it belongs to
+ * no workspace and its submitted string is attacker-controlled text. That
+ * asymmetry is exactly why the write is deferred to kernel.terminate rather
+ * than performed here: on the response path its latency would tell a caller
+ * which addresses exist. See {@see SessionAuditIntent}.
  */
 final readonly class LoginFailureHandler implements AuthenticationFailureHandlerInterface
 {
@@ -31,6 +40,8 @@ final readonly class LoginFailureHandler implements AuthenticationFailureHandler
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
     {
         if ($exception instanceof TooManyLoginAttemptsAuthenticationException) {
+            // A throttled attempt never reached the credential check, and the
+            // burst that triggered the throttle is already in the trail.
             return ApiProblemResponse::build(
                 Response::HTTP_TOO_MANY_REQUESTS,
                 $this->translator->trans('api.problem.too_many_attempts.title'),
@@ -38,6 +49,8 @@ final readonly class LoginFailureHandler implements AuthenticationFailureHandler
                 ['Retry-After' => (string) self::retryAfter($exception)],
             );
         }
+
+        self::deferAudit($request);
 
         if ($exception instanceof AccountStatusException) {
             return ApiProblemResponse::build(
@@ -52,6 +65,23 @@ final readonly class LoginFailureHandler implements AuthenticationFailureHandler
             $this->translator->trans('api.problem.invalid_credentials.title'),
             $this->translator->trans('api.problem.invalid_credentials.detail'),
         );
+    }
+
+    private static function deferAudit(Request $request): void
+    {
+        try {
+            $email = $request->getPayload()->getString('email');
+        } catch (\Throwable) {
+            // A malformed body names no account; there is nothing to attribute.
+            return;
+        }
+
+        if ('' !== $email) {
+            $request->attributes->set(
+                SessionAuditIntent::REQUEST_ATTRIBUTE,
+                new SessionAuditIntent(IdentityAuditEvents::SIGN_IN_FAILED, $email),
+            );
+        }
     }
 
     /**
