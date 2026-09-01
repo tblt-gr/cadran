@@ -1,6 +1,7 @@
 # Accepted image-scan findings, one identifier per line, each
 # preceded by a comment with the reason and a review date (`# review: YYYY-MM-DD`).
-# An entry here suppresses the CVE in both scans below.
+# This file is used only for the application image. Database and Dockerfile
+# scans intentionally run without these application-specific exceptions.
 #
 # The pull-request gate (ci.yml `image-scan`) fails on any unlisted CRITICAL or
 # HIGH finding that has a fix available. The nightly workflow
@@ -10,23 +11,23 @@
 # review: 2026-09-12 — FrankenPHP 1.12.7 bundles kin-openapi 0.140.0 through
 # Caddy, but this deployment disables Caddy's admin API and never loads an
 # OpenAPI schema at runtime. Remove when the official image upgrades kin-openapi.
-GHSA-r277-6w6q-xmqw
+GHSA-r277-6w6q-xmqw exp:2026-09-12
 
 # review: 2026-09-12 — Same unreachable bundled kin-openapi code path as above;
 # no user-controlled OpenAPI document is parsed by the runtime.
-CVE-2026-76905
+CVE-2026-76905 exp:2026-09-12
 
 # review: 2026-09-12 — Same unreachable bundled kin-openapi code path as above;
 # no user-controlled OpenAPI document is parsed by the runtime.
-CVE-2026-77354
+CVE-2026-77354 exp:2026-09-12
 
 # review: 2026-09-12 — FrankenPHP 1.12.7 bundles gRPC 1.81.1, but the deployed
 # Caddyfile configures neither reverse_proxy nor xDS/RBAC. Remove when the
 # official image upgrades gRPC.
-GHSA-hrxh-6v49-42gf
+GHSA-hrxh-6v49-42gf exp:2026-09-12
 
 # review: 2026-09-12 — FrankenPHP 1.12.7 bundles golang.org/x/crypto 0.54.0,
 # but Cadran exposes only HTTP(S) and configures no SSH server, authentication
 # callback or source-address restriction. Remove when the official image
 # upgrades golang.org/x/crypto to 0.55.0 or later.
-CVE-2026-56854
+CVE-2026-56854 exp:2026-09-12
