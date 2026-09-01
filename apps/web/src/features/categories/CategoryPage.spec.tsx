@@ -67,6 +67,7 @@ describe('CategoryPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Aucune catégorie' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Créer la première catégorie' }));
+    expect(screen.getByRole('dialog', { name: 'Nouvelle catégorie' })).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Restaurants' } });
     fireEvent.click(screen.getByLabelText('Discrétionnaire'));
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));

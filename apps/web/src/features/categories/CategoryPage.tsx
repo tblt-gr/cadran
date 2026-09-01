@@ -9,6 +9,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { CategoryForm } from './category-form/CategoryForm';
@@ -33,6 +34,17 @@ export function CategoryPage() {
   const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<Editor>(null);
   const [saved, setSaved] = useState(false);
+
+  function openEditor(target: Exclude<Editor, null>) {
+    setSaved(false);
+    save.reset();
+    setEditor(target);
+  }
+
+  function closeEditor() {
+    setEditor(null);
+    save.reset();
+  }
 
   const categories = useQuery({
     queryKey: ['categories', includeArchived, page],
@@ -107,15 +119,7 @@ export function CategoryPage() {
           <h2 id="category-intro-title">{t('categories.title')}</h2>
           <span>{t('categories.description')}</span>
         </div>
-        <button
-          className="primary-action"
-          onClick={() => {
-            setSaved(false);
-            save.reset();
-            setEditor('create');
-          }}
-          type="button"
-        >
+        <button className="primary-action" onClick={() => openEditor('create')} type="button">
           {t('categories.add')}
         </button>
       </section>
@@ -127,17 +131,24 @@ export function CategoryPage() {
       ) : null}
 
       {editor ? (
-        <CategoryForm
-          category={editor === 'create' ? undefined : editor}
-          key={editor === 'create' ? 'create' : editor.id}
-          onCancel={() => {
-            setEditor(null);
-            save.reset();
-          }}
-          onSubmit={(body) => save.mutate(body)}
-          pending={save.isPending}
-          submitError={submitError}
-        />
+        <Modal
+          close={closeEditor}
+          eyebrow={t(
+            editor === 'create' ? 'categories.form.createEyebrow' : 'categories.form.editEyebrow',
+          )}
+          title={t(
+            editor === 'create' ? 'categories.form.createTitle' : 'categories.form.editTitle',
+          )}
+        >
+          <CategoryForm
+            category={editor === 'create' ? undefined : editor}
+            key={editor === 'create' ? 'create' : editor.id}
+            onCancel={closeEditor}
+            onSubmit={(body) => save.mutate(body)}
+            pending={save.isPending}
+            submitError={submitError}
+          />
+        </Modal>
       ) : null}
 
       <div className={styles.toolbar}>
@@ -189,20 +200,13 @@ export function CategoryPage() {
             )}
           </p>
           {!includeArchived ? (
-            <button className="primary-action" onClick={() => setEditor('create')} type="button">
+            <button className="primary-action" onClick={() => openEditor('create')} type="button">
               {t('categories.addFirst')}
             </button>
           ) : null}
         </section>
       ) : (
-        <CategoryList
-          categories={items}
-          onEdit={(category) => {
-            setSaved(false);
-            save.reset();
-            setEditor(category);
-          }}
-        />
+        <CategoryList categories={items} onEdit={openEditor} />
       )}
 
       {categories.isSuccess && (totalPages > 1 || page > 1) ? (

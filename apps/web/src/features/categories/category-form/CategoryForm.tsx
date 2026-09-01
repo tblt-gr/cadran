@@ -84,138 +84,125 @@ export function CategoryForm({
   }
 
   return (
-    <section className={`card ${styles.panel}`} aria-labelledby="category-form-title">
-      <div className={styles.heading}>
-        <div>
-          <p>{t(category ? 'categories.form.editEyebrow' : 'categories.form.createEyebrow')}</p>
-          <h2 id="category-form-title">
-            {t(category ? 'categories.form.editTitle' : 'categories.form.createTitle')}
-          </h2>
-        </div>
-        <button className="secondary-action" onClick={onCancel} type="button">
-          {t('actions.close')}
-        </button>
-      </div>
+    <form className={styles.form} noValidate onSubmit={submit}>
+      {submitError ? (
+        <p className={styles.alert} role="alert">
+          {t(`categories.errors.${submitError}`)}
+        </p>
+      ) : null}
 
-      <form className={styles.form} noValidate onSubmit={submit}>
-        {submitError ? (
-          <p className={styles.alert} role="alert">
-            {t(`categories.errors.${submitError}`)}
-          </p>
-        ) : null}
-
-        <div className={styles.fields}>
-          <label>
-            <span>{t('categories.fields.type')}</span>
-            <select
-              aria-describedby={
-                category && !category.typeEditable ? 'category-type-reason' : undefined
-              }
-              aria-label={t('categories.fields.type')}
-              disabled={category ? !category.typeEditable : false}
-              onChange={(event) => {
-                setType(event.target.value as CategoryType);
-                setParentId('');
-              }}
-              value={type}
-            >
-              <option value="EXPENSE">{t('categories.types.EXPENSE')}</option>
-              <option value="INCOME">{t('categories.types.INCOME')}</option>
-            </select>
-            {category && !category.typeEditable ? (
-              <small id="category-type-reason">
-                {t(`categories.form.typeReasons.${category.typeEditReason ?? 'USED'}`)}
-              </small>
-            ) : null}
-          </label>
-
-          <label>
-            <span>{t('categories.fields.label')}</span>
-            <input
-              aria-invalid={showErrors && labelInvalid ? true : undefined}
-              autoComplete="off"
-              maxLength={80}
-              onChange={(event) => setLabel(event.target.value)}
-              required
-              value={label}
-            />
-            {showErrors && labelInvalid ? <small>{t('categories.validation.label')}</small> : null}
-          </label>
-
-          {!category ? (
-            <ParentCategoryField onChange={setParentId} type={type} value={parentId} />
+      <div className={styles.fields}>
+        <label>
+          <span>{t('categories.fields.type')}</span>
+          <select
+            aria-describedby={
+              category && !category.typeEditable ? 'category-type-reason' : undefined
+            }
+            aria-label={t('categories.fields.type')}
+            disabled={category ? !category.typeEditable : false}
+            onChange={(event) => {
+              setType(event.target.value as CategoryType);
+              setParentId('');
+            }}
+            value={type}
+          >
+            <option value="EXPENSE">{t('categories.types.EXPENSE')}</option>
+            <option value="INCOME">{t('categories.types.INCOME')}</option>
+          </select>
+          {category && !category.typeEditable ? (
+            <small id="category-type-reason">
+              {t(`categories.form.typeReasons.${category.typeEditReason ?? 'USED'}`)}
+            </small>
           ) : null}
-
-          <label>
-            <span>{t('categories.fields.icon')}</span>
-            <input
-              aria-invalid={showErrors && iconInvalid ? true : undefined}
-              autoComplete="off"
-              maxLength={32}
-              onChange={(event) => setIcon(event.target.value)}
-              placeholder="utensils"
-              value={icon}
-            />
-            {showErrors && iconInvalid ? <small>{t('categories.validation.icon')}</small> : null}
-          </label>
-
-          <label>
-            <span>{t('categories.fields.color')}</span>
-            <input
-              aria-invalid={showErrors && colorInvalid ? true : undefined}
-              autoComplete="off"
-              maxLength={7}
-              onChange={(event) => setColor(event.target.value)}
-              placeholder="#AABBCC"
-              value={color}
-            />
-            {showErrors && colorInvalid ? <small>{t('categories.validation.color')}</small> : null}
-          </label>
-
-          <label>
-            <span>{t('categories.fields.order')}</span>
-            <input
-              aria-invalid={showErrors && orderInvalid ? true : undefined}
-              inputMode="numeric"
-              onChange={(event) => setSortOrder(event.target.value)}
-              value={sortOrder}
-            />
-            {showErrors && orderInvalid ? <small>{t('categories.validation.order')}</small> : null}
-          </label>
-        </div>
-
-        <fieldset className={styles.axes}>
-          <legend>{t('categories.fields.axes')}</legend>
-          {AXES.map((axis) => (
-            <label key={axis}>
-              <input
-                checked={axes.includes(axis)}
-                onChange={() => toggleAxis(axis)}
-                type="checkbox"
-              />
-              <span>{t(`categories.axes.${axis}`)}</span>
-            </label>
-          ))}
-        </fieldset>
-
-        <label className={styles.check}>
-          <input
-            checked={budgetIncluded}
-            onChange={(event) => setBudgetIncluded(event.target.checked)}
-            type="checkbox"
-          />
-          <span>{t('categories.fields.budgetIncluded')}</span>
         </label>
 
-        <div className={styles.actions}>
-          <button className="secondary-action" onClick={onCancel} type="button">
-            {t('categories.form.cancel')}
-          </button>
-          <button className="primary-action" disabled={pending} type="submit">
-            {t(pending ? 'categories.form.saving' : 'categories.form.save')}
-          </button>
-        </div>
-      </form>
-    </section>
+        <label>
+          <span>{t('categories.fields.label')}</span>
+          <input
+            aria-invalid={showErrors && labelInvalid ? true : undefined}
+            autoComplete="off"
+            data-autofocus
+            maxLength={80}
+            onChange={(event) => setLabel(event.target.value)}
+            required
+            value={label}
+          />
+          {showErrors && labelInvalid ? <small>{t('categories.validation.label')}</small> : null}
+        </label>
+
+        {!category ? (
+          <ParentCategoryField onChange={setParentId} type={type} value={parentId} />
+        ) : null}
+
+        <label>
+          <span>{t('categories.fields.icon')}</span>
+          <input
+            aria-invalid={showErrors && iconInvalid ? true : undefined}
+            autoComplete="off"
+            maxLength={32}
+            onChange={(event) => setIcon(event.target.value)}
+            placeholder="utensils"
+            value={icon}
+          />
+          {showErrors && iconInvalid ? <small>{t('categories.validation.icon')}</small> : null}
+        </label>
+
+        <label>
+          <span>{t('categories.fields.color')}</span>
+          <input
+            aria-invalid={showErrors && colorInvalid ? true : undefined}
+            autoComplete="off"
+            maxLength={7}
+            onChange={(event) => setColor(event.target.value)}
+            placeholder="#AABBCC"
+            value={color}
+          />
+          {showErrors && colorInvalid ? <small>{t('categories.validation.color')}</small> : null}
+        </label>
+
+        <label>
+          <span>{t('categories.fields.order')}</span>
+          <input
+            aria-invalid={showErrors && orderInvalid ? true : undefined}
+            inputMode="numeric"
+            onChange={(event) => setSortOrder(event.target.value)}
+            value={sortOrder}
+          />
+          {showErrors && orderInvalid ? <small>{t('categories.validation.order')}</small> : null}
+        </label>
+      </div>
+
+      <fieldset className={styles.axes}>
+        <legend>{t('categories.fields.axes')}</legend>
+        {AXES.map((axis) => (
+          <label key={axis}>
+            <input
+              checked={axes.includes(axis)}
+              onChange={() => toggleAxis(axis)}
+              type="checkbox"
+            />
+            <span>{t(`categories.axes.${axis}`)}</span>
+          </label>
+        ))}
+      </fieldset>
+
+      <label className={styles.check}>
+        <input
+          checked={budgetIncluded}
+          onChange={(event) => setBudgetIncluded(event.target.checked)}
+          type="checkbox"
+        />
+        <span>{t('categories.fields.budgetIncluded')}</span>
+      </label>
+
+      <div className={styles.actions}>
+        <button className="secondary-action" onClick={onCancel} type="button">
+          {t('categories.form.cancel')}
+        </button>
+        <button className="primary-action" disabled={pending} type="submit">
+          {t(pending ? 'categories.form.saving' : 'categories.form.save')}
+        </button>
+      </div>
+    </form>
   );
 }
