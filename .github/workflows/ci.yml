@@ -235,7 +235,6 @@ jobs:
           image-ref: cadran_db:local
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          trivyignores: .trivyignore
           exit-code: '1'
       - name: Scan the Dockerfiles for misconfiguration
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -243,7 +242,6 @@ jobs:
           scan-type: config
           scan-ref: docker
           severity: CRITICAL,HIGH
-          trivyignores: .trivyignore
           exit-code: '1'
 
   markdown_changes:
