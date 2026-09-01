@@ -48,5 +48,4 @@ jobs:
           image-ref: cadran_db:local
           severity: CRITICAL,HIGH
           ignore-unfixed: false
-          trivyignores: .trivyignore
           exit-code: '1'

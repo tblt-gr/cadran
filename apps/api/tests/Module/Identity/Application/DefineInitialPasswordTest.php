@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Identity\Application;
 
 use App\Module\Audit\Application\RecordAuditEvent;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Identity\Application\AuthenticatedUser;
 use App\Module\Identity\Application\AuthenticationUserRepository;
 use App\Module\Identity\Application\DefineInitialPassword;
@@ -40,7 +41,7 @@ final class DefineInitialPasswordTest extends TestCase
         // The event states that a password was defined and nothing about it.
         self::assertCount(1, $auditEvents->events);
         self::assertSame(IdentityAuditEvents::PASSWORD_DEFINED, $auditEvents->events[0]->eventType);
-        self::assertSame(self::WORKSPACE_ID, $auditEvents->events[0]->workspaceId);
+        self::assertSame(self::WORKSPACE_ID, $auditEvents->events[0]->workspace->id);
         self::assertNull($auditEvents->events[0]->actorId, 'The first-run request carries no session.');
         self::assertTrue($auditEvents->events[0]->diff->isEmpty());
     }
@@ -189,7 +190,7 @@ final class StubWorkspaceMembershipReader implements WorkspaceMembershipReader
 
     public function findForUser(string $userId): ?WorkspaceMembership
     {
-        return null === $this->workspaceId ? null : new WorkspaceMembership($this->workspaceId, 'OWNER');
+        return null === $this->workspaceId ? null : new WorkspaceMembership(WorkspaceScope::fromString($this->workspaceId), 'OWNER');
     }
 }
 

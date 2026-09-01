@@ -22,7 +22,7 @@ final readonly class DbalAuditEventRepository implements AuditEventRepository
         // is committed with the operation it describes, or not at all.
         $this->connection->insert('audit_events', [
             'id' => $event->id,
-            'workspace_id' => $event->workspaceId,
+            'workspace_id' => $event->workspace->id,
             'actor_id' => $event->actorId,
             'event_type' => $event->eventType,
             'entity_type' => $event->entityType,

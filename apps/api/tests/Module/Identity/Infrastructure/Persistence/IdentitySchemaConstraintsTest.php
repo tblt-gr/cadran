@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Identity\Infrastructure\Persistence;
 
+use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -19,30 +20,26 @@ final class IdentitySchemaConstraintsTest extends KernelTestCase
     private const string CREATED_AT = '2026-08-30 12:00:00.000000+00';
 
     private Connection $connection;
+    private WorkspaceFixture $fixture;
     private bool $databaseReady = false;
 
     protected function setUp(): void
     {
-        if (false === getenv('DATABASE_URL')) {
-            if (false !== getenv('CI')) {
-                self::fail('DATABASE_URL must be set in CI; PostgreSQL integration tests may not be skipped there.');
-            }
-
-            self::markTestSkipped('This PostgreSQL integration test requires DATABASE_URL.');
-        }
+        WorkspaceFixture::requireDatabase();
 
         self::bootKernel();
         $connection = self::getContainer()->get(Connection::class);
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
+        $this->fixture = new WorkspaceFixture($connection);
         $this->databaseReady = true;
-        $this->clearIdentityData();
+        $this->fixture->reset();
     }
 
     protected function tearDown(): void
     {
         if ($this->databaseReady) {
-            $this->clearIdentityData();
+            $this->fixture->reset();
         }
 
         parent::tearDown();
@@ -197,17 +194,5 @@ final class IdentitySchemaConstraintsTest extends KernelTestCase
             'role' => $role,
             'created_at' => self::CREATED_AT,
         ]);
-    }
-
-    private function clearIdentityData(): void
-    {
-        // TRUNCATE, not DELETE: the append-only trigger on audit_events rejects
-        // row deletion, and the workspace and actor foreign keys make the trail
-        // block the identity cleanup that follows.
-        $this->connection->executeStatement('TRUNCATE TABLE audit_events');
-        $this->connection->executeStatement('DELETE FROM identity_initial_provisionings');
-        $this->connection->executeStatement('DELETE FROM identity_workspace_memberships');
-        $this->connection->executeStatement('DELETE FROM identity_workspaces');
-        $this->connection->executeStatement('DELETE FROM identity_users');
     }
 }

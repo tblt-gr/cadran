@@ -68,7 +68,10 @@ final class ProvisionInitialWorkspaceTest extends TestCase
         ], array_column($auditEvents->events, 'eventType'));
         self::assertSame(
             [$workspaces->workspaces[0]->id],
-            array_unique(array_column($auditEvents->events, 'workspaceId')),
+            array_values(array_unique(array_map(
+                static fn ($event): string => $event->workspace->id,
+                $auditEvents->events,
+            ))),
         );
         self::assertSame([null], array_unique(array_column($auditEvents->events, 'actorId')));
         self::assertSame(

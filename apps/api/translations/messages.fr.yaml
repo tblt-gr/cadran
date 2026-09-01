@@ -45,3 +45,6 @@ api:
     audit_trail_forbidden:
       title: "Journal d'audit inaccessible"
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    audit_event_not_found:
+      title: "Événement d'audit introuvable"
+      detail: "Aucun événement d'audit ne porte cet identifiant dans cet espace de travail."

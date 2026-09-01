@@ -10,6 +10,7 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Audit\Domain\AuditEvent;
 use App\Module\Audit\Domain\AuditEventRepository;
 use App\Module\Foundation\Domain\UuidGenerator;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use PHPUnit\Framework\TestCase;
 
 final class RecordAuditEventTest extends TestCase
@@ -20,7 +21,7 @@ final class RecordAuditEventTest extends TestCase
         $before = new \DateTimeImmutable();
 
         (new RecordAuditEvent($events, new FixedUuidGenerator()))(new AuditEventRecord(
-            workspaceId: '00000000-0000-7000-8000-0000000000a1',
+            workspace: WorkspaceScope::fromString('00000000-0000-7000-8000-0000000000a1'),
             actorId: '00000000-0000-7000-8000-0000000000c1',
             eventType: 'session.opened',
             entityType: 'user',
@@ -41,14 +42,14 @@ final class RecordAuditEventTest extends TestCase
 
         try {
             (new RecordAuditEvent($events, new FixedUuidGenerator()))(new AuditEventRecord(
-                workspaceId: '',
+                workspace: WorkspaceScope::fromString('00000000-0000-7000-8000-0000000000a1'),
                 actorId: null,
-                eventType: 'session.opened',
+                eventType: 'session opened',
                 entityType: 'user',
                 entityId: '00000000-0000-7000-8000-0000000000c1',
                 diff: AuditDiff::none(),
             ));
-            self::fail('An event without a workspace must be rejected.');
+            self::fail('An event with a malformed type must be rejected.');
         } catch (\InvalidArgumentException) {
         }
 

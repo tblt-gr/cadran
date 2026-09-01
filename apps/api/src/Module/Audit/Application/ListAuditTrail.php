@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Audit\Application;
 
+use App\Module\Foundation\Application\CallerWorkspace;
+
 /**
  * Reads one page of the caller's own audit trail. Authorization happens here,
  * not in the controller: the workspace is resolved from the authenticated
@@ -15,28 +17,21 @@ final readonly class ListAuditTrail
     public const int MAX_PAGE_SIZE = 100;
 
     public function __construct(
-        private WorkspaceAccess $workspaceAccess,
+        private CallerWorkspace $callerWorkspace,
         private AuditTrailReader $reader,
     ) {
     }
 
-    public function __invoke(?string $userIdentifier, ?int $limit, ?string $cursor): AuditTrailPage
+    public function __invoke(?int $limit, ?string $cursor): AuditTrailPage
     {
-        if (null === $userIdentifier) {
-            throw new AuditTrailAccessDenied('An anonymous caller has no audit trail.');
-        }
-
-        $workspaceId = $this->workspaceAccess->readableWorkspaceFor($userIdentifier);
-        if (null === $workspaceId) {
-            throw new AuditTrailAccessDenied('The caller belongs to no workspace.');
-        }
+        $workspace = $this->callerWorkspace->resolve();
 
         $pageSize = $this->boundedPageSize($limit);
         $after = null === $cursor ? null : AuditTrailCursor::decode($cursor);
 
         // One extra row answers "is there a next page" without a second count
         // query, and is dropped before the page is returned.
-        $entries = $this->reader->readPage($workspaceId, $pageSize + 1, $after);
+        $entries = $this->reader->readPage($workspace, $pageSize + 1, $after);
         if (count($entries) <= $pageSize) {
             return new AuditTrailPage($entries, null);
         }

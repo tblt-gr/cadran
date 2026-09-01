@@ -4,54 +4,46 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Audit\Application;
 
-use App\Module\Audit\Application\AuditTrailAccessDenied;
 use App\Module\Audit\Application\AuditTrailCursor;
 use App\Module\Audit\Application\AuditTrailEntry;
 use App\Module\Audit\Application\AuditTrailReader;
 use App\Module\Audit\Application\InvalidAuditTrailQuery;
 use App\Module\Audit\Application\ListAuditTrail;
-use App\Module\Audit\Application\WorkspaceAccess;
+use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class ListAuditTrailTest extends TestCase
 {
-    private const string OWNER = 'owner@example.test';
     private const string WORKSPACE_ID = '00000000-0000-7000-8000-0000000000a1';
 
     public function testItReadsOnlyTheWorkspaceResolvedFromTheCaller(): void
     {
         $reader = new RecordingAuditTrailReader(self::entries(3));
-        $list = new ListAuditTrail(new StubWorkspaceAccess([self::OWNER => self::WORKSPACE_ID]), $reader);
+        $list = new ListAuditTrail(new StubCallerWorkspace(self::WORKSPACE_ID), $reader);
 
-        $page = $list(self::OWNER, null, null);
+        $page = $list(null, null);
 
-        self::assertSame(self::WORKSPACE_ID, $reader->workspaceId);
+        self::assertNotNull($reader->workspace);
+        self::assertSame(self::WORKSPACE_ID, $reader->workspace->id);
         self::assertCount(3, $page->entries);
         self::assertNull($page->nextCursor);
-    }
-
-    public function testAnAnonymousCallerIsDenied(): void
-    {
-        $list = new ListAuditTrail(new StubWorkspaceAccess([]), new RecordingAuditTrailReader([]));
-
-        $this->expectException(AuditTrailAccessDenied::class);
-
-        $list(null, null, null);
     }
 
     public function testACallerWithoutAMembershipIsDeniedRatherThanShownEverything(): void
     {
         $reader = new RecordingAuditTrailReader(self::entries(3));
-        $list = new ListAuditTrail(new StubWorkspaceAccess([]), $reader);
+        $list = new ListAuditTrail(new StubCallerWorkspace(null), $reader);
 
         try {
-            $list('stranger@example.test', null, null);
+            $list(null, null);
             self::fail('A caller with no workspace must be denied.');
-        } catch (AuditTrailAccessDenied) {
+        } catch (WorkspaceAccessDenied) {
         }
 
-        self::assertNull($reader->workspaceId, 'The reader must never be queried without a workspace.');
+        self::assertNull($reader->workspace, 'The reader must never be queried without a workspace.');
     }
 
     public function testAFullPageAdvertisesTheCursorOfItsLastEntry(): void
@@ -59,9 +51,9 @@ final class ListAuditTrailTest extends TestCase
         // The reader is asked for one row more than the page size, and that
         // extra row must not leak into the response.
         $reader = new RecordingAuditTrailReader(self::entries(3));
-        $list = new ListAuditTrail(new StubWorkspaceAccess([self::OWNER => self::WORKSPACE_ID]), $reader);
+        $list = new ListAuditTrail(new StubCallerWorkspace(self::WORKSPACE_ID), $reader);
 
-        $page = $list(self::OWNER, 2, null);
+        $page = $list(2, null);
 
         self::assertSame(3, $reader->limit);
         self::assertCount(2, $page->entries);
@@ -74,9 +66,9 @@ final class ListAuditTrailTest extends TestCase
     public function testItDefaultsToTheDocumentedPageSize(): void
     {
         $reader = new RecordingAuditTrailReader([]);
-        $list = new ListAuditTrail(new StubWorkspaceAccess([self::OWNER => self::WORKSPACE_ID]), $reader);
+        $list = new ListAuditTrail(new StubCallerWorkspace(self::WORKSPACE_ID), $reader);
 
-        $list(self::OWNER, null, null);
+        $list(null, null);
 
         self::assertSame(ListAuditTrail::DEFAULT_PAGE_SIZE + 1, $reader->limit);
     }
@@ -84,11 +76,11 @@ final class ListAuditTrailTest extends TestCase
     #[DataProvider('outOfBoundsPageSizes')]
     public function testItRefusesAnUnboundedPageSize(int $limit): void
     {
-        $list = new ListAuditTrail(new StubWorkspaceAccess([self::OWNER => self::WORKSPACE_ID]), new RecordingAuditTrailReader([]));
+        $list = new ListAuditTrail(new StubCallerWorkspace(self::WORKSPACE_ID), new RecordingAuditTrailReader([]));
 
         $this->expectException(InvalidAuditTrailQuery::class);
 
-        $list(self::OWNER, $limit, null);
+        $list($limit, null);
     }
 
     /**
@@ -103,11 +95,11 @@ final class ListAuditTrailTest extends TestCase
 
     public function testItRefusesACursorItDidNotIssue(): void
     {
-        $list = new ListAuditTrail(new StubWorkspaceAccess([self::OWNER => self::WORKSPACE_ID]), new RecordingAuditTrailReader([]));
+        $list = new ListAuditTrail(new StubCallerWorkspace(self::WORKSPACE_ID), new RecordingAuditTrailReader([]));
 
         $this->expectException(InvalidAuditTrailQuery::class);
 
-        $list(self::OWNER, null, 'forged');
+        $list(null, 'forged');
     }
 
     /**
@@ -133,24 +125,26 @@ final class ListAuditTrailTest extends TestCase
     }
 }
 
-final class StubWorkspaceAccess implements WorkspaceAccess
+final class StubCallerWorkspace implements CallerWorkspace
 {
-    /**
-     * @param array<string, string> $workspaceByIdentifier
-     */
-    public function __construct(private readonly array $workspaceByIdentifier)
+    public function __construct(private readonly ?string $workspaceId)
     {
     }
 
-    public function readableWorkspaceFor(string $userIdentifier): ?string
+    public function resolve(): WorkspaceScope
     {
-        return $this->workspaceByIdentifier[$userIdentifier] ?? null;
+        if (null === $this->workspaceId) {
+            throw new WorkspaceAccessDenied('No workspace for this caller.');
+        }
+
+        return WorkspaceScope::fromString($this->workspaceId);
     }
 }
 
 final class RecordingAuditTrailReader implements AuditTrailReader
 {
-    public ?string $workspaceId = null;
+    public ?WorkspaceScope $workspace = null;
+    public int $findEventCalls = 0;
     public ?int $limit = null;
     public ?AuditTrailCursor $after = null;
 
@@ -161,12 +155,26 @@ final class RecordingAuditTrailReader implements AuditTrailReader
     {
     }
 
-    public function readPage(string $workspaceId, int $limit, ?AuditTrailCursor $after): array
+    public function readPage(WorkspaceScope $workspace, int $limit, ?AuditTrailCursor $after): array
     {
-        $this->workspaceId = $workspaceId;
+        $this->workspace = $workspace;
         $this->limit = $limit;
         $this->after = $after;
 
         return array_slice($this->entries, 0, $limit);
+    }
+
+    public function findEvent(WorkspaceScope $workspace, string $eventId): ?AuditTrailEntry
+    {
+        $this->workspace = $workspace;
+        ++$this->findEventCalls;
+
+        foreach ($this->entries as $entry) {
+            if ($entry->id === $eventId) {
+                return $entry;
+            }
+        }
+
+        return null;
     }
 }

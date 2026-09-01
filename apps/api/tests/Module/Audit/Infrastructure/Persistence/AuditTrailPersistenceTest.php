@@ -9,6 +9,8 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Audit\Domain\AuditEvent;
 use App\Module\Audit\Infrastructure\Persistence\DbalAuditEventRepository;
 use App\Module\Audit\Infrastructure\Persistence\DbalAuditTrailReader;
+use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DbalException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -21,40 +23,34 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class AuditTrailPersistenceTest extends KernelTestCase
 {
     private const string CREATED_AT = '2026-08-31 12:00:00.000000+00';
-    private const string OWN_WORKSPACE = '00000000-0000-7000-8000-0000000000a1';
-    private const string OTHER_WORKSPACE = '00000000-0000-7000-8000-0000000000a2';
-    private const string ACTOR_ID = '00000000-0000-7000-8000-0000000000c1';
+    private const string ACTOR_ID = WorkspaceFixture::OWNER_ID;
 
     private Connection $connection;
+    private WorkspaceFixture $fixture;
     private DbalAuditEventRepository $repository;
     private DbalAuditTrailReader $reader;
     private bool $databaseReady = false;
 
     protected function setUp(): void
     {
-        if (false === getenv('DATABASE_URL')) {
-            if (false !== getenv('CI')) {
-                self::fail('DATABASE_URL must be set in CI; PostgreSQL integration tests may not be skipped there.');
-            }
-
-            self::markTestSkipped('This PostgreSQL integration test requires DATABASE_URL.');
-        }
+        WorkspaceFixture::requireDatabase();
 
         self::bootKernel();
         $connection = self::getContainer()->get(Connection::class);
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
+        $this->fixture = new WorkspaceFixture($connection);
         $this->repository = new DbalAuditEventRepository($connection);
         $this->reader = new DbalAuditTrailReader($connection);
         $this->databaseReady = true;
-        $this->clearData();
-        $this->seedWorkspaces();
+        $this->fixture->reset();
+        $this->fixture->seed();
     }
 
     protected function tearDown(): void
     {
         if ($this->databaseReady) {
-            $this->clearData();
+            $this->fixture->reset();
         }
 
         parent::tearDown();
@@ -68,7 +64,7 @@ final class AuditTrailPersistenceTest extends KernelTestCase
             diff: AuditDiff::change(['role' => 'VIEWER'], ['role' => 'OWNER']),
         ));
 
-        $entries = $this->reader->readPage(self::OWN_WORKSPACE, 10, null);
+        $entries = $this->reader->readPage(WorkspaceFixture::own(), 10, null);
 
         self::assertCount(1, $entries);
         self::assertSame(self::ACTOR_ID, $entries[0]->actorId);
@@ -80,7 +76,7 @@ final class AuditTrailPersistenceTest extends KernelTestCase
     {
         $this->repository->append($this->event(id: '00000000-0000-7000-8000-000000000001'));
 
-        $entries = $this->reader->readPage(self::OWN_WORKSPACE, 10, null);
+        $entries = $this->reader->readPage(WorkspaceFixture::own(), 10, null);
 
         self::assertNull($entries[0]->before);
         self::assertNull($entries[0]->after);
@@ -91,21 +87,44 @@ final class AuditTrailPersistenceTest extends KernelTestCase
         $this->repository->append($this->event(id: '00000000-0000-7000-8000-000000000001'));
         $this->repository->append($this->event(
             id: '00000000-0000-7000-8000-000000000002',
-            workspaceId: self::OTHER_WORKSPACE,
+            workspaceId: WorkspaceFixture::OTHER_WORKSPACE,
         ));
 
-        $own = $this->reader->readPage(self::OWN_WORKSPACE, 10, null);
-        $other = $this->reader->readPage(self::OTHER_WORKSPACE, 10, null);
+        $own = $this->reader->readPage(WorkspaceFixture::own(), 10, null);
+        $other = $this->reader->readPage(WorkspaceFixture::other(), 10, null);
 
         self::assertSame(['00000000-0000-7000-8000-000000000001'], array_column($own, 'id'));
         self::assertSame(['00000000-0000-7000-8000-000000000002'], array_column($other, 'id'));
+    }
+
+    public function testAnEventIsFoundByIdentifierInsideItsOwnWorkspace(): void
+    {
+        $this->repository->append($this->event(id: '00000000-0000-7000-8000-000000000001'));
+
+        $entry = $this->reader->findEvent(WorkspaceFixture::own(), '00000000-0000-7000-8000-000000000001');
+
+        self::assertNotNull($entry);
+        self::assertSame('00000000-0000-7000-8000-000000000001', $entry->id);
+    }
+
+    public function testAnEventOfAnotherWorkspaceIsNotFoundByItsExactIdentifier(): void
+    {
+        // The identifier is correct and the row exists: only the workspace
+        // predicate stands between the caller and someone else's record.
+        $this->repository->append($this->event(
+            id: '00000000-0000-7000-8000-000000000002',
+            workspaceId: WorkspaceFixture::OTHER_WORKSPACE,
+        ));
+
+        self::assertNull($this->reader->findEvent(WorkspaceFixture::own(), '00000000-0000-7000-8000-000000000002'));
+        self::assertNotNull($this->reader->findEvent(WorkspaceFixture::other(), '00000000-0000-7000-8000-000000000002'));
     }
 
     public function testACursorFromAnotherWorkspaceStillReadsNothingExtra(): void
     {
         $this->repository->append($this->event(
             id: '00000000-0000-7000-8000-000000000002',
-            workspaceId: self::OTHER_WORKSPACE,
+            workspaceId: WorkspaceFixture::OTHER_WORKSPACE,
             occurredAt: '2026-08-31T12:00:02+00:00',
         ));
         $foreign = new AuditTrailCursor(
@@ -113,7 +132,7 @@ final class AuditTrailPersistenceTest extends KernelTestCase
             '00000000-0000-7000-8000-000000000009',
         );
 
-        self::assertSame([], $this->reader->readPage(self::OWN_WORKSPACE, 10, $foreign));
+        self::assertSame([], $this->reader->readPage(WorkspaceFixture::own(), 10, $foreign));
     }
 
     public function testThePageIsOrderedNewestFirstAndResumesExactlyAfterTheCursor(): void
@@ -128,14 +147,14 @@ final class AuditTrailPersistenceTest extends KernelTestCase
             $this->repository->append($this->event(id: $id, occurredAt: $occurredAt));
         }
 
-        $first = $this->reader->readPage(self::OWN_WORKSPACE, 2, null);
+        $first = $this->reader->readPage(WorkspaceFixture::own(), 2, null);
         self::assertSame([
             '00000000-0000-7000-8000-000000000003',
             '00000000-0000-7000-8000-000000000002',
         ], array_column($first, 'id'));
 
         $next = $this->reader->readPage(
-            self::OWN_WORKSPACE,
+            WorkspaceFixture::own(),
             2,
             new AuditTrailCursor($first[1]->occurredAt, $first[1]->id),
         );
@@ -186,7 +205,7 @@ final class AuditTrailPersistenceTest extends KernelTestCase
 
         $this->connection->insert('audit_events', [
             'id' => '00000000-0000-7000-8000-000000000001',
-            'workspace_id' => self::OWN_WORKSPACE,
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
             'actor_id' => null,
             'event_type' => "session.opened\nsession.closed",
             'entity_type' => 'user',
@@ -214,7 +233,7 @@ final class AuditTrailPersistenceTest extends KernelTestCase
             diff: AuditDiff::change($attributes, $attributes),
         ));
 
-        $entries = $this->reader->readPage(self::OWN_WORKSPACE, 10, null);
+        $entries = $this->reader->readPage(WorkspaceFixture::own(), 10, null);
 
         self::assertCount(12, $entries[0]->after ?? []);
     }
@@ -226,7 +245,7 @@ final class AuditTrailPersistenceTest extends KernelTestCase
 
         $this->connection->insert('audit_events', [
             'id' => '00000000-0000-7000-8000-000000000001',
-            'workspace_id' => self::OWN_WORKSPACE,
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
             'actor_id' => null,
             'event_type' => 'user.created',
             'entity_type' => 'user',
@@ -239,14 +258,14 @@ final class AuditTrailPersistenceTest extends KernelTestCase
 
     private function event(
         string $id,
-        string $workspaceId = self::OWN_WORKSPACE,
+        string $workspaceId = WorkspaceFixture::OWN_WORKSPACE,
         ?string $actorId = null,
         ?AuditDiff $diff = null,
         string $occurredAt = '2026-08-31T12:00:00+00:00',
     ): AuditEvent {
         return new AuditEvent(
             id: $id,
-            workspaceId: $workspaceId,
+            workspace: WorkspaceScope::fromString($workspaceId),
             actorId: $actorId,
             eventType: 'session.opened',
             entityType: 'user',
@@ -254,34 +273,5 @@ final class AuditTrailPersistenceTest extends KernelTestCase
             diff: $diff ?? AuditDiff::none(),
             occurredAt: new \DateTimeImmutable($occurredAt),
         );
-    }
-
-    private function seedWorkspaces(): void
-    {
-        $this->connection->insert('identity_users', [
-            'id' => self::ACTOR_ID,
-            'email' => 'owner@example.test',
-            'display_name' => 'Owner',
-            'created_at' => self::CREATED_AT,
-        ]);
-
-        foreach ([self::OWN_WORKSPACE, self::OTHER_WORKSPACE] as $index => $workspaceId) {
-            $this->connection->insert('identity_workspaces', [
-                'id' => $workspaceId,
-                'name' => 'Workspace '.$index,
-                'timezone' => 'Europe/Paris',
-                'base_currency' => 'EUR',
-                'created_at' => self::CREATED_AT,
-            ]);
-        }
-    }
-
-    private function clearData(): void
-    {
-        $this->connection->executeStatement('TRUNCATE TABLE audit_events');
-        $this->connection->executeStatement('DELETE FROM identity_initial_provisionings');
-        $this->connection->executeStatement('DELETE FROM identity_workspace_memberships');
-        $this->connection->executeStatement('DELETE FROM identity_workspaces');
-        $this->connection->executeStatement('DELETE FROM identity_users');
     }
 }

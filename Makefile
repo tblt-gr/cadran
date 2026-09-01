@@ -1,4 +1,4 @@
-.PHONY: init install tools up down migrate provision-owner status tls-certificate generate test test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
+.PHONY: init install tools up down migrate provision-owner status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 COMPOSE := docker compose --env-file $(COMPOSE_ENV)
@@ -61,11 +61,13 @@ generate: tools
 
 test: architecture test-infrastructure test-api test-web
 
-test-api: tools
+test-database: tools
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) up --detach --wait db
 	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console doctrine:database:create --env=test --if-not-exists --no-interaction
 	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
+
+test-api: test-database
 	$(TOOLS_RUN_WITH_DB) composer test --working-dir=apps/api
 
 test-web: tools
@@ -77,8 +79,8 @@ test-infrastructure: tools
 architecture:
 	sh scripts/test-architecture.sh
 
-quality: architecture test-infrastructure tools
-	$(TOOLS_RUN) composer quality --working-dir=apps/api
+quality: architecture test-infrastructure test-database
+	$(TOOLS_RUN_WITH_DB) composer quality --working-dir=apps/api
 	$(TOOLS_RUN) pnpm quality
 
 build: tools

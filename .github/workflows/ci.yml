@@ -85,7 +85,11 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
-          persist-credentials: false
+          # This job alone keeps the checkout credentials: the migration
+          # upgrade-path check diffs against the base branch, and the repository
+          # is private, so fetching that ref without them is impossible. Every
+          # other job still checks out without credentials.
+          persist-credentials: true
       - name: Fetch the base branch for the upgrade-path check
         if: github.base_ref != ''
         env:
@@ -103,7 +107,7 @@ jobs:
         run: composer lint --working-dir=apps/api
       - name: Static analysis
         run: composer analyse --working-dir=apps/api
-      - name: Module dependency boundaries
+      - name: Module boundaries and workspace scope
         run: sh scripts/test-architecture.sh
       - name: Migrations from empty and from the released schema
         env:
@@ -231,7 +235,6 @@ jobs:
           image-ref: cadran_db:local
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          trivyignores: .trivyignore
           exit-code: '1'
       - name: Scan the Dockerfiles for misconfiguration
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -239,7 +242,6 @@ jobs:
           scan-type: config
           scan-ref: docker
           severity: CRITICAL,HIGH
-          trivyignores: .trivyignore
           exit-code: '1'
 
   markdown_changes:

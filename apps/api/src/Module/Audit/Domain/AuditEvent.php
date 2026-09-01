@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Audit\Domain;
 
+use App\Module\Foundation\Domain\WorkspaceScope;
+
 /**
  * One recorded change to a security-sensitive or financially meaningful record.
  *
@@ -19,7 +21,7 @@ final readonly class AuditEvent
 
     public function __construct(
         public string $id,
-        public string $workspaceId,
+        public WorkspaceScope $workspace,
         public ?string $actorId,
         public string $eventType,
         public string $entityType,
@@ -27,8 +29,8 @@ final readonly class AuditEvent
         public AuditDiff $diff,
         public \DateTimeImmutable $occurredAt,
     ) {
-        if ('' === $id || '' === $workspaceId || '' === $entityId) {
-            throw new \InvalidArgumentException('An audit event requires an identifier, a workspace, and an entity.');
+        if ('' === $id || '' === $entityId) {
+            throw new \InvalidArgumentException('An audit event requires an identifier and an entity.');
         }
 
         if ('' === $actorId) {

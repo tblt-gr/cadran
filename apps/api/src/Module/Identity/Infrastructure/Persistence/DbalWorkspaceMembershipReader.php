@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Identity\Infrastructure\Persistence;
 
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Identity\Application\WorkspaceMembership;
 use App\Module\Identity\Application\WorkspaceMembershipReader;
 use Doctrine\DBAL\Connection;
@@ -28,7 +29,7 @@ final readonly class DbalWorkspaceMembershipReader implements WorkspaceMembershi
         return false === $row
             ? null
             : new WorkspaceMembership(
-                self::asString($row['workspace_id'] ?? null),
+                WorkspaceScope::fromString(self::asString($row['workspace_id'] ?? null)),
                 self::asString($row['role'] ?? null),
             );
     }
