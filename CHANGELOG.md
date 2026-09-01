@@ -24,6 +24,13 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   `/api/v1/categories` and the responsive categories interface.
 - Initial project documentation, contribution guidelines, and repository automation.
 
+### Changed
+
+- Creating or editing a category now happens in a modal dialog instead of a form pushed into the
+  page. A shared modal component carries the overlay, heading and close control, and a shared
+  overlay hook makes the application inert, locks background scrolling, traps focus and closes on
+  Escape or a backdrop press for every dialog surface.
+
 ### Fixed
 
 - Signing in no longer answers `500`. `LOCK_DSN` was defined only by the test harness, so the lock
