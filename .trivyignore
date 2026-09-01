@@ -24,3 +24,9 @@ CVE-2026-77354
 # Caddyfile configures neither reverse_proxy nor xDS/RBAC. Remove when the
 # official image upgrades gRPC.
 GHSA-hrxh-6v49-42gf
+
+# review: 2026-09-12 — FrankenPHP 1.12.7 bundles golang.org/x/crypto 0.54.0,
+# but Cadran exposes only HTTP(S) and configures no SSH server, authentication
+# callback or source-address restriction. Remove when the official image
+# upgrades golang.org/x/crypto to 0.55.0 or later.
+CVE-2026-56854
