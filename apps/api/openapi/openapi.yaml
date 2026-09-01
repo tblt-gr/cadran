@@ -218,6 +218,85 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/assets:
+    get:
+      operationId: listAssets
+      summary: Read the system asset reference
+      description: >-
+        Requires an authenticated session. Returns the currencies and
+        crypto-assets every financial figure is denominated in, with the
+        precisions and rounding rule each one is read against. The reference is
+        global and read-only: it belongs to no workspace and every session
+        reads the same rows.
+      tags:
+        - Reference
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Page number, between 1 and 1000. Defaults to 1.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Page size, between 1 and 100. Defaults to 50.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: One page of the asset reference.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/assets/{code}:
+    get:
+      operationId: readAsset
+      summary: Read one asset of the system reference
+      description: >-
+        Requires an authenticated session. An unknown code and a malformed one
+        answer alike, so the endpoint keeps a single contract for "no such
+        asset".
+      tags:
+        - Reference
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Asset code, such as `EUR` or `BTC`.
+          schema:
+            type: string
+            pattern: '^[A-Z][A-Z0-9]{1,11}$'
+      responses:
+        '200':
+          description: The requested asset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     sessionCookie:
@@ -487,6 +566,104 @@ components:
               - type: string
               - type: 'null'
         - type: 'null'
+    AssetPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - perPage
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          description: Number of assets the reference holds.
+          type: integer
+          minimum: 0
+    Asset:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - kind
+        - displayName
+        - storagePrecision
+        - displayPrecision
+        - roundingMode
+        - displayStep
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+          examples:
+            - EUR
+        kind:
+          type: string
+          enum:
+            - FIAT
+            - CRYPTO
+        displayName:
+          type: string
+        storagePrecision:
+          description: >-
+            Decimal places a *submitted* figure of this asset may carry. A
+            value beyond it is refused before persistence, never rounded in
+            silence. It does not cap a derived figure: a conversion or a split
+            keeps the full 24 decimals of the storage type.
+          type: integer
+          minimum: 0
+          maximum: 24
+        displayPrecision:
+          description: >-
+            Decimal places an interface or export shows. Never greater than
+            `storagePrecision`, which JSON Schema cannot express here: showing
+            more decimals than are stored would invent digits. A non-zero value
+            smaller than the last shown decimal is displayed as such, never as
+            a rounded zero.
+          type: integer
+          minimum: 0
+          maximum: 24
+        roundingMode:
+          description: Rule the presentation boundary applies when it shows fewer decimals than are stored.
+          type: string
+          enum:
+            - HALF_UP
+            - HALF_EVEN
+            - DOWN
+        displayStep:
+          $ref: '#/components/schemas/DecimalAmount'
+    DecimalAmount:
+      description: >-
+        A financial decimal. Every amount, quantity, price and rate travels as
+        a canonical decimal string paired with its asset code; a native JSON
+        number is forbidden, because parsing one would put a binary float back
+        into a financial value.
+      type: object
+      additionalProperties: false
+      required:
+        - value
+        - assetCode
+      properties:
+        value:
+          type: string
+          pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+          examples:
+            - '230.5688'
+        assetCode:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+          examples:
+            - EUR
     Problem:
       type: object
       additionalProperties: false

@@ -15,6 +15,7 @@ use App\Module\Identity\Infrastructure\Persistence\DbalInitialProvisioningGuard;
 use App\Module\Identity\Infrastructure\Persistence\DbalTransactionManager;
 use App\Module\Identity\Infrastructure\Persistence\DbalUserRepository;
 use App\Module\Identity\Infrastructure\Persistence\DbalWorkspaceRepository;
+use App\Module\Reference\Infrastructure\Persistence\DbalAssetCatalog;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -68,6 +69,7 @@ final class ProvisionInitialWorkspaceRollbackTest extends KernelTestCase
         $provision = new ProvisionInitialWorkspace(
             new DbalTransactionManager($this->connection),
             new DbalInitialProvisioningGuard($this->connection),
+            new DbalAssetCatalog($this->connection),
             new DbalUserRepository($this->connection),
             new DbalWorkspaceRepository($this->connection),
             $failingMemberships,
