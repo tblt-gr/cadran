@@ -85,7 +85,11 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
-          persist-credentials: false
+          # This job alone keeps the checkout credentials: the migration
+          # upgrade-path check diffs against the base branch, and the repository
+          # is private, so fetching that ref without them is impossible. Every
+          # other job still checks out without credentials.
+          persist-credentials: true
       - name: Fetch the base branch for the upgrade-path check
         if: github.base_ref != ''
         env:
