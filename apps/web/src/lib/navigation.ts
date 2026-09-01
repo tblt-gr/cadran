@@ -62,6 +62,12 @@ export const navigationItems: NavigationItem[] = [
     match: (path) => /^\/reports\/annual\/\d{4}$/.test(path) || path === '/reports/all-years',
   },
   {
+    href: '/categories',
+    icon: 'categories',
+    labelKey: 'navigation.categories',
+    match: (path) => path === '/categories',
+  },
+  {
     href: '/settings/profile',
     icon: 'settings',
     labelKey: 'navigation.settings',

@@ -54,3 +54,21 @@ api:
     asset_not_found:
       title: 'Actif introuvable'
       detail: 'Aucun actif du référentiel ne porte ce code.'
+    invalid_category_query:
+      title: 'Requête de catégories invalide'
+      detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
+    invalid_category:
+      title: 'Catégorie invalide'
+      detail: 'Vérifiez le type, le libellé, le parent, les axes et les métadonnées de la catégorie.'
+    category_payload_too_large:
+      title: 'Corps de catégorie trop volumineux'
+      detail: 'Le corps JSON dépasse la taille maximale autorisée.'
+    category_conflict:
+      title: 'Conflit de catégorie'
+      detail: 'Une catégorie sœur active porte déjà ce libellé ou la catégorie a été modifiée entre-temps.'
+    category_not_found:
+      title: 'Catégorie introuvable'
+      detail: 'Aucune catégorie ne porte cet identifiant dans cet espace de travail.'
+    category_forbidden:
+      title: 'Catégories inaccessibles'
+      detail: "Cette session n'est rattachée à aucun espace de travail."

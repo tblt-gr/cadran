@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Module\Identity\Infrastructure\Workspace;
 
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\Application\WorkspaceContext;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Identity\Application\AuthenticationUserRepository;
 use App\Module\Identity\Application\WorkspaceMembershipReader;
@@ -21,7 +23,7 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  * parameter another layer could supply.
  */
 #[AsAlias(CallerWorkspace::class)]
-final readonly class MembershipCallerWorkspace implements CallerWorkspace
+final readonly class MembershipCallerWorkspace implements CallerWorkspace, CallerWorkspaceContext
 {
     public function __construct(
         private TokenStorageInterface $tokenStorage,
@@ -31,6 +33,11 @@ final readonly class MembershipCallerWorkspace implements CallerWorkspace
     }
 
     public function resolve(): WorkspaceScope
+    {
+        return $this->resolveContext()->workspace;
+    }
+
+    public function resolveContext(): WorkspaceContext
     {
         $identifier = $this->tokenStorage->getToken()?->getUser()?->getUserIdentifier();
         if (null === $identifier) {
@@ -50,6 +57,6 @@ final readonly class MembershipCallerWorkspace implements CallerWorkspace
             throw new WorkspaceAccessDenied('The caller belongs to no workspace.');
         }
 
-        return $membership->workspace;
+        return new WorkspaceContext($membership->workspace, $user->id);
     }
 }

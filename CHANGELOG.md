@@ -19,6 +19,9 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 - Workspace-scoped audit trail for sensitive identity operations, readable at
   `GET /api/v1/audit-events` with bounded cursor pagination, and one event at a time at
   `GET /api/v1/audit-events/{id}`.
+- Workspace-scoped income and expense categories with typed parent trees, display metadata,
+  analytic defaults, budget inclusion and deterministic ordering, managed through
+  `/api/v1/categories` and the responsive categories interface.
 - Initial project documentation, contribution guidelines, and repository automation.
 
 ### Security
@@ -42,3 +45,5 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   bounded diff whose sensitive attributes are redacted. A database trigger rejects any `UPDATE` or
   `DELETE` on the trail, so a stray write cannot rewrite history; the role that owns the schema can
   still disable it, and hardening that requires a separate application database role.
+- Category mutations enforce same-workspace parents, bounded depth and payloads, server-side field
+  allowlists, optimistic versioning, database-backed sibling uniqueness and redacted audit events.

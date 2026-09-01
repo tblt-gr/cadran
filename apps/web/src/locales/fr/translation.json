@@ -86,6 +86,7 @@
   "navigation": {
     "accounts": "Comptes",
     "budget": "Budget",
+    "categories": "Catégories",
     "collapse": "Réduire la navigation",
     "expand": "Déployer la navigation",
     "explore": "Explorer Cadran",
@@ -132,6 +133,101 @@
       "description": "Le dernier solde connu date du {{date}}.",
       "label": "Données anciennes",
       "title": "Mise à jour requise"
+    }
+  },
+  "categories": {
+    "eyebrow": "Référentiel de l’espace",
+    "title": "Catégories et axes analytiques",
+    "description": "Structurez les revenus et dépenses sans doubler les totaux, puis ajoutez des axes transversaux.",
+    "add": "Nouvelle catégorie",
+    "addFirst": "Créer la première catégorie",
+    "includeArchived": "Afficher les catégories archivées",
+    "loading": "Chargement des catégories…",
+    "saved": "La catégorie a été enregistrée.",
+    "fields": {
+      "type": "Type",
+      "label": "Libellé",
+      "parent": "Catégorie parente",
+      "icon": "Clé d’icône",
+      "color": "Couleur hexadécimale",
+      "axes": "Axes par défaut",
+      "budgetIncluded": "Inclure cette catégorie dans le budget",
+      "order": "Ordre d’affichage"
+    },
+    "types": {
+      "EXPENSE": "Dépense",
+      "INCOME": "Revenu"
+    },
+    "axes": {
+      "DISCRETIONARY": "Discrétionnaire",
+      "ESSENTIAL": "Essentiel",
+      "FIXED": "Fixe",
+      "PERSONAL": "Personnel",
+      "PROFESSIONAL": "Professionnel",
+      "VARIABLE": "Variable"
+    },
+    "form": {
+      "createEyebrow": "Création",
+      "createTitle": "Nouvelle catégorie",
+      "editEyebrow": "Modification",
+      "editTitle": "Modifier la catégorie",
+      "noParent": "Aucune",
+      "parentSearch": "Rechercher une catégorie parente",
+      "parentsLoading": "Chargement des catégories parentes…",
+      "parentsError": "Impossible de charger les catégories parentes.",
+      "parentsEmpty": "Aucune catégorie parente correspondante.",
+      "typeReasons": {
+        "ARCHIVED": "Le type d’une catégorie archivée est verrouillé.",
+        "USED": "Le type est verrouillé car cette catégorie est déjà utilisée.",
+        "CHILD": "Le type est verrouillé car cette catégorie possède un parent.",
+        "HAS_CHILDREN": "Le type est verrouillé car cette catégorie possède des sous-catégories."
+      },
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "validation": {
+      "label": "Le libellé doit contenir entre 1 et 80 caractères.",
+      "icon": "Utilisez une clé en minuscules, sans balise ni espace.",
+      "color": "Utilisez une couleur au format #AABBCC.",
+      "order": "L’ordre doit être un entier compris entre 0 et 32767."
+    },
+    "errors": {
+      "conflict": "Ce libellé est déjà utilisé au même niveau ou la catégorie a été modifiée ailleurs. Rechargez puis réessayez.",
+      "invalid": "La catégorie est invalide. Vérifiez son type, son parent et ses métadonnées.",
+      "network": "L’enregistrement a échoué. Réessayez."
+    },
+    "empty": {
+      "title": "Aucune catégorie",
+      "description": "Créez une catégorie de dépense ou de revenu pour préparer la saisie des opérations."
+    },
+    "emptyArchived": {
+      "title": "Aucune catégorie archivée",
+      "description": "Les catégories archivées apparaîtront ici sans redevenir modifiables."
+    },
+    "error": {
+      "title": "Catégories indisponibles",
+      "description": "Impossible de charger les catégories. Vérifiez le service puis réessayez."
+    },
+    "unauthorized": {
+      "title": "Session expirée",
+      "description": "Reconnectez-vous pour accéder aux catégories de votre espace."
+    },
+    "list": {
+      "caption": "Catégories de revenus et de dépenses",
+      "status": "État",
+      "actions": "Actions",
+      "active": "Active",
+      "archived": "Archivée",
+      "edit": "Modifier",
+      "noAxes": "Aucun axe",
+      "unavailableParent": "Parent non affiché"
+    },
+    "pagination": {
+      "label": "Pagination des catégories",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "position": "Page {{page}} sur {{total}}"
     }
   },
   "dashboard": {

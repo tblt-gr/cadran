@@ -297,6 +297,185 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/categories:
+    get:
+      operationId: listCategories
+      summary: List the calling workspace categories
+      description: >-
+        Requires an authenticated session. The workspace is resolved from the
+        session and cannot be selected by a query parameter. Archived rows are
+        omitted unless explicitly requested.
+      tags:
+        - Categories
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: type
+          in: query
+          required: false
+          description: Restrict results to income or expense categories.
+          schema:
+            $ref: '#/components/schemas/CategoryType'
+        - name: search
+          in: query
+          required: false
+          description: Case-insensitive contained label search, bounded to 80 characters.
+          schema:
+            type: string
+            maxLength: 80
+        - name: parentEligible
+          in: query
+          required: false
+          description: Return only active categories below the maximum tree depth.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: One page of categories from the calling workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createCategory
+      summary: Create a category in the calling workspace
+      description: >-
+        Creates an income or expense category. The parent, when present, must
+        be active, belong to the calling workspace and carry the same type.
+        The mutation requires the same-origin CSRF token.
+      tags:
+        - Categories
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: The category was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/CategoryMutationForbidden'
+        '409':
+          description: An active sibling already uses the normalized label.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          description: The category type, parent, metadata or bounds are invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/categories/{id}:
+    put:
+      operationId: updateCategory
+      summary: Update an active category
+      description: >-
+        Replaces editable category fields using optimistic versioning. Parent
+        moves and archival are separate impact-aware operations outside this
+        endpoint. A category already used by history cannot change type.
+      tags:
+        - Categories
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          description: The updated category.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/CategoryMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The label conflicts or the submitted version is stale.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          description: The category fields are invalid or an immutable rule was violated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     sessionCookie:
@@ -362,6 +541,20 @@ components:
             $ref: '#/components/schemas/Problem'
     CsrfFailure:
       description: 'The CSRF token or Origin check failed (`type: /problems/csrf-token`).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    CategoryMutationForbidden:
+      description: >-
+        Either the CSRF / Origin check failed (`type: /problems/csrf-token`),
+        or the authenticated session belongs to no workspace (`type: about:blank`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    PayloadTooLarge:
+      description: The JSON request body exceeds the 16 KiB category mutation limit.
       content:
         application/problem+json:
           schema:
@@ -642,6 +835,220 @@ components:
             - DOWN
         displayStep:
           $ref: '#/components/schemas/DecimalAmount'
+    CategoryPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - perPage
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+    Category:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - type
+        - label
+        - parentId
+        - parentLabel
+        - icon
+        - color
+        - defaultAnalyticAxes
+        - budgetIncluded
+        - sortOrder
+        - depth
+        - version
+        - used
+        - typeEditable
+        - typeEditReason
+        - canAcceptChildren
+        - archivedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/CategoryType'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        parentId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        parentLabel:
+          description: Label of the parent category, or null when the category is a root.
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
+        icon:
+          oneOf:
+            - type: string
+              pattern: '^[a-z][a-z0-9-]{0,31}$'
+            - type: 'null'
+        color:
+          oneOf:
+            - type: string
+              pattern: '^#[0-9A-F]{6}$'
+            - type: 'null'
+        defaultAnalyticAxes:
+          $ref: '#/components/schemas/AnalyticAxes'
+        budgetIncluded:
+          type: boolean
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 32767
+        depth:
+          type: integer
+          minimum: 1
+          maximum: 8
+        version:
+          type: integer
+          minimum: 1
+        used:
+          type: boolean
+        typeEditable:
+          description: Backend-owned eligibility for changing income/expense type.
+          type: boolean
+        typeEditReason:
+          description: Why the type is immutable, or null when it can be changed.
+          oneOf:
+            - type: string
+              enum:
+                - ARCHIVED
+                - USED
+                - CHILD
+                - HAS_CHILDREN
+            - type: 'null'
+        canAcceptChildren:
+          description: True only for active categories below the maximum tree depth.
+          type: boolean
+        archivedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    CreateCategoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - label
+        - parentId
+        - icon
+        - color
+        - defaultAnalyticAxes
+        - budgetIncluded
+        - sortOrder
+      properties:
+        type:
+          $ref: '#/components/schemas/CategoryType'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        parentId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        icon:
+          oneOf:
+            - type: string
+              pattern: '^[a-z][a-z0-9-]{0,31}$'
+            - type: 'null'
+        color:
+          oneOf:
+            - type: string
+              pattern: '^#[0-9A-F]{6}$'
+            - type: 'null'
+        defaultAnalyticAxes:
+          $ref: '#/components/schemas/AnalyticAxes'
+        budgetIncluded:
+          type: boolean
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 32767
+    UpdateCategoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - label
+        - icon
+        - color
+        - defaultAnalyticAxes
+        - budgetIncluded
+        - sortOrder
+        - version
+      properties:
+        type:
+          $ref: '#/components/schemas/CategoryType'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        icon:
+          oneOf:
+            - type: string
+              pattern: '^[a-z][a-z0-9-]{0,31}$'
+            - type: 'null'
+        color:
+          oneOf:
+            - type: string
+              pattern: '^#[0-9A-F]{6}$'
+            - type: 'null'
+        defaultAnalyticAxes:
+          $ref: '#/components/schemas/AnalyticAxes'
+        budgetIncluded:
+          type: boolean
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 32767
+        version:
+          type: integer
+          minimum: 1
+    CategoryType:
+      type: string
+      enum:
+        - EXPENSE
+        - INCOME
+    AnalyticAxes:
+      type: array
+      uniqueItems: true
+      maxItems: 6
+      items:
+        type: string
+        enum:
+          - DISCRETIONARY
+          - ESSENTIAL
+          - FIXED
+          - PERSONAL
+          - PROFESSIONAL
+          - VARIABLE
     DecimalAmount:
       description: >-
         A financial decimal. Every amount, quantity, price and rate travels as

@@ -16,6 +16,12 @@ services:
   App\:
     resource: '../src/'
 
+  App\Module\Foundation\Application\CallerWorkspaceContext:
+    alias: App\Module\Identity\Infrastructure\Workspace\MembershipCallerWorkspace
+
+  App\Module\Foundation\Application\TransactionBoundary:
+    alias: App\Module\Identity\Infrastructure\Persistence\DbalTransactionManager
+
   # Replaces the security bundle's fixed-window login limiter (see ADR-0016).
   security.login_throttling.limiter:
     class: Symfony\Component\Security\Http\RateLimiter\DefaultLoginRateLimiter

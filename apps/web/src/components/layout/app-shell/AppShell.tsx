@@ -16,10 +16,11 @@ interface AppShellProps {
   children: ReactNode;
   accountSlot?: ReactNode;
   contextPanel?: ReactNode;
-  freshnessLabel: string;
-  headerDate: string;
+  freshnessLabel?: string;
+  headerDate?: string;
   path: string;
   setPath: (path: string) => void;
+  showGlobalActions?: boolean;
 }
 
 export function AppShell({
@@ -30,6 +31,7 @@ export function AppShell({
   headerDate,
   path,
   setPath,
+  showGlobalActions,
 }: AppShellProps) {
   const { t } = useTranslation();
   const [activeAction, setActiveAction] = useState<FoundationAction | null>(null);
@@ -74,6 +76,7 @@ export function AppShell({
           freshnessLabel={freshnessLabel}
           headerDate={headerDate}
           onAction={openAction}
+          showGlobalActions={showGlobalActions}
           title={title}
         />
 
@@ -92,6 +95,7 @@ export function AppShell({
         onNavigate={handleNavigate}
         onOpenMore={() => setIsMoreOpen(true)}
         path={path}
+        showGlobalActions={showGlobalActions}
       />
 
       {isMoreOpen ? (
