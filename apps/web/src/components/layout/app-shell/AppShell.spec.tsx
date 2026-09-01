@@ -49,4 +49,17 @@ describe('AppShell', () => {
     const addDialog = screen.getByRole('dialog', { name: 'Ajouter une donnée' });
     expect(within(addDialog).getByRole('status').textContent).toContain('Ajout bientôt disponible');
   });
+
+  it('hides dashboard-only context and global placeholders on feature routes', () => {
+    render(
+      <AppShell path="/categories" setPath={vi.fn()} showGlobalActions={false}>
+        <p>Catégories</p>
+      </AppShell>,
+    );
+
+    expect(screen.queryByText('Mis à jour il y a 4 jours')).toBeNull();
+    expect(screen.queryByText('Samedi 29 août')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Rechercher' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ajouter' })).toBeNull();
+  });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
-import { getFoundationStatus, listAssets, listAuditEvents } from './generated';
-import type { DecimalAmount } from './generated';
+import { createCategory, getFoundationStatus, listAssets, listAuditEvents } from './generated';
+import type { CreateCategoryRequest, DecimalAmount } from './generated';
 
 describe('generated Cadran client', () => {
   it('calls the versioned endpoint with its generated response type', async () => {
@@ -84,6 +84,51 @@ describe('generated Cadran client', () => {
     expect(request.mock.calls[0]?.[0]).toMatchObject({
       method: 'GET',
       url: 'https://cadran.test/api/v1/assets?perPage=50',
+    });
+  });
+
+  it('binds category mutations to the generated closed request schema', async () => {
+    const body: CreateCategoryRequest = {
+      type: 'EXPENSE',
+      label: 'Restaurants',
+      parentId: null,
+      icon: 'utensils',
+      color: '#AABBCC',
+      defaultAnalyticAxes: ['DISCRETIONARY'],
+      budgetIncluded: true,
+      sortOrder: 10,
+    };
+    const request = vi.fn<typeof fetch>(async (_input, _init) =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            id: '00000000-0000-7000-8000-0000000000c1',
+            ...body,
+            depth: 1,
+            version: 1,
+            used: false,
+            typeEditable: true,
+            typeEditReason: null,
+            canAcceptChildren: true,
+            archivedAt: null,
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+
+    const response = await createCategory({
+      baseUrl: 'https://cadran.test',
+      fetch: request,
+      headers: { 'X-CSRF-TOKEN': 'signed-token' },
+      body,
+      throwOnError: true,
+    });
+
+    expect(response.data.label).toBe('Restaurants');
+    expect(request.mock.calls[0]?.[0]).toMatchObject({
+      method: 'POST',
+      url: 'https://cadran.test/api/v1/categories',
     });
   });
 });

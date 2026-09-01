@@ -16,6 +16,7 @@ interface MobileBottomNavProps {
   onNavigate: NavigationHandler;
   onOpenMore: () => void;
   path: string;
+  showGlobalActions?: boolean;
 }
 
 export function MobileBottomNav({
@@ -25,13 +26,17 @@ export function MobileBottomNav({
   onNavigate,
   onOpenMore,
   path,
+  showGlobalActions = true,
 }: MobileBottomNavProps) {
   const { t } = useTranslation();
   const mobileItems = navigationItems.filter((item) => item.mobile);
   const isMoreCurrent = navigationItems.some((item) => !item.mobile && item.match(path));
 
   return (
-    <nav aria-label={t('navigation.mobileLabel')} className={styles.navigation}>
+    <nav
+      aria-label={t('navigation.mobileLabel')}
+      className={`${styles.navigation}${showGlobalActions ? '' : ` ${styles.withoutAction}`}`}
+    >
       {mobileItems.slice(0, 2).map((item) => (
         <NavigationLink
           className={styles.link}
@@ -41,15 +46,17 @@ export function MobileBottomNav({
           path={path}
         />
       ))}
-      <button
-        aria-label={t('actions.add')}
-        className={styles.add}
-        onClick={(event) => onAction('add', event.currentTarget)}
-        type="button"
-      >
-        <Icon name="add" size={24} />
-        <span>{t('actions.add')}</span>
-      </button>
+      {showGlobalActions ? (
+        <button
+          aria-label={t('actions.add')}
+          className={styles.add}
+          onClick={(event) => onAction('add', event.currentTarget)}
+          type="button"
+        >
+          <Icon name="add" size={24} />
+          <span>{t('actions.add')}</span>
+        </button>
+      ) : null}
       {mobileItems.slice(2).map((item) => (
         <NavigationLink
           className={styles.link}

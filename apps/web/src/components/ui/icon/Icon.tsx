@@ -7,6 +7,7 @@ type IconName =
   | 'arrow-down'
   | 'arrow-up'
   | 'budget'
+  | 'categories'
   | 'chevron-left'
   | 'chevron-right'
   | 'close'
@@ -37,6 +38,8 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="M12 5v14M5 12h14" />;
     case 'budget':
       return <path d="M5 4h14v16H5zM8 8h8M8 12h3m2 0h3M8 16h3m2 0h3" />;
+    case 'categories':
+      return <path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4zM14 15h6v4h-6z" />;
     case 'investments':
       return <path d="M4 19V9m6 10V5m6 14v-7m4 7V3M3 19h18" />;
     case 'goals':

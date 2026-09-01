@@ -8,6 +8,7 @@ import { DashboardContextPanel } from '@/features/dashboard/context-panel/Dashbo
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
 import { formatDemoDay } from '@/features/dashboard/formatDemoDate';
+import { CategoryPage } from '@/features/categories/CategoryPage';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
@@ -49,7 +50,9 @@ export function AuthenticatedApp() {
   }, [path, t]);
 
   let content;
-  if (path !== '/') {
+  if (path === '/categories') {
+    content = <CategoryPage />;
+  } else if (path !== '/') {
     content = <PlaceholderPage />;
   } else if (status.isPending) {
     content = <FoundationLoadingState />;
@@ -69,10 +72,17 @@ export function AuthenticatedApp() {
     <AppShell
       accountSlot={<LogoutButton />}
       contextPanel={path === '/' && status.isSuccess ? <DashboardContextPanel /> : undefined}
-      freshnessLabel={t('header.staleFreshness', { count: dashboardDemoData.freshnessDays })}
-      headerDate={formatDemoDay(dashboardDemoData.asOfDate, i18n.language)}
+      freshnessLabel={
+        path === '/'
+          ? t('header.staleFreshness', { count: dashboardDemoData.freshnessDays })
+          : undefined
+      }
+      headerDate={
+        path === '/' ? formatDemoDay(dashboardDemoData.asOfDate, i18n.language) : undefined
+      }
       path={path}
       setPath={setPath}
+      showGlobalActions={path !== '/categories'}
     >
       {content}
     </AppShell>

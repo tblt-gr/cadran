@@ -4,14 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Identity\Application;
 
-interface TransactionManager
+use App\Module\Foundation\Application\TransactionBoundary;
+
+interface TransactionManager extends TransactionBoundary
 {
-    /**
-     * @template T
-     *
-     * @param \Closure(): T $callback
-     *
-     * @return T
-     */
-    public function transactional(\Closure $callback): mixed;
 }
