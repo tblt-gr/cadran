@@ -44,7 +44,7 @@ final readonly class AuditTrailCursor
 
         [$timestamp, $eventId] = $parts;
         $occurredAt = \DateTimeImmutable::createFromFormat(self::TIMESTAMP_FORMAT, $timestamp);
-        if (false === $occurredAt || 1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i', $eventId)) {
+        if (false === $occurredAt || 1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}\z/i', $eventId)) {
             throw new InvalidAuditTrailQuery('The audit trail cursor does not name a known position.');
         }
 

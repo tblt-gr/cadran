@@ -7,6 +7,7 @@ namespace App\Module\Audit\Infrastructure\Persistence;
 use App\Module\Audit\Application\AuditTrailCursor;
 use App\Module\Audit\Application\AuditTrailEntry;
 use App\Module\Audit\Application\AuditTrailReader;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
@@ -20,12 +21,12 @@ final readonly class DbalAuditTrailReader implements AuditTrailReader
     {
     }
 
-    public function readPage(string $workspaceId, int $limit, ?AuditTrailCursor $after): array
+    public function readPage(WorkspaceScope $workspace, int $limit, ?AuditTrailCursor $after): array
     {
         // The workspace predicate is not optional and not caller-supplied: a
         // cursor from another workspace still reads nothing here.
         $sql = 'SELECT '.self::COLUMNS.' FROM audit_events WHERE workspace_id = :workspace';
-        $parameters = ['workspace' => $workspaceId, 'limit' => $limit];
+        $parameters = ['workspace' => $workspace->id, 'limit' => $limit];
         $types = ['limit' => ParameterType::INTEGER];
 
         if (null !== $after) {
@@ -44,6 +45,18 @@ final readonly class DbalAuditTrailReader implements AuditTrailReader
         }
 
         return $entries;
+    }
+
+    public function findEvent(WorkspaceScope $workspace, string $eventId): ?AuditTrailEntry
+    {
+        // The identifier alone never selects a row: the workspace is part of
+        // the predicate, so a foreign event is simply absent.
+        $row = $this->connection->fetchAssociative(
+            'SELECT '.self::COLUMNS.' FROM audit_events WHERE workspace_id = :workspace AND id = :id',
+            ['workspace' => $workspace->id, 'id' => $eventId],
+        );
+
+        return false === $row ? null : self::hydrate($row);
     }
 
     /**

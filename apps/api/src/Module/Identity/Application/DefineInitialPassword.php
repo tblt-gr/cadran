@@ -60,7 +60,7 @@ final readonly class DefineInitialPassword
             // the account. The diff is empty on purpose — recording anything
             // about a credential, even its length, is a leak.
             ($this->recordAuditEvent)(new AuditEventRecord(
-                workspaceId: $membership->workspaceId,
+                workspace: $membership->workspace,
                 actorId: null,
                 eventType: IdentityAuditEvents::PASSWORD_DEFINED,
                 entityType: IdentityAuditEvents::ENTITY_USER,

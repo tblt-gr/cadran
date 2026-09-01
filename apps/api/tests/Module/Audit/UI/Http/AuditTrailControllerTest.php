@@ -6,7 +6,7 @@ namespace App\Tests\Module\Audit\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
-use App\Module\Identity\Domain\PlainPassword;
+use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -19,32 +19,28 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 final class AuditTrailControllerTest extends WebTestCase
 {
     private const string CREATED_AT = '2026-08-31 12:00:00.000000+00';
-    private const string USER_ID = '00000000-0000-7000-8000-000000000001';
-    private const string WORKSPACE_ID = '00000000-0000-7000-8000-0000000000a1';
-    private const string OTHER_WORKSPACE_ID = '00000000-0000-7000-8000-0000000000a2';
-    private const string EMAIL = 'owner@example.test';
-    private const string PASSWORD = 'correct horse battery staple';
+    private const string USER_ID = WorkspaceFixture::OWNER_ID;
+    private const string OTHER_WORKSPACE_ID = WorkspaceFixture::OTHER_WORKSPACE;
+    private const string EMAIL = WorkspaceFixture::OWNER_EMAIL;
+    private const string PASSWORD = WorkspaceFixture::OWNER_PASSWORD;
+    private const string FOREIGN_EVENT_ID = '00000000-0000-7000-8000-0000000000f1';
 
     private KernelBrowser $client;
     private Connection $connection;
+    private WorkspaceFixture $fixture;
     private bool $databaseReady = false;
 
     protected function setUp(): void
     {
-        if (false === getenv('DATABASE_URL')) {
-            if (false !== getenv('CI')) {
-                self::fail('DATABASE_URL must be set in CI; PostgreSQL integration tests may not be skipped there.');
-            }
-
-            self::markTestSkipped('This PostgreSQL integration test requires DATABASE_URL.');
-        }
+        WorkspaceFixture::requireDatabase();
 
         $this->client = self::createClient();
         $connection = self::getContainer()->get(Connection::class);
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
+        $this->fixture = new WorkspaceFixture($connection);
         $this->databaseReady = true;
-        $this->clearData();
+        $this->fixture->reset();
         $this->resetLoginThrottling();
         $this->seedOwner();
 
@@ -57,7 +53,7 @@ final class AuditTrailControllerTest extends WebTestCase
     protected function tearDown(): void
     {
         if ($this->databaseReady) {
-            $this->clearData();
+            $this->fixture->reset();
         }
 
         parent::tearDown();
@@ -194,10 +190,124 @@ final class AuditTrailControllerTest extends WebTestCase
         self::assertResponseHeaderSame('content-type', 'application/problem+json');
     }
 
-    private function signIn(): void
+    public function testAnEventOfTheOwnWorkspaceIsReadableByItsIdentifier(): void
+    {
+        $this->signIn();
+        $this->client->request('GET', '/api/v1/audit-events');
+        $listed = $this->items()[0];
+
+        $this->client->request('GET', '/api/v1/audit-events/'.self::identifierOf($listed));
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('cache-control'));
+        self::assertSame($listed, $this->decode());
+    }
+
+    public function testAForeignIdentifierIsAnsweredExactlyLikeAnUnknownOne(): void
+    {
+        $this->insertForeignEvent();
+        $this->signIn();
+
+        $this->client->request('GET', '/api/v1/audit-events/'.self::FOREIGN_EVENT_ID);
+        self::assertResponseStatusCodeSame(404);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+        $foreign = (string) $this->client->getResponse()->getContent();
+
+        $this->client->request('GET', '/api/v1/audit-events/00000000-0000-7000-8000-0000000000ee');
+        self::assertResponseStatusCodeSame(404);
+
+        // Byte-identical: probing identifiers must not reveal which ones exist
+        // in another workspace.
+        self::assertSame($foreign, (string) $this->client->getResponse()->getContent());
+        self::assertStringNotContainsString(self::OTHER_WORKSPACE_ID, $foreign);
+    }
+
+    public function testAMalformedIdentifierIsRefusedWithoutReachingTheDatabase(): void
+    {
+        $this->signIn();
+
+        $this->client->request('GET', '/api/v1/audit-events/not-a-uuid');
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+    }
+
+    public function testAnAnonymousCallerCannotReadAnEventByIdentifier(): void
+    {
+        $this->client->request('GET', '/api/v1/audit-events/'.self::FOREIGN_EVENT_ID);
+
+        self::assertResponseStatusCodeSame(401);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+    }
+
+    public function testReadingByIdentifierAlsoRequiresAMembership(): void
+    {
+        $this->signIn();
+        $this->client->request('GET', '/api/v1/audit-events');
+        $listed = $this->items()[0];
+        $this->connection->executeStatement('DELETE FROM identity_workspace_memberships WHERE user_id = ?', [self::USER_ID]);
+
+        $this->client->request('GET', '/api/v1/audit-events/'.self::identifierOf($listed));
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    /**
+     * The reciprocal of every other isolation test here: the second workspace's
+     * owner signs in for real and sees its own trail and nothing of the first.
+     * Without this side, a fixture that seeded everything into one workspace,
+     * or a session that resolved the wrong membership, would still look green.
+     */
+    public function testTheOtherWorkspaceOwnerSeesItsOwnTrailAndNothingOfTheFirst(): void
+    {
+        $this->insertForeignEvent();
+        $this->signIn();
+        $this->client->request('DELETE', '/api/v1/session');
+        self::assertResponseStatusCodeSame(204);
+
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+        $this->client->request('GET', '/api/v1/audit-events');
+
+        self::assertResponseIsSuccessful();
+        $items = $this->items();
+        self::assertSame(
+            ['session.opened', 'workspace.created'],
+            array_column($items, 'eventType'),
+        );
+        self::assertSame(self::FOREIGN_EVENT_ID, $items[1]['id']);
+        // The first owner signed in and out just above; none of it is visible.
+        self::assertStringNotContainsString(self::USER_ID, (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testTheOtherWorkspaceOwnerCannotReadAnEventOfTheFirstWorkspace(): void
+    {
+        $this->signIn();
+        $this->client->request('GET', '/api/v1/audit-events');
+        $ownEventId = self::identifierOf($this->items()[0]);
+        $this->client->request('DELETE', '/api/v1/session');
+
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+        $this->client->request('GET', '/api/v1/audit-events/'.$ownEventId);
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+    }
+
+    /**
+     * @param array<mixed> $item
+     */
+    private static function identifierOf(array $item): string
+    {
+        $id = $item['id'] ?? null;
+        self::assertIsString($id);
+
+        return $id;
+    }
+
+    private function signIn(string $email = self::EMAIL): void
     {
         $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: (string) json_encode([
-            'email' => self::EMAIL,
+            'email' => $email,
             'password' => self::PASSWORD,
         ]));
         self::assertResponseStatusCodeSame(204);
@@ -259,35 +369,13 @@ final class AuditTrailControllerTest extends WebTestCase
         $hasher = self::getContainer()->get(PasswordHasher::class);
         self::assertInstanceOf(PasswordHasher::class, $hasher);
 
-        $this->connection->insert('identity_users', [
-            'id' => self::USER_ID,
-            'email' => self::EMAIL,
-            'display_name' => 'Owner',
-            'created_at' => self::CREATED_AT,
-            'password_hash' => $hasher->hash(PlainPassword::fromString(self::PASSWORD)),
-        ]);
-        foreach ([self::WORKSPACE_ID, self::OTHER_WORKSPACE_ID] as $index => $workspaceId) {
-            $this->connection->insert('identity_workspaces', [
-                'id' => $workspaceId,
-                'name' => 'Workspace '.$index,
-                'timezone' => 'Europe/Paris',
-                'base_currency' => 'EUR',
-                'created_at' => self::CREATED_AT,
-            ]);
-        }
-        $this->connection->insert('identity_workspace_memberships', [
-            'id' => '00000000-0000-7000-8000-0000000000b1',
-            'workspace_id' => self::WORKSPACE_ID,
-            'user_id' => self::USER_ID,
-            'role' => 'OWNER',
-            'created_at' => self::CREATED_AT,
-        ]);
+        $this->fixture->seed($hasher);
     }
 
     private function insertForeignEvent(): void
     {
         $this->connection->insert('audit_events', [
-            'id' => '00000000-0000-7000-8000-0000000000f1',
+            'id' => self::FOREIGN_EVENT_ID,
             'workspace_id' => self::OTHER_WORKSPACE_ID,
             'actor_id' => null,
             'event_type' => 'workspace.created',
@@ -297,14 +385,5 @@ final class AuditTrailControllerTest extends WebTestCase
             'after_json' => json_encode(['baseCurrency' => 'EUR'], JSON_THROW_ON_ERROR),
             'occurred_at' => self::CREATED_AT,
         ]);
-    }
-
-    private function clearData(): void
-    {
-        $this->connection->executeStatement('TRUNCATE TABLE audit_events');
-        $this->connection->executeStatement('DELETE FROM identity_initial_provisionings');
-        $this->connection->executeStatement('DELETE FROM identity_workspace_memberships');
-        $this->connection->executeStatement('DELETE FROM identity_workspaces');
-        $this->connection->executeStatement('DELETE FROM identity_users');
     }
 }

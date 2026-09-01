@@ -26,7 +26,7 @@ final class RecordSessionEventTest extends TestCase
         self::assertCount(1, $auditEvents->events);
         $event = $auditEvents->events[0];
         self::assertSame(IdentityAuditEvents::SESSION_OPENED, $event->eventType);
-        self::assertSame(self::WORKSPACE_ID, $event->workspaceId);
+        self::assertSame(self::WORKSPACE_ID, $event->workspace->id);
         self::assertSame(self::USER_ID, $event->actorId);
         self::assertSame(self::USER_ID, $event->entityId);
         self::assertTrue($event->diff->isEmpty());

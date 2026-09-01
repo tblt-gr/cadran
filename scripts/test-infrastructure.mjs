@@ -93,6 +93,15 @@ if (!makefile.includes('$(COMPOSE_DEFAULT) config --format json')) {
   fail('Infrastructure assertions must validate Compose defaults, not local overrides');
 }
 
+const qualityTarget = makefile.match(/^quality:[^\n]*(?:\n\t[^\n]*)*/m)?.[0] ?? '';
+
+if (
+  !qualityTarget.includes('test-database') ||
+  !qualityTarget.includes('$(TOOLS_RUN_WITH_DB) composer quality')
+) {
+  fail('The quality target must prepare PostgreSQL and inject its database secret');
+}
+
 const dockerignore = readFileSync(new URL('../.dockerignore', import.meta.url), 'utf8');
 
 if (!dockerignore.split('\n').includes('**/.env*')) {

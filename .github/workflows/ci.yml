@@ -107,7 +107,7 @@ jobs:
         run: composer lint --working-dir=apps/api
       - name: Static analysis
         run: composer analyse --working-dir=apps/api
-      - name: Module dependency boundaries
+      - name: Module boundaries and workspace scope
         run: sh scripts/test-architecture.sh
       - name: Migrations from empty and from the released schema
         env:

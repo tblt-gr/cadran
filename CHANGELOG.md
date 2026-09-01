@@ -10,11 +10,20 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 - One-time local provisioning of the first owner, isolated workspace, and OWNER membership.
 - Workspace-scoped audit trail for sensitive identity operations, readable at
-  `GET /api/v1/audit-events` with bounded cursor pagination.
+  `GET /api/v1/audit-events` with bounded cursor pagination, and one event at a time at
+  `GET /api/v1/audit-events/{id}`.
 - Initial project documentation, contribution guidelines, and repository automation.
 
 ### Security
 
+- Workspace scope resolved server-side from the session and carried as a dedicated type into every
+  scoped query, so an identifier supplied by a client can never widen it. An object that belongs to
+  another workspace answers `404` exactly like an unknown one, so the API cannot be used to
+  enumerate what exists elsewhere.
+- A repository guard fails the build when a statement reads a table carrying `workspace_id` without
+  filtering on it, writes or deletes without naming it in its criteria, or reaches such a table from
+  outside an infrastructure layer. An integration test holds the tables the guard sees against the
+  migrated schema, so it cannot go blind without failing.
 - CSRF protection on every `/api/` mutation via a signed double-submit token and a same-origin
   check, enforced at the request boundary.
 - Login throttling: at most 5 failed attempts per email and source address, and 25 per source

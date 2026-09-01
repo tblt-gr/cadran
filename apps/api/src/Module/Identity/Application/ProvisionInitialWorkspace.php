@@ -8,6 +8,7 @@ use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Domain\UuidGenerator;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Identity\Domain\Membership;
 use App\Module\Identity\Domain\MembershipRepository;
 use App\Module\Identity\Domain\User;
@@ -76,9 +77,11 @@ final readonly class ProvisionInitialWorkspace
      */
     private function audit(User $user, Workspace $workspace, Membership $membership): void
     {
+        $scope = WorkspaceScope::fromString($workspace->id);
+
         foreach ([
             new AuditEventRecord(
-                workspaceId: $workspace->id,
+                workspace: $scope,
                 actorId: null,
                 eventType: IdentityAuditEvents::WORKSPACE_CREATED,
                 entityType: IdentityAuditEvents::ENTITY_WORKSPACE,
@@ -90,7 +93,7 @@ final readonly class ProvisionInitialWorkspace
                 ]),
             ),
             new AuditEventRecord(
-                workspaceId: $workspace->id,
+                workspace: $scope,
                 actorId: null,
                 eventType: IdentityAuditEvents::USER_CREATED,
                 entityType: IdentityAuditEvents::ENTITY_USER,
@@ -98,7 +101,7 @@ final readonly class ProvisionInitialWorkspace
                 diff: AuditDiff::creation(['displayName' => $user->displayName]),
             ),
             new AuditEventRecord(
-                workspaceId: $workspace->id,
+                workspace: $scope,
                 actorId: null,
                 eventType: IdentityAuditEvents::MEMBERSHIP_GRANTED,
                 entityType: IdentityAuditEvents::ENTITY_MEMBERSHIP,

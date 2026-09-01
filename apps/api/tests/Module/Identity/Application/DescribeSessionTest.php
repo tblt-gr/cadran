@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Identity\Application;
 
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Identity\Application\AuthenticatedUser;
 use App\Module\Identity\Application\AuthenticationUserRepository;
 use App\Module\Identity\Application\DescribeSession;
@@ -14,6 +15,8 @@ use PHPUnit\Framework\TestCase;
 
 final class DescribeSessionTest extends TestCase
 {
+    private const string WORKSPACE_ID = '00000000-0000-7000-8000-0000000000a1';
+
     public function testAnonymousRequestReportsSetupRequiredWhenTheOwnerHasNoPassword(): void
     {
         $describe = new DescribeSession(
@@ -62,7 +65,7 @@ final class DescribeSessionTest extends TestCase
         $owner = self::owner(hasPassword: true);
         $describe = new DescribeSession(
             new InMemoryAuthenticationUserRepository(owner: $owner),
-            new InMemoryWorkspaceMembershipReader([$owner->id => new WorkspaceMembership('workspace-1', 'OWNER')]),
+            new InMemoryWorkspaceMembershipReader([$owner->id => new WorkspaceMembership(WorkspaceScope::fromString(self::WORKSPACE_ID), 'OWNER')]),
         );
 
         $view = $describe($owner->email);
@@ -74,7 +77,7 @@ final class DescribeSessionTest extends TestCase
         self::assertSame($owner->id, $view->user->id);
         self::assertSame('owner@example.test', $view->user->email);
         self::assertNotNull($view->workspace);
-        self::assertSame('workspace-1', $view->workspace->id);
+        self::assertSame(self::WORKSPACE_ID, $view->workspace->id);
         self::assertSame('OWNER', $view->workspace->role);
     }
 
@@ -97,7 +100,7 @@ final class DescribeSessionTest extends TestCase
         $owner = self::owner(hasPassword: true, disabledAt: new \DateTimeImmutable('2026-08-30T10:00:00+00:00'));
         $describe = new DescribeSession(
             new InMemoryAuthenticationUserRepository(owner: $owner),
-            new InMemoryWorkspaceMembershipReader([$owner->id => new WorkspaceMembership('workspace-1', 'OWNER')]),
+            new InMemoryWorkspaceMembershipReader([$owner->id => new WorkspaceMembership(WorkspaceScope::fromString(self::WORKSPACE_ID), 'OWNER')]),
         );
 
         $view = $describe($owner->email);

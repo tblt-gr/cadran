@@ -183,6 +183,41 @@ paths:
           $ref: '#/components/responses/WorkspaceForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/audit-events/{id}:
+    get:
+      operationId: readAuditEvent
+      summary: Read one audit event of the calling workspace
+      description: >-
+        Requires an authenticated session. The workspace is resolved server-side
+        from the session and combined with the identifier, so an event that
+        belongs to another workspace answers 404 exactly like an unknown one.
+      tags:
+        - Audit
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identifier of an event of the calling workspace.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The requested audit event.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEvent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     sessionCookie:
@@ -234,6 +269,14 @@ components:
             $ref: '#/components/schemas/Problem'
     WorkspaceForbidden:
       description: The session is attached to no workspace, so there is nothing to read.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: >-
+        No such object in the calling workspace. Identical whether the
+        identifier is unknown or belongs to another workspace.
       content:
         application/problem+json:
           schema:

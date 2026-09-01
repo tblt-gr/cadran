@@ -39,7 +39,7 @@ final readonly class RecordSessionEvent
         }
 
         ($this->recordAuditEvent)(new AuditEventRecord(
-            workspaceId: $membership->workspaceId,
+            workspace: $membership->workspace,
             actorId: $user->id,
             eventType: $intent->eventType,
             entityType: IdentityAuditEvents::ENTITY_USER,

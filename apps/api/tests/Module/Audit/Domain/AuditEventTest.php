@@ -6,6 +6,7 @@ namespace App\Tests\Module\Audit\Domain;
 
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Audit\Domain\AuditEvent;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -21,13 +22,6 @@ final class AuditEventTest extends TestCase
 
         self::assertNull($event->actorId);
         self::assertSame('workspace.created', $event->eventType);
-    }
-
-    public function testAnEventRequiresAWorkspace(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-
-        self::event(workspaceId: '');
     }
 
     public function testAnEventRequiresAnEntity(): void
@@ -72,7 +66,6 @@ final class AuditEventTest extends TestCase
     }
 
     private static function event(
-        string $workspaceId = self::WORKSPACE_ID,
         ?string $actorId = null,
         string $eventType = 'workspace.created',
         string $entityType = 'workspace',
@@ -80,7 +73,7 @@ final class AuditEventTest extends TestCase
     ): AuditEvent {
         return new AuditEvent(
             id: self::EVENT_ID,
-            workspaceId: $workspaceId,
+            workspace: WorkspaceScope::fromString(self::WORKSPACE_ID),
             actorId: $actorId,
             eventType: $eventType,
             entityType: $entityType,

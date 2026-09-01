@@ -7,6 +7,7 @@ namespace App\Tests\Module\Identity\Infrastructure\Persistence;
 use App\Module\Identity\Infrastructure\Persistence\DbalAuthenticationUserRepository;
 use App\Module\Identity\Infrastructure\Persistence\DbalOwnerPasswordWriter;
 use App\Module\Identity\Infrastructure\Persistence\DbalWorkspaceMembershipReader;
+use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -21,30 +22,26 @@ final class DbalAuthenticationReadModelTest extends KernelTestCase
     private const string WORKSPACE_ID = '00000000-0000-7000-8000-0000000000a1';
 
     private Connection $connection;
+    private WorkspaceFixture $fixture;
     private bool $databaseReady = false;
 
     protected function setUp(): void
     {
-        if (false === getenv('DATABASE_URL')) {
-            if (false !== getenv('CI')) {
-                self::fail('DATABASE_URL must be set in CI; PostgreSQL integration tests may not be skipped there.');
-            }
-
-            self::markTestSkipped('This PostgreSQL integration test requires DATABASE_URL.');
-        }
+        WorkspaceFixture::requireDatabase();
 
         self::bootKernel();
         $connection = self::getContainer()->get(Connection::class);
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
+        $this->fixture = new WorkspaceFixture($connection);
         $this->databaseReady = true;
-        $this->clearIdentityData();
+        $this->fixture->reset();
     }
 
     protected function tearDown(): void
     {
         if ($this->databaseReady) {
-            $this->clearIdentityData();
+            $this->fixture->reset();
         }
 
         parent::tearDown();
@@ -133,7 +130,7 @@ final class DbalAuthenticationReadModelTest extends KernelTestCase
         $membership = $reader->findForUser(self::USER_ID);
 
         self::assertNotNull($membership);
-        self::assertSame(self::WORKSPACE_ID, $membership->workspaceId);
+        self::assertSame(self::WORKSPACE_ID, $membership->workspace->id);
         self::assertSame('OWNER', $membership->role);
         self::assertNull($reader->findForUser('00000000-0000-7000-8000-0000000000ff'));
     }
@@ -184,13 +181,5 @@ final class DbalAuthenticationReadModelTest extends KernelTestCase
             'role' => 'OWNER',
             'created_at' => self::CREATED_AT,
         ]);
-    }
-
-    private function clearIdentityData(): void
-    {
-        $this->connection->executeStatement('DELETE FROM identity_initial_provisionings');
-        $this->connection->executeStatement('DELETE FROM identity_workspace_memberships');
-        $this->connection->executeStatement('DELETE FROM identity_workspaces');
-        $this->connection->executeStatement('DELETE FROM identity_users');
     }
 }

@@ -25,7 +25,7 @@ final readonly class RecordAuditEvent
     {
         $this->events->append(new AuditEvent(
             id: $this->uuidGenerator->generate(),
-            workspaceId: $record->workspaceId,
+            workspace: $record->workspace,
             actorId: $record->actorId,
             eventType: $record->eventType,
             entityType: $record->entityType,

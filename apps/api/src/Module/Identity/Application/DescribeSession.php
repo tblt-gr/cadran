@@ -44,7 +44,7 @@ final readonly class DescribeSession
             user: new SessionUser($user->id, $user->email, $user->displayName),
             workspace: null === $membership
                 ? null
-                : new SessionWorkspace($membership->workspaceId, $membership->role),
+                : new SessionWorkspace($membership->workspace->id, $membership->role),
         );
     }
 }
