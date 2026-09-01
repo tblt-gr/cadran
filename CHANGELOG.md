@@ -8,6 +8,13 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ### Added
 
+- System asset reference holding the currencies and crypto-assets every financial figure is
+  denominated in, with the decimals each one stores, the decimals it shows and the rounding rule
+  that applies between them. Readable at `GET /api/v1/assets` with bounded classic pagination and
+  one asset at a time at `GET /api/v1/assets/{code}`.
+- Canonical decimal contract: every financial value travels as a decimal string paired with its
+  asset code, never as a JSON number. A value carrying more decimals than its asset or
+  `NUMERIC(50,24)` accepts is refused before persistence instead of being rounded in silence.
 - One-time local provisioning of the first owner, isolated workspace, and OWNER membership.
 - Workspace-scoped audit trail for sensitive identity operations, readable at
   `GET /api/v1/audit-events` with bounded cursor pagination, and one event at a time at
@@ -16,6 +23,9 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ### Security
 
+- The asset reference is global and read-only: it carries no workspace data, exposes no write path,
+  and changes only through a reviewed migration. The workspace base currency is validated against it
+  before provisioning writes anything.
 - Workspace scope resolved server-side from the session and carried as a dedicated type into every
   scoped query, so an identifier supplied by a client can never widen it. An object that belongs to
   another workspace answers `404` exactly like an unknown one, so the API cannot be used to

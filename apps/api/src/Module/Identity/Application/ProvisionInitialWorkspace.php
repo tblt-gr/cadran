@@ -7,6 +7,7 @@ namespace App\Module\Identity\Application;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
+use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Identity\Domain\Membership;
@@ -15,12 +16,15 @@ use App\Module\Identity\Domain\User;
 use App\Module\Identity\Domain\UserRepository;
 use App\Module\Identity\Domain\Workspace;
 use App\Module\Identity\Domain\WorkspaceRepository;
+use App\Module\Reference\Application\AssetCatalog;
+use App\Module\Reference\Domain\AssetKind;
 
 final readonly class ProvisionInitialWorkspace
 {
     public function __construct(
         private TransactionManager $transactionManager,
         private InitialProvisioningGuard $provisioningGuard,
+        private AssetCatalog $assetCatalog,
         private UserRepository $userRepository,
         private WorkspaceRepository $workspaceRepository,
         private MembershipRepository $membershipRepository,
@@ -47,6 +51,7 @@ final readonly class ProvisionInitialWorkspace
             baseCurrency: trim($input->baseCurrency),
             createdAt: $createdAt,
         );
+        $this->assertBaseCurrencyIsKnown($workspace->baseCurrency);
         $membership = new Membership(
             id: $this->uuidGenerator->generate(),
             workspaceId: $workspace->id,
@@ -67,6 +72,30 @@ final readonly class ProvisionInitialWorkspace
 
             return new InitialWorkspaceProvisioningResult($workspace->id);
         });
+    }
+
+    /**
+     * The base currency is checked against the system asset reference before
+     * the transaction opens, so an install can never be created around a
+     * currency no figure could later be validated or displayed against.
+     */
+    private function assertBaseCurrencyIsKnown(string $baseCurrency): void
+    {
+        try {
+            $code = AssetCode::fromString($baseCurrency);
+        } catch (\InvalidArgumentException) {
+            // Unreachable today: Workspace has already forced a three-letter
+            // shape, which every asset code accepts. Kept so this method has
+            // one failure mode of its own rather than inheriting whichever
+            // exception a future shape rule would let through.
+            throw new UnsupportedBaseCurrency('The workspace base currency must be a currency of the asset reference.');
+        }
+
+        $asset = $this->assetCatalog->findByCode($code);
+
+        if (null === $asset || AssetKind::FIAT !== $asset->kind) {
+            throw new UnsupportedBaseCurrency('The workspace base currency must be a currency of the asset reference.');
+        }
     }
 
     /**

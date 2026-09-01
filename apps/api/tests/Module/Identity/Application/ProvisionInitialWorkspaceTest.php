@@ -14,12 +14,14 @@ use App\Module\Identity\Application\InitialProvisioningGuard;
 use App\Module\Identity\Application\InitialWorkspaceProvisioningInput;
 use App\Module\Identity\Application\ProvisionInitialWorkspace;
 use App\Module\Identity\Application\TransactionManager;
+use App\Module\Identity\Application\UnsupportedBaseCurrency;
 use App\Module\Identity\Domain\Membership;
 use App\Module\Identity\Domain\MembershipRepository;
 use App\Module\Identity\Domain\User;
 use App\Module\Identity\Domain\UserRepository;
 use App\Module\Identity\Domain\Workspace;
 use App\Module\Identity\Domain\WorkspaceRepository;
+use App\Tests\Module\Reference\Application\Double\InMemoryAssetCatalog;
 use PHPUnit\Framework\TestCase;
 
 final class ProvisionInitialWorkspaceTest extends TestCase
@@ -36,6 +38,7 @@ final class ProvisionInitialWorkspaceTest extends TestCase
         $provision = new ProvisionInitialWorkspace(
             transactionManager: $transactionManager,
             provisioningGuard: new InMemoryInitialProvisioningGuard(),
+            assetCatalog: InMemoryAssetCatalog::withCodes('EUR'),
             userRepository: $users,
             workspaceRepository: $workspaces,
             membershipRepository: $memberships,
@@ -87,6 +90,7 @@ final class ProvisionInitialWorkspaceTest extends TestCase
         $provision = new ProvisionInitialWorkspace(
             transactionManager: new RecordingTransactionManager(),
             provisioningGuard: new InMemoryInitialProvisioningGuard(),
+            assetCatalog: InMemoryAssetCatalog::withCodes('EUR'),
             userRepository: new InMemoryUserRepository(),
             workspaceRepository: new InMemoryWorkspaceRepository(),
             membershipRepository: new InMemoryMembershipRepository(),
@@ -115,6 +119,7 @@ final class ProvisionInitialWorkspaceTest extends TestCase
         $provision = new ProvisionInitialWorkspace(
             transactionManager: new RecordingTransactionManager(),
             provisioningGuard: $guard,
+            assetCatalog: InMemoryAssetCatalog::withCodes('EUR'),
             userRepository: new InMemoryUserRepository(),
             workspaceRepository: new InMemoryWorkspaceRepository(),
             membershipRepository: new InMemoryMembershipRepository(),
@@ -144,6 +149,7 @@ final class ProvisionInitialWorkspaceTest extends TestCase
         $provision = new ProvisionInitialWorkspace(
             transactionManager: $transactionManager,
             provisioningGuard: $guard,
+            assetCatalog: InMemoryAssetCatalog::withCodes('EUR'),
             userRepository: $users,
             workspaceRepository: new InMemoryWorkspaceRepository(),
             membershipRepository: new InMemoryMembershipRepository(),
@@ -165,6 +171,67 @@ final class ProvisionInitialWorkspaceTest extends TestCase
         self::assertSame(0, $transactionManager->transactionCount);
         self::assertTrue($guard->tryAcquire(), 'The provisioning latch must still be free.');
         self::assertSame([], $users->users);
+    }
+
+    /**
+     * The workspace base currency is the asset every figure of the install is
+     * denominated in. A code the reference does not hold would leave the
+     * install with amounts nothing can validate or display.
+     */
+    public function testItRefusesABaseCurrencyTheReferenceDoesNotHold(): void
+    {
+        $transactionManager = new RecordingTransactionManager();
+        $guard = new InMemoryInitialProvisioningGuard();
+        $workspaces = new InMemoryWorkspaceRepository();
+
+        $provision = new ProvisionInitialWorkspace(
+            transactionManager: $transactionManager,
+            provisioningGuard: $guard,
+            assetCatalog: InMemoryAssetCatalog::withCodes('EUR'),
+            userRepository: new InMemoryUserRepository(),
+            workspaceRepository: $workspaces,
+            membershipRepository: new InMemoryMembershipRepository(),
+            uuidGenerator: new SequenceUuidGenerator(),
+            recordAuditEvent: new RecordAuditEvent(new CollectingAuditEventRepository(), new SequenceUuidGenerator()),
+        );
+
+        try {
+            $provision(new InitialWorkspaceProvisioningInput(
+                email: 'owner@example.test',
+                displayName: 'Owner',
+                workspaceName: 'Household',
+                baseCurrency: 'XYZ',
+            ));
+            self::fail('An unknown base currency should have been rejected.');
+        } catch (UnsupportedBaseCurrency) {
+        }
+
+        self::assertSame(0, $transactionManager->transactionCount);
+        self::assertTrue($guard->tryAcquire(), 'The provisioning latch must still be free.');
+        self::assertSame([], $workspaces->workspaces);
+    }
+
+    public function testItRefusesACryptoAssetAsABaseCurrency(): void
+    {
+        $provision = new ProvisionInitialWorkspace(
+            transactionManager: new RecordingTransactionManager(),
+            provisioningGuard: new InMemoryInitialProvisioningGuard(),
+            assetCatalog: InMemoryAssetCatalog::withCodes('EUR')->andCryptoCodes('BTC'),
+            userRepository: new InMemoryUserRepository(),
+            workspaceRepository: new InMemoryWorkspaceRepository(),
+            membershipRepository: new InMemoryMembershipRepository(),
+            uuidGenerator: new SequenceUuidGenerator(),
+            recordAuditEvent: new RecordAuditEvent(new CollectingAuditEventRepository(), new SequenceUuidGenerator()),
+        );
+
+        $this->expectException(UnsupportedBaseCurrency::class);
+
+        $provision(new InitialWorkspaceProvisioningInput(
+            email: 'owner@example.test',
+            displayName: 'Owner',
+            workspaceName: 'Household',
+            baseCurrency: 'BTC',
+        ));
     }
 }
 

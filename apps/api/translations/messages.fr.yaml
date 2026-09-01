@@ -48,3 +48,9 @@ api:
     audit_event_not_found:
       title: "Événement d'audit introuvable"
       detail: "Aucun événement d'audit ne porte cet identifiant dans cet espace de travail."
+    invalid_asset_query:
+      title: 'Requête de référentiel invalide'
+      detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
+    asset_not_found:
+      title: 'Actif introuvable'
+      detail: 'Aucun actif du référentiel ne porte ce code.'
