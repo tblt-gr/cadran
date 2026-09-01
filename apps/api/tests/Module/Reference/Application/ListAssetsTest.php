@@ -23,7 +23,8 @@ final class ListAssetsTest extends TestCase
 
         $page = (new ListAssets($catalog))(null, null);
 
-        self::assertSame(['EUR', 'USD', 'BTC'], self::codesOf($page->assets));
+        // By code, like the real catalogue, whatever order they were seeded in.
+        self::assertSame(['BTC', 'EUR', 'USD'], self::codesOf($page->assets));
         self::assertSame(1, $page->page);
         self::assertSame(ListAssets::DEFAULT_PAGE_SIZE, $page->perPage);
         self::assertSame(3, $page->total);
@@ -35,7 +36,7 @@ final class ListAssetsTest extends TestCase
 
         $page = (new ListAssets($catalog))(2, 2);
 
-        self::assertSame(['BTC', 'ETH'], self::codesOf($page->assets));
+        self::assertSame(['EUR', 'JPY'], self::codesOf($page->assets));
         self::assertSame(2, $page->page);
         self::assertSame(2, $page->perPage);
         self::assertSame(5, $page->total);

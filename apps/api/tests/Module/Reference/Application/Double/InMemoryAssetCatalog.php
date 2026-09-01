@@ -18,11 +18,20 @@ use App\Module\Reference\Domain\AssetPrecision;
  */
 final class InMemoryAssetCatalog implements AssetCatalog
 {
+    /** @var list<Asset> */
+    private readonly array $assets;
+
     /**
      * @param list<Asset> $assets
      */
-    private function __construct(private readonly array $assets)
+    private function __construct(array $assets)
     {
+        // Ordered by code, like the real catalogue. A double that paged in
+        // insertion order would let a test assert a sequence PostgreSQL can
+        // never return, and AssetCatalog::readPage() promises a stable order.
+        usort($assets, static fn (Asset $left, Asset $right): int => strcmp($left->code->toString(), $right->code->toString()));
+
+        $this->assets = $assets;
     }
 
     public static function withCodes(string ...$codes): self

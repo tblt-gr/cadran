@@ -84,8 +84,10 @@ final readonly class ProvisionInitialWorkspace
         try {
             $code = AssetCode::fromString($baseCurrency);
         } catch (\InvalidArgumentException) {
-            // A shape the reference cannot even name is refused here rather
-            // than left to the ordering of the two validations.
+            // Unreachable today: Workspace has already forced a three-letter
+            // shape, which every asset code accepts. Kept so this method has
+            // one failure mode of its own rather than inheriting whichever
+            // exception a future shape rule would let through.
             throw new UnsupportedBaseCurrency('The workspace base currency must be a currency of the asset reference.');
         }
 

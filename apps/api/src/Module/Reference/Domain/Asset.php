@@ -18,16 +18,24 @@ final readonly class Asset
 {
     public const int MAX_DISPLAY_NAME_LENGTH = 64;
 
+    public string $displayName;
+
     public function __construct(
         public AssetCode $code,
         public AssetKind $kind,
-        public string $displayName,
+        string $displayName,
         public AssetPrecision $precision,
         public RoundingMode $roundingMode,
     ) {
-        if ('' === trim($displayName) || mb_strlen($displayName) > self::MAX_DISPLAY_NAME_LENGTH) {
+        $name = trim($displayName);
+
+        if ('' === $name || mb_strlen($name) > self::MAX_DISPLAY_NAME_LENGTH) {
             throw new \InvalidArgumentException(sprintf('An asset name is between 1 and %d characters.', self::MAX_DISPLAY_NAME_LENGTH));
         }
+
+        // Validated and stored as the same string: padding in a seeded row must
+        // not travel to the API as part of the name.
+        $this->displayName = $name;
     }
 
     /**

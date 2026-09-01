@@ -12,11 +12,8 @@ namespace App\Module\Foundation\Domain;
  */
 final readonly class AssetCode
 {
+    public const int MIN_LENGTH = 2;
     public const int MAX_LENGTH = 12;
-
-    // The D modifier stops PCRE from accepting a trailing newline as part of
-    // an otherwise canonical code.
-    private const string CANONICAL_PATTERN = '/^[A-Z][A-Z0-9]{1,11}$/D';
 
     private function __construct(private string $code)
     {
@@ -24,8 +21,13 @@ final readonly class AssetCode
 
     public static function fromString(string $code): self
     {
-        if (1 !== preg_match(self::CANONICAL_PATTERN, $code)) {
-            throw new \InvalidArgumentException(sprintf('An asset code is 2 to %d uppercase letters or digits, starting with a letter.', self::MAX_LENGTH));
+        // Built from the bounds themselves, so a changed limit cannot leave the
+        // message and the check disagreeing. The D modifier stops PCRE from
+        // accepting a trailing newline as part of an otherwise canonical code.
+        $pattern = sprintf('/^[A-Z][A-Z0-9]{%d,%d}$/D', self::MIN_LENGTH - 1, self::MAX_LENGTH - 1);
+
+        if (1 !== preg_match($pattern, $code)) {
+            throw new \InvalidArgumentException(sprintf('An asset code is %d to %d uppercase letters or digits, starting with a letter.', self::MIN_LENGTH, self::MAX_LENGTH));
         }
 
         return new self($code);
