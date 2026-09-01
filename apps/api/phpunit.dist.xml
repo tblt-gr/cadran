@@ -19,7 +19,9 @@
         <server name="DEFAULT_URI" value="http://localhost" force="true" />
         <server name="KERNEL_CLASS" value="App\Kernel" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
-        <env name="LOCK_DSN" value="flock" />
+        <!-- LOCK_DSN is deliberately not set here: the suite must run with the same
+             environment the container provides, so a config default that goes
+             missing fails a test instead of only the deployed sign-in. -->
     </php>
 
     <testsuites>

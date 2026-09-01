@@ -1,3 +1,10 @@
+# The DSN carries a default because nothing outside the test harness defines
+# LOCK_DSN: the container entrypoint disables dotenv, so an undefined variable
+# would only surface when the login limiter first takes the lock, as a 500 on
+# POST /api/v1/session.
+parameters:
+  env(LOCK_DSN): 'flock'
+
 framework:
   # flock: local file locks under the system temp dir. Enough to make the
   # single-instance login limiter's read-modify-write atomic (ADR-0016).

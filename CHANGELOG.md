@@ -24,6 +24,14 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   `/api/v1/categories` and the responsive categories interface.
 - Initial project documentation, contribution guidelines, and repository automation.
 
+### Fixed
+
+- Signing in no longer answers `500`. `LOCK_DSN` was defined only by the test harness, so the lock
+  the login limiter takes could not be built in the container, and every `POST /api/v1/session`
+  failed while every other endpoint kept working. The DSN now carries a default in the application
+  configuration, and the test suite runs without the override so the gap fails a test rather than
+  only the deployed sign-in.
+
 ### Security
 
 - The asset reference is global and read-only: it carries no workspace data, exposes no write path,
