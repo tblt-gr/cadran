@@ -52,9 +52,6 @@ final class Version20260902130000 extends AbstractMigration
             SQL);
         $this->addSql('CREATE INDEX idx_catalog_product_capabilities_capability ON catalog_product_capabilities (capability_code, product_code)');
 
-        $this->seedCapabilities();
-        $this->seedProductCapabilities();
-
         // Constraint triggers are deferred: a migration can insert a product
         // and its capability rows in either order inside one transaction, but
         // PostgreSQL will not commit an incomplete or privilege-like set.
@@ -237,6 +234,11 @@ final class Version20260902130000 extends AbstractMigration
                 BEFORE INSERT ON catalog_product_rules
                 FOR EACH ROW EXECUTE FUNCTION catalog_product_rule_capability_guard()
             SQL);
+
+        // Seeded last, so the deferred constraint triggers above validate this
+        // migration's own capability rows when the transaction commits.
+        $this->seedCapabilities();
+        $this->seedProductCapabilities();
     }
 
     public function down(Schema $schema): void

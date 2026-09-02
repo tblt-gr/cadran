@@ -104,22 +104,20 @@ final readonly class DbalProductCatalog implements ProductCatalog
             $rows,
         );
         $capabilities = $this->readCapabilities($codes);
-        $products = array_map(
-            static fn (array $row): FinancialProduct => self::hydrateProduct(
-                $row,
-                ProductCapabilities::fromStrings($capabilities[self::scalar($row['code'] ?? null)] ?? []),
-            ),
-            $rows,
-        );
         $schedules = $this->readSchedules($codes);
 
-        return array_map(
-            static fn (FinancialProduct $product): CatalogEntry => new CatalogEntry(
-                $product,
-                $schedules[$product->code->toString()] ?? RuleSchedule::empty(),
-            ),
-            $products,
-        );
+        // fetchAllAssociative returns a positional list, so $codes lines up with
+        // $rows and each product code is read from the row exactly once.
+        $entries = [];
+        foreach ($rows as $index => $row) {
+            $code = $codes[$index];
+            $entries[] = new CatalogEntry(
+                self::hydrateProduct($row, ProductCapabilities::fromStrings($capabilities[$code] ?? [])),
+                $schedules[$code] ?? RuleSchedule::empty(),
+            );
+        }
+
+        return $entries;
     }
 
     public function count(): int
@@ -166,11 +164,12 @@ final readonly class DbalProductCatalog implements ProductCatalog
      */
     private function readCapabilities(array $codes): array
     {
+        // No ORDER BY: ProductCapabilities re-sorts into enum-declaration order
+        // and keys the result by product code, so any SQL ordering is discarded.
         $rows = $this->connection->fetchAllAssociative(
             'SELECT product_code, capability_code
              FROM catalog_product_capabilities
-             WHERE product_code IN (:codes)
-             ORDER BY product_code, capability_code',
+             WHERE product_code IN (:codes)',
             ['codes' => $codes],
             ['codes' => ArrayParameterType::STRING],
         );
