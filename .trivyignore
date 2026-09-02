@@ -26,6 +26,13 @@ CVE-2026-77354 exp:2026-09-12
 # official image upgrades gRPC.
 GHSA-hrxh-6v49-42gf exp:2026-09-12
 
+# review: 2026-09-12 — Unauthenticated HTTP/2 DATA-frame fragmentation OOM
+# against gRPC-Go servers, fixed in gRPC-Go 1.83.1. Same unreachable bundled
+# gRPC path as above: the deployed Caddyfile starts no gRPC listener
+# (no reverse_proxy, no xDS/RBAC, admin off). Remove when the official image
+# upgrades gRPC.
+CVE-2026-84304 exp:2026-09-12
+
 # review: 2026-09-12 — FrankenPHP 1.12.7 bundles golang.org/x/crypto 0.54.0,
 # but Cadran exposes only HTTP(S) and configures no SSH server, authentication
 # callback or source-address restriction. Remove when the official image
