@@ -2,6 +2,11 @@
   color: var(--text-primary);
   background: var(--bg-page);
   font-family: var(--font-family-sans);
+  /* cv05 gives the lowercase l a tail, which keeps 1, I and l apart in figures
+     and labels; ss03 uses the round comma and quote shapes French text needs. */
+  font-feature-settings:
+    'cv05' 1,
+    'ss03' 1;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -40,6 +45,12 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+input,
+select,
+textarea {
+  caret-color: var(--gold-300);
 }
 
 button {

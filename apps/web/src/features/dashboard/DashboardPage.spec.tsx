@@ -28,18 +28,11 @@ describe('DashboardPage', () => {
     expect(within(dataTable).getByText('Mars 2026')).toBeTruthy();
     expect(dataTable.textContent).toContain('124 680,00 €');
 
-    const donutSegments = Array.from(
-      document.querySelectorAll('circle[stroke-dasharray][stroke-dashoffset]'),
+    const allocationCard = screen.getByRole('heading', { name: 'Allocation' }).closest('section');
+    const shareBars = Array.from(
+      allocationCard?.querySelectorAll<HTMLElement>('[style*="width"]') ?? [],
     );
-    expect(
-      donutSegments.map((segment) => [
-        segment.getAttribute('stroke-dasharray'),
-        segment.getAttribute('stroke-dashoffset'),
-      ]),
-    ).toEqual([
-      ['48.2 51.8', '0'],
-      ['36.8 63.2', '-48.2'],
-      ['15 85', '-85'],
-    ]);
+    expect(shareBars.map((bar) => bar.style.width)).toEqual(['48.2%', '36.8%', '15%']);
+    expect(allocationCard?.textContent).toContain('60 104,00 €');
   });
 });

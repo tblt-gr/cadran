@@ -1,54 +1,60 @@
 .card {
-  display: flex;
+  display: grid;
   grid-column: span 4;
-  align-items: center;
-  min-height: 7.5rem;
+  grid-template-rows: auto auto 1fr;
+  min-height: 8.75rem;
   padding: var(--spacing-4);
-  gap: var(--spacing-4);
+  gap: var(--spacing-2);
 }
 
-.icon {
-  display: grid;
-  flex: 0 0 auto;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: var(--radius-control);
-  place-items: center;
+/* Two classes, so the shared `.card h2` rule does not win over the label. */
+.card .label {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  gap: var(--spacing-2);
+}
+
+/* The direction of the arrow, not its colour alone, states the direction of the
+   flow; the tone only reinforces it. */
+.mark {
+  display: inline-flex;
 }
 
 .positive {
   color: var(--positive);
-  background: var(--positive-soft);
 }
 
 .negative {
   color: var(--negative);
-  background: var(--negative-soft);
 }
 
 .warning {
   color: var(--warning);
-  background: var(--warning-soft);
 }
 
 .value,
 .unavailable {
-  margin-top: var(--spacing-2) !important;
   color: var(--text-primary);
-  font-size: var(--font-size-kpi);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-metric);
+  font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing-kpi);
+  line-height: var(--line-height-tight);
   overflow-wrap: anywhere;
 }
 
 .unavailable {
+  color: var(--text-secondary);
   font-size: var(--font-size-brand);
 }
 
 .description {
-  margin-top: var(--spacing-1) !important;
-  color: var(--text-secondary);
+  align-self: end;
+  color: var(--text-muted);
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-context);
 }
 
 @media (max-width: 767px) {
