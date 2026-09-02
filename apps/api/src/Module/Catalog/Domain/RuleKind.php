@@ -43,4 +43,18 @@ enum RuleKind: string
     {
         return RuleValueType::PERCENTAGE === $this->valueType();
     }
+
+    public function requiredCapability(): ?ProductCapability
+    {
+        return match ($this) {
+            self::DEPOSIT_CEILING => ProductCapability::SUPPORTS_BALANCE,
+            self::CONTRIBUTION_CEILING,
+            self::COMBINED_CONTRIBUTION_CEILING => ProductCapability::SUPPORTS_CONTRIBUTIONS,
+            self::ANNUAL_RATE,
+            self::MIN_RATE,
+            self::INTEREST_ACCRUAL_METHOD => ProductCapability::SUPPORTS_INTEREST,
+            self::TAX_REFERENCE => ProductCapability::SUPPORTS_TAX_TRACKING,
+            self::ELIGIBILITY => null,
+        };
+    }
 }

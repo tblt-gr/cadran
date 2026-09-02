@@ -1,6 +1,12 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
-import { createCategory, getFoundationStatus, listAssets, listAuditEvents } from './generated';
-import type { CreateCategoryRequest, DecimalAmount } from './generated';
+import {
+  createCategory,
+  getFoundationStatus,
+  listAssets,
+  listAuditEvents,
+  listProducts,
+} from './generated';
+import type { CreateCategoryRequest, DecimalAmount, ProductCapability } from './generated';
 
 describe('generated Cadran client', () => {
   it('calls the versioned endpoint with its generated response type', async () => {
@@ -85,6 +91,62 @@ describe('generated Cadran client', () => {
       method: 'GET',
       url: 'https://cadran.test/api/v1/assets?perPage=50',
     });
+  });
+
+  it('types product behavior as closed explicit capabilities', async () => {
+    const request = vi.fn<typeof fetch>(async (_input, _init) =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                code: 'GENERIC_CURRENT',
+                displayName: 'Generic current account',
+                jurisdiction: null,
+                accountKind: 'CURRENT',
+                wrapperKind: 'NONE',
+                yieldKind: 'NONE',
+                yieldGuaranteed: false,
+                defaultGroupCode: 'LIQUIDITY_CURRENT',
+                capabilities: ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS'],
+                catalogVersion: 1,
+                archivedAt: null,
+                asOf: '2026-09-02',
+                rules: [],
+                unavailableRuleKinds: [],
+              },
+            ],
+            page: 1,
+            perPage: 25,
+            total: 1,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+
+    const response = await listProducts({
+      baseUrl: 'https://cadran.test',
+      fetch: request,
+      throwOnError: true,
+    });
+
+    expectTypeOf<ProductCapability>().toEqualTypeOf<
+      | 'SUPPORTS_BALANCE'
+      | 'SUPPORTS_TRANSACTIONS'
+      | 'SUPPORTS_INTEREST'
+      | 'SUPPORTS_HOLDINGS'
+      | 'SUPPORTS_TRADES'
+      | 'SUPPORTS_ARBITRAGE'
+      | 'SUPPORTS_CONTRIBUTIONS'
+      | 'SUPPORTS_FEES'
+      | 'SUPPORTS_TAX_TRACKING'
+      | 'SUPPORTS_LIABILITY'
+    >();
+    expect(response.data.items[0]?.capabilities).toEqual([
+      'SUPPORTS_BALANCE',
+      'SUPPORTS_TRANSACTIONS',
+    ]);
   });
 
   it('binds category mutations to the generated closed request schema', async () => {

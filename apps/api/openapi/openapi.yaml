@@ -969,6 +969,7 @@ components:
         - yieldKind
         - yieldGuaranteed
         - defaultGroupCode
+        - capabilities
         - catalogVersion
         - archivedAt
         - asOf
@@ -1034,6 +1035,16 @@ components:
             - type: string
               pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
             - type: 'null'
+        capabilities:
+          description: >-
+            Explicit implemented behaviors enabled by this product. Consumers
+            must use these values rather than infer behavior from the product
+            code or display name.
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ProductCapability'
         catalogVersion:
           type: integer
           minimum: 1
@@ -1059,6 +1070,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProductRuleKind'
+    ProductCapability:
+      type: string
+      enum:
+        - SUPPORTS_BALANCE
+        - SUPPORTS_TRANSACTIONS
+        - SUPPORTS_INTEREST
+        - SUPPORTS_HOLDINGS
+        - SUPPORTS_TRADES
+        - SUPPORTS_ARBITRAGE
+        - SUPPORTS_CONTRIBUTIONS
+        - SUPPORTS_FEES
+        - SUPPORTS_TAX_TRACKING
+        - SUPPORTS_LIABILITY
     ProductRuleKind:
       type: string
       enum:

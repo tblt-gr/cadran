@@ -29,6 +29,7 @@ const livretA: Product = {
   yieldKind: 'REGULATED_RATE',
   yieldGuaranteed: true,
   defaultGroupCode: 'LIQUIDITY_SAVINGS',
+  capabilities: ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
   catalogVersion: 1,
   archivedAt: null,
   asOf: '2026-09-02',
@@ -71,6 +72,14 @@ const securitiesAccount: Product = {
   wrapperKind: 'SECURITIES_ACCOUNT',
   yieldKind: 'MARKET',
   yieldGuaranteed: false,
+  capabilities: [
+    'SUPPORTS_BALANCE',
+    'SUPPORTS_TRANSACTIONS',
+    'SUPPORTS_HOLDINGS',
+    'SUPPORTS_TRADES',
+    'SUPPORTS_FEES',
+    'SUPPORTS_TAX_TRACKING',
+  ],
   rules: [],
   unavailableRuleKinds: [],
 };

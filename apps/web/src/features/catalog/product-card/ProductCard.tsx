@@ -1,6 +1,7 @@
 import type { Product } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
+import { ProductCapabilityList } from '@/features/catalog/product-capability-list/ProductCapabilityList';
 import { ProductRuleList } from '@/features/catalog/product-rule-list/ProductRuleList';
 import styles from './ProductCard.module.css';
 
@@ -57,6 +58,8 @@ export function ProductCard({ product }: ProductCardProps) {
           <dd>{product.catalogVersion}</dd>
         </div>
       </dl>
+
+      <ProductCapabilityList capabilities={product.capabilities} productCode={product.code} />
 
       <ProductRuleList product={product} />
     </article>

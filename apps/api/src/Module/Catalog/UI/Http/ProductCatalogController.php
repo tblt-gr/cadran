@@ -103,6 +103,9 @@ final class ProductCatalogController
             // earns what its assets earn, and never a catalogue rate.
             'yieldGuaranteed' => $product->yieldKind->isGuaranteed(),
             'defaultGroupCode' => $product->defaultGroupCode,
+            // The capability list is the public activation contract. Clients
+            // never infer behavior from a localized product name.
+            'capabilities' => $product->capabilities->toStrings(),
             'catalogVersion' => $product->catalogVersion,
             'archivedAt' => $product->archivedAt?->format(\DateTimeInterface::ATOM),
             'asOf' => $effective->asOf->format('Y-m-d'),

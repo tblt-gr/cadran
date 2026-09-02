@@ -8,6 +8,8 @@ use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Catalog\Domain\CatalogEntry;
 use App\Module\Catalog\Domain\FinancialProduct;
 use App\Module\Catalog\Domain\InvalidCatalogEntry;
+use App\Module\Catalog\Domain\ProductCapabilities;
+use App\Module\Catalog\Domain\ProductCapability;
 use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Catalog\Domain\RuleSchedule;
@@ -50,6 +52,32 @@ final class CatalogEntryTest extends TestCase
         self::assertSame([], $effective->unavailableRuleKinds);
     }
 
+    public function testARuleCannotActivateAnUndeclaredCapability(): void
+    {
+        $product = new FinancialProduct(
+            code: ProductCode::fromString('GENERIC_SAVINGS'),
+            displayName: 'Generic savings account',
+            jurisdiction: null,
+            accountKind: AccountKind::SAVINGS,
+            wrapperKind: WrapperKind::NONE,
+            yieldKind: YieldKind::CONTRACTUAL_FIXED,
+            defaultGroupCode: 'LIQUIDITY_SAVINGS',
+            capabilities: ProductCapabilities::of(
+                ProductCapability::SUPPORTS_BALANCE,
+                ProductCapability::SUPPORTS_TRANSACTIONS,
+            ),
+            catalogVersion: 1,
+        );
+
+        $this->expectException(InvalidCatalogEntry::class);
+        $this->expectExceptionMessage('ANNUAL_RATE rules require SUPPORTS_INTEREST.');
+
+        new CatalogEntry(
+            $product,
+            new RuleSchedule([CatalogFixture::rate('2.5', '2026-01-01')]),
+        );
+    }
+
     public function testARegulatedEnvelopeReportsItsCeilingAndRateUnavailable(): void
     {
         $entry = new CatalogEntry(CatalogFixture::product(), RuleSchedule::empty());
@@ -72,6 +100,15 @@ final class CatalogEntryTest extends TestCase
             wrapperKind: WrapperKind::TAX_WRAPPER,
             yieldKind: YieldKind::MARKET,
             defaultGroupCode: 'INVESTMENTS_MARKET',
+            capabilities: ProductCapabilities::of(
+                ProductCapability::SUPPORTS_BALANCE,
+                ProductCapability::SUPPORTS_TRANSACTIONS,
+                ProductCapability::SUPPORTS_HOLDINGS,
+                ProductCapability::SUPPORTS_TRADES,
+                ProductCapability::SUPPORTS_CONTRIBUTIONS,
+                ProductCapability::SUPPORTS_FEES,
+                ProductCapability::SUPPORTS_TAX_TRACKING,
+            ),
             catalogVersion: 1,
         );
         $entry = new CatalogEntry($product, RuleSchedule::empty());

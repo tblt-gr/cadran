@@ -298,6 +298,21 @@
       "guaranteed": "Rendement garanti",
       "market": "Rendement non garanti"
     },
+    "capabilities": {
+      "title": "Fonctions prises en charge",
+      "items": {
+        "SUPPORTS_BALANCE": "Soldes et rapprochement",
+        "SUPPORTS_TRANSACTIONS": "Transactions et virements",
+        "SUPPORTS_INTEREST": "Intérêts",
+        "SUPPORTS_HOLDINGS": "Titres et positions",
+        "SUPPORTS_TRADES": "Achats et ventes de titres",
+        "SUPPORTS_ARBITRAGE": "Arbitrages internes",
+        "SUPPORTS_CONTRIBUTIONS": "Versements cumulés",
+        "SUPPORTS_FEES": "Frais",
+        "SUPPORTS_TAX_TRACKING": "Suivi fiscal",
+        "SUPPORTS_LIABILITY": "Dette et échéances"
+      }
+    },
     "rules": {
       "kinds": {
         "DEPOSIT_CEILING": "Plafond de dépôt",
