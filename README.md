@@ -27,10 +27,12 @@
 <hr>
 
 > [!IMPORTANT]
-> Cadran Budget is in early development. The monorepo, hardened Docker environment, automated
-> quality gates, and the identity, application-shell, and reference-data foundations are in place;
-> most budgeting and wealth-tracking features are still to come. The quick start below boots the
-> current stack.
+> Cadran Budget is in early development. The foundation increment is complete: the monorepo,
+> hardened Docker runtime over local HTTPS, automated quality gates, the responsive application
+> shell, same-origin session authentication with CSRF and login throttling, an append-only audit
+> trail, workspace isolation proven by a CI guard, the asset reference, workspace categories, and
+> the sourced system product catalogue. Accounts, transactions, budgets, reports, and portfolios are
+> still to come. The quick start below boots the current stack.
 
 ## Quick start
 
@@ -109,48 +111,57 @@ are outside the MVP.
 
 ```mermaid
 flowchart LR
-    UI["React / TypeScript / PWA"] -->|REST JSON /api/v1| API["Symfony"]
+    UI["React 19 SPA"] -->|REST JSON /api/v1| API["Symfony 7.4 on FrankenPHP"]
     API --> MOD["Domain modules"]
-    MOD --> DB[("PostgreSQL")]
-    MOD --> JOBS["Symfony Messenger"]
-    JOBS --> IMPORTS["Imports and optional connectors"]
+    MOD --> DB[("PostgreSQL 18")]
 ```
 
-The target monorepo layout is:
+The monorepo layout is:
 
 ```text
-apps/api/             Symfony API and domain modules
-apps/web/             React SPA, design system, and features
-packages/api-client/  TypeScript client generated from OpenAPI
-docker/               Container definitions and runtime configuration
+apps/api/src/Module/  one folder per domain module, each split into
+                      Domain, Application, Infrastructure and UI
+apps/api/migrations/  versioned schema, replayed from empty on every pull request
+apps/web/src/         React SPA: components/layout, components/ui, features, hooks, lib, styles
+packages/api-client/  TypeScript client generated from OpenAPI, never hand-written
+docker/               container definitions and runtime configuration
+scripts/              architecture, workspace-scope and infrastructure guards
 ```
 
-| Layer      | Target technology                                          |
-| ---------- | ---------------------------------------------------------- |
-| Backend    | PHP 8.5, Symfony 7.4 LTS, Doctrine ORM/DBAL                |
-| API        | REST `/api/v1`, OpenAPI 3.1, RFC 9457 errors               |
-| Frontend   | React 19, strict TypeScript, Vite, TanStack Query/Table    |
-| Data       | PostgreSQL 18, `NUMERIC(50,24)` for financial values       |
-| Interface  | Tailwind CSS 4, accessible primitives, dark design system  |
-| Operations | Docker Compose, Caddy/FrankenPHP, Symfony Messenger worker |
+| Layer      | Technology                                                    |
+| ---------- | ------------------------------------------------------------- |
+| Backend    | PHP 8.5, Symfony 7.4 LTS, Doctrine DBAL and Migrations        |
+| API        | REST `/api/v1`, OpenAPI 3.1, RFC 9457 errors                  |
+| Frontend   | React 19, strict TypeScript, Vite, TanStack Query, i18next    |
+| Data       | PostgreSQL 18, `NUMERIC(50,24)` for financial values          |
+| Interface  | CSS Modules over a single design-token sheet, dark by default |
+| Operations | Docker Compose, Caddy and FrankenPHP in one hardened image    |
 
 Every Docker image and container name must start with `cadran_` so it remains immediately
 identifiable on hosts running multiple stacks.
 
-Structural decisions are recorded before implementation. The API Platform choice remains open
-until Sprint 0 compares representative CRUD, transactional, and reporting endpoints.
+Persistence deliberately stops at Doctrine DBAL: the financial invariants live in value objects and
+explicit SQL rather than in an ORM mapping, which keeps `NUMERIC(50,24)` exact from the column to
+the API response. Repositories are guarded in CI — a statement that reads a workspace-scoped table
+without filtering on `workspace_id` fails the build. API Platform was evaluated and not retained
+for the MVP; controllers adapt HTTP to explicit use cases instead.
 
 ## Roadmap
 
 Development follows demonstrable vertical increments:
 
-1. foundation, identity, and reference data;
-2. accounts, net wealth, and exact transactions;
+1. ✅ foundation, identity, and reference data;
+2. accounts, net wealth, and exact transactions; ← in progress
 3. reconciliation, monthly budgeting, and history import;
 4. reports, goals, and portfolios;
 5. performance, life insurance, and tax tracking;
 6. PWA delivery, backups, accessibility, and hardening;
 7. bank synchronization and multi-user support only after an explicit decision.
+
+Increment 1 ships the runnable foundation: a workspace every record belongs to, an authenticated
+session, an audit trail, exact decimals end to end, categories, and the system product catalogue.
+Archiving journeys and the "cannot be deleted while in use" rule land with increment 2, once a
+transaction can mark a category or a product in use.
 
 Each sprint must produce a runnable, tested, demonstrable version. Formatting, static analysis,
 tests, migrations, API contracts, security controls, accessible states, and representative demo
@@ -168,12 +179,18 @@ identical on every machine.
 make init       # dependencies, containers, database, migrations on a clean machine
 make up         # start the stack over local HTTPS
 make down       # stop the stack
+make status     # container healthcheck
 make quality    # formatting, static analysis, module boundaries, types, OpenAPI, infrastructure
 make test       # module-boundary, infrastructure, backend (PHPUnit) and frontend (Vitest) tests
 make e2e        # optional browser smoke scaffold against the running stack (Linux host)
 make audit      # Composer and npm dependency audits
 make build      # production build of both applications
 ```
+
+Narrower targets exist for a tighter loop: `make architecture` runs the module-boundary and
+workspace-scope guards alone, `make test-api` and `make test-web` run one side of the suite,
+`make generate` regenerates the TypeScript client from OpenAPI, `make migrate` applies pending
+migrations, and `make tls-certificate` exports the local certificate authority.
 
 A fresh install has no user until the first owner and workspace are provisioned. This is a
 one-time action; a second run is rejected.
