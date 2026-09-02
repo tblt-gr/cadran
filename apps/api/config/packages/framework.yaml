@@ -15,7 +15,10 @@ framework:
     name: cadran_session
     cookie_httponly: true
     cookie_samesite: lax
-    cookie_secure: auto
+    # `true`, not `auto`: the runtime is HTTPS-only, and `auto` would silently
+    # drop the Secure attribute if the application were ever served over plain
+    # HTTP instead of failing visibly.
+    cookie_secure: true
     cookie_lifetime: 0 # cookie dies with the browser session
     gc_maxlifetime: 1209600 # 14-day idle ceiling on the server side
     save_path: '%kernel.project_dir%/var/sessions'
