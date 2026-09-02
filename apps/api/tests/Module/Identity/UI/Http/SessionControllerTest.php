@@ -191,6 +191,9 @@ final class SessionControllerTest extends WebTestCase
         self::assertNotNull($cookie);
         self::assertTrue($cookie->isHttpOnly());
         self::assertSame('lax', $cookie->getSameSite());
+        // Unconditional, not derived from the request scheme: the runtime is
+        // HTTPS-only, and a session cookie without Secure travels in clear.
+        self::assertTrue($cookie->isSecure());
 
         $this->client->request('GET', '/api/v1/session');
         self::assertSame(
@@ -411,6 +414,16 @@ final class SessionControllerTest extends WebTestCase
         self::assertNotNull($cookie);
         self::assertFalse($cookie->isHttpOnly());
         self::assertSame('strict', $cookie->getSameSite());
+
+        // Secure is asserted on the raw header, never through the jar: the test
+        // client requests over http, and BrowserKit deliberately discards the
+        // Secure flag it is handed on a non-HTTPS URI. Read from the jar, a
+        // cookie that never carried the flag and one that carries it look
+        // identical, so only the wire tells the two apart.
+        self::assertMatchesRegularExpression(
+            '/;\s*secure/i',
+            (string) $this->client->getResponse()->headers->get('Set-Cookie'),
+        );
     }
 
     public function testAnUnknownEmailIsThrottledOnTheSameCurveAsAKnownOne(): void
