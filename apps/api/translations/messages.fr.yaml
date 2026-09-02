@@ -54,6 +54,12 @@ api:
     asset_not_found:
       title: 'Actif introuvable'
       detail: 'Aucun actif du référentiel ne porte ce code.'
+    invalid_product_query:
+      title: 'Requête de catalogue invalide'
+      detail: 'Le numéro de page doit être compris entre 1 et 1000, la taille de page entre 1 et 100 et la date métier doit être un jour calendaire ISO 8601 compris entre 1900-01-01 et 2100-12-31.'
+    product_not_found:
+      title: 'Produit introuvable'
+      detail: 'Aucun produit du catalogue ne porte ce code.'
     invalid_category_query:
       title: 'Requête de catégories invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'

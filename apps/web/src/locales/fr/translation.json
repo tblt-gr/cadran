@@ -99,7 +99,8 @@
     "reports": "Rapports",
     "settings": "Paramètres",
     "tax": "Impôts",
-    "transactions": "Transactions"
+    "transactions": "Transactions",
+    "catalog": "Catalogue produits"
   },
   "routes": {
     "accountDetail": "Détail du compte",
@@ -225,6 +226,109 @@
     },
     "pagination": {
       "label": "Pagination des catégories",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "position": "Page {{page}} sur {{total}}"
+    }
+  },
+  "catalog": {
+    "eyebrow": "Référentiel système",
+    "title": "Catalogue des produits financiers",
+    "description": "Les modèles de produits livrés avec l’application, avec leurs plafonds et taux datés et la source officielle de chaque valeur.",
+    "resolvedOn": "Règles applicables au {{date}}.",
+    "loading": "Chargement du catalogue…",
+    "asOf": {
+      "label": "Date métier",
+      "today": "Aujourd’hui",
+      "hint": "Une règle est choisie selon la date de l’opération consultée, jamais selon la date du jour."
+    },
+    "empty": {
+      "title": "Aucun produit",
+      "description": "Le catalogue système ne contient aucun produit sur cette page."
+    },
+    "error": {
+      "title": "Catalogue indisponible",
+      "description": "Impossible de charger le catalogue produits. Vérifiez le service puis réessayez."
+    },
+    "unauthorized": {
+      "title": "Session expirée",
+      "description": "Reconnectez-vous pour consulter le catalogue produits."
+    },
+    "fields": {
+      "wrapper": "Enveloppe",
+      "yield": "Rendement",
+      "catalogVersion": "Version du catalogue"
+    },
+    "list": {
+      "caption": "Règles datées de {{product}}",
+      "rule": "Règle",
+      "value": "Valeur",
+      "period": "Période d’effet",
+      "verification": "Vérification",
+      "source": "Source officielle"
+    },
+    "accountKinds": {
+      "CURRENT": "Compte courant",
+      "SAVINGS": "Épargne",
+      "PORTFOLIO": "Portefeuille",
+      "INSURANCE_CONTRACT": "Contrat d’assurance",
+      "EMPLOYEE_BENEFIT": "Avantage salarié",
+      "CASH": "Espèces",
+      "REAL_ASSET": "Actif réel",
+      "LIABILITY": "Passif"
+    },
+    "wrapperKinds": {
+      "NONE": "Aucune",
+      "REGULATED_SAVINGS": "Épargne réglementée",
+      "TAX_WRAPPER": "Enveloppe fiscale",
+      "SECURITIES_ACCOUNT": "Compte-titres",
+      "LIFE_INSURANCE": "Assurance-vie",
+      "RETIREMENT": "Retraite",
+      "EMPLOYEE_SAVINGS": "Épargne salariale"
+    },
+    "yieldKinds": {
+      "NONE": "Aucun",
+      "REGULATED_RATE": "Taux réglementé",
+      "CONTRACTUAL_FIXED": "Taux contractuel fixe",
+      "CONTRACTUAL_VARIABLE": "Taux contractuel variable",
+      "MARKET": "Marché",
+      "MANUAL_VALUATION": "Valorisation manuelle"
+    },
+    "yield": {
+      "guaranteed": "Taux garanti",
+      "market": "Rendement non garanti"
+    },
+    "rules": {
+      "kinds": {
+        "DEPOSIT_CEILING": "Plafond de dépôt",
+        "CONTRIBUTION_CEILING": "Plafond de versements",
+        "COMBINED_CONTRIBUTION_CEILING": "Plafond de versements commun",
+        "ANNUAL_RATE": "Taux annuel",
+        "MIN_RATE": "Taux minimum",
+        "INTEREST_ACCRUAL_METHOD": "Méthode de calcul des intérêts",
+        "ELIGIBILITY": "Éligibilité",
+        "TAX_REFERENCE": "Référence fiscale"
+      },
+      "percentValue": "{{value}} %",
+      "openPeriod": "Depuis le {{from}}",
+      "closedPeriod": "Du {{from}} au {{to}}",
+      "unavailable": "— Non disponible au {{date}} : aucune valeur sourcée pour cette date.",
+      "unknownValue": "— Valeur non renseignée",
+      "none": "Aucune règle sourcée au {{date}} pour ce produit."
+    },
+    "ruleTexts": {
+      "NO_REGULATORY_CONTRIBUTION_CEILING": "Aucun plafond réglementaire de versement"
+    },
+    "verification": {
+      "VERIFIED": "Vérifiée",
+      "STALE": "À revérifier",
+      "UNVERIFIED": "Non vérifiée"
+    },
+    "source": {
+      "trace": "{{publisher}} — consultée le {{retrieved}}"
+    },
+    "pagination": {
+      "label": "Pagination du catalogue produits",
       "previous": "Précédent",
       "next": "Suivant",
       "position": "Page {{page}} sur {{total}}"

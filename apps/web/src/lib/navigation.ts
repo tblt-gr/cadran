@@ -68,6 +68,12 @@ export const navigationItems: NavigationItem[] = [
     match: (path) => path === '/categories',
   },
   {
+    href: '/catalog',
+    icon: 'catalog',
+    labelKey: 'navigation.catalog',
+    match: (path) => path === '/catalog',
+  },
+  {
     href: '/settings/profile',
     icon: 'settings',
     labelKey: 'navigation.settings',

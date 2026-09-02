@@ -8,6 +8,7 @@ import { DashboardContextPanel } from '@/features/dashboard/context-panel/Dashbo
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
 import { formatDemoDay } from '@/features/dashboard/formatDemoDate';
+import { ProductCatalogPage } from '@/features/catalog/ProductCatalogPage';
 import { CategoryPage } from '@/features/categories/CategoryPage';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
@@ -52,6 +53,8 @@ export function AuthenticatedApp() {
   let content;
   if (path === '/categories') {
     content = <CategoryPage />;
+  } else if (path === '/catalog') {
+    content = <ProductCatalogPage />;
   } else if (path !== '/') {
     content = <PlaceholderPage />;
   } else if (status.isPending) {
@@ -82,7 +85,7 @@ export function AuthenticatedApp() {
       }
       path={path}
       setPath={setPath}
-      showGlobalActions={path !== '/categories'}
+      showGlobalActions={path !== '/categories' && path !== '/catalog'}
     >
       {content}
     </AppShell>
