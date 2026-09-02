@@ -24,6 +24,7 @@ final readonly class FinancialProduct
         public WrapperKind $wrapperKind,
         public YieldKind $yieldKind,
         public ?string $defaultGroupCode,
+        public ProductCapabilities $capabilities,
         public int $catalogVersion,
         public ?\DateTimeImmutable $archivedAt = null,
     ) {
@@ -48,6 +49,15 @@ final readonly class FinancialProduct
 
         if ($catalogVersion < 1) {
             throw new InvalidCatalogEntry('A catalogue version is positive.');
+        }
+
+        $supportsLiability = $capabilities->contains(ProductCapability::SUPPORTS_LIABILITY);
+        if (AccountKind::LIABILITY === $accountKind && !$supportsLiability) {
+            throw new InvalidCatalogEntry('A LIABILITY product requires SUPPORTS_LIABILITY.');
+        }
+
+        if (AccountKind::LIABILITY !== $accountKind && $supportsLiability) {
+            throw new InvalidCatalogEntry('SUPPORTS_LIABILITY is exclusive to LIABILITY products.');
         }
     }
 }

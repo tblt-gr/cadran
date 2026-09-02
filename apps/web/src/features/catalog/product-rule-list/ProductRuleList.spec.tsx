@@ -13,6 +13,7 @@ const product: Product = {
   yieldKind: 'REGULATED_RATE',
   yieldGuaranteed: true,
   defaultGroupCode: 'LIQUIDITY_SAVINGS',
+  capabilities: ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
   catalogVersion: 1,
   archivedAt: null,
   asOf: '2026-09-02',

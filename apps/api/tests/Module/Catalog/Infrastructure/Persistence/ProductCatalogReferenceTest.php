@@ -6,6 +6,7 @@ namespace App\Tests\Module\Catalog\Infrastructure\Persistence;
 
 use App\Module\Catalog\Application\ProductCatalog;
 use App\Module\Catalog\Domain\CatalogEntry;
+use App\Module\Catalog\Domain\ProductCapability;
 use App\Module\Catalog\Domain\ProductCode;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
@@ -83,6 +84,163 @@ final class ProductCatalogReferenceTest extends KernelTestCase
             'FR_PEA_PME' => ['PORTFOLIO', 'TAX_WRAPPER', 'MARKET'],
         ], $seeded);
         self::assertSame(8, $this->catalog->count());
+    }
+
+    public function testTheMigrationSeedsEveryKnownCapabilityAndExplicitProductAssignments(): void
+    {
+        $known = $this->connection->fetchFirstColumn('SELECT code FROM catalog_capabilities ORDER BY code');
+        sort($known);
+        $expectedKnown = array_column(ProductCapability::cases(), 'value');
+        sort($expectedKnown);
+        self::assertSame($expectedKnown, $known);
+
+        $assigned = [];
+        foreach ($this->catalog->readPage(100, 0) as $entry) {
+            $assigned[$entry->product->code->toString()] = $entry->product->capabilities->toStrings();
+        }
+
+        self::assertSame([
+            'FR_CTO' => [
+                'SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_HOLDINGS',
+                'SUPPORTS_TRADES', 'SUPPORTS_FEES', 'SUPPORTS_TAX_TRACKING',
+            ],
+            'FR_LDDS' => ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
+            'FR_LEP' => ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
+            'FR_LIFE_INSURANCE' => [
+                'SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_HOLDINGS',
+                'SUPPORTS_ARBITRAGE', 'SUPPORTS_CONTRIBUTIONS', 'SUPPORTS_FEES',
+                'SUPPORTS_TAX_TRACKING',
+            ],
+            'FR_LIVRET_A' => ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
+            'FR_LIVRET_JEUNE' => ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
+            'FR_PEA' => [
+                'SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_HOLDINGS',
+                'SUPPORTS_TRADES', 'SUPPORTS_CONTRIBUTIONS', 'SUPPORTS_FEES',
+                'SUPPORTS_TAX_TRACKING',
+            ],
+            'FR_PEA_PME' => [
+                'SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_HOLDINGS',
+                'SUPPORTS_TRADES', 'SUPPORTS_CONTRIBUTIONS', 'SUPPORTS_FEES',
+                'SUPPORTS_TAX_TRACKING',
+            ],
+        ], $assigned);
+    }
+
+    public function testTheDatabaseRefusesAnInvalidCombinationWithAnActionableReason(): void
+    {
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('SUPPORTS_TRADES requires SUPPORTS_HOLDINGS');
+
+        $this->connection->executeStatement(<<<'SQL'
+            DELETE FROM catalog_product_capabilities
+            WHERE product_code = 'FR_CTO' AND capability_code = 'SUPPORTS_HOLDINGS'
+            SQL);
+        $this->connection->executeStatement('SET CONSTRAINTS catalog_product_capabilities_valid IMMEDIATE');
+    }
+
+    public function testALiabilityProductWithoutItsCapabilityIsRefusedByTheDatabase(): void
+    {
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('LIABILITY product requires SUPPORTS_LIABILITY');
+
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_products
+                (code, display_name, account_kind, wrapper_kind, yield_kind, catalog_version)
+            VALUES ('GENERIC_LOAN', 'Generic loan', 'LIABILITY', 'NONE', 'NONE', 1)
+            SQL);
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_product_capabilities (product_code, capability_code)
+            VALUES ('GENERIC_LOAN', 'SUPPORTS_BALANCE')
+            SQL);
+        $this->connection->executeStatement('SET CONSTRAINTS catalog_products_capabilities_valid IMMEDIATE');
+    }
+
+    public function testANewProductReusesKnownCapabilitiesWithoutSchemaOrJsonConfiguration(): void
+    {
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_products
+                (code, display_name, account_kind, wrapper_kind, yield_kind, default_group_code, catalog_version)
+            VALUES ('GENERIC_CURRENT', 'Generic current account', 'CURRENT', 'NONE', 'NONE', 'LIQUIDITY_CURRENT', 1)
+            SQL);
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_product_capabilities (product_code, capability_code) VALUES
+                ('GENERIC_CURRENT', 'SUPPORTS_BALANCE'),
+                ('GENERIC_CURRENT', 'SUPPORTS_TRANSACTIONS'),
+                ('GENERIC_CURRENT', 'SUPPORTS_FEES')
+            SQL);
+        $this->connection->executeStatement('SET CONSTRAINTS ALL IMMEDIATE');
+
+        $entry = $this->catalog->findByCode(ProductCode::fromString('GENERIC_CURRENT'));
+
+        self::assertNotNull($entry);
+        self::assertSame([
+            'SUPPORTS_BALANCE',
+            'SUPPORTS_TRANSACTIONS',
+            'SUPPORTS_FEES',
+        ], $entry->product->capabilities->toStrings());
+        self::assertSame([], $entry->schedule->rules);
+
+        $columns = $this->connection->fetchFirstColumn(<<<'SQL'
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = current_schema() AND table_name = 'catalog_product_capabilities'
+            ORDER BY ordinal_position
+            SQL);
+        self::assertSame(['product_code', 'capability_code'], $columns);
+    }
+
+    public function testAnUnknownCapabilityCannotBeMassAssigned(): void
+    {
+        $this->expectSqlState(self::FOREIGN_KEY_VIOLATION);
+
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_product_capabilities (product_code, capability_code)
+            VALUES ('FR_LIVRET_A', 'ADMIN_OVERRIDE')
+            SQL);
+    }
+
+    public function testAMigrationCannotForgeANewCapabilityWithoutApplicationSupport(): void
+    {
+        $this->expectSqlState(self::CHECK_VIOLATION);
+
+        // A single statement tries to create the registry row and assign it.
+        // The database allowlist must reject the state before a later catalogue
+        // read reaches PHP and fails on an unknown enum value.
+        $this->connection->executeStatement(<<<'SQL'
+            WITH forged AS (
+                INSERT INTO catalog_capabilities (code)
+                VALUES ('SUPPORTS_ADMIN_OVERRIDE')
+                RETURNING code
+            )
+            INSERT INTO catalog_product_capabilities (product_code, capability_code)
+            SELECT 'FR_LIVRET_A', code FROM forged
+            SQL);
+    }
+
+    public function testARuleCannotActivateAnUndeclaredCapabilityInTheDatabase(): void
+    {
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_products
+                (code, display_name, account_kind, wrapper_kind, yield_kind, catalog_version)
+            VALUES ('GENERIC_SAVINGS', 'Generic savings account', 'SAVINGS', 'NONE', 'CONTRACTUAL_FIXED', 1)
+            SQL);
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_product_capabilities (product_code, capability_code) VALUES
+                ('GENERIC_SAVINGS', 'SUPPORTS_BALANCE'),
+                ('GENERIC_SAVINGS', 'SUPPORTS_TRANSACTIONS')
+            SQL);
+        $this->connection->executeStatement('SET CONSTRAINTS ALL IMMEDIATE');
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('ANNUAL_RATE rules require SUPPORTS_INTEREST');
+
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_product_rules
+                (id, product_code, yield_kind, rule_kind, percentage_value, valid_from, source_id)
+            VALUES
+                ('0199c0de-0002-7000-8000-0000000000f4', 'GENERIC_SAVINGS', 'CONTRACTUAL_FIXED',
+                 'ANNUAL_RATE', 2.5, DATE '2026-01-01', '0199c0de-0001-7000-8000-000000000001')
+            SQL);
     }
 
     /**

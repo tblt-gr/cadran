@@ -13,6 +13,7 @@ const product: Product = {
   yieldKind: 'REGULATED_RATE',
   yieldGuaranteed: true,
   defaultGroupCode: 'LIQUIDITY_SAVINGS',
+  capabilities: ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
   catalogVersion: 1,
   archivedAt: null,
   asOf: '2026-09-02',
@@ -49,5 +50,17 @@ describe('ProductCard', () => {
 
     expect(screen.getByText('Rendement non garanti')).toBeTruthy();
     expect(screen.queryByText('Rendement garanti')).toBeNull();
+  });
+
+  it('names every explicit capability in a semantic list', () => {
+    render(<ProductCard product={product} />);
+
+    expect(screen.getByRole('heading', { name: 'Fonctions prises en charge' })).toBeTruthy();
+    const items = screen.getAllByRole('listitem');
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Soldes et rapprochement',
+      'Transactions et virements',
+      'Intérêts',
+    ]);
   });
 });

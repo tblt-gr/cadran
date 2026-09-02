@@ -77,6 +77,11 @@ final class ProductCatalogControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $body = $this->decode();
         self::assertSame('Livret A', $body['displayName']);
+        self::assertSame([
+            'SUPPORTS_BALANCE',
+            'SUPPORTS_TRANSACTIONS',
+            'SUPPORTS_INTEREST',
+        ], $body['capabilities']);
         self::assertSame('2026-09-02', $body['asOf']);
         self::assertTrue($body['yieldGuaranteed']);
         self::assertSame([], $body['unavailableRuleKinds']);
@@ -164,6 +169,24 @@ final class ProductCatalogControllerTest extends WebTestCase
         yield 'a share savings plan' => ['FR_PEA'];
         yield 'a securities account' => ['FR_CTO'];
         yield 'a life-insurance contract' => ['FR_LIFE_INSURANCE'];
+    }
+
+    public function testCapabilitiesDescribeBehaviorWithoutProductNameConditions(): void
+    {
+        $this->signIn(WorkspaceFixture::OWNER_EMAIL);
+
+        $this->client->request('GET', '/api/v1/products/FR_LIFE_INSURANCE');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([
+            'SUPPORTS_BALANCE',
+            'SUPPORTS_TRANSACTIONS',
+            'SUPPORTS_HOLDINGS',
+            'SUPPORTS_ARBITRAGE',
+            'SUPPORTS_CONTRIBUTIONS',
+            'SUPPORTS_FEES',
+            'SUPPORTS_TAX_TRACKING',
+        ], $this->decode()['capabilities']);
     }
 
     public function testTheCatalogueIsTheSameForEveryWorkspace(): void

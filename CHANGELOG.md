@@ -25,6 +25,10 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 - Global system catalogue for Livret A, LDDS, LEP, Livret jeune, PEA, PEA-PME, CTO and
   life-insurance foundations. Its responsive interface resolves sourced ceilings and rates on a
   chosen business date and states unavailable, stale or unverified values explicitly.
+- Explicit product capabilities for balances, transactions, interest, holdings, trades, arbitrage,
+  contributions, fees, tax tracking and liabilities. The generated API contract and responsive
+  catalogue expose the normalized capability set of each product without inferring behavior from
+  its name.
 - Initial project documentation, contribution guidelines, and repository automation.
 
 ### Changed
@@ -68,3 +72,6 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 - Product rule periods cannot overlap, historical rows reject rewrites and deletion except for
   closing an open period, and a composite product/yield constraint prevents a market product from
   carrying a catalogue rate even when a migration bypasses the domain.
+- Capability dependencies are enforced both in the domain and by deferred PostgreSQL constraints;
+  unknown capabilities, incomplete products, liability escalation and rules backed by no declared
+  capability are rejected before the catalogue state commits.

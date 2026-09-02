@@ -20,6 +20,13 @@ final readonly class CatalogEntry
         if (!$product->yieldKind->acceptsRateRule() && $schedule->hasRateRule()) {
             throw new InvalidCatalogEntry(sprintf('A %s product carries no rate rule.', $product->yieldKind->value));
         }
+
+        foreach ($schedule->rules as $rule) {
+            $required = $rule->kind->requiredCapability();
+            if (null !== $required && !$product->capabilities->contains($required)) {
+                throw new InvalidCatalogEntry(sprintf('%s rules require %s.', $rule->kind->value, $required->value));
+            }
+        }
     }
 
     /**

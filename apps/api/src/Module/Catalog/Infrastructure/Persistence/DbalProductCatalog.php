@@ -10,6 +10,7 @@ use App\Module\Catalog\Domain\CatalogEntry;
 use App\Module\Catalog\Domain\CatalogSource;
 use App\Module\Catalog\Domain\EffectivePeriod;
 use App\Module\Catalog\Domain\FinancialProduct;
+use App\Module\Catalog\Domain\ProductCapabilities;
 use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Catalog\Domain\ProductRule;
 use App\Module\Catalog\Domain\RuleKind;
@@ -27,7 +28,7 @@ use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
 /**
- * Read-only access to the product catalogue. The three tables carry no
+ * Read-only access to the product catalogue. Its normalized tables carry no
  * workspace_id: they are a global system reference, identical for every
  * caller, and this class offers no write path — a product, a rule or a source
  * changes through a reviewed migration.
@@ -76,9 +77,10 @@ final readonly class DbalProductCatalog implements ProductCatalog
         }
 
         $schedules = $this->readSchedules([$code->toString()]);
+        $capabilities = $this->readCapabilities([$code->toString()]);
 
         return new CatalogEntry(
-            self::hydrateProduct($row),
+            self::hydrateProduct($row, ProductCapabilities::fromStrings($capabilities[$code->toString()] ?? [])),
             $schedules[$code->toString()] ?? RuleSchedule::empty(),
         );
     }
@@ -97,8 +99,18 @@ final readonly class DbalProductCatalog implements ProductCatalog
             return [];
         }
 
-        $products = array_map(self::hydrateProduct(...), $rows);
-        $codes = array_map(static fn (FinancialProduct $product): string => $product->code->toString(), $products);
+        $codes = array_map(
+            static fn (array $row): string => self::scalar($row['code'] ?? null),
+            $rows,
+        );
+        $capabilities = $this->readCapabilities($codes);
+        $products = array_map(
+            static fn (array $row): FinancialProduct => self::hydrateProduct(
+                $row,
+                ProductCapabilities::fromStrings($capabilities[self::scalar($row['code'] ?? null)] ?? []),
+            ),
+            $rows,
+        );
         $schedules = $this->readSchedules($codes);
 
         return array_map(
@@ -145,9 +157,37 @@ final readonly class DbalProductCatalog implements ProductCatalog
     }
 
     /**
+     * Reads normalized capability relations in one round trip. A missing set
+     * is not defaulted: ProductCapabilities rejects it as an unusable product.
+     *
+     * @param list<string> $codes
+     *
+     * @return array<string, list<string>>
+     */
+    private function readCapabilities(array $codes): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT product_code, capability_code
+             FROM catalog_product_capabilities
+             WHERE product_code IN (:codes)
+             ORDER BY product_code, capability_code',
+            ['codes' => $codes],
+            ['codes' => ArrayParameterType::STRING],
+        );
+
+        /** @var array<string, list<string>> $grouped */
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[self::scalar($row['product_code'] ?? null)][] = self::scalar($row['capability_code'] ?? null);
+        }
+
+        return $grouped;
+    }
+
+    /**
      * @param array<string, mixed> $row
      */
-    private static function hydrateProduct(array $row): FinancialProduct
+    private static function hydrateProduct(array $row, ProductCapabilities $capabilities): FinancialProduct
     {
         return new FinancialProduct(
             code: ProductCode::fromString(self::scalar($row['code'] ?? null)),
@@ -157,6 +197,7 @@ final readonly class DbalProductCatalog implements ProductCatalog
             wrapperKind: WrapperKind::from(self::scalar($row['wrapper_kind'] ?? null)),
             yieldKind: YieldKind::from(self::scalar($row['yield_kind'] ?? null)),
             defaultGroupCode: self::nullableScalar($row['default_group_code'] ?? null),
+            capabilities: $capabilities,
             catalogVersion: (int) self::scalar($row['catalog_version'] ?? null),
             archivedAt: self::timestamp($row['archived_at'] ?? null),
         );

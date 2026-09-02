@@ -8,6 +8,8 @@ use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Catalog\Domain\CatalogSource;
 use App\Module\Catalog\Domain\EffectivePeriod;
 use App\Module\Catalog\Domain\FinancialProduct;
+use App\Module\Catalog\Domain\ProductCapabilities;
+use App\Module\Catalog\Domain\ProductCapability;
 use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Catalog\Domain\ProductRule;
 use App\Module\Catalog\Domain\RuleKind;
@@ -55,6 +57,11 @@ final class CatalogFixture
             wrapperKind: WrapperKind::REGULATED_SAVINGS,
             yieldKind: $yieldKind,
             defaultGroupCode: 'LIQUIDITY_SAVINGS',
+            capabilities: ProductCapabilities::of(
+                ProductCapability::SUPPORTS_BALANCE,
+                ProductCapability::SUPPORTS_TRANSACTIONS,
+                ProductCapability::SUPPORTS_INTEREST,
+            ),
             catalogVersion: 1,
         );
     }
@@ -69,6 +76,14 @@ final class CatalogFixture
             wrapperKind: WrapperKind::SECURITIES_ACCOUNT,
             yieldKind: YieldKind::MARKET,
             defaultGroupCode: 'INVESTMENTS_MARKET',
+            capabilities: ProductCapabilities::of(
+                ProductCapability::SUPPORTS_BALANCE,
+                ProductCapability::SUPPORTS_TRANSACTIONS,
+                ProductCapability::SUPPORTS_HOLDINGS,
+                ProductCapability::SUPPORTS_TRADES,
+                ProductCapability::SUPPORTS_FEES,
+                ProductCapability::SUPPORTS_TAX_TRACKING,
+            ),
             catalogVersion: 1,
         );
     }
