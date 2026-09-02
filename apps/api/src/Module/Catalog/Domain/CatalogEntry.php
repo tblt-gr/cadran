@@ -38,7 +38,11 @@ final readonly class CatalogEntry
         }
 
         $unavailable = [];
-        foreach ($this->product->yieldKind->expectedRuleKinds() as $expected) {
+        $expectedKinds = [
+            ...$this->product->wrapperKind->expectedRuleKinds(),
+            ...$this->product->yieldKind->expectedRuleKinds(),
+        ];
+        foreach ($expectedKinds as $expected) {
             if (!in_array($expected, $kindsFound, true)) {
                 $unavailable[] = $expected;
             }

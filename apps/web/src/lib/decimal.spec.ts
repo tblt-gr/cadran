@@ -21,8 +21,14 @@ describe('formatDecimal', () => {
     );
   });
 
-  it('returns a precision beyond the formatter unchanged rather than rounding it', () => {
+  it('groups all 24 fractional digits supported by the financial storage', () => {
     const value = '0.123456789012345678901234';
+
+    expect(formatDecimal(value, 'fr-FR')).toBe('0,123456789012345678901234');
+  });
+
+  it('returns a precision beyond NumberFormat v3 unchanged rather than rounding it', () => {
+    const value = `0.${'1'.repeat(101)}`;
 
     expect(formatDecimal(value, 'fr-FR')).toBe(value);
   });

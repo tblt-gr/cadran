@@ -55,10 +55,12 @@ final readonly class RuleSchedule
      */
     public function effectiveOn(\DateTimeImmutable $businessDate): array
     {
-        return array_values(array_filter(
+        $effective = array_filter(
             $this->rules,
             static fn (ProductRule $rule): bool => $rule->period->covers($businessDate),
-        ));
+        );
+
+        return array_values($effective);
     }
 
     private static function ordinal(RuleKind $kind): int

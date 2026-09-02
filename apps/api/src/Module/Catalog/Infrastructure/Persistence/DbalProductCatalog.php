@@ -67,7 +67,7 @@ final readonly class DbalProductCatalog implements ProductCatalog
     public function findByCode(ProductCode $code): ?CatalogEntry
     {
         $row = $this->connection->fetchAssociative(
-            'SELECT '.self::PRODUCT_COLUMNS.' FROM catalog_products WHERE code = :code',
+            'SELECT '.self::PRODUCT_COLUMNS.' FROM catalog_products WHERE code = :code AND archived_at IS NULL',
             ['code' => $code->toString()],
         );
 
@@ -88,7 +88,7 @@ final readonly class DbalProductCatalog implements ProductCatalog
         // The code is the primary key, so ordering on it is both stable and
         // free: two identical requests always return the same page.
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT '.self::PRODUCT_COLUMNS.' FROM catalog_products ORDER BY code LIMIT :limit OFFSET :offset',
+            'SELECT '.self::PRODUCT_COLUMNS.' FROM catalog_products WHERE archived_at IS NULL ORDER BY code LIMIT :limit OFFSET :offset',
             ['limit' => $limit, 'offset' => $offset],
             ['limit' => ParameterType::INTEGER, 'offset' => ParameterType::INTEGER],
         );
@@ -112,7 +112,7 @@ final readonly class DbalProductCatalog implements ProductCatalog
 
     public function count(): int
     {
-        return (int) self::scalar($this->connection->fetchOne('SELECT count(*) FROM catalog_products'));
+        return (int) self::scalar($this->connection->fetchOne('SELECT count(*) FROM catalog_products WHERE archived_at IS NULL'));
     }
 
     /**

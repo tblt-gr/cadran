@@ -18,6 +18,8 @@ interface ProductCardProps {
  */
 export function ProductCard({ product }: ProductCardProps) {
   const { t } = useTranslation();
+  const guaranteedYieldUnavailable =
+    product.yieldGuaranteed && product.unavailableRuleKinds.includes('ANNUAL_RATE');
 
   return (
     <article aria-labelledby={`product-${product.code}`} className={`card ${styles.card}`}>
@@ -32,7 +34,9 @@ export function ProductCard({ product }: ProductCardProps) {
           </StatusBadge>
           <StatusBadge
             icon={product.yieldGuaranteed ? 'goals' : 'investments'}
-            tone={product.yieldGuaranteed ? 'positive' : 'warning'}
+            tone={
+              guaranteedYieldUnavailable ? 'info' : product.yieldGuaranteed ? 'positive' : 'warning'
+            }
           >
             {t(product.yieldGuaranteed ? 'catalog.yield.guaranteed' : 'catalog.yield.market')}
           </StatusBadge>

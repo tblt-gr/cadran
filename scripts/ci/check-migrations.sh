@@ -43,6 +43,17 @@ if [ "$migration_files" -ne "$registered" ]; then
     exit 1
 fi
 
+# A forward-only check misses teardown errors such as a function left behind by
+# down(). Exercise the latest migration in both directions on the disposable
+# database, then verify that the schema is back at head.
+latest_file=$(find apps/api/migrations -name 'Version*.php' | sort | tail -n 1)
+latest_version=$(basename "$latest_file" .php)
+latest_migration="DoctrineMigrations\\$latest_version"
+echo "== Latest-migration down/up cycle: $latest_version =="
+$console doctrine:migrations:execute "$latest_migration" --down --no-interaction
+$console doctrine:migrations:execute "$latest_migration" --up --no-interaction
+$console doctrine:migrations:up-to-date --no-interaction
+
 if ! git rev-parse --verify --quiet "$base_ref" >/dev/null; then
     if [ -n "${GITHUB_BASE_REF:-}" ]; then
         echo "Base ref $base_ref is required on a pull request but was not found." >&2

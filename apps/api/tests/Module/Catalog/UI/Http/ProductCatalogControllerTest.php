@@ -12,6 +12,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**
  * The HTTP surface of PRD-001. The catalogue is global on purpose, so the
@@ -21,12 +22,15 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class ProductCatalogControllerTest extends WebTestCase
 {
+    use ClockSensitiveTrait;
+
     private KernelBrowser $client;
     private WorkspaceFixture $fixture;
     private bool $databaseReady = false;
 
     protected function setUp(): void
     {
+        self::mockTime('2026-09-02 12:00:00 UTC');
         WorkspaceFixture::requireDatabase();
 
         $this->client = self::createClient();
@@ -120,7 +124,19 @@ final class ProductCatalogControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $body = $this->decode();
         self::assertSame([], $body['rules']);
-        self::assertSame(['ANNUAL_RATE'], $body['unavailableRuleKinds']);
+        self::assertSame(['DEPOSIT_CEILING', 'ANNUAL_RATE'], $body['unavailableRuleKinds']);
+    }
+
+    public function testARegulatedCeilingWithoutAnEffectivePeriodRemainsVisibleAsUnavailable(): void
+    {
+        $this->signIn(WorkspaceFixture::OWNER_EMAIL);
+
+        $this->client->request('GET', '/api/v1/products/FR_LDDS?asOf=2026-08-21');
+
+        self::assertResponseIsSuccessful();
+        $body = $this->decode();
+        self::assertSame(['ANNUAL_RATE'], array_column(self::rows($body, 'rules'), 'kind'));
+        self::assertSame(['DEPOSIT_CEILING'], $body['unavailableRuleKinds']);
     }
 
     #[DataProvider('marketProducts')]

@@ -295,7 +295,7 @@
       "MANUAL_VALUATION": "Valorisation manuelle"
     },
     "yield": {
-      "guaranteed": "Taux garanti",
+      "guaranteed": "Rendement garanti",
       "market": "Rendement non garanti"
     },
     "rules": {

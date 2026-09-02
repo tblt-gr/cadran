@@ -28,7 +28,7 @@ export function BusinessDateField({ onChange, today, value }: BusinessDateFieldP
           id={fieldId}
           max="2100-12-31"
           min="1900-01-01"
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => onChange(event.target.value || today)}
           type="date"
           value={value}
         />

@@ -173,7 +173,7 @@ describe('ProductCatalogPage', () => {
     renderPage();
 
     expect(await screen.findByText('Rendement non garanti')).toBeTruthy();
-    expect(screen.queryByText('Taux garanti')).toBeNull();
+    expect(screen.queryByText('Rendement garanti')).toBeNull();
   });
 
   it('resolves the catalogue against the business date the reader chooses', async () => {

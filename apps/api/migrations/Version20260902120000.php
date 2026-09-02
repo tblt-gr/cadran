@@ -71,7 +71,8 @@ final class Version20260902120000 extends AbstractMigration
                 CONSTRAINT catalog_products_yield_kind_valid CHECK (yield_kind IN (
                     'NONE', 'REGULATED_RATE', 'CONTRACTUAL_FIXED', 'CONTRACTUAL_VARIABLE',
                     'MARKET', 'MANUAL_VALUATION')),
-                CONSTRAINT catalog_products_version_positive CHECK (catalog_version >= 1)
+                CONSTRAINT catalog_products_version_positive CHECK (catalog_version >= 1),
+                CONSTRAINT catalog_products_code_yield_unique UNIQUE (code, yield_kind)
             )
             SQL);
 
@@ -79,6 +80,7 @@ final class Version20260902120000 extends AbstractMigration
             CREATE TABLE catalog_product_rules (
                 id UUID NOT NULL,
                 product_code VARCHAR(32) NOT NULL,
+                yield_kind VARCHAR(24) NOT NULL,
                 rule_kind VARCHAR(32) NOT NULL,
                 amount_value NUMERIC(50, 24),
                 amount_asset VARCHAR(12),
@@ -90,8 +92,12 @@ final class Version20260902120000 extends AbstractMigration
                 verified_on DATE,
                 verified_by VARCHAR(80),
                 PRIMARY KEY (id),
-                CONSTRAINT catalog_product_rules_product_exists
-                    FOREIGN KEY (product_code) REFERENCES catalog_products (code),
+                -- The duplicated yield kind is guarded by this composite key,
+                -- then used below to reject rate rules on market products. A
+                -- migration cannot claim a PEA has a regulated yield merely to
+                -- get an annual rate past the check.
+                CONSTRAINT catalog_product_rules_product_yield_exists
+                    FOREIGN KEY (product_code, yield_kind) REFERENCES catalog_products (code, yield_kind),
                 CONSTRAINT catalog_product_rules_source_exists
                     FOREIGN KEY (source_id) REFERENCES catalog_product_sources (id),
                 -- An amount is denominated in an asset of the REF-001
@@ -101,6 +107,10 @@ final class Version20260902120000 extends AbstractMigration
                 CONSTRAINT catalog_product_rules_kind_valid CHECK (rule_kind IN (
                     'DEPOSIT_CEILING', 'CONTRIBUTION_CEILING', 'COMBINED_CONTRIBUTION_CEILING',
                     'ANNUAL_RATE', 'MIN_RATE', 'INTEREST_ACCRUAL_METHOD', 'ELIGIBILITY', 'TAX_REFERENCE')),
+                CONSTRAINT catalog_product_rules_market_has_no_rate CHECK (
+                    rule_kind NOT IN ('ANNUAL_RATE', 'MIN_RATE')
+                    OR yield_kind IN ('REGULATED_RATE', 'CONTRACTUAL_FIXED', 'CONTRACTUAL_VARIABLE')
+                ),
                 CONSTRAINT catalog_product_rules_single_value
                     CHECK (num_nonnulls(amount_value, percentage_value, text_value) = 1),
                 CONSTRAINT catalog_product_rules_amount_denominated
@@ -141,6 +151,33 @@ final class Version20260902120000 extends AbstractMigration
 
         $this->addSql('CREATE INDEX idx_catalog_product_rules_product ON catalog_product_rules (product_code, rule_kind, valid_from)');
 
+        // Rule rows are historical facts. The only update a catalogue revision
+        // needs is to close an open period before inserting its successor; all
+        // other updates and every delete would rewrite the answer previously
+        // returned for a business date.
+        $this->addSql(<<<'SQL'
+            CREATE FUNCTION catalog_product_rules_reject_rewrite() RETURNS TRIGGER AS $$
+            BEGIN
+                IF TG_OP = 'UPDATE' THEN
+                    IF OLD.valid_to IS NULL
+                        AND NEW.valid_to IS NOT NULL
+                        AND (to_jsonb(NEW) - 'valid_to') = (to_jsonb(OLD) - 'valid_to')
+                    THEN
+                        RETURN NEW;
+                    END IF;
+                END IF;
+
+                RAISE EXCEPTION 'catalog_product_rules history cannot be rewritten'
+                    USING ERRCODE = 'restrict_violation';
+            END;
+            $$ LANGUAGE plpgsql
+            SQL);
+        $this->addSql(<<<'SQL'
+            CREATE TRIGGER catalog_product_rules_history_guard
+                BEFORE UPDATE OR DELETE ON catalog_product_rules
+                FOR EACH ROW EXECUTE FUNCTION catalog_product_rules_reject_rewrite()
+            SQL);
+
         $this->seedSources();
         $this->seedProducts();
         $this->seedRules();
@@ -148,7 +185,9 @@ final class Version20260902120000 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
+        $this->addSql('DROP TRIGGER catalog_product_rules_history_guard ON catalog_product_rules');
         $this->addSql('DROP TABLE catalog_product_rules');
+        $this->addSql('DROP FUNCTION catalog_product_rules_reject_rewrite()');
         $this->addSql('DROP TABLE catalog_products');
         $this->addSql('DROP TABLE catalog_product_sources');
         // btree_gist is left installed: another table may already rely on it,
@@ -245,43 +284,43 @@ final class Version20260902120000 extends AbstractMigration
     {
         $this->addSql(<<<'SQL'
             INSERT INTO catalog_product_rules
-                (id, product_code, rule_kind, amount_value, amount_asset, percentage_value, text_value,
+                (id, product_code, yield_kind, rule_kind, amount_value, amount_asset, percentage_value, text_value,
                  valid_from, valid_to, source_id, verified_on, verified_by) VALUES
-                ('0199c0de-0002-7000-8000-000000000001', 'FR_LIVRET_A', 'DEPOSIT_CEILING',
+                ('0199c0de-0002-7000-8000-000000000001', 'FR_LIVRET_A', 'REGULATED_RATE', 'DEPOSIT_CEILING',
                  22950.00, 'EUR', NULL, NULL, DATE '2025-04-25', NULL,
                  '0199c0de-0001-7000-8000-000000000002', DATE '2026-08-22', 'cadran-maintainer'),
-                ('0199c0de-0002-7000-8000-000000000002', 'FR_LIVRET_A', 'ANNUAL_RATE',
+                ('0199c0de-0002-7000-8000-000000000002', 'FR_LIVRET_A', 'REGULATED_RATE', 'ANNUAL_RATE',
                  NULL, NULL, 1.7, NULL, DATE '2026-08-01', DATE '2027-01-31',
                  '0199c0de-0001-7000-8000-000000000003', DATE '2026-08-22', 'cadran-maintainer'),
-                ('0199c0de-0002-7000-8000-000000000003', 'FR_LDDS', 'DEPOSIT_CEILING',
+                ('0199c0de-0002-7000-8000-000000000003', 'FR_LDDS', 'REGULATED_RATE', 'DEPOSIT_CEILING',
                  12000.00, 'EUR', NULL, NULL, DATE '2026-08-22', NULL,
                  '0199c0de-0001-7000-8000-000000000004', DATE '2026-08-22', 'cadran-maintainer'),
-                ('0199c0de-0002-7000-8000-000000000004', 'FR_LDDS', 'ANNUAL_RATE',
+                ('0199c0de-0002-7000-8000-000000000004', 'FR_LDDS', 'REGULATED_RATE', 'ANNUAL_RATE',
                  NULL, NULL, 1.7, NULL, DATE '2026-08-01', DATE '2027-01-31',
                  '0199c0de-0001-7000-8000-000000000004', DATE '2026-08-22', 'cadran-maintainer'),
-                ('0199c0de-0002-7000-8000-000000000005', 'FR_LEP', 'DEPOSIT_CEILING',
+                ('0199c0de-0002-7000-8000-000000000005', 'FR_LEP', 'REGULATED_RATE', 'DEPOSIT_CEILING',
                  10000.00, 'EUR', NULL, NULL, DATE '2026-08-22', NULL,
                  '0199c0de-0001-7000-8000-000000000005', DATE '2026-08-22', 'cadran-maintainer'),
-                ('0199c0de-0002-7000-8000-000000000006', 'FR_LEP', 'ANNUAL_RATE',
+                ('0199c0de-0002-7000-8000-000000000006', 'FR_LEP', 'REGULATED_RATE', 'ANNUAL_RATE',
                  NULL, NULL, 2.5, NULL, DATE '2026-08-01', DATE '2027-01-31',
                  '0199c0de-0001-7000-8000-000000000003', DATE '2026-08-22', 'cadran-maintainer'),
                 -- The PEA ceiling is on cumulative contributions, not on what
                 -- the plan is worth: a plan may exceed it through market value.
-                ('0199c0de-0002-7000-8000-000000000007', 'FR_PEA', 'CONTRIBUTION_CEILING',
+                ('0199c0de-0002-7000-8000-000000000007', 'FR_PEA', 'MARKET', 'CONTRIBUTION_CEILING',
                  150000.00, 'EUR', NULL, NULL, DATE '2026-08-22', NULL,
                  '0199c0de-0001-7000-8000-000000000006', DATE '2026-08-22', 'cadran-maintainer'),
-                ('0199c0de-0002-7000-8000-000000000008', 'FR_PEA', 'COMBINED_CONTRIBUTION_CEILING',
+                ('0199c0de-0002-7000-8000-000000000008', 'FR_PEA', 'MARKET', 'COMBINED_CONTRIBUTION_CEILING',
                  225000.00, 'EUR', NULL, NULL, DATE '2026-08-22', NULL,
                  '0199c0de-0001-7000-8000-000000000006', DATE '2026-08-22', 'cadran-maintainer'),
-                ('0199c0de-0002-7000-8000-000000000009', 'FR_PEA_PME', 'CONTRIBUTION_CEILING',
+                ('0199c0de-0002-7000-8000-000000000009', 'FR_PEA_PME', 'MARKET', 'CONTRIBUTION_CEILING',
                  225000.00, 'EUR', NULL, NULL, DATE '2026-08-22', NULL,
                  '0199c0de-0001-7000-8000-000000000006', DATE '2026-08-22', 'cadran-maintainer'),
-                ('0199c0de-0002-7000-8000-00000000000a', 'FR_PEA_PME', 'COMBINED_CONTRIBUTION_CEILING',
+                ('0199c0de-0002-7000-8000-00000000000a', 'FR_PEA_PME', 'MARKET', 'COMBINED_CONTRIBUTION_CEILING',
                  225000.00, 'EUR', NULL, NULL, DATE '2026-08-22', NULL,
                  '0199c0de-0001-7000-8000-000000000006', DATE '2026-08-22', 'cadran-maintainer'),
                 -- Absence of a ceiling is itself a sourced fact, and reads
                 -- differently from a ceiling nobody has recorded yet.
-                ('0199c0de-0002-7000-8000-00000000000b', 'FR_CTO', 'ELIGIBILITY',
+                ('0199c0de-0002-7000-8000-00000000000b', 'FR_CTO', 'MARKET', 'ELIGIBILITY',
                  NULL, NULL, NULL, 'NO_REGULATORY_CONTRIBUTION_CEILING', DATE '2026-08-22', NULL,
                  '0199c0de-0001-7000-8000-000000000007', DATE '2026-08-22', 'cadran-maintainer')
             SQL);

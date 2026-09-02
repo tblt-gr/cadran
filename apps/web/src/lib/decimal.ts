@@ -12,8 +12,8 @@
  * invented or dropped at the boundary.
  */
 
-/** `Intl.NumberFormat` refuses a fraction precision beyond this in some engines. */
-const MAX_INTL_FRACTION_DIGITS = 20;
+/** ECMA-402 NumberFormat v3 accepts up to 100 fraction digits. */
+const MAX_INTL_FRACTION_DIGITS = 100;
 
 /**
  * ECMA-402 lets `format` take a string operand and read its digits directly.

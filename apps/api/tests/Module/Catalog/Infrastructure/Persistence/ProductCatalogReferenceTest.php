@@ -7,8 +7,6 @@ namespace App\Tests\Module\Catalog\Infrastructure\Persistence;
 use App\Module\Catalog\Application\ProductCatalog;
 use App\Module\Catalog\Domain\CatalogEntry;
 use App\Module\Catalog\Domain\ProductCode;
-use App\Module\Catalog\Domain\ProductRule;
-use App\Module\Catalog\Domain\RuleKind;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
@@ -28,6 +26,8 @@ final class ProductCatalogReferenceTest extends KernelTestCase
     private const string EXCLUSION_VIOLATION = '23P01';
     /** SQLSTATE of a PostgreSQL foreign-key violation. */
     private const string FOREIGN_KEY_VIOLATION = '23503';
+    /** SQLSTATE used by the history trigger for a forbidden rewrite. */
+    private const string RESTRICT_VIOLATION = '23001';
 
     private const string LIVRET_A_CEILING_SOURCE = '0199c0de-0001-7000-8000-000000000002';
 
@@ -85,24 +85,83 @@ final class ProductCatalogReferenceTest extends KernelTestCase
         self::assertSame(8, $this->catalog->count());
     }
 
-    public function testASeededCeilingKeepsItsExactValueAndItsAsset(): void
+    /**
+     * @param array<string, ?string> $expected
+     */
+    #[DataProvider('seededRules')]
+    public function testEverySeededRuleIsPinned(string $id, array $expected): void
     {
-        $livretA = $this->livretA();
-        $ceiling = $this->ruleOfKind($livretA, RuleKind::DEPOSIT_CEILING);
+        $row = $this->connection->fetchAssociative(
+            <<<'SQL'
+                SELECT
+                    product_code,
+                    yield_kind,
+                    rule_kind,
+                    trim_scale(amount_value)::text AS amount_value,
+                    amount_asset,
+                    trim_scale(percentage_value)::text AS percentage_value,
+                    text_value,
+                    valid_from::text AS valid_from,
+                    valid_to::text AS valid_to,
+                    source_id::text AS source_id
+                FROM catalog_product_rules
+                WHERE id = :id
+                SQL,
+            ['id' => $id],
+        );
 
-        // NUMERIC(50,24) pads on the way in; the read strips the padding
-        // without rounding, so the figure is neither shortened nor inflated.
-        self::assertSame('22950', $ceiling->value->amount?->value->toString());
-        self::assertSame('EUR', $ceiling->value->amount->asset->toString());
+        self::assertSame($expected, $row);
     }
 
-    public function testASeededRateStaysThePercentageTheSourcePublished(): void
+    /**
+     * @return iterable<string, array{string, array<string, ?string>}>
+     */
+    public static function seededRules(): iterable
     {
-        $rate = $this->ruleOfKind($this->livretA(), RuleKind::ANNUAL_RATE);
-
-        self::assertSame('1.7', $rate->value->percentage?->toString());
-        self::assertSame('2026-08-01', $rate->period->validFrom->format('Y-m-d'));
-        self::assertSame('2027-01-31', $rate->period->validTo?->format('Y-m-d'));
+        yield 'Livret A ceiling' => ['0199c0de-0002-7000-8000-000000000001', self::seededRule(
+            'FR_LIVRET_A', 'REGULATED_RATE', 'DEPOSIT_CEILING', '22950', 'EUR', null, null,
+            '2025-04-25', null, '0199c0de-0001-7000-8000-000000000002',
+        )];
+        yield 'Livret A rate' => ['0199c0de-0002-7000-8000-000000000002', self::seededRule(
+            'FR_LIVRET_A', 'REGULATED_RATE', 'ANNUAL_RATE', null, null, '1.7', null,
+            '2026-08-01', '2027-01-31', '0199c0de-0001-7000-8000-000000000003',
+        )];
+        yield 'LDDS ceiling' => ['0199c0de-0002-7000-8000-000000000003', self::seededRule(
+            'FR_LDDS', 'REGULATED_RATE', 'DEPOSIT_CEILING', '12000', 'EUR', null, null,
+            '2026-08-22', null, '0199c0de-0001-7000-8000-000000000004',
+        )];
+        yield 'LDDS rate' => ['0199c0de-0002-7000-8000-000000000004', self::seededRule(
+            'FR_LDDS', 'REGULATED_RATE', 'ANNUAL_RATE', null, null, '1.7', null,
+            '2026-08-01', '2027-01-31', '0199c0de-0001-7000-8000-000000000004',
+        )];
+        yield 'LEP ceiling' => ['0199c0de-0002-7000-8000-000000000005', self::seededRule(
+            'FR_LEP', 'REGULATED_RATE', 'DEPOSIT_CEILING', '10000', 'EUR', null, null,
+            '2026-08-22', null, '0199c0de-0001-7000-8000-000000000005',
+        )];
+        yield 'LEP rate' => ['0199c0de-0002-7000-8000-000000000006', self::seededRule(
+            'FR_LEP', 'REGULATED_RATE', 'ANNUAL_RATE', null, null, '2.5', null,
+            '2026-08-01', '2027-01-31', '0199c0de-0001-7000-8000-000000000003',
+        )];
+        yield 'PEA contribution ceiling' => ['0199c0de-0002-7000-8000-000000000007', self::seededRule(
+            'FR_PEA', 'MARKET', 'CONTRIBUTION_CEILING', '150000', 'EUR', null, null,
+            '2026-08-22', null, '0199c0de-0001-7000-8000-000000000006',
+        )];
+        yield 'PEA combined ceiling' => ['0199c0de-0002-7000-8000-000000000008', self::seededRule(
+            'FR_PEA', 'MARKET', 'COMBINED_CONTRIBUTION_CEILING', '225000', 'EUR', null, null,
+            '2026-08-22', null, '0199c0de-0001-7000-8000-000000000006',
+        )];
+        yield 'PEA-PME contribution ceiling' => ['0199c0de-0002-7000-8000-000000000009', self::seededRule(
+            'FR_PEA_PME', 'MARKET', 'CONTRIBUTION_CEILING', '225000', 'EUR', null, null,
+            '2026-08-22', null, '0199c0de-0001-7000-8000-000000000006',
+        )];
+        yield 'PEA-PME combined ceiling' => ['0199c0de-0002-7000-8000-00000000000a', self::seededRule(
+            'FR_PEA_PME', 'MARKET', 'COMBINED_CONTRIBUTION_CEILING', '225000', 'EUR', null, null,
+            '2026-08-22', null, '0199c0de-0001-7000-8000-000000000006',
+        )];
+        yield 'CTO absence of ceiling' => ['0199c0de-0002-7000-8000-00000000000b', self::seededRule(
+            'FR_CTO', 'MARKET', 'ELIGIBILITY', null, null, null, 'NO_REGULATORY_CONTRIBUTION_CEILING',
+            '2026-08-22', null, '0199c0de-0001-7000-8000-000000000007',
+        )];
     }
 
     public function testEverySeededRuleCarriesAnOfficialSourceAndAVerificationTrace(): void
@@ -161,9 +220,75 @@ final class ProductCatalogReferenceTest extends KernelTestCase
         $this->expectSqlState($sqlState);
 
         $this->connection->executeStatement(
-            "INSERT INTO catalog_product_rules (id, product_code, valid_from, {$columns})
-             VALUES ('0199c0de-0002-7000-8000-0000000000f1', 'FR_LIVRET_A', DATE '2019-01-01', {$values})",
+            "INSERT INTO catalog_product_rules (id, product_code, yield_kind, valid_from, {$columns})
+             VALUES ('0199c0de-0002-7000-8000-0000000000f1', 'FR_LIVRET_A', 'REGULATED_RATE', DATE '2019-01-01', {$values})",
         );
+    }
+
+    public function testAMarketProductCannotCarryARateRule(): void
+    {
+        $this->expectSqlState(self::CHECK_VIOLATION);
+
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_product_rules
+                (id, product_code, yield_kind, rule_kind, percentage_value, valid_from, valid_to, source_id)
+            VALUES
+                ('0199c0de-0002-7000-8000-0000000000f3', 'FR_PEA', 'MARKET', 'ANNUAL_RATE', 3,
+                 DATE '2020-01-01', DATE '2020-12-31', '0199c0de-0001-7000-8000-000000000006')
+            SQL);
+    }
+
+    public function testARuleCannotLieAboutItsProductsYieldKind(): void
+    {
+        $this->expectSqlState(self::FOREIGN_KEY_VIOLATION);
+
+        $this->connection->executeStatement(<<<'SQL'
+            INSERT INTO catalog_product_rules
+                (id, product_code, yield_kind, rule_kind, percentage_value, valid_from, valid_to, source_id)
+            VALUES
+                ('0199c0de-0002-7000-8000-0000000000f3', 'FR_PEA', 'REGULATED_RATE', 'ANNUAL_RATE', 3,
+                 DATE '2020-01-01', DATE '2020-12-31', '0199c0de-0001-7000-8000-000000000006')
+            SQL);
+    }
+
+    public function testAnOpenRuleMayOnlyBeClosed(): void
+    {
+        $this->connection->executeStatement(<<<'SQL'
+            UPDATE catalog_product_rules
+            SET valid_to = DATE '2027-01-31'
+            WHERE id = '0199c0de-0002-7000-8000-000000000001'
+            SQL);
+
+        self::assertSame(
+            '2027-01-31',
+            $this->connection->fetchOne(
+                "SELECT valid_to::text FROM catalog_product_rules WHERE id = '0199c0de-0002-7000-8000-000000000001'",
+            ),
+        );
+    }
+
+    #[DataProvider('historicalRewrites')]
+    public function testHistoricalRulesCannotBeRewritten(string $statement): void
+    {
+        $this->expectSqlState(self::RESTRICT_VIOLATION);
+
+        $this->connection->executeStatement($statement);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function historicalRewrites(): iterable
+    {
+        yield 'change a value' => [
+            "UPDATE catalog_product_rules SET percentage_value = 3 WHERE id = '0199c0de-0002-7000-8000-000000000002'",
+        ];
+        yield 'change metadata while closing a period' => [
+            "UPDATE catalog_product_rules SET valid_to = DATE '2027-01-31', verified_on = DATE '2026-09-02' WHERE id = '0199c0de-0002-7000-8000-000000000001'",
+        ];
+        yield 'delete a historical row' => [
+            "DELETE FROM catalog_product_rules WHERE id = '0199c0de-0002-7000-8000-000000000002'",
+        ];
     }
 
     /**
@@ -252,33 +377,60 @@ final class ProductCatalogReferenceTest extends KernelTestCase
         self::assertSame([], $scoped);
     }
 
-    private function livretA(): CatalogEntry
+    public function testArchivedProductsAreAbsentFromReadsAndTheCount(): void
     {
-        $entry = $this->catalog->findByCode(ProductCode::fromString('FR_LIVRET_A'));
-        self::assertNotNull($entry);
+        $this->connection->executeStatement(
+            "UPDATE catalog_products SET archived_at = TIMESTAMPTZ '2026-09-02 12:00:00+00' WHERE code = 'FR_CTO'",
+        );
 
-        return $entry;
-    }
-
-    private function ruleOfKind(CatalogEntry $entry, RuleKind $kind): ProductRule
-    {
-        foreach ($entry->schedule->rules as $rule) {
-            if ($rule->kind === $kind) {
-                return $rule;
-            }
-        }
-
-        self::fail(sprintf('The seeded catalogue has no %s rule for %s.', $kind->value, $entry->product->code->toString()));
+        self::assertNull($this->catalog->findByCode(ProductCode::fromString('FR_CTO')));
+        self::assertSame(7, $this->catalog->count());
+        self::assertNotContains(
+            'FR_CTO',
+            array_map(
+                static fn (CatalogEntry $entry): string => $entry->product->code->toString(),
+                $this->catalog->readPage(100, 0),
+            ),
+        );
     }
 
     private function insertCeiling(string $validFrom, ?string $validTo): void
     {
         $this->connection->executeStatement(
             "INSERT INTO catalog_product_rules
-                (id, product_code, rule_kind, amount_value, amount_asset, valid_from, valid_to, source_id)
-             VALUES ('0199c0de-0002-7000-8000-0000000000f2', 'FR_LIVRET_A', 'DEPOSIT_CEILING', 19125, 'EUR', :from, :to, :source)",
+                (id, product_code, yield_kind, rule_kind, amount_value, amount_asset, valid_from, valid_to, source_id)
+             VALUES ('0199c0de-0002-7000-8000-0000000000f2', 'FR_LIVRET_A', 'REGULATED_RATE', 'DEPOSIT_CEILING', 19125, 'EUR', :from, :to, :source)",
             ['from' => $validFrom, 'to' => $validTo, 'source' => self::LIVRET_A_CEILING_SOURCE],
         );
+    }
+
+    /**
+     * @return array<string, ?string>
+     */
+    private static function seededRule(
+        string $productCode,
+        string $yieldKind,
+        string $ruleKind,
+        ?string $amountValue,
+        ?string $amountAsset,
+        ?string $percentageValue,
+        ?string $textValue,
+        string $validFrom,
+        ?string $validTo,
+        string $sourceId,
+    ): array {
+        return [
+            'product_code' => $productCode,
+            'yield_kind' => $yieldKind,
+            'rule_kind' => $ruleKind,
+            'amount_value' => $amountValue,
+            'amount_asset' => $amountAsset,
+            'percentage_value' => $percentageValue,
+            'text_value' => $textValue,
+            'valid_from' => $validFrom,
+            'valid_to' => $validTo,
+            'source_id' => $sourceId,
+        ];
     }
 
     private function expectSqlState(string $sqlState): void
