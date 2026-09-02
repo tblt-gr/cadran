@@ -16,6 +16,7 @@
 
 <hr>
 <p align="center">
+  <a href="#quick-start">Quick start</a> &bull;
   <a href="#vision">Vision</a> &bull;
   <a href="#principles">Principles</a> &bull;
   <a href="#architecture">Architecture</a> &bull;
@@ -26,9 +27,51 @@
 <hr>
 
 > [!IMPORTANT]
-> Cadran Budget is in its foundation phase. Product planning is ready, but the application is not
-> usable yet. The first increment is Sprint 0: monorepo setup, Docker environment, automated
-> quality gates, the API Platform spike, and the design-system shell.
+> Cadran Budget is in early development. The monorepo, hardened Docker environment, automated
+> quality gates, and the identity, application-shell, and reference-data foundations are in place;
+> most budgeting and wealth-tracking features are still to come. The quick start below boots the
+> current stack.
+
+## Quick start
+
+Requirements: Docker with the Compose plugin and GNU Make. Everything else runs inside the pinned
+`cadran_tools` image.
+
+```bash
+git clone https://github.com/tblt-gr/cadran.git
+cd cadran
+make init
+```
+
+`make init` writes `.env.local`, generates the local `var/docker-secrets/*` secrets, builds the
+`cadran_app` and `cadran_db` images, applies database migrations, and brings the stack up on
+<https://localhost:8443>.
+
+Create the first owner and their workspace (one-time; a second run is rejected):
+
+```bash
+make provision-owner EMAIL=you@example.test WORKSPACE="Household" NAME="You" CURRENCY=EUR
+```
+
+The stack serves local HTTPS through an internal Caddy authority. Export and trust its root
+certificate so the browser accepts the site:
+
+```bash
+make tls-certificate   # writes var/tls/cadran-local-ca.crt
+```
+
+Then open <https://localhost:8443> and sign in with the provisioned owner.
+
+Day-to-day:
+
+```bash
+make up      # start the stack
+make down    # stop the stack
+make status  # container healthcheck
+```
+
+Override `CADRAN_HTTPS_PORT`, `CADRAN_HTTPS_BIND`, or `CADRAN_SERVER_NAME` in `.env.local` to
+change the published address.
 
 ## Vision
 
