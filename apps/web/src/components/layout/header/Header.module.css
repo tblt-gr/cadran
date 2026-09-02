@@ -40,7 +40,7 @@
   min-height: 2.5rem;
   padding: var(--spacing-none) var(--spacing-3);
   border: var(--border-line-subtle);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
   gap: var(--spacing-2);

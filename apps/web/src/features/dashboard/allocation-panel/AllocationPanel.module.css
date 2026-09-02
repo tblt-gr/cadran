@@ -1,12 +1,15 @@
 .card {
+  display: grid;
   grid-column: span 5;
-  min-height: 20rem;
+  grid-template-rows: auto 1fr;
+  min-height: 24rem;
   padding: var(--spacing-6);
+  gap: var(--spacing-6);
 }
 
 .heading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--spacing-4);
 }
@@ -23,124 +26,75 @@
   font-weight: var(--font-weight-strong);
   text-decoration-thickness: var(--border-width-thin);
   text-underline-offset: var(--spacing-1);
-}
-
-.visual {
-  display: grid;
-  min-height: 9.5rem;
-  place-items: center;
-}
-
-.donut {
-  position: relative;
-  display: grid;
-  width: 7.5rem;
-  height: 7.5rem;
-  text-align: center;
-  place-content: center;
-}
-
-.donut svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.donut circle {
-  fill: none;
-  stroke-width: 6;
-}
-
-.donutTrack {
-  stroke: var(--bg-surface-2);
-}
-
-.donutSegment {
-  stroke-linecap: butt;
-}
-
-.donut span {
-  position: relative;
-  font-size: var(--font-size-allocation-total);
-  font-weight: var(--font-weight-strong);
-}
-
-.donut small {
-  position: relative;
-  max-width: 5rem;
-  color: var(--text-secondary);
-  font-size: var(--font-size-2xs);
-}
-
-.stack {
-  display: none;
-  width: 100%;
-  height: 0.75rem;
-  overflow: hidden;
-  border-radius: var(--radius-full);
-}
-
-.stack .cash {
-  flex: 4.82;
-}
-
-.stack .investment {
-  flex: 3.68;
-}
-
-.stack .realEstate {
-  flex: 1.5;
+  white-space: nowrap;
 }
 
 .list {
   display: grid;
+  align-content: space-between;
   margin: var(--spacing-none);
   padding: var(--spacing-none);
   list-style: none;
-  gap: var(--spacing-2);
+  gap: var(--spacing-4);
 }
 
 .list li {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  align-items: center;
-  min-height: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
   color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  column-gap: var(--spacing-3);
+  row-gap: var(--spacing-1-5);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share {
+  color: var(--text-muted);
   font-size: var(--font-size-sm);
-  gap: var(--spacing-2);
+  font-variant-numeric: tabular-nums;
 }
 
-.list strong {
+.amount {
+  grid-column: 1 / -1;
   color: var(--text-primary);
+  font-size: var(--font-size-card-title);
   font-weight: var(--font-weight-strong);
+  letter-spacing: var(--letter-spacing-card);
 }
 
-.list :global(.money) {
-  min-width: 6.75rem;
-  text-align: right;
+/* The share of each class, read on its own row rather than as a slice everyone
+   has to compare by eye. */
+.track {
+  grid-column: 1 / -1;
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-2);
 }
 
-.dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: var(--radius-circle);
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
 }
 
 .cash {
   background: var(--gold-500);
-  stroke: var(--gold-500);
 }
 
 .investment {
   background: var(--info);
-  stroke: var(--info);
 }
 
 .realEstate {
   background: var(--allocation-real-estate);
-  stroke: var(--allocation-real-estate);
 }
 
 @media (max-width: 1279px) {
@@ -154,27 +108,18 @@
     grid-column: 1;
     min-height: 0;
     padding: var(--spacing-4);
+    gap: var(--spacing-4);
   }
 
-  .visual {
-    min-height: 3.5rem;
-  }
-
-  .donut {
-    display: none;
-  }
-
-  .stack {
-    display: flex;
+  .list {
+    gap: var(--spacing-3);
   }
 
   .list li {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    font-size: var(--font-size-label);
   }
 
-  .list :global(.money) {
-    grid-column: 2 / -1;
-    min-width: 0;
-    text-align: left;
+  .amount {
+    font-size: var(--font-size-body);
   }
 }

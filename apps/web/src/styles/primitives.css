@@ -62,7 +62,6 @@
   border: var(--border-line-subtle);
   border-radius: var(--radius-card);
   background: var(--bg-surface-1);
-  box-shadow: var(--shadow-card);
 }
 
 .card h2,

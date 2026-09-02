@@ -24,6 +24,6 @@
 }
 
 .link[aria-current='page'] {
-  color: var(--gold-300);
-  background: var(--color-transparent);
+  color: var(--gold-200);
+  background: var(--gold-soft);
 }

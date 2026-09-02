@@ -1,6 +1,8 @@
 .card {
+  display: grid;
   grid-column: span 7;
-  min-height: 20rem;
+  grid-template-rows: auto 1fr;
+  min-height: 24rem;
   padding: var(--spacing-6);
 }
 
@@ -44,7 +46,7 @@
   align-items: center;
   min-height: var(--control-height);
   border: var(--border-line-subtle);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
   background: var(--bg-surface-2);
   font-size: var(--font-size-sm);

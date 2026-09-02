@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
 import { formatDemoMonth } from '@/features/dashboard/formatDemoDate';
 import styles from './WealthChart.module.css';
@@ -18,25 +19,35 @@ export function WealthChart() {
           startPeriod: formatDemoMonth(dashboardDemoData.wealthHistory[0].period, i18n.language),
         })}
         className={styles.plot}
+        preserveAspectRatio="none"
         role="img"
         viewBox="0 0 620 170"
       >
+        <defs>
+          <linearGradient id="wealth-chart-area" x1="0" x2="0" y1="0" y2="1">
+            <stop className={styles.areaTop} offset="0" />
+            <stop className={styles.areaBottom} offset="1" />
+          </linearGradient>
+        </defs>
         <g className={styles.grid}>
-          <path d="M20 25H600M20 85H600M20 145H600" />
+          <path d="M0 30H620M0 90H620" />
         </g>
         <path
           className={styles.area}
-          d="M20 142 C78 139 104 124 140 126 S218 112 256 104 S330 91 374 88 S450 78 492 66 S558 46 600 31 V145 H20Z"
+          d="M0 150 C58 147 84 132 120 134 S198 120 236 112 S310 99 354 96 S430 86 472 74 S578 50 620 40 V170 H0Z"
         />
         <path
           className={styles.line}
-          d="M20 142 C78 139 104 124 140 126 S218 112 256 104 S330 91 374 88 S450 78 492 66 S558 46 600 31"
-          pathLength="1"
+          d="M0 150 C58 147 84 132 120 134 S198 120 236 112 S310 99 354 96 S430 86 472 74 S578 50 620 40"
         />
-        <circle className={styles.point} cx="600" cy="31" r="4" />
       </svg>
       <details className={styles.details}>
-        <summary>{t('dashboard.chart.showTable')}</summary>
+        <summary>
+          <span className={styles.disclosure}>
+            <Icon name="chevron-right" size={14} />
+          </span>
+          {t('dashboard.chart.showTable')}
+        </summary>
         <div className={styles.tableWrap}>
           <table aria-label={t('dashboard.chart.title')} className={styles.table}>
             <thead>

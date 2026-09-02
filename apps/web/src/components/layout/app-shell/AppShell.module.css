@@ -3,7 +3,9 @@
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   min-height: 100vh;
   min-height: 100svh;
-  background: var(--bg-page);
+  /* The sidebar only spans the viewport; the column keeps its colour under it
+     when the page scrolls. */
+  background: var(--bg-sidebar);
 }
 
 .skipLink {
@@ -25,6 +27,10 @@
 }
 
 .workspace {
+  display: grid;
+  /* The content row takes the height the header leaves, so a short page fills
+     the viewport instead of stopping on a band of empty shell. */
+  grid-template-rows: auto 1fr;
   min-width: 0;
   overflow: hidden;
   background: var(--bg-shell);
@@ -34,6 +40,12 @@
   display: grid;
   min-width: 0;
   padding: var(--spacing-6);
+}
+
+.body main {
+  display: grid;
+  grid-template-rows: 1fr;
+  min-width: 0;
 }
 
 .bodyWithPanel {

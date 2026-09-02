@@ -1,10 +1,10 @@
 import type { ParseKeys } from 'i18next';
 
 interface AllocationDemoData {
-  dashArray: string;
-  dashOffset: string;
   labelKey: ParseKeys;
   percentage: string;
+  /** Weight of the segment in the allocation bar, in percent of the total. */
+  share: number;
   tone: 'cash' | 'investment' | 'realEstate';
   value: string;
 }
@@ -31,26 +31,23 @@ export const dashboardDemoData: {
 } = {
   allocations: [
     {
-      dashArray: '48.2 51.8',
-      dashOffset: '0',
       labelKey: 'dashboard.allocation.cash',
       percentage: '48,2 %',
+      share: 48.2,
       tone: 'cash',
       value: '60 104,00 €',
     },
     {
-      dashArray: '36.8 63.2',
-      dashOffset: '-48.2',
       labelKey: 'dashboard.allocation.investments',
       percentage: '36,8 %',
+      share: 36.8,
       tone: 'investment',
       value: '45 884,00 €',
     },
     {
-      dashArray: '15 85',
-      dashOffset: '-85',
       labelKey: 'dashboard.allocation.realEstate',
       percentage: '15,0 %',
+      share: 15,
       tone: 'realEstate',
       value: '18 692,00 €',
     },
