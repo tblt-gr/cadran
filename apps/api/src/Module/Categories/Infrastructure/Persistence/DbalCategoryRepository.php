@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Categories\Infrastructure\Persistence;
 
 use App\Module\Categories\Application\CategoryConflict;
-use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Categories\Domain\Category;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Categories\Domain\CategoryType;
@@ -32,7 +31,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             ['workspace_id' => $workspace->id, 'id' => $id],
         );
 
-        return false === $row ? null : self::hydrate($row, $workspace);
+        return false === $row ? null : CategoryRow::hydrate($row, $workspace);
     }
 
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Category
@@ -42,7 +41,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             ['workspace_id' => $workspace->id, 'id' => $id],
         );
 
-        return false === $row ? null : self::hydrate($row, $workspace);
+        return false === $row ? null : CategoryRow::hydrate($row, $workspace);
     }
 
     public function list(
@@ -64,7 +63,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             ['limit' => ParameterType::INTEGER, 'offset' => ParameterType::INTEGER],
         );
 
-        return array_map(static fn (array $row): Category => self::hydrate($row, $workspace), $rows);
+        return array_map(static fn (array $row): Category => CategoryRow::hydrate($row, $workspace), $rows);
     }
 
     public function count(
@@ -76,7 +75,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
     ): int {
         [$where, $parameters] = self::filters($workspace, $includeArchived, $type, $search, $parentEligible);
 
-        return (int) self::scalar($this->connection->fetchOne(
+        return (int) CategoryRow::text($this->connection->fetchOne(
             'SELECT count(*) FROM category_categories WHERE workspace_id = :workspace_id AND ('.$where.')',
             $parameters,
         ));
@@ -129,7 +128,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             ['ids' => ArrayParameterType::STRING],
         );
 
-        return array_map(self::scalar(...), $values);
+        return array_map(CategoryRow::text(...), $values);
     }
 
     /**
@@ -151,7 +150,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
 
         $labels = [];
         foreach ($rows as $row) {
-            $labels[self::scalar($row['id'])] = self::scalar($row['label']);
+            $labels[CategoryRow::text($row['id'])] = CategoryRow::text($row['label']);
         }
 
         return $labels;
@@ -163,7 +162,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             $this->connection->insert('category_categories', [
                 'id' => $category->id,
                 'workspace_id' => $category->workspace->id,
-                ...self::values($category),
+                ...CategoryRow::columns($category),
                 'created_at' => $category->createdAt->format('Y-m-d H:i:s.uP'),
             ]);
         } catch (UniqueConstraintViolationException $exception) {
@@ -176,7 +175,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
         try {
             return 1 === (int) $this->connection->update(
                 'category_categories',
-                self::values($category),
+                CategoryRow::columns($category),
                 [
                     'workspace_id' => $category->workspace->id,
                     'id' => $category->id,
@@ -186,93 +185,6 @@ final readonly class DbalCategoryRepository implements CategoryRepository
         } catch (UniqueConstraintViolationException $exception) {
             throw new CategoryConflict('An active sibling already uses this label.', previous: $exception);
         }
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function values(Category $category): array
-    {
-        return [
-            'type' => $category->type->value,
-            'label' => $category->label,
-            'parent_id' => $category->parentId,
-            'icon' => $category->icon,
-            'color' => $category->color,
-            'default_analytic_axes' => json_encode(
-                array_map(static fn (AnalyticAxis $axis): string => $axis->value, $category->defaultAnalyticAxes),
-                JSON_THROW_ON_ERROR,
-            ),
-            'budget_included' => $category->budgetIncluded,
-            'sort_order' => $category->sortOrder,
-            'depth' => $category->depth,
-            'version' => $category->version,
-            'updated_at' => $category->updatedAt->format('Y-m-d H:i:s.uP'),
-            'used_at' => $category->usedAt?->format('Y-m-d H:i:s.uP'),
-            'archived_at' => $category->archivedAt?->format('Y-m-d H:i:s.uP'),
-        ];
-    }
-
-    /** @param array<string, mixed> $row */
-    private static function hydrate(array $row, WorkspaceScope $workspace): Category
-    {
-        if ($workspace->id !== self::scalar($row['workspace_id'] ?? null)) {
-            throw new \UnexpectedValueException('A category row escaped its requested workspace.');
-        }
-        $axes = json_decode(self::scalar($row['default_analytic_axes'] ?? null), true, flags: JSON_THROW_ON_ERROR);
-        if (!is_array($axes)) {
-            throw new \UnexpectedValueException('Expected category axes to be an array.');
-        }
-
-        return new Category(
-            id: self::scalar($row['id'] ?? null),
-            workspace: $workspace,
-            type: CategoryType::from(self::scalar($row['type'] ?? null)),
-            label: self::scalar($row['label'] ?? null),
-            parentId: self::nullableScalar($row['parent_id'] ?? null),
-            icon: self::nullableScalar($row['icon'] ?? null),
-            color: self::nullableScalar($row['color'] ?? null),
-            defaultAnalyticAxes: array_map(
-                static fn (mixed $axis): AnalyticAxis => AnalyticAxis::from(self::scalar($axis)),
-                array_values($axes),
-            ),
-            budgetIncluded: self::boolean($row['budget_included'] ?? null),
-            sortOrder: (int) self::scalar($row['sort_order'] ?? null),
-            depth: (int) self::scalar($row['depth'] ?? null),
-            version: (int) self::scalar($row['version'] ?? null),
-            createdAt: new \DateTimeImmutable(self::scalar($row['created_at'] ?? null)),
-            updatedAt: new \DateTimeImmutable(self::scalar($row['updated_at'] ?? null)),
-            usedAt: self::date($row['used_at'] ?? null),
-            archivedAt: self::date($row['archived_at'] ?? null),
-        );
-    }
-
-    private static function scalar(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
-    }
-
-    private static function nullableScalar(mixed $value): ?string
-    {
-        return null === $value ? null : self::scalar($value);
-    }
-
-    private static function boolean(mixed $value): bool
-    {
-        return match ($value) {
-            true, 1, '1', 't', 'true' => true,
-            false, 0, '0', 'f', 'false' => false,
-            default => throw new \UnexpectedValueException('Expected a boolean database value.'),
-        };
-    }
-
-    private static function date(mixed $value): ?\DateTimeImmutable
-    {
-        return null === $value ? null : new \DateTimeImmutable(self::scalar($value));
     }
 
     /**
