@@ -1,0 +1,51 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.field label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.controls input {
+  height: var(--control-height);
+  padding: var(--spacing-none) var(--spacing-3);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-1);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-body);
+}
+
+.controls input:focus-visible {
+  outline: var(--outline-focus);
+}
+
+.field p {
+  max-width: 44rem;
+  margin: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
+}
+
+@media (max-width: 42rem) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls button {
+    width: 100%;
+  }
+}

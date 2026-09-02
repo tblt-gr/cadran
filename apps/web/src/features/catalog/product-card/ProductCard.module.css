@@ -1,0 +1,71 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-6);
+  gap: var(--spacing-4);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.header h2 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+
+.code {
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+}
+
+.classification {
+  display: flex;
+  flex-wrap: wrap;
+  margin: var(--spacing-none);
+  gap: var(--spacing-6);
+}
+
+.classification dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.classification dd {
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+@media (max-width: 42rem) {
+  .card {
+    padding: var(--spacing-4);
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .badges {
+    justify-content: flex-start;
+  }
+
+  .classification {
+    gap: var(--spacing-4);
+  }
+}
