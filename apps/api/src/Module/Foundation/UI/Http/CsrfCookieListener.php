@@ -47,7 +47,10 @@ final readonly class CsrfCookieListener
             value: $this->token->issue(),
             expire: 0,
             path: '/',
-            secure: $request->isSecure(),
+            // Always Secure, like the session cookie: the runtime is HTTPS-only,
+            // and deriving the flag from the scheme would quietly hand out a
+            // cookie usable over plain HTTP instead of failing visibly.
+            secure: true,
             httpOnly: false,
             sameSite: Cookie::SAMESITE_STRICT,
         ));
