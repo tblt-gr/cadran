@@ -4,7 +4,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.0] - 2026-09-02
 
 ### Added
 
