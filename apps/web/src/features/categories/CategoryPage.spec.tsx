@@ -63,7 +63,7 @@ describe('CategoryPage', () => {
       success({ items: [], page: 1, perPage: 50, total: 0 }),
     );
     api.createCategory.mockImplementation(({ body }) => success({ ...category, ...body }, 201));
-    renderPage();
+    const { container } = renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Aucune catégorie' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Créer la première catégorie' }));
@@ -80,7 +80,9 @@ describe('CategoryPage', () => {
       defaultAnalyticAxes: ['DISCRETIONARY'],
       budgetIncluded: true,
     });
-    expect(await screen.findByText('La catégorie a été enregistrée.')).toBeTruthy();
+    const toast = await screen.findByText('La catégorie a été enregistrée.');
+    expect(toast.closest('[role="status"]')).toBeTruthy();
+    expect(container.contains(toast)).toBe(false);
   });
 
   it('leaves the create form type field without a dangling description', async () => {

@@ -100,7 +100,7 @@ describe('AccountsPage', () => {
       }),
     );
     api.createAccount.mockImplementation(({ body }) => success({ ...account, ...body }, 201));
-    renderPage();
+    const { container } = renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Aucun compte' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Créer le premier compte' }));
@@ -127,7 +127,9 @@ describe('AccountsPage', () => {
       openedOn: '2026-01-10',
       closedOn: null,
     });
-    expect(await screen.findByText('Le compte a été enregistré.')).toBeTruthy();
+    const toast = await screen.findByText('Le compte a été enregistré.');
+    expect(toast.closest('[role="status"]')).toBeTruthy();
+    expect(container.contains(toast)).toBe(false);
   });
 
   it('refuses to create an account when the asset reference cannot be read', async () => {
@@ -216,7 +218,7 @@ describe('AccountsPage', () => {
     api.archiveAccount.mockImplementation(() =>
       success({ ...account, status: 'ARCHIVED', editable: false, version: 2 }),
     );
-    renderPage();
+    const { container } = renderPage();
 
     fireEvent.click(
       await screen.findByRole('button', { name: 'Archiver le compte Livret A Banque X' }),
@@ -226,7 +228,9 @@ describe('AccountsPage', () => {
 
     await waitFor(() => expect(api.archiveAccount).toHaveBeenCalledOnce());
     expect(api.archiveAccount.mock.calls[0]?.[0].body).toEqual({ version: 1 });
-    expect(await screen.findByText('Le compte a été archivé.')).toBeTruthy();
+    const toast = await screen.findByText('Le compte a été archivé.');
+    expect(toast.closest('[role="status"]')).toBeTruthy();
+    expect(container.contains(toast)).toBe(false);
   });
 
   it('separates a taken label from a stale version and shows the unauthorized state', async () => {
