@@ -44,6 +44,19 @@ final readonly class ProductRule
     }
 
     /**
+     * The bracket scale this rule states, or null when it states no rate. A
+     * catalogue row carries one published percentage, which resolves to the
+     * single bracket covering the whole balance; consumers read every rate
+     * through the same scale whatever the product turns out to be.
+     */
+    public function rateScale(): ?RateScale
+    {
+        $percentage = $this->value->percentage;
+
+        return null === $percentage ? null : RateScale::wholeBalance($percentage);
+    }
+
+    /**
      * How far the recorded verification is from $today. The business date the
      * rule applies to plays no part here: an old rule read against an old date
      * is right, while a value left unchecked for a revision cycle is doubtful

@@ -24,6 +24,7 @@ import { AccountFilters } from './account-filters/AccountFilters';
 import { AccountEditor } from './account-editor/AccountEditor';
 import { AccountList } from './account-list/AccountList';
 import { AccountPagination } from './account-pagination/AccountPagination';
+import { AccountRulesPanel } from './account-rules/AccountRulesPanel';
 import { AccountWizard } from './account-wizard/AccountWizard';
 import { AccountsState } from './accounts-state/AccountsState';
 import { ArchiveAccountDialog } from './archive-account-dialog/ArchiveAccountDialog';
@@ -41,6 +42,7 @@ export function AccountsPage() {
   const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<Account | null>(null);
+  const [inspecting, setInspecting] = useState<Account | null>(null);
   const [saved, setSaved] = useState<'saved' | 'archived' | null>(null);
 
   const accounts = useQuery({
@@ -204,6 +206,16 @@ export function AccountsPage() {
         </Modal>
       ) : null}
 
+      {inspecting ? (
+        <Modal
+          close={() => setInspecting(null)}
+          eyebrow={t('accounts.rules.eyebrow')}
+          title={t('accounts.rules.title', { label: inspecting.label })}
+        >
+          <AccountRulesPanel account={inspecting} key={inspecting.id} />
+        </Modal>
+      ) : null}
+
       {archiving ? (
         <Modal
           close={closeArchive}
@@ -248,7 +260,12 @@ export function AccountsPage() {
           onRetry={() => void accounts.refetch()}
         />
       ) : (
-        <AccountList accounts={items} onArchive={openArchive} onEdit={openEditor} />
+        <AccountList
+          accounts={items}
+          onArchive={openArchive}
+          onEdit={openEditor}
+          onRules={setInspecting}
+        />
       )}
 
       {accounts.isSuccess && (totalPages > 1 || page > 1) ? (

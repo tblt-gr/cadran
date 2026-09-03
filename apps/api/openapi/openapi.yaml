@@ -807,6 +807,54 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{id}/rules:
+    get:
+      operationId: readAccountRules
+      summary: Read the rules in force for an account on a business date
+      description: >-
+        Resolves the ceilings, rates and terms that apply to one account of the
+        calling workspace on the business date asked for. Nothing here is
+        stored on the account: the rules are read from the system catalogue on
+        that date, so a regulatory revision reaches every account at once and a
+        past statement stays re-readable against the rules that applied then.
+
+        A ceiling always states the figure it is measured against, because the
+        amount alone decides nothing: 22 950 € checked against a total balance
+        and the same amount checked against deposits excluding interest give
+        opposite verdicts on the same passbook. A rate always resolves to a
+        bracket scale, single-bracket for the products the catalogue ships
+        today, so a client reads every rate the same way. A rule the account is
+        expected to carry and that no sourced period covers on the date is
+        listed in `unavailableRuleKinds` and is never returned as zero.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: The rules in force for the account on the business date.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountRules'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     sessionCookie:
@@ -1214,16 +1262,22 @@ components:
           minimum: 0
     CeilingBasis:
       description: >-
-        What the product ceiling is measured against. A share savings plan is
-        capped on the contributions paid into it, whatever the plan is worth, so
-        a plan that grew past its ceiling through market value has broken no
-        rule. A regulated passbook is capped on the balance it holds. The basis
-        is a property of the envelope, independent of the business date read.
+        The figure a ceiling is compared against. Three of these four measures
+        give a different verdict on the same account, so the amount alone
+        decides nothing. A share savings plan is capped on the contributions
+        paid into it, whatever the plan is worth, so a plan that grew past its
+        ceiling through market value has broken no rule. A regulated passbook is
+        capped on what was deposited, credited interest excluded, so a passbook
+        carried past its ceiling by its own interest has broken no rule either.
+        A combined ceiling is measured across the products sharing it and can be
+        reached while no single account is.
       type: string
       enum:
         - NONE
-        - BALANCE
+        - BALANCE_EXCLUDING_INTEREST
+        - TOTAL_BALANCE
         - CONTRIBUTIONS
+        - COMBINED_CONTRIBUTIONS
     ProductCode:
       description: >-
         The stable identifier of a catalogue product. The catalogue is a global
@@ -1998,6 +2052,279 @@ components:
         - MEDIUM_TERM
         - LONG_TERM
         - ILLIQUID
+    AccountRules:
+      description: >-
+        Everything in force for one account on one business date, split into
+        the three questions that are answered differently: what caps it, what
+        it earns, and under which terms.
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - assetCode
+        - productCode
+        - origin
+        - asOf
+        - ceilings
+        - rates
+        - terms
+        - unavailableRuleKinds
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        assetCode:
+          description: The unit the account is denominated in.
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        productCode:
+          oneOf:
+            - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        origin:
+          $ref: '#/components/schemas/AccountRulesOrigin'
+        asOf:
+          description: >-
+            The business date the rules were resolved on. Every value below
+            answers for this date and for no other.
+          type: string
+          format: date
+        ceilings:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountCeiling'
+        rates:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountRate'
+        terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountTerm'
+        unavailableRuleKinds:
+          description: >-
+            The rules this account is expected to carry and that no sourced
+            period covers on this date. A gap is shown as unavailable and never
+            as zero, which would read as "no ceiling" or "no interest" when the
+            truth is that the value is unknown.
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductRuleKind'
+    AccountRulesOrigin:
+      description: >-
+        Where the resolved rules came from. An account that inherits no rule
+        and an account whose rules could not be read are different answers, and
+        neither of them means the account has no ceiling.
+      type: string
+      enum:
+        - NO_PRODUCT
+        - SYSTEM_CATALOG
+        - PRODUCT_WITHDRAWN
+    AccountCeiling:
+      description: A ceiling in force for the account, with the figure it caps.
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - basis
+        - countsCreditedInterest
+        - spansSeveralAccounts
+        - measurable
+        - breachPolicy
+        - amount
+        - validFrom
+        - validTo
+        - verification
+        - source
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        basis:
+          $ref: '#/components/schemas/CeilingBasis'
+        countsCreditedInterest:
+          description: >-
+            Whether interest credited by the institution counts towards the
+            measure. When it does not, interest may carry the account past the
+            amount without any rule being broken.
+          type: boolean
+        spansSeveralAccounts:
+          description: >-
+            Whether the ceiling is reached across the products sharing it, in
+            which case reading this account alone cannot settle it.
+          type: boolean
+        measurable:
+          description: >-
+            False when the ceiling is published in another unit than the
+            account is denominated in. No conversion is applied and no verdict
+            is produced; the ceiling is reported as not comparable.
+          type: boolean
+        breachPolicy:
+          $ref: '#/components/schemas/CeilingBreachPolicy'
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        validFrom:
+          $ref: '#/components/schemas/RuleValidFrom'
+        validTo:
+          $ref: '#/components/schemas/RuleValidTo'
+        verification:
+          $ref: '#/components/schemas/RuleVerification'
+        source:
+          $ref: '#/components/schemas/ProductRuleSource'
+    CeilingBreachPolicy:
+      description: >-
+        What happens when a figure passes the ceiling. Passing one is not a
+        fault the application may act on: interest credited by the institution
+        legitimately carries a regulated passbook past its deposit ceiling, and
+        a historical import records what the account really held. Refusing
+        either would destroy a true figure to protect a rule that was never
+        broken, so a breach is reported and the figure is kept as recorded.
+      type: string
+      enum:
+        - WARN
+    AccountRate:
+      description: >-
+        A rate in force for the account, always as a bracket scale. The
+        products the catalogue ships today resolve to a single bracket running
+        from zero without limit, so a tiered product arrives later as data
+        rather than as a second way of reading a rate.
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - guaranteed
+        - application
+        - brackets
+        - validFrom
+        - validTo
+        - verification
+        - source
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        guaranteed:
+          description: >-
+            Whether the rate is owed to the holder. A revisable rate is only
+            the rate published today and is never an acquired return.
+          type: boolean
+        application:
+          $ref: '#/components/schemas/RateApplication'
+        brackets:
+          description: >-
+            The slices the scale is made of, in order. They tile the amounts
+            they cover: the first starts at zero, each one starts where the
+            previous ended, and the last runs without limit.
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/RateBracket'
+        validFrom:
+          $ref: '#/components/schemas/RuleValidFrom'
+        validTo:
+          $ref: '#/components/schemas/RuleValidTo'
+        verification:
+          $ref: '#/components/schemas/RuleVerification'
+        source:
+          $ref: '#/components/schemas/ProductRuleSource'
+    RateApplication:
+      description: >-
+        How the brackets combine over an amount. The same two brackets pay a
+        different interest depending on whether the reached one applies to
+        everything or only to the slice it covers, so a scale is never read
+        without it.
+      type: string
+      enum:
+        - WHOLE_BALANCE
+    RateBracket:
+      description: >-
+        One slice of a rate scale. The lower bound is included and the upper
+        bound excluded, so two adjacent brackets leave no amount uncovered and
+        count none twice.
+      type: object
+      additionalProperties: false
+      required:
+        - percentage
+        - lowerBound
+        - upperBound
+      properties:
+        percentage:
+          description: >-
+            The rate expressed in percent as the source published it: `1.7`
+            reads 1.7 %. It travels as a canonical decimal string, so no client
+            multiplies it and no binary float touches a rate.
+          type: string
+          pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+          examples:
+            - '1.7'
+        lowerBound:
+          description: First amount the bracket covers, included.
+          type: string
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+          examples:
+            - '0'
+        upperBound:
+          description: >-
+            First amount the bracket no longer covers, or null when the slice
+            runs without limit.
+          oneOf:
+            - type: string
+              pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+    AccountTerm:
+      description: >-
+        A rule of the account that states neither a ceiling nor a rate: how
+        interest accrues, who is eligible, which tax regime applies.
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - token
+        - validFrom
+        - validTo
+        - verification
+        - source
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        token:
+          description: >-
+            An uppercase token the interface translates, never a sentence:
+            regulatory wording belongs to the publication it was read from and
+            to the translation catalogue.
+          type: string
+          pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
+          examples:
+            - NO_REGULATORY_CONTRIBUTION_CEILING
+        validFrom:
+          $ref: '#/components/schemas/RuleValidFrom'
+        validTo:
+          $ref: '#/components/schemas/RuleValidTo'
+        verification:
+          $ref: '#/components/schemas/RuleVerification'
+        source:
+          $ref: '#/components/schemas/ProductRuleSource'
+    RuleValidFrom:
+      description: First day this catalogue vouches for the value.
+      type: string
+      format: date
+    RuleValidTo:
+      description: >-
+        Last day covered, inclusive, or null while no revision has closed the
+        period. An open end is in force for every later business date; it is
+        never an expiry.
+      oneOf:
+        - type: string
+          format: date
+        - type: 'null'
+    RuleVerification:
+      description: >-
+        How much the value can be trusted today, independently of the business
+        date it applies to. `STALE` means nobody has re-read the source across
+        a full revision cycle.
+      type: string
+      enum:
+        - VERIFIED
+        - STALE
+        - UNVERIFIED
     CategoryType:
       type: string
       enum:

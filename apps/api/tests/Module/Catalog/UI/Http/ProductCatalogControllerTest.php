@@ -165,7 +165,7 @@ final class ProductCatalogControllerTest extends WebTestCase
      * A plan whose market value passed its ceiling has broken no rule, so the
      * basis has to be stated rather than guessed from the amount at hand.
      *
-     * @param 'BALANCE'|'CONTRIBUTIONS'|'NONE' $basis
+     * @param 'BALANCE_EXCLUDING_INTEREST'|'CONTRIBUTIONS'|'NONE' $basis
      */
     #[DataProvider('ceilingBases')]
     public function testTheCeilingBasisIsStatedByTheServer(string $code, string $basis): void
@@ -183,7 +183,9 @@ final class ProductCatalogControllerTest extends WebTestCase
      */
     public static function ceilingBases(): iterable
     {
-        yield 'a regulated passbook is capped on its balance' => ['FR_LIVRET_A', 'BALANCE'];
+        // Credited interest is outside the measure, so a passbook carried past
+        // 22 950 € by its own interest has broken no rule.
+        yield 'a regulated passbook is capped on what was deposited' => ['FR_LIVRET_A', 'BALANCE_EXCLUDING_INTEREST'];
         yield 'a share savings plan is capped on its contributions' => ['FR_PEA', 'CONTRIBUTIONS'];
         yield 'a securities account is capped by nothing' => ['FR_CTO', 'NONE'];
         yield 'a life-insurance contract is capped by nothing' => ['FR_LIFE_INSURANCE', 'NONE'];

@@ -1,0 +1,28 @@
+.single {
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-body);
+  white-space: nowrap;
+}
+
+.brackets {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-2);
+  list-style: none;
+}
+
+.percentage {
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-body);
+  white-space: nowrap;
+}
+
+.brackets small {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}

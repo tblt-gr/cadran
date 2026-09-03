@@ -81,6 +81,9 @@ api:
     invalid_account_query:
       title: 'Requête de comptes invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
+    invalid_account_rules_query:
+      title: 'Date de lecture invalide'
+      detail: "La date d'application doit être un jour calendaire ISO 8601, compris entre 1900-01-01 et 2100-12-31."
     invalid_account:
       title: 'Compte invalide'
       detail: "Vérifiez le libellé, la devise, la nature, le mode de valorisation et les dates d'ouverture et de clôture du compte."

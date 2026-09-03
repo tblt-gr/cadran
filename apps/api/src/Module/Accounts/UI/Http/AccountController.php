@@ -12,6 +12,7 @@ use App\Module\Accounts\Application\CreateAccount;
 use App\Module\Accounts\Application\CreateAccountInput;
 use App\Module\Accounts\Application\InvalidAccountInput;
 use App\Module\Accounts\Application\ListAccounts;
+use App\Module\Accounts\Application\ReadAccountRules;
 use App\Module\Accounts\Application\StaleAccountVersion;
 use App\Module\Accounts\Application\UpdateAccount;
 use App\Module\Accounts\Application\UpdateAccountInput;
@@ -161,6 +162,34 @@ final readonly class AccountController
         }
 
         return self::json(AccountRepresentation::one($account));
+    }
+
+    /**
+     * The rules in force for the account, resolved on a business date. They
+     * are a resource of their own because they are not part of the account:
+     * nothing here is stored on it, and the same account answers differently
+     * for two different dates.
+     */
+    #[Route('/api/v1/accounts/{id}/rules', name: 'api_v1_accounts_rules', methods: ['GET'])]
+    public function rules(string $id, Request $request, ReadAccountRules $readAccountRules): Response
+    {
+        if (!self::identifier($id)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+        }
+
+        $asOf = $request->query->getString('asOf');
+
+        try {
+            $rules = $readAccountRules($id, '' === $asOf ? null : $asOf);
+        } catch (InvalidAccountInput) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_rules_query');
+        } catch (AccountNotFound) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        }
+
+        return self::json(AccountRulesRepresentation::of($rules));
     }
 
     /**

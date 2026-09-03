@@ -100,11 +100,106 @@ final class CatalogFixture
         );
     }
 
+    /**
+     * A share savings plan: capped on what was paid in, and on a second
+     * ceiling it shares with its small-cap sibling.
+     */
+    public static function taxWrapperProduct(): FinancialProduct
+    {
+        return new FinancialProduct(
+            code: ProductCode::fromString('FR_PEA'),
+            displayName: "Plan d'épargne en actions",
+            jurisdiction: 'FR',
+            accountKind: AccountKind::PORTFOLIO,
+            wrapperKind: WrapperKind::TAX_WRAPPER,
+            yieldKind: YieldKind::MARKET,
+            defaultGroupCode: 'INVESTMENTS_MARKET',
+            capabilities: ProductCapabilities::of(
+                ProductCapability::SUPPORTS_BALANCE,
+                ProductCapability::SUPPORTS_TRANSACTIONS,
+                ProductCapability::SUPPORTS_HOLDINGS,
+                ProductCapability::SUPPORTS_TRADES,
+                ProductCapability::SUPPORTS_CONTRIBUTIONS,
+                ProductCapability::SUPPORTS_TAX_TRACKING,
+            ),
+            catalogVersion: 1,
+        );
+    }
+
+    /**
+     * A life-insurance contract: the rate published for its euro fund is
+     * revisable, while the floor stated beside it is contractually owed.
+     */
+    public static function lifeInsuranceProduct(): FinancialProduct
+    {
+        return new FinancialProduct(
+            code: ProductCode::fromString('FR_LIFE_INSURANCE'),
+            displayName: 'Assurance vie',
+            jurisdiction: 'FR',
+            accountKind: AccountKind::INSURANCE_CONTRACT,
+            wrapperKind: WrapperKind::LIFE_INSURANCE,
+            yieldKind: YieldKind::CONTRACTUAL_VARIABLE,
+            defaultGroupCode: 'INVESTMENTS_INSURANCE',
+            capabilities: ProductCapabilities::of(
+                ProductCapability::SUPPORTS_BALANCE,
+                ProductCapability::SUPPORTS_TRANSACTIONS,
+                ProductCapability::SUPPORTS_INTEREST,
+                ProductCapability::SUPPORTS_CONTRIBUTIONS,
+                ProductCapability::SUPPORTS_TAX_TRACKING,
+            ),
+            catalogVersion: 1,
+        );
+    }
+
     public static function rate(string $percentage, string $from, ?string $to = null): ProductRule
     {
+        return self::percentageRule(RuleKind::ANNUAL_RATE, $percentage, $from, $to);
+    }
+
+    public static function minRate(string $percentage, string $from, ?string $to = null): ProductRule
+    {
+        return self::percentageRule(RuleKind::MIN_RATE, $percentage, $from, $to);
+    }
+
+    public static function contributionCeiling(string $amount, string $from, ?string $to = null): ProductRule
+    {
+        return self::amountRule(RuleKind::CONTRIBUTION_CEILING, $amount, $from, $to);
+    }
+
+    public static function combinedContributionCeiling(string $amount, string $from, ?string $to = null): ProductRule
+    {
+        return self::amountRule(RuleKind::COMBINED_CONTRIBUTION_CEILING, $amount, $from, $to);
+    }
+
+    public static function eligibility(string $token, string $from, ?string $to = null): ProductRule
+    {
         return new ProductRule(
-            kind: RuleKind::ANNUAL_RATE,
+            kind: RuleKind::ELIGIBILITY,
+            value: RuleValue::text($token),
+            period: new EffectivePeriod(self::day($from), null === $to ? null : self::day($to)),
+            source: self::source(),
+            verifiedOn: self::day('2026-08-22'),
+            verifiedBy: 'cadran-maintainer',
+        );
+    }
+
+    private static function percentageRule(RuleKind $kind, string $percentage, string $from, ?string $to): ProductRule
+    {
+        return new ProductRule(
+            kind: $kind,
             value: RuleValue::percentage(DecimalValue::fromString($percentage)),
+            period: new EffectivePeriod(self::day($from), null === $to ? null : self::day($to)),
+            source: self::source(),
+            verifiedOn: self::day('2026-08-22'),
+            verifiedBy: 'cadran-maintainer',
+        );
+    }
+
+    private static function amountRule(RuleKind $kind, string $amount, string $from, ?string $to, string $asset = 'EUR'): ProductRule
+    {
+        return new ProductRule(
+            kind: $kind,
+            value: RuleValue::amount(new AssetAmount(DecimalValue::fromString($amount), AssetCode::fromString($asset))),
             period: new EffectivePeriod(self::day($from), null === $to ? null : self::day($to)),
             source: self::source(),
             verifiedOn: self::day('2026-08-22'),

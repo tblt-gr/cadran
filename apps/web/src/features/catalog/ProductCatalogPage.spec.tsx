@@ -28,7 +28,7 @@ const livretA: Product = {
   wrapperKind: 'REGULATED_SAVINGS',
   yieldKind: 'REGULATED_RATE',
   yieldGuaranteed: true,
-  ceilingBasis: 'BALANCE',
+  ceilingBasis: 'BALANCE_EXCLUDING_INTEREST',
   defaultGroupCode: 'LIQUIDITY_SAVINGS',
   capabilities: ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
   catalogVersion: 1,
