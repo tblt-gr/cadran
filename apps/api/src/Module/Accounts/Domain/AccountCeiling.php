@@ -14,8 +14,7 @@ use App\Module\Foundation\Domain\AssetCode;
 
 /**
  * A ceiling that applies to one account on one business date, together with
- * the figure it is measured against and what happens when that figure passes
- * it.
+ * the figure it is measured against.
  *
  * The basis travels with the amount because the amount alone decides nothing:
  * 22 950 € checked against a total balance and 22 950 € checked against
@@ -58,10 +57,5 @@ final readonly class AccountCeiling
     public function spansSeveralAccounts(): bool
     {
         return $this->basis->spansSeveralAccounts();
-    }
-
-    public function breachPolicy(): CeilingBreachPolicy
-    {
-        return CeilingBreachPolicy::WARN;
     }
 }

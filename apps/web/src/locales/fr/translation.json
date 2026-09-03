@@ -272,9 +272,10 @@
       "loading": "Résolution des règles du compte…",
       "error": "Les règles de ce compte n’ont pas pu être lues. Réessayez.",
       "unauthorized": "Reconnectez-vous pour consulter les règles de ce compte.",
+      "outOfRange": "Cette date n’est pas une date d’activité que l’application couvre. Choisissez une autre date.",
+      "resolving": "Résolution des règles au {{date}} : le tableau montre encore la date précédente.",
       "resolvedOn": "Règles résolues au {{date}}. Chaque valeur ne répond que pour cette date.",
       "none": "Aucune règle sourcée au {{date}} pour ce compte.",
-      "breachPolicy": "Un dépassement de plafond est signalé, jamais refusé : les intérêts versés par l’établissement et un import historique enregistrent ce que le compte a réellement porté.",
       "noMeasure": "— Sans mesure chiffrée",
       "guaranteed": "Taux dû au titulaire",
       "revisable": "Taux publié, révisable : jamais un rendement acquis",
@@ -547,6 +548,7 @@
     "rules": {
       "kinds": {
         "DEPOSIT_CEILING": "Plafond de dépôt",
+        "BALANCE_CEILING": "Plafond de solde",
         "CONTRIBUTION_CEILING": "Plafond de versements",
         "COMBINED_CONTRIBUTION_CEILING": "Plafond de versements commun",
         "ANNUAL_RATE": "Taux annuel",

@@ -1413,6 +1413,7 @@ components:
       type: string
       enum:
         - DEPOSIT_CEILING
+        - BALANCE_CEILING
         - CONTRIBUTION_CEILING
         - COMBINED_CONTRIBUTION_CEILING
         - ANNUAL_RATE
@@ -1475,25 +1476,11 @@ components:
                 - NO_REGULATORY_CONTRIBUTION_CEILING
             - type: 'null'
         validFrom:
-          description: First day this catalogue vouches for the value.
-          type: string
-          format: date
+          $ref: '#/components/schemas/RuleValidFrom'
         validTo:
-          description: Last day covered, inclusive, or null while no revision has closed the period.
-          oneOf:
-            - type: string
-              format: date
-            - type: 'null'
+          $ref: '#/components/schemas/RuleValidTo'
         verification:
-          description: >-
-            How much the value can be trusted today, independently of the
-            business date it applies to. `STALE` means nobody has re-read the
-            source across a full revision cycle.
-          type: string
-          enum:
-            - VERIFIED
-            - STALE
-            - UNVERIFIED
+          $ref: '#/components/schemas/RuleVerification'
         verifiedOn:
           oneOf:
             - type: string
@@ -2130,7 +2117,6 @@ components:
         - countsCreditedInterest
         - spansSeveralAccounts
         - measurable
-        - breachPolicy
         - amount
         - validFrom
         - validTo
@@ -2158,8 +2144,6 @@ components:
             account is denominated in. No conversion is applied and no verdict
             is produced; the ceiling is reported as not comparable.
           type: boolean
-        breachPolicy:
-          $ref: '#/components/schemas/CeilingBreachPolicy'
         amount:
           $ref: '#/components/schemas/DecimalAmount'
         validFrom:
@@ -2170,17 +2154,6 @@ components:
           $ref: '#/components/schemas/RuleVerification'
         source:
           $ref: '#/components/schemas/ProductRuleSource'
-    CeilingBreachPolicy:
-      description: >-
-        What happens when a figure passes the ceiling. Passing one is not a
-        fault the application may act on: interest credited by the institution
-        legitimately carries a regulated passbook past its deposit ceiling, and
-        a historical import records what the account really held. Refusing
-        either would destroy a true figure to protect a rule that was never
-        broken, so a breach is reported and the figure is kept as recorded.
-      type: string
-      enum:
-        - WARN
     AccountRate:
       description: >-
         A rate in force for the account, always as a bracket scale. The

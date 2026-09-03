@@ -1,7 +1,7 @@
 import type { Product, ProductRule, ProductRuleKind } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { RuleProvenance } from '@/features/catalog/rule-provenance/RuleProvenance';
-import { ruleTextKey } from '@/features/catalog/ruleText';
+import { RuleProvenance } from '@/features/catalog-rules/rule-provenance/RuleProvenance';
+import { ruleTextKey } from '@/features/catalog-rules/ruleText';
 import { formatAmount, formatCalendarDay, formatDecimal } from '@/lib/decimal';
 import styles from './ProductRuleList.module.css';
 

@@ -32,7 +32,17 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   kind nor product.
 - Ceiling basis stated by the catalogue API on every product: a share savings plan is capped on the
   contributions paid into it, whatever the plan is worth, while a regulated passbook is capped on
-  the balance it holds. Market products announce no promised yield anywhere in the creation flow.
+  what was deposited, credited interest excluded — so a passbook carried past its ceiling by its own
+  interest has broken no rule. A ceiling read on everything an account holds, credited interest
+  included, is a distinct measure and is recorded as its own rule kind rather than resolved to the
+  opposite verdict. Market products announce no promised yield anywhere in the creation flow.
+- Rules in force for one account on a business date the reader chooses, at
+  `GET /api/v1/accounts/{id}/rules` and in the accounts interface: ceilings with the figure each one
+  is measured against, rates always as a bracket scale with their application mode, dated terms, and
+  the rule kinds the product is expected to carry that no sourced period covers. A gap is reported as
+  unavailable and never as zero, a period left open is in force for every later date instead of
+  expiring silently, and a ceiling published in another unit than the account is reported as not
+  comparable rather than converted.
 
 ## [0.1.0] - 2026-09-02
 

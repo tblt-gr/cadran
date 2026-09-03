@@ -14,6 +14,8 @@ enum RuleKind: string
 {
     /** Ceiling on the balance a product may hold, interest excluded. */
     case DEPOSIT_CEILING = 'DEPOSIT_CEILING';
+    /** Ceiling on everything the account holds, credited interest included. */
+    case BALANCE_CEILING = 'BALANCE_CEILING';
     /** Ceiling on cumulative contributions, whatever the account is worth. */
     case CONTRIBUTION_CEILING = 'CONTRIBUTION_CEILING';
     /** Contribution ceiling shared with other products, such as PEA and PEA-PME. */
@@ -28,6 +30,7 @@ enum RuleKind: string
     {
         return match ($this) {
             self::DEPOSIT_CEILING,
+            self::BALANCE_CEILING,
             self::CONTRIBUTION_CEILING,
             self::COMBINED_CONTRIBUTION_CEILING => RuleValueType::AMOUNT,
             self::ANNUAL_RATE, self::MIN_RATE => RuleValueType::PERCENTAGE,
@@ -38,13 +41,16 @@ enum RuleKind: string
     /**
      * What this rule caps, when it caps anything. A contribution ceiling is
      * measured on what was paid in, a deposit ceiling on what was deposited
-     * and still held, and a combined ceiling across several accounts at once,
-     * so no two of them can ever be checked against the same figure.
+     * and still held, a balance ceiling on everything the account holds
+     * including the interest credited to it, and a combined ceiling across
+     * several accounts at once, so no two of them can ever be checked against
+     * the same figure.
      */
     public function ceilingBasis(): CeilingBasis
     {
         return match ($this) {
             self::DEPOSIT_CEILING => CeilingBasis::BALANCE_EXCLUDING_INTEREST,
+            self::BALANCE_CEILING => CeilingBasis::TOTAL_BALANCE,
             self::CONTRIBUTION_CEILING => CeilingBasis::CONTRIBUTIONS,
             self::COMBINED_CONTRIBUTION_CEILING => CeilingBasis::COMBINED_CONTRIBUTIONS,
             default => CeilingBasis::NONE,
@@ -86,7 +92,8 @@ enum RuleKind: string
     public function requiredCapability(): ?ProductCapability
     {
         return match ($this) {
-            self::DEPOSIT_CEILING => ProductCapability::SUPPORTS_BALANCE,
+            self::DEPOSIT_CEILING,
+            self::BALANCE_CEILING => ProductCapability::SUPPORTS_BALANCE,
             self::CONTRIBUTION_CEILING,
             self::COMBINED_CONTRIBUTION_CEILING => ProductCapability::SUPPORTS_CONTRIBUTIONS,
             self::ANNUAL_RATE,

@@ -40,7 +40,6 @@ const passbook: AccountRules = {
       countsCreditedInterest: false,
       spansSeveralAccounts: false,
       measurable: true,
-      breachPolicy: 'WARN',
       amount: { value: '22950', assetCode: 'EUR' },
       validFrom: '2025-04-25',
       validTo: null,
@@ -103,12 +102,6 @@ describe('AccountRulesPanel', () => {
         'Les intérêts versés n’entrent pas dans la mesure : ils peuvent porter le compte au-delà du plafond sans qu’aucune règle soit enfreinte.',
       ),
     ).toBeTruthy();
-    expect(
-      screen.getByText(
-        'Un dépassement de plafond est signalé, jamais refusé : les intérêts versés par l’établissement et un import historique enregistrent ce que le compte a réellement porté.',
-      ),
-    ).toBeTruthy();
-
     // A period left open is in force for every later date, so it is shown as a
     // start and never as an expiry.
     expect(screen.getByText('Depuis le 25 avril 2025')).toBeTruthy();
@@ -136,6 +129,18 @@ describe('AccountRulesPanel', () => {
 
     expect(await screen.findByText('1,7 %')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Date métier'), { target: { value: '2025-06-01' } });
+
+    // The answer of the previous date stays on screen while the next one is
+    // resolved — walking a year digit by digit would otherwise tear the table
+    // down at every keystroke — and it is labelled as the earlier answer rather
+    // than passed off as the one being asked for.
+    expect(screen.getByText('1,7 %')).toBeTruthy();
+    expect(screen.queryByText('Résolution des règles du compte…')).toBeNull();
+    expect(
+      screen.getByText(
+        'Résolution des règles au 1 juin 2025 : le tableau montre encore la date précédente.',
+      ),
+    ).toBeTruthy();
 
     // The rate of a past semester is not the rate of today, and a semester no
     // publication covers is unknown rather than nought per cent.
@@ -279,6 +284,30 @@ describe('AccountRulesPanel', () => {
     expect(
       await screen.findByText('Reconnectez-vous pour consulter les règles de ce compte.'),
     ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
+  });
+
+  it('names a business date the API refuses instead of calling it a failed read', async () => {
+    // The field bounds are advisory outside a form: a year typed digit by digit
+    // reaches the API, which refuses a date outside the years it covers. Retrying
+    // it would fail identically, so no retry is offered.
+    api.readAccountRules.mockImplementationOnce(() => success(passbook));
+    api.readAccountRules.mockImplementation(() => failure(400));
+    renderPanel();
+
+    expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Date métier'), { target: { value: '0202-06-01' } });
+
+    expect(
+      await screen.findByText(
+        'Cette date n’est pas une date d’activité que l’application couvre. Choisissez une autre date.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText('Les règles de ce compte n’ont pas pu être lues. Réessayez.'),
+    ).toBeNull();
+    // The kept table is not still "being resolved" once the date was refused.
+    expect(screen.queryByText(/Résolution des règles au/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
   });
 });

@@ -77,7 +77,7 @@ final class AccountRulesControllerTest extends WebTestCase
         $ceiling = $this->only($rules, 'ceilings');
         self::assertSame([
             'kind', 'basis', 'countsCreditedInterest', 'spansSeveralAccounts', 'measurable',
-            'breachPolicy', 'amount', 'validFrom', 'validTo', 'verification', 'source',
+            'amount', 'validFrom', 'validTo', 'verification', 'source',
         ], array_keys($ceiling));
         self::assertSame('DEPOSIT_CEILING', $ceiling['kind']);
         // The amount alone would decide nothing: what makes it usable is that
@@ -86,9 +86,6 @@ final class AccountRulesControllerTest extends WebTestCase
         self::assertFalse($ceiling['countsCreditedInterest']);
         self::assertFalse($ceiling['spansSeveralAccounts']);
         self::assertTrue($ceiling['measurable']);
-        // Interest credited by the bank and a historical import may both carry
-        // the passbook past 22 950 €. Neither is refused.
-        self::assertSame('WARN', $ceiling['breachPolicy']);
         self::assertSame(['value' => '22950', 'assetCode' => 'EUR'], $ceiling['amount']);
         self::assertSame('2025-04-25', $ceiling['validFrom']);
         // An open end is in force for every later date, not an expiry.

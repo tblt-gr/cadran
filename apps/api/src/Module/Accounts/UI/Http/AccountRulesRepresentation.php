@@ -58,9 +58,6 @@ final readonly class AccountRulesRepresentation
             'countsCreditedInterest' => $ceiling->basis->countsCreditedInterest(),
             'spansSeveralAccounts' => $ceiling->spansSeveralAccounts(),
             'measurable' => $ceiling->isMeasurable(),
-            // Stated with the ceiling so no importer or screen decides on its
-            // own to refuse a figure that legitimately passed it.
-            'breachPolicy' => $ceiling->breachPolicy()->value,
             'amount' => [
                 'value' => $ceiling->amount->value->toString(),
                 'assetCode' => $ceiling->amount->asset->toString(),

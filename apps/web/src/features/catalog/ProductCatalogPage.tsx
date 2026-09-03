@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import { BusinessDateField } from '@/features/catalog/business-date-field/BusinessDateField';
+import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { ProductCard } from '@/features/catalog/product-card/ProductCard';
 import { todayInBrowser } from '@/lib/businessDay';
 import { formatCalendarDay } from '@/lib/decimal';

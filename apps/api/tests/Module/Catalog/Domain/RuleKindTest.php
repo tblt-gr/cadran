@@ -28,25 +28,48 @@ final class RuleKindTest extends TestCase
         );
     }
 
-    public function testTheFourCeilingMeasuresStayDistinct(): void
+    /**
+     * The whole kind-to-measure table, asserted from the kinds themselves so a
+     * kind added without a measure fails here rather than silently resolving to
+     * "no ceiling", and a measure no kind produces cannot stay in the enum — or
+     * in the published contract — as an answer the server can never give.
+     */
+    public function testEveryRuleKindNamesTheMeasureItCapsAndEveryMeasureHasAKind(): void
     {
-        $measured = [
-            RuleKind::DEPOSIT_CEILING->ceilingBasis(),
-            RuleKind::CONTRIBUTION_CEILING->ceilingBasis(),
-            RuleKind::COMBINED_CONTRIBUTION_CEILING->ceilingBasis(),
-            CeilingBasis::TOTAL_BALANCE,
+        $expected = [
+            RuleKind::DEPOSIT_CEILING->value => CeilingBasis::BALANCE_EXCLUDING_INTEREST,
+            RuleKind::BALANCE_CEILING->value => CeilingBasis::TOTAL_BALANCE,
+            RuleKind::CONTRIBUTION_CEILING->value => CeilingBasis::CONTRIBUTIONS,
+            RuleKind::COMBINED_CONTRIBUTION_CEILING->value => CeilingBasis::COMBINED_CONTRIBUTIONS,
+            RuleKind::ANNUAL_RATE->value => CeilingBasis::NONE,
+            RuleKind::MIN_RATE->value => CeilingBasis::NONE,
+            RuleKind::INTEREST_ACCRUAL_METHOD->value => CeilingBasis::NONE,
+            RuleKind::ELIGIBILITY->value => CeilingBasis::NONE,
+            RuleKind::TAX_REFERENCE->value => CeilingBasis::NONE,
         ];
 
-        self::assertCount(4, array_unique(array_map(
-            static fn (CeilingBasis $basis): string => $basis->value,
-            $measured,
-        )));
+        foreach (RuleKind::cases() as $kind) {
+            self::assertArrayHasKey(
+                $kind->value,
+                $expected,
+                sprintf('%s states no measure; a ceiling of that kind would be checked against nothing.', $kind->value),
+            );
+            self::assertSame($expected[$kind->value], $kind->ceilingBasis());
+        }
+
+        foreach (CeilingBasis::cases() as $basis) {
+            self::assertContains(
+                $basis,
+                $expected,
+                sprintf('No rule kind resolves to %s, so no account can ever be checked against it.', $basis->value),
+            );
+        }
     }
 
     public function testOnlyATotalBalanceAbsorbsCreditedInterest(): void
     {
-        self::assertTrue(CeilingBasis::TOTAL_BALANCE->countsCreditedInterest());
-        self::assertFalse(CeilingBasis::BALANCE_EXCLUDING_INTEREST->countsCreditedInterest());
+        self::assertTrue(RuleKind::BALANCE_CEILING->ceilingBasis()->countsCreditedInterest());
+        self::assertFalse(RuleKind::DEPOSIT_CEILING->ceilingBasis()->countsCreditedInterest());
         self::assertFalse(CeilingBasis::CONTRIBUTIONS->countsCreditedInterest());
         self::assertFalse(CeilingBasis::COMBINED_CONTRIBUTIONS->countsCreditedInterest());
     }

@@ -7,8 +7,8 @@ import type {
 import type { ParseKeys } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { RateBrackets } from '@/features/accounts/account-rules/rate-brackets/RateBrackets';
-import { RuleProvenance } from '@/features/catalog/rule-provenance/RuleProvenance';
-import { ruleTextKey } from '@/features/catalog/ruleText';
+import { RuleProvenance } from '@/features/catalog-rules/rule-provenance/RuleProvenance';
+import { ruleTextKey } from '@/features/catalog-rules/ruleText';
 import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import styles from './AccountRuleTable.module.css';
 

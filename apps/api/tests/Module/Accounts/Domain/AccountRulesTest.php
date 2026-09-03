@@ -6,7 +6,6 @@ namespace App\Tests\Module\Accounts\Domain;
 
 use App\Module\Accounts\Domain\AccountRules;
 use App\Module\Accounts\Domain\AccountRulesOrigin;
-use App\Module\Accounts\Domain\CeilingBreachPolicy;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Catalog\Domain\CatalogEntry;
 use App\Module\Catalog\Domain\CeilingBasis;
@@ -125,17 +124,6 @@ final class AccountRulesTest extends TestCase
         // Reading this plan alone can never settle the shared allowance: the
         // sibling plan holds the rest of it.
         self::assertTrue($rules->ceilings[1]->spansSeveralAccounts());
-    }
-
-    /**
-     * Passing a ceiling is not a fault the application may act on: credited
-     * interest and historical imports legitimately do it.
-     */
-    public function testEveryCeilingReportsABreachInsteadOfRefusingTheFigure(): void
-    {
-        $ceiling = $this->resolve([CatalogFixture::ceiling('22950.00', '2025-04-25')])->ceilings[0];
-
-        self::assertSame(CeilingBreachPolicy::WARN, $ceiling->breachPolicy());
     }
 
     /**
