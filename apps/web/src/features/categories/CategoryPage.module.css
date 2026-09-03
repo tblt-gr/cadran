@@ -64,16 +64,6 @@
   gap: var(--spacing-3);
 }
 
-.success {
-  margin: var(--spacing-none);
-  padding: var(--spacing-3) var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-color: var(--positive);
-  border-radius: var(--radius-control);
-  color: var(--positive);
-  background: var(--positive-soft);
-}
-
 .pagination {
   justify-content: center;
 }

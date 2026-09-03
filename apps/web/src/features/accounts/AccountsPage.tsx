@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import {
@@ -169,9 +170,9 @@ export function AccountsPage() {
       </section>
 
       {saved ? (
-        <p className={styles.success} role="status">
+        <Toast onDismiss={() => setSaved(null)}>
           {t(saved === 'archived' ? 'accounts.archived' : 'accounts.saved')}
-        </p>
+        </Toast>
       ) : null}
 
       {editor ? (

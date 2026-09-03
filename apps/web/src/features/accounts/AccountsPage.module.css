@@ -36,16 +36,6 @@
   line-height: var(--line-height-body);
 }
 
-.success {
-  margin: var(--spacing-none);
-  padding: var(--spacing-3) var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-color: var(--positive);
-  border-radius: var(--radius-control);
-  color: var(--positive);
-  background: var(--positive-soft);
-}
-
 @media (max-width: 42rem) {
   .intro {
     align-items: flex-start;

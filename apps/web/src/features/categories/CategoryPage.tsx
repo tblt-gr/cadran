@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { CategoryForm } from './category-form/CategoryForm';
@@ -124,11 +125,7 @@ export function CategoryPage() {
         </button>
       </section>
 
-      {saved ? (
-        <p className={styles.success} role="status">
-          {t('categories.saved')}
-        </p>
-      ) : null}
+      {saved ? <Toast onDismiss={() => setSaved(false)}>{t('categories.saved')}</Toast> : null}
 
       {editor ? (
         <Modal
