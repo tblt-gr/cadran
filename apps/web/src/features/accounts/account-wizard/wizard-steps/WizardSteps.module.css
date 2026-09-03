@@ -1,0 +1,48 @@
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-4);
+  list-style: none;
+}
+
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+}
+
+.steps li[aria-current='step'] {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.done {
+  color: var(--text-secondary);
+}
+
+.rank {
+  display: inline-flex;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  align-items: center;
+  justify-content: center;
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-circle);
+  font-size: var(--font-size-xs);
+}
+
+.steps li[aria-current='step'] .rank {
+  border-color: var(--gold-300);
+  color: var(--gold-300);
+}
+
+/* The position is spelled out for anyone who cannot see the marker treatment. */
+.position {
+  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}

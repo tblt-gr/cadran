@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { BusinessDateField } from '@/features/catalog/business-date-field/BusinessDateField';
 import { ProductCard } from '@/features/catalog/product-card/ProductCard';
+import { todayInBrowser } from '@/lib/businessDay';
 import { formatCalendarDay } from '@/lib/decimal';
 import styles from './ProductCatalogPage.module.css';
 
@@ -138,13 +139,4 @@ export function ProductCatalogPage() {
       ) : null}
     </div>
   );
-}
-
-/**
- * The viewer's own calendar day, as `YYYY-MM-DD`. The `en-CA` locale renders
- * exactly that shape, which avoids building the string from UTC parts and
- * showing yesterday to anyone west of Greenwich.
- */
-function todayInBrowser(): string {
-  return new Date().toLocaleDateString('en-CA');
 }

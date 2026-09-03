@@ -37,4 +37,22 @@ enum WrapperKind: string
             default => [],
         };
     }
+
+    /**
+     * What the envelope's ceiling is measured against, read from the rule kinds
+     * it expects rather than restated. The basis is a property of the envelope
+     * and not of the business date: a PEA is capped on contributions whether or
+     * not a sourced amount covers the day being looked at.
+     */
+    public function ceilingBasis(): CeilingBasis
+    {
+        foreach ($this->expectedRuleKinds() as $kind) {
+            $basis = $kind->ceilingBasis();
+            if (CeilingBasis::NONE !== $basis) {
+                return $basis;
+            }
+        }
+
+        return CeilingBasis::NONE;
+    }
 }

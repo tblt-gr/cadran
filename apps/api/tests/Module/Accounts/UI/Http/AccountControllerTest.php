@@ -8,6 +8,7 @@ use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\DBAL\ParameterType;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -59,9 +60,10 @@ final class AccountControllerTest extends WebTestCase
         // The published field set, asserted whole: a view field added without a
         // matching schema change would otherwise reach clients unnoticed.
         self::assertSame([
-            'id', 'label', 'assetCode', 'kind', 'maskedIdentifier', 'valuationMode', 'liquidityLevel',
-            'includeInNetWorth', 'includeInEmergencyFund', 'openedOn', 'closedOn', 'status',
-            'netWorthSign', 'used', 'editable', 'kindEditable', 'kindEditReason', 'version', 'archivedAt',
+            'id', 'label', 'assetCode', 'kind', 'productCode', 'institution', 'maskedIdentifier',
+            'valuationMode', 'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund',
+            'openedOn', 'closedOn', 'status', 'netWorthSign', 'used', 'editable', 'kindEditable',
+            'kindEditReason', 'version', 'archivedAt',
         ], array_keys($account));
         self::assertSame('EUR', $account['assetCode']);
         self::assertSame('SAVINGS', $account['kind']);
@@ -272,6 +274,114 @@ final class AccountControllerTest extends WebTestCase
         self::assertSame('USED', $used['kindEditReason']);
     }
 
+    public function testAnAccountIsCreatedFromACatalogueProductWithoutCopyingItsRules(): void
+    {
+        $account = $this->createAccount(label: 'Livret A Banque X', overrides: [
+            'productCode' => 'FR_LIVRET_A',
+            'institution' => 'Banque X',
+        ]);
+
+        self::assertSame('FR_LIVRET_A', $account['productCode']);
+        self::assertSame('Banque X', $account['institution']);
+        self::assertSame('SAVINGS', $account['kind']);
+
+        // The account keeps the reference and nothing else: the 22 950 € ceiling
+        // and the 1.7 % rate stay in the catalogue, read on the date they are
+        // needed, so a regulatory revision is never frozen into this row.
+        $stored = $this->connection->fetchAssociative(
+            'SELECT * FROM account_financial_accounts WHERE workspace_id = ? AND id = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, self::stringValue($account, 'id')],
+        );
+        self::assertIsArray($stored);
+        self::assertSame('FR_LIVRET_A', $stored['product_code']);
+        self::assertSame([], array_values(array_filter(
+            array_keys($stored),
+            static fn (mixed $column): bool => 1 === preg_match('/ceiling|rate|percentage|amount/', (string) $column),
+        )));
+    }
+
+    /**
+     * A PEA is checked against cumulative contributions rather than market
+     * value, so it must be filed under the kind its product declares. Accepting
+     * a submitted kind would send a later ceiling check to the wrong basis.
+     */
+    public function testAProductImposesItsKindAndItsCapabilities(): void
+    {
+        $this->requestCreate($this->payload('PEA Banque X', [
+            'productCode' => 'FR_PEA',
+            'kind' => 'SAVINGS',
+        ]));
+        self::assertResponseStatusCodeSame(422);
+
+        // A savings product cannot be valued by positions. The endpoint refuses
+        // it; which of the two rules answers first is settled by
+        // AccountProductTest, which reaches the capability check in isolation.
+        $this->requestCreate($this->payload('Livret A Banque X', [
+            'productCode' => 'FR_LIVRET_A',
+            'valuationMode' => 'PORTFOLIO',
+        ]));
+        self::assertResponseStatusCodeSame(422);
+
+        $pea = $this->createAccount(label: 'PEA Banque X', overrides: [
+            'productCode' => 'FR_PEA',
+            'kind' => 'PORTFOLIO',
+            'valuationMode' => 'PORTFOLIO',
+            'liquidityLevel' => 'MEDIUM_TERM',
+        ]);
+        self::assertSame('PORTFOLIO', $pea['kind']);
+    }
+
+    public function testAnUnknownProductReferenceIsRefusedByTheUseCaseAndByTheDatabase(): void
+    {
+        $this->requestCreate($this->payload('Compte', ['productCode' => 'FR_UNKNOWN_PRODUCT']));
+        self::assertResponseStatusCodeSame(422);
+
+        $this->requestCreate($this->payload('Compte', ['productCode' => 'not a code']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->ownAccountCount());
+
+        // The catalogue carries no workspace, so a code is known to every
+        // workspace or to none. The foreign key repeats that refusal for any
+        // writer that does not come through the use case.
+        $this->expectException(DbalException::class);
+        $this->expectExceptionMessageMatches('/product_fk/');
+        $this->insertAccount('00000000-0000-7000-8000-0000000000da', WorkspaceFixture::OWN_WORKSPACE, 'Direct', 'FR_UNKNOWN_PRODUCT');
+    }
+
+    public function testAnUpdateRevalidatesTheProductKindAndValuationTriple(): void
+    {
+        $account = $this->createAccount(label: 'Livret A Banque X', overrides: [
+            'productCode' => 'FR_LIVRET_A',
+            'institution' => 'Banque X',
+        ]);
+        $id = self::stringValue($account, 'id');
+
+        $this->requestUpdate($id, [...$account, 'kind' => 'CURRENT']);
+        self::assertResponseStatusCodeSame(422);
+
+        $this->requestUpdate($id, [...$account, 'productCode' => 'FR_UNKNOWN_PRODUCT']);
+        self::assertResponseStatusCodeSame(422);
+
+        // Everything outside the triple stays editable on a product-backed account.
+        $this->requestUpdate($id, [...$account, 'institution' => 'Banque Y']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Banque Y', $this->decode()['institution']);
+    }
+
+    public function testAUsedAccountCannotChangeProduct(): void
+    {
+        $account = $this->createAccount(label: 'Livret A Banque X', overrides: ['productCode' => 'FR_LIVRET_A']);
+        $id = self::stringValue($account, 'id');
+        $this->connection->update(
+            'account_financial_accounts',
+            ['used_at' => '2026-09-01 12:00:00+00'],
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $id],
+        );
+
+        $this->requestUpdate($id, [...$account, 'productCode' => 'FR_LDDS']);
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testMutationsRequireCsrfAndAuditWithoutFinancialLabels(): void
     {
         $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', '');
@@ -421,6 +531,8 @@ final class AccountControllerTest extends WebTestCase
         return [
             'label' => $account['label'],
             'kind' => $account['kind'],
+            'productCode' => $account['productCode'],
+            'institution' => $account['institution'],
             'maskedIdentifier' => $account['maskedIdentifier'],
             'valuationMode' => $account['valuationMode'],
             'liquidityLevel' => $account['liquidityLevel'],
@@ -443,6 +555,8 @@ final class AccountControllerTest extends WebTestCase
             'label' => $label,
             'assetCode' => 'EUR',
             'kind' => 'SAVINGS',
+            'productCode' => null,
+            'institution' => null,
             'maskedIdentifier' => null,
             'valuationMode' => 'TRANSACTIONS',
             'liquidityLevel' => 'IMMEDIATE',
@@ -465,7 +579,7 @@ final class AccountControllerTest extends WebTestCase
         return (int) $count;
     }
 
-    private function insertAccount(string $id, string $workspaceId, string $label): void
+    private function insertAccount(string $id, string $workspaceId, string $label, ?string $productCode = null): void
     {
         $this->connection->insert('account_financial_accounts', [
             'id' => $id,
@@ -473,6 +587,8 @@ final class AccountControllerTest extends WebTestCase
             'label' => $label,
             'asset_code' => 'EUR',
             'kind' => 'SAVINGS',
+            'product_code' => $productCode,
+            'institution' => null,
             'masked_identifier' => null,
             'valuation_mode' => 'TRANSACTIONS',
             'liquidity_level' => 'IMMEDIATE',

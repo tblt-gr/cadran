@@ -1,0 +1,27 @@
+.wizard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+/* The step container only receives focus programmatically on a step change; a
+   ring around the whole body would read as a control the user can act on. */
+.step:focus {
+  outline: var(--border-none);
+}
+
+.chosen {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  background: var(--bg-surface-2);
+}

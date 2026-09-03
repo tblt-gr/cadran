@@ -9,6 +9,7 @@ use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Accounts\Domain\LiquidityLevel;
 use App\Module\Accounts\Domain\MaskedIdentifier;
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
@@ -37,6 +38,7 @@ final readonly class AccountRow
         }
 
         $maskedIdentifier = self::nullableText($row['masked_identifier'] ?? null);
+        $productCode = self::nullableText($row['product_code'] ?? null);
 
         return new Account(
             id: self::text($row['id'] ?? null),
@@ -44,6 +46,8 @@ final readonly class AccountRow
             label: self::text($row['label'] ?? null),
             assetCode: AssetCode::fromString(self::text($row['asset_code'] ?? null)),
             kind: AccountKind::from(self::text($row['kind'] ?? null)),
+            productCode: null === $productCode ? null : ProductCode::fromString($productCode),
+            institution: self::nullableText($row['institution'] ?? null),
             maskedIdentifier: null === $maskedIdentifier ? null : MaskedIdentifier::fromString($maskedIdentifier),
             valuationMode: AccountValuationMode::from(self::text($row['valuation_mode'] ?? null)),
             liquidityLevel: LiquidityLevel::from(self::text($row['liquidity_level'] ?? null)),
@@ -71,6 +75,8 @@ final readonly class AccountRow
         return [
             'label' => $account->label,
             'kind' => $account->kind->value,
+            'product_code' => $account->productCode?->toString(),
+            'institution' => $account->institution,
             'masked_identifier' => $account->maskedIdentifier?->toString(),
             'valuation_mode' => $account->valuationMode->value,
             'liquidity_level' => $account->liquidityLevel->value,

@@ -10,6 +10,7 @@ use App\Module\Accounts\Domain\InvalidAccount;
 use App\Module\Accounts\Domain\LiquidityLevel;
 use App\Module\Accounts\Domain\MaskedIdentifier;
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -131,6 +132,8 @@ final class AccountTest extends TestCase
         $corrected = $account->reconfigure(
             label: $account->label,
             kind: $account->kind,
+            productCode: $account->productCode,
+            institution: $account->institution,
             maskedIdentifier: $account->maskedIdentifier,
             valuationMode: $account->valuationMode,
             liquidityLevel: $account->liquidityLevel,
@@ -152,6 +155,59 @@ final class AccountTest extends TestCase
         $this->expectExceptionMessage('used account');
 
         $this->reconfigured($account, kind: AccountKind::CURRENT);
+    }
+
+    #[DataProvider('invalidInstitutions')]
+    public function testItRejectsAnUnboundedOrExecutableInstitution(string $institution): void
+    {
+        $this->expectException(InvalidAccount::class);
+
+        $this->account(institution: $institution);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function invalidInstitutions(): iterable
+    {
+        yield 'empty' => [''];
+        yield 'untrimmed' => [' Banque X '];
+        yield 'control character' => ["Banque\nX"];
+        yield 'too long' => [str_repeat('a', Account::MAX_INSTITUTION_LENGTH + 1)];
+    }
+
+    public function testAnAccountKeepsOnlyItsProductReference(): void
+    {
+        $account = $this->account();
+
+        self::assertSame('FR_LIVRET_A', $account->productCode?->toString());
+        self::assertSame('Banque X', $account->institution);
+    }
+
+    public function testAnAccountDescribedByHandCarriesNoProduct(): void
+    {
+        self::assertNull($this->account(productCode: null, institution: null)->productCode);
+    }
+
+    /**
+     * Swapping the model of an account that already carries history would
+     * re-read every past movement against another set of dated rules.
+     */
+    public function testAUsedAccountCannotChangeProduct(): void
+    {
+        $account = $this->account(usedAt: new \DateTimeImmutable(self::NOW));
+
+        $this->expectException(InvalidAccount::class);
+        $this->expectExceptionMessage('change product');
+
+        $this->reconfigured($account, productCode: ProductCode::fromString('FR_LDDS'));
+    }
+
+    public function testAUsedAccountKeepingItsProductIsStillEditable(): void
+    {
+        $account = $this->account(usedAt: new \DateTimeImmutable(self::NOW));
+
+        $renamed = $this->reconfigured($account, label: 'Livret A Banque Y');
+
+        self::assertSame('FR_LIVRET_A', $renamed->productCode?->toString());
     }
 
     public function testAnArchivedAccountIsReadOnly(): void
@@ -179,10 +235,13 @@ final class AccountTest extends TestCase
         ?string $label = null,
         ?AccountKind $kind = null,
         ?\DateTimeImmutable $closedOn = null,
+        ?ProductCode $productCode = null,
     ): Account {
         return $account->reconfigure(
             label: $label ?? $account->label,
             kind: $kind ?? $account->kind,
+            productCode: $productCode ?? $account->productCode,
+            institution: $account->institution,
             maskedIdentifier: $account->maskedIdentifier,
             valuationMode: $account->valuationMode,
             liquidityLevel: $account->liquidityLevel,
@@ -203,6 +262,8 @@ final class AccountTest extends TestCase
         string $openedOn = '2026-01-10',
         ?string $closedOn = null,
         ?\DateTimeImmutable $usedAt = null,
+        ?string $productCode = 'FR_LIVRET_A',
+        ?string $institution = 'Banque X',
     ): Account {
         $now = new \DateTimeImmutable(self::NOW);
         $utc = new \DateTimeZone('UTC');
@@ -213,6 +274,8 @@ final class AccountTest extends TestCase
             label: $label,
             assetCode: AssetCode::fromString('EUR'),
             kind: $kind,
+            productCode: null === $productCode ? null : ProductCode::fromString($productCode),
+            institution: $institution,
             maskedIdentifier: MaskedIdentifier::fromString('4821'),
             valuationMode: $valuationMode,
             liquidityLevel: LiquidityLevel::IMMEDIATE,

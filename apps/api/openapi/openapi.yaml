@@ -628,8 +628,10 @@ paths:
       description: >-
         Creates an account with its denomination, kind, lifecycle dates,
         valuation mode and inclusion policies. The asset code must exist in the
-        read-only system reference. The mutation requires the same-origin CSRF
-        token.
+        read-only system reference. An optional `productCode` backs the account
+        with a catalogue product; the submitted kind and valuation mode are then
+        checked against what that product declares. The mutation requires the
+        same-origin CSRF token.
       tags:
         - Accounts
       security:
@@ -669,8 +671,8 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           description: >-
-            The denomination, kind, valuation mode, masked identifier or
-            lifecycle dates are invalid.
+            The denomination, kind, product reference, valuation mode, masked
+            identifier or lifecycle dates are invalid.
           content:
             application/problem+json:
               schema:
@@ -686,7 +688,7 @@ paths:
         closes or reopens the account through `closedOn`. The denomination is
         absent from the body: changing it would reinterpret every figure already
         recorded against the account. An account already used by history cannot
-        change kind, and an archived account is read-only.
+        change kind or product, and an archived account is read-only.
       tags:
         - Accounts
       security:
@@ -1210,6 +1212,29 @@ components:
           description: Number of products the catalogue holds.
           type: integer
           minimum: 0
+    CeilingBasis:
+      description: >-
+        What the product ceiling is measured against. A share savings plan is
+        capped on the contributions paid into it, whatever the plan is worth, so
+        a plan that grew past its ceiling through market value has broken no
+        rule. A regulated passbook is capped on the balance it holds. The basis
+        is a property of the envelope, independent of the business date read.
+      type: string
+      enum:
+        - NONE
+        - BALANCE
+        - CONTRIBUTIONS
+    ProductCode:
+      description: >-
+        The stable identifier of a catalogue product. The catalogue is a global
+        system reference with no workspace, so a code either exists for every
+        workspace or for none.
+      type: string
+      minLength: 3
+      maxLength: 32
+      pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
+      examples:
+        - FR_LIVRET_A
     Product:
       type: object
       additionalProperties: false
@@ -1221,6 +1246,7 @@ components:
         - wrapperKind
         - yieldKind
         - yieldGuaranteed
+        - ceilingBasis
         - defaultGroupCode
         - capabilities
         - catalogVersion
@@ -1274,6 +1300,8 @@ components:
             for every market product, so no interface has to infer a promise
             from a product name.
           type: boolean
+        ceilingBasis:
+          $ref: '#/components/schemas/CeilingBasis'
         defaultGroupCode:
           oneOf:
             - type: string
@@ -1677,6 +1705,8 @@ components:
         - label
         - assetCode
         - kind
+        - productCode
+        - institution
         - maskedIdentifier
         - valuationMode
         - liquidityLevel
@@ -1709,6 +1739,26 @@ components:
           pattern: '^[A-Z][A-Z0-9]{1,11}$'
         kind:
           $ref: '#/components/schemas/AccountKind'
+        productCode:
+          description: >-
+            The catalogue product this account was created from, or null for an
+            account described by hand. Only the reference is stored: ceilings,
+            rates and methods stay in the catalogue and are read on the business
+            date they are needed, so a regulatory revision is never frozen into
+            an account.
+          oneOf:
+            - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        institution:
+          description: >-
+            Free text naming where the account is held, such as the bank or the
+            insurer. No reference of institutions ships with the application, so
+            this is bounded rather than validated against a list.
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
         maskedIdentifier:
           description: >-
             The visible tail of a banking or contract identifier, such as
@@ -1780,6 +1830,8 @@ components:
         - label
         - assetCode
         - kind
+        - productCode
+        - institution
         - maskedIdentifier
         - valuationMode
         - liquidityLevel
@@ -1796,7 +1848,25 @@ components:
           type: string
           pattern: '^[A-Z][A-Z0-9]{1,11}$'
         kind:
+          description: >-
+            Must equal the `accountKind` the referenced product declares. The
+            catalogue is the authority, so a tampered form cannot file a PEA as
+            a plain savings account.
           $ref: '#/components/schemas/AccountKind'
+        productCode:
+          description: >-
+            A catalogue product to create the account from, or null for an
+            account described by hand. An unknown product is refused by the use
+            case and by a foreign key.
+          oneOf:
+            - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        institution:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
         maskedIdentifier:
           oneOf:
             - type: string
@@ -1824,6 +1894,8 @@ components:
       required:
         - label
         - kind
+        - productCode
+        - institution
         - maskedIdentifier
         - valuationMode
         - liquidityLevel
@@ -1839,6 +1911,20 @@ components:
           maxLength: 80
         kind:
           $ref: '#/components/schemas/AccountKind'
+        productCode:
+          description: >-
+            Changing the product, the kind or the valuation mode sends the whole
+            triple back through the catalogue. An account already used by
+            history cannot change product at all.
+          oneOf:
+            - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        institution:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
         maskedIdentifier:
           oneOf:
             - type: string

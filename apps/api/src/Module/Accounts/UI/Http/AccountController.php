@@ -41,8 +41,8 @@ final readonly class AccountController
 
     private const int MAX_BODY_BYTES = 16_384;
     private const array WRITE_FIELDS = [
-        'label', 'kind', 'maskedIdentifier', 'valuationMode', 'liquidityLevel',
-        'includeInNetWorth', 'includeInEmergencyFund', 'openedOn', 'closedOn',
+        'label', 'kind', 'productCode', 'institution', 'maskedIdentifier', 'valuationMode',
+        'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund', 'openedOn', 'closedOn',
     ];
 
     public function __construct(private TranslatorInterface $translator)
@@ -93,6 +93,8 @@ final readonly class AccountController
                 label: $payload->string('label'),
                 assetCode: $payload->string('assetCode'),
                 kind: $payload->string('kind'),
+                productCode: $payload->nullableString('productCode'),
+                institution: $payload->nullableString('institution'),
                 maskedIdentifier: $payload->nullableString('maskedIdentifier'),
                 valuationMode: $payload->string('valuationMode'),
                 liquidityLevel: $payload->string('liquidityLevel'),
@@ -133,6 +135,8 @@ final readonly class AccountController
             $account = $updateAccount($id, new UpdateAccountInput(
                 label: $payload->string('label'),
                 kind: $payload->string('kind'),
+                productCode: $payload->nullableString('productCode'),
+                institution: $payload->nullableString('institution'),
                 maskedIdentifier: $payload->nullableString('maskedIdentifier'),
                 valuationMode: $payload->string('valuationMode'),
                 liquidityLevel: $payload->string('liquidityLevel'),

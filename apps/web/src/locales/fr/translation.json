@@ -149,6 +149,7 @@
     "archived": "Le compte a été archivé.",
     "fields": {
       "label": "Libellé",
+      "institution": "Établissement",
       "assetCode": "Devise ou actif",
       "kind": "Nature du compte",
       "maskedIdentifier": "Fin d’identifiant",
@@ -210,7 +211,12 @@
       },
       "cancel": "Annuler",
       "save": "Enregistrer",
-      "saving": "Enregistrement…"
+      "saving": "Enregistrement…",
+      "institutionHint": "Banque, assureur ou teneur de compte. Laissez vide si l’information n’est pas utile.",
+      "kindFromProduct": "La nature est imposée par le produit « {{product}} ».",
+      "valuationFromProduct": "Seuls les modes que le produit prend en charge sont proposés.",
+      "back": "Retour",
+      "continue": "Continuer"
     },
     "archive": {
       "eyebrow": "Archivage",
@@ -226,7 +232,8 @@
       "openedOn": "La date d’ouverture est obligatoire et ne peut pas être future.",
       "closedOn": "La date de clôture doit suivre l’ouverture et ne peut pas être future.",
       "valuationMode": "Seuls les comptes qui portent des positions acceptent la valorisation par portefeuille.",
-      "assetCode": "Choisissez une devise du référentiel. Elle est fixée à la création et ne pourra plus être changée."
+      "assetCode": "Choisissez une devise du référentiel. Elle est fixée à la création et ne pourra plus être changée.",
+      "institution": "Le nom de l’établissement ne peut pas dépasser 80 caractères."
     },
     "errors": {
       "conflict": "Un compte actif porte déjà ce libellé. Choisissez-en un autre.",
@@ -261,6 +268,55 @@
       "previous": "Page précédente",
       "next": "Page suivante",
       "position": "Page {{page}} sur {{total}}"
+    },
+    "wizard": {
+      "steps": {
+        "label": "Étapes de création du compte",
+        "product": "Produit",
+        "details": "Compte",
+        "review": "Récapitulatif",
+        "position": "Étape {{position}} sur {{total}}"
+      },
+      "product": {
+        "legend": "Modèle de produit",
+        "resolvedOn": "Règles du catalogue au {{date}}.",
+        "loading": "Chargement du catalogue produits…",
+        "empty": "Le catalogue système ne propose aucun produit. Le compte sera décrit à la main.",
+        "withoutProduct": "Continuer sans produit",
+        "none": {
+          "title": "Aucun produit",
+          "description": "Décrire le compte à la main, sans règle héritée du catalogue."
+        },
+        "error": {
+          "title": "Catalogue indisponible",
+          "description": "Le catalogue produits n’a pas pu être chargé. Réessayez, ou décrivez le compte à la main."
+        },
+        "truncated": "{{shown}} produits affichés sur {{total}}. Le catalogue dépasse une page : ouvrez le catalogue produits pour le parcourir en entier."
+      },
+      "details": {
+        "fromProduct": "Compte créé à partir du produit « {{product}} ». La nature et les modes disponibles en découlent.",
+        "withoutProduct": "Compte décrit à la main : aucune règle du catalogue ne lui est rattachée."
+      },
+      "review": {
+        "summaryTitle": "Compte à créer",
+        "inheritedTitle": "Hérité de « {{product}} »",
+        "referenceOnly": "Seule la référence du produit est enregistrée. Les plafonds, taux et méthodes restent dans le catalogue et sont relus à la date métier utile : une révision réglementaire n’est jamais figée dans le compte.",
+        "noPromisedYield": "Aucun rendement promis : la valeur de ce compte dépend des actifs détenus, pas d’un taux du catalogue.",
+        "group": "Groupe patrimonial",
+        "counted": "Compté dans le patrimoine net",
+        "notProvided": "— Non renseigné",
+        "withoutProduct": "Ce compte n’hérite d’aucune règle : aucun produit du catalogue ne lui est rattaché.",
+        "confirm": "Créer le compte",
+        "ceilingBases": {
+          "NONE": "Aucun plafond suivi",
+          "BALANCE": "Plafond sur le solde déposé",
+          "CONTRIBUTIONS": "Plafond sur les versements cumulés"
+        }
+      }
+    },
+    "editor": {
+      "loading": "Chargement du produit rattaché au compte…",
+      "productUnavailable": "Le produit rattaché à ce compte n’a pas pu être lu. La nature et le mode de valorisation restent modifiables, mais l’API refusera une combinaison que le produit ne déclare pas."
     }
   },
   "categories": {

@@ -102,6 +102,10 @@ final class ProductCatalogController
             // a product name: a PEA, a CTO or a contract in units of account
             // earns what its assets earn, and never a catalogue rate.
             'yieldGuaranteed' => $product->yieldKind->isGuaranteed(),
+            // Also stated by the server: a PEA is capped on the contributions
+            // paid in, whatever the plan is worth, and no screen may infer that
+            // from which ceiling rule happens to be sourced on the day it reads.
+            'ceilingBasis' => $product->wrapperKind->ceilingBasis()->value,
             'defaultGroupCode' => $product->defaultGroupCode,
             // The capability list is the public activation contract. Clients
             // never infer behavior from a localized product name.

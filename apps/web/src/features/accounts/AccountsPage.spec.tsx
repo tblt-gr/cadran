@@ -1,7 +1,7 @@
-import type { Account } from '@cadran/api-client';
+import type { Account, Product } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AccountsPage } from './AccountsPage';
 
@@ -10,6 +10,8 @@ const api = vi.hoisted(() => ({
   createAccount: vi.fn(),
   listAccounts: vi.fn(),
   listAssets: vi.fn(),
+  listProducts: vi.fn(),
+  readProduct: vi.fn(),
   updateAccount: vi.fn(),
 }));
 
@@ -23,6 +25,8 @@ const account: Account = {
   label: 'Livret A Banque X',
   assetCode: 'EUR',
   kind: 'SAVINGS',
+  productCode: 'FR_LIVRET_A',
+  institution: 'Banque X',
   maskedIdentifier: '4821',
   valuationMode: 'TRANSACTIONS',
   liquidityLevel: 'IMMEDIATE',
@@ -38,6 +42,81 @@ const account: Account = {
   kindEditReason: null,
   version: 1,
   archivedAt: null,
+};
+
+const livretA: Product = {
+  code: 'FR_LIVRET_A',
+  displayName: 'Livret A',
+  jurisdiction: 'FR',
+  accountKind: 'SAVINGS',
+  wrapperKind: 'REGULATED_SAVINGS',
+  yieldKind: 'REGULATED_RATE',
+  yieldGuaranteed: true,
+  ceilingBasis: 'BALANCE',
+  defaultGroupCode: 'LIQUIDITY_SAVINGS',
+  capabilities: ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
+  catalogVersion: 1,
+  archivedAt: null,
+  asOf: '2026-09-03',
+  rules: [
+    {
+      kind: 'DEPOSIT_CEILING',
+      valueType: 'AMOUNT',
+      amount: { value: '22950', assetCode: 'EUR' },
+      percentage: null,
+      text: null,
+      validFrom: '2026-08-22',
+      validTo: null,
+      verification: 'VERIFIED',
+      verifiedOn: '2026-08-22',
+      verifiedBy: 'cadran-maintainer',
+      source: {
+        publisher: 'Direction de l’information légale et administrative',
+        title: 'Livret A',
+        url: 'https://www.service-public.fr/particuliers/vosdroits/F2365',
+        publishedOn: '2025-04-25',
+        retrievedOn: '2026-08-22',
+      },
+    },
+  ],
+  unavailableRuleKinds: ['ANNUAL_RATE'],
+};
+
+const pea: Product = {
+  ...livretA,
+  code: 'FR_PEA',
+  displayName: 'Plan d’épargne en actions',
+  accountKind: 'PORTFOLIO',
+  wrapperKind: 'TAX_WRAPPER',
+  yieldKind: 'MARKET',
+  yieldGuaranteed: false,
+  ceilingBasis: 'CONTRIBUTIONS',
+  defaultGroupCode: 'INVESTMENTS_MARKET',
+  capabilities: [
+    'SUPPORTS_BALANCE',
+    'SUPPORTS_TRANSACTIONS',
+    'SUPPORTS_HOLDINGS',
+    'SUPPORTS_TRADES',
+    'SUPPORTS_CONTRIBUTIONS',
+  ],
+  rules: [
+    {
+      ...livretA.rules[0]!,
+      kind: 'CONTRIBUTION_CEILING',
+      amount: { value: '150000', assetCode: 'EUR' },
+    },
+  ],
+  unavailableRuleKinds: [],
+};
+
+const euro = {
+  code: 'EUR',
+  kind: 'FIAT',
+  displayName: 'Euro',
+  storagePrecision: 8,
+  displayPrecision: 2,
+  roundingMode: 'HALF_UP',
+  displayStep: { value: '0.01', assetCode: 'EUR' },
 };
 
 function success<T>(data: T, status = 200) {
@@ -72,32 +151,26 @@ function renderPage() {
 }
 
 describe('AccountsPage', () => {
+  beforeEach(() => {
+    // Editing resolves the model an account follows before offering a kind, so
+    // every edit path answers the catalogue read.
+    api.readProduct.mockImplementation(() => success(livretA));
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
   });
 
-  it('covers the empty state and creates an account with its denomination and policies', async () => {
+  it('covers the empty state and creates an account described by hand', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [], page: 1, perPage: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({
-        items: [
-          {
-            code: 'EUR',
-            kind: 'FIAT',
-            displayName: 'Euro',
-            storagePrecision: 8,
-            displayPrecision: 2,
-            roundingMode: 'HALF_UP',
-            displayStep: { value: '0.01', assetCode: 'EUR' },
-          },
-        ],
-        page: 1,
-        perPage: 100,
-        total: 1,
-      }),
+      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
     );
     api.createAccount.mockImplementation(({ body }) => success({ ...account, ...body }, 201));
     const { container } = renderPage();
@@ -105,7 +178,11 @@ describe('AccountsPage', () => {
     expect(await screen.findByRole('heading', { name: 'Aucun compte' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Créer le premier compte' }));
     expect(screen.getByRole('dialog', { name: 'Nouveau compte' })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Livret A Banque X' } });
+
+    expect(await screen.findByRole('radio', { name: /Aucun produit/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Compte courant' } });
     fireEvent.change(screen.getByLabelText('Fin d’identifiant'), { target: { value: '4821' } });
     fireEvent.change(screen.getByLabelText('Date d’ouverture'), {
       target: { value: '2026-01-10' },
@@ -113,13 +190,22 @@ describe('AccountsPage', () => {
     // The denomination comes from the reference, so the form waits for it
     // instead of submitting a currency the user never saw.
     expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    expect(
+      screen.getByText(
+        'Ce compte n’hérite d’aucune règle : aucun produit du catalogue ne lui est rattaché.',
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le compte' }));
 
     await waitFor(() => expect(api.createAccount).toHaveBeenCalledOnce());
     expect(api.createAccount.mock.calls[0]?.[0].body).toMatchObject({
-      label: 'Livret A Banque X',
+      label: 'Compte courant',
       assetCode: 'EUR',
       kind: 'CURRENT',
+      productCode: null,
+      institution: null,
       maskedIdentifier: '4821',
       valuationMode: 'TRANSACTIONS',
       includeInNetWorth: true,
@@ -132,14 +218,150 @@ describe('AccountsPage', () => {
     expect(container.contains(toast)).toBe(false);
   });
 
+  it('inherits the kind of a chosen product and submits only its reference', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.listAssets.mockImplementation(() =>
+      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+    );
+    api.createAccount.mockImplementation(({ body }) => success({ ...account, ...body }, 201));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    fireEvent.click(await screen.findByRole('radio', { name: /Livret A/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    // The catalogue owns the kind, so the field states it instead of offering a
+    // choice the API would refuse.
+    const kind = screen.getByLabelText('Nature du compte') as HTMLSelectElement;
+    expect(kind.value).toBe('SAVINGS');
+    expect(kind.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Livret A Banque X' } });
+    fireEvent.change(screen.getByLabelText('Établissement'), { target: { value: 'Banque X' } });
+    fireEvent.change(screen.getByLabelText('Date d’ouverture'), {
+      target: { value: '2026-01-10' },
+    });
+    expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    // The review shows the ceiling with its period and its official source, and
+    // says the figure is read from the catalogue rather than copied.
+    expect(screen.getByRole('heading', { name: 'Hérité de « Livret A »' })).toBeTruthy();
+    expect(screen.getByText('Plafond de dépôt')).toBeTruthy();
+    expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
+    expect(screen.getByText('Plafond sur le solde déposé')).toBeTruthy();
+    // An unsourced rate is unavailable on this date, never a zero.
+    expect(screen.getByText(/Non disponible au/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le compte' }));
+
+    await waitFor(() => expect(api.createAccount).toHaveBeenCalledOnce());
+    const body = api.createAccount.mock.calls[0]?.[0].body;
+    expect(body).toMatchObject({
+      label: 'Livret A Banque X',
+      institution: 'Banque X',
+      kind: 'SAVINGS',
+      productCode: 'FR_LIVRET_A',
+    });
+    // Only the reference travels: no ceiling, rate or period is copied into the
+    // account, so a regulatory revision is never frozen into it.
+    expect(Object.keys(body as object).sort()).toEqual([
+      'assetCode',
+      'closedOn',
+      'includeInEmergencyFund',
+      'includeInNetWorth',
+      'institution',
+      'kind',
+      'label',
+      'liquidityLevel',
+      'maskedIdentifier',
+      'openedOn',
+      'productCode',
+      'valuationMode',
+    ]);
+  });
+
+  it('states the contribution basis of a share savings plan and promises no yield', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.listAssets.mockImplementation(() =>
+      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [pea], page: 1, perPage: 100, total: 1 }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    fireEvent.click(await screen.findByRole('radio', { name: /épargne en actions/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    // A plan that holds positions is valued by those positions; starting it on
+    // recorded movements would detach its value from what it holds.
+    expect((screen.getByLabelText('Mode de valorisation') as HTMLSelectElement).value).toBe(
+      'PORTFOLIO',
+    );
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'PEA Banque X' } });
+    fireEvent.change(screen.getByLabelText('Date d’ouverture'), {
+      target: { value: '2026-01-10' },
+    });
+
+    // Stepping back to the product must not throw the typed fields away.
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+    expect((screen.getByLabelText('Libellé') as HTMLInputElement).value).toBe('PEA Banque X');
+    expect((screen.getByLabelText('Date d’ouverture') as HTMLInputElement).value).toBe(
+      '2026-01-10',
+    );
+
+    expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    // A PEA is capped on what was paid in, whatever the plan is worth.
+    expect(screen.getByText('Plafond sur les versements cumulés')).toBeTruthy();
+    expect(screen.getByText('Plafond de versements')).toBeTruthy();
+    expect(screen.queryByText('Plafond de dépôt')).toBeNull();
+    expect(
+      screen.getByText(
+        'Aucun rendement promis : la valeur de ce compte dépend des actifs détenus, pas d’un taux du catalogue.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText('Rendement garanti')).toBeNull();
+  });
+
+  it('lets an unreadable catalogue fall back to an account described by hand', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.listAssets.mockImplementation(() =>
+      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProducts.mockImplementation(() => failure(500));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    expect(await screen.findByRole('heading', { name: 'Catalogue indisponible' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer sans produit' }));
+
+    expect(screen.getByLabelText('Libellé')).toBeTruthy();
+  });
+
   it('refuses to create an account when the asset reference cannot be read', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [], page: 1, perPage: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() => failure(500));
+    api.listProducts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuer' }));
     fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Compte courant' } });
     fireEvent.change(screen.getByLabelText('Date d’ouverture'), {
       target: { value: '2026-01-10' },
@@ -147,7 +369,7 @@ describe('AccountsPage', () => {
     expect(
       await screen.findByText('Impossible de charger le référentiel des devises.'),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
     // The denomination is fixed at creation: a silent EUR fallback could never
     // be corrected afterwards.
@@ -166,9 +388,13 @@ describe('AccountsPage', () => {
     api.listAssets.mockImplementation(() =>
       success({ items: [], page: 1, perPage: 100, total: 0 }),
     );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuer' }));
     fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Compte courant' } });
     fireEvent.change(screen.getByLabelText('Date d’ouverture'), {
       target: { value: '2026-01-10' },
@@ -177,7 +403,7 @@ describe('AccountsPage', () => {
       target: { value: 'FR763000' },
     });
     fireEvent.change(screen.getByLabelText('Date de clôture'), { target: { value: '2026-01-09' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
     expect(api.createAccount).not.toHaveBeenCalled();
     expect(
@@ -195,6 +421,12 @@ describe('AccountsPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Modifier le compte Livret A Banque X' }),
     );
+    // The account follows a catalogue model, so its kind is the product's to
+    // state rather than the form's to offer.
+    const kind = (await screen.findByLabelText('Nature du compte')) as HTMLSelectElement;
+    expect(kind.disabled).toBe(true);
+    expect(screen.getByText('La nature est imposée par le produit « Livret A ».')).toBeTruthy();
+
     const emergencyFund = screen.getByLabelText('Compter ce compte dans l’épargne de précaution');
     expect((emergencyFund as HTMLInputElement).checked).toBe(true);
 
@@ -243,13 +475,14 @@ describe('AccountsPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Modifier le compte Livret A Banque X' }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer' }));
     expect(
       await screen.findByText('Un compte actif porte déjà ce libellé. Choisissez-en un autre.'),
     ).toBeTruthy();
 
     cleanup();
     vi.clearAllMocks();
+    api.readProduct.mockImplementation(() => success(livretA));
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 50, total: 1 }),
     );
@@ -259,7 +492,7 @@ describe('AccountsPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Modifier le compte Livret A Banque X' }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer' }));
     expect(
       await screen.findByText(
         'Ce compte a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le compte puis réappliquez votre modification.',

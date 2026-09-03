@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Domain;
 
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
@@ -15,10 +16,16 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  * It carries no balance. A value arrives later from recorded movements, dated
  * valuations or portfolio positions, and the absence of one stays absent: this
  * aggregate never invents a starting figure to make an account look complete.
+ *
+ * A product-backed account keeps only the catalogue reference, never a copy of
+ * what the catalogue said. A ceiling or a rate is read from the catalogue on
+ * the business date it is needed, so a regulatory revision reaches every
+ * account at once instead of freezing yesterday's figure into a row.
  */
 final readonly class Account
 {
     public const int MAX_LABEL_LENGTH = 80;
+    public const int MAX_INSTITUTION_LENGTH = 80;
     public const string MIN_OPENED_ON = '1900-01-01';
 
     public function __construct(
@@ -27,6 +34,8 @@ final readonly class Account
         public string $label,
         public AssetCode $assetCode,
         public AccountKind $kind,
+        public ?ProductCode $productCode,
+        public ?string $institution,
         public ?MaskedIdentifier $maskedIdentifier,
         public AccountValuationMode $valuationMode,
         public LiquidityLevel $liquidityLevel,
@@ -42,6 +51,7 @@ final readonly class Account
     ) {
         self::assertIdentifier($id);
         self::assertLabel($label);
+        self::assertInstitution($institution);
 
         if (!$valuationMode->acceptsKind($kind)) {
             throw new InvalidAccount('A portfolio valuation requires an account kind that holds positions.');
@@ -67,6 +77,8 @@ final readonly class Account
     public function reconfigure(
         string $label,
         AccountKind $kind,
+        ?ProductCode $productCode,
+        ?string $institution,
         ?MaskedIdentifier $maskedIdentifier,
         AccountValuationMode $valuationMode,
         LiquidityLevel $liquidityLevel,
@@ -82,12 +94,21 @@ final readonly class Account
             throw new InvalidAccount('A used account cannot change kind.');
         }
 
+        // Swapping the product of an account that already carries history would
+        // re-read every past movement against another set of dated rules — a
+        // Livret A ceiling becoming a PEA contribution ceiling, retroactively.
+        if (null !== $this->usedAt && !self::sameProduct($this->productCode, $productCode)) {
+            throw new InvalidAccount('A used account cannot change product.');
+        }
+
         return new self(
             id: $this->id,
             workspace: $this->workspace,
             label: trim($label),
             assetCode: $this->assetCode,
             kind: $kind,
+            productCode: $productCode,
+            institution: $institution,
             maskedIdentifier: $maskedIdentifier,
             valuationMode: $valuationMode,
             liquidityLevel: $liquidityLevel,
@@ -117,6 +138,8 @@ final readonly class Account
             label: $this->label,
             assetCode: $this->assetCode,
             kind: $this->kind,
+            productCode: $this->productCode,
+            institution: $this->institution,
             maskedIdentifier: $this->maskedIdentifier,
             valuationMode: $this->valuationMode,
             liquidityLevel: $this->liquidityLevel,
@@ -158,6 +181,36 @@ final readonly class Account
     {
         if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
             throw new InvalidAccount('An account identifier must be a canonical UUID.');
+        }
+    }
+
+    private static function sameProduct(?ProductCode $current, ?ProductCode $candidate): bool
+    {
+        if (null === $current || null === $candidate) {
+            return null === $current && null === $candidate;
+        }
+
+        return $current->equals($candidate);
+    }
+
+    /**
+     * The institution is free text the holder recognises their account by, so
+     * it is bounded and trimmed like the label rather than validated against a
+     * list: no reference of banks and insurers ships with the application, and
+     * inventing one would refuse a legitimate name.
+     */
+    private static function assertInstitution(?string $institution): void
+    {
+        if (null === $institution) {
+            return;
+        }
+
+        if ($institution !== trim($institution) || '' === $institution || mb_strlen($institution) > self::MAX_INSTITUTION_LENGTH) {
+            throw new InvalidAccount(sprintf('An account institution must contain between 1 and %d characters.', self::MAX_INSTITUTION_LENGTH));
+        }
+
+        if (1 === preg_match('/[\p{Cc}\p{Cf}]/u', $institution)) {
+            throw new InvalidAccount('An account institution cannot contain control characters.');
         }
     }
 
