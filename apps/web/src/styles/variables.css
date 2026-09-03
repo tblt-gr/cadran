@@ -100,12 +100,13 @@
   /* Borders */
   --border-none: 0;
   --border-width-thin: 0.0625rem;
-  --border-width-focus: 0.1875rem;
+  --border-width-focus: 0.125rem;
   --border-width-loading: 0.25rem;
   --border-line-subtle: var(--border-width-thin) solid var(--border-subtle);
   --border-line-strong: var(--border-width-thin) solid var(--border-strong);
   --border-line-transparent: var(--border-width-thin) solid var(--color-transparent);
   --outline-focus: var(--border-width-focus) solid var(--focus);
+  --outline-offset-focus: var(--border-width-thin);
   --radius-none: 0;
   --radius-control: 0.5rem;
   --radius-card: 0.75rem;

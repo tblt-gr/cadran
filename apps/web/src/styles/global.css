@@ -68,7 +68,7 @@ a {
 
 :focus-visible {
   outline: var(--outline-focus);
-  outline-offset: var(--border-width-focus);
+  outline-offset: var(--outline-offset-focus);
 }
 
 * {
