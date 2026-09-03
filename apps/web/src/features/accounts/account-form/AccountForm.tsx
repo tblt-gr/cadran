@@ -10,6 +10,7 @@ import type {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AccountErrorKind } from '@/features/accounts/accountError';
+import { todayInBrowser } from '@/lib/businessDay';
 import {
   accountFormValues,
   emptyAccountFormValues,
@@ -69,7 +70,7 @@ export function AccountForm({
   const [showErrors, setShowErrors] = useState(false);
 
   const assets = useAssetOptions(assetSelection);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBrowser();
   const cleanLabel = label.trim();
   const cleanInstitution = institution.trim();
   const identifier = maskedIdentifier.trim().toUpperCase();
