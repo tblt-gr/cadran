@@ -78,3 +78,27 @@ api:
     category_forbidden:
       title: 'Catégories inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    invalid_account_query:
+      title: 'Requête de comptes invalide'
+      detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
+    invalid_account:
+      title: 'Compte invalide'
+      detail: "Vérifiez le libellé, la devise, la nature, le mode de valorisation et les dates d'ouverture et de clôture du compte."
+    account_payload_too_large:
+      title: 'Corps de compte trop volumineux'
+      detail: 'Le corps JSON dépasse la taille maximale autorisée.'
+    account_label_taken:
+      title: 'Libellé de compte déjà utilisé'
+      detail: 'Un compte actif de cet espace porte déjà ce libellé. Choisissez un autre libellé.'
+    account_stale_version:
+      title: 'Compte modifié entre-temps'
+      detail: 'Le compte a été modifié par une autre requête. Rechargez le compte puis réappliquez la modification.'
+    account_archived:
+      title: 'Compte archivé'
+      detail: "Un compte archivé est en lecture seule et n'accepte plus de modification."
+    account_not_found:
+      title: 'Compte introuvable'
+      detail: 'Aucun compte ne porte cet identifiant dans cet espace de travail.'
+    account_forbidden:
+      title: 'Comptes inaccessibles'
+      detail: "Cette session n'est rattachée à aucun espace de travail."

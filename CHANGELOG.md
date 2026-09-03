@@ -4,6 +4,20 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Workspace-scoped financial accounts carrying a free label, a denomination taken from the system
+  asset reference, an account kind, a masked identifier suffix, a valuation mode, a liquidity level,
+  net-worth and emergency-fund inclusion policies and opening and closing dates. Managed through
+  `/api/v1/accounts` and the responsive accounts interface, with optimistic versioning, archiving
+  instead of deletion, and a redacted audit event for every creation, edit, closure, reopening and
+  archive.
+- Net-worth sign convention on every account: an asset contributes positively and a liability
+  negatively, stated by the API and displayed in words rather than by colour alone. No balance is
+  implied — an account carries no amount until valuations exist.
+
 ## [0.1.0] - 2026-09-02
 
 ### Added

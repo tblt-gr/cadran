@@ -136,6 +136,133 @@
       "title": "Mise à jour requise"
     }
   },
+  "accounts": {
+    "eyebrow": "Patrimoine de l’espace",
+    "title": "Comptes et supports",
+    "description": "Décrivez chaque compte : devise, nature, dates de vie et portée patrimoniale. Les soldes arrivent avec les valorisations.",
+    "add": "Nouveau compte",
+    "addFirst": "Créer le premier compte",
+    "includeClosed": "Afficher les comptes clôturés",
+    "includeArchived": "Afficher les comptes archivés",
+    "loading": "Chargement des comptes…",
+    "saved": "Le compte a été enregistré.",
+    "archived": "Le compte a été archivé.",
+    "fields": {
+      "label": "Libellé",
+      "assetCode": "Devise ou actif",
+      "kind": "Nature du compte",
+      "maskedIdentifier": "Fin d’identifiant",
+      "valuationMode": "Mode de valorisation",
+      "liquidityLevel": "Disponibilité",
+      "inclusion": "Portée patrimoniale",
+      "includeInNetWorth": "Compter ce compte dans le patrimoine net",
+      "includeInEmergencyFund": "Compter ce compte dans l’épargne de précaution",
+      "openedOn": "Date d’ouverture",
+      "closedOn": "Date de clôture",
+      "contribution": "Contribution"
+    },
+    "kinds": {
+      "CURRENT": "Compte courant",
+      "SAVINGS": "Livret ou épargne",
+      "PORTFOLIO": "Compte-titres ou PEA",
+      "INSURANCE_CONTRACT": "Assurance-vie",
+      "EMPLOYEE_BENEFIT": "Épargne salariale ou retraite",
+      "CASH": "Espèces",
+      "REAL_ASSET": "Actif réel",
+      "LIABILITY": "Passif ou emprunt"
+    },
+    "valuationModes": {
+      "TRANSACTIONS": "Mouvements enregistrés",
+      "SNAPSHOTS": "Valorisations datées",
+      "PORTFOLIO": "Positions du portefeuille"
+    },
+    "liquidityLevels": {
+      "IMMEDIATE": "Immédiate",
+      "SHORT_TERM": "Court terme",
+      "MEDIUM_TERM": "Moyen terme",
+      "LONG_TERM": "Long terme",
+      "ILLIQUID": "Non liquide"
+    },
+    "statuses": {
+      "ACTIVE": "Actif",
+      "CLOSED": "Clôturé",
+      "ARCHIVED": "Archivé"
+    },
+    "contribution": {
+      "asset": "Actif (+)",
+      "liability": "Passif (−)",
+      "excluded": "Hors patrimoine net"
+    },
+    "form": {
+      "createEyebrow": "Création",
+      "createTitle": "Nouveau compte",
+      "editEyebrow": "Modification",
+      "editTitle": "Modifier le compte",
+      "assetsLoading": "Chargement du référentiel des devises…",
+      "assetsError": "Impossible de charger le référentiel des devises.",
+      "assetLocked": "La devise est fixée à la création : la modifier réinterpréterait les montants déjà enregistrés.",
+      "maskedIdentifierHint": "Uniquement la fin de l’identifiant, 2 à 8 caractères. Ne saisissez jamais un IBAN complet.",
+      "closedOnHint": "Laissez vide tant que le compte est ouvert. Une date le clôture, l’effacer le rouvre.",
+      "emergencyFundHint": "Un compte exclu du patrimoine net ne peut pas alimenter l’épargne de précaution.",
+      "kindReasons": {
+        "ARCHIVED": "La nature d’un compte archivé est verrouillée.",
+        "USED": "La nature est verrouillée car ce compte est déjà utilisé."
+      },
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "archive": {
+      "eyebrow": "Archivage",
+      "title": "Archiver le compte",
+      "description": "Le compte « {{label}} » va quitter la liste de travail.",
+      "consequences": "Rien n’est supprimé : l’historique reste attaché au compte, son libellé redevient disponible et le compte n’est plus modifiable.",
+      "confirm": "Archiver",
+      "confirming": "Archivage…"
+    },
+    "validation": {
+      "label": "Le libellé doit contenir entre 1 et 80 caractères.",
+      "maskedIdentifier": "Saisissez 2 à 8 chiffres ou lettres majuscules, sans espace.",
+      "openedOn": "La date d’ouverture est obligatoire et ne peut pas être future.",
+      "closedOn": "La date de clôture doit suivre l’ouverture et ne peut pas être future.",
+      "valuationMode": "Seuls les comptes qui portent des positions acceptent la valorisation par portefeuille.",
+      "assetCode": "Choisissez une devise du référentiel. Elle est fixée à la création et ne pourra plus être changée."
+    },
+    "errors": {
+      "conflict": "Un compte actif porte déjà ce libellé. Choisissez-en un autre.",
+      "stale": "Ce compte a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le compte puis réappliquez votre modification.",
+      "archived": "Ce compte est archivé et ne peut plus être modifié.",
+      "invalid": "Le compte est invalide. Vérifiez la nature, le mode de valorisation et les dates.",
+      "network": "L’enregistrement a échoué. Réessayez."
+    },
+    "empty": {
+      "title": "Aucun compte",
+      "description": "Créez un compte pour préparer le suivi des soldes et du patrimoine net."
+    },
+    "error": {
+      "title": "Comptes indisponibles",
+      "description": "La liste des comptes n’a pas pu être chargée."
+    },
+    "unauthorized": {
+      "title": "Session expirée",
+      "description": "Reconnectez-vous pour consulter les comptes de cet espace."
+    },
+    "list": {
+      "caption": "Comptes de l’espace de travail",
+      "status": "Statut",
+      "actions": "Actions",
+      "edit": "Modifier",
+      "archive": "Archiver",
+      "editAccount": "Modifier le compte {{label}}",
+      "archiveAccount": "Archiver le compte {{label}}"
+    },
+    "pagination": {
+      "label": "Pagination des comptes",
+      "previous": "Page précédente",
+      "next": "Page suivante",
+      "position": "Page {{page}} sur {{total}}"
+    }
+  },
   "categories": {
     "eyebrow": "Référentiel de l’espace",
     "title": "Catégories et axes analytiques",

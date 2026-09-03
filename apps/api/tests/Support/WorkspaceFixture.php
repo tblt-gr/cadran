@@ -116,6 +116,7 @@ final readonly class WorkspaceFixture
     public function reset(): void
     {
         $this->connection->executeStatement('TRUNCATE TABLE audit_events');
+        $this->connection->executeStatement('DELETE FROM account_financial_accounts');
         $this->connection->executeStatement('DELETE FROM category_categories');
         $this->connection->executeStatement('DELETE FROM identity_initial_provisionings');
         $this->connection->executeStatement('DELETE FROM identity_workspace_memberships');
