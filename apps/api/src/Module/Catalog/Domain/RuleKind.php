@@ -36,6 +36,21 @@ enum RuleKind: string
     }
 
     /**
+     * What this rule caps, when it caps anything. A contribution ceiling is
+     * measured on what was paid in and a deposit ceiling on what is held, so
+     * the two can never be checked against the same figure.
+     */
+    public function ceilingBasis(): CeilingBasis
+    {
+        return match ($this) {
+            self::DEPOSIT_CEILING => CeilingBasis::BALANCE,
+            self::CONTRIBUTION_CEILING,
+            self::COMBINED_CONTRIBUTION_CEILING => CeilingBasis::CONTRIBUTIONS,
+            default => CeilingBasis::NONE,
+        };
+    }
+
+    /**
      * Whether the rule states a return owed to the holder. Only these may be
      * attached to a product whose yield accepts a rate.
      */

@@ -9,6 +9,8 @@ final readonly class UpdateAccountInput
     public function __construct(
         public string $label,
         public string $kind,
+        public ?string $productCode,
+        public ?string $institution,
         public ?string $maskedIdentifier,
         public string $valuationMode,
         public string $liquidityLevel,

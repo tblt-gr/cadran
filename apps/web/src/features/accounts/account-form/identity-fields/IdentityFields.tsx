@@ -1,4 +1,4 @@
-import type { Account, AccountKind } from '@cadran/api-client';
+import type { Account, AccountKind, Product } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { AssetField } from '@/features/accounts/account-form/asset-field/AssetField';
 import { FormField } from '@/features/accounts/account-form/form-field/FormField';
@@ -20,37 +20,47 @@ interface IdentityFieldsProps {
   assetInvalid: boolean;
   assets: AssetOptions;
   identifierInvalid: boolean;
+  institution: string;
+  institutionInvalid: boolean;
   kind: AccountKind;
   label: string;
   labelInvalid: boolean;
   maskedIdentifier: string;
   onAssetChange: (assetCode: string) => void;
+  onInstitutionChange: (institution: string) => void;
   onKindChange: (kind: AccountKind) => void;
   onLabelChange: (label: string) => void;
   onMaskedIdentifierChange: (identifier: string) => void;
+  product: Product | null;
 }
 
 /**
- * What names an account: its free label, its denomination, its kind and the
- * visible tail of its identifier. The denomination is a read-only reminder once
- * the account exists, because changing it would reinterpret every figure
- * already recorded against it.
+ * What names an account: its free label, where it is held, its denomination,
+ * its kind and the visible tail of its identifier. The denomination is a
+ * read-only reminder once the account exists, because changing it would
+ * reinterpret every figure already recorded against it. The kind is read-only
+ * too whenever a product declares it: the catalogue is the authority there.
  */
 export function IdentityFields({
   account,
   assetInvalid,
   assets,
   identifierInvalid,
+  institution,
+  institutionInvalid,
   kind,
   label,
   labelInvalid,
   maskedIdentifier,
   onAssetChange,
+  onInstitutionChange,
   onKindChange,
   onLabelChange,
   onMaskedIdentifierChange,
+  product,
 }: IdentityFieldsProps) {
   const { t } = useTranslation();
+  const kindLocked = product !== null || (account ? !account.kindEditable : false);
 
   return (
     <>
@@ -70,6 +80,25 @@ export function IdentityFields({
             onChange={(event) => onLabelChange(event.target.value)}
             required
             value={label}
+          />
+        )}
+      </FormField>
+
+      <FormField
+        error={institutionInvalid ? t('accounts.validation.institution') : undefined}
+        hint={institutionInvalid ? undefined : t('accounts.form.institutionHint')}
+        label={t('accounts.fields.institution')}
+        name="institution"
+      >
+        {({ fieldId, describedBy }) => (
+          <input
+            aria-describedby={describedBy}
+            aria-invalid={institutionInvalid ? true : undefined}
+            autoComplete="off"
+            id={fieldId}
+            maxLength={80}
+            onChange={(event) => onInstitutionChange(event.target.value)}
+            value={institution}
           />
         )}
       </FormField>
@@ -96,9 +125,11 @@ export function IdentityFields({
 
       <FormField
         hint={
-          account && !account.kindEditable
-            ? t(`accounts.form.kindReasons.${account.kindEditReason ?? 'USED'}`)
-            : undefined
+          product
+            ? t('accounts.form.kindFromProduct', { product: product.displayName })
+            : account && !account.kindEditable
+              ? t(`accounts.form.kindReasons.${account.kindEditReason ?? 'USED'}`)
+              : undefined
         }
         label={t('accounts.fields.kind')}
         name="kind"
@@ -106,7 +137,7 @@ export function IdentityFields({
         {({ fieldId, describedBy }) => (
           <select
             aria-describedby={describedBy}
-            disabled={account ? !account.kindEditable : false}
+            disabled={kindLocked}
             id={fieldId}
             onChange={(event) => onKindChange(event.target.value as AccountKind)}
             value={kind}

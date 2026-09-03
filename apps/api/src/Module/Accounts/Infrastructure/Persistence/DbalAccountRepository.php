@@ -27,7 +27,7 @@ final readonly class DbalAccountRepository implements AccountRepository
         'include_in_emergency_fund' => ParameterType::BOOLEAN,
     ];
 
-    private const string COLUMNS = 'id, workspace_id, label, asset_code, kind, masked_identifier, valuation_mode, liquidity_level, include_in_net_worth, include_in_emergency_fund, opened_on, closed_on, version, created_at, updated_at, used_at, archived_at';
+    private const string COLUMNS = 'id, workspace_id, label, asset_code, kind, product_code, institution, masked_identifier, valuation_mode, liquidity_level, include_in_net_worth, include_in_emergency_fund, opened_on, closed_on, version, created_at, updated_at, used_at, archived_at';
 
     public function __construct(private Connection $connection)
     {

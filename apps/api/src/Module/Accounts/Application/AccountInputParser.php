@@ -60,6 +60,21 @@ final class AccountInputParser
         }
     }
 
+    /**
+     * A blank institution is an absent one: a form that clears the field must
+     * store "unknown", not an empty name the domain would then refuse.
+     */
+    public static function institution(?string $value): ?string
+    {
+        if (null === $value) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return '' === $trimmed ? null : $trimmed;
+    }
+
     public static function optionalBusinessDay(?string $value, string $field): ?\DateTimeImmutable
     {
         return null === $value ? null : self::businessDay($value, $field);

@@ -6,10 +6,13 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountRepository;
+use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Accounts\Domain\InvalidAccount;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
+use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceContext;
@@ -20,6 +23,7 @@ final readonly class UpdateAccount
     public function __construct(
         private CallerWorkspaceContext $caller,
         private AccountRepository $accounts,
+        private AccountProduct $products,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
@@ -36,6 +40,7 @@ final readonly class UpdateAccount
         $openedOn = AccountInputParser::businessDay($input->openedOn, 'opening date');
         $closedOn = AccountInputParser::optionalBusinessDay($input->closedOn, 'closing date');
         $label = trim($input->label);
+        $institution = AccountInputParser::institution($input->institution);
 
         return $this->transactionBoundary->transactional(function () use (
             $id,
@@ -43,6 +48,7 @@ final readonly class UpdateAccount
             $context,
             $label,
             $kind,
+            $institution,
             $maskedIdentifier,
             $valuationMode,
             $liquidityLevel,
@@ -66,10 +72,14 @@ final readonly class UpdateAccount
                 throw new AccountConflict('An active account already uses this label.');
             }
 
+            $productCode = $this->resolveProduct($current, $input->productCode, $kind, $valuationMode);
+
             try {
                 $updated = $current->reconfigure(
                     label: $label,
                     kind: $kind,
+                    productCode: $productCode,
+                    institution: $institution,
                     maskedIdentifier: $maskedIdentifier,
                     valuationMode: $valuationMode,
                     liquidityLevel: $liquidityLevel,
@@ -91,6 +101,29 @@ final readonly class UpdateAccount
 
             return AccountView::fromAccount($updated);
         });
+    }
+
+    /**
+     * Resolving the product on every edit would lock an account out of renaming
+     * once the catalogue archives its model. An untouched product, kind and
+     * valuation mode were already checked against the catalogue at creation, so
+     * they are kept as they stand; changing any of the three sends the whole
+     * triple back through a product the catalogue currently vouches for.
+     */
+    private function resolveProduct(
+        Account $current,
+        ?string $submitted,
+        AccountKind $kind,
+        AccountValuationMode $valuationMode,
+    ): ?ProductCode {
+        if ($submitted === $current->productCode?->toString()
+            && $kind === $current->kind
+            && $valuationMode === $current->valuationMode
+        ) {
+            return $current->productCode;
+        }
+
+        return $this->products->resolve($submitted, $kind, $valuationMode);
     }
 
     /**

@@ -10,6 +10,8 @@ final readonly class CreateAccountInput
         public string $label,
         public string $assetCode,
         public string $kind,
+        public ?string $productCode,
+        public ?string $institution,
         public ?string $maskedIdentifier,
         public string $valuationMode,
         public string $liquidityLevel,

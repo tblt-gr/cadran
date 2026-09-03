@@ -1,9 +1,16 @@
-import type { AccountKind, AccountValuationMode, LiquidityLevel } from '@cadran/api-client';
+import type {
+  AccountKind,
+  AccountValuationMode,
+  LiquidityLevel,
+  Product,
+} from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { FormField } from '@/features/accounts/account-form/form-field/FormField';
 import { POSITION_KINDS } from '@/features/accounts/account-form/positionKinds';
-
-const VALUATION_MODES: AccountValuationMode[] = ['TRANSACTIONS', 'SNAPSHOTS', 'PORTFOLIO'];
+import {
+  productFeedsValuationMode,
+  VALUATION_MODES,
+} from '@/features/accounts/account-form/valuationModes';
 
 const LIQUIDITY_LEVELS: LiquidityLevel[] = [
   'IMMEDIATE',
@@ -19,13 +26,15 @@ interface ValuationFieldsProps {
   liquidityLevel: LiquidityLevel;
   onLiquidityLevelChange: (level: LiquidityLevel) => void;
   onValuationModeChange: (mode: AccountValuationMode) => void;
+  product: Product | null;
   valuationMode: AccountValuationMode;
 }
 
 /**
  * Where the value of the account will come from, and how fast that value can be
  * spent. A portfolio valuation is offered only for a kind that holds positions,
- * so the impossible combination cannot be picked in the first place.
+ * and a mode the chosen product does not feed is offered for no kind at all, so
+ * the impossible combination cannot be picked in the first place.
  */
 export function ValuationFields({
   invalid,
@@ -33,6 +42,7 @@ export function ValuationFields({
   liquidityLevel,
   onLiquidityLevelChange,
   onValuationModeChange,
+  product,
   valuationMode,
 }: ValuationFieldsProps) {
   const { t } = useTranslation();
@@ -41,6 +51,7 @@ export function ValuationFields({
     <>
       <FormField
         error={invalid ? t('accounts.validation.valuationMode') : undefined}
+        hint={product ? t('accounts.form.valuationFromProduct') : undefined}
         label={t('accounts.fields.valuationMode')}
         name="valuation-mode"
       >
@@ -54,7 +65,10 @@ export function ValuationFields({
           >
             {VALUATION_MODES.map((option) => (
               <option
-                disabled={option === 'PORTFOLIO' && !POSITION_KINDS.includes(kind)}
+                disabled={
+                  (option === 'PORTFOLIO' && !POSITION_KINDS.includes(kind)) ||
+                  !productFeedsValuationMode(product, option)
+                }
                 key={option}
                 value={option}
               >

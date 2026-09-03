@@ -11,6 +11,7 @@ use App\Module\Accounts\Domain\LiquidityLevel;
 use App\Module\Accounts\Domain\MaskedIdentifier;
 use App\Module\Accounts\Infrastructure\Persistence\DbalAccountRepository;
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Tests\Support\WorkspaceFixture;
@@ -104,6 +105,8 @@ final class AccountPersistenceTest extends KernelTestCase
         $renamed = $account->reconfigure(
             label: 'Livret A Banque Y',
             kind: $account->kind,
+            productCode: $account->productCode,
+            institution: $account->institution,
             maskedIdentifier: $account->maskedIdentifier,
             valuationMode: $account->valuationMode,
             liquidityLevel: $account->liquidityLevel,
@@ -129,6 +132,18 @@ final class AccountPersistenceTest extends KernelTestCase
         self::assertSame('2026-01-10', $stored->openedOn->format('Y-m-d'));
         self::assertSame('2026-02-01', $stored->closedOn?->format('Y-m-d'));
         self::assertSame('4821', (string) $stored->maskedIdentifier);
+        self::assertSame('FR_LIVRET_A', $stored->productCode?->toString());
+        self::assertSame('Banque X', $stored->institution);
+    }
+
+    public function testAnAccountDescribedByHandStoresNoProductReference(): void
+    {
+        $this->repository->add($this->account(self::OWN_ACCOUNT, WorkspaceFixture::own(), productCode: null, institution: null));
+
+        $stored = $this->repository->findForUpdate(WorkspaceFixture::own(), self::OWN_ACCOUNT);
+        self::assertNotNull($stored);
+        self::assertNull($stored->productCode);
+        self::assertNull($stored->institution);
     }
 
     /**
@@ -150,6 +165,8 @@ final class AccountPersistenceTest extends KernelTestCase
             'label' => 'Livret A Banque X',
             'asset_code' => 'EUR',
             'kind' => 'SAVINGS',
+            'product_code' => 'FR_LIVRET_A',
+            'institution' => 'Banque X',
             'masked_identifier' => '4821',
             'valuation_mode' => 'TRANSACTIONS',
             'liquidity_level' => 'IMMEDIATE',
@@ -200,6 +217,23 @@ final class AccountPersistenceTest extends KernelTestCase
             ['asset_code' => 'ZZZ'],
             '/asset_fk/',
         ];
+        // The catalogue carries no workspace, so an unknown code and a code
+        // belonging elsewhere are one and the same refusal here.
+        yield 'unknown product' => [
+            ['product_code' => 'FR_UNKNOWN_PRODUCT'],
+            '/product_fk/',
+        ];
+        // The reference is (code, kind), so a PEA cannot be filed as a passbook
+        // by any writer: a later ceiling check would then read the deposited
+        // balance instead of the cumulative contributions.
+        yield 'product filed under another kind' => [
+            ['product_code' => 'FR_PEA', 'kind' => 'SAVINGS'],
+            '/product_fk/',
+        ];
+        yield 'blank institution' => [
+            ['institution' => '   '],
+            '/institution_present/',
+        ];
     }
 
     private function account(
@@ -207,6 +241,8 @@ final class AccountPersistenceTest extends KernelTestCase
         WorkspaceScope $workspace,
         string $label = 'Livret A Banque X',
         ?string $closedOn = null,
+        ?string $productCode = 'FR_LIVRET_A',
+        ?string $institution = 'Banque X',
     ): Account {
         $utc = new \DateTimeZone('UTC');
         $now = new \DateTimeImmutable('2026-09-01T12:00:00+00:00');
@@ -217,6 +253,8 @@ final class AccountPersistenceTest extends KernelTestCase
             label: $label,
             assetCode: AssetCode::fromString('EUR'),
             kind: AccountKind::SAVINGS,
+            productCode: null === $productCode ? null : ProductCode::fromString($productCode),
+            institution: $institution,
             maskedIdentifier: MaskedIdentifier::fromString('4821'),
             valuationMode: AccountValuationMode::TRANSACTIONS,
             liquidityLevel: LiquidityLevel::IMMEDIATE,

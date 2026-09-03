@@ -162,6 +162,34 @@ final class ProductCatalogControllerTest extends WebTestCase
     }
 
     /**
+     * A plan whose market value passed its ceiling has broken no rule, so the
+     * basis has to be stated rather than guessed from the amount at hand.
+     *
+     * @param 'BALANCE'|'CONTRIBUTIONS'|'NONE' $basis
+     */
+    #[DataProvider('ceilingBases')]
+    public function testTheCeilingBasisIsStatedByTheServer(string $code, string $basis): void
+    {
+        $this->signIn(WorkspaceFixture::OWNER_EMAIL);
+
+        $this->client->request('GET', '/api/v1/products/'.$code);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame($basis, $this->decode()['ceilingBasis']);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function ceilingBases(): iterable
+    {
+        yield 'a regulated passbook is capped on its balance' => ['FR_LIVRET_A', 'BALANCE'];
+        yield 'a share savings plan is capped on its contributions' => ['FR_PEA', 'CONTRIBUTIONS'];
+        yield 'a securities account is capped by nothing' => ['FR_CTO', 'NONE'];
+        yield 'a life-insurance contract is capped by nothing' => ['FR_LIFE_INSURANCE', 'NONE'];
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function marketProducts(): iterable

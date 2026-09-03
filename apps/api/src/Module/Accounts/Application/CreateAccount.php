@@ -22,6 +22,7 @@ final readonly class CreateAccount
         private CallerWorkspaceContext $caller,
         private AccountRepository $accounts,
         private AssetCatalog $assets,
+        private AccountProduct $products,
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
@@ -40,6 +41,11 @@ final readonly class CreateAccount
         $openedOn = AccountInputParser::businessDay($input->openedOn, 'opening date');
         $closedOn = AccountInputParser::optionalBusinessDay($input->closedOn, 'closing date');
         $label = trim($input->label);
+        $institution = AccountInputParser::institution($input->institution);
+        // The catalogue decides whether the submitted kind and valuation mode
+        // are the ones this product declares, so a tampered form cannot file a
+        // PEA as a plain savings account.
+        $productCode = $this->products->resolve($input->productCode, $kind, $valuationMode);
 
         // The asset reference is global and read-only, so an unknown code is a
         // client error rather than something the workspace could create.
@@ -52,6 +58,8 @@ final readonly class CreateAccount
             $label,
             $assetCode,
             $kind,
+            $productCode,
+            $institution,
             $maskedIdentifier,
             $valuationMode,
             $liquidityLevel,
@@ -72,6 +80,8 @@ final readonly class CreateAccount
                     label: $label,
                     assetCode: $assetCode,
                     kind: $kind,
+                    productCode: $productCode,
+                    institution: $institution,
                     maskedIdentifier: $maskedIdentifier,
                     valuationMode: $valuationMode,
                     liquidityLevel: $liquidityLevel,

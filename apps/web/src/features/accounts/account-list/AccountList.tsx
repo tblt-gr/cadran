@@ -41,7 +41,16 @@ export function AccountList({ accounts, onArchive, onEdit }: AccountListProps) {
               <tr key={account.id}>
                 <th scope="row">
                   <span>{account.label}</span>
-                  {account.maskedIdentifier ? <small>••{account.maskedIdentifier}</small> : null}
+                  {account.institution || account.maskedIdentifier ? (
+                    <small>
+                      {[
+                        account.institution,
+                        account.maskedIdentifier && `••${account.maskedIdentifier}`,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </small>
+                  ) : null}
                 </th>
                 <td>{t(`accounts.kinds.${account.kind}`)}</td>
                 <td>{account.assetCode}</td>

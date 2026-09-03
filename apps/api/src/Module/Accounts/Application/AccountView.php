@@ -13,6 +13,8 @@ final readonly class AccountView
         public string $label,
         public string $assetCode,
         public string $kind,
+        public ?string $productCode,
+        public ?string $institution,
         public ?string $maskedIdentifier,
         public string $valuationMode,
         public string $liquidityLevel,
@@ -40,6 +42,10 @@ final readonly class AccountView
             label: $account->label,
             assetCode: $account->assetCode->toString(),
             kind: $account->kind->value,
+            // The catalogue reference only. The rules behind it are read on the
+            // business date they are needed, never copied into the account.
+            productCode: $account->productCode?->toString(),
+            institution: $account->institution,
             maskedIdentifier: $account->maskedIdentifier?->toString(),
             valuationMode: $account->valuationMode->value,
             liquidityLevel: $account->liquidityLevel->value,

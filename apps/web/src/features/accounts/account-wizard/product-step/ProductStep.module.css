@@ -1,0 +1,98 @@
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.state {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.state h3,
+.state p {
+  margin: var(--spacing-none);
+}
+
+.state p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  gap: var(--spacing-2);
+}
+
+.choices legend {
+  padding: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.resolved,
+.empty {
+  margin: var(--spacing-2) var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  gap: var(--spacing-3);
+  cursor: pointer;
+}
+
+.choice:hover {
+  background: var(--bg-surface-hover);
+}
+
+.choice:has(input:checked) {
+  border-color: var(--gold-300);
+}
+
+.choice > span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.choice strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+}
+
+.choice small {
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: var(--spacing-1);
+  gap: var(--spacing-2);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-4);
+}

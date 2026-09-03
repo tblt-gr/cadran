@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Domain;
 
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Catalog\Domain\ProductCapability;
 
 /**
  * How the value of an account is established.
@@ -36,5 +37,19 @@ enum AccountValuationMode: string
             AccountKind::INSURANCE_CONTRACT,
             AccountKind::EMPLOYEE_BENEFIT,
         ], true);
+    }
+
+    /**
+     * The product capability this mode consumes. A product model that does not
+     * declare it cannot feed the mode: valuing a Livret A "by portfolio" would
+     * wait on holdings the product never activates.
+     */
+    public function requiredCapability(): ProductCapability
+    {
+        return match ($this) {
+            self::TRANSACTIONS => ProductCapability::SUPPORTS_TRANSACTIONS,
+            self::SNAPSHOTS => ProductCapability::SUPPORTS_BALANCE,
+            self::PORTFOLIO => ProductCapability::SUPPORTS_HOLDINGS,
+        };
     }
 }

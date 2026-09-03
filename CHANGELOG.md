@@ -17,6 +17,22 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 - Net-worth sign convention on every account: an asset contributes positively and a liability
   negatively, stated by the API and displayed in words rather than by colour alone. No balance is
   implied — an account carries no amount until valuations exist.
+- Account creation from a system catalogue product, in three steps: choose the model, describe the
+  account, then review what it inherits. An account stores the product reference and the institution
+  holding it, and nothing else the catalogue owns: ceilings, rates, accrual methods and their sources
+  stay in the catalogue and are read on the business date they are needed, so a regulatory revision
+  is never frozen into an account. The review lists every inherited rule with its effective period,
+  verification state and official source, and shows a rule no source covers on that date as
+  unavailable rather than as zero.
+- Product-declared attributes are enforced by the API, not merely pre-filled: the account kind must
+  be the one its product declares, and a valuation mode is refused unless the product declares the
+  capability that feeds it. The account carries its product and its kind together, so a foreign key
+  on the catalogue refuses both an unknown reference and a product filed under a kind it does not
+  declare, whatever writer reaches the table. An account already used by history can change neither
+  kind nor product.
+- Ceiling basis stated by the catalogue API on every product: a share savings plan is capped on the
+  contributions paid into it, whatever the plan is worth, while a regulated passbook is capped on
+  the balance it holds. Market products announce no promised yield anywhere in the creation flow.
 
 ## [0.1.0] - 2026-09-02
 

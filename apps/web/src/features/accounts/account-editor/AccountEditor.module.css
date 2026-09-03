@@ -1,0 +1,16 @@
+.state {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.warning {
+  margin: var(--spacing-none) var(--spacing-none) var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-color: var(--warning);
+  border-radius: var(--radius-control);
+  color: var(--warning);
+  font-size: var(--font-size-label);
+  background: var(--warning-soft);
+}

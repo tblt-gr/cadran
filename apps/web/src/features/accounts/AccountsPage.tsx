@@ -21,9 +21,10 @@ import {
   requestFailed,
 } from './accountError';
 import { AccountFilters } from './account-filters/AccountFilters';
-import { AccountForm } from './account-form/AccountForm';
+import { AccountEditor } from './account-editor/AccountEditor';
 import { AccountList } from './account-list/AccountList';
 import { AccountPagination } from './account-pagination/AccountPagination';
+import { AccountWizard } from './account-wizard/AccountWizard';
 import { AccountsState } from './accounts-state/AccountsState';
 import { ArchiveAccountDialog } from './archive-account-dialog/ArchiveAccountDialog';
 import styles from './AccountsPage.module.css';
@@ -183,14 +184,23 @@ export function AccountsPage() {
           )}
           title={t(editor === 'create' ? 'accounts.form.createTitle' : 'accounts.form.editTitle')}
         >
-          <AccountForm
-            account={editor === 'create' ? undefined : editor}
-            key={editor === 'create' ? 'create' : editor.id}
-            onCancel={closeEditor}
-            onSubmit={(body) => save.mutate(body)}
-            pending={save.isPending}
-            submitError={accountErrorKind(save.error, save.isError)}
-          />
+          {editor === 'create' ? (
+            <AccountWizard
+              onCancel={closeEditor}
+              onCreate={(body) => save.mutate(body)}
+              pending={save.isPending}
+              submitError={accountErrorKind(save.error, save.isError)}
+            />
+          ) : (
+            <AccountEditor
+              account={editor}
+              key={editor.id}
+              onCancel={closeEditor}
+              onSubmit={(body) => save.mutate(body)}
+              pending={save.isPending}
+              submitError={accountErrorKind(save.error, save.isError)}
+            />
+          )}
         </Modal>
       ) : null}
 
