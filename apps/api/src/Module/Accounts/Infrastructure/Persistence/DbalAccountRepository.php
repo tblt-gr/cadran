@@ -33,6 +33,16 @@ final readonly class DbalAccountRepository implements AccountRepository
     {
     }
 
+    public function find(WorkspaceScope $workspace, string $id): ?Account
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT '.self::COLUMNS.' FROM account_financial_accounts WHERE workspace_id = :workspace_id AND id = :id',
+            ['workspace_id' => $workspace->id, 'id' => $id],
+        );
+
+        return false === $row ? null : AccountRow::hydrate($row, $workspace);
+    }
+
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Account
     {
         $row = $this->connection->fetchAssociative(

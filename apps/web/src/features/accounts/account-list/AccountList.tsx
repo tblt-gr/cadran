@@ -7,6 +7,7 @@ interface AccountListProps {
   accounts: Account[];
   onArchive: (account: Account) => void;
   onEdit: (account: Account) => void;
+  onRules: (account: Account) => void;
 }
 
 const STATUS_TONE = {
@@ -15,7 +16,7 @@ const STATUS_TONE = {
   ARCHIVED: 'warning',
 } as const;
 
-export function AccountList({ accounts, onArchive, onEdit }: AccountListProps) {
+export function AccountList({ accounts, onArchive, onEdit, onRules }: AccountListProps) {
   const { t } = useTranslation();
 
   return (
@@ -72,6 +73,16 @@ export function AccountList({ accounts, onArchive, onEdit }: AccountListProps) {
                   </StatusBadge>
                 </td>
                 <td className={styles.rowActions}>
+                  {/* Reading the rules changes nothing, so an archived or closed
+                      account still answers for the dates it was open. */}
+                  <button
+                    aria-label={t('accounts.list.rulesOfAccount', { label: account.label })}
+                    className="secondary-action"
+                    onClick={() => onRules(account)}
+                    type="button"
+                  >
+                    {t('accounts.list.rules')}
+                  </button>
                   <button
                     aria-label={t('accounts.list.editAccount', { label: account.label })}
                     className="secondary-action"

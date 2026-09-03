@@ -1,28 +1,13 @@
 import type { Product, ProductRule, ProductRuleKind } from '@cadran/api-client';
-import type { ParseKeys } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
+import { RuleProvenance } from '@/features/catalog-rules/rule-provenance/RuleProvenance';
+import { ruleTextKey } from '@/features/catalog-rules/ruleText';
 import { formatAmount, formatCalendarDay, formatDecimal } from '@/lib/decimal';
 import styles from './ProductRuleList.module.css';
 
 interface ProductRuleListProps {
   product: Product;
 }
-
-/**
- * Rule text values are uppercase tokens, so the wording lives in the
- * translation catalogue rather than in the database. A token this locale has
- * not learned yet is shown as itself instead of as a missing key.
- */
-const ruleTextKeys = {
-  NO_REGULATORY_CONTRIBUTION_CEILING: 'catalog.ruleTexts.NO_REGULATORY_CONTRIBUTION_CEILING',
-} as const satisfies Record<string, ParseKeys>;
-
-const verificationTone = {
-  VERIFIED: 'positive',
-  STALE: 'warning',
-  UNVERIFIED: 'info',
-} as const;
 
 /**
  * The rules of one product on the business date, each with the period it covers
@@ -60,23 +45,12 @@ export function ProductRuleList({ product }: ProductRuleListProps) {
             <tr key={rule.kind}>
               <th scope="row">{t(`catalog.rules.kinds.${rule.kind}`)}</th>
               <td className={styles.value}>{formatRuleValue(rule, i18n.language, t)}</td>
-              <td>{formatPeriod(rule, i18n.language, t)}</td>
-              <td>
-                <StatusBadge tone={verificationTone[rule.verification]}>
-                  {t(`catalog.verification.${rule.verification}`)}
-                </StatusBadge>
-              </td>
-              <td>
-                <a href={rule.source.url} rel="noreferrer noopener" target="_blank">
-                  {rule.source.title}
-                </a>
-                <small>
-                  {t('catalog.source.trace', {
-                    publisher: rule.source.publisher,
-                    retrieved: formatCalendarDay(rule.source.retrievedOn, i18n.language),
-                  })}
-                </small>
-              </td>
+              <RuleProvenance
+                source={rule.source}
+                validFrom={rule.validFrom}
+                validTo={rule.validTo}
+                verification={rule.verification}
+              />
             </tr>
           ))}
           {product.unavailableRuleKinds.map((kind: ProductRuleKind) => (
@@ -109,18 +83,10 @@ function formatRuleValue(rule: ProductRule, locale: string, t: Translate): strin
   }
 
   if (rule.text !== null) {
-    const key = ruleTextKeys[rule.text as keyof typeof ruleTextKeys];
+    const wording = ruleTextKey(rule.text);
 
-    return key === undefined ? rule.text : t(key);
+    return wording === null ? rule.text : t(wording);
   }
 
   return t('catalog.rules.unknownValue');
-}
-
-function formatPeriod(rule: ProductRule, locale: string, t: Translate): string {
-  const from = formatCalendarDay(rule.validFrom, locale);
-
-  return rule.validTo === null
-    ? t('catalog.rules.openPeriod', { from })
-    : t('catalog.rules.closedPeriod', { from, to: formatCalendarDay(rule.validTo, locale) });
 }

@@ -11,6 +11,7 @@ const api = vi.hoisted(() => ({
   listAccounts: vi.fn(),
   listAssets: vi.fn(),
   listProducts: vi.fn(),
+  readAccountRules: vi.fn(),
   readProduct: vi.fn(),
   updateAccount: vi.fn(),
 }));
@@ -52,7 +53,7 @@ const livretA: Product = {
   wrapperKind: 'REGULATED_SAVINGS',
   yieldKind: 'REGULATED_RATE',
   yieldGuaranteed: true,
-  ceilingBasis: 'BALANCE',
+  ceilingBasis: 'BALANCE_EXCLUDING_INTEREST',
   defaultGroupCode: 'LIQUIDITY_SAVINGS',
   capabilities: ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
   catalogVersion: 1,
@@ -253,7 +254,7 @@ describe('AccountsPage', () => {
     expect(screen.getByRole('heading', { name: 'Hérité de « Livret A »' })).toBeTruthy();
     expect(screen.getByText('Plafond de dépôt')).toBeTruthy();
     expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
-    expect(screen.getByText('Plafond sur le solde déposé')).toBeTruthy();
+    expect(screen.getByText('Plafond sur les sommes déposées, hors intérêts')).toBeTruthy();
     // An unsourced rate is unavailable on this date, never a zero.
     expect(screen.getByText(/Non disponible au/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Créer le compte' }));
@@ -503,6 +504,61 @@ describe('AccountsPage', () => {
     api.listAccounts.mockImplementation(() => failure(401));
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Session expirée' })).toBeTruthy();
+  });
+
+  it('reads the dated rules of an account, including one that is archived', async () => {
+    const archived = {
+      ...account,
+      id: '00000000-0000-7000-8000-0000000000d3',
+      label: 'Livret A clos',
+      status: 'ARCHIVED' as const,
+      editable: false,
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [archived], page: 1, perPage: 50, total: 1 }),
+    );
+    api.readAccountRules.mockImplementation(() =>
+      success({
+        accountId: archived.id,
+        assetCode: 'EUR',
+        productCode: 'FR_LIVRET_A',
+        origin: 'SYSTEM_CATALOG',
+        asOf: '2026-09-03',
+        ceilings: [
+          {
+            kind: 'DEPOSIT_CEILING',
+            basis: 'BALANCE_EXCLUDING_INTEREST',
+            countsCreditedInterest: false,
+            spansSeveralAccounts: false,
+            measurable: true,
+            breachPolicy: 'WARN',
+            amount: { value: '22950', assetCode: 'EUR' },
+            validFrom: '2025-04-25',
+            validTo: null,
+            verification: 'VERIFIED',
+            source: livretA.rules[0]!.source,
+          },
+        ],
+        rates: [],
+        terms: [],
+        unavailableRuleKinds: ['ANNUAL_RATE'],
+      }),
+    );
+    renderPage();
+
+    const rules = await screen.findByRole('button', {
+      name: 'Règles applicables au compte Livret A clos',
+    });
+    // Editing an archived account is refused, but reading what applied to it
+    // changes nothing and stays available.
+    const edit = screen.getByRole('button', { name: 'Modifier le compte Livret A clos' });
+    expect((edit as HTMLButtonElement).disabled).toBe(true);
+    expect((rules as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(rules);
+
+    expect(screen.getByRole('dialog', { name: 'Règles de « Livret A clos »' })).toBeTruthy();
+    expect(await screen.findByText(/22\s950\s€/)).toBeTruthy();
+    expect(api.readAccountRules.mock.calls[0]?.[0].path).toEqual({ id: archived.id });
   });
 
   it('states the net-worth contribution in words and marks a liability', async () => {

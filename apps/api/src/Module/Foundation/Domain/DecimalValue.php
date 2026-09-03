@@ -7,9 +7,9 @@ namespace App\Module\Foundation\Domain;
 /**
  * An exact decimal figure in its canonical string form.
  *
- * This value object parses and constrains; it deliberately computes nothing.
- * Exact arithmetic arrives with the decimal value objects of DEC-001, and no
- * caller may reach for a float in the meantime.
+ * This value object parses, constrains and orders; it deliberately computes
+ * nothing. Exact arithmetic arrives with the decimal value objects of DEC-001,
+ * and no caller may reach for a float in the meantime.
  *
  * Canonical means one string per recorded figure: an optional `-` only on a
  * non-zero value, at least one integer digit, no leading zero unless the
@@ -91,6 +91,67 @@ final readonly class DecimalValue
     public function equals(self $other): bool
     {
         return $this->literal === $other->literal;
+    }
+
+    /**
+     * Orders two figures exactly: -1, 0 or 1, the way `<=>` reads. The digits
+     * are compared as strings, never as floats, so `0.1` and `0.10` compare
+     * equal while both stay distinguishable from each other by {@see equals()},
+     * which answers about the recorded literal rather than the value.
+     */
+    public function compareTo(self $other): int
+    {
+        $negative = $this->isNegative();
+        if ($negative !== $other->isNegative()) {
+            return $negative ? -1 : 1;
+        }
+
+        $magnitudes = self::compareMagnitudes(ltrim($this->literal, '-'), ltrim($other->literal, '-'));
+
+        return $negative ? -$magnitudes : $magnitudes;
+    }
+
+    public function isNegative(): bool
+    {
+        return str_starts_with($this->literal, '-');
+    }
+
+    /**
+     * Compares two unsigned canonical literals. The canonical form carries no
+     * leading zero beyond a lone `0`, so a longer integer part is always the
+     * larger one and the digits can then be read side by side.
+     */
+    private static function compareMagnitudes(string $left, string $right): int
+    {
+        [$leftInteger, $leftFraction] = self::split($left);
+        [$rightInteger, $rightFraction] = self::split($right);
+
+        $byLength = strlen($leftInteger) <=> strlen($rightInteger);
+        if (0 !== $byLength) {
+            return $byLength;
+        }
+
+        $byInteger = strcmp($leftInteger, $rightInteger);
+        if (0 !== $byInteger) {
+            return $byInteger < 0 ? -1 : 1;
+        }
+
+        // Padding on the right aligns the two fractions on the same decimal
+        // places, so `5` and `49` compare as 0.50 against 0.49.
+        $width = max(strlen($leftFraction), strlen($rightFraction));
+        $byFraction = strcmp(str_pad($leftFraction, $width, '0'), str_pad($rightFraction, $width, '0'));
+
+        return $byFraction <=> 0;
+    }
+
+    /**
+     * @return array{string, string}
+     */
+    private static function split(string $unsigned): array
+    {
+        $parts = explode('.', $unsigned, 2);
+
+        return [$parts[0], $parts[1] ?? ''];
     }
 
     private static function isZero(string $integerDigits, string $fractionDigits): bool

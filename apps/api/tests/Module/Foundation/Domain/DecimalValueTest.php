@@ -126,4 +126,42 @@ final class DecimalValueTest extends TestCase
         // figure, so equality stays a string comparison of canonical forms.
         self::assertFalse(DecimalValue::fromString('12.50')->equals(DecimalValue::fromString('12.5')));
     }
+
+    #[DataProvider('orderedPairs')]
+    public function testOneFigureIsOrderedAgainstAnotherExactly(string $left, string $right, int $expected): void
+    {
+        $smaller = DecimalValue::fromString($left);
+        $larger = DecimalValue::fromString($right);
+
+        self::assertSame($expected, $smaller->compareTo($larger));
+        self::assertSame(-$expected, $larger->compareTo($smaller));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, int}>
+     */
+    public static function orderedPairs(): iterable
+    {
+        yield 'zero against itself' => ['0', '0', 0];
+        yield 'same figure, same scale' => ['22950.00', '22950.00', 0];
+        // A trailing zero states a scale, not a different quantity: ordering
+        // answers about the value where equality answers about the literal.
+        yield 'same value, different scale' => ['12.5', '12.50', 0];
+        yield 'more integer digits wins' => ['999', '1000', -1];
+        yield 'same width, digits decide' => ['1899', '1900', -1];
+        // The comparison a naive lexicographic read gets wrong: 0.5 is above
+        // 0.49, and padding the shorter fraction is what makes it say so.
+        yield 'fraction padded on the right' => ['0.49', '0.5', -1];
+        yield 'deep fractions' => ['0.000000000000000001', '0.000000000000000002', -1];
+        yield 'negative below zero' => ['-0.01', '0', -1];
+        yield 'two negatives read backwards' => ['-1000', '-999', -1];
+        yield 'negative below positive of the same digits' => ['-1.5', '1.5', -1];
+    }
+
+    public function testTheSignOfAFigureIsReadable(): void
+    {
+        self::assertTrue(DecimalValue::fromString('-0.0000000001')->isNegative());
+        self::assertFalse(DecimalValue::fromString('0')->isNegative());
+        self::assertFalse(DecimalValue::fromString('0.0')->isNegative());
+    }
 }

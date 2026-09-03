@@ -261,7 +261,54 @@
       "edit": "Modifier",
       "archive": "Archiver",
       "editAccount": "Modifier le compte {{label}}",
-      "archiveAccount": "Archiver le compte {{label}}"
+      "archiveAccount": "Archiver le compte {{label}}",
+      "rules": "Règles",
+      "rulesOfAccount": "Règles applicables au compte {{label}}"
+    },
+    "rules": {
+      "eyebrow": "Règles applicables",
+      "title": "Règles de « {{label}} »",
+      "caption": "Plafonds, taux et conditions applicables au compte",
+      "loading": "Résolution des règles du compte…",
+      "error": "Les règles de ce compte n’ont pas pu être lues. Réessayez.",
+      "unauthorized": "Reconnectez-vous pour consulter les règles de ce compte.",
+      "outOfRange": "Cette date n’est pas une date d’activité que l’application couvre. Choisissez une autre date.",
+      "resolving": "Résolution des règles au {{date}} : le tableau montre encore la date précédente.",
+      "resolvedOn": "Règles résolues au {{date}}. Chaque valeur ne répond que pour cette date.",
+      "none": "Aucune règle sourcée au {{date}} pour ce compte.",
+      "noMeasure": "— Sans mesure chiffrée",
+      "guaranteed": "Taux dû au titulaire",
+      "revisable": "Taux publié, révisable : jamais un rendement acquis",
+      "outsideMeasure": {
+        "BALANCE_EXCLUDING_INTEREST": "Les intérêts versés n’entrent pas dans la mesure : ils peuvent porter le compte au-delà du plafond sans qu’aucune règle soit enfreinte.",
+        "CONTRIBUTIONS": "Les plus-values et les revenus du compte n’entrent pas dans la mesure : ils peuvent porter le compte au-delà du plafond sans qu’aucune règle soit enfreinte."
+      },
+      "shared": "Plafond atteint à plusieurs comptes : la lecture de ce compte seul ne permet pas de le trancher.",
+      "notComparable": "Plafond publié en {{ceiling}} et compte tenu en {{account}} : non comparable, aucune conversion n’est appliquée.",
+      "bracketFrom": "À partir de {{from}}",
+      "bracketRange": "De {{from}} à {{to}}",
+      "columns": {
+        "rule": "Règle",
+        "value": "Valeur",
+        "measure": "Mesure",
+        "period": "Période d’effet",
+        "verification": "Vérification",
+        "source": "Source officielle"
+      },
+      "bases": {
+        "NONE": "Aucune mesure suivie",
+        "BALANCE_EXCLUDING_INTEREST": "Sommes déposées, hors intérêts",
+        "TOTAL_BALANCE": "Solde total, intérêts compris",
+        "CONTRIBUTIONS": "Versements cumulés",
+        "COMBINED_CONTRIBUTIONS": "Versements cumulés de plusieurs comptes"
+      },
+      "applications": {
+        "WHOLE_BALANCE": "Appliqué à la totalité du solde"
+      },
+      "origins": {
+        "NO_PRODUCT": "Ce compte est décrit à la main : aucun produit du catalogue ne lui rattache de plafond ni de taux.",
+        "PRODUCT_WITHDRAWN": "Le produit « {{product}} » ne figure plus au catalogue système. La référence du compte est conservée, mais aucune règle ne peut être résolue."
+      }
     },
     "pagination": {
       "label": "Pagination des comptes",
@@ -309,8 +356,10 @@
         "confirm": "Créer le compte",
         "ceilingBases": {
           "NONE": "Aucun plafond suivi",
-          "BALANCE": "Plafond sur le solde déposé",
-          "CONTRIBUTIONS": "Plafond sur les versements cumulés"
+          "BALANCE_EXCLUDING_INTEREST": "Plafond sur les sommes déposées, hors intérêts",
+          "TOTAL_BALANCE": "Plafond sur le solde total, intérêts compris",
+          "CONTRIBUTIONS": "Plafond sur les versements cumulés",
+          "COMBINED_CONTRIBUTIONS": "Plafond de versements commun à plusieurs comptes"
         }
       }
     },
@@ -499,6 +548,7 @@
     "rules": {
       "kinds": {
         "DEPOSIT_CEILING": "Plafond de dépôt",
+        "BALANCE_CEILING": "Plafond de solde",
         "CONTRIBUTION_CEILING": "Plafond de versements",
         "COMBINED_CONTRIBUTION_CEILING": "Plafond de versements commun",
         "ANNUAL_RATE": "Taux annuel",

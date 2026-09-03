@@ -3,7 +3,7 @@ import type { Problem } from '@cadran/api-client';
 export type AccountErrorKind = 'archived' | 'conflict' | 'invalid' | 'network' | 'stale';
 
 /**
- * A refused account mutation, classified by its RFC 9457 problem type rather
+ * A refused account request, classified by its RFC 9457 problem type rather
  * than by its status alone: a taken label and a stale version are both 409 and
  * ask the user for opposite things.
  */
@@ -27,7 +27,12 @@ function classify(status: number, problemType: string | undefined): AccountError
     case '/problems/account-archived':
       return 'archived';
     default:
-      return status === 409 ? 'conflict' : status === 422 ? 'invalid' : 'network';
+      // A refused query and a refused body are both the caller's to correct,
+      // and neither is retried by repeating the same request: a business date
+      // outside the years the API covers answers 400 and would otherwise be
+      // shown as a network failure with a Retry button that can only fail
+      // again.
+      return status === 409 ? 'conflict' : 400 === status || 422 === status ? 'invalid' : 'network';
   }
 }
 

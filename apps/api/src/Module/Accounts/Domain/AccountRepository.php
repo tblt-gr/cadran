@@ -9,6 +9,9 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 
 interface AccountRepository
 {
+    /** Reads one account without locking it, for a query that will not write. */
+    public function find(WorkspaceScope $workspace, string $id): ?Account;
+
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Account;
 
     /** @return list<Account> */
