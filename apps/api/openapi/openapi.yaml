@@ -560,6 +560,251 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts:
+    get:
+      operationId: listAccounts
+      summary: List the calling workspace financial accounts
+      description: >-
+        Requires an authenticated session. The workspace is resolved from the
+        session and cannot be selected by a query parameter. Closed and
+        archived accounts are omitted unless explicitly requested.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: includeClosed
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: kind
+          in: query
+          required: false
+          description: Restrict results to one account kind.
+          schema:
+            $ref: '#/components/schemas/AccountKind'
+      responses:
+        '200':
+          description: One page of accounts from the calling workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createAccount
+      summary: Create a financial account in the calling workspace
+      description: >-
+        Creates an account with its denomination, kind, lifecycle dates,
+        valuation mode and inclusion policies. The asset code must exist in the
+        read-only system reference. The mutation requires the same-origin CSRF
+        token.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '201':
+          description: The account was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '409':
+          description: >-
+            An active account already uses the normalized label
+            (`type: /problems/account-label-taken`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The denomination, kind, valuation mode, masked identifier or
+            lifecycle dates are invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{id}:
+    put:
+      operationId: updateAccount
+      summary: Update an active financial account
+      description: >-
+        Replaces the editable account fields using optimistic versioning, and
+        closes or reopens the account through `closedOn`. The denomination is
+        absent from the body: changing it would reinterpret every figure already
+        recorded against the account. An account already used by history cannot
+        change kind, and an archived account is read-only.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The updated account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            Either an active account already uses the normalized label
+            (`type: /problems/account-label-taken`), or the submitted version is
+            stale (`type: /problems/stale-version`). The two ask for opposite
+            recoveries, so a client branches on the type rather than the status.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The account fields are invalid, an immutable rule was violated, or
+            the account is archived and read-only
+            (`type: /problems/account-archived`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountRequest'
+  /api/v1/accounts/{id}/archive:
+    post:
+      operationId: archiveAccount
+      summary: Archive a financial account
+      description: >-
+        Takes the account out of the working set without deleting it, so
+        history and later valuations keep a row to point at. Archiving frees the
+        account label for a new active account. An already archived account is
+        rejected rather than archived twice.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchiveAccountRequest'
+      responses:
+        '200':
+          description: The archived account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The submitted version is stale (`type: /problems/stale-version`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: 'The account is already archived (`type: /problems/account-archived`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     sessionCookie:
@@ -637,8 +882,16 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    AccountMutationForbidden:
+      description: >-
+        Either the CSRF / Origin check failed (`type: /problems/csrf-token`),
+        or the authenticated session belongs to no workspace (`type: about:blank`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
     PayloadTooLarge:
-      description: The JSON request body exceeds the 16 KiB category mutation limit.
+      description: The JSON request body exceeds the 16 KiB mutation limit.
       content:
         application/problem+json:
           schema:
@@ -990,16 +1243,7 @@ components:
               pattern: '^[A-Z]{2}$'
             - type: 'null'
         accountKind:
-          type: string
-          enum:
-            - CURRENT
-            - SAVINGS
-            - PORTFOLIO
-            - INSURANCE_CONTRACT
-            - EMPLOYEE_BENEFIT
-            - CASH
-            - REAL_ASSET
-            - LIABILITY
+          $ref: '#/components/schemas/AccountKind'
         wrapperKind:
           type: string
           enum:
@@ -1402,6 +1646,272 @@ components:
         version:
           type: integer
           minimum: 1
+    AccountPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - perPage
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+    Account:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - label
+        - assetCode
+        - kind
+        - maskedIdentifier
+        - valuationMode
+        - liquidityLevel
+        - includeInNetWorth
+        - includeInEmergencyFund
+        - openedOn
+        - closedOn
+        - status
+        - netWorthSign
+        - used
+        - editable
+        - kindEditable
+        - kindEditReason
+        - version
+        - archivedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        assetCode:
+          description: >-
+            The unit the account is denominated in, from the read-only system
+            asset reference. It is fixed at creation: changing it would
+            reinterpret every figure already recorded against the account.
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        kind:
+          $ref: '#/components/schemas/AccountKind'
+        maskedIdentifier:
+          description: >-
+            The visible tail of a banking or contract identifier, such as
+            `4821`. Bounded to eight characters, which cannot hold a full
+            identifier.
+          oneOf:
+            - type: string
+              pattern: '^[A-Z0-9]{2,8}$'
+            - type: 'null'
+        valuationMode:
+          $ref: '#/components/schemas/AccountValuationMode'
+        liquidityLevel:
+          $ref: '#/components/schemas/LiquidityLevel'
+        includeInNetWorth:
+          type: boolean
+        includeInEmergencyFund:
+          description: Only an account counted in net worth may back the emergency fund.
+          type: boolean
+        openedOn:
+          type: string
+          format: date
+        closedOn:
+          description: The day the account was closed, or null while it is open.
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        netWorthSign:
+          description: >-
+            The sign this account contributes to net worth: `1` for an asset,
+            `-1` for a liability. It carries no amount; a balance arrives with
+            its own record and stays null until then. The sign is independent of
+            `includeInNetWorth`: an excluded account still reports its nature, so
+            an aggregation must read the inclusion flag before applying the sign.
+          type: integer
+          enum:
+            - -1
+            - 1
+        used:
+          type: boolean
+        editable:
+          description: False for an archived account, which is read-only.
+          type: boolean
+        kindEditable:
+          description: Backend-owned eligibility for changing the account kind.
+          type: boolean
+        kindEditReason:
+          description: Why the kind is immutable, or null when it can be changed.
+          oneOf:
+            - type: string
+              enum:
+                - ARCHIVED
+                - USED
+            - type: 'null'
+        version:
+          type: integer
+          minimum: 1
+        archivedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    CreateAccountRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - label
+        - assetCode
+        - kind
+        - maskedIdentifier
+        - valuationMode
+        - liquidityLevel
+        - includeInNetWorth
+        - includeInEmergencyFund
+        - openedOn
+        - closedOn
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        assetCode:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        kind:
+          $ref: '#/components/schemas/AccountKind'
+        maskedIdentifier:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z0-9]{2,8}$'
+            - type: 'null'
+        valuationMode:
+          $ref: '#/components/schemas/AccountValuationMode'
+        liquidityLevel:
+          $ref: '#/components/schemas/LiquidityLevel'
+        includeInNetWorth:
+          type: boolean
+        includeInEmergencyFund:
+          type: boolean
+        openedOn:
+          type: string
+          format: date
+        closedOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+    UpdateAccountRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - label
+        - kind
+        - maskedIdentifier
+        - valuationMode
+        - liquidityLevel
+        - includeInNetWorth
+        - includeInEmergencyFund
+        - openedOn
+        - closedOn
+        - version
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        kind:
+          $ref: '#/components/schemas/AccountKind'
+        maskedIdentifier:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z0-9]{2,8}$'
+            - type: 'null'
+        valuationMode:
+          $ref: '#/components/schemas/AccountValuationMode'
+        liquidityLevel:
+          $ref: '#/components/schemas/LiquidityLevel'
+        includeInNetWorth:
+          type: boolean
+        includeInEmergencyFund:
+          type: boolean
+        openedOn:
+          type: string
+          format: date
+        closedOn:
+          description: A day on or after the opening date closes the account; null reopens it.
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        version:
+          type: integer
+          minimum: 1
+    ArchiveAccountRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          minimum: 1
+    AccountKind:
+      description: >-
+        What an account holds. Shared by the product catalogue and the accounts
+        of a workspace, so a product-based account inherits exactly one of these
+        kinds.
+      type: string
+      enum:
+        - CURRENT
+        - SAVINGS
+        - PORTFOLIO
+        - INSURANCE_CONTRACT
+        - EMPLOYEE_BENEFIT
+        - CASH
+        - REAL_ASSET
+        - LIABILITY
+    AccountStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - CLOSED
+        - ARCHIVED
+    AccountValuationMode:
+      description: >-
+        Where the value of the account comes from: recorded movements, dated
+        valuations entered by hand, or portfolio positions. Only an account
+        kind that holds positions accepts `PORTFOLIO`.
+      type: string
+      enum:
+        - TRANSACTIONS
+        - SNAPSHOTS
+        - PORTFOLIO
+    LiquidityLevel:
+      type: string
+      enum:
+        - IMMEDIATE
+        - SHORT_TERM
+        - MEDIUM_TERM
+        - LONG_TERM
+        - ILLIQUID
     CategoryType:
       type: string
       enum:

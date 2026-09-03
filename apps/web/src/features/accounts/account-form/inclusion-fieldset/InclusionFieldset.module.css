@@ -1,0 +1,27 @@
+.inclusion {
+  display: grid;
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  gap: var(--spacing-3);
+}
+
+.inclusion legend {
+  padding: var(--spacing-none) var(--spacing-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.inclusion label {
+  display: flex;
+  align-items: center;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  gap: var(--spacing-2);
+}
+
+.hint {
+  color: var(--text-secondary);
+  line-height: var(--line-height-body);
+}

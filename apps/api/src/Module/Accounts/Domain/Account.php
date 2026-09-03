@@ -1,0 +1,232 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Module\Accounts\Domain;
+
+use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Foundation\Domain\AssetCode;
+use App\Module\Foundation\Domain\WorkspaceScope;
+
+/**
+ * A financial account of one workspace: what it is, what it is denominated in,
+ * how it will be valued and whether it counts towards net worth.
+ *
+ * It carries no balance. A value arrives later from recorded movements, dated
+ * valuations or portfolio positions, and the absence of one stays absent: this
+ * aggregate never invents a starting figure to make an account look complete.
+ */
+final readonly class Account
+{
+    public const int MAX_LABEL_LENGTH = 80;
+    public const string MIN_OPENED_ON = '1900-01-01';
+
+    public function __construct(
+        public string $id,
+        public WorkspaceScope $workspace,
+        public string $label,
+        public AssetCode $assetCode,
+        public AccountKind $kind,
+        public ?MaskedIdentifier $maskedIdentifier,
+        public AccountValuationMode $valuationMode,
+        public LiquidityLevel $liquidityLevel,
+        public bool $includeInNetWorth,
+        public bool $includeInEmergencyFund,
+        public \DateTimeImmutable $openedOn,
+        public ?\DateTimeImmutable $closedOn,
+        public int $version,
+        public \DateTimeImmutable $createdAt,
+        public \DateTimeImmutable $updatedAt,
+        public ?\DateTimeImmutable $usedAt = null,
+        public ?\DateTimeImmutable $archivedAt = null,
+    ) {
+        self::assertIdentifier($id);
+        self::assertLabel($label);
+
+        if (!$valuationMode->acceptsKind($kind)) {
+            throw new InvalidAccount('A portfolio valuation requires an account kind that holds positions.');
+        }
+
+        if ($includeInEmergencyFund && !$includeInNetWorth) {
+            throw new InvalidAccount('An account excluded from net worth cannot be part of the emergency fund.');
+        }
+
+        self::assertLifecycle($openedOn, $closedOn, $createdAt, $updatedAt);
+
+        if ($version < 1) {
+            throw new InvalidAccount('An account version must be positive.');
+        }
+    }
+
+    /**
+     * The account currency and its identity are deliberately absent: a
+     * denomination change would silently reinterpret every figure already
+     * recorded against the account, so it is a migration of data rather than an
+     * edit.
+     */
+    public function reconfigure(
+        string $label,
+        AccountKind $kind,
+        ?MaskedIdentifier $maskedIdentifier,
+        AccountValuationMode $valuationMode,
+        LiquidityLevel $liquidityLevel,
+        bool $includeInNetWorth,
+        bool $includeInEmergencyFund,
+        \DateTimeImmutable $openedOn,
+        ?\DateTimeImmutable $closedOn,
+        \DateTimeImmutable $updatedAt,
+    ): self {
+        $this->assertWritable();
+
+        if (null !== $this->usedAt && $kind !== $this->kind) {
+            throw new InvalidAccount('A used account cannot change kind.');
+        }
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            label: trim($label),
+            assetCode: $this->assetCode,
+            kind: $kind,
+            maskedIdentifier: $maskedIdentifier,
+            valuationMode: $valuationMode,
+            liquidityLevel: $liquidityLevel,
+            includeInNetWorth: $includeInNetWorth,
+            includeInEmergencyFund: $includeInEmergencyFund,
+            openedOn: $openedOn,
+            closedOn: $closedOn,
+            version: $this->version + 1,
+            createdAt: $this->createdAt,
+            updatedAt: $updatedAt,
+            usedAt: $this->usedAt,
+            archivedAt: $this->archivedAt,
+        );
+    }
+
+    /**
+     * Archiving is how an account leaves the working set. Deletion is not
+     * offered: an account referenced by history must keep answering for it.
+     */
+    public function archive(\DateTimeImmutable $archivedAt): self
+    {
+        $this->assertWritable();
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            label: $this->label,
+            assetCode: $this->assetCode,
+            kind: $this->kind,
+            maskedIdentifier: $this->maskedIdentifier,
+            valuationMode: $this->valuationMode,
+            liquidityLevel: $this->liquidityLevel,
+            includeInNetWorth: $this->includeInNetWorth,
+            includeInEmergencyFund: $this->includeInEmergencyFund,
+            openedOn: $this->openedOn,
+            closedOn: $this->closedOn,
+            version: $this->version + 1,
+            createdAt: $this->createdAt,
+            updatedAt: $archivedAt,
+            usedAt: $this->usedAt,
+            archivedAt: $archivedAt,
+        );
+    }
+
+    public function isClosed(): bool
+    {
+        return null !== $this->closedOn;
+    }
+
+    /**
+     * The sign this account contributes to net worth. A liability holds a
+     * positive outstanding amount and reduces net worth by it, which keeps the
+     * stored figure readable while the aggregation stays exact.
+     */
+    public function netWorthSign(): int
+    {
+        return AccountKind::LIABILITY === $this->kind ? -1 : 1;
+    }
+
+    private function assertWritable(): void
+    {
+        if (null !== $this->archivedAt) {
+            throw new InvalidAccount('An archived account is read-only.');
+        }
+    }
+
+    private static function assertIdentifier(string $id): void
+    {
+        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
+            throw new InvalidAccount('An account identifier must be a canonical UUID.');
+        }
+    }
+
+    private static function assertLabel(string $label): void
+    {
+        if ($label !== trim($label) || '' === $label || mb_strlen($label) > self::MAX_LABEL_LENGTH) {
+            throw new InvalidAccount(sprintf('An account label must contain between 1 and %d characters.', self::MAX_LABEL_LENGTH));
+        }
+
+        if (1 === preg_match('/[\p{Cc}\p{Cf}]/u', $label)) {
+            throw new InvalidAccount('An account label cannot contain control characters.');
+        }
+    }
+
+    /**
+     * Lifecycle dates are checked against the aggregate's own timestamps rather
+     * than a clock: the day of the last write is the entity's own notion of
+     * "now", so neither date can be set in the future. The reference is the
+     * later of creation and update, not creation alone — a correction made
+     * months later must still be able to record a past opening date the
+     * paperwork revealed.
+     */
+    private static function assertLifecycle(
+        \DateTimeImmutable $openedOn,
+        ?\DateTimeImmutable $closedOn,
+        \DateTimeImmutable $createdAt,
+        \DateTimeImmutable $updatedAt,
+    ): void {
+        self::assertBusinessDay($openedOn, 'opening date');
+
+        if ($openedOn < new \DateTimeImmutable(self::MIN_OPENED_ON, new \DateTimeZone('UTC'))) {
+            throw new InvalidAccount(sprintf('An account cannot be opened before %s.', self::MIN_OPENED_ON));
+        }
+
+        $today = max(self::utcDay($createdAt), self::utcDay($updatedAt));
+
+        if (self::utcDay($openedOn) > $today) {
+            throw new InvalidAccount('An account cannot be opened in the future.');
+        }
+
+        if (null === $closedOn) {
+            return;
+        }
+
+        self::assertBusinessDay($closedOn, 'closing date');
+
+        if ($closedOn < $openedOn) {
+            throw new InvalidAccount('An account cannot be closed before it was opened.');
+        }
+
+        if (self::utcDay($closedOn) > $today) {
+            throw new InvalidAccount('An account cannot be closed in the future.');
+        }
+    }
+
+    private static function assertBusinessDay(\DateTimeImmutable $date, string $subject): void
+    {
+        if ('00:00:00.000000' !== $date->format('H:i:s.u') || 0 !== $date->getOffset()) {
+            throw new InvalidAccount(sprintf('An account %s is a UTC calendar day.', $subject));
+        }
+    }
+
+    /**
+     * Calendar days are compared in UTC on both sides, the way the database
+     * constraint does. Reading a timestamp in the server timezone instead would
+     * make the entity and the schema disagree for a few hours a day.
+     */
+    private static function utcDay(\DateTimeImmutable $moment): string
+    {
+        return $moment->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+    }
+}

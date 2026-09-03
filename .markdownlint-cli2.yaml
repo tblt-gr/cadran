@@ -1,6 +1,10 @@
 config:
   default: true
   MD013: false
+  # Keep a Changelog repeats "Added", "Changed" and "Fixed" under every release,
+  # so identical headings are only a problem between siblings.
+  MD024:
+    siblings_only: true
   MD033: false
   MD041: false
 

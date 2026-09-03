@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
+import { AccountsPage } from '@/features/accounts/AccountsPage';
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
 import { DashboardContextPanel } from '@/features/dashboard/context-panel/DashboardContextPanel';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
@@ -51,7 +52,9 @@ export function AuthenticatedApp() {
   }, [path, t]);
 
   let content;
-  if (path === '/categories') {
+  if (path === '/accounts') {
+    content = <AccountsPage />;
+  } else if (path === '/categories') {
     content = <CategoryPage />;
   } else if (path === '/catalog') {
     content = <ProductCatalogPage />;
@@ -85,7 +88,7 @@ export function AuthenticatedApp() {
       }
       path={path}
       setPath={setPath}
-      showGlobalActions={path !== '/categories' && path !== '/catalog'}
+      showGlobalActions={path !== '/accounts' && path !== '/categories' && path !== '/catalog'}
     >
       {content}
     </AppShell>
