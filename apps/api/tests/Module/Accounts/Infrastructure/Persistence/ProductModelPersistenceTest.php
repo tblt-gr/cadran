@@ -11,6 +11,8 @@ use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Tests\Module\Accounts\Domain\ProductModelFixture;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\DBAL\Exception\DriverException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -227,6 +229,37 @@ final class ProductModelPersistenceTest extends KernelTestCase
             'SELECT count(*) FROM account_product_model_rate_brackets WHERE workspace_id = ?',
             [WorkspaceFixture::OWN_WORKSPACE],
         ));
+    }
+
+    public function testDuplicationLockSerializesAConcurrentArchive(): void
+    {
+        $this->persist($this->model(ModelRuleSchedule::empty()));
+        $second = DriverManager::getConnection($this->connection->getParams());
+
+        try {
+            $this->connection->beginTransaction();
+            self::assertNotNull($this->models->findForUpdate(WorkspaceFixture::own(), ProductModelFixture::ID));
+            $second->beginTransaction();
+            $second->executeStatement("SET LOCAL lock_timeout = '100ms'");
+
+            try {
+                $second->executeStatement(
+                    'UPDATE account_product_models SET archived_at = ? WHERE workspace_id = ? AND id = ?',
+                    ['2026-09-05 09:00:00+00', WorkspaceFixture::OWN_WORKSPACE, ProductModelFixture::ID],
+                );
+                self::fail('The concurrent archive should wait for the duplication lock.');
+            } catch (DbalException $exception) {
+                self::assertStringContainsString('lock timeout', $exception->getMessage());
+            }
+        } finally {
+            if ($second->isTransactionActive()) {
+                $second->rollBack();
+            }
+            if ($this->connection->isTransactionActive()) {
+                $this->connection->rollBack();
+            }
+            $second->close();
+        }
     }
 
     private function persist(ProductModel $model): void

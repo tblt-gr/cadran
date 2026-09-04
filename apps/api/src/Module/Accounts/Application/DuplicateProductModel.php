@@ -44,7 +44,10 @@ final readonly class DuplicateProductModel
         $copyName = trim($name);
 
         return $this->transactionBoundary->transactional(function () use ($id, $copyName, $context): ProductModelView {
-            $source = $this->models->find($context->workspace, $id);
+            // The copy does not write the source, but it must still lock it:
+            // otherwise an archive that commits after this read would let a
+            // retired model start a new one.
+            $source = $this->models->findForUpdate($context->workspace, $id);
             if (null === $source) {
                 throw new ProductModelNotFound('No model carries this identifier in this workspace.');
             }

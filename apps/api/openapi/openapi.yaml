@@ -950,7 +950,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '413':
-          $ref: '#/components/responses/PayloadTooLarge'
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
@@ -1011,7 +1011,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '413':
-          $ref: '#/components/responses/PayloadTooLarge'
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
@@ -1115,7 +1115,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '413':
-          $ref: '#/components/responses/PayloadTooLarge'
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
@@ -1182,7 +1182,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '413':
-          $ref: '#/components/responses/PayloadTooLarge'
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
@@ -1246,7 +1246,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '413':
-          $ref: '#/components/responses/PayloadTooLarge'
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
@@ -1352,6 +1352,12 @@ components:
             $ref: '#/components/schemas/Problem'
     PayloadTooLarge:
       description: The JSON request body exceeds the 16 KiB mutation limit.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProductModelPayloadTooLarge:
+      description: The JSON request body exceeds the 32 KiB mutation limit.
       content:
         application/problem+json:
           schema:

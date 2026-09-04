@@ -404,6 +404,36 @@ final class ProductModelControllerTest extends WebTestCase
         self::assertSame(0, $this->ownModelCount());
     }
 
+    public function testQueryBoundsAndPayloadSizeAreEnforced(): void
+    {
+        $this->client->request('GET', '/api/v1/product-models?perPage=0');
+        self::assertResponseStatusCodeSame(400);
+
+        $this->client->request('GET', '/api/v1/product-models?perPage=101');
+        self::assertResponseStatusCodeSame(400);
+
+        $this->client->request('GET', '/api/v1/product-models?page=1001');
+        self::assertResponseStatusCodeSame(400);
+
+        $this->client->request('GET', '/api/v1/product-models?includeArchived=maybe');
+        self::assertResponseStatusCodeSame(400);
+
+        // Twenty dated periods with their brackets can exceed 16 KiB; the
+        // envelope therefore allows 32 KiB, and a 16 KiB body is still parsed.
+        $withinThirtyTwoKib = $this->payload();
+        $withinThirtyTwoKib['name'] = str_repeat('x', 17_000);
+        $this->request('POST', '/api/v1/product-models', $withinThirtyTwoKib);
+        self::assertResponseStatusCodeSame(422);
+
+        $oversized = $this->payload();
+        $oversized['name'] = str_repeat('x', 33_000);
+        $this->request('POST', '/api/v1/product-models', $oversized);
+        self::assertResponseStatusCodeSame(413);
+
+        $this->client->request('POST', '/api/v1/product-models', server: ['CONTENT_TYPE' => 'text/plain'], content: '{}');
+        self::assertResponseStatusCodeSame(415);
+    }
+
     /** @return array<string, mixed> */
     private function createModel(): array
     {
