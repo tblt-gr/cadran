@@ -62,13 +62,14 @@ final readonly class RateScale
 
     /**
      * The scale a single published rate resolves to: one bracket, from zero,
-     * without limit, applied to the whole balance.
+     * without limit. One bracket covers every amount, so both application
+     * modes agree on it and the marginal reading is the plain one.
      */
-    public static function wholeBalance(DecimalValue $percentage): self
+    public static function singleRate(DecimalValue $percentage): self
     {
         return new self(
             [new RateBracket(DecimalValue::fromString('0'), null, $percentage)],
-            RateApplication::WHOLE_BALANCE,
+            RateApplication::MARGINAL,
         );
     }
 

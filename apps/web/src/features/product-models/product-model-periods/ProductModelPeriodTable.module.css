@@ -1,0 +1,64 @@
+.tableScroll {
+  overflow-x: auto;
+}
+
+.tableScroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableScroll th,
+.tableScroll td {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tableScroll thead th {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.tableScroll tbody th {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+}
+
+.tableScroll td {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.tableScroll tbody tr:last-child th,
+.tableScroll tbody tr:last-child td {
+  border-bottom: var(--border-none);
+}
+
+.brackets {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-none);
+  margin: var(--spacing-none);
+  list-style: none;
+  gap: var(--spacing-1);
+}
+
+.brackets small {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.notApplicable {
+  color: var(--text-muted);
+}
+
+.empty {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  line-height: var(--line-height-body);
+}

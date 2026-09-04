@@ -10,6 +10,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
 import { formatDemoDay } from '@/features/dashboard/formatDemoDate';
 import { ProductCatalogPage } from '@/features/catalog/ProductCatalogPage';
+import { ProductModelsPage } from '@/features/product-models/ProductModelsPage';
 import { CategoryPage } from '@/features/categories/CategoryPage';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
@@ -58,6 +59,8 @@ export function AuthenticatedApp() {
     content = <CategoryPage />;
   } else if (path === '/catalog') {
     content = <ProductCatalogPage />;
+  } else if (path === '/product-models') {
+    content = <ProductModelsPage />;
   } else if (path !== '/') {
     content = <PlaceholderPage />;
   } else if (status.isPending) {
@@ -88,7 +91,12 @@ export function AuthenticatedApp() {
       }
       path={path}
       setPath={setPath}
-      showGlobalActions={path !== '/accounts' && path !== '/categories' && path !== '/catalog'}
+      showGlobalActions={
+        path !== '/accounts' &&
+        path !== '/categories' &&
+        path !== '/catalog' &&
+        path !== '/product-models'
+      }
     >
       {content}
     </AppShell>

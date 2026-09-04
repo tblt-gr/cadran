@@ -1,0 +1,25 @@
+.period {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.amount,
+.dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+
+.error {
+  margin: var(--spacing-none);
+  color: var(--negative);
+  line-height: var(--line-height-body);
+}
+
+@media (max-width: 42rem) {
+  .amount,
+  .dates {
+    grid-template-columns: 1fr;
+  }
+}

@@ -86,7 +86,12 @@ export function AccountRuleTable({ rules }: AccountRuleTableProps) {
                 <RateBrackets assetCode={rules.assetCode} rate={rate} />
               </td>
               <td>
-                <span>{t(`accounts.rules.applications.${rate.application}`)}</span>
+                {/* A single bracket covers every amount, so both application
+                    modes agree on it and naming one would suggest a choice the
+                    scale does not make. */}
+                {rate.brackets.length > 1 ? (
+                  <span>{t(`accounts.rules.applications.${rate.application}`)}</span>
+                ) : null}
                 <small>
                   {t(rate.guaranteed ? 'accounts.rules.guaranteed' : 'accounts.rules.revisable')}
                 </small>

@@ -53,7 +53,7 @@ final readonly class ProductRule
     {
         $percentage = $this->value->percentage;
 
-        return null === $percentage ? null : RateScale::wholeBalance($percentage);
+        return null === $percentage ? null : RateScale::singleRate($percentage);
     }
 
     /**

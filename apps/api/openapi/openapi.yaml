@@ -855,6 +855,408 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/product-models:
+    get:
+      operationId: listProductModels
+      summary: List the calling workspace product models
+      description: >-
+        Requires an authenticated session. The workspace is resolved from the
+        session and cannot be selected by a query parameter. These are the
+        models a workspace describes itself, beside the read-only system
+        catalogue; archived models are omitted unless explicitly requested.
+      tags:
+        - Catalog
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: One page of product models from the calling workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductModelPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createProductModel
+      summary: Describe a product model in the calling workspace
+      description: >-
+        Records a model the workspace describes itself: a family, an envelope, a
+        yield, a valuation mode, capabilities, and its own dated rule periods.
+        Nothing here reads or writes the system catalogue. A rate period is a
+        bracket scale with an explicit `MARGINAL` or `FLAT_BY_BRACKET` mode; a
+        single rate is the one-bracket case of the same shape. The mutation
+        requires the same-origin CSRF token.
+      tags:
+        - Catalog
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductModelRequest'
+      responses:
+        '201':
+          description: The model was recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductModel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProductModelMutationForbidden'
+        '409':
+          description: >-
+            An active model already uses the name
+            (`type: /problems/product-model-name-taken`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The name, family, envelope, yield, valuation mode, capabilities or a
+            dated period is invalid. A rate scale that overlaps, leaves a gap,
+            does not start at zero or leaves no open upper bracket is refused
+            here and nothing is persisted.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/product-models/from-product:
+    post:
+      operationId: createProductModelFromProduct
+      summary: Start a product model from a system catalogue product
+      description: >-
+        Copies a catalogue product into a workspace model. The copy is made by
+        the server from the catalogue row, so a model claiming to come from a
+        Livret A carries what the catalogue says a Livret A is. It takes the
+        description and the dated periods with their effective dates, and drops
+        every figure's publication and verification trace; from that moment the
+        model no longer tracks the catalogue. The mutation requires the
+        same-origin CSRF token.
+      tags:
+        - Catalog
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductModelFromProductRequest'
+      responses:
+        '201':
+          description: The model was started from the catalogue product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductModel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProductModelMutationForbidden'
+        '409':
+          description: >-
+            An active model already uses the name
+            (`type: /problems/product-model-name-taken`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The name or valuation mode is invalid, or the product code does not
+            exist in the system catalogue. An unknown and a malformed code
+            answer alike.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/product-models/{id}:
+    get:
+      operationId: readProductModel
+      summary: Read one product model of the calling workspace
+      description: >-
+        Returns the model with every dated period it ever recorded, including
+        when it is archived: an account created from a model must keep resolving
+        against the description it was created with. An unknown identifier and
+        one that belongs to another workspace answer alike.
+      tags:
+        - Catalog
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The requested product model.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductModel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/product-models/{id}/duplicate:
+    post:
+      operationId: duplicateProductModel
+      summary: Duplicate a product model of the calling workspace
+      description: >-
+        Copies the description and the dated periods with their effective dates
+        untouched, under a new identity and name, and nothing else: no account,
+        balance, valuation or external identifier has ever belonged to a model.
+        The copy records the model it started from and stops following it. An
+        archived model cannot be duplicated. The mutation requires the
+        same-origin CSRF token.
+      tags:
+        - Catalog
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DuplicateProductModelRequest'
+      responses:
+        '201':
+          description: The model was duplicated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductModel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProductModelMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            An active model already uses the name
+            (`type: /problems/product-model-name-taken`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The name is invalid, or the source model is archived and cannot
+            start a new one (`type: /problems/product-model-archived`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/product-models/{id}/rules:
+    post:
+      operationId: addProductModelRule
+      summary: Record a dated period on a product model
+      description: >-
+        Editing a model is adding to it. Recording a period appends it and
+        closes the open-ended period of the same kind it supersedes the day
+        before it starts, so a past statement still resolves against the figures
+        that covered it. Nothing already recorded is rewritten or removed, and
+        there is no endpoint that edits or deletes a period. Optimistic
+        versioning guards the write. The mutation requires the same-origin CSRF
+        token.
+      tags:
+        - Catalog
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddProductModelRuleRequest'
+      responses:
+        '200':
+          description: The model with the recorded period.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductModel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProductModelMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The submitted version is stale
+            (`type: /problems/stale-version`). Reload the model and reapply.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The period is invalid, contradicts a recorded period of the same
+            kind, or the model is archived and read-only
+            (`type: /problems/product-model-archived`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/product-models/{id}/archive:
+    post:
+      operationId: archiveProductModel
+      summary: Archive a product model
+      description: >-
+        Takes the model out of the working set and frees its name, without
+        deleting it: it stays readable by identifier with everything it ever
+        said, so an account created from it keeps a reproducible reference. An
+        already archived model is rejected. The mutation requires the
+        same-origin CSRF token.
+      tags:
+        - Catalog
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchiveProductModelRequest'
+      responses:
+        '200':
+          description: The archived model.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductModel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProductModelMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The submitted version is stale (`type: /problems/stale-version`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/ProductModelPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: 'The model is already archived (`type: /problems/product-model-archived`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     sessionCookie:
@@ -940,8 +1342,22 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    ProductModelMutationForbidden:
+      description: >-
+        Either the CSRF / Origin check failed (`type: /problems/csrf-token`),
+        or the authenticated session belongs to no workspace (`type: about:blank`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
     PayloadTooLarge:
       description: The JSON request body exceeds the 16 KiB mutation limit.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProductModelPayloadTooLarge:
+      description: The JSON request body exceeds the 32 KiB mutation limit.
       content:
         application/problem+json:
           schema:
@@ -1325,29 +1741,9 @@ components:
         accountKind:
           $ref: '#/components/schemas/AccountKind'
         wrapperKind:
-          type: string
-          enum:
-            - NONE
-            - REGULATED_SAVINGS
-            - TAX_WRAPPER
-            - SECURITIES_ACCOUNT
-            - LIFE_INSURANCE
-            - RETIREMENT
-            - EMPLOYEE_SAVINGS
+          $ref: '#/components/schemas/ProductWrapperKind'
         yieldKind:
-          description: >-
-            Where the product's return comes from. `MARKET` and
-            `MANUAL_VALUATION` products carry no rate rule at all: what they
-            earn comes from their assets and flows, which the catalogue cannot
-            know.
-          type: string
-          enum:
-            - NONE
-            - REGULATED_RATE
-            - CONTRACTUAL_FIXED
-            - CONTRACTUAL_VARIABLE
-            - MARKET
-            - MANUAL_VALUATION
+          $ref: '#/components/schemas/ProductYieldKind'
         yieldGuaranteed:
           description: >-
             Whether the rate the catalogue carries is owed to the holder. False
@@ -1444,11 +1840,7 @@ components:
         kind:
           $ref: '#/components/schemas/ProductRuleKind'
         valueType:
-          type: string
-          enum:
-            - AMOUNT
-            - PERCENTAGE
-            - TEXT
+          $ref: '#/components/schemas/RuleValueType'
         amount:
           oneOf:
             - $ref: '#/components/schemas/DecimalAmount'
@@ -1519,6 +1911,440 @@ components:
           description: The day a maintainer actually opened the publication.
           type: string
           format: date
+    ProductWrapperKind:
+      description: >-
+        The regulatory or contractual envelope a product sits in. Shared by the
+        system catalogue and the product models a workspace describes itself.
+      type: string
+      enum:
+        - NONE
+        - REGULATED_SAVINGS
+        - TAX_WRAPPER
+        - SECURITIES_ACCOUNT
+        - LIFE_INSURANCE
+        - RETIREMENT
+        - EMPLOYEE_SAVINGS
+    ProductYieldKind:
+      description: >-
+        Where a product's return comes from. `MARKET` and `MANUAL_VALUATION`
+        carry no rate rule at all: what they earn comes from their assets and
+        flows. A model of one of those kinds cannot record a rate period.
+      type: string
+      enum:
+        - NONE
+        - REGULATED_RATE
+        - CONTRACTUAL_FIXED
+        - CONTRACTUAL_VARIABLE
+        - MARKET
+        - MANUAL_VALUATION
+    RuleValueType:
+      description: >-
+        How a rule's value is written down. A `PERCENTAGE` is expressed in
+        percent — `1.7` reads 1.7 % — so no consumer ever multiplies a rate to
+        display it.
+      type: string
+      enum:
+        - AMOUNT
+        - PERCENTAGE
+        - TEXT
+    ProductNature:
+      description: >-
+        Which side of the balance sheet a model sits on, derived from its
+        family. Net worth adds one and subtracts the other, so the side is
+        stated rather than guessed from a name.
+      type: string
+      enum:
+        - ASSET
+        - LIABILITY
+    ProductModelOrigin:
+      description: >-
+        Where a workspace product model came from. A model copied from the
+        catalogue can be held against the publication it was copied from; one
+        typed by hand answers only for itself. A duplicate stops following its
+        source the moment it is created.
+      type: string
+      enum:
+        - DECLARED
+        - SYSTEM_PRODUCT
+        - WORKSPACE_MODEL
+    ProductModelPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - perPage
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductModel'
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+    ProductModel:
+      description: >-
+        A product model owned by one workspace, beside the read-only system
+        catalogue. It carries its own dated rule periods and never a single
+        current figure, so last year's statement resolves against last year's
+        rate. It is only ever added to: there is no field edit and no period
+        deletion.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - family
+        - nature
+        - wrapperKind
+        - yieldKind
+        - yieldGuaranteed
+        - ceilingBasis
+        - defaultGroupCode
+        - valuationMode
+        - capabilities
+        - origin
+        - basedOnProductCode
+        - basedOnModelId
+        - rules
+        - editable
+        - version
+        - createdAt
+        - updatedAt
+        - archivedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        family:
+          $ref: '#/components/schemas/AccountKind'
+        nature:
+          description: Stated by the server so no interface deduces it from a family name.
+          $ref: '#/components/schemas/ProductNature'
+        wrapperKind:
+          $ref: '#/components/schemas/ProductWrapperKind'
+        yieldKind:
+          $ref: '#/components/schemas/ProductYieldKind'
+        yieldGuaranteed:
+          description: >-
+            Whether a rate the model carries is owed to the holder. False for a
+            revisable or market-driven yield, so no interface shows a rate as an
+            acquired return.
+          type: boolean
+        ceilingBasis:
+          $ref: '#/components/schemas/CeilingBasis'
+        defaultGroupCode:
+          oneOf:
+            - type: string
+              maxLength: 32
+              pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
+            - type: 'null'
+        valuationMode:
+          $ref: '#/components/schemas/AccountValuationMode'
+        capabilities:
+          description: >-
+            The public activation contract. Clients never infer behaviour from
+            a model name the holder chose.
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ProductCapability'
+        origin:
+          $ref: '#/components/schemas/ProductModelOrigin'
+        basedOnProductCode:
+          description: >-
+            The catalogue product this model was started from, kept for reading
+            and never for resolving. Null unless `origin` is `SYSTEM_PRODUCT`.
+          oneOf:
+            - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        basedOnModelId:
+          description: >-
+            The model this one was duplicated from. Null unless `origin` is
+            `WORKSPACE_MODEL`.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        rules:
+          description: >-
+            Every dated period the model ever recorded, ordered by kind then by
+            start date. Periods of the same kind never overlap.
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductModelRule'
+        editable:
+          description: False for an archived model, which is read-only.
+          type: boolean
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        archivedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    ProductModelRule:
+      description: >-
+        One dated period of a model. Exactly one value shape is set, decided by
+        the rule kind: an `amount` for a ceiling, a bracket scale for a rate, a
+        `text` token for a method or a term. A null `validTo` is in force with
+        no known end and is never rendered as an expiry or a zero.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - valueType
+        - amount
+        - text
+        - rateApplication
+        - brackets
+        - validFrom
+        - validTo
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        valueType:
+          $ref: '#/components/schemas/RuleValueType'
+        amount:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        text:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
+            - type: 'null'
+        rateApplication:
+          oneOf:
+            - $ref: '#/components/schemas/RateApplication'
+            - type: 'null'
+        brackets:
+          description: >-
+            The slices a rate scale is made of, in order; empty for a ceiling or
+            a term. They tile `[0, +∞[`: the first starts at zero, each starts
+            where the previous ended, and the last runs without limit.
+          type: array
+          items:
+            $ref: '#/components/schemas/RateBracket'
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+    ProductModelRuleInput:
+      description: >-
+        One dated period as a client submits it. The body carries exactly these
+        fields; the parser decides which value shape the kind requires and
+        refuses the others. Decimals travel as canonical strings — a rate sent
+        as a JSON number is refused rather than rounded.
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - amount
+        - amountAssetCode
+        - text
+        - rateApplication
+        - brackets
+        - validFrom
+        - validTo
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        amount:
+          description: A ceiling amount as a canonical decimal string, or null for a non-ceiling kind.
+          oneOf:
+            - type: string
+              pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        amountAssetCode:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z][A-Z0-9]{1,11}$'
+            - type: 'null'
+        text:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
+            - type: 'null'
+        rateApplication:
+          oneOf:
+            - $ref: '#/components/schemas/RateApplication'
+            - type: 'null'
+        brackets:
+          description: >-
+            One or more brackets for a rate kind, empty otherwise. A single rate
+            is the one-bracket case running from zero without limit.
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/RateBracket'
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+    CreateProductModelRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - family
+        - wrapperKind
+        - yieldKind
+        - defaultGroupCode
+        - valuationMode
+        - capabilities
+        - rules
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        family:
+          $ref: '#/components/schemas/AccountKind'
+        wrapperKind:
+          $ref: '#/components/schemas/ProductWrapperKind'
+        yieldKind:
+          $ref: '#/components/schemas/ProductYieldKind'
+        defaultGroupCode:
+          oneOf:
+            - type: string
+              maxLength: 32
+              pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
+            - type: 'null'
+        valuationMode:
+          $ref: '#/components/schemas/AccountValuationMode'
+        capabilities:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ProductCapability'
+        rules:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/ProductModelRuleInput'
+    CreateProductModelFromProductRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - productCode
+        - valuationMode
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        productCode:
+          $ref: '#/components/schemas/ProductCode'
+        valuationMode:
+          $ref: '#/components/schemas/AccountValuationMode'
+    DuplicateProductModelRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+    AddProductModelRuleRequest:
+      description: >-
+        A dated period to record, plus the version of the model it is applied
+        to. The field set is exact.
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - amount
+        - amountAssetCode
+        - text
+        - rateApplication
+        - brackets
+        - validFrom
+        - validTo
+        - version
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        amount:
+          oneOf:
+            - type: string
+              pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        amountAssetCode:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z][A-Z0-9]{1,11}$'
+            - type: 'null'
+        text:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
+            - type: 'null'
+        rateApplication:
+          oneOf:
+            - $ref: '#/components/schemas/RateApplication'
+            - type: 'null'
+        brackets:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/RateBracket'
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        version:
+          type: integer
+          minimum: 1
+    ArchiveProductModelRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          minimum: 1
     CategoryPage:
       type: object
       additionalProperties: false
@@ -2200,13 +3026,16 @@ components:
           $ref: '#/components/schemas/ProductRuleSource'
     RateApplication:
       description: >-
-        How the brackets combine over an amount. The same two brackets pay a
-        different interest depending on whether the reached one applies to
-        everything or only to the slice it covers, so a scale is never read
-        without it.
+        How the brackets combine over an amount. `MARGINAL` remunerates each
+        slice at the rate of the bracket covering it, while `FLAT_BY_BRACKET`
+        applies the rate of the bracket reached to the whole amount. A scale of
+        4 % up to 10 000 then 2 % above pays 500 on 15 000 under the first and
+        300 under the second, so a scale is never read without its mode. A
+        single-bracket scale gives the same result under both.
       type: string
       enum:
-        - WHOLE_BALANCE
+        - MARGINAL
+        - FLAT_BY_BRACKET
     RateBracket:
       description: >-
         One slice of a rate scale. The lower bound is included and the upper

@@ -105,3 +105,27 @@ api:
     account_forbidden:
       title: 'Comptes inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    invalid_product_model_query:
+      title: 'Requête de modèles invalide'
+      detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
+    invalid_product_model:
+      title: 'Modèle de produit invalide'
+      detail: "Vérifiez le nom, la famille, l'enveloppe, le rendement, les capacités et les périodes datées du modèle. Un barème par tranches part de zéro, ses tranches se suivent sans trou ni recouvrement et la dernière reste sans plafond."
+    product_model_payload_too_large:
+      title: 'Corps de modèle trop volumineux'
+      detail: 'Le corps JSON dépasse la taille maximale autorisée.'
+    product_model_name_taken:
+      title: 'Nom de modèle déjà utilisé'
+      detail: 'Un modèle actif de cet espace porte déjà ce nom. Choisissez un autre nom.'
+    product_model_stale_version:
+      title: 'Modèle modifié entre-temps'
+      detail: 'Le modèle a été modifié par une autre requête. Rechargez le modèle puis réappliquez la modification.'
+    product_model_archived:
+      title: 'Modèle archivé'
+      detail: "Un modèle archivé est en lecture seule : il n'accepte plus de période et ne peut plus servir de point de départ."
+    product_model_not_found:
+      title: 'Modèle introuvable'
+      detail: 'Aucun modèle de produit ne porte cet identifiant dans cet espace de travail.'
+    product_model_forbidden:
+      title: 'Modèles inaccessibles'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
