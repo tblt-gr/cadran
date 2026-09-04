@@ -89,3 +89,48 @@ export function formatCalendarDay(value: string, locale: string): string {
     year: 'numeric',
   }).format(new Date(`${value}T12:00:00Z`));
 }
+
+const CANONICAL_UNSIGNED_DECIMAL = /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
+
+/** A decimal string with no sign, no leading zero and no locale formatting. */
+export function isCanonicalUnsignedDecimal(value: string): boolean {
+  return CANONICAL_UNSIGNED_DECIMAL.test(value);
+}
+
+/**
+ * Orders two canonical unsigned decimals (`123`, `0`, `4.50`) without ever
+ * reading them as a `Number`. Digits alone decide the order: the integer part
+ * compares by length then lexicographically, since a canonical integer part
+ * never carries a leading zero, and the fraction part compares lexicographically
+ * once padded to the same length.
+ *
+ * Both operands must already be canonical unsigned decimals — the length-first
+ * comparison this relies on reads a sign or a leading zero as extra integer
+ * digits and answers a wrong order silently, so an uncanonical operand throws
+ * rather than being trusted.
+ */
+export function compareUnsignedDecimals(a: string, b: string): number {
+  if (!isCanonicalUnsignedDecimal(a) || !isCanonicalUnsignedDecimal(b)) {
+    throw new Error('compareUnsignedDecimals expects two canonical unsigned decimals');
+  }
+
+  const [integerA, fractionA = ''] = a.split('.');
+  const [integerB, fractionB = ''] = b.split('.');
+
+  if (integerA.length !== integerB.length) {
+    return integerA.length - integerB.length;
+  }
+  if (integerA !== integerB) {
+    return integerA < integerB ? -1 : 1;
+  }
+
+  const width = Math.max(fractionA.length, fractionB.length);
+  const paddedA = fractionA.padEnd(width, '0');
+  const paddedB = fractionB.padEnd(width, '0');
+
+  if (paddedA === paddedB) {
+    return 0;
+  }
+
+  return paddedA < paddedB ? -1 : 1;
+}

@@ -1,0 +1,93 @@
+{
+  "description": "The bound invariant of a rate scale, stated once for every implementation that has to read one. RateScale::__construct and RateBracket::__construct hold it server-side; the scale preview in the SPA restates it in TypeScript to answer before a period is submitted. Both consume these cases, so the two cannot drift apart in silence. Bounds only: rates are judged elsewhere, and each case carries a valid one so it is never what the case fails on. A null upperBound means the bracket runs without limit. Rows are read in the order given and never sorted.",
+  "cases": [
+    {
+      "name": "one bracket from zero without limit",
+      "brackets": [{ "lowerBound": "0", "upperBound": null, "percentage": "1.7" }],
+      "wellBounded": true
+    },
+    {
+      "name": "two brackets meeting on the same figure",
+      "brackets": [
+        { "lowerBound": "0", "upperBound": "10000", "percentage": "2" },
+        { "lowerBound": "10000", "upperBound": null, "percentage": "1.5" }
+      ],
+      "wellBounded": true
+    },
+    {
+      "name": "bounds meeting on their value rather than their written scale",
+      "brackets": [
+        { "lowerBound": "0", "upperBound": "10000.00", "percentage": "2" },
+        { "lowerBound": "10000", "upperBound": null, "percentage": "1.5" }
+      ],
+      "wellBounded": true
+    },
+    {
+      "name": "a start written as zero to a decimal place",
+      "brackets": [{ "lowerBound": "0.0", "upperBound": null, "percentage": "1.7" }],
+      "wellBounded": true
+    },
+    {
+      "name": "no bracket at all",
+      "brackets": [],
+      "wellBounded": false
+    },
+    {
+      "name": "a scale that does not start at zero",
+      "brackets": [{ "lowerBound": "1", "upperBound": null, "percentage": "1.7" }],
+      "wellBounded": false
+    },
+    {
+      "name": "a gap between two brackets",
+      "brackets": [
+        { "lowerBound": "0", "upperBound": "10000", "percentage": "2" },
+        { "lowerBound": "20000", "upperBound": null, "percentage": "1.5" }
+      ],
+      "wellBounded": false
+    },
+    {
+      "name": "an overlap between two brackets",
+      "brackets": [
+        { "lowerBound": "0", "upperBound": "10000", "percentage": "2" },
+        { "lowerBound": "9000", "upperBound": null, "percentage": "1.5" }
+      ],
+      "wellBounded": false
+    },
+    {
+      "name": "a last bracket that stops at a figure",
+      "brackets": [{ "lowerBound": "0", "upperBound": "10000", "percentage": "2" }],
+      "wellBounded": false
+    },
+    {
+      "name": "a bracket ending where it starts",
+      "brackets": [
+        { "lowerBound": "0", "upperBound": "10000", "percentage": "2" },
+        { "lowerBound": "10000", "upperBound": "10000", "percentage": "1.5" },
+        { "lowerBound": "10000", "upperBound": null, "percentage": "1" }
+      ],
+      "wellBounded": false
+    },
+    {
+      "name": "a bracket ending below where it starts",
+      "brackets": [
+        { "lowerBound": "0", "upperBound": "10000", "percentage": "2" },
+        { "lowerBound": "10000", "upperBound": "5000", "percentage": "1.5" },
+        { "lowerBound": "5000", "upperBound": null, "percentage": "1" }
+      ],
+      "wellBounded": false
+    },
+    {
+      "name": "a bracket starting below zero",
+      "brackets": [{ "lowerBound": "-1", "upperBound": null, "percentage": "1.7" }],
+      "wellBounded": false
+    },
+    {
+      "name": "rows well-bounded only once reordered",
+      "brackets": [
+        { "lowerBound": "10000", "upperBound": null, "percentage": "1.5" },
+        { "lowerBound": "0", "upperBound": "10000", "percentage": "2" }
+      ],
+      "wellBounded": false
+    }
+  ]
+}

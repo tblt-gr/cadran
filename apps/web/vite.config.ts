@@ -7,6 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // Shared fixtures live at the repo root so PHPUnit and Vitest read the
+      // same cases. A relative import from src/ would trip
+      // import/no-relative-parent-imports.
+      '@contracts': fileURLToPath(new URL('../../tests/contracts', import.meta.url)),
     },
   },
   test: {
