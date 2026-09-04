@@ -16,6 +16,7 @@ use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceContext;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use Symfony\Component\Clock\ClockInterface;
 
 final readonly class UpdateAccount
@@ -24,6 +25,7 @@ final readonly class UpdateAccount
         private CallerWorkspaceContext $caller,
         private AccountRepository $accounts,
         private AccountProduct $products,
+        private AccountProductModel $productModels,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
@@ -72,13 +74,22 @@ final readonly class UpdateAccount
                 throw new AccountConflict('An active account already uses this label.');
             }
 
+            // An account references at most one origin: refusing both here
+            // keeps a tampered form from ever reaching a state the aggregate
+            // would have to unwind.
+            if (null !== $input->productCode && null !== $input->productModelId) {
+                throw new InvalidAccountInput('An account references at most one product or model.');
+            }
+
             $productCode = $this->resolveProduct($current, $input->productCode, $kind, $valuationMode);
+            $productModelId = $this->resolveModel($context->workspace, $current, $input->productModelId, $kind, $valuationMode);
 
             try {
                 $updated = $current->reconfigure(
                     label: $label,
                     kind: $kind,
                     productCode: $productCode,
+                    productModelId: $productModelId,
                     institution: $institution,
                     maskedIdentifier: $maskedIdentifier,
                     valuationMode: $valuationMode,
@@ -124,6 +135,25 @@ final readonly class UpdateAccount
         }
 
         return $this->products->resolve($submitted, $kind, $valuationMode);
+    }
+
+    /**
+     * The same keep-if-unchanged rule as {@see self::resolveProduct()}, for
+     * the workspace's own model: resolving it on every edit would lock an
+     * account out of renaming once its model is archived.
+     */
+    private function resolveModel(
+        WorkspaceScope $workspace,
+        Account $current,
+        ?string $submitted,
+        AccountKind $kind,
+        AccountValuationMode $valuationMode,
+    ): ?string {
+        if ($submitted === $current->productModelId && $kind === $current->kind && $valuationMode === $current->valuationMode) {
+            return $current->productModelId;
+        }
+
+        return $this->productModels->resolve($workspace, $submitted, $kind, $valuationMode);
     }
 
     /**

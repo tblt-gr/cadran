@@ -22,4 +22,11 @@ enum AccountRulesOrigin: string
      * Its recorded history stays valid; the rules behind it cannot be read.
      */
     case PRODUCT_WITHDRAWN = 'PRODUCT_WITHDRAWN';
+    /**
+     * The rules were read from a reusable product model of the calling
+     * workspace. Unlike the system catalogue, the model is never withdrawn
+     * from under an account: archiving stops new accounts from starting on
+     * it, but one already backed by it keeps resolving the same periods.
+     */
+    case WORKSPACE_MODEL = 'WORKSPACE_MODEL';
 }

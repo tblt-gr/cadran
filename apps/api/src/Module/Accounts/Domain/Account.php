@@ -21,6 +21,13 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  * what the catalogue said. A ceiling or a rate is read from the catalogue on
  * the business date it is needed, so a regulatory revision reaches every
  * account at once instead of freezing yesterday's figure into a row.
+ *
+ * A model-backed account works the same way, one reference away: it keeps
+ * only the identifier of the workspace product model it was created from, and
+ * the ceilings, rates and terms behind it are read from that model on the
+ * business date they are needed. An account carries at most one of the two
+ * references — never both at once, since each names a different authority for
+ * the rules the account inherits.
  */
 final readonly class Account
 {
@@ -35,6 +42,7 @@ final readonly class Account
         public AssetCode $assetCode,
         public AccountKind $kind,
         public ?ProductCode $productCode,
+        public ?string $productModelId,
         public ?string $institution,
         public ?MaskedIdentifier $maskedIdentifier,
         public AccountValuationMode $valuationMode,
@@ -52,6 +60,11 @@ final readonly class Account
         self::assertIdentifier($id);
         self::assertLabel($label);
         self::assertInstitution($institution);
+        self::assertProductModelId($productModelId);
+
+        if (null !== $productCode && null !== $productModelId) {
+            throw new InvalidAccount('An account references at most one product or model.');
+        }
 
         if (!$valuationMode->acceptsKind($kind)) {
             throw new InvalidAccount('A portfolio valuation requires an account kind that holds positions.');
@@ -78,6 +91,7 @@ final readonly class Account
         string $label,
         AccountKind $kind,
         ?ProductCode $productCode,
+        ?string $productModelId,
         ?string $institution,
         ?MaskedIdentifier $maskedIdentifier,
         AccountValuationMode $valuationMode,
@@ -94,11 +108,16 @@ final readonly class Account
             throw new InvalidAccount('A used account cannot change kind.');
         }
 
-        // Swapping the product of an account that already carries history would
-        // re-read every past movement against another set of dated rules — a
-        // Livret A ceiling becoming a PEA contribution ceiling, retroactively.
+        // Swapping the product or the model of an account that already carries
+        // history would re-read every past movement against another set of
+        // dated rules — a Livret A ceiling becoming a PEA contribution
+        // ceiling, retroactively.
         if (null !== $this->usedAt && !self::sameProduct($this->productCode, $productCode)) {
             throw new InvalidAccount('A used account cannot change product.');
+        }
+
+        if (null !== $this->usedAt && $this->productModelId !== $productModelId) {
+            throw new InvalidAccount('A used account cannot change model.');
         }
 
         return new self(
@@ -108,6 +127,7 @@ final readonly class Account
             assetCode: $this->assetCode,
             kind: $kind,
             productCode: $productCode,
+            productModelId: $productModelId,
             institution: $institution,
             maskedIdentifier: $maskedIdentifier,
             valuationMode: $valuationMode,
@@ -139,6 +159,7 @@ final readonly class Account
             assetCode: $this->assetCode,
             kind: $this->kind,
             productCode: $this->productCode,
+            productModelId: $this->productModelId,
             institution: $this->institution,
             maskedIdentifier: $this->maskedIdentifier,
             valuationMode: $this->valuationMode,
@@ -181,6 +202,17 @@ final readonly class Account
     {
         if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
             throw new InvalidAccount('An account identifier must be a canonical UUID.');
+        }
+    }
+
+    private static function assertProductModelId(?string $productModelId): void
+    {
+        if (null === $productModelId) {
+            return;
+        }
+
+        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $productModelId)) {
+            throw new InvalidAccount('A product model reference must be a canonical UUID.');
         }
     }
 

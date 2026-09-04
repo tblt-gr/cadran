@@ -41,6 +41,7 @@ const passbook: AccountRules = {
   accountId: account.id,
   assetCode: 'EUR',
   productCode: 'FR_LIVRET_A',
+  productModelId: null,
   origin: 'SYSTEM_CATALOG',
   asOf: TODAY,
   ceilings: [
@@ -219,6 +220,27 @@ describe('AccountRulesPanel', () => {
     ).toBeNull();
   });
 
+  it('shows a workspace template rule as declared rather than sourced or verified', async () => {
+    api.readAccountRules.mockImplementation(() =>
+      success({
+        ...passbook,
+        productCode: null,
+        productModelId: '00000000-0000-7000-8000-0000000000e1',
+        origin: 'WORKSPACE_MODEL',
+        ceilings: [{ ...passbook.ceilings[0]!, verification: null, source: null }],
+        rates: [{ ...passbook.rates[0]!, verification: null, source: null }],
+      }),
+    );
+    renderPanel();
+
+    expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
+    // Nobody published a workspace template's periods: no freshness is graded
+    // and no publication is named for either row.
+    expect(screen.getAllByText('Déclaré par l’espace de travail')).toHaveLength(2);
+    expect(screen.getAllByText('— Aucune publication : donnée déclarée')).toHaveLength(2);
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
   it('reports a ceiling published in another unit as not comparable', async () => {
     api.readAccountRules.mockImplementation(() =>
       success({
@@ -257,7 +279,7 @@ describe('AccountRulesPanel', () => {
       ),
     ).toBeTruthy();
     expect(
-      screen.getByText('Aucune règle sourcée au 3 septembre 2026 pour ce compte.'),
+      screen.getByText('Aucune règle en vigueur au 3 septembre 2026 pour ce compte.'),
     ).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();
   });
@@ -274,7 +296,7 @@ describe('AccountRulesPanel', () => {
     // The date settles nothing here: no rule can be resolved on any date. Saying
     // "aucune règle sourcée au 3 septembre 2026" beneath the alert would blame
     // the date and read as "this account has no ceiling".
-    expect(screen.queryByText(/Aucune règle sourcée au/)).toBeNull();
+    expect(screen.queryByText(/Aucune règle en vigueur au/)).toBeNull();
   });
 
   it('offers a retry on a failed read and asks for a sign-in on an expired session', async () => {

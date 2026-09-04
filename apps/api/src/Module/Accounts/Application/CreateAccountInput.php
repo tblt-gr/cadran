@@ -11,6 +11,7 @@ final readonly class CreateAccountInput
         public string $assetCode,
         public string $kind,
         public ?string $productCode,
+        public ?string $productModelId,
         public ?string $institution,
         public ?string $maskedIdentifier,
         public string $valuationMode,

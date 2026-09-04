@@ -1,5 +1,6 @@
-import type { Account, AccountKind, Product } from '@cadran/api-client';
+import type { Account, AccountKind } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import type { AccountOrigin } from '@/features/accounts/account-form/accountOrigin';
 import { AssetField } from '@/features/accounts/account-form/asset-field/AssetField';
 import { FormField } from '@/features/accounts/account-form/form-field/FormField';
 import type { AssetOptions } from '@/features/accounts/account-form/useAssetOptions';
@@ -31,7 +32,7 @@ interface IdentityFieldsProps {
   onKindChange: (kind: AccountKind) => void;
   onLabelChange: (label: string) => void;
   onMaskedIdentifierChange: (identifier: string) => void;
-  product: Product | null;
+  origin: AccountOrigin;
 }
 
 /**
@@ -39,7 +40,9 @@ interface IdentityFieldsProps {
  * its kind and the visible tail of its identifier. The denomination is a
  * read-only reminder once the account exists, because changing it would
  * reinterpret every figure already recorded against it. The kind is read-only
- * too whenever a product declares it: the catalogue is the authority there.
+ * too whenever a product or a template declares it: that origin is the
+ * authority there. If the origin cannot be read, the kind stays locked
+ * rather than offering a choice the API would refuse.
  */
 export function IdentityFields({
   account,
@@ -57,10 +60,12 @@ export function IdentityFields({
   onKindChange,
   onLabelChange,
   onMaskedIdentifierChange,
-  product,
+  origin,
 }: IdentityFieldsProps) {
   const { t } = useTranslation();
-  const kindLocked = product !== null || (account ? !account.kindEditable : false);
+  const originLocked =
+    origin !== null || account?.productCode != null || account?.productModelId != null;
+  const kindLocked = originLocked || (account ? !account.kindEditable : false);
 
   return (
     <>
@@ -125,11 +130,17 @@ export function IdentityFields({
 
       <FormField
         hint={
-          product
-            ? t('accounts.form.kindFromProduct', { product: product.displayName })
-            : account && !account.kindEditable
-              ? t(`accounts.form.kindReasons.${account.kindEditReason ?? 'USED'}`)
-              : undefined
+          origin?.type === 'product'
+            ? t('accounts.form.kindFromProduct', { product: origin.product.displayName })
+            : origin?.type === 'template'
+              ? t('accounts.form.kindFromTemplate', { template: origin.template.name })
+              : account?.productModelId
+                ? t('accounts.form.kindFromUnreadTemplate')
+                : account?.productCode
+                  ? t('accounts.form.kindFromUnreadProduct')
+                  : account && !account.kindEditable
+                    ? t(`accounts.form.kindReasons.${account.kindEditReason ?? 'USED'}`)
+                    : undefined
         }
         label={t('accounts.fields.kind')}
         name="kind"

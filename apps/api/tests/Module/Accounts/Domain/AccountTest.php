@@ -133,6 +133,7 @@ final class AccountTest extends TestCase
             label: $account->label,
             kind: $account->kind,
             productCode: $account->productCode,
+            productModelId: $account->productModelId,
             institution: $account->institution,
             maskedIdentifier: $account->maskedIdentifier,
             valuationMode: $account->valuationMode,
@@ -187,6 +188,64 @@ final class AccountTest extends TestCase
         self::assertNull($this->account(productCode: null, institution: null)->productCode);
     }
 
+    public function testAnAccountReferencesAtMostOneProductOrModel(): void
+    {
+        $this->expectException(InvalidAccount::class);
+        $this->expectExceptionMessage('at most one product or model');
+
+        $this->account(
+            productCode: 'FR_LIVRET_A',
+            productModelId: '00000000-0000-7000-8000-0000000000e1',
+        );
+    }
+
+    public function testAModelBackedAccountCarriesNoCatalogueProduct(): void
+    {
+        $account = $this->account(productCode: null, productModelId: '00000000-0000-7000-8000-0000000000e1');
+
+        self::assertSame('00000000-0000-7000-8000-0000000000e1', $account->productModelId);
+        self::assertNull($account->productCode);
+    }
+
+    public function testAProductModelReferenceMustBeACanonicalUuid(): void
+    {
+        $this->expectException(InvalidAccount::class);
+        $this->expectExceptionMessage('canonical UUID');
+
+        $this->account(productCode: null, productModelId: 'not-a-uuid');
+    }
+
+    /**
+     * Swapping the model of an account that already carries history would
+     * re-read every past movement against another set of dated rules.
+     */
+    public function testAUsedAccountCannotChangeModel(): void
+    {
+        $account = $this->account(
+            productCode: null,
+            productModelId: '00000000-0000-7000-8000-0000000000e1',
+            usedAt: new \DateTimeImmutable(self::NOW),
+        );
+
+        $this->expectException(InvalidAccount::class);
+        $this->expectExceptionMessage('change model');
+
+        $this->reconfigured($account, productModelId: '00000000-0000-7000-8000-0000000000e2');
+    }
+
+    public function testAUsedAccountKeepingItsModelIsStillEditable(): void
+    {
+        $account = $this->account(
+            productCode: null,
+            productModelId: '00000000-0000-7000-8000-0000000000e1',
+            usedAt: new \DateTimeImmutable(self::NOW),
+        );
+
+        $renamed = $this->reconfigured($account, label: 'Livret A Banque Y');
+
+        self::assertSame('00000000-0000-7000-8000-0000000000e1', $renamed->productModelId);
+    }
+
     /**
      * Swapping the model of an account that already carries history would
      * re-read every past movement against another set of dated rules.
@@ -236,11 +295,13 @@ final class AccountTest extends TestCase
         ?AccountKind $kind = null,
         ?\DateTimeImmutable $closedOn = null,
         ?ProductCode $productCode = null,
+        ?string $productModelId = null,
     ): Account {
         return $account->reconfigure(
             label: $label ?? $account->label,
             kind: $kind ?? $account->kind,
             productCode: $productCode ?? $account->productCode,
+            productModelId: $productModelId ?? $account->productModelId,
             institution: $account->institution,
             maskedIdentifier: $account->maskedIdentifier,
             valuationMode: $account->valuationMode,
@@ -263,6 +324,7 @@ final class AccountTest extends TestCase
         ?string $closedOn = null,
         ?\DateTimeImmutable $usedAt = null,
         ?string $productCode = 'FR_LIVRET_A',
+        ?string $productModelId = null,
         ?string $institution = 'Banque X',
     ): Account {
         $now = new \DateTimeImmutable(self::NOW);
@@ -275,6 +337,7 @@ final class AccountTest extends TestCase
             assetCode: AssetCode::fromString('EUR'),
             kind: $kind,
             productCode: null === $productCode ? null : ProductCode::fromString($productCode),
+            productModelId: $productModelId,
             institution: $institution,
             maskedIdentifier: MaskedIdentifier::fromString('4821'),
             valuationMode: $valuationMode,

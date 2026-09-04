@@ -204,6 +204,44 @@ final class ProductModelTest extends TestCase
         );
     }
 
+    public function testARegulatedEnvelopeReportsItsCeilingAndRateUnavailable(): void
+    {
+        $model = ProductModelFixture::model(wrapperKind: WrapperKind::REGULATED_SAVINGS);
+
+        $effective = $model->effectiveOn(ProductModelFixture::day('2026-09-02'));
+
+        self::assertSame([RuleKind::DEPOSIT_CEILING, RuleKind::ANNUAL_RATE], $effective->unavailableRuleKinds);
+    }
+
+    public function testABusinessDateNoPeriodCoversLeavesTheRuleUnavailable(): void
+    {
+        $model = ProductModelFixture::model(schedule: new ModelRuleSchedule([
+            ProductModelFixture::rate('00000000-0000-7000-8000-0000000000b1', '2026-01-01', '2026-06-30'),
+        ]));
+
+        $effective = $model->effectiveOn(ProductModelFixture::day('2026-07-15'));
+
+        self::assertSame([], $effective->rules);
+        self::assertSame([RuleKind::ANNUAL_RATE], $effective->unavailableRuleKinds);
+    }
+
+    public function testAMarketModelExpectsNoRateAndReportsNoneMissing(): void
+    {
+        $model = ProductModelFixture::model(
+            yieldKind: YieldKind::MARKET,
+            capabilities: ProductCapabilities::of(
+                ProductCapability::SUPPORTS_BALANCE,
+                ProductCapability::SUPPORTS_TRANSACTIONS,
+                ProductCapability::SUPPORTS_HOLDINGS,
+            ),
+        );
+
+        $effective = $model->effectiveOn(ProductModelFixture::day('2026-09-02'));
+
+        self::assertFalse($model->yieldKind->isGuaranteed());
+        self::assertSame([], $effective->unavailableRuleKinds);
+    }
+
     public function testTheCeilingBasisFollowsTheRecordedCeilingKinds(): void
     {
         $withBalanceCeiling = ProductModelFixture::model(schedule: new ModelRuleSchedule([

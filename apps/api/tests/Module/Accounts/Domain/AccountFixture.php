@@ -27,6 +27,7 @@ final class AccountFixture
         AccountKind $kind = AccountKind::SAVINGS,
         string $id = self::ID,
         string $workspace = self::WORKSPACE,
+        ?string $productModelId = null,
     ): Account {
         $now = new \DateTimeImmutable('2026-09-03T10:00:00+00:00');
 
@@ -37,6 +38,7 @@ final class AccountFixture
             assetCode: AssetCode::fromString($assetCode),
             kind: $kind,
             productCode: null === $productCode ? null : ProductCode::fromString($productCode),
+            productModelId: $productModelId,
             institution: 'Banque X',
             maskedIdentifier: null,
             valuationMode: AccountValuationMode::TRANSACTIONS,

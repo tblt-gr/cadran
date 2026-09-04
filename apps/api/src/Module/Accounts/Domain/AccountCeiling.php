@@ -24,16 +24,26 @@ final readonly class AccountCeiling
 {
     public CeilingBasis $basis;
 
+    /**
+     * `verification` and `source` are null for a ceiling read from a
+     * workspace product model: nobody published it, so grading how fresh it
+     * is and naming a publication would fabricate a provenance the model
+     * never had. A catalogue-sourced ceiling always carries both.
+     */
     public function __construct(
         public RuleKind $kind,
         public AssetAmount $amount,
         public EffectivePeriod $period,
-        public VerificationState $verification,
-        public CatalogSource $source,
+        public ?VerificationState $verification,
+        public ?CatalogSource $source,
         private AssetCode $accountAsset,
     ) {
         if (!$kind->statesACeiling()) {
             throw new InvalidAccount(sprintf('A %s rule states no ceiling.', $kind->value));
+        }
+
+        if ((null === $verification) !== (null === $source)) {
+            throw new InvalidAccount('A rule is either published or declared, never half of each.');
         }
 
         $this->basis = $kind->ceilingBasis();

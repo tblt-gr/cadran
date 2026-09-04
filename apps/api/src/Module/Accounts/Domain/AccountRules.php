@@ -37,6 +37,7 @@ final readonly class AccountRules
         public string $accountId,
         public AssetCode $assetCode,
         public ?ProductCode $productCode,
+        public ?string $productModelId,
         public AccountRulesOrigin $origin,
         public \DateTimeImmutable $asOf,
         public array $ceilings,
@@ -56,6 +57,7 @@ final readonly class AccountRules
         return new self(
             $account->id,
             $account->assetCode,
+            null,
             null,
             AccountRulesOrigin::NO_PRODUCT,
             $asOf,
@@ -77,6 +79,7 @@ final readonly class AccountRules
             $account->id,
             $account->assetCode,
             $productCode,
+            null,
             AccountRulesOrigin::PRODUCT_WITHDRAWN,
             $asOf,
             [],
@@ -106,7 +109,43 @@ final readonly class AccountRules
             accountId: $account->id,
             assetCode: $account->assetCode,
             productCode: $effective->product->code,
+            productModelId: null,
             origin: AccountRulesOrigin::SYSTEM_CATALOG,
+            asOf: $effective->asOf,
+            ceilings: $ceilings,
+            rates: $rates,
+            terms: $terms,
+            unavailableRuleKinds: $effective->unavailableRuleKinds,
+        );
+    }
+
+    /**
+     * Resolves the rules of a workspace product model, the counterpart of
+     * {@see self::fromProduct()}. A model rule carries no publication, so
+     * every ceiling, rate and term below reads as self-declared: null
+     * verification, null source. Archiving the model changes nothing here —
+     * the account keeps resolving the same periods either way.
+     */
+    public static function fromModel(Account $account, EffectiveModel $effective): self
+    {
+        $ceilings = [];
+        $rates = [];
+        $terms = [];
+
+        foreach ($effective->rules as $rule) {
+            match (true) {
+                $rule->kind->statesACeiling() => $ceilings[] = self::modelCeiling($rule, $account->assetCode),
+                $rule->kind->statesARate() => $rates[] = self::modelRate($rule, $effective->model->yieldKind),
+                default => $terms[] = self::modelTerm($rule),
+            };
+        }
+
+        return new self(
+            accountId: $account->id,
+            assetCode: $account->assetCode,
+            productCode: null,
+            productModelId: $effective->model->id,
+            origin: AccountRulesOrigin::WORKSPACE_MODEL,
             asOf: $effective->asOf,
             ceilings: $ceilings,
             rates: $rates,
@@ -160,6 +199,41 @@ final readonly class AccountRules
             period: $rule->period,
             verification: $resolved->verification,
             source: $rule->source,
+        );
+    }
+
+    private static function modelCeiling(ModelRule $rule, AssetCode $accountAsset): AccountCeiling
+    {
+        return new AccountCeiling(
+            kind: $rule->kind,
+            amount: $rule->value->amount ?? throw self::malformed($rule->kind),
+            period: $rule->period,
+            verification: null,
+            source: null,
+            accountAsset: $accountAsset,
+        );
+    }
+
+    private static function modelRate(ModelRule $rule, YieldKind $yieldKind): AccountRate
+    {
+        return new AccountRate(
+            kind: $rule->kind,
+            scale: $rule->value->scale ?? throw self::malformed($rule->kind),
+            guaranteed: $rule->kind->rateIsOwedToTheHolder($yieldKind),
+            period: $rule->period,
+            verification: null,
+            source: null,
+        );
+    }
+
+    private static function modelTerm(ModelRule $rule): AccountTerm
+    {
+        return new AccountTerm(
+            kind: $rule->kind,
+            token: $rule->value->text ?? throw self::malformed($rule->kind),
+            period: $rule->period,
+            verification: null,
+            source: null,
         );
     }
 

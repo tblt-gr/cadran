@@ -10,10 +10,12 @@ use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Accounts\Domain\LiquidityLevel;
 use App\Module\Accounts\Domain\MaskedIdentifier;
 use App\Module\Accounts\Infrastructure\Persistence\DbalAccountRepository;
+use App\Module\Accounts\Infrastructure\Persistence\DbalProductModelRepository;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Tests\Module\Accounts\Domain\ProductModelFixture;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DbalException;
@@ -25,10 +27,13 @@ final class AccountPersistenceTest extends KernelTestCase
 {
     private const string OWN_ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
+    private const string OWN_MODEL = ProductModelFixture::ID;
+    private const string OTHER_MODEL = '00000000-0000-7000-8000-0000000000e2';
 
     private Connection $connection;
     private WorkspaceFixture $fixture;
     private DbalAccountRepository $repository;
+    private DbalProductModelRepository $models;
     private bool $databaseReady = false;
 
     protected function setUp(): void
@@ -40,9 +45,14 @@ final class AccountPersistenceTest extends KernelTestCase
         $this->connection = $connection;
         $this->fixture = new WorkspaceFixture($connection);
         $this->repository = new DbalAccountRepository($connection);
+        $this->models = new DbalProductModelRepository($connection);
         $this->databaseReady = true;
         $this->fixture->reset();
         $this->fixture->seed();
+        // One model per workspace, so the FK and cross-workspace scenarios
+        // below reference a row that actually exists.
+        $this->models->add(ProductModelFixture::model(id: self::OWN_MODEL, workspace: WorkspaceFixture::OWN_WORKSPACE));
+        $this->models->add(ProductModelFixture::model(id: self::OTHER_MODEL, workspace: WorkspaceFixture::OTHER_WORKSPACE));
     }
 
     protected function tearDown(): void
@@ -106,6 +116,7 @@ final class AccountPersistenceTest extends KernelTestCase
             label: 'Livret A Banque Y',
             kind: $account->kind,
             productCode: $account->productCode,
+            productModelId: $account->productModelId,
             institution: $account->institution,
             maskedIdentifier: $account->maskedIdentifier,
             valuationMode: $account->valuationMode,
@@ -144,6 +155,21 @@ final class AccountPersistenceTest extends KernelTestCase
         self::assertNotNull($stored);
         self::assertNull($stored->productCode);
         self::assertNull($stored->institution);
+    }
+
+    public function testAModelBackedAccountRoundTripsItsReferenceInsteadOfACatalogueProduct(): void
+    {
+        $this->repository->add($this->account(
+            self::OWN_ACCOUNT,
+            WorkspaceFixture::own(),
+            productCode: null,
+            productModelId: self::OWN_MODEL,
+        ));
+
+        $stored = $this->repository->findForUpdate(WorkspaceFixture::own(), self::OWN_ACCOUNT);
+        self::assertNotNull($stored);
+        self::assertSame(self::OWN_MODEL, $stored->productModelId);
+        self::assertNull($stored->productCode);
     }
 
     /**
@@ -234,6 +260,28 @@ final class AccountPersistenceTest extends KernelTestCase
             ['institution' => '   '],
             '/institution_present/',
         ];
+        yield 'unknown model' => [
+            ['product_code' => null, 'product_model_id' => '00000000-0000-7000-8000-0000000000ff'],
+            '/product_model_fk/',
+        ];
+        // The reference is (id, workspace_id), so a model of another workspace
+        // cannot back this account by any writer: the FK sees an id that
+        // exists, paired with a workspace it does not belong to.
+        yield 'model of another workspace' => [
+            ['product_code' => null, 'product_model_id' => self::OTHER_MODEL],
+            '/product_model_fk/',
+        ];
+        // The reference is (id, workspace_id, family), so a savings model
+        // cannot be filed as a current account by any writer: a later ceiling
+        // would then be read against the wrong kind.
+        yield 'model filed under another kind' => [
+            ['product_code' => null, 'product_model_id' => self::OWN_MODEL, 'kind' => 'CURRENT'],
+            '/product_model_fk/',
+        ];
+        yield 'both a catalogue product and a model' => [
+            ['product_model_id' => self::OWN_MODEL],
+            '/single_origin/',
+        ];
     }
 
     private function account(
@@ -242,6 +290,7 @@ final class AccountPersistenceTest extends KernelTestCase
         string $label = 'Livret A Banque X',
         ?string $closedOn = null,
         ?string $productCode = 'FR_LIVRET_A',
+        ?string $productModelId = null,
         ?string $institution = 'Banque X',
     ): Account {
         $utc = new \DateTimeZone('UTC');
@@ -254,6 +303,7 @@ final class AccountPersistenceTest extends KernelTestCase
             assetCode: AssetCode::fromString('EUR'),
             kind: AccountKind::SAVINGS,
             productCode: null === $productCode ? null : ProductCode::fromString($productCode),
+            productModelId: $productModelId,
             institution: $institution,
             maskedIdentifier: MaskedIdentifier::fromString('4821'),
             valuationMode: AccountValuationMode::TRANSACTIONS,

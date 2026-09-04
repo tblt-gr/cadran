@@ -1,4 +1,4 @@
-import type { Account, Product } from '@cadran/api-client';
+import type { Account, Product, ProductModel } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,9 +10,11 @@ const api = vi.hoisted(() => ({
   createAccount: vi.fn(),
   listAccounts: vi.fn(),
   listAssets: vi.fn(),
+  listProductModels: vi.fn(),
   listProducts: vi.fn(),
   readAccountRules: vi.fn(),
   readProduct: vi.fn(),
+  readProductModel: vi.fn(),
   updateAccount: vi.fn(),
 }));
 
@@ -27,6 +29,7 @@ const account: Account = {
   assetCode: 'EUR',
   kind: 'SAVINGS',
   productCode: 'FR_LIVRET_A',
+  productModelId: null,
   institution: 'Banque X',
   maskedIdentifier: '4821',
   valuationMode: 'TRANSACTIONS',
@@ -110,6 +113,29 @@ const pea: Product = {
   unavailableRuleKinds: [],
 };
 
+const livretATemplate: ProductModel = {
+  id: '00000000-0000-7000-8000-0000000000f1',
+  name: 'Livret Banque X',
+  family: 'SAVINGS',
+  nature: 'ASSET',
+  wrapperKind: 'REGULATED_SAVINGS',
+  yieldKind: 'CONTRACTUAL_FIXED',
+  yieldGuaranteed: true,
+  ceilingBasis: 'BALANCE_EXCLUDING_INTEREST',
+  defaultGroupCode: 'LIQUIDITY_SAVINGS',
+  valuationMode: 'TRANSACTIONS',
+  capabilities: ['SUPPORTS_BALANCE', 'SUPPORTS_TRANSACTIONS', 'SUPPORTS_INTEREST'],
+  origin: 'DECLARED',
+  basedOnProductCode: null,
+  basedOnModelId: null,
+  rules: [],
+  editable: true,
+  version: 1,
+  createdAt: '2026-09-01T12:00:00Z',
+  updatedAt: '2026-09-01T12:00:00Z',
+  archivedAt: null,
+};
+
 const euro = {
   code: 'EUR',
   kind: 'FIAT',
@@ -156,6 +182,12 @@ describe('AccountsPage', () => {
     // Editing resolves the model an account follows before offering a kind, so
     // every edit path answers the catalogue read.
     api.readProduct.mockImplementation(() => success(livretA));
+    // The wizard always reads the workspace's own templates alongside the
+    // catalogue; a workspace with none yet is the default for every test that
+    // does not say otherwise.
+    api.listProductModels.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
   });
 
   afterEach(() => {
@@ -233,6 +265,8 @@ describe('AccountsPage', () => {
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    expect(await screen.findByRole('group', { name: 'Catalogue système' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Modèles de l’espace de travail' })).toBeTruthy();
     fireEvent.click(await screen.findByRole('radio', { name: /Livret A/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
@@ -281,8 +315,67 @@ describe('AccountsPage', () => {
       'maskedIdentifier',
       'openedOn',
       'productCode',
+      'productModelId',
       'valuationMode',
     ]);
+  });
+
+  it('creates an account from a workspace template without copying its rules', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.listAssets.mockImplementation(() =>
+      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
+    api.listProductModels.mockImplementation(() =>
+      success({ items: [livretATemplate], page: 1, perPage: 100, total: 1 }),
+    );
+    api.createAccount.mockImplementation(({ body }) => success({ ...account, ...body }, 201));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    fireEvent.click(await screen.findByRole('radio', { name: /Livret Banque X/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    // The template owns the kind, exactly as a catalogue product would.
+    const kind = screen.getByLabelText('Nature du compte') as HTMLSelectElement;
+    expect(kind.value).toBe('SAVINGS');
+    expect(kind.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Livret Banque X' } });
+    fireEvent.change(screen.getByLabelText('Date d’ouverture'), {
+      target: { value: '2026-01-10' },
+    });
+    expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    expect(
+      screen.getByRole('heading', { name: 'Hérité du modèle « Livret Banque X »' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Le tableau liste toutes les périodes enregistrées sur le modèle, y compris celles déjà closes ou pas encore ouvertes.',
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le compte' }));
+
+    await waitFor(() => expect(api.createAccount).toHaveBeenCalledOnce());
+    const body = api.createAccount.mock.calls[0]?.[0].body;
+    // Only the reference travels: the account carries the template's id and
+    // no catalogue code at all.
+    expect(body).toMatchObject({
+      label: 'Livret Banque X',
+      kind: 'SAVINGS',
+      productCode: null,
+      productModelId: livretATemplate.id,
+    });
+    expect(api.listProductModels).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ includeArchived: false }),
+      }),
+    );
   });
 
   it('states the contribution basis of a share savings plan and promises no yield', async () => {
@@ -334,6 +427,61 @@ describe('AccountsPage', () => {
     expect(screen.queryByText('Rendement garanti')).toBeNull();
   });
 
+  it('lets a catalogue product be chosen when the workspace templates cannot be read', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.listAssets.mockImplementation(() =>
+      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProductModels.mockImplementation(() => failure(500));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    expect(
+      await screen.findByText(
+        'Les modèles de l’espace n’ont pas pu être chargés. Réessayez, ou choisissez une autre origine.',
+      ),
+    ).toBeTruthy();
+    fireEvent.click(await screen.findByRole('radio', { name: /Livret A/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    expect(screen.getByLabelText('Libellé')).toBeTruthy();
+    expect((screen.getByLabelText('Nature du compte') as HTMLSelectElement).disabled).toBe(true);
+  });
+
+  it('keeps the kind locked when the attached template cannot be read', async () => {
+    const templated = {
+      ...account,
+      productCode: null,
+      productModelId: livretATemplate.id,
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [templated], page: 1, perPage: 50, total: 1 }),
+    );
+    api.readProductModel.mockImplementation(() => failure(500));
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Modifier le compte Livret A Banque X' }),
+    );
+    expect(
+      await screen.findByText(
+        'Le modèle rattaché à ce compte n’a pas pu être lu. La nature reste imposée par cette référence ; l’API refusera une combinaison que le modèle ne déclare pas.',
+      ),
+    ).toBeTruthy();
+    const kind = screen.getByLabelText('Nature du compte') as HTMLSelectElement;
+    expect(kind.disabled).toBe(true);
+    expect(
+      screen.getByText(
+        'La nature est imposée par le modèle rattaché, même s’il n’a pas pu être lu.',
+      ),
+    ).toBeTruthy();
+  });
+
   it('lets an unreadable catalogue fall back to an account described by hand', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [], page: 1, perPage: 50, total: 0 }),
@@ -345,8 +493,14 @@ describe('AccountsPage', () => {
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
-    expect(await screen.findByRole('heading', { name: 'Catalogue indisponible' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Continuer sans produit' }));
+    expect(
+      await screen.findByText(
+        'Le catalogue produits n’a pas pu être chargé. Réessayez, ou décrivez le compte à la main.',
+      ),
+    ).toBeTruthy();
+    // "Aucun produit" is selected by default, so the catalogue failing to load
+    // never blocks describing the account by hand.
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
     expect(screen.getByLabelText('Libellé')).toBeTruthy();
   });
@@ -522,6 +676,7 @@ describe('AccountsPage', () => {
         accountId: archived.id,
         assetCode: 'EUR',
         productCode: 'FR_LIVRET_A',
+        productModelId: null,
         origin: 'SYSTEM_CATALOG',
         asOf: '2026-09-03',
         ceilings: [

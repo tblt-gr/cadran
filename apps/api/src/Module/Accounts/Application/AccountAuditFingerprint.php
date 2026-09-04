@@ -21,10 +21,13 @@ final class AccountAuditFingerprint
     {
         return [
             'kind' => $account->kind->value,
-            // The catalogue code is a system reference, not workspace data, so
-            // it is the one product attribute a reviewer may read here. The
-            // institution is not: it names where the money sits.
+            // The catalogue code is a system reference. The model identifier
+            // is the workspace counterpart: a UUID, not a label or an amount,
+            // and the only way a reviewer can tell a template-backed account
+            // from one described by hand. The institution is not recorded: it
+            // names where the money sits.
             'productCode' => $account->productCode?->toString(),
+            'productModelId' => $account->productModelId,
             'institutionKnown' => null !== $account->institution,
             'assetCode' => $account->assetCode->toString(),
             'valuationMode' => $account->valuationMode->value,

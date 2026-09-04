@@ -4,7 +4,6 @@ import type {
   AccountValuationMode,
   CreateAccountRequest,
   LiquidityLevel,
-  Product,
   UpdateAccountRequest,
 } from '@cadran/api-client';
 import { useState } from 'react';
@@ -16,6 +15,7 @@ import {
   emptyAccountFormValues,
   type AccountFormValues,
 } from './accountFormValues';
+import { type AccountOrigin, originProductCode, originProductModelId } from './accountOrigin';
 import { IdentityFields } from './identity-fields/IdentityFields';
 import { InclusionFieldset } from './inclusion-fieldset/InclusionFieldset';
 import { LifecycleFields } from './lifecycle-fields/LifecycleFields';
@@ -30,8 +30,8 @@ interface AccountFormProps {
   /** Values a previous pass through this form left, so a step back does not blank it. */
   defaults?: AccountFormValues | null;
   pending: boolean;
-  /** The catalogue product the account is created from, or null when it is described by hand. */
-  product?: Product | null;
+  /** The catalogue product or workspace template the account is created from, or null when it is described by hand. */
+  origin?: AccountOrigin;
   submitError: AccountErrorKind | null;
   submitLabel?: 'save' | 'continue';
   /** Receives the fields as they stand, so a caller can restore them later. */
@@ -43,17 +43,18 @@ export function AccountForm({
   account,
   defaults = null,
   pending,
-  product = null,
+  origin = null,
   submitError,
   submitLabel = 'save',
   onCancel,
   onSubmit,
 }: AccountFormProps) {
   const { t } = useTranslation();
-  // A product declares the kind of account it is, so the starting point comes
-  // from the catalogue rather than from a default the API would refuse.
+  // A product or a template declares the kind of account it is, so the
+  // starting point comes from it rather than from a default the API would
+  // refuse.
   const initial =
-    defaults ?? (account ? accountFormValues(account) : emptyAccountFormValues(product));
+    defaults ?? (account ? accountFormValues(account) : emptyAccountFormValues(origin));
   const [label, setLabel] = useState(initial.label);
   const [institution, setInstitution] = useState(initial.institution);
   const [assetSelection, setAssetSelection] = useState(initial.assetCode);
@@ -87,7 +88,7 @@ export function AccountForm({
     closedOn !== '' && ((openedOn !== '' && closedOn < openedOn) || closedOn > today);
   const valuationInvalid =
     (valuationMode === 'PORTFOLIO' && !POSITION_KINDS.includes(kind)) ||
-    !productFeedsValuationMode(product, valuationMode);
+    !productFeedsValuationMode(origin, valuationMode);
 
   const values: AccountFormValues = {
     label,
@@ -121,9 +122,10 @@ export function AccountForm({
     const common = {
       label: cleanLabel,
       kind,
-      // Only the reference travels. Ceilings, rates and methods stay in the
-      // catalogue, read on the business date they are needed.
-      productCode: product?.code ?? account?.productCode ?? null,
+      // Only the reference travels. Ceilings, rates and methods stay on the
+      // product or the template, read on the business date they are needed.
+      productCode: originProductCode(origin) ?? account?.productCode ?? null,
+      productModelId: originProductModelId(origin) ?? account?.productModelId ?? null,
       institution: cleanInstitution === '' ? null : cleanInstitution,
       maskedIdentifier: identifier === '' ? null : identifier,
       valuationMode,
@@ -165,7 +167,7 @@ export function AccountForm({
           onKindChange={setKind}
           onLabelChange={setLabel}
           onMaskedIdentifierChange={setMaskedIdentifier}
-          product={product}
+          origin={origin}
         />
 
         <ValuationFields
@@ -174,7 +176,7 @@ export function AccountForm({
           liquidityLevel={liquidityLevel}
           onLiquidityLevelChange={setLiquidityLevel}
           onValuationModeChange={setValuationMode}
-          product={product}
+          origin={origin}
           valuationMode={valuationMode}
         />
 

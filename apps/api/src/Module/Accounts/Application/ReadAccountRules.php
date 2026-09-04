@@ -6,6 +6,7 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountRules;
+use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Catalog\Application\ProductCatalog;
 use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Catalog\Domain\InvalidCatalogEntry;
@@ -27,6 +28,7 @@ final readonly class ReadAccountRules
         private CallerWorkspace $caller,
         private AccountRepository $accounts,
         private ProductCatalog $catalog,
+        private ProductModelRepository $models,
         private ClockInterface $clock,
     ) {
     }
@@ -36,9 +38,22 @@ final readonly class ReadAccountRules
         $today = BusinessDay::fromDateTime($this->clock->now());
         $businessDay = null === $asOf ? $today : self::businessDay($asOf);
 
-        $account = $this->accounts->find($this->caller->resolve(), $id);
+        $workspace = $this->caller->resolve();
+        $account = $this->accounts->find($workspace, $id);
         if (null === $account) {
             throw new AccountNotFound('No account carries this identifier in this workspace.');
+        }
+
+        if (null !== $account->productModelId) {
+            // The model is never deleted, only archived, and archiving must
+            // not change what an existing account resolves. A missing row
+            // here would be a storage integrity failure, not a client error.
+            $model = $this->models->find($workspace, $account->productModelId);
+            if (null === $model) {
+                throw new \LogicException('An account references a product model that no longer exists.');
+            }
+
+            return AccountRules::fromModel($account, $model->effectiveOn($businessDay->date));
         }
 
         $productCode = $account->productCode;

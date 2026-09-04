@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Accounts\UI\Http;
 
+use App\Module\Accounts\Domain\ModelRuleSchedule;
+use App\Module\Accounts\Domain\ProductModel;
+use App\Module\Accounts\Infrastructure\Persistence\DbalProductModelRepository;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Module\Accounts\Domain\ProductModelFixture;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -27,10 +31,12 @@ final class AccountRulesControllerTest extends WebTestCase
     private const string IN_DOLLARS = '00000000-0000-7000-8000-0000000000e4';
     private const string FOREIGN = '00000000-0000-7000-8000-0000000000e5';
     private const string UNKNOWN = '00000000-0000-7000-8000-0000000000ef';
+    private const string CUSTOM_SAVINGS = '00000000-0000-7000-8000-0000000000e6';
 
     private KernelBrowser $client;
     private Connection $connection;
     private WorkspaceFixture $fixture;
+    private DbalProductModelRepository $models;
     private bool $databaseReady = false;
 
     protected function setUp(): void
@@ -41,6 +47,7 @@ final class AccountRulesControllerTest extends WebTestCase
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
         $this->fixture = new WorkspaceFixture($connection);
+        $this->models = new DbalProductModelRepository($connection);
         $this->databaseReady = true;
         $this->fixture->reset();
         $this->resetLoginThrottling();
@@ -66,7 +73,7 @@ final class AccountRulesControllerTest extends WebTestCase
         $rules = $this->readRules(self::LIVRET_A, '2026-09-02');
 
         self::assertSame([
-            'accountId', 'assetCode', 'productCode', 'origin', 'asOf',
+            'accountId', 'assetCode', 'productCode', 'productModelId', 'origin', 'asOf',
             'ceilings', 'rates', 'terms', 'unavailableRuleKinds',
         ], array_keys($rules));
         self::assertSame('SYSTEM_CATALOG', $rules['origin']);
@@ -225,6 +232,63 @@ final class AccountRulesControllerTest extends WebTestCase
         self::assertSame('EUR', $this->nested($ceiling, 'amount')['assetCode']);
     }
 
+    /**
+     * A model rule carries no publication: grading its freshness or naming a
+     * source would fabricate a provenance the model never had.
+     */
+    public function testAModelBackedAccountAnswersItsOwnRulesWithNoPublication(): void
+    {
+        $this->signIn();
+        $this->persistModel(ProductModelFixture::model(
+            workspace: WorkspaceFixture::OWN_WORKSPACE,
+            schedule: new ModelRuleSchedule([
+                ProductModelFixture::ceiling('00000000-0000-7000-8000-0000000000b1', '30000', '2025-01-01'),
+                ProductModelFixture::rate('00000000-0000-7000-8000-0000000000b2', '2026-01-01'),
+            ]),
+        ));
+        $this->insertAccount(self::CUSTOM_SAVINGS, WorkspaceFixture::OWN_WORKSPACE, 'Livret Banque X', productModelId: ProductModelFixture::ID);
+
+        $rules = $this->readRules(self::CUSTOM_SAVINGS, '2026-09-02');
+
+        self::assertSame('WORKSPACE_MODEL', $rules['origin']);
+        self::assertSame(ProductModelFixture::ID, $rules['productModelId']);
+        self::assertNull($rules['productCode']);
+
+        $ceiling = $this->only($rules, 'ceilings');
+        self::assertNull($ceiling['verification']);
+        self::assertNull($ceiling['source']);
+
+        $rate = $this->only($rules, 'rates');
+        self::assertNull($rate['verification']);
+        self::assertNull($rate['source']);
+    }
+
+    /**
+     * Archiving a model stops new accounts from starting on it, but it must
+     * never change what an account already backed by it resolves.
+     */
+    public function testAnArchivedModelStillAnswersForTheAccountItAlreadyBacks(): void
+    {
+        $this->signIn();
+        $model = ProductModelFixture::model(
+            workspace: WorkspaceFixture::OWN_WORKSPACE,
+            schedule: new ModelRuleSchedule([
+                ProductModelFixture::rate('00000000-0000-7000-8000-0000000000b1', '2026-01-01'),
+            ]),
+        );
+        $this->persistModel($model);
+        $this->insertAccount(self::CUSTOM_SAVINGS, WorkspaceFixture::OWN_WORKSPACE, 'Livret Banque X', productModelId: ProductModelFixture::ID);
+        $archived = $model->archive(new \DateTimeImmutable('2026-09-04T11:00:00+00:00'));
+        self::assertTrue($this->connection->transactional(fn (): bool => $this->models->update($archived, 1)));
+
+        $rules = $this->readRules(self::CUSTOM_SAVINGS, '2026-09-02');
+        $rates = $rules['rates'];
+
+        self::assertSame('WORKSPACE_MODEL', $rules['origin']);
+        self::assertIsList($rates);
+        self::assertCount(1, $rates);
+    }
+
     public function testAnAccountOfAnotherWorkspaceAnswersExactlyLikeAnUnknownOne(): void
     {
         $this->signIn();
@@ -340,6 +404,18 @@ final class AccountRulesControllerTest extends WebTestCase
         return $typed;
     }
 
+    /**
+     * The scale-completeness trigger is deferred to commit: a rule and its
+     * brackets arrive as separate statements, and are only checked once both
+     * have run, exactly as the use case's own transaction boundary does it.
+     */
+    private function persistModel(ProductModel $model): void
+    {
+        $this->connection->transactional(function () use ($model): void {
+            $this->models->add($model);
+        });
+    }
+
     private function signIn(): void
     {
         $this->client->request('GET', '/api/v1/session');
@@ -364,6 +440,7 @@ final class AccountRulesControllerTest extends WebTestCase
         ?string $productCode = null,
         string $kind = 'SAVINGS',
         string $asset = 'EUR',
+        ?string $productModelId = null,
     ): void {
         $this->connection->insert('account_financial_accounts', [
             'id' => $id,
@@ -372,6 +449,7 @@ final class AccountRulesControllerTest extends WebTestCase
             'asset_code' => $asset,
             'kind' => $kind,
             'product_code' => $productCode,
+            'product_model_id' => $productModelId,
             'institution' => null,
             'masked_identifier' => null,
             'valuation_mode' => 'TRANSACTIONS',

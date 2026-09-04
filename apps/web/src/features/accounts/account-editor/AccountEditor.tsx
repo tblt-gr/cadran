@@ -1,8 +1,10 @@
 import type { Account, CreateAccountRequest, UpdateAccountRequest } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import type { AccountOrigin } from '@/features/accounts/account-form/accountOrigin';
 import { AccountForm } from '@/features/accounts/account-form/AccountForm';
 import type { AccountErrorKind } from '@/features/accounts/accountError';
 import { useAccountProduct } from './useAccountProduct';
+import { useAccountProductModel } from './useAccountProductModel';
 import styles from './AccountEditor.module.css';
 
 interface AccountEditorProps {
@@ -14,14 +16,15 @@ interface AccountEditorProps {
 }
 
 /**
- * Editing an existing account, with the catalogue model it follows resolved
- * first.
+ * Editing an existing account, with the catalogue product or workspace
+ * template it follows resolved first.
  *
- * The product is what decides which kind and which valuation modes the API will
- * accept, so the form waits for it instead of offering a choice that would come
- * back as a refusal. The rules are read on the account's opening date: a
- * product-backed account is edited against the catalogue that covered it, not
- * against today's.
+ * That origin is what decides which kind and which valuation modes the API
+ * will accept, so the form waits for it instead of offering a choice that
+ * would come back as a refusal. A product's rules are read on the account's
+ * opening date, so it is edited against the catalogue that covered it, not
+ * against today's; a template carries no such dated resolution and is read
+ * as it stands.
  */
 export function AccountEditor({
   account,
@@ -32,23 +35,35 @@ export function AccountEditor({
 }: AccountEditorProps) {
   const { t } = useTranslation();
   const catalogue = useAccountProduct(account.productCode, account.openedOn);
+  const template = useAccountProductModel(account.productModelId);
+  const isPending = catalogue.isPending || template.isPending;
+  const isError = catalogue.isError || template.isError;
+  const origin: AccountOrigin = catalogue.product
+    ? { type: 'product', product: catalogue.product }
+    : template.template
+      ? { type: 'template', template: template.template }
+      : null;
 
-  if (catalogue.isPending) {
+  if (isPending) {
     return (
       <p aria-busy="true" className={styles.state} role="status">
-        {t('accounts.editor.loading')}
+        {t(account.productModelId ? 'accounts.editor.templateLoading' : 'accounts.editor.loading')}
       </p>
     );
   }
 
   return (
     <>
-      {catalogue.isError ? (
-        // The account keeps its product reference either way; only the fields
-        // the catalogue constrains are unavailable, and the API still refuses
-        // an incompatible edit.
+      {isError ? (
+        // The account keeps its reference either way; only the fields the
+        // product or the template constrains are unavailable, and the API
+        // still refuses an incompatible edit.
         <p className={styles.warning} role="alert">
-          {t('accounts.editor.productUnavailable')}
+          {t(
+            account.productModelId
+              ? 'accounts.editor.templateUnavailable'
+              : 'accounts.editor.productUnavailable',
+          )}
         </p>
       ) : null}
       <AccountForm
@@ -56,8 +71,8 @@ export function AccountEditor({
         key={account.id}
         onCancel={onCancel}
         onSubmit={onSubmit}
+        origin={origin}
         pending={pending}
-        product={catalogue.product}
         submitError={submitError}
       />
     </>

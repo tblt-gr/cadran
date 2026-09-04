@@ -40,6 +40,22 @@
   text-transform: uppercase;
 }
 
+.group {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-3) var(--spacing-none) var(--spacing-none);
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  gap: var(--spacing-2);
+}
+
+.group legend {
+  padding: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+}
+
 .resolved,
 .empty {
   margin: var(--spacing-2) var(--spacing-none);

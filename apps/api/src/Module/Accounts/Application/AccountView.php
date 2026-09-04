@@ -14,6 +14,7 @@ final readonly class AccountView
         public string $assetCode,
         public string $kind,
         public ?string $productCode,
+        public ?string $productModelId,
         public ?string $institution,
         public ?string $maskedIdentifier,
         public string $valuationMode,
@@ -42,9 +43,11 @@ final readonly class AccountView
             label: $account->label,
             assetCode: $account->assetCode->toString(),
             kind: $account->kind->value,
-            // The catalogue reference only. The rules behind it are read on the
-            // business date they are needed, never copied into the account.
+            // The catalogue or model reference only, never both. The rules
+            // behind either are read on the business date they are needed,
+            // never copied into the account.
             productCode: $account->productCode?->toString(),
+            productModelId: $account->productModelId,
             institution: $account->institution,
             maskedIdentifier: $account->maskedIdentifier?->toString(),
             valuationMode: $account->valuationMode->value,
