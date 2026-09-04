@@ -9,6 +9,7 @@ use App\Module\Catalog\Domain\RateApplication;
 use App\Module\Catalog\Domain\RateBracket;
 use App\Module\Catalog\Domain\RateScale;
 use App\Module\Foundation\Domain\DecimalValue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -116,6 +117,58 @@ final class RateScaleTest extends TestCase
         );
 
         self::assertTrue($scale->isTiered());
+    }
+
+    /**
+     * The bound invariant is restated in the SPA, which has to tell a holder
+     * whether the scale being typed is readable before anything is submitted.
+     * Two implementations mean two chances to drift, so both read the same
+     * cases: a rule loosened here without the preview following would be
+     * caught as a failure rather than as a screen quietly stating something
+     * false.
+     *
+     * @param list<array{lowerBound: string, upperBound: string|null, percentage: string}> $brackets
+     */
+    #[DataProvider('boundContract')]
+    public function testTheSharedBoundContractIsWhatTheDomainEnforces(array $brackets, bool $wellBounded): void
+    {
+        try {
+            new RateScale(
+                array_map(
+                    static fn (array $bracket): RateBracket => self::bracket(
+                        $bracket['lowerBound'],
+                        $bracket['upperBound'],
+                        $bracket['percentage'],
+                    ),
+                    $brackets,
+                ),
+                RateApplication::MARGINAL,
+            );
+            $accepted = true;
+        } catch (InvalidCatalogEntry) {
+            $accepted = false;
+        }
+
+        self::assertSame($wellBounded, $accepted);
+    }
+
+    /**
+     * @return iterable<string, array{list<array{lowerBound: string, upperBound: string|null, percentage: string}>, bool}>
+     */
+    public static function boundContract(): iterable
+    {
+        $path = dirname(__DIR__, 6).'/tests/contracts/rate-scale-bounds.json';
+        $raw = file_get_contents($path);
+        if (false === $raw) {
+            throw new \RuntimeException(sprintf('The shared rate scale contract is missing at %s.', $path));
+        }
+
+        /** @var array{cases: list<array{name: string, brackets: list<array{lowerBound: string, upperBound: string|null, percentage: string}>, wellBounded: bool}>} $contract */
+        $contract = json_decode($raw, true, 512, \JSON_THROW_ON_ERROR);
+
+        foreach ($contract['cases'] as $case) {
+            yield $case['name'] => [$case['brackets'], $case['wellBounded']];
+        }
     }
 
     private static function bracket(string $lower, ?string $upper, string $percentage): RateBracket

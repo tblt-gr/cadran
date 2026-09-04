@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import boundContract from '@contracts/rate-scale-bounds.json';
 import {
   emptyPeriod,
   matchingBracket,
   periodProblems,
   toRuleInput,
+  type BracketValues,
   type PeriodValues,
 } from './periodValues';
 
@@ -107,22 +109,47 @@ describe('matchingBracket', () => {
     });
   });
 
-  it('answers invalidBalance for a blank, malformed or negative balance', () => {
+  it('answers invalidBalance for a blank or malformed balance, not for a sign or a pad', () => {
     expect(matchingBracket(scale, '')).toEqual({ kind: 'invalidBalance' });
     expect(matchingBracket(scale, '4,50')).toEqual({ kind: 'invalidBalance' });
-    expect(matchingBracket(scale, '-1')).toEqual({ kind: 'invalidBalance' });
   });
 
-  it('answers incompleteScale while a bound or a rate in the draft scale is not canonical yet', () => {
+  it('names a negative, padded or mid-typed balance instead of blaming the digits-and-dot rule', () => {
+    expect(matchingBracket(scale, '-500')).toEqual({ kind: 'negativeBalance' });
+    expect(matchingBracket(scale, '007')).toEqual({ kind: 'paddedBalance' });
+    expect(matchingBracket(scale, '1000.')).toEqual({ kind: 'incompleteBalance' });
+    expect(matchingBracket(scale, '0')).toEqual({ kind: 'match', bracket: scale[0] });
+    expect(matchingBracket(scale, '0.7')).toEqual({ kind: 'match', bracket: scale[0] });
+  });
+
+  it('answers incompleteScale while a bound in the draft scale is not canonical yet', () => {
     expect(matchingBracket([{ lowerBound: '', upperBound: '', percentage: '4' }], '100')).toEqual({
       kind: 'incompleteScale',
     });
     expect(
-      matchingBracket([{ lowerBound: '0', upperBound: '', percentage: '4,5' }], '100'),
+      matchingBracket([{ lowerBound: '0', upperBound: '10 000', percentage: '4' }], '100'),
     ).toEqual({ kind: 'incompleteScale' });
+  });
+
+  it('answers missingRate, not incompleteScale, when only the reached bracket has no usable rate', () => {
+    expect(
+      matchingBracket([{ lowerBound: '0', upperBound: '', percentage: '4,5' }], '100'),
+    ).toEqual({ kind: 'missingRate' });
     expect(matchingBracket([{ lowerBound: '0', upperBound: '', percentage: '' }], '100')).toEqual({
-      kind: 'incompleteScale',
+      kind: 'missingRate',
     });
+  });
+
+  it('names the bracket a balance reaches even while a rate above it is still blank', () => {
+    // The rate column is filled in row by row: bounds that already tile
+    // [0, +∞[ are not made wrong by a tier the holder has not reached yet.
+    const halfRated = [
+      { lowerBound: '0', upperBound: '10000', percentage: '4' },
+      { lowerBound: '10000', upperBound: '', percentage: '' },
+    ];
+
+    expect(matchingBracket(halfRated, '5000')).toEqual({ kind: 'match', bracket: halfRated[0] });
+    expect(matchingBracket(halfRated, '15000')).toEqual({ kind: 'missingRate' });
   });
 
   it('answers incompleteScale for a scale that does not start at zero or does not end open-ended', () => {
@@ -159,4 +186,17 @@ describe('matchingBracket', () => {
 
     expect(matchingBracket(reversed, '15000')).toEqual({ kind: 'incompleteScale' });
   });
+
+  it.each(boundContract.cases)(
+    'reads the shared bound contract the same way as RateScale: $name',
+    ({ brackets, wellBounded }) => {
+      const draft: BracketValues[] = brackets.map((bracket) => ({
+        lowerBound: bracket.lowerBound,
+        upperBound: bracket.upperBound ?? '',
+        percentage: bracket.percentage,
+      }));
+
+      expect(matchingBracket(draft, '0').kind).toBe(wellBounded ? 'match' : 'incompleteScale');
+    },
+  );
 });

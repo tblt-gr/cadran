@@ -95,8 +95,58 @@ describe('ScalePreview', () => {
     expect(marginalText).not.toBe(flatText);
   });
 
+  it('stays quiet for a trailing dot still being typed, rather than blaming the digits-and-dot rule', () => {
+    renderPreview();
+
+    typeBalance('1000.');
+
+    expect(balanceField().hasAttribute('aria-invalid')).toBe(false);
+    expect(screen.getByRole('status').textContent).toBe('');
+  });
+
+  it('names a negative balance as such, not as a malformed figure', () => {
+    renderPreview();
+
+    typeBalance('-500');
+
+    const describedBy = balanceField().getAttribute('aria-describedby');
+    expect(balanceField().getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(describedBy ?? '')?.textContent).toBe(
+      'Un solde d’exemple ne peut pas être négatif.',
+    );
+    expect(screen.getByRole('status').textContent).toBe('');
+  });
+
+  it('names a padded balance as such, not as a malformed figure', () => {
+    renderPreview();
+
+    typeBalance('007');
+
+    const describedBy = balanceField().getAttribute('aria-describedby');
+    expect(balanceField().getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(describedBy ?? '')?.textContent).toBe(
+      'Retirez le zéro inutile en tête du solde.',
+    );
+    expect(screen.getByRole('status').textContent).toBe('');
+  });
+
+  it('settles on scale content, not the array identity a caller rebuilt', () => {
+    const { rerender } = render(<ScalePreview brackets={[...scale]} rateApplication="MARGINAL" />);
+    typeBalance('15000');
+    expect(screen.getByRole('status').textContent).toContain('2 %');
+
+    rerender(<ScalePreview brackets={[...scale]} rateApplication="MARGINAL" />);
+    act(() => {
+      vi.advanceTimersByTime(299);
+    });
+    // Same bounds, new array: a reference-equality debounce would go quiet
+    // here and stay blank until a later keystroke.
+    expect(screen.getByRole('status').textContent).toContain('2 %');
+  });
+
   it('marks the field invalid and names the reason through the field itself, once settled', () => {
     renderPreview();
+    const hintId = balanceField().getAttribute('aria-describedby');
 
     typeBalance('4,5');
 
@@ -111,8 +161,23 @@ describe('ScalePreview', () => {
     // No focus move accompanies the field turning invalid mid-typing, so the
     // reason must announce itself rather than wait to be read on demand.
     expect(reason?.getAttribute('aria-live')).toBe('polite');
+    // The region carrying it is the one that was already on the page as the
+    // hint, not one that turns live at the instant of the swap — several
+    // screen readers skip that first announcement.
+    expect(describedBy).toBe(hintId);
     // The reason lives with the field, not duplicated in the status region.
     expect(screen.getByRole('status').textContent).toBe('');
+  });
+
+  it('keeps the message region live from the first render, while it still holds the hint', () => {
+    renderPreview();
+
+    const hint = document.getElementById(balanceField().getAttribute('aria-describedby') ?? '');
+
+    expect(hint?.textContent).toBe(
+      'Un aperçu de saisie, sans lien avec le solde réel d’un compte.',
+    );
+    expect(hint?.getAttribute('aria-live')).toBe('polite');
   });
 
   it('clears the invalid state once the balance is corrected, rather than leaving it stuck', () => {
@@ -151,6 +216,41 @@ describe('ScalePreview', () => {
       'Le barème n’est pas encore complet : il doit partir de zéro, ses tranches se succéder sans trou ni recouvrement, et la dernière rester sans plafond.',
     );
     expect(balanceField().hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('does not blame the bounds when they tile correctly and only the reached rate is blank', () => {
+    render(
+      <ScalePreview
+        brackets={[
+          { lowerBound: '0', upperBound: '10000', percentage: '4' },
+          { lowerBound: '10000', upperBound: '', percentage: '' },
+        ]}
+        rateApplication="MARGINAL"
+      />,
+    );
+
+    typeBalance('15000');
+
+    const status = screen.getByRole('status').textContent ?? '';
+    expect(status).toMatch(/n’a pas encore de taux/);
+    expect(status).not.toMatch(/pas encore complet/);
+    expect(balanceField().hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('still names the bracket reached below a tier whose rate is not filled in yet', () => {
+    render(
+      <ScalePreview
+        brackets={[
+          { lowerBound: '0', upperBound: '10000', percentage: '4' },
+          { lowerBound: '10000', upperBound: '', percentage: '' },
+        ]}
+        rateApplication="MARGINAL"
+      />,
+    );
+
+    typeBalance('5000');
+
+    expect(screen.getByRole('status').textContent).toContain('4 %');
   });
 
   it('rejects a scale only well-formed once its rows are reordered, since row order is what is submitted', () => {

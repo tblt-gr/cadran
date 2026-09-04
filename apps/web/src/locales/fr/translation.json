@@ -774,7 +774,10 @@
         "previewResultFlatByBracket": "Le taux de la tranche atteinte, {{value}}, s’applique à la totalité du solde.",
         "previewNoMatch": "Aucune tranche du barème ne couvre ce solde.",
         "previewInvalidBalance": "Saisissez un solde en chiffres, avec un point pour séparateur décimal.",
-        "previewIncompleteScale": "Le barème n’est pas encore complet : il doit partir de zéro, ses tranches se succéder sans trou ni recouvrement, et la dernière rester sans plafond."
+        "previewNegativeBalance": "Un solde d’exemple ne peut pas être négatif.",
+        "previewPaddedBalance": "Retirez le zéro inutile en tête du solde.",
+        "previewIncompleteScale": "Le barème n’est pas encore complet : il doit partir de zéro, ses tranches se succéder sans trou ni recouvrement, et la dernière rester sans plafond.",
+        "previewMissingRate": "La tranche atteinte n’a pas encore de taux : saisissez-le en chiffres, avec un point pour séparateur décimal."
       }
     },
     "periods": {
