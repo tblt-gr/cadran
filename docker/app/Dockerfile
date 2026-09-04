@@ -14,6 +14,10 @@ RUN corepack enable \
 COPY apps/api/openapi apps/api/openapi
 COPY apps/web apps/web
 COPY packages/api-client packages/api-client
+# `tsc -b` typechecks colocated specs. One of them reads the shared rate-scale
+# bound cases at the repository root, so that folder has to be in this stage
+# even though it never reaches the runtime image.
+COPY tests/contracts tests/contracts
 
 RUN pnpm generate:api \
     && pnpm --filter @cadran/web build
