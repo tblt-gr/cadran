@@ -100,7 +100,8 @@
     "settings": "Paramètres",
     "tax": "Impôts",
     "transactions": "Transactions",
-    "catalog": "Catalogue produits"
+    "catalog": "Catalogue produits",
+    "productModels": "Modèles de produits"
   },
   "routes": {
     "accountDetail": "Détail du compte",
@@ -527,6 +528,14 @@
       "MARKET": "Marché",
       "MANUAL_VALUATION": "Valorisation manuelle"
     },
+    "groups": {
+      "none": "Aucun",
+      "LIQUIDITY_SAVINGS": "Épargne liquide",
+      "LIQUIDITY_CURRENT": "Comptes courants",
+      "INVESTMENTS_MARKET": "Investissements cotés",
+      "INVESTMENTS_LIFE_INSURANCE": "Assurance-vie",
+      "INVESTMENTS_INSURANCE": "Contrats d’assurance"
+    },
     "yield": {
       "guaranteed": "Rendement garanti",
       "market": "Rendement non garanti"
@@ -581,6 +590,183 @@
       "previous": "Précédent",
       "next": "Suivant",
       "position": "Page {{page}} sur {{total}}"
+    }
+  },
+  "productModels": {
+    "eyebrow": "Référentiel de l’espace",
+    "title": "Modèles de produits",
+    "description": "Décrivez les produits que votre établissement propose, à côté du catalogue système en lecture seule : famille, enveloppe, rendement, capacités et périodes datées.",
+    "add": "Nouveau modèle",
+    "addFromProduct": "Partir d’un produit",
+    "addFirst": "Créer le premier modèle",
+    "loading": "Chargement des modèles…",
+    "saved": "Le modèle a été enregistré.",
+    "archived": "Le modèle a été archivé.",
+    "includeArchived": "Afficher les modèles archivés",
+    "empty": {
+      "title": "Aucun modèle",
+      "description": "Créez un modèle pour décrire un produit propre à votre établissement, ou partez d’un produit du catalogue système."
+    },
+    "error": {
+      "title": "Modèles indisponibles",
+      "description": "La liste des modèles n’a pas pu être chargée. Vérifiez le service puis réessayez."
+    },
+    "unauthorized": {
+      "title": "Session expirée",
+      "description": "Reconnectez-vous pour consulter les modèles de cet espace."
+    },
+    "errors": {
+      "conflict": "Un modèle actif de cet espace porte déjà ce nom. Choisissez-en un autre.",
+      "stale": "Ce modèle a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le modèle puis réappliquez votre modification.",
+      "archived": "Ce modèle est archivé : il est en lecture seule et n’accepte plus de période ni de duplication.",
+      "invalid": "Vérifiez le nom, la famille, l’enveloppe, le rendement, les capacités et les périodes datées. Un barème par tranches part de zéro, ses tranches se suivent sans trou ni recouvrement et la dernière reste sans plafond.",
+      "network": "L’enregistrement a échoué. Réessayez."
+    },
+    "natures": {
+      "ASSET": "Actif",
+      "LIABILITY": "Passif"
+    },
+    "origins": {
+      "DECLARED": "Décrit à la main",
+      "SYSTEM_PRODUCT": "D’après le produit {{product}}",
+      "WORKSPACE_MODEL": "Copie d’un autre modèle"
+    },
+    "statuses": {
+      "ACTIVE": "Actif",
+      "ARCHIVED": "Archivé"
+    },
+    "list": {
+      "caption": "Modèles de produits de l’espace de travail",
+      "name": "Nom",
+      "family": "Famille",
+      "yield": "Rendement",
+      "periods": "Périodes",
+      "status": "Statut",
+      "actions": "Actions",
+      "guaranteed": "Taux dû au titulaire",
+      "revisable": "Taux révisable : jamais un rendement acquis",
+      "inspect": "Périodes",
+      "inspectModel": "Voir les périodes du modèle {{name}}",
+      "addPeriod": "Ajouter une période",
+      "addPeriodTo": "Ajouter une période au modèle {{name}}",
+      "duplicate": "Dupliquer",
+      "duplicateModel": "Dupliquer le modèle {{name}}",
+      "archive": "Archiver",
+      "archiveModel": "Archiver le modèle {{name}}"
+    },
+    "pagination": {
+      "label": "Pagination des modèles de produits",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "position": "Page {{page}} sur {{total}}"
+    },
+    "form": {
+      "createEyebrow": "Création",
+      "createTitle": "Nouveau modèle de produit",
+      "name": "Nom du modèle",
+      "family": "Famille",
+      "wrapperKind": "Enveloppe",
+      "yieldKind": "Rendement",
+      "yieldKindHint": "Un rendement de marché ou à valorisation manuelle n’accepte aucune période de taux.",
+      "valuationMode": "Mode de valorisation",
+      "defaultGroupCode": "Groupe patrimonial par défaut",
+      "defaultGroupCodeHint": "Le groupe classe un compte créé à partir de ce modèle dans la répartition patrimoniale. Les choix viennent du catalogue produits ; laissez « Aucun » s’il n’y en a pas.",
+      "capabilities": "Fonctions prises en charge",
+      "capabilitiesHint": "La fonction consommée par le mode de valorisation reste active. La fonction de passif suit la famille.",
+      "cancel": "Annuler",
+      "save": "Créer le modèle",
+      "saving": "Enregistrement…",
+      "errors": {
+        "name": "Le nom doit contenir entre 1 et 80 caractères, sans caractère de contrôle.",
+        "defaultGroupCode": "Choisissez un groupe du catalogue, ou aucun.",
+        "valuationMode": "Seules les familles qui portent des positions acceptent la valorisation par portefeuille.",
+        "capabilities": "Sélectionnez au moins une fonction, celle qu’exige le mode de valorisation, et réservez la fonction de passif à une famille de passif."
+      }
+    },
+    "fromProduct": {
+      "eyebrow": "Depuis le catalogue",
+      "title": "Partir d’un produit du catalogue",
+      "loading": "Chargement du catalogue produits…",
+      "error": "Le catalogue produits n’a pas pu être chargé. Réessayez.",
+      "product": "Produit du catalogue",
+      "productHint": "Le serveur recopie la ligne du catalogue. Le modèle cesse ensuite de la suivre : une révision réglementaire ne le modifie plus.",
+      "chooseProduct": "Choisir un produit",
+      "confirm": "Créer le modèle",
+      "errors": {
+        "product": "Choisissez un produit du catalogue système."
+      }
+    },
+    "duplicate": {
+      "eyebrow": "Duplication",
+      "title": "Dupliquer le modèle",
+      "defaultName": "{{name}} (copie)",
+      "description": "La copie reprend la description et les périodes datées de « {{name}} » avec leurs dates d’effet inchangées, et rien d’autre.",
+      "nameLabel": "Nom de la copie",
+      "confirm": "Dupliquer",
+      "confirming": "Duplication…"
+    },
+    "archive": {
+      "eyebrow": "Archivage",
+      "title": "Archiver le modèle",
+      "description": "Le modèle « {{name}} » va quitter la liste de travail et son nom redeviendra disponible.",
+      "consequences": "Rien n’est supprimé : le modèle reste lisible par identifiant avec toutes ses périodes, de sorte qu’un compte créé à partir de lui conserve une référence reproductible.",
+      "confirm": "Archiver",
+      "confirming": "Archivage…"
+    },
+    "period": {
+      "eyebrow": "Période datée",
+      "title": "Ajouter une période à « {{name}} »",
+      "appendHint": "Enregistrer une période, c’est l’ajouter : le serveur clôt la période ouverte de même nature qu’elle remplace la veille de sa prise d’effet. Une période enregistrée ne se modifie ni ne se supprime.",
+      "kind": "Nature de la règle",
+      "amount": "Montant",
+      "assetCode": "Devise",
+      "text": "Jeton",
+      "textHint": "Jeton en majuscules traduit par l’interface, par exemple ACT_360.",
+      "validFrom": "Date de début",
+      "validTo": "Date de fin",
+      "validToHint": "Laissez vide : la période reste en vigueur sans fin connue.",
+      "record": "Enregistrer la période",
+      "recording": "Enregistrement…",
+      "errors": {
+        "amount": "Saisissez un montant décimal, par exemple 22950 ou 22950.50.",
+        "assetCode": "Saisissez un code d’actif du référentiel, par exemple EUR.",
+        "text": "Saisissez un jeton en majuscules, par exemple ACT_360.",
+        "validFrom": "La date de début est obligatoire et doit être un jour calendaire ISO 8601.",
+        "validTo": "La date de fin doit être un jour calendaire ISO 8601 postérieur à la date de début.",
+        "brackets": "Saisissez des bornes et des taux décimaux, par exemple 0, 10000 et 4. N’utilisez ni virgule, ni zéro en tête."
+      },
+      "scale": {
+        "shapeLegend": "Forme du taux",
+        "single": "Taux unique",
+        "tiered": "Barème par tranches",
+        "rate": "Taux (%)",
+        "applicationLegend": "Application des tranches",
+        "lowerBound": "Borne basse",
+        "upperBound": "Borne haute",
+        "lowerBoundRow": "Borne basse de la tranche {{row}}",
+        "upperBoundRow": "Borne haute de la tranche {{row}}",
+        "percentage": "Taux (%)",
+        "percentageRow": "Taux de la tranche {{row}}",
+        "rowActions": "Actions de la tranche",
+        "removeRow": "Supprimer la tranche {{row}}",
+        "noLimit": "Sans limite",
+        "addBracket": "Ajouter une tranche",
+        "hint": "Un barème part de zéro, ses tranches se suivent sans trou ni recouvrement et la dernière reste sans plafond. Le serveur vérifie ces règles et refuse un barème invalide."
+      }
+    },
+    "periods": {
+      "eyebrow": "Périodes datées",
+      "title": "Périodes de « {{name}} »",
+      "caption": "Périodes datées enregistrées pour {{name}}",
+      "none": "Ce modèle ne porte encore aucune période datée.",
+      "noMode": "—",
+      "noValue": "—",
+      "columns": {
+        "rule": "Règle",
+        "value": "Valeur",
+        "mode": "Application",
+        "period": "Période d’effet"
+      }
     }
   },
   "dashboard": {

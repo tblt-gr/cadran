@@ -1,0 +1,34 @@
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.dialog p {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  line-height: var(--line-height-body);
+}
+
+.hint {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: var(--spacing-2);
+  gap: var(--spacing-4);
+}
+
+.alert {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-color: var(--negative);
+  border-radius: var(--radius-control);
+  color: var(--negative);
+  background: var(--negative-soft);
+}

@@ -49,6 +49,7 @@ final class ProductModelFixture
         ?ProductCapabilities $capabilities = null,
         ?AccountValuationMode $valuationMode = null,
         ?\DateTimeImmutable $archivedAt = null,
+        ?WrapperKind $wrapperKind = null,
     ): ProductModel {
         $now = new \DateTimeImmutable(self::NOW);
 
@@ -57,7 +58,7 @@ final class ProductModelFixture
             workspace: WorkspaceScope::fromString($workspace),
             name: $name,
             family: $family ?? AccountKind::SAVINGS,
-            wrapperKind: WrapperKind::NONE,
+            wrapperKind: $wrapperKind ?? WrapperKind::NONE,
             yieldKind: $yieldKind ?? YieldKind::CONTRACTUAL_FIXED,
             defaultGroupCode: 'SAVINGS',
             valuationMode: $valuationMode ?? AccountValuationMode::TRANSACTIONS,
@@ -90,11 +91,16 @@ final class ProductModelFixture
         );
     }
 
-    public static function ceiling(string $id, string $amount, string $validFrom, ?string $validTo = null): ModelRule
-    {
+    public static function ceiling(
+        string $id,
+        string $amount,
+        string $validFrom,
+        ?string $validTo = null,
+        RuleKind $kind = RuleKind::BALANCE_CEILING,
+    ): ModelRule {
         return new ModelRule(
             id: $id,
-            kind: RuleKind::BALANCE_CEILING,
+            kind: $kind,
             value: ModelRuleValue::amount(new AssetAmount(
                 DecimalValue::fromString($amount),
                 AssetCode::fromString('EUR'),

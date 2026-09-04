@@ -16,7 +16,7 @@ use App\Module\Foundation\Application\CallerWorkspace;
  */
 final readonly class ListProductModels
 {
-    public const int DEFAULT_PAGE_SIZE = 25;
+    public const int DEFAULT_PAGE_SIZE = 50;
     public const int MAX_PAGE_SIZE = 100;
     /** Caps the offset, so a page number cannot make PostgreSQL walk the table. */
     public const int MAX_PAGE = 1000;

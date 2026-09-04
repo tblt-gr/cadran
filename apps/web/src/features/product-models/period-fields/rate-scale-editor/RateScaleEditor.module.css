@@ -1,0 +1,102 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  gap: var(--spacing-4);
+}
+
+.shape,
+.application {
+  display: flex;
+  flex-wrap: wrap;
+  border: var(--border-none);
+  padding: var(--spacing-none);
+  margin: var(--spacing-none);
+  gap: var(--spacing-3);
+}
+
+.application {
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.shape legend,
+.application legend {
+  padding: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.shape label,
+.application label {
+  display: flex;
+  align-items: center;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  gap: var(--spacing-2);
+}
+
+.singleRate {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-1-5);
+}
+
+.singleRate input {
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.brackets {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.brackets th {
+  padding: var(--spacing-1) var(--spacing-2);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.brackets td {
+  padding: var(--spacing-1) var(--spacing-2);
+}
+
+.brackets input {
+  width: 100%;
+  min-width: 6rem;
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.brackets input[aria-invalid='true'] {
+  border-color: var(--negative);
+}
+
+.hint {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}

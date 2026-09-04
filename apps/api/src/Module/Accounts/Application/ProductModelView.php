@@ -57,7 +57,7 @@ final readonly class ProductModelView
             // A model whose yield is not owed to the holder never shows a rate
             // as an acquired return, whatever periods it carries.
             yieldGuaranteed: $model->yieldKind->isGuaranteed(),
-            ceilingBasis: $model->wrapperKind->ceilingBasis()->value,
+            ceilingBasis: $model->ceilingBasis()->value,
             defaultGroupCode: $model->defaultGroupCode,
             valuationMode: $model->valuationMode->value,
             capabilities: $model->capabilities->toStrings(),

@@ -72,9 +72,10 @@ final class ProductModelPersistenceTest extends KernelTestCase
         self::assertNotNull($read);
 
         // Periods are ordered by rule kind, so the ceiling comes before the rate.
-        $ceiling = $read->schedule->rules[0];
-        self::assertSame('22950.123456789012345678901', $ceiling->value->amount?->value->toString());
-        self::assertSame('EUR', $ceiling->value->amount?->asset->toString());
+        $ceiling = $read->schedule->rules[0]->value->amount;
+        self::assertNotNull($ceiling);
+        self::assertSame('22950.123456789012345678901', $ceiling->value->toString());
+        self::assertSame('EUR', $ceiling->asset->toString());
 
         $scale = $read->schedule->rules[1]->value->scale;
         self::assertNotNull($scale);
@@ -222,7 +223,7 @@ final class ProductModelPersistenceTest extends KernelTestCase
         self::assertSame(2, $read->version);
         self::assertSame('2026-12-31', $read->schedule->rules[0]->period->validTo?->format('Y-m-d'));
         self::assertNull($read->schedule->rules[1]->period->validTo);
-        self::assertSame(4, (int) $this->connection->fetchOne(
+        self::assertSame(4, $this->countRows(
             'SELECT count(*) FROM account_product_model_rate_brackets WHERE workspace_id = ?',
             [WorkspaceFixture::OWN_WORKSPACE],
         ));
@@ -267,5 +268,16 @@ final class ProductModelPersistenceTest extends KernelTestCase
         string $id = ProductModelFixture::ID,
     ): ProductModel {
         return ProductModelFixture::model(schedule: $schedule, id: $id, workspace: $workspace);
+    }
+
+    /**
+     * @param list<mixed> $params
+     */
+    private function countRows(string $sql, array $params): int
+    {
+        $count = $this->connection->fetchOne($sql, $params);
+        self::assertTrue(is_int($count) || is_string($count));
+
+        return (int) $count;
     }
 }

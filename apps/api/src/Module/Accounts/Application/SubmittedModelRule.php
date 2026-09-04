@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\ModelRule;
+use App\Module\Accounts\Domain\ModelRuleValue;
 use App\Module\Catalog\Domain\RuleValueType;
+use App\Module\Foundation\Domain\PrecisionExceeded;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Reference\Application\AssetCatalog;
 
@@ -30,12 +32,30 @@ final readonly class SubmittedModelRule
         $rule = ProductModelInputParser::rule($input, $this->uuidGenerator->generate());
 
         $amount = $rule->value->amount;
+        if (RuleValueType::AMOUNT !== $rule->value->type || null === $amount) {
+            return $rule;
+        }
+
         // The asset reference is global and read-only, so an unknown code is a
         // client error rather than something the workspace could create.
-        if (RuleValueType::AMOUNT === $rule->value->type && null !== $amount && null === $this->assets->findByCode($amount->asset)) {
+        $asset = $this->assets->findByCode($amount->asset);
+        if (null === $asset) {
             throw new InvalidProductModelInput('The amount asset must exist in the system reference.');
         }
 
-        return $rule;
+        $literal = $input->amount ?? throw new InvalidProductModelInput('A ceiling period carries an amount.');
+
+        try {
+            // Rebuild through the asset so a figure deeper than EUR's storage
+            // scale is refused here, not shortened on the way to NUMERIC(50,24).
+            return new ModelRule(
+                $rule->id,
+                $rule->kind,
+                ModelRuleValue::amount($asset->amount($literal)),
+                $rule->period,
+            );
+        } catch (PrecisionExceeded $failure) {
+            throw new InvalidProductModelInput($failure->getMessage(), previous: $failure);
+        }
     }
 }

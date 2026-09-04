@@ -76,6 +76,7 @@ final class ProductModelControllerTest extends WebTestCase
         self::assertSame('ASSET', $model['nature']);
         self::assertSame('DECLARED', $model['origin']);
         self::assertTrue($model['yieldGuaranteed']);
+        self::assertSame('TOTAL_BALANCE', $model['ceilingBasis']);
         self::assertSame(1, $model['version']);
 
         $rules = $this->rulesOf($model);
@@ -157,7 +158,7 @@ final class ProductModelControllerTest extends WebTestCase
         self::assertCount(2, $rates);
         self::assertSame('2026-12-31', $rates[0]['validTo']);
         self::assertNull($rates[1]['validTo']);
-        self::assertSame('1.5', $rates[1]['brackets'][0]['percentage']);
+        self::assertSame('1.5', self::stringValue(self::bracketAt($rates[1], 0), 'percentage'));
     }
 
     public function testAPeriodContradictingARecordedOneIsRefusedWithoutChangingTheModel(): void
@@ -213,7 +214,7 @@ final class ProductModelControllerTest extends WebTestCase
         $copied = $this->rulesOf($copy);
         self::assertSame(array_column($source, 'validFrom'), array_column($copied, 'validFrom'));
         self::assertSame(array_column($source, 'validTo'), array_column($copied, 'validTo'));
-        self::assertSame([], array_intersect(array_column($source, 'id'), array_column($copied, 'id')));
+        self::assertSame([], array_intersect(self::stringColumn($source, 'id'), self::stringColumn($copied, 'id')));
     }
 
     public function testAModelStartedFromACatalogueProductCarriesWhatTheCatalogueSays(): void
@@ -235,8 +236,10 @@ final class ProductModelControllerTest extends WebTestCase
         // rate travels in.
         $rates = array_values(array_filter($this->rulesOf($model), static fn (array $rule): bool => 'ANNUAL_RATE' === $rule['kind']));
         self::assertNotSame([], $rates);
-        self::assertSame('0', $rates[0]['brackets'][0]['lowerBound']);
-        self::assertNull($rates[0]['brackets'][0]['upperBound']);
+        $first = self::bracketAt($rates[0], 0);
+        self::assertSame('0', self::stringValue($first, 'lowerBound'));
+        self::assertArrayHasKey('upperBound', $first);
+        self::assertNull($first['upperBound']);
     }
 
     public function testAnUnknownCatalogueProductCannotBeClaimedAsASource(): void
@@ -319,7 +322,7 @@ final class ProductModelControllerTest extends WebTestCase
         self::assertSame([], $this->items());
 
         // Nothing of the other workspace was touched by any of those calls.
-        self::assertSame(1, (int) $this->connection->fetchOne(
+        self::assertSame(1, $this->countRows(
             'SELECT count(*) FROM account_product_models WHERE workspace_id = ?',
             [WorkspaceFixture::OTHER_WORKSPACE],
         ));
@@ -351,6 +354,34 @@ final class ProductModelControllerTest extends WebTestCase
         $this->request('POST', '/api/v1/product-models', $body);
         self::assertResponseStatusCodeSame(422);
         self::assertSame(0, $this->ownModelCount());
+    }
+
+    public function testACeilingDeeperThanTheAssetStorageScaleIsRefused(): void
+    {
+        $body = $this->payload();
+        $body['rules'] = [[
+            'kind' => 'BALANCE_CEILING',
+            'amount' => '22950.123456789012345678901',
+            'amountAssetCode' => 'EUR',
+            'text' => null,
+            'rateApplication' => null,
+            'brackets' => [],
+            'validFrom' => '2026-01-01',
+            'validTo' => null,
+        ]];
+
+        $this->request('POST', '/api/v1/product-models', $body);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->ownModelCount());
+    }
+
+    public function testTheWorkingSetPageSizeDefaultsToFifty(): void
+    {
+        $this->createModel();
+
+        $this->client->request('GET', '/api/v1/product-models');
+        self::assertResponseIsSuccessful();
+        self::assertSame(50, $this->decode()['perPage']);
     }
 
     public function testAnAnonymousCallerReachesNothing(): void
@@ -486,10 +517,59 @@ final class ProductModelControllerTest extends WebTestCase
 
     private function ownModelCount(): int
     {
-        return (int) $this->connection->fetchOne(
+        return $this->countRows(
             'SELECT count(*) FROM account_product_models WHERE workspace_id = ?',
             [WorkspaceFixture::OWN_WORKSPACE],
         );
+    }
+
+    /**
+     * @param list<mixed> $params
+     */
+    private function countRows(string $sql, array $params): int
+    {
+        $count = $this->connection->fetchOne($sql, $params);
+        self::assertTrue(is_int($count) || is_string($count));
+
+        return (int) $count;
+    }
+
+    /**
+     * @param array<string, mixed> $rule
+     *
+     * @return array<string, mixed>
+     */
+    private static function bracketAt(array $rule, int $index): array
+    {
+        $brackets = $rule['brackets'] ?? null;
+        self::assertIsList($brackets);
+        self::assertArrayHasKey($index, $brackets);
+        $bracket = $brackets[$index];
+        self::assertIsArray($bracket);
+
+        $typed = [];
+        foreach ($bracket as $key => $value) {
+            self::assertIsString($key);
+            $typed[$key] = $value;
+        }
+
+        return $typed;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<string>
+     */
+    private static function stringColumn(array $rows, string $key): array
+    {
+        $values = [];
+        foreach (array_column($rows, $key) as $value) {
+            self::assertIsString($value);
+            $values[] = $value;
+        }
+
+        return $values;
     }
 
     /** @param array<string, mixed> $body */

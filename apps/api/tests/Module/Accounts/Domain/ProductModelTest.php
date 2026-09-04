@@ -10,10 +10,12 @@ use App\Module\Accounts\Domain\ModelRuleSchedule;
 use App\Module\Accounts\Domain\ProductModelIsArchived;
 use App\Module\Accounts\Domain\ProductModelOrigin;
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Catalog\Domain\CeilingBasis;
 use App\Module\Catalog\Domain\ProductCapabilities;
 use App\Module\Catalog\Domain\ProductCapability;
 use App\Module\Catalog\Domain\ProductNature;
 use App\Module\Catalog\Domain\RuleKind;
+use App\Module\Catalog\Domain\WrapperKind;
 use App\Module\Catalog\Domain\YieldKind;
 use PHPUnit\Framework\TestCase;
 
@@ -200,5 +202,39 @@ final class ProductModelTest extends TestCase
             yieldKind: YieldKind::NONE,
             capabilities: ProductCapabilities::of(ProductCapability::SUPPORTS_TRANSACTIONS),
         );
+    }
+
+    public function testTheCeilingBasisFollowsTheRecordedCeilingKinds(): void
+    {
+        $withBalanceCeiling = ProductModelFixture::model(schedule: new ModelRuleSchedule([
+            ProductModelFixture::ceiling('00000000-0000-7000-8000-0000000000b1', '30000', '2026-01-01'),
+        ]));
+        // A NONE envelope would otherwise publish NONE while a balance ceiling
+        // is sitting on the model: the recorded kind is the measure.
+        self::assertSame(CeilingBasis::TOTAL_BALANCE, $withBalanceCeiling->ceilingBasis());
+
+        $fromEnvelope = ProductModelFixture::model(wrapperKind: WrapperKind::REGULATED_SAVINGS);
+        self::assertSame(CeilingBasis::BALANCE_EXCLUDING_INTEREST, $fromEnvelope->ceilingBasis());
+
+        self::assertSame(CeilingBasis::NONE, ProductModelFixture::model()->ceilingBasis());
+
+        $mixed = ProductModelFixture::model(
+            schedule: new ModelRuleSchedule([
+                ProductModelFixture::ceiling('00000000-0000-7000-8000-0000000000b1', '30000', '2026-01-01'),
+                ProductModelFixture::ceiling(
+                    '00000000-0000-7000-8000-0000000000b2',
+                    '150000',
+                    '2026-01-01',
+                    kind: RuleKind::CONTRIBUTION_CEILING,
+                ),
+            ]),
+            capabilities: ProductCapabilities::of(
+                ProductCapability::SUPPORTS_BALANCE,
+                ProductCapability::SUPPORTS_TRANSACTIONS,
+                ProductCapability::SUPPORTS_INTEREST,
+                ProductCapability::SUPPORTS_CONTRIBUTIONS,
+            ),
+        );
+        self::assertSame(CeilingBasis::NONE, $mixed->ceilingBasis());
     }
 }

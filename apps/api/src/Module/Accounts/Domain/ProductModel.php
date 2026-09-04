@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Domain;
 
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Catalog\Domain\CeilingBasis;
 use App\Module\Catalog\Domain\ProductCapabilities;
 use App\Module\Catalog\Domain\ProductCapability;
 use App\Module\Catalog\Domain\ProductNature;
@@ -112,6 +113,39 @@ final readonly class ProductModel
     public function nature(): ProductNature
     {
         return $this->family->nature();
+    }
+
+    /**
+     * What a ceiling on this model is measured against.
+     *
+     * A recorded ceiling kind is the source of truth: a NONE envelope that
+     * still carries a balance ceiling is measured on the total balance, not
+     * reported as having no ceiling. Several kinds that disagree cannot be
+     * collapsed into one measure, so the view says NONE rather than picking.
+     * When no ceiling period is recorded yet, the envelope's expected kind
+     * remains the fallback — a regulated passbook is still capped on deposits
+     * even before the holder types an amount.
+     */
+    public function ceilingBasis(): CeilingBasis
+    {
+        $bases = [];
+        foreach ($this->schedule->rules as $rule) {
+            $basis = $rule->kind->ceilingBasis();
+            if (CeilingBasis::NONE !== $basis) {
+                $bases[$basis->value] = $basis;
+            }
+        }
+
+        $unique = array_values($bases);
+        if (1 === count($unique)) {
+            return $unique[0];
+        }
+
+        if ([] === $unique) {
+            return $this->wrapperKind->ceilingBasis();
+        }
+
+        return CeilingBasis::NONE;
     }
 
     public function isArchived(): bool
