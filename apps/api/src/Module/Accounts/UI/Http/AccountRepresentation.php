@@ -25,6 +25,7 @@ final readonly class AccountRepresentation
             'assetCode' => $account->assetCode,
             'kind' => $account->kind,
             'productCode' => $account->productCode,
+            'productModelId' => $account->productModelId,
             'institution' => $account->institution,
             'maskedIdentifier' => $account->maskedIdentifier,
             'valuationMode' => $account->valuationMode,

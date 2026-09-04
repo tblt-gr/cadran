@@ -42,7 +42,7 @@ final readonly class AccountController
 
     private const int MAX_BODY_BYTES = 16_384;
     private const array WRITE_FIELDS = [
-        'label', 'kind', 'productCode', 'institution', 'maskedIdentifier', 'valuationMode',
+        'label', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier', 'valuationMode',
         'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund', 'openedOn', 'closedOn',
     ];
 
@@ -95,6 +95,7 @@ final readonly class AccountController
                 assetCode: $payload->string('assetCode'),
                 kind: $payload->string('kind'),
                 productCode: $payload->nullableString('productCode'),
+                productModelId: $payload->nullableString('productModelId'),
                 institution: $payload->nullableString('institution'),
                 maskedIdentifier: $payload->nullableString('maskedIdentifier'),
                 valuationMode: $payload->string('valuationMode'),
@@ -137,6 +138,7 @@ final readonly class AccountController
                 label: $payload->string('label'),
                 kind: $payload->string('kind'),
                 productCode: $payload->nullableString('productCode'),
+                productModelId: $payload->nullableString('productModelId'),
                 institution: $payload->nullableString('institution'),
                 maskedIdentifier: $payload->nullableString('maskedIdentifier'),
                 valuationMode: $payload->string('valuationMode'),

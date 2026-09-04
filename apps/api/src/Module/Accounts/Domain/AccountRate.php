@@ -21,16 +21,26 @@ use App\Module\Catalog\Domain\VerificationState;
  */
 final readonly class AccountRate
 {
+    /**
+     * `verification` and `source` are null for a rate read from a workspace
+     * product model: nobody published it, so grading how fresh it is and
+     * naming a publication would fabricate a provenance the model never had.
+     * A catalogue-sourced rate always carries both.
+     */
     public function __construct(
         public RuleKind $kind,
         public RateScale $scale,
         public bool $guaranteed,
         public EffectivePeriod $period,
-        public VerificationState $verification,
-        public CatalogSource $source,
+        public ?VerificationState $verification,
+        public ?CatalogSource $source,
     ) {
         if (!$kind->statesARate()) {
             throw new InvalidAccount(sprintf('A %s rule states no rate.', $kind->value));
+        }
+
+        if ((null === $verification) !== (null === $source)) {
+            throw new InvalidAccount('A rule is either published or declared, never half of each.');
         }
     }
 }

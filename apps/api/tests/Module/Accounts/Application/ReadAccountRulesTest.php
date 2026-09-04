@@ -9,12 +9,16 @@ use App\Module\Accounts\Application\InvalidAccountInput;
 use App\Module\Accounts\Application\ReadAccountRules;
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountRulesOrigin;
+use App\Module\Accounts\Domain\ModelRuleSchedule;
+use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Catalog\Domain\CatalogEntry;
 use App\Module\Catalog\Domain\RuleSchedule;
 use App\Module\Catalog\Domain\VerificationState;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
+use App\Tests\Module\Accounts\Application\Double\InMemoryProductModelRepository;
 use App\Tests\Module\Accounts\Domain\AccountFixture;
+use App\Tests\Module\Accounts\Domain\ProductModelFixture;
 use App\Tests\Module\Catalog\Application\Double\InMemoryProductCatalog;
 use App\Tests\Module\Catalog\Domain\CatalogFixture;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -124,19 +128,68 @@ final class ReadAccountRulesTest extends TestCase
         self::assertSame([], $rules->ceilings);
     }
 
+    public function testAModelBackedAccountResolvesItsRulesFromTheWorkspaceModel(): void
+    {
+        $model = ProductModelFixture::model(schedule: new ModelRuleSchedule([
+            ProductModelFixture::ceiling('00000000-0000-7000-8000-0000000000b1', '22950.00', '2025-04-25'),
+            ProductModelFixture::rate('00000000-0000-7000-8000-0000000000b2', '2026-08-01'),
+        ]));
+        $readRules = $this->readRules(
+            account: AccountFixture::account(productCode: null, productModelId: $model->id),
+            models: [$model],
+        );
+
+        $rules = $readRules(AccountFixture::ID, '2026-09-02');
+
+        self::assertSame(AccountRulesOrigin::WORKSPACE_MODEL, $rules->origin);
+        self::assertSame($model->id, $rules->productModelId);
+        self::assertNull($rules->productCode);
+        self::assertCount(1, $rules->ceilings);
+        // A model rule carries no publication: grading its freshness or
+        // naming a source would fabricate a provenance it never had.
+        self::assertNull($rules->ceilings[0]->verification);
+        self::assertNull($rules->ceilings[0]->source);
+    }
+
+    /**
+     * Archiving a model stops new accounts from starting on it, but it must
+     * never change what an account already backed by it resolves.
+     */
+    public function testAnArchivedModelStillResolvesTheAccountItAlreadyBacks(): void
+    {
+        $model = ProductModelFixture::model(
+            schedule: new ModelRuleSchedule([
+                ProductModelFixture::rate('00000000-0000-7000-8000-0000000000b1', '2026-01-01'),
+            ]),
+            archivedAt: new \DateTimeImmutable('2026-09-03T09:00:00+00:00'),
+        );
+        $readRules = $this->readRules(
+            account: AccountFixture::account(productCode: null, productModelId: $model->id),
+            models: [$model],
+        );
+
+        $rules = $readRules(AccountFixture::ID, '2026-09-02');
+
+        self::assertSame(AccountRulesOrigin::WORKSPACE_MODEL, $rules->origin);
+        self::assertCount(1, $rules->rates);
+    }
+
     /**
      * @param list<CatalogEntry>|null $catalog
+     * @param list<ProductModel>|null $models
      */
     private function readRules(
         string $now = '2026-09-02 08:30:00',
         string $caller = AccountFixture::WORKSPACE,
         ?Account $account = null,
         ?array $catalog = null,
+        ?array $models = null,
     ): ReadAccountRules {
         return new ReadAccountRules(
             new FixedCallerWorkspace($caller),
             new InMemoryAccountRepository($account ?? AccountFixture::account()),
             new InMemoryProductCatalog($catalog ?? [$this->livretA()]),
+            new InMemoryProductModelRepository(...($models ?? [])),
             new MockClock($now, 'UTC'),
         );
     }

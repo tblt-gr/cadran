@@ -215,7 +215,10 @@
       "saving": "Enregistrement…",
       "institutionHint": "Banque, assureur ou teneur de compte. Laissez vide si l’information n’est pas utile.",
       "kindFromProduct": "La nature est imposée par le produit « {{product}} ».",
-      "valuationFromProduct": "Seuls les modes que le produit prend en charge sont proposés.",
+      "kindFromTemplate": "La nature est imposée par le modèle « {{template}} ».",
+      "kindFromUnreadProduct": "La nature est imposée par le produit rattaché, même s’il n’a pas pu être lu.",
+      "kindFromUnreadTemplate": "La nature est imposée par le modèle rattaché, même s’il n’a pas pu être lu.",
+      "valuationFromProduct": "Seuls les modes que l’origine retenue prend en charge sont proposés.",
       "back": "Retour",
       "continue": "Continuer"
     },
@@ -276,10 +279,12 @@
       "outOfRange": "Cette date n’est pas une date d’activité que l’application couvre. Choisissez une autre date.",
       "resolving": "Résolution des règles au {{date}} : le tableau montre encore la date précédente.",
       "resolvedOn": "Règles résolues au {{date}}. Chaque valeur ne répond que pour cette date.",
-      "none": "Aucune règle sourcée au {{date}} pour ce compte.",
+      "none": "Aucune règle en vigueur au {{date}} pour ce compte.",
       "noMeasure": "— Sans mesure chiffrée",
       "guaranteed": "Taux dû au titulaire",
       "revisable": "Taux publié, révisable : jamais un rendement acquis",
+      "declared": "Déclaré par l’espace de travail",
+      "noSource": "— Aucune publication : donnée déclarée",
       "outsideMeasure": {
         "BALANCE_EXCLUDING_INTEREST": "Les intérêts versés n’entrent pas dans la mesure : ils peuvent porter le compte au-delà du plafond sans qu’aucune règle soit enfreinte.",
         "CONTRIBUTIONS": "Les plus-values et les revenus du compte n’entrent pas dans la mesure : ils peuvent porter le compte au-delà du plafond sans qu’aucune règle soit enfreinte."
@@ -327,29 +332,37 @@
         "position": "Étape {{position}} sur {{total}}"
       },
       "product": {
-        "legend": "Modèle de produit",
+        "legend": "Origine du compte",
         "resolvedOn": "Règles du catalogue au {{date}}.",
         "loading": "Chargement du catalogue produits…",
         "empty": "Le catalogue système ne propose aucun produit. Le compte sera décrit à la main.",
-        "withoutProduct": "Continuer sans produit",
         "none": {
           "title": "Aucun produit",
           "description": "Décrire le compte à la main, sans règle héritée du catalogue."
         },
         "error": {
-          "title": "Catalogue indisponible",
           "description": "Le catalogue produits n’a pas pu être chargé. Réessayez, ou décrivez le compte à la main."
         },
-        "truncated": "{{shown}} produits affichés sur {{total}}. Le catalogue dépasse une page : ouvrez le catalogue produits pour le parcourir en entier."
+        "truncated": "{{shown}} produits affichés sur {{total}}. Le catalogue dépasse une page : ouvrez le catalogue produits pour le parcourir en entier.",
+        "catalogGroup": "Catalogue système",
+        "templateGroup": "Modèles de l’espace de travail",
+        "templatesLoading": "Chargement des modèles de l’espace…",
+        "templatesError": "Les modèles de l’espace n’ont pas pu être chargés. Réessayez, ou choisissez une autre origine.",
+        "templatesEmpty": "Aucun modèle réutilisable dans cet espace. Créez-en un depuis la page Modèles de produits.",
+        "templatesTruncated": "{{shown}} modèles affichés sur {{total}}. Ouvrez la page Modèles de produits pour les parcourir en entier."
       },
       "details": {
         "fromProduct": "Compte créé à partir du produit « {{product}} ». La nature et les modes disponibles en découlent.",
+        "fromTemplate": "Compte créé à partir du modèle « {{template}} ». La nature et les modes disponibles en découlent.",
         "withoutProduct": "Compte décrit à la main : aucune règle du catalogue ne lui est rattachée."
       },
       "review": {
         "summaryTitle": "Compte à créer",
         "inheritedTitle": "Hérité de « {{product}} »",
         "referenceOnly": "Seule la référence du produit est enregistrée. Les plafonds, taux et méthodes restent dans le catalogue et sont relus à la date métier utile : une révision réglementaire n’est jamais figée dans le compte.",
+        "inheritedFromTemplateTitle": "Hérité du modèle « {{template}} »",
+        "templateReferenceOnly": "Seule la référence du modèle est enregistrée. Toute période datée reste sur le modèle et est relue à la date métier utile : archiver le modèle ne change rien pour ce compte.",
+        "templateSchedule": "Le tableau liste toutes les périodes enregistrées sur le modèle, y compris celles déjà closes ou pas encore ouvertes.",
         "noPromisedYield": "Aucun rendement promis : la valeur de ce compte dépend des actifs détenus, pas d’un taux du catalogue.",
         "group": "Groupe patrimonial",
         "counted": "Compté dans le patrimoine net",
@@ -367,7 +380,9 @@
     },
     "editor": {
       "loading": "Chargement du produit rattaché au compte…",
-      "productUnavailable": "Le produit rattaché à ce compte n’a pas pu être lu. La nature et le mode de valorisation restent modifiables, mais l’API refusera une combinaison que le produit ne déclare pas."
+      "templateLoading": "Chargement du modèle rattaché au compte…",
+      "productUnavailable": "Le produit rattaché à ce compte n’a pas pu être lu. La nature reste imposée par cette référence ; l’API refusera une combinaison que le produit ne déclare pas.",
+      "templateUnavailable": "Le modèle rattaché à ce compte n’a pas pu être lu. La nature reste imposée par cette référence ; l’API refusera une combinaison que le modèle ne déclare pas."
     }
   },
   "categories": {

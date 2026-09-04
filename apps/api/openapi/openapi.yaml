@@ -2573,6 +2573,7 @@ components:
         - assetCode
         - kind
         - productCode
+        - productModelId
         - institution
         - maskedIdentifier
         - valuationMode
@@ -2609,12 +2610,25 @@ components:
         productCode:
           description: >-
             The catalogue product this account was created from, or null for an
-            account described by hand. Only the reference is stored: ceilings,
-            rates and methods stay in the catalogue and are read on the business
-            date they are needed, so a regulatory revision is never frozen into
-            an account.
+            account described by hand or from a workspace model. Only the
+            reference is stored: ceilings, rates and methods stay in the
+            catalogue and are read on the business date they are needed, so a
+            regulatory revision is never frozen into an account.
           oneOf:
             - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        productModelId:
+          description: >-
+            The reusable workspace product model this account was created
+            from, or null for an account described by hand or from a
+            catalogue product. An account carries at most one of `productCode`
+            and `productModelId`. Only the reference is stored: any dated rule
+            the model carries stays on the model and is read on the business
+            date it is needed, so archiving the model never changes what an
+            existing account resolves.
+          oneOf:
+            - type: string
+              format: uuid
             - type: 'null'
         institution:
           description: >-
@@ -2698,6 +2712,7 @@ components:
         - assetCode
         - kind
         - productCode
+        - productModelId
         - institution
         - maskedIdentifier
         - valuationMode
@@ -2716,17 +2731,31 @@ components:
           pattern: '^[A-Z][A-Z0-9]{1,11}$'
         kind:
           description: >-
-            Must equal the `accountKind` the referenced product declares. The
-            catalogue is the authority, so a tampered form cannot file a PEA as
-            a plain savings account.
+            Must equal the `accountKind` or `family` the referenced product or
+            model declares. That reference is the authority, so a tampered
+            form cannot file a PEA as a plain savings account.
           $ref: '#/components/schemas/AccountKind'
         productCode:
           description: >-
             A catalogue product to create the account from, or null for an
-            account described by hand. An unknown product is refused by the use
-            case and by a foreign key.
+            account described by hand or from a workspace model. Mutually
+            exclusive with `productModelId`. An unknown product is refused by
+            the use case and by a foreign key.
           oneOf:
             - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        productModelId:
+          description: >-
+            A reusable workspace product model to create the account from, or
+            null for an account described by hand or from a catalogue product.
+            Mutually exclusive with `productCode`. The model must belong to
+            the calling workspace; an unknown or foreign identifier is
+            refused by the use case and by a foreign key. An archived model
+            is refused by the use case only: the foreign key still accepts
+            it, so an account already created from that model keeps resolving.
+          oneOf:
+            - type: string
+              format: uuid
             - type: 'null'
         institution:
           oneOf:
@@ -2762,6 +2791,7 @@ components:
         - label
         - kind
         - productCode
+        - productModelId
         - institution
         - maskedIdentifier
         - valuationMode
@@ -2782,9 +2812,20 @@ components:
           description: >-
             Changing the product, the kind or the valuation mode sends the whole
             triple back through the catalogue. An account already used by
-            history cannot change product at all.
+            history cannot change product at all. Mutually exclusive with
+            `productModelId`.
           oneOf:
             - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        productModelId:
+          description: >-
+            Changing the model, the kind or the valuation mode sends the whole
+            triple back through the workspace's own models. An account
+            already used by history cannot change model at all. Mutually
+            exclusive with `productCode`.
+          oneOf:
+            - type: string
+              format: uuid
             - type: 'null'
         institution:
           oneOf:
@@ -2876,6 +2917,7 @@ components:
         - accountId
         - assetCode
         - productCode
+        - productModelId
         - origin
         - asOf
         - ceilings
@@ -2893,6 +2935,14 @@ components:
         productCode:
           oneOf:
             - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        productModelId:
+          description: >-
+            The workspace product model these rules were read from, or null
+            unless `origin` is `WORKSPACE_MODEL`.
+          oneOf:
+            - type: string
+              format: uuid
             - type: 'null'
         origin:
           $ref: '#/components/schemas/AccountRulesOrigin'
@@ -2927,12 +2977,14 @@ components:
       description: >-
         Where the resolved rules came from. An account that inherits no rule
         and an account whose rules could not be read are different answers, and
-        neither of them means the account has no ceiling.
+        neither of them means the account has no ceiling. `WORKSPACE_MODEL`
+        rules carry no `verification` or `source`: nobody published them.
       type: string
       enum:
         - NO_PRODUCT
         - SYSTEM_CATALOG
         - PRODUCT_WITHDRAWN
+        - WORKSPACE_MODEL
     AccountCeiling:
       description: A ceiling in force for the account, with the figure it caps.
       type: object
@@ -2977,9 +3029,20 @@ components:
         validTo:
           $ref: '#/components/schemas/RuleValidTo'
         verification:
-          $ref: '#/components/schemas/RuleVerification'
+          description: >-
+            Null for a rule read from a workspace product model: nobody
+            published it, so grading its freshness would fabricate a
+            provenance it never had.
+          oneOf:
+            - $ref: '#/components/schemas/RuleVerification'
+            - type: 'null'
         source:
-          $ref: '#/components/schemas/ProductRuleSource'
+          description: >-
+            Null for a rule read from a workspace product model: nobody
+            published it, so there is no source to name.
+          oneOf:
+            - $ref: '#/components/schemas/ProductRuleSource'
+            - type: 'null'
     AccountRate:
       description: >-
         A rate in force for the account, always as a bracket scale. The
@@ -3021,9 +3084,20 @@ components:
         validTo:
           $ref: '#/components/schemas/RuleValidTo'
         verification:
-          $ref: '#/components/schemas/RuleVerification'
+          description: >-
+            Null for a rule read from a workspace product model: nobody
+            published it, so grading its freshness would fabricate a
+            provenance it never had.
+          oneOf:
+            - $ref: '#/components/schemas/RuleVerification'
+            - type: 'null'
         source:
-          $ref: '#/components/schemas/ProductRuleSource'
+          description: >-
+            Null for a rule read from a workspace product model: nobody
+            published it, so there is no source to name.
+          oneOf:
+            - $ref: '#/components/schemas/ProductRuleSource'
+            - type: 'null'
     RateApplication:
       description: >-
         How the brackets combine over an amount. `MARGINAL` remunerates each
@@ -3101,9 +3175,20 @@ components:
         validTo:
           $ref: '#/components/schemas/RuleValidTo'
         verification:
-          $ref: '#/components/schemas/RuleVerification'
+          description: >-
+            Null for a rule read from a workspace product model: nobody
+            published it, so grading its freshness would fabricate a
+            provenance it never had.
+          oneOf:
+            - $ref: '#/components/schemas/RuleVerification'
+            - type: 'null'
         source:
-          $ref: '#/components/schemas/ProductRuleSource'
+          description: >-
+            Null for a rule read from a workspace product model: nobody
+            published it, so there is no source to name.
+          oneOf:
+            - $ref: '#/components/schemas/ProductRuleSource'
+            - type: 'null'
     RuleValidFrom:
       description: First day this catalogue vouches for the value.
       type: string

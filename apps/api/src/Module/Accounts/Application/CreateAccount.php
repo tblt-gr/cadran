@@ -23,6 +23,7 @@ final readonly class CreateAccount
         private AccountRepository $accounts,
         private AssetCatalog $assets,
         private AccountProduct $products,
+        private AccountProductModel $productModels,
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
@@ -42,10 +43,23 @@ final readonly class CreateAccount
         $closedOn = AccountInputParser::optionalBusinessDay($input->closedOn, 'closing date');
         $label = trim($input->label);
         $institution = AccountInputParser::institution($input->institution);
+
+        // An account references at most one origin: refusing both here, before
+        // either lookup runs, keeps a tampered form from ever reaching a state
+        // the aggregate would have to unwind.
+        if (null !== $input->productCode && null !== $input->productModelId) {
+            throw new InvalidAccountInput('An account references at most one product or model.');
+        }
+
         // The catalogue decides whether the submitted kind and valuation mode
         // are the ones this product declares, so a tampered form cannot file a
         // PEA as a plain savings account.
         $productCode = $this->products->resolve($input->productCode, $kind, $valuationMode);
+        // The workspace's own model is the same authority for a reusable
+        // template it owns: the submitted kind and valuation mode are checked
+        // against what the model declares, exactly as they are for a catalogue
+        // product.
+        $productModelId = $this->productModels->resolve($context->workspace, $input->productModelId, $kind, $valuationMode);
 
         // The asset reference is global and read-only, so an unknown code is a
         // client error rather than something the workspace could create.
@@ -59,6 +73,7 @@ final readonly class CreateAccount
             $assetCode,
             $kind,
             $productCode,
+            $productModelId,
             $institution,
             $maskedIdentifier,
             $valuationMode,
@@ -81,6 +96,7 @@ final readonly class CreateAccount
                     assetCode: $assetCode,
                     kind: $kind,
                     productCode: $productCode,
+                    productModelId: $productModelId,
                     institution: $institution,
                     maskedIdentifier: $maskedIdentifier,
                     valuationMode: $valuationMode,

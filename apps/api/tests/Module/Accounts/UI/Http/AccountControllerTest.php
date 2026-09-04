@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Accounts\UI\Http;
 
+use App\Module\Accounts\Infrastructure\Persistence\DbalProductModelRepository;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Module\Accounts\Domain\ProductModelFixture;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DbalException;
@@ -16,9 +18,12 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class AccountControllerTest extends WebTestCase
 {
+    private const string OTHER_MODEL = '00000000-0000-7000-8000-0000000000e2';
+
     private KernelBrowser $client;
     private Connection $connection;
     private WorkspaceFixture $fixture;
+    private DbalProductModelRepository $models;
     private bool $databaseReady = false;
 
     protected function setUp(): void
@@ -29,6 +34,7 @@ final class AccountControllerTest extends WebTestCase
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
         $this->fixture = new WorkspaceFixture($connection);
+        $this->models = new DbalProductModelRepository($connection);
         $this->databaseReady = true;
         $this->fixture->reset();
         $this->resetLoginThrottling();
@@ -60,7 +66,7 @@ final class AccountControllerTest extends WebTestCase
         // The published field set, asserted whole: a view field added without a
         // matching schema change would otherwise reach clients unnoticed.
         self::assertSame([
-            'id', 'label', 'assetCode', 'kind', 'productCode', 'institution', 'maskedIdentifier',
+            'id', 'label', 'assetCode', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier',
             'valuationMode', 'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund',
             'openedOn', 'closedOn', 'status', 'netWorthSign', 'used', 'editable', 'kindEditable',
             'kindEditReason', 'version', 'archivedAt',
@@ -382,6 +388,191 @@ final class AccountControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function testAnAccountIsCreatedFromAWorkspaceModelWithoutCopyingItsRules(): void
+    {
+        $this->models->add(ProductModelFixture::model(workspace: WorkspaceFixture::OWN_WORKSPACE));
+
+        $account = $this->createAccount(label: 'Livret Banque X', overrides: [
+            'productModelId' => ProductModelFixture::ID,
+        ]);
+
+        self::assertSame(ProductModelFixture::ID, $account['productModelId']);
+        self::assertNull($account['productCode']);
+        self::assertSame('SAVINGS', $account['kind']);
+
+        // The account keeps the reference and nothing else: any dated period
+        // the model carries stays on the model, read on the date it is
+        // needed, never frozen into this row.
+        $stored = $this->connection->fetchAssociative(
+            'SELECT * FROM account_financial_accounts WHERE workspace_id = ? AND id = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, self::stringValue($account, 'id')],
+        );
+        self::assertIsArray($stored);
+        self::assertSame(ProductModelFixture::ID, $stored['product_model_id']);
+        self::assertNull($stored['product_code']);
+
+        $created = $this->connection->fetchAssociative(
+            "SELECT after_json FROM audit_events
+             WHERE workspace_id = ? AND event_type = 'account.created' AND entity_id = ?",
+            [WorkspaceFixture::OWN_WORKSPACE, self::stringValue($account, 'id')],
+        );
+        self::assertIsArray($created);
+        self::assertIsString($created['after_json']);
+        $fingerprint = json_decode($created['after_json'], true);
+        self::assertIsArray($fingerprint);
+        self::assertSame(ProductModelFixture::ID, $fingerprint['productModelId']);
+        self::assertArrayNotHasKey('label', $fingerprint);
+    }
+
+    public function testTwoAccountsCanShareOneWorkspaceModel(): void
+    {
+        $this->models->add(ProductModelFixture::model(workspace: WorkspaceFixture::OWN_WORKSPACE));
+
+        $first = $this->createAccount(label: 'Livret Banque X', overrides: [
+            'productModelId' => ProductModelFixture::ID,
+        ]);
+        $second = $this->createAccount(label: 'Livret Banque Y', overrides: [
+            'productModelId' => ProductModelFixture::ID,
+        ]);
+
+        self::assertSame(ProductModelFixture::ID, $first['productModelId']);
+        self::assertSame(ProductModelFixture::ID, $second['productModelId']);
+        self::assertNotSame($first['id'], $second['id']);
+    }
+
+    /**
+     * A model checked against a kind or a valuation mode it does not declare
+     * would later read a ceiling or a rate against the wrong basis, exactly
+     * as a catalogue product would.
+     */
+    public function testAModelImposesItsKindAndItsCapabilities(): void
+    {
+        $this->models->add(ProductModelFixture::model(workspace: WorkspaceFixture::OWN_WORKSPACE));
+
+        $this->requestCreate($this->payload('Livret Banque X', [
+            'productModelId' => ProductModelFixture::ID,
+            'kind' => 'CURRENT',
+        ]));
+        self::assertResponseStatusCodeSame(422);
+
+        $this->requestCreate($this->payload('Livret Banque X', [
+            'productModelId' => ProductModelFixture::ID,
+            'valuationMode' => 'PORTFOLIO',
+        ]));
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testAnUnknownOrForeignModelReferenceIsRefusedByTheUseCaseAndByTheDatabase(): void
+    {
+        $this->models->add(ProductModelFixture::model(id: self::OTHER_MODEL, workspace: WorkspaceFixture::OTHER_WORKSPACE));
+
+        $this->requestCreate($this->payload('Compte', ['productModelId' => '00000000-0000-7000-8000-0000000000ff']));
+        self::assertResponseStatusCodeSame(422);
+
+        // A model of another workspace answers exactly like an unknown one: the
+        // repository scopes the lookup, so neither refusal confirms the id is real.
+        $this->requestCreate($this->payload('Compte', ['productModelId' => self::OTHER_MODEL]));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->ownAccountCount());
+
+        // The reference is (id, workspace_id), so the foreign key repeats the
+        // refusal for any writer that does not come through the use case.
+        $this->expectException(DbalException::class);
+        $this->expectExceptionMessageMatches('/product_model_fk/');
+        $this->insertAccount('00000000-0000-7000-8000-0000000000da', WorkspaceFixture::OWN_WORKSPACE, 'Direct', productModelId: self::OTHER_MODEL);
+    }
+
+    public function testAnArchivedModelCannotBackANewAccountButKeepsBackingAnExistingOne(): void
+    {
+        $this->models->add(ProductModelFixture::model(workspace: WorkspaceFixture::OWN_WORKSPACE));
+        $account = $this->createAccount(label: 'Livret Banque X', overrides: ['productModelId' => ProductModelFixture::ID]);
+
+        $archived = ProductModelFixture::model(workspace: WorkspaceFixture::OWN_WORKSPACE)
+            ->archive(new \DateTimeImmutable('2026-09-04T11:00:00+00:00'));
+        self::assertTrue($this->models->update($archived, 1));
+
+        // A new account cannot start on an archived model.
+        $this->requestCreate($this->payload('Second livret', ['productModelId' => ProductModelFixture::ID]));
+        self::assertResponseStatusCodeSame(422);
+
+        // The account already backed by it is untouched: renaming it does not
+        // resolve the model again.
+        $this->requestUpdate(self::stringValue($account, 'id'), [...$account, 'label' => 'Livret Banque X (2)']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(ProductModelFixture::ID, $this->decode()['productModelId']);
+    }
+
+    public function testAnAccountCannotReferenceBothAProductAndAModel(): void
+    {
+        $this->models->add(ProductModelFixture::model(workspace: WorkspaceFixture::OWN_WORKSPACE));
+
+        $this->requestCreate($this->payload('Compte', [
+            'productCode' => 'FR_LIVRET_A',
+            'productModelId' => ProductModelFixture::ID,
+        ]));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->ownAccountCount());
+    }
+
+    public function testAnUnusedAccountCanMoveFromACatalogueProductToAWorkspaceModel(): void
+    {
+        $this->models->add(ProductModelFixture::model(workspace: WorkspaceFixture::OWN_WORKSPACE));
+        $account = $this->createAccount(label: 'Livret A Banque X', overrides: ['productCode' => 'FR_LIVRET_A']);
+        $id = self::stringValue($account, 'id');
+
+        $this->requestUpdate($id, [
+            ...$account,
+            'productCode' => null,
+            'productModelId' => ProductModelFixture::ID,
+        ]);
+        self::assertResponseIsSuccessful();
+
+        $stored = $this->connection->fetchAssociative(
+            'SELECT product_code, product_model_id FROM account_financial_accounts WHERE workspace_id = ? AND id = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, $id],
+        );
+        self::assertIsArray($stored);
+        self::assertNull($stored['product_code']);
+        self::assertSame(ProductModelFixture::ID, $stored['product_model_id']);
+    }
+
+    public function testAnUnusedAccountCanLeaveItsWorkspaceModel(): void
+    {
+        $this->models->add(ProductModelFixture::model(workspace: WorkspaceFixture::OWN_WORKSPACE));
+        $account = $this->createAccount(label: 'Livret Banque X', overrides: [
+            'productModelId' => ProductModelFixture::ID,
+        ]);
+        $id = self::stringValue($account, 'id');
+
+        $this->requestUpdate($id, [...$account, 'productCode' => null, 'productModelId' => null]);
+        self::assertResponseIsSuccessful();
+
+        $stored = $this->connection->fetchAssociative(
+            'SELECT product_code, product_model_id FROM account_financial_accounts WHERE workspace_id = ? AND id = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, $id],
+        );
+        self::assertIsArray($stored);
+        self::assertNull($stored['product_code']);
+        self::assertNull($stored['product_model_id']);
+    }
+
+    public function testAUsedAccountCannotChangeModel(): void
+    {
+        $this->models->add(ProductModelFixture::model(workspace: WorkspaceFixture::OWN_WORKSPACE));
+        $this->models->add(ProductModelFixture::model(id: self::OTHER_MODEL, workspace: WorkspaceFixture::OWN_WORKSPACE, name: 'Autre livret'));
+
+        $account = $this->createAccount(label: 'Livret Banque X', overrides: ['productModelId' => ProductModelFixture::ID]);
+        $id = self::stringValue($account, 'id');
+        $this->connection->update(
+            'account_financial_accounts',
+            ['used_at' => '2026-09-01 12:00:00+00'],
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $id],
+        );
+
+        $this->requestUpdate($id, [...$account, 'productModelId' => self::OTHER_MODEL]);
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testMutationsRequireCsrfAndAuditWithoutFinancialLabels(): void
     {
         $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', '');
@@ -420,6 +611,16 @@ final class AccountControllerTest extends WebTestCase
             $sides = $event['after_json'].(string) $before;
             self::assertStringNotContainsString('Secret household account', $sides);
             self::assertStringNotContainsString('4821', $sides);
+            $fingerprint = json_decode((string) $event['after_json'], true);
+            self::assertIsArray($fingerprint);
+            // Closing records only the closure flag; the structural origin
+            // lives on created, updated and archived, which all use the
+            // same fingerprint. Pinning the keys here is what stops a
+            // writer from adding an origin without noticing the trail.
+            if ('account.closed' !== $event['event_type']) {
+                self::assertArrayHasKey('productCode', $fingerprint);
+                self::assertArrayHasKey('productModelId', $fingerprint);
+            }
         }
     }
 
@@ -532,6 +733,7 @@ final class AccountControllerTest extends WebTestCase
             'label' => $account['label'],
             'kind' => $account['kind'],
             'productCode' => $account['productCode'],
+            'productModelId' => $account['productModelId'],
             'institution' => $account['institution'],
             'maskedIdentifier' => $account['maskedIdentifier'],
             'valuationMode' => $account['valuationMode'],
@@ -556,6 +758,7 @@ final class AccountControllerTest extends WebTestCase
             'assetCode' => 'EUR',
             'kind' => 'SAVINGS',
             'productCode' => null,
+            'productModelId' => null,
             'institution' => null,
             'maskedIdentifier' => null,
             'valuationMode' => 'TRANSACTIONS',
@@ -579,8 +782,13 @@ final class AccountControllerTest extends WebTestCase
         return (int) $count;
     }
 
-    private function insertAccount(string $id, string $workspaceId, string $label, ?string $productCode = null): void
-    {
+    private function insertAccount(
+        string $id,
+        string $workspaceId,
+        string $label,
+        ?string $productCode = null,
+        ?string $productModelId = null,
+    ): void {
         $this->connection->insert('account_financial_accounts', [
             'id' => $id,
             'workspace_id' => $workspaceId,
@@ -588,6 +796,7 @@ final class AccountControllerTest extends WebTestCase
             'asset_code' => 'EUR',
             'kind' => 'SAVINGS',
             'product_code' => $productCode,
+            'product_model_id' => $productModelId,
             'institution' => null,
             'masked_identifier' => null,
             'valuation_mode' => 'TRANSACTIONS',

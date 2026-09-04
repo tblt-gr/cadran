@@ -6,6 +6,7 @@ namespace App\Tests\Module\Accounts\Domain;
 
 use App\Module\Accounts\Domain\AccountRules;
 use App\Module\Accounts\Domain\AccountRulesOrigin;
+use App\Module\Accounts\Domain\ModelRuleSchedule;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Catalog\Domain\CatalogEntry;
 use App\Module\Catalog\Domain\CeilingBasis;
@@ -14,6 +15,7 @@ use App\Module\Catalog\Domain\RateApplication;
 use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Catalog\Domain\RuleSchedule;
 use App\Module\Catalog\Domain\VerificationState;
+use App\Module\Catalog\Domain\WrapperKind;
 use App\Tests\Module\Catalog\Domain\CatalogFixture;
 use PHPUnit\Framework\TestCase;
 
@@ -252,6 +254,52 @@ final class AccountRulesTest extends TestCase
         self::assertSame(AccountRulesOrigin::PRODUCT_WITHDRAWN, $rules->origin);
         self::assertSame('FR_LIVRET_A', $rules->productCode?->toString());
         self::assertSame([], $rules->ceilings);
+    }
+
+    public function testAModelBackedAccountResolvesItsRulesWithNoPublicationOrVerification(): void
+    {
+        $model = ProductModelFixture::model(
+            wrapperKind: WrapperKind::REGULATED_SAVINGS,
+            schedule: new ModelRuleSchedule([
+                ProductModelFixture::ceiling('00000000-0000-7000-8000-0000000000b1', '22950.00', '2025-04-25'),
+                ProductModelFixture::rate('00000000-0000-7000-8000-0000000000b2', '2026-08-01'),
+            ]),
+        );
+
+        $rules = AccountRules::fromModel(
+            AccountFixture::account(productCode: null, productModelId: $model->id),
+            $model->effectiveOn(ProductModelFixture::day('2026-09-02')),
+        );
+
+        self::assertSame(AccountRulesOrigin::WORKSPACE_MODEL, $rules->origin);
+        self::assertSame($model->id, $rules->productModelId);
+        self::assertNull($rules->productCode);
+        self::assertCount(1, $rules->ceilings);
+        self::assertNull($rules->ceilings[0]->verification);
+        self::assertNull($rules->ceilings[0]->source);
+        self::assertCount(1, $rules->rates);
+        self::assertNull($rules->rates[0]->verification);
+        self::assertNull($rules->rates[0]->source);
+        self::assertTrue($rules->rates[0]->guaranteed);
+    }
+
+    /**
+     * A REGULATED_SAVINGS envelope expects a deposit ceiling. Recording none
+     * must show it as unavailable, not silently absent.
+     */
+    public function testAModelReportsTheCeilingItsEnvelopeExpectsAndDoesNotCarry(): void
+    {
+        $model = ProductModelFixture::model(wrapperKind: WrapperKind::REGULATED_SAVINGS);
+
+        $rules = AccountRules::fromModel(
+            AccountFixture::account(productCode: null, productModelId: $model->id),
+            $model->effectiveOn(ProductModelFixture::day('2026-09-02')),
+        );
+
+        self::assertSame([], $rules->ceilings);
+        // The model's default yield (CONTRACTUAL_FIXED) also expects a rate,
+        // recorded here too so neither gap is mistaken for the other.
+        self::assertSame([RuleKind::DEPOSIT_CEILING, RuleKind::ANNUAL_RATE], $rules->unavailableRuleKinds);
     }
 
     /**

@@ -3,8 +3,8 @@ import type {
   AccountKind,
   AccountValuationMode,
   LiquidityLevel,
-  Product,
 } from '@cadran/api-client';
+import { type AccountOrigin, originKind } from './accountOrigin';
 import { defaultValuationMode } from './valuationModes';
 
 /**
@@ -46,18 +46,18 @@ export function accountFormValues(account: Account): AccountFormValues {
 }
 
 /**
- * The starting point for a new account. A product declares the kind and the
- * mode it feeds, so those come from the catalogue rather than from a default
- * the API would refuse.
+ * The starting point for a new account. A product or a template declares the
+ * kind and the mode it feeds, so those come from it rather than from a
+ * default the API would refuse.
  */
-export function emptyAccountFormValues(product: Product | null): AccountFormValues {
+export function emptyAccountFormValues(origin: AccountOrigin): AccountFormValues {
   return {
     label: '',
     institution: '',
     assetCode: '',
-    kind: product?.accountKind ?? 'CURRENT',
+    kind: originKind(origin) ?? 'CURRENT',
     maskedIdentifier: '',
-    valuationMode: defaultValuationMode(product),
+    valuationMode: defaultValuationMode(origin),
     liquidityLevel: 'IMMEDIATE',
     includeInNetWorth: true,
     includeInEmergencyFund: false,

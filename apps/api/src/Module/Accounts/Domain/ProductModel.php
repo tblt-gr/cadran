@@ -9,6 +9,7 @@ use App\Module\Catalog\Domain\CeilingBasis;
 use App\Module\Catalog\Domain\ProductCapabilities;
 use App\Module\Catalog\Domain\ProductCapability;
 use App\Module\Catalog\Domain\ProductNature;
+use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Catalog\Domain\WrapperKind;
 use App\Module\Catalog\Domain\YieldKind;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -151,6 +152,40 @@ final readonly class ProductModel
     public function isArchived(): bool
     {
         return null !== $this->archivedAt;
+    }
+
+    /**
+     * Resolves the periods applying on $businessDate, the counterpart of
+     * {@see \App\Module\Catalog\Domain\CatalogEntry::effectiveOn()} for a
+     * workspace model.
+     *
+     * Archiving is answered here exactly like an active model: it stops new
+     * use, never what an existing account resolves against, so an account
+     * created from an archived model keeps reading the same periods it always
+     * did.
+     */
+    public function effectiveOn(\DateTimeImmutable $businessDate): EffectiveModel
+    {
+        $effective = $this->schedule->effectiveOn($businessDate);
+
+        $kindsFound = array_map(static fn (ModelRule $rule): RuleKind => $rule->kind, $effective);
+        $expectedKinds = [
+            ...$this->wrapperKind->expectedRuleKinds(),
+            ...$this->yieldKind->expectedRuleKinds(),
+        ];
+        $unavailable = [];
+        foreach ($expectedKinds as $expected) {
+            if (!in_array($expected, $kindsFound, true)) {
+                $unavailable[] = $expected;
+            }
+        }
+
+        return new EffectiveModel(
+            model: $this,
+            asOf: $businessDate,
+            rules: $effective,
+            unavailableRuleKinds: $unavailable,
+        );
     }
 
     /**

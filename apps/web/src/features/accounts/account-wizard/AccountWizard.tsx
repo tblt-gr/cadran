@@ -1,6 +1,7 @@
-import type { CreateAccountRequest, Product } from '@cadran/api-client';
+import type { CreateAccountRequest } from '@cadran/api-client';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { type AccountOrigin, sameOrigin } from '@/features/accounts/account-form/accountOrigin';
 import { AccountForm } from '@/features/accounts/account-form/AccountForm';
 import type { AccountFormValues } from '@/features/accounts/account-form/accountFormValues';
 import type { AccountErrorKind } from '@/features/accounts/accountError';
@@ -8,6 +9,7 @@ import { todayInBrowser } from '@/lib/businessDay';
 import { ProductStep } from './product-step/ProductStep';
 import { ReviewStep } from './review-step/ReviewStep';
 import { useProductOptions } from './useProductOptions';
+import { useTemplateOptions } from './useTemplateOptions';
 import { WizardSteps, type WizardStep } from './wizard-steps/WizardSteps';
 import styles from './AccountWizard.module.css';
 
@@ -19,23 +21,25 @@ interface AccountWizardProps {
 }
 
 /**
- * Creating an account: pick the model, describe the account, then review.
+ * Creating an account: pick what it follows, describe the account, then review.
  *
- * The review exists because a product-backed account inherits a kind, a
- * valuation mode and a set of dated rules the user never typed. Confirming is
- * the moment they see what the catalogue says, with each figure's period and
- * source, before anything is written.
+ * The review exists because an account backed by a product or a template
+ * inherits a kind, a valuation mode and a set of dated rules the user never
+ * typed. Confirming is the moment they see what that origin says, with each
+ * figure's period and — for a catalogue product — its official source,
+ * before anything is written.
  */
 export function AccountWizard({ onCancel, onCreate, pending, submitError }: AccountWizardProps) {
   const { t } = useTranslation();
   const [asOf] = useState(todayInBrowser);
   const [step, setStep] = useState<WizardStep>('product');
-  const [product, setProduct] = useState<Product | null>(null);
+  const [origin, setOrigin] = useState<AccountOrigin>(null);
   // The typed fields and the validated body are kept apart: a half-filled form
   // has no request shape, but stepping back must still find it as it was left.
   const [values, setValues] = useState<AccountFormValues | null>(null);
   const [draft, setDraft] = useState<CreateAccountRequest | null>(null);
   const products = useProductOptions(asOf);
+  const templates = useTemplateOptions();
   const stepContainer = useRef<HTMLDivElement>(null);
   const firstRender = useRef(true);
 
@@ -52,14 +56,14 @@ export function AccountWizard({ onCancel, onCreate, pending, submitError }: Acco
     stepContainer.current?.focus();
   }, [step]);
 
-  function chooseProduct(chosen: Product | null) {
-    if (chosen?.code === product?.code) {
+  function chooseOrigin(chosen: AccountOrigin) {
+    if (sameOrigin(chosen, origin)) {
       return;
     }
 
-    setProduct(chosen);
-    // The kind and the valuation mode are the product's to declare, so a draft
-    // written against another model is dropped rather than partly reused.
+    setOrigin(chosen);
+    // The kind and the valuation mode are the origin's to declare, so a draft
+    // written against another one is dropped rather than partly reused.
     setValues(null);
     setDraft(null);
   }
@@ -74,22 +78,27 @@ export function AccountWizard({ onCancel, onCreate, pending, submitError }: Acco
             asOf={asOf}
             onCancel={onCancel}
             onContinue={() => setStep('details')}
-            onSelect={chooseProduct}
+            onSelect={chooseOrigin}
             products={products}
-            selected={product}
+            selected={origin}
+            templates={templates}
           />
         ) : null}
 
         {step === 'details' ? (
           <>
             <p className={styles.chosen}>
-              {product
-                ? t('accounts.wizard.details.fromProduct', { product: product.displayName })
-                : t('accounts.wizard.details.withoutProduct')}
+              {origin?.type === 'product'
+                ? t('accounts.wizard.details.fromProduct', { product: origin.product.displayName })
+                : origin?.type === 'template'
+                  ? t('accounts.wizard.details.fromTemplate', { template: origin.template.name })
+                  : t('accounts.wizard.details.withoutProduct')}
             </p>
             <AccountForm
               defaults={values}
-              key={product?.code ?? 'none'}
+              key={
+                origin?.type === 'product' ? origin.product.code : (origin?.template.id ?? 'none')
+              }
               onCancel={(current) => {
                 setValues(current);
                 setStep('product');
@@ -99,8 +108,8 @@ export function AccountWizard({ onCancel, onCreate, pending, submitError }: Acco
                 setDraft(body as CreateAccountRequest);
                 setStep('review');
               }}
+              origin={origin}
               pending={false}
-              product={product}
               submitError={null}
               submitLabel="continue"
             />
@@ -112,8 +121,8 @@ export function AccountWizard({ onCancel, onCreate, pending, submitError }: Acco
             draft={draft}
             onBack={() => setStep('details')}
             onConfirm={() => onCreate(draft)}
+            origin={origin}
             pending={pending}
-            product={product}
             submitError={submitError}
           />
         ) : null}

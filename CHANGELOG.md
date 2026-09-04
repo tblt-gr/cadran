@@ -43,6 +43,12 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   unavailable and never as zero, a period left open is in force for every later date instead of
   expiring silently, and a ceiling published in another unit than the account is reported as not
   comparable rather than converted.
+- Accounts created from a reusable workspace product model: the wizard lists the workspace's own
+  templates beside the system catalogue, and the account stores only the model reference. Dated
+  ceilings, rates and terms stay on the model and are read on the business date they are needed, so
+  archiving a template blocks new use without changing what an existing account resolves. A rule
+  declared by the workspace carries no verification state and no publication; it is shown as
+  declared rather than as sourced.
 
 ## [0.1.0] - 2026-09-02
 

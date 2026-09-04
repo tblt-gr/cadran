@@ -10,6 +10,7 @@ final readonly class UpdateAccountInput
         public string $label,
         public string $kind,
         public ?string $productCode,
+        public ?string $productModelId,
         public ?string $institution,
         public ?string $maskedIdentifier,
         public string $valuationMode,

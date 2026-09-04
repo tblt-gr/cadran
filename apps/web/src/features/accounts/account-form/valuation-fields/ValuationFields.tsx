@@ -1,10 +1,6 @@
-import type {
-  AccountKind,
-  AccountValuationMode,
-  LiquidityLevel,
-  Product,
-} from '@cadran/api-client';
+import type { AccountKind, AccountValuationMode, LiquidityLevel } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import type { AccountOrigin } from '@/features/accounts/account-form/accountOrigin';
 import { FormField } from '@/features/accounts/account-form/form-field/FormField';
 import { POSITION_KINDS } from '@/features/accounts/account-form/positionKinds';
 import {
@@ -26,14 +22,14 @@ interface ValuationFieldsProps {
   liquidityLevel: LiquidityLevel;
   onLiquidityLevelChange: (level: LiquidityLevel) => void;
   onValuationModeChange: (mode: AccountValuationMode) => void;
-  product: Product | null;
+  origin: AccountOrigin;
   valuationMode: AccountValuationMode;
 }
 
 /**
  * Where the value of the account will come from, and how fast that value can be
  * spent. A portfolio valuation is offered only for a kind that holds positions,
- * and a mode the chosen product does not feed is offered for no kind at all, so
+ * and a mode the chosen origin does not feed is offered for no kind at all, so
  * the impossible combination cannot be picked in the first place.
  */
 export function ValuationFields({
@@ -42,7 +38,7 @@ export function ValuationFields({
   liquidityLevel,
   onLiquidityLevelChange,
   onValuationModeChange,
-  product,
+  origin,
   valuationMode,
 }: ValuationFieldsProps) {
   const { t } = useTranslation();
@@ -51,7 +47,7 @@ export function ValuationFields({
     <>
       <FormField
         error={invalid ? t('accounts.validation.valuationMode') : undefined}
-        hint={product ? t('accounts.form.valuationFromProduct') : undefined}
+        hint={origin ? t('accounts.form.valuationFromProduct') : undefined}
         label={t('accounts.fields.valuationMode')}
         name="valuation-mode"
       >
@@ -67,7 +63,7 @@ export function ValuationFields({
               <option
                 disabled={
                   (option === 'PORTFOLIO' && !POSITION_KINDS.includes(kind)) ||
-                  !productFeedsValuationMode(product, option)
+                  !productFeedsValuationMode(origin, option)
                 }
                 key={option}
                 value={option}

@@ -31,6 +31,7 @@ final readonly class AccountRulesRepresentation
             'accountId' => $rules->accountId,
             'assetCode' => $rules->assetCode->toString(),
             'productCode' => $rules->productCode?->toString(),
+            'productModelId' => $rules->productModelId,
             'origin' => $rules->origin->value,
             'asOf' => $rules->asOf->format('Y-m-d'),
             'ceilings' => array_map(self::ceiling(...), $rules->ceilings),
@@ -102,22 +103,24 @@ final readonly class AccountRulesRepresentation
 
     /**
      * The period a value covers, how fresh its verification is and where it
-     * was read from. Every resolved rule carries all three: a figure without
-     * its period and its publication cannot be checked by the holder.
+     * was read from. A catalogue-sourced rule carries all three; a rule read
+     * from a workspace product model carries neither — nobody published it,
+     * so grading its freshness or naming a publication would fabricate a
+     * provenance the model never had, and both travel as null instead.
      *
      * @return array<string, mixed>
      */
     private static function provenance(
         EffectivePeriod $period,
-        VerificationState $verification,
-        CatalogSource $source,
+        ?VerificationState $verification,
+        ?CatalogSource $source,
     ): array {
         return [
             'validFrom' => $period->validFrom->format('Y-m-d'),
             // An open end is in force for every later date, not an expiry.
             'validTo' => $period->validTo?->format('Y-m-d'),
-            'verification' => $verification->value,
-            'source' => [
+            'verification' => $verification?->value,
+            'source' => null === $source ? null : [
                 'publisher' => $source->publisher,
                 'title' => $source->title,
                 'url' => $source->url,

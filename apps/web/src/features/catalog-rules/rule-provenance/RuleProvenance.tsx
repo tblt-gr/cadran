@@ -15,15 +15,19 @@ const verificationTone = {
 } as const;
 
 interface RuleProvenanceProps {
-  source: ProductRuleSource;
+  /** Null for a rule read from a workspace product model: nobody published it. */
+  source: ProductRuleSource | null;
   validFrom: RuleValidFrom;
   validTo: RuleValidTo;
-  verification: RuleVerification;
+  /** Null alongside `source`, for the same reason. */
+  verification: RuleVerification | null;
 }
 
 /**
- * The three cells every sourced catalogue rule carries: the period it covers,
- * how fresh its verification is and the publication it was read from.
+ * The three cells every account rule carries: the period it covers, how
+ * fresh its verification is and the publication it was read from — or, for a
+ * rule read from a workspace's own product model, that it was declared by
+ * the workspace and grades no freshness, since nobody published it.
  *
  * A figure without its period and its publication cannot be checked by the
  * holder, so the product catalogue and the rules of an account render this
@@ -47,20 +51,30 @@ export function RuleProvenance({ source, validFrom, validTo, verification }: Rul
             })}
       </td>
       <td>
-        <StatusBadge tone={verificationTone[verification]}>
-          {t(`catalog.verification.${verification}`)}
-        </StatusBadge>
+        {verification === null ? (
+          <StatusBadge tone="info">{t('accounts.rules.declared')}</StatusBadge>
+        ) : (
+          <StatusBadge tone={verificationTone[verification]}>
+            {t(`catalog.verification.${verification}`)}
+          </StatusBadge>
+        )}
       </td>
       <td>
-        <a href={source.url} rel="noreferrer noopener" target="_blank">
-          {source.title}
-        </a>
-        <small>
-          {t('catalog.source.trace', {
-            publisher: source.publisher,
-            retrieved: formatCalendarDay(source.retrievedOn, i18n.language),
-          })}
-        </small>
+        {source === null ? (
+          <span>{t('accounts.rules.noSource')}</span>
+        ) : (
+          <>
+            <a href={source.url} rel="noreferrer noopener" target="_blank">
+              {source.title}
+            </a>
+            <small>
+              {t('catalog.source.trace', {
+                publisher: source.publisher,
+                retrieved: formatCalendarDay(source.retrievedOn, i18n.language),
+              })}
+            </small>
+          </>
+        )}
       </td>
     </>
   );
