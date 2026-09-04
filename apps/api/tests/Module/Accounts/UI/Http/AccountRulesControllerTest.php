@@ -105,7 +105,7 @@ final class AccountRulesControllerTest extends WebTestCase
         self::assertTrue($rate['guaranteed']);
         // A single published rate still resolves to a scale, so a tiered
         // product later needs no second way of reading a rate.
-        self::assertSame('WHOLE_BALANCE', $rate['application']);
+        self::assertSame('MARGINAL', $rate['application']);
         self::assertSame(
             [['percentage' => '1.7', 'lowerBound' => '0', 'upperBound' => null]],
             $rate['brackets'],

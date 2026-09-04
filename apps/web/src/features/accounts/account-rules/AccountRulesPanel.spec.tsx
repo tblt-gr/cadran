@@ -12,6 +12,16 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...api,
 }));
 
+// The panel resolves the rules on today's date by default. Pinning the day
+// keeps the assertions about a chosen business date about that choice, instead
+// of about the day the suite happens to run on.
+const TODAY = '2026-09-03';
+
+vi.mock('@/lib/businessDay', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/businessDay')>()),
+  todayInBrowser: () => TODAY,
+}));
+
 const account = {
   id: '00000000-0000-7000-8000-0000000000d1',
   label: 'Livret A Banque X',
@@ -32,7 +42,7 @@ const passbook: AccountRules = {
   assetCode: 'EUR',
   productCode: 'FR_LIVRET_A',
   origin: 'SYSTEM_CATALOG',
-  asOf: '2026-09-03',
+  asOf: TODAY,
   ceilings: [
     {
       kind: 'DEPOSIT_CEILING',
@@ -51,7 +61,7 @@ const passbook: AccountRules = {
     {
       kind: 'ANNUAL_RATE',
       guaranteed: true,
-      application: 'WHOLE_BALANCE',
+      application: 'MARGINAL',
       brackets: [{ percentage: '1.7', lowerBound: '0', upperBound: null }],
       validFrom: '2026-08-01',
       validTo: '2027-01-31',
@@ -108,7 +118,9 @@ describe('AccountRulesPanel', () => {
     expect(screen.getByText('Du 1 août 2026 au 31 janvier 2027')).toBeTruthy();
 
     expect(screen.getByText('1,7 %')).toBeTruthy();
-    expect(screen.getByText('Appliqué à la totalité du solde')).toBeTruthy();
+    // One bracket covering every amount reads the same under both application
+    // modes, so naming the mode beside it would be noise.
+    expect(screen.queryByText(/tranche/i)).toBeNull();
     expect(screen.getByText('Taux dû au titulaire')).toBeTruthy();
     // Every figure travels with the publication it was read from, so the
     // ceiling and the rate each carry their own link.
@@ -154,7 +166,7 @@ describe('AccountRulesPanel', () => {
     expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
     await waitFor(() =>
       expect(api.readAccountRules.mock.calls.map((call) => call[0].query.asOf)).toEqual([
-        '2026-09-03',
+        TODAY,
         '2025-06-01',
       ]),
     );

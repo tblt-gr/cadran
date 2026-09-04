@@ -303,7 +303,8 @@
         "COMBINED_CONTRIBUTIONS": "Versements cumulés de plusieurs comptes"
       },
       "applications": {
-        "WHOLE_BALANCE": "Appliqué à la totalité du solde"
+        "MARGINAL": "Par tranche : chaque tranche est rémunérée à son propre taux",
+        "FLAT_BY_BRACKET": "Taux unique : la tranche atteinte s'applique à la totalité du solde"
       },
       "origins": {
         "NO_PRODUCT": "Ce compte est décrit à la main : aucun produit du catalogue ne lui rattache de plafond ni de taux.",

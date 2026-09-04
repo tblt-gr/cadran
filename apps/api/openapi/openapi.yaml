@@ -2200,13 +2200,16 @@ components:
           $ref: '#/components/schemas/ProductRuleSource'
     RateApplication:
       description: >-
-        How the brackets combine over an amount. The same two brackets pay a
-        different interest depending on whether the reached one applies to
-        everything or only to the slice it covers, so a scale is never read
-        without it.
+        How the brackets combine over an amount. `MARGINAL` remunerates each
+        slice at the rate of the bracket covering it, while `FLAT_BY_BRACKET`
+        applies the rate of the bracket reached to the whole amount. A scale of
+        4 % up to 10 000 then 2 % above pays 500 on 15 000 under the first and
+        300 under the second, so a scale is never read without its mode. A
+        single-bracket scale gives the same result under both.
       type: string
       enum:
-        - WHOLE_BALANCE
+        - MARGINAL
+        - FLAT_BY_BRACKET
     RateBracket:
       description: >-
         One slice of a rate scale. The lower bound is included and the upper

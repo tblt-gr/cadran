@@ -154,7 +154,7 @@ final class AccountRulesTest extends TestCase
         $rate = $this->resolve([CatalogFixture::rate('1.7', '2026-08-01', '2027-01-31')])->rates[0];
 
         self::assertTrue($rate->guaranteed);
-        self::assertSame(RateApplication::WHOLE_BALANCE, $rate->scale->application);
+        self::assertSame(RateApplication::MARGINAL, $rate->scale->application);
         self::assertCount(1, $rate->scale->brackets);
         self::assertSame('0', $rate->scale->brackets[0]->lowerBound->toString());
         self::assertNull($rate->scale->brackets[0]->upperBound);

@@ -21,9 +21,9 @@ final class RateScaleTest extends TestCase
 {
     public function testASinglePublishedRateCoversTheWholeBalanceInOneBracket(): void
     {
-        $scale = RateScale::wholeBalance(DecimalValue::fromString('1.7'));
+        $scale = RateScale::singleRate(DecimalValue::fromString('1.7'));
 
-        self::assertSame(RateApplication::WHOLE_BALANCE, $scale->application);
+        self::assertSame(RateApplication::MARGINAL, $scale->application);
         self::assertCount(1, $scale->brackets);
         self::assertFalse($scale->isTiered());
         self::assertSame('0', $scale->brackets[0]->lowerBound->toString());
@@ -38,7 +38,7 @@ final class RateScaleTest extends TestCase
                 self::bracket('0', '10000', '2'),
                 self::bracket('10000', null, '1.5'),
             ],
-            RateApplication::WHOLE_BALANCE,
+            RateApplication::MARGINAL,
         );
 
         self::assertTrue($scale->isTiered());
@@ -49,7 +49,7 @@ final class RateScaleTest extends TestCase
     {
         $this->expectException(InvalidCatalogEntry::class);
 
-        new RateScale([self::bracket('1', null, '1.7')], RateApplication::WHOLE_BALANCE);
+        new RateScale([self::bracket('1', null, '1.7')], RateApplication::MARGINAL);
     }
 
     public function testAGapBetweenTwoBracketsIsRefused(): void
@@ -58,7 +58,7 @@ final class RateScaleTest extends TestCase
 
         new RateScale(
             [self::bracket('0', '10000', '2'), self::bracket('20000', null, '1.5')],
-            RateApplication::WHOLE_BALANCE,
+            RateApplication::MARGINAL,
         );
     }
 
@@ -68,7 +68,7 @@ final class RateScaleTest extends TestCase
 
         new RateScale(
             [self::bracket('0', '10000', '2'), self::bracket('9000', null, '1.5')],
-            RateApplication::WHOLE_BALANCE,
+            RateApplication::MARGINAL,
         );
     }
 
@@ -80,14 +80,14 @@ final class RateScaleTest extends TestCase
     {
         $this->expectException(InvalidCatalogEntry::class);
 
-        new RateScale([self::bracket('0', '10000', '2')], RateApplication::WHOLE_BALANCE);
+        new RateScale([self::bracket('0', '10000', '2')], RateApplication::MARGINAL);
     }
 
     public function testAnEmptyScaleIsRefused(): void
     {
         $this->expectException(InvalidCatalogEntry::class);
 
-        new RateScale([], RateApplication::WHOLE_BALANCE);
+        new RateScale([], RateApplication::MARGINAL);
     }
 
     public function testABracketEndingWhereItStartsCoversNothing(): void
@@ -112,7 +112,7 @@ final class RateScaleTest extends TestCase
     {
         $scale = new RateScale(
             [self::bracket('0', '10000.00', '2'), self::bracket('10000', null, '1.5')],
-            RateApplication::WHOLE_BALANCE,
+            RateApplication::MARGINAL,
         );
 
         self::assertTrue($scale->isTiered());

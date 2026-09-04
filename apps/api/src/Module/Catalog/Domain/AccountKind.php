@@ -18,4 +18,17 @@ enum AccountKind: string
     case CASH = 'CASH';
     case REAL_ASSET = 'REAL_ASSET';
     case LIABILITY = 'LIABILITY';
+
+    /**
+     * Which side of the balance sheet the kind sits on. It is derived here
+     * rather than recorded beside the kind, so no product can ever declare a
+     * loan as an asset: one figure decides both, and the two cannot drift.
+     */
+    public function nature(): ProductNature
+    {
+        return match ($this) {
+            self::LIABILITY => ProductNature::LIABILITY,
+            default => ProductNature::ASSET,
+        };
+    }
 }
