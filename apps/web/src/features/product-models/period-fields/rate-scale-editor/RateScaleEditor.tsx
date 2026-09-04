@@ -5,6 +5,7 @@ import {
   emptyBracket,
   type BracketValues,
 } from '@/features/product-models/period-fields/periodValues';
+import { ScalePreview } from '@/features/product-models/period-fields/rate-scale-editor/scale-preview/ScalePreview';
 import styles from './RateScaleEditor.module.css';
 
 const APPLICATIONS: RateApplication[] = ['MARGINAL', 'FLAT_BY_BRACKET'];
@@ -180,6 +181,8 @@ export function RateScaleEditor({
           >
             {t('productModels.period.scale.addBracket')}
           </button>
+
+          <ScalePreview brackets={brackets} rateApplication={rateApplication} />
         </>
       )}
 

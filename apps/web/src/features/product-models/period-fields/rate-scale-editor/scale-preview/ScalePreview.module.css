@@ -1,0 +1,19 @@
+.preview {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+  gap: var(--spacing-1-5);
+}
+
+.previewResult {
+  /* Reserves room for its longest message (the incomplete-scale hint, up to
+     3 lines at 360px) so the debounce window's blank state never shifts the
+     dated-period actions below it. */
+  min-height: calc(var(--font-size-body) * var(--line-height-body) * 3);
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-body);
+}

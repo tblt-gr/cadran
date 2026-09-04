@@ -23,7 +23,16 @@ export function FieldRow({ children, error, hint, label }: FieldRowProps) {
       <label htmlFor={fieldId}>{label}</label>
       {children({ fieldId, describedBy: message ? messageId : undefined })}
       {message ? (
-        <small className={error ? styles.error : styles.hint} id={messageId}>
+        // An error can appear after the field already has focus — a balance
+        // that only turns out malformed once a debounced preview settles, say
+        // — with no focus move to make a screen reader re-read it. `polite`
+        // on the error case alone announces that without interrupting typing;
+        // a plain hint never changes on its own, so it stays silent.
+        <small
+          aria-live={error ? 'polite' : undefined}
+          className={error ? styles.error : styles.hint}
+          id={messageId}
+        >
           {message}
         </small>
       ) : null}

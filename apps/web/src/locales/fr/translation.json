@@ -767,7 +767,14 @@
         "removeRow": "Supprimer la tranche {{row}}",
         "noLimit": "Sans limite",
         "addBracket": "Ajouter une tranche",
-        "hint": "Un barème part de zéro, ses tranches se suivent sans trou ni recouvrement et la dernière reste sans plafond. Le serveur vérifie ces règles et refuse un barème invalide."
+        "hint": "Un barème part de zéro, ses tranches se suivent sans trou ni recouvrement et la dernière reste sans plafond. Le serveur vérifie ces règles et refuse un barème invalide.",
+        "previewBalance": "Solde d’exemple",
+        "previewBalanceHint": "Un aperçu de saisie, sans lien avec le solde réel d’un compte.",
+        "previewResultMarginal": "La tranche atteinte est rémunérée à {{value}} ; les tranches inférieures gardent leur propre taux.",
+        "previewResultFlatByBracket": "Le taux de la tranche atteinte, {{value}}, s’applique à la totalité du solde.",
+        "previewNoMatch": "Aucune tranche du barème ne couvre ce solde.",
+        "previewInvalidBalance": "Saisissez un solde en chiffres, avec un point pour séparateur décimal.",
+        "previewIncompleteScale": "Le barème n’est pas encore complet : il doit partir de zéro, ses tranches se succéder sans trou ni recouvrement, et la dernière rester sans plafond."
       }
     },
     "periods": {
