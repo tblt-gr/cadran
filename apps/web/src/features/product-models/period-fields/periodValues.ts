@@ -86,7 +86,10 @@ export function periodProblems(values: PeriodValues): string[] {
   }
 
   if (type === 'AMOUNT') {
-    if (!CANONICAL_DECIMAL.test(values.amount.trim())) {
+    // A ceiling is a bound, never a debt: the contract and the domain both
+    // refuse a sign, so a negative one is caught here rather than as an
+    // unattributed 422.
+    if (!CANONICAL_UNSIGNED.test(values.amount.trim())) {
       problems.push('amount');
     }
     if (!/^[A-Z][A-Z0-9]{1,11}$/.test(values.amountAssetCode.trim())) {

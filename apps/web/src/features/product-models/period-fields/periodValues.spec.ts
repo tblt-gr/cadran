@@ -51,6 +51,17 @@ describe('periodValues', () => {
     expect(periodProblems(ratePeriod({ singleRate: '4.50' }))).toEqual([]);
   });
 
+  it('refuses a negative ceiling, which is a bound and never a debt', () => {
+    const ceiling = {
+      ...emptyPeriod('DEPOSIT_CEILING'),
+      validFrom: '2026-01-01',
+      amount: '-100',
+    };
+
+    expect(periodProblems(ceiling)).toContain('amount');
+    expect(periodProblems({ ...ceiling, amount: '100' })).toEqual([]);
+  });
+
   it('treats an empty end date as in force with no known end, never as a zero', () => {
     const values = ratePeriod({ singleRate: '1.7', validTo: '' });
 

@@ -8,6 +8,7 @@ interface CapabilitySelectProps {
   isLiability: boolean;
   valuationMode: AccountValuationMode;
   invalid: boolean;
+  missing: ProductCapability[];
   onChange: (capabilities: ProductCapability[]) => void;
 }
 
@@ -23,10 +24,14 @@ export function CapabilitySelect({
   isLiability,
   valuationMode,
   invalid,
+  missing,
   onChange,
 }: CapabilitySelectProps) {
   const { t } = useTranslation();
   const required = valuationRequiredCapability(valuationMode);
+  const missingNames = missing
+    .map((capability) => t(`catalog.capabilities.items.${capability}`))
+    .join(', ');
 
   function toggle(capability: ProductCapability, checked: boolean) {
     onChange(checked ? [...value, capability] : value.filter((entry) => entry !== capability));
@@ -60,7 +65,9 @@ export function CapabilitySelect({
       </div>
       {invalid ? (
         <small className={styles.error} role="alert">
-          {t('productModels.form.errors.capabilities')}
+          {missing.length > 0
+            ? t('productModels.form.errors.capabilityDependencies', { capabilities: missingNames })
+            : t('productModels.form.errors.capabilities')}
         </small>
       ) : (
         <small className={styles.hint}>{t('productModels.form.capabilitiesHint')}</small>

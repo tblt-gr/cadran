@@ -61,6 +61,19 @@ const livretA: Product = {
   unavailableRuleKinds: [],
 };
 
+/** A product valued by dated statements: it records no movement at all. */
+const lifeInsurance: Product = {
+  ...livretA,
+  code: 'FR_ASSURANCE_VIE',
+  displayName: 'Assurance-vie',
+  accountKind: 'INSURANCE_CONTRACT',
+  wrapperKind: 'LIFE_INSURANCE',
+  yieldKind: 'CONTRACTUAL_VARIABLE',
+  ceilingBasis: 'NONE',
+  defaultGroupCode: 'INVESTMENTS_LIFE_INSURANCE',
+  capabilities: ['SUPPORTS_BALANCE'],
+};
+
 function success<T>(data: T, status = 200) {
   return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status }) });
 }
@@ -226,6 +239,31 @@ describe('ProductModelsPage', () => {
       productCode: 'FR_LIVRET_A',
       valuationMode: 'TRANSACTIONS',
     });
+  });
+
+  it('starts on a valuation mode the chosen product can feed', async () => {
+    api.listProductModels.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [lifeInsurance], page: 1, perPage: 100, total: 1 }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Partir d’un produit' }));
+    fireEvent.change(await screen.findByLabelText('Produit du catalogue'), {
+      target: { value: 'FR_ASSURANCE_VIE' },
+    });
+
+    // The product records no movement, so the field cannot rest on the mode
+    // that reads them: it would show a disabled option as its own value and
+    // submit a model the server refuses.
+    const mode = screen.getByLabelText('Mode de valorisation');
+    expect((mode as HTMLSelectElement).value).toBe('SNAPSHOTS');
+    expect(
+      (screen.getByRole('option', { name: 'Mouvements enregistrés' }) as HTMLOptionElement)
+        .disabled,
+    ).toBe(true);
   });
 
   it('duplicates a model by name and archives one through a confirmation', async () => {

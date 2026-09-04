@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Infrastructure\Persistence;
 
 use App\Module\Accounts\Application\ProductModelConflict;
+use App\Module\Accounts\Domain\ModelRule;
 use App\Module\Accounts\Domain\ModelRuleSchedule;
 use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Accounts\Domain\ProductModelRepository;
@@ -229,6 +230,40 @@ final class ProductModelPersistenceTest extends KernelTestCase
             'SELECT count(*) FROM account_product_model_rate_brackets WHERE workspace_id = ?',
             [WorkspaceFixture::OWN_WORKSPACE],
         ));
+        // Two rate periods are read by one statement joining their brackets:
+        // each keeps its own scale rather than sharing or losing one.
+        self::assertSame([2, 2], array_map(
+            static fn (ModelRule $rule): int => count($rule->value->scale->brackets ?? []),
+            $read->schedule->rules,
+        ));
+    }
+
+    public function testRewritingTheScheduleKeepsWhenEachPeriodWasRecorded(): void
+    {
+        $this->persist($this->model(new ModelRuleSchedule([
+            ProductModelFixture::rate('00000000-0000-7000-8000-0000000000b1', '2026-01-01'),
+        ])));
+
+        $recordedBefore = $this->recordedAt();
+
+        $current = $this->models->findForUpdate(WorkspaceFixture::own(), ProductModelFixture::ID);
+        self::assertNotNull($current);
+        $revised = $current->withRule(
+            ProductModelFixture::rate('00000000-0000-7000-8000-0000000000b2', '2027-01-01'),
+            new \DateTimeImmutable('2026-12-31T10:00:00+00:00'),
+        );
+        self::assertTrue($this->connection->transactional(fn (): bool => $this->models->update($revised, $current->version)));
+
+        // A write replaces the whole schedule, so the period that was already
+        // there has to come back with the instant it was first recorded: the
+        // column answers "when was this recorded", not "when was this model
+        // last touched".
+        $recordedAfter = $this->recordedAt();
+        self::assertSame($recordedBefore['00000000-0000-7000-8000-0000000000b1'], $recordedAfter['00000000-0000-7000-8000-0000000000b1']);
+        self::assertGreaterThan(
+            new \DateTimeImmutable($recordedAfter['00000000-0000-7000-8000-0000000000b1']),
+            new \DateTimeImmutable($recordedAfter['00000000-0000-7000-8000-0000000000b2']),
+        );
     }
 
     public function testDuplicationLockSerializesAConcurrentArchive(): void
@@ -267,6 +302,29 @@ final class ProductModelPersistenceTest extends KernelTestCase
         $this->connection->transactional(function () use ($model): void {
             $this->models->add($model);
         });
+    }
+
+    /**
+     * When each stored period was recorded, keyed by period.
+     *
+     * @return array<string, string>
+     */
+    private function recordedAt(): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT id, created_at::text AS created_at FROM account_product_model_rules'
+            .' WHERE workspace_id = ? AND model_id = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, ProductModelFixture::ID],
+        );
+
+        $recorded = [];
+        foreach ($rows as $row) {
+            self::assertIsString($row['id']);
+            self::assertIsString($row['created_at']);
+            $recorded[$row['id']] = $row['created_at'];
+        }
+
+        return $recorded;
     }
 
     private function insertRule(string $validFrom): void

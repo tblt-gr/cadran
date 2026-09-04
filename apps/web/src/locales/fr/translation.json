@@ -680,7 +680,8 @@
         "name": "Le nom doit contenir entre 1 et 80 caractères, sans caractère de contrôle.",
         "defaultGroupCode": "Choisissez un groupe du catalogue, ou aucun.",
         "valuationMode": "Seules les familles qui portent des positions acceptent la valorisation par portefeuille.",
-        "capabilities": "Sélectionnez au moins une fonction, celle qu’exige le mode de valorisation, et réservez la fonction de passif à une famille de passif."
+        "capabilities": "Sélectionnez au moins une fonction, celle qu’exige le mode de valorisation, et réservez la fonction de passif à une famille de passif.",
+        "capabilityDependencies": "Les fonctions choisies en exigent d’autres, qui ne sont pas activées : {{capabilities}}."
       }
     },
     "fromProduct": {

@@ -50,6 +50,24 @@ export function FromProductForm({
     return selected === null || selected.capabilities.includes(valuationRequiredCapability(mode));
   }
 
+  /**
+   * The mode a freshly chosen product starts on: the first one its capabilities
+   * actually feed, so the select never shows a disabled option as its own
+   * value. A catalogue product always feeds at least one mode; falling back to
+   * the first entry keeps the field defined if one ever does not, and the
+   * server refuses that model rather than the form pretending otherwise.
+   */
+  function firstModeFedBy(code: string): AccountValuationMode {
+    const product = products.items.find((entry) => entry.code === code) ?? null;
+
+    return (
+      VALUATION_MODES.find(
+        (mode) =>
+          product === null || product.capabilities.includes(valuationRequiredCapability(mode)),
+      ) ?? VALUATION_MODES[0]
+    );
+  }
+
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (nameInvalid || productInvalid) {
@@ -118,7 +136,7 @@ export function FromProductForm({
             id={fieldId}
             onChange={(event) => {
               setProductCode(event.target.value);
-              setValuationMode('TRANSACTIONS');
+              setValuationMode(firstModeFedBy(event.target.value));
             }}
             value={productCode}
           >

@@ -64,6 +64,23 @@ export const CAPABILITIES: ProductCapability[] = [
   'SUPPORTS_LIABILITY',
 ];
 
+/**
+ * What each capability rests on, mirroring the domain: a behaviour cannot be
+ * offered without the state it reads or the operation it records. Held here so
+ * an impossible set is named on the fieldset rather than coming back as an
+ * unattributed 422.
+ */
+const CAPABILITY_DEPENDENCIES: Partial<Record<ProductCapability, ProductCapability[]>> = {
+  SUPPORTS_INTEREST: ['SUPPORTS_BALANCE'],
+  SUPPORTS_HOLDINGS: ['SUPPORTS_BALANCE'],
+  SUPPORTS_TRADES: ['SUPPORTS_HOLDINGS', 'SUPPORTS_TRANSACTIONS'],
+  SUPPORTS_ARBITRAGE: ['SUPPORTS_HOLDINGS', 'SUPPORTS_TRANSACTIONS'],
+  SUPPORTS_CONTRIBUTIONS: ['SUPPORTS_TRANSACTIONS'],
+  SUPPORTS_FEES: ['SUPPORTS_TRANSACTIONS'],
+  SUPPORTS_TAX_TRACKING: ['SUPPORTS_TRANSACTIONS'],
+  SUPPORTS_LIABILITY: ['SUPPORTS_BALANCE'],
+};
+
 const POSITION_KINDS: AccountKind[] = ['PORTFOLIO', 'INSURANCE_CONTRACT', 'EMPLOYEE_BENEFIT'];
 
 const GROUP_CODE = /^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$/;
@@ -119,6 +136,36 @@ export function normalizeCapabilities(
 }
 
 /**
+ * The capabilities the current selection needs and does not hold, in checkbox
+ * order so the message reads like the list above it.
+ *
+ * A requirement is followed through: a capability missing here brings its own
+ * requirements with it, so the whole set to tick appears at once instead of one
+ * per submit.
+ */
+export function missingCapabilityDependencies(
+  capabilities: readonly ProductCapability[],
+): ProductCapability[] {
+  const held = new Set(capabilities);
+  const missing = new Set<ProductCapability>();
+  const pending = [...capabilities];
+
+  while (pending.length > 0) {
+    const capability = pending.pop() as ProductCapability;
+    for (const required of CAPABILITY_DEPENDENCIES[capability] ?? []) {
+      if (held.has(required) || missing.has(required)) {
+        continue;
+      }
+
+      missing.add(required);
+      pending.push(required);
+    }
+  }
+
+  return CAPABILITIES.filter((capability) => missing.has(capability));
+}
+
+/**
  * The field keys a submit would send the user back to. `SUPPORTS_LIABILITY` is
  * held exclusive to a `LIABILITY` family, exactly as the domain does, so the
  * two can never disagree about which side of the balance sheet the model sits
@@ -146,6 +193,10 @@ export function modelFormProblems(values: ModelFormValues): string[] {
 
   const wantsLiability = values.capabilities.includes('SUPPORTS_LIABILITY');
   if ((values.family === 'LIABILITY') !== wantsLiability) {
+    problems.push('capabilities');
+  }
+
+  if (missingCapabilityDependencies(values.capabilities).length > 0) {
     problems.push('capabilities');
   }
 

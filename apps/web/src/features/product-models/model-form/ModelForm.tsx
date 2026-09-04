@@ -17,6 +17,7 @@ import {
   ACCOUNT_KINDS,
   catalogGroupCodes,
   emptyModelFormValues,
+  missingCapabilityDependencies,
   modeAcceptsFamily,
   modelFormProblems,
   normalizeCapabilities,
@@ -209,6 +210,7 @@ export function ModelForm({ pending, submitError, onCancel, onSubmit }: ModelFor
       <CapabilitySelect
         invalid={has('capabilities')}
         isLiability={values.family === 'LIABILITY'}
+        missing={showErrors ? missingCapabilityDependencies(values.capabilities) : []}
         onChange={(capabilities: ProductCapability[]) => patch({ capabilities })}
         value={values.capabilities}
         valuationMode={values.valuationMode}

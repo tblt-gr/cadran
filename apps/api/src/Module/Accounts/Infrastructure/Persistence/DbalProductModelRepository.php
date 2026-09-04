@@ -44,9 +44,9 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
      * value, so a ceiling leaves as `22950` rather than as twenty-four zeros.
      * It is exact: nothing is rounded on the way out.
      */
-    private const string RULE_COLUMNS = 'id, rule_kind, trim_scale(amount_value)::text AS amount_value, amount_asset, text_value, rate_application, valid_from::text AS valid_from, valid_to::text AS valid_to';
+    private const string RULE_COLUMNS = 'r.id, r.rule_kind, trim_scale(r.amount_value)::text AS amount_value, r.amount_asset, r.text_value, r.rate_application, r.valid_from::text AS valid_from, r.valid_to::text AS valid_to';
 
-    private const string BRACKET_COLUMNS = 'b.rule_id, b.position, trim_scale(b.lower_bound)::text AS lower_bound, trim_scale(b.upper_bound)::text AS upper_bound, trim_scale(b.percentage)::text AS percentage';
+    private const string BRACKET_COLUMNS = 'b.position, trim_scale(b.lower_bound)::text AS lower_bound, trim_scale(b.upper_bound)::text AS upper_bound, trim_scale(b.percentage)::text AS percentage';
 
     public function __construct(private Connection $connection)
     {
@@ -54,16 +54,23 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
 
     public function find(WorkspaceScope $workspace, string $id): ?ProductModel
     {
-        // The children are read before the model itself so nothing derived
-        // from a fetched row travels back into another query.
-        $capabilities = $this->readCapabilities($workspace, [$id]);
-        $schedules = $this->readRules($workspace, [$id]);
+        // The model row is read before its children, never after: a model
+        // becomes visible together with the children written in the same
+        // transaction, so a set read afterwards is complete. Reading the
+        // children first would let a model committed in between hydrate with
+        // no capability and no period at all.
         $row = $this->connection->fetchAssociative(
             'SELECT '.self::COLUMNS.' FROM account_product_models WHERE workspace_id = :workspace_id AND id = :id',
             ['workspace_id' => $workspace->id, 'id' => $id],
         );
+        if (false === $row) {
+            return null;
+        }
 
-        return false === $row ? null : ProductModelRow::hydrate(
+        $capabilities = $this->readCapabilities($workspace, [$id]);
+        $schedules = $this->readRules($workspace, [$id]);
+
+        return ProductModelRow::hydrate(
             $row,
             $workspace,
             $capabilities[$id] ?? [],
@@ -73,14 +80,23 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
 
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?ProductModel
     {
-        $capabilities = $this->readCapabilities($workspace, [$id]);
-        $schedules = $this->readRules($workspace, [$id]);
+        // The row lock is taken before the children are read, so a writer that
+        // was already recording a period is waited out and its rules are part
+        // of what is read here. Reading them first would return a schedule
+        // older than the version stamped on the row, and a caller with no
+        // version check — duplication — would copy an incomplete model.
         $row = $this->connection->fetchAssociative(
             'SELECT '.self::COLUMNS.' FROM account_product_models WHERE workspace_id = :workspace_id AND id = :id FOR UPDATE',
             ['workspace_id' => $workspace->id, 'id' => $id],
         );
+        if (false === $row) {
+            return null;
+        }
 
-        return false === $row ? null : ProductModelRow::hydrate(
+        $capabilities = $this->readCapabilities($workspace, [$id]);
+        $schedules = $this->readRules($workspace, [$id]);
+
+        return ProductModelRow::hydrate(
             $row,
             $workspace,
             $capabilities[$id] ?? [],
@@ -186,6 +202,11 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
             return false;
         }
 
+        // Read before the delete: a period that survives the rewrite keeps the
+        // instant it was first recorded, and only a period appearing now is
+        // stamped with this write.
+        $recordedAt = $this->readRecordedAt($model);
+
         $this->connection->delete('account_product_model_capabilities', [
             'workspace_id' => $model->workspace->id,
             'model_id' => $model->id,
@@ -195,12 +216,15 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
             'workspace_id' => $model->workspace->id,
             'model_id' => $model->id,
         ]);
-        $this->writeChildren($model);
+        $this->writeChildren($model, $recordedAt);
 
         return true;
     }
 
-    private function writeChildren(ProductModel $model): void
+    /**
+     * @param array<string, \DateTimeImmutable> $recordedAt
+     */
+    private function writeChildren(ProductModel $model, array $recordedAt = []): void
     {
         foreach ($model->capabilities->toStrings() as $capability) {
             $this->connection->insert('account_product_model_capabilities', [
@@ -214,7 +238,7 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
             $this->connection->insert('account_product_model_rules', [
                 'model_id' => $model->id,
                 'workspace_id' => $model->workspace->id,
-                ...ProductModelRow::ruleColumns($rule, $model->updatedAt),
+                ...ProductModelRow::ruleColumns($rule, $recordedAt[$rule->id] ?? $model->updatedAt),
             ]);
             $this->writeBrackets($rule, $model);
         }
@@ -268,7 +292,14 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
 
     /**
      * Reads every period of the given models, and every bracket of those
-     * periods, in two round trips whatever the page size.
+     * periods, in one round trip whatever the page size.
+     *
+     * Periods and brackets are read by the same statement, so they share one
+     * snapshot: a rate period committed between two statements could otherwise
+     * arrive without the brackets that are its whole value, and hydrating a
+     * scale with no bracket fails the read instead of the write. The join is
+     * outer because only a rate period has brackets, and it names the workspace
+     * on both sides so neither table can be walked into from another one.
      *
      * @param list<string> $ids
      *
@@ -276,23 +307,35 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
      */
     private function readRules(WorkspaceScope $workspace, array $ids): array
     {
-        // Read first, and keyed by model rather than by rule, so the bracket
-        // query never depends on a row this method has already fetched.
-        $brackets = $this->readBrackets($workspace, $ids);
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT model_id, '.self::RULE_COLUMNS.' FROM account_product_model_rules'
-            .' WHERE workspace_id = :workspace_id AND model_id IN (:ids)'
-            .' ORDER BY model_id, rule_kind, valid_from',
+            'SELECT r.model_id, '.self::RULE_COLUMNS.', '.self::BRACKET_COLUMNS
+            .' FROM account_product_model_rules r'
+            // The brackets are bound to the workspace in the join condition, not
+            // in the WHERE clause: a workspace predicate on the outer side would
+            // discard every period that carries no bracket.
+            .' LEFT JOIN account_product_model_rate_brackets b'
+            .' ON b.rule_id = r.id AND b.workspace_id = :workspace_id'
+            .' WHERE r.workspace_id = :workspace_id AND r.model_id IN (:ids)'
+            .' ORDER BY r.model_id, r.rule_kind, r.valid_from, b.position',
             ['workspace_id' => $workspace->id, 'ids' => $ids],
             ['ids' => ArrayParameterType::STRING],
         );
 
-        $grouped = [];
+        /** @var array<string, array{row: array<string, mixed>, brackets: list<array<string, mixed>>}> $periods */
+        $periods = [];
         foreach ($rows as $row) {
             $ruleId = ProductModelRow::text($row['id'] ?? null);
-            $grouped[ProductModelRow::text($row['model_id'] ?? null)][] = ProductModelRow::hydrateRule(
-                $row,
-                $brackets[$ruleId] ?? [],
+            $periods[$ruleId] ??= ['row' => $row, 'brackets' => []];
+            if (null !== ($row['position'] ?? null)) {
+                $periods[$ruleId]['brackets'][] = $row;
+            }
+        }
+
+        $grouped = [];
+        foreach ($periods as $period) {
+            $grouped[ProductModelRow::text($period['row']['model_id'] ?? null)][] = ProductModelRow::hydrateRule(
+                $period['row'],
+                $period['brackets'],
             );
         }
 
@@ -300,29 +343,27 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
     }
 
     /**
-     * Reads the brackets of every rate period of the given models, joined
-     * through the rules so both sides are constrained to the same workspace.
+     * When each period of a model was first recorded, keyed by period. A write
+     * replaces the whole set, so without this the recording instant of every
+     * period would be moved forward by the next unrelated write.
      *
-     * @param list<string> $ids
-     *
-     * @return array<string, list<array<string, mixed>>>
+     * @return array<string, \DateTimeImmutable>
      */
-    private function readBrackets(WorkspaceScope $workspace, array $ids): array
+    private function readRecordedAt(ProductModel $model): array
     {
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT '.self::BRACKET_COLUMNS.' FROM account_product_model_rate_brackets b'
-            .' INNER JOIN account_product_model_rules r ON r.id = b.rule_id AND r.workspace_id = b.workspace_id'
-            .' WHERE b.workspace_id = :workspace_id AND r.workspace_id = :workspace_id AND r.model_id IN (:ids)'
-            .' ORDER BY b.rule_id, b.position',
-            ['workspace_id' => $workspace->id, 'ids' => $ids],
-            ['ids' => ArrayParameterType::STRING],
+            'SELECT id, created_at::text AS created_at FROM account_product_model_rules'
+            .' WHERE workspace_id = :workspace_id AND model_id = :model_id',
+            ['workspace_id' => $model->workspace->id, 'model_id' => $model->id],
         );
 
-        $grouped = [];
+        $recorded = [];
         foreach ($rows as $row) {
-            $grouped[ProductModelRow::text($row['rule_id'] ?? null)][] = $row;
+            $recorded[ProductModelRow::text($row['id'] ?? null)] = new \DateTimeImmutable(
+                ProductModelRow::text($row['created_at'] ?? null),
+            );
         }
 
-        return $grouped;
+        return $recorded;
     }
 }
