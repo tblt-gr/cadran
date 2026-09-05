@@ -3267,6 +3267,7 @@ components:
       required:
         - ratio
         - percent
+        - percentDisplay
         - reason
       properties:
         ratio:
@@ -3275,6 +3276,16 @@ components:
               pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
             - type: 'null'
         percent:
+          oneOf:
+            - type: string
+              pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        percentDisplay:
+          description: >-
+            The percent rounded at the presentation boundary, two decimals,
+            HALF_UP. A share is almost never a terminating decimal, so the
+            exact figure above stays available while this is what a screen
+            shows; the interface rounds nothing itself.
           oneOf:
             - type: string
               pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'

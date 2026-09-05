@@ -13,7 +13,7 @@ interface ShareCellProps {
 export function ShareCell({ share }: ShareCellProps) {
   const { t } = useTranslation();
 
-  if (share.percent === null) {
+  if (share.percentDisplay === null) {
     return (
       <span className={styles.unknown}>
         {share.reason
@@ -23,5 +23,5 @@ export function ShareCell({ share }: ShareCellProps) {
     );
   }
 
-  return <span className={styles.value}>{formatSharePercent(share.percent)}</span>;
+  return <span className={styles.value}>{formatSharePercent(share.percentDisplay)}</span>;
 }

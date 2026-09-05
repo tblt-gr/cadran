@@ -14,8 +14,8 @@ interface AllocationPanelProps {
  *
  * Only the first level is listed: a child already counts inside its parent, so
  * showing both would let the same euro be read twice. Every percentage is the
- * string the backend produced; the bar repeats it and carries no meaning of
- * its own.
+ * two-decimal display string the backend produced; the bar repeats it and
+ * carries no meaning of its own.
  */
 export function AllocationPanel({ netWorth }: AllocationPanelProps) {
   const { t } = useTranslation();
@@ -41,14 +41,14 @@ export function AllocationPanel({ netWorth }: AllocationPanelProps) {
             <li key={entry.groupId}>
               <span className={styles.name}>{entry.label}</span>
               <span className={styles.share}>
-                {entry.share.percent === null
+                {entry.share.percentDisplay === null
                   ? t('states.notCalculable.label')
-                  : formatSharePercent(entry.share.percent)}
+                  : formatSharePercent(entry.share.percentDisplay, { fractionDigits: 2 })}
               </span>
               <strong className={`money ${styles.amount}`}>
                 <NetWorthFigure amount={entry.value} reason={netWorth.reason} />
               </strong>
-              <AllocationBar percent={entry.share.percent} />
+              <AllocationBar percent={entry.share.percentDisplay} />
             </li>
           ))}
         </ul>

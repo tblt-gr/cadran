@@ -516,7 +516,8 @@
       "label": "Libellé",
       "parent": "Groupe parent",
       "order": "Ordre d’affichage",
-      "share": "Poids patrimonial"
+      "share": "Poids patrimonial",
+      "total": "Total"
     },
     "form": {
       "createEyebrow": "Création",
@@ -557,7 +558,9 @@
       "description": "Reconnectez-vous pour accéder aux groupes de votre espace."
     },
     "list": {
-      "caption": "Groupes de comptes et poids patrimoniaux",
+      "caption": "Groupes de comptes, comptes et totaux exclusifs",
+      "accounts": "Comptes du groupe",
+      "noAccounts": "Aucun compte dans ce groupe",
       "status": "État",
       "actions": "Actions",
       "active": "Actif",

@@ -2,6 +2,7 @@ import {
   archiveAccountGroup,
   createAccountGroup,
   listAccountGroups,
+  listAccounts,
   updateAccountGroup,
   type AccountGroup,
   type CreateAccountGroupRequest,
@@ -23,7 +24,10 @@ import {
   groupRequestError,
 } from '@/features/account-groups/groupError';
 import { GroupsState } from '@/features/account-groups/groups-state/GroupsState';
+import { useNetWorth } from '@/features/dashboard/net-worth/useNetWorth';
 import styles from './AccountGroupsPage.module.css';
+
+const ACCOUNT_PAGE_SIZE = 100;
 
 type Editor = AccountGroup | 'create' | null;
 
@@ -53,6 +57,23 @@ export function AccountGroupsPage() {
       const result = await listAccountGroups({
         ...authApiOptions(),
         query: { includeArchived, page, perPage: 50 },
+        signal,
+      });
+      if (!result.response?.ok || !result.data) {
+        throw groupRequestError(result);
+      }
+      return result.data;
+    },
+    retry: false,
+  });
+
+  const netWorth = useNetWorth();
+  const accounts = useQuery({
+    queryKey: ['accounts', 'for-groups'],
+    queryFn: async ({ signal }) => {
+      const result = await listAccounts({
+        ...authApiOptions(),
+        query: { includeArchived: false, includeClosed: true, page: 1, perPage: ACCOUNT_PAGE_SIZE },
         signal,
       });
       if (!result.response?.ok || !result.data) {
@@ -93,6 +114,8 @@ export function AccountGroupsPage() {
       setEditor(null);
       setSaved('saved');
       await queryClient.invalidateQueries({ queryKey: ['account-groups'] });
+      await queryClient.invalidateQueries({ queryKey: ['net-worth'] });
+      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
     },
     onError: (error) => {
       void refreshOnStaleState(error);
@@ -117,6 +140,8 @@ export function AccountGroupsPage() {
       setArchiving(null);
       setSaved('archived');
       await queryClient.invalidateQueries({ queryKey: ['account-groups'] });
+      await queryClient.invalidateQueries({ queryKey: ['net-worth'] });
+      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
     },
     onError: (error) => {
       void refreshOnStaleState(error);
@@ -231,7 +256,14 @@ export function AccountGroupsPage() {
           onRetry={() => void groups.refetch()}
         />
       ) : (
-        <GroupList groups={items} onArchive={setArchiving} onEdit={openEditor} />
+        <GroupList
+          accounts={accounts.data?.items ?? []}
+          allocation={netWorth.data?.allocation ?? []}
+          groups={items}
+          netWorthReason={netWorth.data?.reason ?? null}
+          onArchive={setArchiving}
+          onEdit={openEditor}
+        />
       )}
 
       {groups.isSuccess && (totalPages > 1 || page > 1) ? (

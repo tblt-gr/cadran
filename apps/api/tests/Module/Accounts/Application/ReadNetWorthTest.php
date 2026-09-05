@@ -80,6 +80,7 @@ final class ReadNetWorthTest extends TestCase
         self::assertSame('-20000.00', $byAccount[self::LOAN]->signedAmount?->amount);
         self::assertSame(-1, $byAccount[self::LOAN]->netWorthSign);
         self::assertSame('75.000000000000000000000000', $byAccount[self::CASH]->share->percent);
+        self::assertSame('75.00', $byAccount[self::CASH]->share->percentDisplay);
     }
 
     public function testTheDeltaAndRateComeFromTheComparedDay(): void
@@ -106,6 +107,8 @@ final class ReadNetWorthTest extends TestCase
         self::assertSame('40000.00', $byGroup[self::SAVINGS]->value?->amount);
         self::assertSame('125.000000000000000000000000', $byGroup[self::LIQUID]->share->percent);
         self::assertSame('50.000000000000000000000000', $byGroup[self::SAVINGS]->share->percent);
+        self::assertSame('125.00', $byGroup[self::LIQUID]->share->percentDisplay);
+        self::assertSame('50.00', $byGroup[self::SAVINGS]->share->percentDisplay);
     }
 
     public function testTheDisplayRateIsRoundedByTheBackendAndTheExactOneStaysAvailable(): void

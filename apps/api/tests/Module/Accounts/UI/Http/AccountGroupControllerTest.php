@@ -63,6 +63,7 @@ final class AccountGroupControllerTest extends WebTestCase
         self::assertSame([
             'ratio' => null,
             'percent' => null,
+            'percentDisplay' => null,
             'reason' => 'MISSING_VALUATION',
         ], $share);
         self::assertNotSame('0', $share['percent']);

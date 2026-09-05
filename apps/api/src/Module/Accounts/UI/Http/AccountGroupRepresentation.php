@@ -39,12 +39,13 @@ final readonly class AccountGroupRepresentation
         ];
     }
 
-    /** @return array{ratio: ?string, percent: ?string, reason: ?string} */
+    /** @return array{ratio: ?string, percent: ?string, percentDisplay: ?string, reason: ?string} */
     public static function share(ShareView $share): array
     {
         return [
             'ratio' => $share->ratio,
             'percent' => $share->percent,
+            'percentDisplay' => $share->percentDisplay,
             'reason' => $share->reason,
         ];
     }

@@ -113,6 +113,7 @@ final class NetWorthControllerTest extends WebTestCase
             '125.000000000000000000000000',
             self::nested($allocation[self::LIQUID], 'share', 'percent'),
         );
+        self::assertSame('125.00', self::nested($allocation[self::LIQUID], 'share', 'percentDisplay'));
     }
 
     public function testTheDeltaKeepsItsAmountAndDropsTheRateOnANegativeBase(): void
