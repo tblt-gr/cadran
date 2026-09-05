@@ -44,7 +44,9 @@ export function ProductRuleList({ product }: ProductRuleListProps) {
           {product.rules.map((rule) => (
             <tr key={rule.kind}>
               <th scope="row">{t(`catalog.rules.kinds.${rule.kind}`)}</th>
-              <td className={styles.value}>{formatRuleValue(rule, i18n.language, t)}</td>
+              <td className={styles.value}>
+                {formatRuleValue(rule, i18n.language, t as Translate)}
+              </td>
               <RuleProvenance
                 source={rule.source}
                 validFrom={rule.validFrom}
@@ -71,7 +73,7 @@ export function ProductRuleList({ product }: ProductRuleListProps) {
   );
 }
 
-type Translate = ReturnType<typeof useTranslation>['t'];
+type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 function formatRuleValue(rule: ProductRule, locale: string, t: Translate): string {
   if (rule.amount !== null) {

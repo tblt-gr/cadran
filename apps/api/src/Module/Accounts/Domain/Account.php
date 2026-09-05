@@ -56,11 +56,15 @@ final readonly class Account
         public \DateTimeImmutable $updatedAt,
         public ?\DateTimeImmutable $usedAt = null,
         public ?\DateTimeImmutable $archivedAt = null,
+        public ?string $primaryGroupId = null,
+        /** @var list<string> */
+        public array $tagGroupIds = [],
     ) {
         self::assertIdentifier($id);
         self::assertLabel($label);
         self::assertInstitution($institution);
         self::assertProductModelId($productModelId);
+        self::assertGrouping($primaryGroupId, $tagGroupIds);
 
         if (null !== $productCode && null !== $productModelId) {
             throw new InvalidAccount('An account references at most one product or model.');
@@ -86,6 +90,8 @@ final readonly class Account
      * denomination change would silently reinterpret every figure already
      * recorded against the account, so it is a migration of data rather than an
      * edit.
+     *
+     * @param list<string> $tagGroupIds
      */
     public function reconfigure(
         string $label,
@@ -101,6 +107,9 @@ final readonly class Account
         \DateTimeImmutable $openedOn,
         ?\DateTimeImmutable $closedOn,
         \DateTimeImmutable $updatedAt,
+        ?string $primaryGroupId = null,
+        array $tagGroupIds = [],
+        bool $keepGrouping = true,
     ): self {
         $this->assertWritable();
 
@@ -141,6 +150,48 @@ final readonly class Account
             updatedAt: $updatedAt,
             usedAt: $this->usedAt,
             archivedAt: $this->archivedAt,
+            primaryGroupId: $keepGrouping ? $this->primaryGroupId : $primaryGroupId,
+            tagGroupIds: $keepGrouping ? $this->tagGroupIds : $tagGroupIds,
+        );
+    }
+
+    /**
+     * Exclusive membership is the primary group; tags are extra labels that
+     * never join that exclusive weight. Clearing the primary group leaves the
+     * account ungrouped, the way it is created.
+     *
+     * @param list<string> $tagGroupIds
+     */
+    public function regroup(
+        ?string $primaryGroupId,
+        array $tagGroupIds,
+        \DateTimeImmutable $updatedAt,
+    ): self {
+        $this->assertWritable();
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            label: $this->label,
+            assetCode: $this->assetCode,
+            kind: $this->kind,
+            productCode: $this->productCode,
+            productModelId: $this->productModelId,
+            institution: $this->institution,
+            maskedIdentifier: $this->maskedIdentifier,
+            valuationMode: $this->valuationMode,
+            liquidityLevel: $this->liquidityLevel,
+            includeInNetWorth: $this->includeInNetWorth,
+            includeInEmergencyFund: $this->includeInEmergencyFund,
+            openedOn: $this->openedOn,
+            closedOn: $this->closedOn,
+            version: $this->version + 1,
+            createdAt: $this->createdAt,
+            updatedAt: $updatedAt,
+            usedAt: $this->usedAt,
+            archivedAt: $this->archivedAt,
+            primaryGroupId: $primaryGroupId,
+            tagGroupIds: $tagGroupIds,
         );
     }
 
@@ -173,6 +224,8 @@ final readonly class Account
             updatedAt: $archivedAt,
             usedAt: $this->usedAt,
             archivedAt: $archivedAt,
+            primaryGroupId: $this->primaryGroupId,
+            tagGroupIds: $this->tagGroupIds,
         );
     }
 
@@ -213,6 +266,30 @@ final readonly class Account
 
         if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $productModelId)) {
             throw new InvalidAccount('A product model reference must be a canonical UUID.');
+        }
+    }
+
+    /**
+     * @param list<string> $tagGroupIds
+     */
+    private static function assertGrouping(?string $primaryGroupId, array $tagGroupIds): void
+    {
+        if (null !== $primaryGroupId) {
+            self::assertIdentifier($primaryGroupId);
+        }
+
+        $seen = [];
+        foreach ($tagGroupIds as $tagGroupId) {
+            self::assertIdentifier($tagGroupId);
+            if ($tagGroupId === $primaryGroupId) {
+                throw new InvalidAccount('A tag cannot repeat the primary group.');
+            }
+
+            if (isset($seen[$tagGroupId])) {
+                throw new InvalidAccount('A group tag cannot be assigned twice.');
+            }
+
+            $seen[$tagGroupId] = true;
         }
     }
 

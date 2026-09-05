@@ -94,6 +94,32 @@ final readonly class AccountPayload
     }
 
     /**
+     * @return list<string>
+     */
+    public function stringList(string $field): array
+    {
+        $value = $this->fields[$field] ?? null;
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new \UnexpectedValueException(sprintf('%s must be a list.', $field));
+        }
+
+        if (count($value) > 32) {
+            throw new \UnexpectedValueException(sprintf('%s carries at most 32 entries.', $field));
+        }
+
+        $strings = [];
+        foreach ($value as $item) {
+            if (!is_string($item)) {
+                throw new \UnexpectedValueException(sprintf('%s must be a list of strings.', $field));
+            }
+
+            $strings[] = $item;
+        }
+
+        return $strings;
+    }
+
+    /**
      * A list of nested objects, each narrowed against its own exact field set.
      * The bracket scale of a rate override is the only place an account body
      * nests, and it nests exactly one level.

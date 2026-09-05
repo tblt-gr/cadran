@@ -9,6 +9,7 @@ const api = vi.hoisted(() => ({
   archiveAccount: vi.fn(),
   createAccount: vi.fn(),
   listAccounts: vi.fn(),
+  listAccountGroups: vi.fn(),
   listAssets: vi.fn(),
   listProductModels: vi.fn(),
   listProducts: vi.fn(),
@@ -49,6 +50,9 @@ const account: Account = {
   kindEditReason: null,
   version: 1,
   archivedAt: null,
+  primaryGroupId: null,
+  tagGroupIds: [],
+  share: { ratio: null, percent: null, reason: 'MISSING_VALUATION' },
 };
 
 const livretA: Product = {
@@ -253,6 +257,9 @@ describe('AccountsPage', () => {
     // Reading the rules of an account also reads the claims recorded against
     // it; an account that never claimed anything is the default.
     api.listAccountRuleOverrides.mockImplementation(() => success({ overrides: [] }));
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
   });
 
   afterEach(() => {

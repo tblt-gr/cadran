@@ -69,7 +69,7 @@ final class AccountControllerTest extends WebTestCase
             'id', 'label', 'assetCode', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier',
             'valuationMode', 'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund',
             'openedOn', 'closedOn', 'status', 'netWorthSign', 'used', 'editable', 'kindEditable',
-            'kindEditReason', 'version', 'archivedAt',
+            'kindEditReason', 'version', 'archivedAt', 'primaryGroupId', 'tagGroupIds', 'share',
         ], array_keys($account));
         self::assertSame('EUR', $account['assetCode']);
         self::assertSame('SAVINGS', $account['kind']);
@@ -77,6 +77,13 @@ final class AccountControllerTest extends WebTestCase
         self::assertSame(1, $account['netWorthSign']);
         self::assertTrue($account['kindEditable']);
         self::assertNull($account['closedOn']);
+        self::assertNull($account['primaryGroupId']);
+        self::assertSame([], $account['tagGroupIds']);
+        self::assertSame([
+            'ratio' => null,
+            'percent' => null,
+            'reason' => 'MISSING_VALUATION',
+        ], $account['share']);
 
         $this->requestUpdate($id, [...$account, 'label' => 'Livret A Banque Y', 'liquidityLevel' => 'SHORT_TERM']);
         self::assertResponseIsSuccessful();
@@ -226,6 +233,8 @@ final class AccountControllerTest extends WebTestCase
         $body = $this->payload('Changed');
         unset($body['assetCode']);
         $body['version'] = 1;
+        $body['primaryGroupId'] = null;
+        $body['tagGroupIds'] = [];
         $this->client->request('PUT', '/api/v1/accounts/'.$foreignId, server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(404);
         $foreign = (string) $this->client->getResponse()->getContent();
@@ -624,6 +633,73 @@ final class AccountControllerTest extends WebTestCase
         }
     }
 
+    public function testAnUnknownOrForeignGroupAssignmentIsRefused(): void
+    {
+        $account = $this->createAccount(label: 'Livret A Banque X');
+        $id = self::stringValue($account, 'id');
+        $unknown = '00000000-0000-7000-8000-0000000000ff';
+
+        $this->requestUpdate($id, [...$account, 'primaryGroupId' => $unknown]);
+        self::assertResponseStatusCodeSame(422);
+
+        $this->connection->insert('account_groups', [
+            'id' => $unknown,
+            'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE,
+            'label' => 'Private group',
+            'parent_id' => null,
+            'sort_order' => 0,
+            'depth' => 1,
+            'version' => 1,
+            'created_at' => '2026-09-01 12:00:00+00',
+            'updated_at' => '2026-09-01 12:00:00+00',
+        ]);
+
+        $this->requestUpdate($id, [...$account, 'primaryGroupId' => $unknown]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringNotContainsString('Private group', (string) $this->client->getResponse()->getContent());
+
+        $stored = $this->connection->fetchOne(
+            'SELECT primary_group_id FROM account_financial_accounts WHERE workspace_id = ? AND id = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, $id],
+        );
+        self::assertNull($stored);
+    }
+
+    public function testAnAccountCanBeAssignedAPrimaryGroupAndTags(): void
+    {
+        $this->client->request(
+            'POST',
+            '/api/v1/account-groups',
+            server: self::jsonHeaders(),
+            content: json_encode(['label' => 'Épargne', 'parentId' => null, 'sortOrder' => 0], JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseStatusCodeSame(201);
+        $primary = $this->decode();
+        $this->client->request(
+            'POST',
+            '/api/v1/account-groups',
+            server: self::jsonHeaders(),
+            content: json_encode(['label' => 'Liquidités', 'parentId' => null, 'sortOrder' => 1], JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseStatusCodeSame(201);
+        $tag = $this->decode();
+
+        $account = $this->createAccount(label: 'Livret A Banque X');
+        $this->requestUpdate(self::stringValue($account, 'id'), [
+            ...$account,
+            'primaryGroupId' => $primary['id'],
+            'tagGroupIds' => [$tag['id']],
+        ]);
+        self::assertResponseIsSuccessful();
+        $updated = $this->decode();
+        self::assertSame($primary['id'], $updated['primaryGroupId']);
+        self::assertSame([$tag['id']], $updated['tagGroupIds']);
+        $share = $updated['share'];
+        self::assertIsArray($share);
+        self::assertSame('MISSING_VALUATION', $share['reason']);
+        self::assertNull($share['percent']);
+    }
+
     public function testQueryBoundsAndPayloadSizeAreEnforced(): void
     {
         $this->client->request('GET', '/api/v1/accounts?perPage=0');
@@ -743,6 +819,8 @@ final class AccountControllerTest extends WebTestCase
             'openedOn' => $account['openedOn'],
             'closedOn' => $account['closedOn'],
             'version' => $account['version'],
+            'primaryGroupId' => $account['primaryGroupId'] ?? null,
+            'tagGroupIds' => $account['tagGroupIds'] ?? [],
         ];
     }
 

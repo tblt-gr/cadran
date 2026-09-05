@@ -22,6 +22,7 @@ import { LifecycleFields } from './lifecycle-fields/LifecycleFields';
 import { useAssetOptions } from './useAssetOptions';
 import { POSITION_KINDS } from './positionKinds';
 import { productFeedsValuationMode } from './valuationModes';
+import { GroupingFields } from './grouping-fields/GroupingFields';
 import { ValuationFields } from './valuation-fields/ValuationFields';
 import styles from './AccountForm.module.css';
 
@@ -68,6 +69,8 @@ export function AccountForm({
   );
   const [openedOn, setOpenedOn] = useState(initial.openedOn);
   const [closedOn, setClosedOn] = useState(initial.closedOn);
+  const [primaryGroupId, setPrimaryGroupId] = useState(initial.primaryGroupId);
+  const [tagGroupIds, setTagGroupIds] = useState(initial.tagGroupIds);
   const [showErrors, setShowErrors] = useState(false);
 
   const assets = useAssetOptions(assetSelection);
@@ -102,6 +105,8 @@ export function AccountForm({
     includeInEmergencyFund,
     openedOn,
     closedOn,
+    primaryGroupId,
+    tagGroupIds,
   };
 
   function submit(event: React.FormEvent) {
@@ -137,7 +142,14 @@ export function AccountForm({
     };
 
     onSubmit(
-      account ? { ...common, version: account.version } : { ...common, assetCode: assets.selected },
+      account
+        ? {
+            ...common,
+            version: account.version,
+            primaryGroupId: primaryGroupId === '' ? null : primaryGroupId,
+            tagGroupIds,
+          }
+        : { ...common, assetCode: assets.selected },
       values,
     );
   }
@@ -190,6 +202,16 @@ export function AccountForm({
           today={today}
         />
       </div>
+
+      {account ? (
+        <GroupingFields
+          onPrimaryChange={setPrimaryGroupId}
+          onTagsChange={setTagGroupIds}
+          primaryGroupId={primaryGroupId}
+          share={account.share}
+          tagGroupIds={tagGroupIds}
+        />
+      ) : null}
 
       <InclusionFieldset
         includeInEmergencyFund={includeInEmergencyFund}

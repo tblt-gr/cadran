@@ -11,6 +11,7 @@ import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
 import { formatDemoDay } from '@/features/dashboard/formatDemoDate';
 import { ProductCatalogPage } from '@/features/catalog/ProductCatalogPage';
 import { ProductModelsPage } from '@/features/product-models/ProductModelsPage';
+import { AccountGroupsPage } from '@/features/account-groups/AccountGroupsPage';
 import { CategoryPage } from '@/features/categories/CategoryPage';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
@@ -55,6 +56,8 @@ export function AuthenticatedApp() {
   let content;
   if (path === '/accounts') {
     content = <AccountsPage />;
+  } else if (path === '/account-groups') {
+    content = <AccountGroupsPage />;
   } else if (path === '/categories') {
     content = <CategoryPage />;
   } else if (path === '/catalog') {
@@ -93,6 +96,7 @@ export function AuthenticatedApp() {
       setPath={setPath}
       showGlobalActions={
         path !== '/accounts' &&
+        path !== '/account-groups' &&
         path !== '/categories' &&
         path !== '/catalog' &&
         path !== '/product-models'

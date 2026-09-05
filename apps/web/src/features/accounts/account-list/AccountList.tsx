@@ -1,6 +1,7 @@
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
+import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
 import styles from './AccountList.module.css';
 
 interface AccountListProps {
@@ -31,6 +32,7 @@ export function AccountList({ accounts, onArchive, onEdit, onRules }: AccountLis
               <th scope="col">{t('accounts.fields.assetCode')}</th>
               <th scope="col">{t('accounts.fields.valuationMode')}</th>
               <th scope="col">{t('accounts.fields.contribution')}</th>
+              <th scope="col">{t('accounts.fields.share')}</th>
               <th scope="col">{t('accounts.list.status')}</th>
               <th scope="col">
                 <span className="sr-only">{t('accounts.list.actions')}</span>
@@ -64,6 +66,9 @@ export function AccountList({ accounts, onArchive, onEdit, onRules }: AccountLis
                         : 'accounts.contribution.asset'
                       : 'accounts.contribution.excluded',
                   )}
+                </td>
+                <td>
+                  <ShareCell share={account.share} />
                 </td>
                 <td>
                   <StatusBadge tone={STATUS_TONE[account.status]}>
