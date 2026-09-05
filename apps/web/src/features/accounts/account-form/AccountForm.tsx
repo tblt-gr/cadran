@@ -141,15 +141,19 @@ export function AccountForm({
       closedOn: closedOn === '' ? null : closedOn,
     };
 
+    const grouping = {
+      primaryGroupId: primaryGroupId === '' ? null : primaryGroupId,
+      tagGroupIds,
+    };
+
     onSubmit(
       account
         ? {
             ...common,
+            ...grouping,
             version: account.version,
-            primaryGroupId: primaryGroupId === '' ? null : primaryGroupId,
-            tagGroupIds,
           }
-        : { ...common, assetCode: assets.selected },
+        : { ...common, ...grouping, assetCode: assets.selected },
       values,
     );
   }
@@ -203,15 +207,13 @@ export function AccountForm({
         />
       </div>
 
-      {account ? (
-        <GroupingFields
-          onPrimaryChange={setPrimaryGroupId}
-          onTagsChange={setTagGroupIds}
-          primaryGroupId={primaryGroupId}
-          share={account.share}
-          tagGroupIds={tagGroupIds}
-        />
-      ) : null}
+      <GroupingFields
+        onPrimaryChange={setPrimaryGroupId}
+        onTagsChange={setTagGroupIds}
+        primaryGroupId={primaryGroupId}
+        share={account?.share}
+        tagGroupIds={tagGroupIds}
+      />
 
       <InclusionFieldset
         includeInEmergencyFund={includeInEmergencyFund}

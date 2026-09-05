@@ -851,7 +851,9 @@ paths:
       summary: Create a financial account in the calling workspace
       description: >-
         Creates an account with its denomination, kind, lifecycle dates,
-        valuation mode and inclusion policies. The asset code must exist in the
+        valuation mode and inclusion policies. An optional exclusive group and
+        extra tags may be set at creation; omitting the group (`null`) leaves
+        the account ungrouped. The asset code must exist in the
         read-only system reference. An optional `productCode` backs the account
         with a catalogue product; the submitted kind and valuation mode are then
         checked against what that product declares. The mutation requires the
@@ -3332,6 +3334,8 @@ components:
         - includeInEmergencyFund
         - openedOn
         - closedOn
+        - primaryGroupId
+        - tagGroupIds
       properties:
         label:
           type: string
@@ -3395,6 +3399,23 @@ components:
             - type: string
               format: date
             - type: 'null'
+        primaryGroupId:
+          description: >-
+            Optional exclusive membership used by group weights. Null leaves
+            the account ungrouped. A tag is never this field.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        tagGroupIds:
+          description: >-
+            Extra group labels that never enter an exclusive denominator.
+            Each identifier is unique and distinct from `primaryGroupId`.
+          type: array
+          maxItems: 32
+          items:
+            type: string
+            format: uuid
     UpdateAccountRequest:
       type: object
       additionalProperties: false

@@ -40,6 +40,10 @@ export function GroupingFields({
   const tagCandidates = items.filter((group) => group.id !== primaryGroupId);
 
   function toggleTag(id: string, checked: boolean) {
+    if (id === primaryGroupId) {
+      return;
+    }
+
     onTagsChange(checked ? [...tagGroupIds, id] : tagGroupIds.filter((tag) => tag !== id));
   }
 
@@ -76,19 +80,32 @@ export function GroupingFields({
           </p>
         ) : groups.isError ? (
           <p role="alert">{t('accounts.form.groupsError')}</p>
-        ) : tagCandidates.length === 0 ? (
+        ) : items.length === 0 ? (
           <p className={styles.hint}>{t('accounts.form.noTagCandidates')}</p>
         ) : (
-          tagCandidates.map((group) => (
-            <label key={group.id}>
-              <input
-                checked={tagGroupIds.includes(group.id)}
-                onChange={(event) => toggleTag(group.id, event.target.checked)}
-                type="checkbox"
-              />
-              <span>{group.label}</span>
-            </label>
-          ))
+          <>
+            {items.map((group) => {
+              const isPrimary = group.id === primaryGroupId;
+
+              return (
+                <label key={group.id}>
+                  <input
+                    checked={isPrimary || tagGroupIds.includes(group.id)}
+                    disabled={isPrimary}
+                    onChange={(event) => toggleTag(group.id, event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>
+                    {group.label}
+                    {isPrimary ? ` — ${t('accounts.form.tagIsPrimary')}` : ''}
+                  </span>
+                </label>
+              );
+            })}
+            {tagCandidates.length === 0 ? (
+              <p className={styles.hint}>{t('accounts.form.needAnotherGroupForTag')}</p>
+            ) : null}
+          </>
         )}
       </fieldset>
 

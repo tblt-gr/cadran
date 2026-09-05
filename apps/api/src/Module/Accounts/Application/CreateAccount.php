@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
+use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\InvalidAccount;
 use App\Module\Audit\Application\AuditEventRecord;
@@ -13,6 +14,7 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Domain\UuidGenerator;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reference\Application\AssetCatalog;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -21,6 +23,7 @@ final readonly class CreateAccount
     public function __construct(
         private CallerWorkspaceContext $caller,
         private AccountRepository $accounts,
+        private AccountGroupRepository $groups,
         private AssetCatalog $assets,
         private AccountProduct $products,
         private AccountProductModel $productModels,
@@ -87,6 +90,12 @@ final readonly class CreateAccount
             }
 
             $now = $this->clock->now();
+            $primaryGroupId = $this->resolveGroup($context->workspace, $input->primaryGroupId);
+            $tagGroupIds = [];
+            foreach (AccountGroupInputParser::identifiers($input->tagGroupIds) as $tagGroupId) {
+                $tagGroupIds[] = $this->resolveGroup($context->workspace, $tagGroupId)
+                    ?? throw new InvalidAccountInput('The account group must exist in this workspace.');
+            }
 
             try {
                 $account = new Account(
@@ -108,6 +117,8 @@ final readonly class CreateAccount
                     version: 1,
                     createdAt: $now,
                     updatedAt: $now,
+                    primaryGroupId: $primaryGroupId,
+                    tagGroupIds: $tagGroupIds,
                 );
             } catch (InvalidAccount $exception) {
                 throw new InvalidAccountInput($exception->getMessage(), previous: $exception);
@@ -125,5 +136,19 @@ final readonly class CreateAccount
 
             return AccountView::fromAccount($account);
         });
+    }
+
+    private function resolveGroup(WorkspaceScope $workspace, ?string $groupId): ?string
+    {
+        if (null === $groupId) {
+            return null;
+        }
+
+        $group = $this->groups->find($workspace, $groupId);
+        if (null === $group || null !== $group->archivedAt) {
+            throw new InvalidAccountInput('The account group must exist in this workspace.');
+        }
+
+        return $group->id;
     }
 }

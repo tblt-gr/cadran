@@ -90,7 +90,7 @@ final readonly class AccountController
         }
 
         try {
-            $payload = AccountPayload::of($body, [...array_values(array_diff(self::WRITE_FIELDS, ['primaryGroupId', 'tagGroupIds'])), 'assetCode']);
+            $payload = AccountPayload::of($body, [...self::WRITE_FIELDS, 'assetCode']);
             $account = $createAccount(new CreateAccountInput(
                 label: $payload->string('label'),
                 assetCode: $payload->string('assetCode'),
@@ -105,6 +105,8 @@ final readonly class AccountController
                 includeInEmergencyFund: $payload->boolean('includeInEmergencyFund'),
                 openedOn: $payload->string('openedOn'),
                 closedOn: $payload->nullableString('closedOn'),
+                primaryGroupId: $payload->nullableString('primaryGroupId'),
+                tagGroupIds: $payload->stringList('tagGroupIds'),
             ));
         } catch (AccountArchived) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);

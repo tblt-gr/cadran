@@ -665,6 +665,34 @@ final class AccountControllerTest extends WebTestCase
         self::assertNull($stored);
     }
 
+    public function testAnAccountCanBeCreatedWithAnOptionalPrimaryGroup(): void
+    {
+        $this->client->request(
+            'POST',
+            '/api/v1/account-groups',
+            server: self::jsonHeaders(),
+            content: json_encode(['label' => 'Épargne', 'parentId' => null, 'sortOrder' => 0], JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseStatusCodeSame(201);
+        $group = $this->decode();
+
+        $ungrouped = $this->createAccount(label: 'Compte courant');
+        self::assertNull($ungrouped['primaryGroupId']);
+        self::assertSame([], $ungrouped['tagGroupIds']);
+
+        $grouped = $this->createAccount(label: 'Livret A Banque X', overrides: [
+            'primaryGroupId' => $group['id'],
+            'tagGroupIds' => [],
+        ]);
+        self::assertSame($group['id'], $grouped['primaryGroupId']);
+        self::assertSame([], $grouped['tagGroupIds']);
+
+        $this->requestCreate($this->payload('Livret refusé', [
+            'primaryGroupId' => '00000000-0000-7000-8000-0000000000ff',
+        ]));
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testAnAccountCanBeAssignedAPrimaryGroupAndTags(): void
     {
         $this->client->request(
@@ -845,6 +873,8 @@ final class AccountControllerTest extends WebTestCase
             'includeInEmergencyFund' => false,
             'openedOn' => '2026-01-10',
             'closedOn' => null,
+            'primaryGroupId' => null,
+            'tagGroupIds' => [],
             ...$overrides,
         ];
     }

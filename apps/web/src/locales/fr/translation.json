@@ -167,9 +167,9 @@
       "openedOn": "Date d’ouverture",
       "closedOn": "Date de clôture",
       "contribution": "Contribution",
-      "grouping": "Groupe et étiquettes",
-      "primaryGroup": "Groupe exclusif",
-      "tags": "Étiquettes",
+      "grouping": "Groupe",
+      "primaryGroup": "Groupe (optionnel)",
+      "tags": "Étiquettes (hors poids)",
       "share": "Poids patrimonial"
     },
     "kinds": {
@@ -215,11 +215,13 @@
       "maskedIdentifierHint": "Uniquement la fin de l’identifiant, 2 à 8 caractères. Ne saisissez jamais un IBAN complet.",
       "closedOnHint": "Laissez vide tant que le compte est ouvert. Une date le clôture, l’effacer le rouvre.",
       "emergencyFundHint": "Un compte exclu du patrimoine net ne peut pas alimenter l’épargne de précaution.",
-      "groupingHint": "Le groupe exclusif entre dans le poids du groupe. Les étiquettes ne sont jamais comptées deux fois.",
+      "groupingHint": "Le groupe est le tiroir du compte dans le patrimoine : un seul, ou aucun. Une étiquette le signale aussi ailleurs, sans l’ajouter une seconde fois au poids de ce groupe.",
       "noGroup": "Aucun groupe",
       "groupsLoading": "Chargement des groupes…",
       "groupsError": "Impossible de charger les groupes.",
-      "noTagCandidates": "Aucun autre groupe à étiqueter.",
+      "noTagCandidates": "Créez d’abord un groupe, puis un second si vous voulez une étiquette.",
+      "needAnotherGroupForTag": "Une étiquette est un autre groupe. Créez-en un second pour marquer ce compte ailleurs, sans le compter deux fois.",
+      "tagIsPrimary": "déjà le groupe, pas une étiquette",
       "kindReasons": {
         "ARCHIVED": "La nature d’un compte archivé est verrouillée.",
         "USED": "La nature est verrouillée car ce compte est déjà utilisé."
