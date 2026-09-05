@@ -92,4 +92,38 @@ final readonly class AccountPayload
 
         return $value;
     }
+
+    /**
+     * A list of nested objects, each narrowed against its own exact field set.
+     * The bracket scale of a rate override is the only place an account body
+     * nests, and it nests exactly one level.
+     *
+     * @param list<string> $expectedFields
+     *
+     * @return list<self>
+     */
+    public function objects(string $field, array $expectedFields, int $maxItems): array
+    {
+        $value = $this->fields[$field] ?? null;
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new \UnexpectedValueException(sprintf('%s must be a list.', $field));
+        }
+
+        // The bound is enforced before anything is parsed, so an oversized body
+        // costs one length check rather than a full traversal.
+        if (count($value) > $maxItems) {
+            throw new \UnexpectedValueException(sprintf('%s carries at most %d entries.', $field, $maxItems));
+        }
+
+        $objects = [];
+        foreach ($value as $item) {
+            if (!is_array($item)) {
+                throw new \UnexpectedValueException(sprintf('%s must be a list of objects.', $field));
+            }
+
+            $objects[] = self::of($item, $expectedFields);
+        }
+
+        return $objects;
+    }
 }

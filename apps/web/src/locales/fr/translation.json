@@ -146,8 +146,12 @@
     "includeClosed": "Afficher les comptes clôturés",
     "includeArchived": "Afficher les comptes archivés",
     "loading": "Chargement des comptes…",
-    "saved": "Le compte a été enregistré.",
-    "archived": "Le compte a été archivé.",
+    "toasts": {
+      "saved": "Le compte a été enregistré.",
+      "archived": "Le compte a été archivé.",
+      "claimed": "La dérogation a été enregistrée sur ce compte.",
+      "withdrawn": "La dérogation a été retirée : le compte suit de nouveau la règle héritée."
+    },
     "fields": {
       "label": "Libellé",
       "institution": "Établissement",
@@ -299,7 +303,8 @@
         "measure": "Mesure",
         "period": "Période d’effet",
         "verification": "Vérification",
-        "source": "Source officielle"
+        "source": "Source officielle",
+        "origin": "Origine"
       },
       "bases": {
         "NONE": "Aucune mesure suivie",
@@ -315,6 +320,16 @@
       "origins": {
         "NO_PRODUCT": "Ce compte est décrit à la main : aucun produit du catalogue ne lui rattache de plafond ni de taux.",
         "PRODUCT_WITHDRAWN": "Le produit « {{product}} » ne figure plus au catalogue système. La référence du compte est conservée, mais aucune règle ne peut être résolue."
+      },
+      "override": "Déroger",
+      "withdraw": "Retirer la dérogation",
+      "inForce": "En vigueur",
+      "superseded": "Pour comparaison",
+      "claimedOn": "Déclaré le {{date}}",
+      "layers": {
+        "CATALOG": "Catalogue système",
+        "INHERITED": "Modèle de l'espace",
+        "OVERRIDE": "Dérogation locale"
       }
     },
     "pagination": {
@@ -383,6 +398,43 @@
       "templateLoading": "Chargement du modèle rattaché au compte…",
       "productUnavailable": "Le produit rattaché à ce compte n’a pas pu être lu. La nature reste imposée par cette référence ; l’API refusera une combinaison que le produit ne déclare pas.",
       "templateUnavailable": "Le modèle rattaché à ce compte n’a pas pu être lu. La nature reste imposée par cette référence ; l’API refusera une combinaison que le modèle ne déclare pas."
+    },
+    "overrides": {
+      "eyebrow": "Dérogation de règle",
+      "title": "Déroger à une règle de « {{label}} »",
+      "formHint": "Une dérogation ne remplace la règle héritée que sur les dates qu’elle couvre. Le catalogue et le modèle continuent d’afficher leur propre valeur à côté.",
+      "record": "Enregistrer la dérogation",
+      "recording": "Enregistrement…",
+      "reason": "Motif",
+      "reasonHint": "Pourquoi ce compte s’écarte de ce qu’il hérite : 200 caractères au maximum. Une valeur locale sans motif est indiscernable d’une valeur publiée.",
+      "withdrawTitle": "Retirer cette dérogation",
+      "withdrawDescription": "Retirer une dérogation n’est pas y mettre une date de fin. Elle cesse de s’appliquer à toutes les dates, y compris passées, et la règle héritée de chacune reprend la main.",
+      "withdrawConsequences": "La dérogation reste consultable dans l’historique : elle explique les relevés produits pendant qu’elle s’appliquait.",
+      "withdrawConfirm": "Retirer la dérogation",
+      "withdrawing": "Retrait…",
+      "withdrawnOn": "Retirée le {{date}}",
+      "historyTitle": "Dérogations de ce compte",
+      "historyHint": "Toutes les dérogations jamais enregistrées sur ce compte, retirées comprises, quelle que soit la date consultée.",
+      "historyCaption": "Historique des dérogations du compte",
+      "historyEmpty": "Aucune dérogation n’a jamais été enregistrée sur ce compte.",
+      "historyLoading": "Chargement des dérogations…",
+      "historyError": "Les dérogations de ce compte n’ont pas pu être lues.",
+      "columns": {
+        "status": "État",
+        "reason": "Motif"
+      },
+      "statuses": {
+        "standing": "En vigueur",
+        "withdrawn": "Retirée"
+      },
+      "errors": {
+        "invalid": "Vérifiez la règle visée, sa valeur, ses dates d’effet et le motif. Une dérogation ne peut énoncer que ce que le produit ou le modèle suivi par le compte pourrait énoncer lui-même, et un montant est libellé dans la devise du compte.",
+        "conflict": "Une dérogation en vigueur couvre déjà ces dates pour cette règle, ou vient d’être retirée par une autre requête. Rechargez les dérogations du compte puis réessayez.",
+        "archived": "Ce compte est archivé : il n’accepte plus de dérogation.",
+        "stale": "Le compte a été modifié par une autre requête. Rechargez-le puis réappliquez la modification.",
+        "reason": "Le motif est obligatoire et ne dépasse pas 200 caractères.",
+        "network": "La demande n’a pas abouti. Réessayez."
+      }
     }
   },
   "categories": {

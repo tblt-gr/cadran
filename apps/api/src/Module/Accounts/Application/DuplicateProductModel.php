@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Accounts\Domain\InvalidDeclaredRule;
 use App\Module\Accounts\Domain\InvalidProductModel;
 use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Audit\Application\AuditEventRecord;
@@ -72,7 +73,7 @@ final readonly class DuplicateProductModel
                     $ruleIds,
                     $this->clock->now(),
                 );
-            } catch (InvalidProductModel $exception) {
+            } catch (InvalidProductModel|InvalidDeclaredRule $exception) {
                 throw new InvalidProductModelInput($exception->getMessage(), previous: $exception);
             }
 

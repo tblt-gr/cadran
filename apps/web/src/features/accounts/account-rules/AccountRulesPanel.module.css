@@ -41,3 +41,18 @@
   color: var(--warning);
   background: var(--warning-soft);
 }
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
+}
+
+.history h3 {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+}

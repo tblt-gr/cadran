@@ -49,6 +49,24 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   archiving a template blocks new use without changing what an existing account resolves. A rule
   declared by the workspace carries no verification state and no publication; it is shown as
   declared rather than as sourced.
+- Dated rule overrides recorded against a single account, in front of the catalogue product or
+  workspace model it follows. An override carries its own effective dates, a required reason and the
+  author taken from the session, and it may only state what the authority behind the account could
+  itself have stated: no rate on a product that promises none, no rule the account's capabilities do
+  not support, and no amount in a unit the account is not held in. Managed through
+  `/api/v1/accounts/{id}/rule-overrides`, with a redacted audit event that names neither the amount
+  nor the reason.
+- Layered rule resolution at `GET /api/v1/accounts/{id}/rules`: every rule now states what the
+  system catalogue publishes, what the workspace model the account follows says, and what the
+  account claims locally, side by side rather than merged into the winning figure, with the layer in
+  force named explicitly. A catalogue revision moves only the published layer and never overwrites a
+  local claim. A catalogue figure for a kind the workspace model never carried stays a gap rather
+  than an in-force fallback.
+- Withdrawing an override, distinct from ending one: an end date is a dated fact and the account
+  keeps resolving against the claim up to that day, while withdrawing stops it applying on every
+  date, past ones included, and gives back the inherited rule of each of those dates. The withdrawn
+  claim is kept and stays readable in the account's override history, because it is the provenance
+  of every statement produced while it applied.
 
 ## [0.1.0] - 2026-09-02
 

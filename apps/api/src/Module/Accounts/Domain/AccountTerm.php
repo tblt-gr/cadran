@@ -20,10 +20,11 @@ use App\Module\Catalog\Domain\VerificationState;
 final readonly class AccountTerm
 {
     /**
-     * `verification` and `source` are null for a term read from a workspace
-     * product model: nobody published it, so grading how fresh it is and
-     * naming a publication would fabricate a provenance the model never had.
-     * A catalogue-sourced term always carries both.
+     * `verification` and `source` are null for a term that nobody published:
+     * one read from a workspace product model, and one claimed by an account
+     * override. Grading the freshness of a figure the holder typed or naming a
+     * publication behind it would fabricate a provenance it never had. A
+     * catalogue-sourced term always carries both.
      */
     public function __construct(
         public RuleKind $kind,
@@ -31,6 +32,7 @@ final readonly class AccountTerm
         public EffectivePeriod $period,
         public ?VerificationState $verification,
         public ?CatalogSource $source,
+        public ?AccountRuleOverride $override = null,
     ) {
         if ($kind->statesACeiling() || $kind->statesARate()) {
             throw new InvalidAccount(sprintf('A %s rule is a ceiling or a rate, not a term.', $kind->value));
@@ -38,6 +40,10 @@ final readonly class AccountTerm
 
         if ((null === $verification) !== (null === $source)) {
             throw new InvalidAccount('A rule is either published or declared, never half of each.');
+        }
+
+        if (null !== $override && null !== $source) {
+            throw new InvalidAccount('A locally claimed term names no publication.');
         }
     }
 }

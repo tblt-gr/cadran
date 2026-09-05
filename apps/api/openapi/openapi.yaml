@@ -813,10 +813,21 @@ paths:
       summary: Read the rules in force for an account on a business date
       description: >-
         Resolves the ceilings, rates and terms that apply to one account of the
-        calling workspace on the business date asked for. Nothing here is
-        stored on the account: the rules are read from the system catalogue on
-        that date, so a regulatory revision reaches every account at once and a
-        past statement stays re-readable against the rules that applied then.
+        calling workspace on the business date asked for. Almost nothing here
+        is stored on the account: the rules are read on that date from the
+        authority the account follows, so a regulatory revision reaches every
+        account at once and a past statement stays re-readable against the
+        rules that applied then.
+
+        Each entry states the same rule as every authority sees it, side by
+        side and never merged. `catalog` is what the system catalogue
+        publishes, reached through the account's own product reference or
+        through the provenance of the workspace model it follows. `inherited`
+        is what that workspace model says, and is present only when a model
+        sits between the account and the catalogue. `override` is what was
+        recorded against this account alone, and it carries the claim that
+        explains it — who recorded it, when, and why. `effectiveLayer` names
+        the one that wins, so no client re-implements the precedence.
 
         A ceiling always states the figure it is measured against, because the
         amount alone decides nothing: 22 950 € checked against a total balance
@@ -824,8 +835,8 @@ paths:
         opposite verdicts on the same passbook. A rate always resolves to a
         bracket scale, single-bracket for the products the catalogue ships
         today, so a client reads every rate the same way. A rule the account is
-        expected to carry and that no sourced period covers on the date is
-        listed in `unavailableRuleKinds` and is never returned as zero.
+        expected to carry and that no layer covers on the date is listed in
+        `unavailableRuleKinds` and is never returned as zero.
       tags:
         - Accounts
       security:
@@ -853,6 +864,193 @@ paths:
           $ref: '#/components/responses/WorkspaceForbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{id}/rule-overrides:
+    get:
+      operationId: listAccountRuleOverrides
+      summary: List every rule override ever recorded on an account
+      description: >-
+        Withdrawn overrides included, and whatever business date is being
+        looked at. This is the history of what the account claimed, by whom and
+        why; what applies on one day is answered by the account's rules
+        resource instead.
+
+        A withdrawn override stays here on purpose. Deleting it would erase the
+        provenance of a figure a past statement was produced against, which is
+        the one thing an override must never do.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Every override recorded on the account, oldest period first per rule kind.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountRuleOverridePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: recordAccountRuleOverride
+      summary: Record a dated rule override against one account
+      description: >-
+        States locally what the account inherits wrongly: a rate its branch
+        negotiated, a ceiling the plan was opened under. The claim is dated,
+        explained and attributed; the author comes from the session and is
+        never read from the body.
+
+        An override may only state what the authority behind the account could
+        itself have stated. No rate on a product that promises none, no ceiling
+        on a product that tracks no balance, and no amount in a unit the
+        account is not held in. An account that follows neither a product nor a
+        model inherits no rule and accepts no override at all.
+
+        Two standing overrides of the same kind may not cover the same day. An
+        overlap is refused rather than reconciled, so "the ceiling this account
+        claims on 12 March" always has one answer or none.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordAccountRuleOverrideRequest'
+      responses:
+        '201':
+          description: The override as recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountRuleOverride'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            A standing override of the same kind already covers these dates
+            (`type: /problems/account-rule-override-conflict`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The override is malformed, states something the account's authority
+            could not state, or the account is archived
+            (`type: /problems/account-archived`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{id}/rule-overrides/{overrideId}/withdraw:
+    post:
+      operationId: withdrawAccountRuleOverride
+      summary: Withdraw a rule override
+      description: >-
+        Withdrawing is not ending. Ending an override is a dated fact recorded
+        in its `validTo`, and the account keeps resolving against it up to that
+        day for ever after. Withdrawing says the claim should not have applied
+        at all: it stops answering on every date, past ones included, and the
+        inherited rule of each of those dates takes over again — the dated one,
+        not whatever is in force today.
+
+        The row is kept and stays readable, so the trail still shows what was
+        claimed, by whom and why. Withdrawing a second time is refused rather
+        than silently accepted.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: overrideId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmptyRequest'
+      responses:
+        '200':
+          description: The override as withdrawn.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountRuleOverride'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The override was already withdrawn
+            (`type: /problems/account-rule-override-conflict`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The body carries a field, or the account is archived
+            (`type: /problems/account-archived`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/product-models:
@@ -2911,6 +3109,10 @@ components:
         Everything in force for one account on one business date, split into
         the three questions that are answered differently: what caps it, what
         it earns, and under which terms.
+
+        Each entry shows the same rule through every authority that states it,
+        so a published figure and one the holder typed are never confused for
+        one another.
       type: object
       additionalProperties: false
       required:
@@ -2933,6 +3135,10 @@ components:
           type: string
           pattern: '^[A-Z][A-Z0-9]{1,11}$'
         productCode:
+          description: >-
+            The system product behind these rules: the one the account
+            references, or the one the workspace model it follows was copied
+            from. Null when no catalogue product is in the chain at all.
           oneOf:
             - $ref: '#/components/schemas/ProductCode'
             - type: 'null'
@@ -2955,38 +3161,58 @@ components:
         ceilings:
           type: array
           items:
-            $ref: '#/components/schemas/AccountCeiling'
+            $ref: '#/components/schemas/AccountCeilingRule'
         rates:
           type: array
           items:
-            $ref: '#/components/schemas/AccountRate'
+            $ref: '#/components/schemas/AccountRateRule'
         terms:
           type: array
           items:
-            $ref: '#/components/schemas/AccountTerm'
+            $ref: '#/components/schemas/AccountTermRule'
         unavailableRuleKinds:
           description: >-
-            The rules this account is expected to carry and that no sourced
-            period covers on this date. A gap is shown as unavailable and never
-            as zero, which would read as "no ceiling" or "no interest" when the
-            truth is that the value is unknown.
+            The rules this account is expected to carry and that no layer
+            covers on this date. A gap is shown as unavailable and never as
+            zero, which would read as "no ceiling" or "no interest" when the
+            truth is that the value is unknown. A kind a local override answers
+            for is not a gap. A catalogue figure for a kind the workspace
+            model never carried is also a gap: the model stopped following
+            the publication, and the catalogue layer is comparison only for
+            kinds the model already states.
           type: array
           items:
             $ref: '#/components/schemas/ProductRuleKind'
     AccountRulesOrigin:
       description: >-
-        Where the resolved rules came from. An account that inherits no rule
-        and an account whose rules could not be read are different answers, and
-        neither of them means the account has no ceiling. `WORKSPACE_MODEL`
-        rules carry no `verification` or `source`: nobody published them.
+        Where the account reads the rules it inherits. An account that inherits
+        no rule and an account whose rules could not be read are different
+        answers, and neither of them means the account has no ceiling.
+        `WORKSPACE_MODEL` rules carry no `verification` or `source`: nobody
+        published them. Overrides are independent of this: an account keeps
+        answering with the claims recorded against it whatever its origin.
       type: string
       enum:
         - NO_PRODUCT
         - SYSTEM_CATALOG
         - PRODUCT_WITHDRAWN
         - WORKSPACE_MODEL
-    AccountCeiling:
-      description: A ceiling in force for the account, with the figure it caps.
+    AccountRuleLayer:
+      description: >-
+        Which authority a resolved value came from. `CATALOG` is the system
+        publication, `INHERITED` the workspace product model the account
+        follows, `OVERRIDE` a value recorded against this account alone. A
+        local claim wins over the model, which wins over the catalogue.
+      type: string
+      enum:
+        - CATALOG
+        - INHERITED
+        - OVERRIDE
+    AccountCeilingRule:
+      description: >-
+        One ceiling kind seen through every authority that states it, and which
+        of them wins. At least one of `catalog`, `inherited` and `override` is
+        present.
       type: object
       additionalProperties: false
       required:
@@ -2994,12 +3220,10 @@ components:
         - basis
         - countsCreditedInterest
         - spansSeveralAccounts
-        - measurable
-        - amount
-        - validFrom
-        - validTo
-        - verification
-        - source
+        - effectiveLayer
+        - catalog
+        - inherited
+        - override
       properties:
         kind:
           $ref: '#/components/schemas/ProductRuleKind'
@@ -3009,18 +3233,48 @@ components:
           description: >-
             Whether interest credited by the institution counts towards the
             measure. When it does not, interest may carry the account past the
-            amount without any rule being broken.
+            amount without any rule being broken. It follows from the rule
+            kind, so it is the same on every layer.
           type: boolean
         spansSeveralAccounts:
           description: >-
             Whether the ceiling is reached across the products sharing it, in
             which case reading this account alone cannot settle it.
           type: boolean
+        effectiveLayer:
+          $ref: '#/components/schemas/AccountRuleLayer'
+        catalog:
+          oneOf:
+            - $ref: '#/components/schemas/AccountCeiling'
+            - type: 'null'
+        inherited:
+          oneOf:
+            - $ref: '#/components/schemas/AccountCeiling'
+            - type: 'null'
+        override:
+          oneOf:
+            - $ref: '#/components/schemas/AccountCeiling'
+            - type: 'null'
+    AccountCeiling:
+      description: One authority's ceiling for the account, with its provenance.
+      type: object
+      additionalProperties: false
+      required:
+        - measurable
+        - amount
+        - validFrom
+        - validTo
+        - verification
+        - source
+        - claim
+      properties:
         measurable:
           description: >-
             False when the ceiling is published in another unit than the
             account is denominated in. No conversion is applied and no verdict
-            is produced; the ceiling is reported as not comparable.
+            is produced; the ceiling is reported as not comparable. An override
+            is always measurable: a local claim is recorded in the account's
+            own unit.
           type: boolean
         amount:
           $ref: '#/components/schemas/DecimalAmount'
@@ -3029,30 +3283,50 @@ components:
         validTo:
           $ref: '#/components/schemas/RuleValidTo'
         verification:
-          description: >-
-            Null for a rule read from a workspace product model: nobody
-            published it, so grading its freshness would fabricate a
-            provenance it never had.
-          oneOf:
-            - $ref: '#/components/schemas/RuleVerification'
-            - type: 'null'
+          $ref: '#/components/schemas/DeclaredOrVerified'
         source:
-          description: >-
-            Null for a rule read from a workspace product model: nobody
-            published it, so there is no source to name.
+          $ref: '#/components/schemas/DeclaredOrSourced'
+        claim:
+          $ref: '#/components/schemas/AccountRuleClaimOrNull'
+    AccountRateRule:
+      description: >-
+        One rate kind seen through every authority that states it, and which of
+        them wins. At least one of `catalog`, `inherited` and `override` is
+        present.
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - effectiveLayer
+        - catalog
+        - inherited
+        - override
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        effectiveLayer:
+          $ref: '#/components/schemas/AccountRuleLayer'
+        catalog:
           oneOf:
-            - $ref: '#/components/schemas/ProductRuleSource'
+            - $ref: '#/components/schemas/AccountRate'
+            - type: 'null'
+        inherited:
+          oneOf:
+            - $ref: '#/components/schemas/AccountRate'
+            - type: 'null'
+        override:
+          oneOf:
+            - $ref: '#/components/schemas/AccountRate'
             - type: 'null'
     AccountRate:
       description: >-
-        A rate in force for the account, always as a bracket scale. The
+        One authority's rate for the account, always as a bracket scale. The
         products the catalogue ships today resolve to a single bracket running
         from zero without limit, so a tiered product arrives later as data
         rather than as a second way of reading a rate.
       type: object
       additionalProperties: false
       required:
-        - kind
         - guaranteed
         - application
         - brackets
@@ -3060,13 +3334,14 @@ components:
         - validTo
         - verification
         - source
+        - claim
       properties:
-        kind:
-          $ref: '#/components/schemas/ProductRuleKind'
         guaranteed:
           description: >-
             Whether the rate is owed to the holder. A revisable rate is only
-            the rate published today and is never an acquired return.
+            the rate published today and is never an acquired return. A local
+            claim is graded by the promise of the product behind it, never by
+            its own say-so.
           type: boolean
         application:
           $ref: '#/components/schemas/RateApplication'
@@ -3084,20 +3359,11 @@ components:
         validTo:
           $ref: '#/components/schemas/RuleValidTo'
         verification:
-          description: >-
-            Null for a rule read from a workspace product model: nobody
-            published it, so grading its freshness would fabricate a
-            provenance it never had.
-          oneOf:
-            - $ref: '#/components/schemas/RuleVerification'
-            - type: 'null'
+          $ref: '#/components/schemas/DeclaredOrVerified'
         source:
-          description: >-
-            Null for a rule read from a workspace product model: nobody
-            published it, so there is no source to name.
-          oneOf:
-            - $ref: '#/components/schemas/ProductRuleSource'
-            - type: 'null'
+          $ref: '#/components/schemas/DeclaredOrSourced'
+        claim:
+          $ref: '#/components/schemas/AccountRuleClaimOrNull'
     RateApplication:
       description: >-
         How the brackets combine over an amount. `MARGINAL` remunerates each
@@ -3145,22 +3411,50 @@ components:
             - type: string
               pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
             - type: 'null'
-    AccountTerm:
+    AccountTermRule:
       description: >-
-        A rule of the account that states neither a ceiling nor a rate: how
-        interest accrues, who is eligible, which tax regime applies.
+        One term kind — how interest accrues, who is eligible, which tax regime
+        applies — seen through every authority that states it. At least one of
+        `catalog`, `inherited` and `override` is present.
       type: object
       additionalProperties: false
       required:
         - kind
+        - effectiveLayer
+        - catalog
+        - inherited
+        - override
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        effectiveLayer:
+          $ref: '#/components/schemas/AccountRuleLayer'
+        catalog:
+          oneOf:
+            - $ref: '#/components/schemas/AccountTerm'
+            - type: 'null'
+        inherited:
+          oneOf:
+            - $ref: '#/components/schemas/AccountTerm'
+            - type: 'null'
+        override:
+          oneOf:
+            - $ref: '#/components/schemas/AccountTerm'
+            - type: 'null'
+    AccountTerm:
+      description: >-
+        One authority's rule for the account that states neither a ceiling nor
+        a rate.
+      type: object
+      additionalProperties: false
+      required:
         - token
         - validFrom
         - validTo
         - verification
         - source
+        - claim
       properties:
-        kind:
-          $ref: '#/components/schemas/ProductRuleKind'
         token:
           description: >-
             An uppercase token the interface translates, never a sentence:
@@ -3175,20 +3469,241 @@ components:
         validTo:
           $ref: '#/components/schemas/RuleValidTo'
         verification:
-          description: >-
-            Null for a rule read from a workspace product model: nobody
-            published it, so grading its freshness would fabricate a
-            provenance it never had.
-          oneOf:
-            - $ref: '#/components/schemas/RuleVerification'
-            - type: 'null'
+          $ref: '#/components/schemas/DeclaredOrVerified'
         source:
+          $ref: '#/components/schemas/DeclaredOrSourced'
+        claim:
+          $ref: '#/components/schemas/AccountRuleClaimOrNull'
+    DeclaredOrVerified:
+      description: >-
+        Null for a value nobody published — one read from a workspace product
+        model, and one claimed by an account override. Grading the freshness of
+        a figure the holder typed would fabricate a provenance it never had.
+      oneOf:
+        - $ref: '#/components/schemas/RuleVerification'
+        - type: 'null'
+    DeclaredOrSourced:
+      description: >-
+        Null for a value nobody published — one read from a workspace product
+        model, and one claimed by an account override. There is no publication
+        to name.
+      oneOf:
+        - $ref: '#/components/schemas/ProductRuleSource'
+        - type: 'null'
+    AccountRuleClaimOrNull:
+      description: >-
+        Who claimed this value and why, or null when nobody claimed it and it
+        was inherited or published.
+      oneOf:
+        - $ref: '#/components/schemas/AccountRuleClaim'
+        - type: 'null'
+    AccountRuleClaim:
+      description: >-
+        The local claim behind an override, without repeating the value the
+        rule already carries.
+      type: object
+      additionalProperties: false
+      required:
+        - overrideId
+        - reason
+        - authorId
+        - recordedAt
+      properties:
+        overrideId:
+          type: string
+          format: uuid
+        reason:
           description: >-
-            Null for a rule read from a workspace product model: nobody
-            published it, so there is no source to name.
+            Why this account diverges from what it inherits, in the holder's
+            own words. It is required: an unexplained local figure sitting
+            beside a published one is exactly the drift an override has to make
+            visible instead of hiding.
+          type: string
+          minLength: 1
+          maxLength: 200
+        authorId:
+          description: Who recorded the claim. It comes from the session, never from a request body.
+          type: string
+          format: uuid
+        recordedAt:
+          type: string
+          format: date-time
+    AccountRuleOverridePage:
+      type: object
+      additionalProperties: false
+      required:
+        - overrides
+      properties:
+        overrides:
+          description: >-
+            Every override ever recorded on the account, withdrawn ones
+            included, ordered by rule kind then by the day each period starts.
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountRuleOverride'
+    AccountRuleOverride:
+      description: >-
+        One dated rule value recorded against a single account, in front of
+        whatever that account inherits.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - accountId
+        - kind
+        - valueType
+        - amount
+        - text
+        - application
+        - brackets
+        - validFrom
+        - validTo
+        - standing
+        - withdrawnAt
+        - withdrawnBy
+        - reason
+        - authorId
+        - recordedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        valueType:
+          description: >-
+            Which of `amount`, `text` and `brackets` carries the value. It
+            follows from the rule kind, so a client reads the one its kind
+            declares instead of guessing.
+          $ref: '#/components/schemas/RuleValueType'
+        amount:
           oneOf:
-            - $ref: '#/components/schemas/ProductRuleSource'
+            - $ref: '#/components/schemas/DecimalAmount'
             - type: 'null'
+        text:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
+            - type: 'null'
+        application:
+          oneOf:
+            - $ref: '#/components/schemas/RateApplication'
+            - type: 'null'
+        brackets:
+          oneOf:
+            - type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/RateBracket'
+            - type: 'null'
+        validFrom:
+          description: First day the claim applies.
+          type: string
+          format: date
+        validTo:
+          $ref: '#/components/schemas/RuleValidTo'
+        standing:
+          description: >-
+            False once the override has been withdrawn. A withdrawn claim stops
+            answering on every date, past ones included, and the inherited rule
+            of each of those dates takes over again. It is kept here because
+            the trail of what was claimed is the provenance an override exists
+            to preserve.
+          type: boolean
+        withdrawnAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        withdrawnBy:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 200
+        authorId:
+          type: string
+          format: uuid
+        recordedAt:
+          type: string
+          format: date-time
+    RecordAccountRuleOverrideRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - amount
+        - amountAssetCode
+        - text
+        - rateApplication
+        - brackets
+        - validFrom
+        - validTo
+        - reason
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProductRuleKind'
+        amount:
+          description: >-
+            The ceiling amount as a canonical decimal string, for a kind whose
+            value is an amount, and null otherwise. It never travels as a JSON
+            number, which a binary float would already have rounded.
+          oneOf:
+            - type: string
+              pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        amountAssetCode:
+          description: >-
+            The unit the amount is denominated in. It must be the unit the
+            account itself is held in: a local ceiling is checked against this
+            account and nothing else, and no conversion ships with the
+            application.
+          oneOf:
+            - type: string
+              pattern: '^[A-Z][A-Z0-9]{1,11}$'
+            - type: 'null'
+        text:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'
+              maxLength: 64
+            - type: 'null'
+        rateApplication:
+          oneOf:
+            - $ref: '#/components/schemas/RateApplication'
+            - type: 'null'
+        brackets:
+          description: >-
+            The slices of a rate scale, for a rate kind, and an empty list
+            otherwise. A single rate is the one-bracket case of the same shape.
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/RateBracket'
+        validFrom:
+          description: First day the claim applies.
+          type: string
+          format: date
+        validTo:
+          $ref: '#/components/schemas/RuleValidTo'
+        reason:
+          description: Why this account diverges from what it inherits.
+          type: string
+          minLength: 1
+          maxLength: 200
+    EmptyRequest:
+      description: >-
+        A body carrying no field. It is still required and still narrowed, so a
+        replayed form cannot smuggle one in and a client cannot believe a
+        payload it sent was applied.
+      type: object
+      additionalProperties: false
     RuleValidFrom:
       description: First day this catalogue vouches for the value.
       type: string

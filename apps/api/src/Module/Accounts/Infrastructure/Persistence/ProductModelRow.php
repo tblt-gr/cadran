@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Infrastructure\Persistence;
 
 use App\Module\Accounts\Domain\AccountValuationMode;
+use App\Module\Accounts\Domain\DeclaredRuleValue;
 use App\Module\Accounts\Domain\ModelProvenance;
 use App\Module\Accounts\Domain\ModelRule;
 use App\Module\Accounts\Domain\ModelRuleSchedule;
-use App\Module\Accounts\Domain\ModelRuleValue;
 use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Accounts\Domain\ProductModelOrigin;
 use App\Module\Catalog\Domain\AccountKind;
@@ -94,15 +94,15 @@ final readonly class ProductModelRow
             id: self::text($row['id'] ?? null),
             kind: $kind,
             value: match ($kind->valueType()) {
-                RuleValueType::AMOUNT => ModelRuleValue::amount(new AssetAmount(
+                RuleValueType::AMOUNT => DeclaredRuleValue::amount(new AssetAmount(
                     DecimalValue::fromString(self::text($row['amount_value'] ?? null)),
                     AssetCode::fromString(self::text($row['amount_asset'] ?? null)),
                 )),
-                RuleValueType::PERCENTAGE => ModelRuleValue::rate(new RateScale(
+                RuleValueType::PERCENTAGE => DeclaredRuleValue::rate(new RateScale(
                     array_map(self::hydrateBracket(...), $brackets),
                     RateApplication::from(self::text($row['rate_application'] ?? null)),
                 )),
-                RuleValueType::TEXT => ModelRuleValue::text(self::text($row['text_value'] ?? null)),
+                RuleValueType::TEXT => DeclaredRuleValue::text(self::text($row['text_value'] ?? null)),
             },
             period: new EffectivePeriod(
                 validFrom: self::day($row['valid_from'] ?? null),

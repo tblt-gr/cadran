@@ -9,10 +9,10 @@ use App\Module\Accounts\Application\ArchiveProductModel;
 use App\Module\Accounts\Application\CreateProductModel;
 use App\Module\Accounts\Application\CreateProductModelFromProduct;
 use App\Module\Accounts\Application\CreateProductModelInput;
+use App\Module\Accounts\Application\DeclaredRuleInput;
 use App\Module\Accounts\Application\DuplicateProductModel;
 use App\Module\Accounts\Application\InvalidProductModelInput;
 use App\Module\Accounts\Application\ListProductModels;
-use App\Module\Accounts\Application\ModelRuleInput;
 use App\Module\Accounts\Application\ProductModelArchived;
 use App\Module\Accounts\Application\ProductModelConflict;
 use App\Module\Accounts\Application\ProductModelInputParser;
@@ -262,7 +262,7 @@ final readonly class ProductModelController
     }
 
     /**
-     * @return list<ModelRuleInput>
+     * @return list<DeclaredRuleInput>
      */
     private static function rules(ProductModelPayload $payload): array
     {
@@ -272,9 +272,9 @@ final readonly class ProductModelController
         );
     }
 
-    private static function rule(ProductModelPayload $payload): ModelRuleInput
+    private static function rule(ProductModelPayload $payload): DeclaredRuleInput
     {
-        return new ModelRuleInput(
+        return new DeclaredRuleInput(
             kind: $payload->string('kind'),
             amount: $payload->nullableString('amount'),
             amountAssetCode: $payload->nullableString('amountAssetCode'),

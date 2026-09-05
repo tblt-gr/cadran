@@ -1,0 +1,53 @@
+.tableScroll {
+  overflow-x: auto;
+}
+
+.tableScroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableScroll th,
+.tableScroll td {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tableScroll thead th {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.tableScroll tbody th {
+  color: var(--text-primary);
+  font-size: var(--font-size-label);
+}
+
+.tableScroll td {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.tableScroll tbody tr:last-child th,
+.tableScroll tbody tr:last-child td {
+  border-bottom: var(--border-none);
+}
+
+.tableScroll small {
+  display: block;
+  margin-top: var(--spacing-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.empty {
+  margin: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}

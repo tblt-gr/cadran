@@ -1,0 +1,15 @@
+.layer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-1);
+}
+
+.inForce {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.superseded {
+  color: var(--text-muted);
+}

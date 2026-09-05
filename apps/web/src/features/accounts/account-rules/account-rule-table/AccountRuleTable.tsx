@@ -1,49 +1,31 @@
-import type {
-  AccountCeiling,
-  AccountRules,
-  CeilingBasis,
-  ProductRuleKind,
-} from '@cadran/api-client';
-import type { ParseKeys } from 'i18next';
+import type { AccountRuleClaim, AccountRules, ProductRuleKind } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { RateBrackets } from '@/features/accounts/account-rules/rate-brackets/RateBrackets';
-import { RuleProvenance } from '@/features/catalog-rules/rule-provenance/RuleProvenance';
-import { ruleTextKey } from '@/features/catalog-rules/ruleText';
-import { formatAmount, formatCalendarDay } from '@/lib/decimal';
+import { AccountRuleRow } from '@/features/accounts/account-rules/account-rule-row/AccountRuleRow';
+import {
+  ceilingLayers,
+  rateLayers,
+  termLayers,
+} from '@/features/accounts/account-rules/ruleLayers';
+import { formatCalendarDay } from '@/lib/decimal';
 import styles from './AccountRuleTable.module.css';
 
 interface AccountRuleTableProps {
+  onOverride: (kind: ProductRuleKind) => void;
+  onWithdraw: (claim: AccountRuleClaim) => void;
   rules: AccountRules;
 }
 
 /**
- * What the ceiling amount leaves out, stated per measure.
- *
- * The caveat cannot be derived from `countsCreditedInterest` alone: on a plan
- * capped on contributions that flag is false too, and credited interest is not
- * what carries such a plan past its ceiling — market gains are, and they are
- * not contributions at all. Naming the measure keeps each row's explanation
- * true of the figure it is checked against. A measure that leaves nothing out
- * answers null and shows no caveat.
- */
-const outsideMeasureKeys = {
-  NONE: null,
-  TOTAL_BALANCE: null,
-  BALANCE_EXCLUDING_INTEREST: 'accounts.rules.outsideMeasure.BALANCE_EXCLUDING_INTEREST',
-  CONTRIBUTIONS: 'accounts.rules.outsideMeasure.CONTRIBUTIONS',
-  COMBINED_CONTRIBUTIONS: 'accounts.rules.outsideMeasure.CONTRIBUTIONS',
-} as const satisfies Record<CeilingBasis, ParseKeys | null>;
-
-/**
- * Everything in force for the account on the business date, in one table.
+ * Everything in force for the account on the business date, with every
+ * authority that states it shown beside the others.
  *
  * A ceiling is never shown as an amount alone: the measure it is checked
  * against decides whether a figure passes it, and a ceiling published in
- * another unit than the account decides nothing at all. A rule no sourced period
- * covers keeps its row and says the value is unknown, because an empty cell and
- * a zero would both read as "no ceiling" or "no interest".
+ * another unit than the account decides nothing at all. A rule no layer covers
+ * keeps its row and says the value is unknown, because an empty cell and a
+ * zero would both read as "no ceiling" or "no interest".
  */
-export function AccountRuleTable({ rules }: AccountRuleTableProps) {
+export function AccountRuleTable({ onOverride, onWithdraw, rules }: AccountRuleTableProps) {
   const { i18n, t } = useTranslation();
 
   return (
@@ -53,6 +35,7 @@ export function AccountRuleTable({ rules }: AccountRuleTableProps) {
         <thead>
           <tr>
             <th scope="col">{t('accounts.rules.columns.rule')}</th>
+            <th scope="col">{t('accounts.rules.columns.origin')}</th>
             <th scope="col">{t('accounts.rules.columns.value')}</th>
             <th scope="col">{t('accounts.rules.columns.measure')}</th>
             <th scope="col">{t('accounts.rules.columns.period')}</th>
@@ -60,111 +43,56 @@ export function AccountRuleTable({ rules }: AccountRuleTableProps) {
             <th scope="col">{t('accounts.rules.columns.source')}</th>
           </tr>
         </thead>
-        <tbody>
-          {rules.ceilings.map((ceiling) => (
-            <tr key={ceiling.kind}>
-              <th scope="row">{t(`catalog.rules.kinds.${ceiling.kind}`)}</th>
-              <td className={styles.value}>
-                {formatAmount(ceiling.amount.value, ceiling.amount.assetCode, i18n.language)}
-              </td>
-              <td>
-                <span>{t(`accounts.rules.bases.${ceiling.basis}`)}</span>
-                <CeilingNotes assetCode={rules.assetCode} ceiling={ceiling} />
-              </td>
-              <RuleProvenance
-                source={ceiling.source}
-                validFrom={ceiling.validFrom}
-                validTo={ceiling.validTo}
-                verification={ceiling.verification}
-              />
-            </tr>
-          ))}
-          {rules.rates.map((rate) => (
-            <tr key={rate.kind}>
-              <th scope="row">{t(`catalog.rules.kinds.${rate.kind}`)}</th>
-              <td>
-                <RateBrackets assetCode={rules.assetCode} rate={rate} />
-              </td>
-              <td>
-                {/* A single bracket covers every amount, so both application
-                    modes agree on it and naming one would suggest a choice the
-                    scale does not make. */}
-                {rate.brackets.length > 1 ? (
-                  <span>{t(`accounts.rules.applications.${rate.application}`)}</span>
-                ) : null}
-                <small>
-                  {t(rate.guaranteed ? 'accounts.rules.guaranteed' : 'accounts.rules.revisable')}
-                </small>
-              </td>
-              <RuleProvenance
-                source={rate.source}
-                validFrom={rate.validFrom}
-                validTo={rate.validTo}
-                verification={rate.verification}
-              />
-            </tr>
-          ))}
-          {rules.terms.map((term) => {
-            const wording = ruleTextKey(term.token);
-
-            return (
-              <tr key={term.kind}>
-                <th scope="row">{t(`catalog.rules.kinds.${term.kind}`)}</th>
-                <td>{wording === null ? term.token : t(wording)}</td>
-                <td className={styles.notApplicable}>{t('accounts.rules.noMeasure')}</td>
-                <RuleProvenance
-                  source={term.source}
-                  validFrom={term.validFrom}
-                  validTo={term.validTo}
-                  verification={term.verification}
-                />
-              </tr>
-            );
-          })}
-          {rules.unavailableRuleKinds.map((kind: ProductRuleKind) => (
-            <tr key={kind}>
-              <th scope="row">{t(`catalog.rules.kinds.${kind}`)}</th>
+        {rules.ceilings.map((ceiling) => (
+          <AccountRuleRow
+            effectiveLayer={ceiling.effectiveLayer}
+            key={ceiling.kind}
+            kind={ceiling.kind}
+            layers={ceilingLayers(ceiling, rules.assetCode, i18n.language)}
+            onOverride={onOverride}
+            onWithdraw={onWithdraw}
+          />
+        ))}
+        {rules.rates.map((rate) => (
+          <AccountRuleRow
+            effectiveLayer={rate.effectiveLayer}
+            key={rate.kind}
+            kind={rate.kind}
+            layers={rateLayers(rate, rules.assetCode)}
+            onOverride={onOverride}
+            onWithdraw={onWithdraw}
+          />
+        ))}
+        {rules.terms.map((term) => (
+          <AccountRuleRow
+            effectiveLayer={term.effectiveLayer}
+            key={term.kind}
+            kind={term.kind}
+            layers={termLayers(term)}
+            onOverride={onOverride}
+            onWithdraw={onWithdraw}
+          />
+        ))}
+        {rules.unavailableRuleKinds.map((kind) => (
+          <tbody key={kind}>
+            <tr>
+              <th scope="row">
+                {t(`catalog.rules.kinds.${kind}`)}
+                <button className="secondary-action" onClick={() => onOverride(kind)} type="button">
+                  {t('accounts.rules.override')}
+                </button>
+              </th>
               {/* Not a zero and not an empty cell: the value is unknown for this
                   date, and the reason travels with the dash. */}
-              <td className={styles.unavailable} colSpan={5}>
+              <td className={styles.unavailable} colSpan={6}>
                 {t('catalog.rules.unavailable', {
                   date: formatCalendarDay(rules.asOf, i18n.language),
                 })}
               </td>
             </tr>
-          ))}
-        </tbody>
+          </tbody>
+        ))}
       </table>
     </div>
-  );
-}
-
-interface CeilingNotesProps {
-  assetCode: string;
-  ceiling: AccountCeiling;
-}
-
-/**
- * What the amount alone would not tell: what the measure leaves out, whether
- * the allowance is shared with another account, and whether the ceiling can be
- * compared to this account at all.
- */
-function CeilingNotes({ assetCode, ceiling }: CeilingNotesProps) {
-  const { t } = useTranslation();
-  const outside = outsideMeasureKeys[ceiling.basis];
-
-  return (
-    <>
-      {outside === null ? null : <small>{t(outside)}</small>}
-      {ceiling.spansSeveralAccounts ? <small>{t('accounts.rules.shared')}</small> : null}
-      {!ceiling.measurable ? (
-        <small className={styles.notComparable}>
-          {t('accounts.rules.notComparable', {
-            account: assetCode,
-            ceiling: ceiling.amount.assetCode,
-          })}
-        </small>
-      ) : null}
-    </>
   );
 }

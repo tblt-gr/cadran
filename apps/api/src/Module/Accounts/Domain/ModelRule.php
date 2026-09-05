@@ -21,7 +21,7 @@ final readonly class ModelRule
     public function __construct(
         public string $id,
         public RuleKind $kind,
-        public ModelRuleValue $value,
+        public DeclaredRuleValue $value,
         public EffectivePeriod $period,
     ) {
         if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {

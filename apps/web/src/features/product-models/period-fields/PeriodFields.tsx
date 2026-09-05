@@ -13,6 +13,15 @@ interface PeriodFieldsProps {
   value: PeriodValues;
   yieldKind: ProductYieldKind;
   capabilities: ProductCapability[];
+  /**
+   * The kinds this period may state at all. It defaults to every kind, which
+   * is what describing a model from scratch offers; a caller that already
+   * knows which kinds its subject can carry — an account, whose authority has
+   * settled the question — passes the shorter list instead of offering choices
+   * the API would refuse. Those caller-supplied kinds are not re-disabled
+   * against yield and capabilities the caller does not have.
+   */
+  kinds?: ProductRuleKind[];
   showErrors: boolean;
   onChange: (value: PeriodValues) => void;
 }
@@ -28,10 +37,13 @@ export function PeriodFields({
   value,
   yieldKind,
   capabilities,
+  kinds,
   showErrors,
   onChange,
 }: PeriodFieldsProps) {
   const { t } = useTranslation();
+  const offered = kinds ?? RULE_KINDS;
+  const constrainAvailability = kinds === undefined;
   const problems = showErrors ? periodProblems(value) : [];
   const has = (field: string) => problems.includes(field);
   const valueType = ruleValueType(value.kind);
@@ -49,9 +61,11 @@ export function PeriodFields({
             onChange={(event) => patch({ kind: event.target.value as ProductRuleKind })}
             value={value.kind}
           >
-            {RULE_KINDS.map((kind) => (
+            {offered.map((kind) => (
               <option
-                disabled={!ruleKindAvailable(kind, yieldKind, capabilities)}
+                disabled={
+                  constrainAvailability && !ruleKindAvailable(kind, yieldKind, capabilities)
+                }
                 key={kind}
                 value={kind}
               >

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Accounts\Domain\DeclaredRuleValue;
+use App\Module\Accounts\Domain\InvalidDeclaredRule;
 use App\Module\Accounts\Domain\ModelRule;
-use App\Module\Accounts\Domain\ModelRuleValue;
 use App\Module\Catalog\Domain\RuleValueType;
 use App\Module\Foundation\Domain\PrecisionExceeded;
 use App\Module\Foundation\Domain\UuidGenerator;
@@ -27,7 +28,7 @@ final readonly class SubmittedModelRule
     ) {
     }
 
-    public function toRule(ModelRuleInput $input): ModelRule
+    public function toRule(DeclaredRuleInput $input): ModelRule
     {
         $rule = ProductModelInputParser::rule($input, $this->uuidGenerator->generate());
 
@@ -51,10 +52,10 @@ final readonly class SubmittedModelRule
             return new ModelRule(
                 $rule->id,
                 $rule->kind,
-                ModelRuleValue::amount($asset->amount($literal)),
+                DeclaredRuleValue::amount($asset->amount($literal)),
                 $rule->period,
             );
-        } catch (PrecisionExceeded $failure) {
+        } catch (PrecisionExceeded|InvalidDeclaredRule $failure) {
             throw new InvalidProductModelInput($failure->getMessage(), previous: $failure);
         }
     }

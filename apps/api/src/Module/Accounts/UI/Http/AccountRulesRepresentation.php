@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace App\Module\Accounts\UI\Http;
 
 use App\Module\Accounts\Domain\AccountCeiling;
+use App\Module\Accounts\Domain\AccountCeilingRule;
 use App\Module\Accounts\Domain\AccountRate;
+use App\Module\Accounts\Domain\AccountRateRule;
+use App\Module\Accounts\Domain\AccountRuleOverride;
 use App\Module\Accounts\Domain\AccountRules;
 use App\Module\Accounts\Domain\AccountTerm;
+use App\Module\Accounts\Domain\AccountTermRule;
 use App\Module\Catalog\Domain\CatalogSource;
 use App\Module\Catalog\Domain\EffectivePeriod;
 use App\Module\Catalog\Domain\RateBracket;
@@ -21,6 +25,13 @@ use App\Module\Catalog\Domain\VerificationState;
  * client that had to sort them by kind would be re-deriving the basis a
  * ceiling is measured on and whether a percentage is a scale — decisions the
  * server already made and must not delegate.
+ *
+ * Each entry states the same rule as every authority sees it. The catalogue
+ * layer, the inherited layer and the local override travel side by side and
+ * are never merged into the winning figure: a client that received one number
+ * could not tell a published ceiling from one the holder typed, which is the
+ * confusion an override must not create. `effectiveLayer` names the one that
+ * wins, so no client re-implements the precedence either.
  */
 final readonly class AccountRulesRepresentation
 {
@@ -34,12 +45,12 @@ final readonly class AccountRulesRepresentation
             'productModelId' => $rules->productModelId,
             'origin' => $rules->origin->value,
             'asOf' => $rules->asOf->format('Y-m-d'),
-            'ceilings' => array_map(self::ceiling(...), $rules->ceilings),
-            'rates' => array_map(self::rate(...), $rules->rates),
-            'terms' => array_map(self::term(...), $rules->terms),
-            // The kinds this account is expected to carry and that no sourced
-            // period covers on this date. A screen shows them as unavailable;
-            // it never shows them as zero.
+            'ceilings' => array_map(self::ceilingRule(...), $rules->ceilings),
+            'rates' => array_map(self::rateRule(...), $rules->rates),
+            'terms' => array_map(self::termRule(...), $rules->terms),
+            // The kinds this account is expected to carry and that no layer
+            // covers on this date. A screen shows them as unavailable; it never
+            // shows them as zero.
             'unavailableRuleKinds' => array_map(
                 static fn (RuleKind $kind): string => $kind->value,
                 $rules->unavailableRuleKinds,
@@ -48,22 +59,58 @@ final readonly class AccountRulesRepresentation
     }
 
     /** @return array<string, mixed> */
+    private static function ceilingRule(AccountCeilingRule $rule): array
+    {
+        return [
+            'kind' => $rule->kind->value,
+            // The figure the amounts below are compared to. Without it, the
+            // same 22 950 € could be checked against a total balance and refuse
+            // a passbook that only earned interest. It is a property of the
+            // rule kind, so it is identical on every layer.
+            'basis' => $rule->basis->value,
+            'countsCreditedInterest' => $rule->basis->countsCreditedInterest(),
+            'spansSeveralAccounts' => $rule->basis->spansSeveralAccounts(),
+            'effectiveLayer' => $rule->effectiveLayer->value,
+            'catalog' => null === $rule->catalog ? null : self::ceiling($rule->catalog),
+            'inherited' => null === $rule->inherited ? null : self::ceiling($rule->inherited),
+            'override' => null === $rule->override ? null : self::ceiling($rule->override),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function rateRule(AccountRateRule $rule): array
+    {
+        return [
+            'kind' => $rule->kind->value,
+            'effectiveLayer' => $rule->effectiveLayer->value,
+            'catalog' => null === $rule->catalog ? null : self::rate($rule->catalog),
+            'inherited' => null === $rule->inherited ? null : self::rate($rule->inherited),
+            'override' => null === $rule->override ? null : self::rate($rule->override),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function termRule(AccountTermRule $rule): array
+    {
+        return [
+            'kind' => $rule->kind->value,
+            'effectiveLayer' => $rule->effectiveLayer->value,
+            'catalog' => null === $rule->catalog ? null : self::term($rule->catalog),
+            'inherited' => null === $rule->inherited ? null : self::term($rule->inherited),
+            'override' => null === $rule->override ? null : self::term($rule->override),
+        ];
+    }
+
+    /** @return array<string, mixed> */
     private static function ceiling(AccountCeiling $ceiling): array
     {
         return [
-            'kind' => $ceiling->kind->value,
-            // The figure this amount is compared to. Without it, the same
-            // 22 950 € could be checked against a total balance and refuse a
-            // passbook that only earned interest.
-            'basis' => $ceiling->basis->value,
-            'countsCreditedInterest' => $ceiling->basis->countsCreditedInterest(),
-            'spansSeveralAccounts' => $ceiling->spansSeveralAccounts(),
             'measurable' => $ceiling->isMeasurable(),
             'amount' => [
                 'value' => $ceiling->amount->value->toString(),
                 'assetCode' => $ceiling->amount->asset->toString(),
             ],
-            ...self::provenance($ceiling->period, $ceiling->verification, $ceiling->source),
+            ...self::provenance($ceiling->period, $ceiling->verification, $ceiling->source, $ceiling->override),
         ];
     }
 
@@ -71,11 +118,10 @@ final readonly class AccountRulesRepresentation
     private static function rate(AccountRate $rate): array
     {
         return [
-            'kind' => $rate->kind->value,
             'guaranteed' => $rate->guaranteed,
             'application' => $rate->scale->application->value,
             'brackets' => array_map(self::bracket(...), $rate->scale->brackets),
-            ...self::provenance($rate->period, $rate->verification, $rate->source),
+            ...self::provenance($rate->period, $rate->verification, $rate->source, $rate->override),
         ];
     }
 
@@ -83,9 +129,8 @@ final readonly class AccountRulesRepresentation
     private static function term(AccountTerm $term): array
     {
         return [
-            'kind' => $term->kind->value,
             'token' => $term->token,
-            ...self::provenance($term->period, $term->verification, $term->source),
+            ...self::provenance($term->period, $term->verification, $term->source, $term->override),
         ];
     }
 
@@ -102,11 +147,14 @@ final readonly class AccountRulesRepresentation
     }
 
     /**
-     * The period a value covers, how fresh its verification is and where it
-     * was read from. A catalogue-sourced rule carries all three; a rule read
-     * from a workspace product model carries neither — nobody published it,
-     * so grading its freshness or naming a publication would fabricate a
-     * provenance the model never had, and both travel as null instead.
+     * The period a value covers, how fresh its verification is, where it was
+     * read from, and — when nobody read it anywhere — who claimed it.
+     *
+     * A catalogue-sourced rule carries the verification and the source; a rule
+     * read from a workspace product model carries neither, because nobody
+     * published it and grading its freshness would fabricate a provenance it
+     * never had. A local override carries neither either, and carries instead
+     * the claim that explains it: who recorded it, when, and why.
      *
      * @return array<string, mixed>
      */
@@ -114,6 +162,7 @@ final readonly class AccountRulesRepresentation
         EffectivePeriod $period,
         ?VerificationState $verification,
         ?CatalogSource $source,
+        ?AccountRuleOverride $override,
     ): array {
         return [
             'validFrom' => $period->validFrom->format('Y-m-d'),
@@ -127,6 +176,7 @@ final readonly class AccountRulesRepresentation
                 'publishedOn' => $source->publishedOn?->format('Y-m-d'),
                 'retrievedOn' => $source->retrievedOn->format('Y-m-d'),
             ],
+            'claim' => null === $override ? null : AccountRuleOverrideRepresentation::claim($override),
         ];
     }
 }

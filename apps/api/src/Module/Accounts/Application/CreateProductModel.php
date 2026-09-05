@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Accounts\Domain\InvalidDeclaredRule;
 use App\Module\Accounts\Domain\InvalidProductModel;
 use App\Module\Accounts\Domain\ModelProvenance;
 use App\Module\Accounts\Domain\ModelRuleSchedule;
@@ -93,7 +94,7 @@ final readonly class CreateProductModel
                     createdAt: $now,
                     updatedAt: $now,
                 );
-            } catch (InvalidProductModel $exception) {
+            } catch (InvalidProductModel|InvalidDeclaredRule $exception) {
                 throw new InvalidProductModelInput($exception->getMessage(), previous: $exception);
             }
 
