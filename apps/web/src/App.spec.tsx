@@ -31,8 +31,38 @@ const authenticatedSession = {
   workspace: { id: 'w1', role: 'OWNER' },
 };
 
+/** Enough of a net-worth answer for the dashboard cards to render. */
+const netWorth = {
+  asOf: '2026-09-05',
+  total: {
+    value: '1000.00',
+    assetCode: 'EUR',
+    display: { value: '1000.00', assetCode: 'EUR' },
+    belowDisplayStep: false,
+  },
+  reason: null,
+  quality: 'CURRENT',
+  stalestAgeDays: 0,
+  eligibleAccountCount: 1,
+  valuedAccountCount: 1,
+  missingValuationCount: 0,
+  staleValuationCount: 0,
+  delta: {
+    comparedOn: '2026-08-05',
+    previousTotal: null,
+    amount: null,
+    amountReason: 'MISSING_VALUATION',
+    rate: null,
+    ratePercent: null,
+    ratePercentDisplay: null,
+    rateReason: 'MISSING_VALUATION',
+  },
+  contributions: [],
+  allocation: [],
+};
+
 /**
- * The session probe always resolves authenticated here; `status` controls the
+ * The session and net-worth probes always resolve here; `status` controls the
  * foundation probe so the shell states can be exercised on their own.
  */
 function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject' } = {}) {
@@ -43,6 +73,14 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
 
       if (url.includes('/api/v1/session')) {
         return jsonResponse(authenticatedSession);
+      }
+
+      if (url.includes('/api/v1/net-worth/history')) {
+        return jsonResponse({ asOf: '2026-09-05', granularity: 'MONTH', points: [] });
+      }
+
+      if (url.includes('/api/v1/net-worth')) {
+        return jsonResponse(netWorth);
       }
 
       if (status === 'pending') {

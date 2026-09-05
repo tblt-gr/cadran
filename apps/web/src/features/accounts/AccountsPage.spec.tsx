@@ -82,7 +82,7 @@ const account: Account = {
   archivedAt: null,
   primaryGroupId: null,
   tagGroupIds: [],
-  share: { ratio: null, percent: null, reason: 'MISSING_VALUATION' },
+  share: { ratio: null, percent: null, percentDisplay: null, reason: 'MISSING_VALUATION' },
   valuation: missingValuation,
 };
 
@@ -367,7 +367,12 @@ describe('AccountsPage', () => {
       version: 1,
       hasChildren: false,
       canAcceptChildren: true,
-      share: { ratio: null, percent: null, reason: 'MISSING_VALUATION' as const },
+      share: {
+        ratio: null,
+        percent: null,
+        percentDisplay: null,
+        reason: 'MISSING_VALUATION' as const,
+      },
       archivedAt: null,
     };
     api.listAccounts.mockImplementation(() =>

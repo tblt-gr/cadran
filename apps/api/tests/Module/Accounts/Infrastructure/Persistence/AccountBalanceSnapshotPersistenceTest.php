@@ -238,6 +238,50 @@ final class AccountBalanceSnapshotPersistenceTest extends KernelTestCase
         ]);
     }
 
+    public function testOneQueryAnswersSeveralDaysWithTheLatestActiveRowOfEach(): void
+    {
+        $this->snapshots->add($this->snapshot(self::FIRST, '10000.00', asOf: '2026-07-20'));
+        $this->snapshots->add($this->snapshot(self::SECOND, '12000.00', asOf: '2026-08-15'));
+        $this->snapshots->add($this->snapshot(
+            self::THIRD,
+            '999.00',
+            asOf: '2026-08-20',
+            accountId: self::FOREIGN_ACCOUNT,
+            workspace: WorkspaceScope::fromString(WorkspaceFixture::OTHER_WORKSPACE),
+        ));
+
+        $latest = $this->snapshots->findLatestForAccountsOnDates(
+            WorkspaceFixture::own(),
+            [self::ACCOUNT, self::FOREIGN_ACCOUNT],
+            [
+                new \DateTimeImmutable('2026-07-31', new \DateTimeZone('UTC')),
+                new \DateTimeImmutable('2026-08-31', new \DateTimeZone('UTC')),
+            ],
+        );
+
+        self::assertSame('10000.00', $latest['2026-07-31'][self::ACCOUNT]->amount->value->toString());
+        self::assertSame('12000.00', $latest['2026-08-31'][self::ACCOUNT]->amount->value->toString());
+        self::assertArrayNotHasKey(self::FOREIGN_ACCOUNT, $latest['2026-08-31']);
+    }
+
+    public function testASupersededRowNeverAnswersADayOfTheCurve(): void
+    {
+        $this->snapshots->add($this->snapshot(self::FIRST, '10000.00', asOf: '2026-07-20'));
+        $this->connection->update(
+            'account_balance_snapshots',
+            ['superseded_at' => '2026-09-04 10:00:00+00'],
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::FIRST],
+        );
+
+        $latest = $this->snapshots->findLatestForAccountsOnDates(
+            WorkspaceFixture::own(),
+            [self::ACCOUNT],
+            [new \DateTimeImmutable('2026-07-31', new \DateTimeZone('UTC'))],
+        );
+
+        self::assertSame([], $latest);
+    }
+
     private function snapshot(
         string $id,
         string $amount,

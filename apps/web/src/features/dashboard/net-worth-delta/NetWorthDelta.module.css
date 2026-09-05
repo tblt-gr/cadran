@@ -1,0 +1,40 @@
+.delta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  gap: var(--spacing-2);
+}
+
+.up,
+.down,
+.flat,
+.rate {
+  display: inline-flex;
+  align-items: center;
+  font-weight: var(--font-weight-semibold);
+  gap: var(--spacing-1);
+}
+
+.up {
+  color: var(--positive);
+}
+
+.down {
+  color: var(--negative);
+}
+
+.flat {
+  color: var(--text-secondary);
+}
+
+.rate {
+  color: var(--text-primary);
+}
+
+.unavailable {
+  color: var(--text-muted);
+}

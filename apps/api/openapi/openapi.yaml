@@ -1433,6 +1433,121 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/net-worth:
+    get:
+      operationId: readNetWorth
+      summary: Read the explainable net worth of the calling workspace
+      description: >-
+        Requires an authenticated session. The workspace is resolved from the
+        session and cannot be selected by a query parameter. The total is the
+        sum of the signed values of the accounts included in net worth and open
+        on the requested day; a liability carries the negative sign while its
+        stored amount stays positive. The total is null with a reason whenever
+        it cannot be produced — a missing valuation, no eligible account, or
+        eligible accounts denominated in more than one asset — and is never an
+        invented `0`. The delta and the change rate fail independently: a real
+        movement against a zero or negative base keeps its amount and publishes
+        no rate. Every contributing account and every exclusive group weight
+        travels with the figure so the result can be challenged.
+      tags:
+        - Net worth
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: asOf
+          in: query
+          required: false
+          description: Business day the aggregate is answered for. Defaults to today.
+          schema:
+            type: string
+            format: date
+        - name: comparedTo
+          in: query
+          required: false
+          description: >-
+            Earlier business day the delta is measured against. Defaults to the
+            same day one month earlier, kept inside that month.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: The net worth of the calling workspace on the requested day.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetWorth'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '422':
+          description: >-
+            The workspace holds more accounts or more groups than one
+            aggregate reads (`type: /problems/net-worth-scope-too-large`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/net-worth/history:
+    get:
+      operationId: readNetWorthHistory
+      summary: Read the net-worth history curve of the calling workspace
+      description: >-
+        Requires an authenticated session. One point per month end, ending on
+        the requested day itself so the curve finishes on the headline figure.
+        Each point is recomputed from the valuations that were valid on its own
+        day, so a figure recorded late lands on the day it describes. A month
+        that cannot be computed keeps its place with a null total and a reason,
+        never a fall to zero.
+      tags:
+        - Net worth
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: asOf
+          in: query
+          required: false
+          description: Business day the curve ends on. Defaults to today.
+          schema:
+            type: string
+            format: date
+        - name: months
+          in: query
+          required: false
+          description: Number of points, the final one included.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 60
+            default: 12
+      responses:
+        '200':
+          description: The net-worth curve of the calling workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetWorthHistory'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '422':
+          description: >-
+            The workspace holds more accounts or more groups than one
+            aggregate reads (`type: /problems/net-worth-scope-too-large`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/product-models:
     get:
       operationId: listProductModels
@@ -3152,6 +3267,7 @@ components:
       required:
         - ratio
         - percent
+        - percentDisplay
         - reason
       properties:
         ratio:
@@ -3164,6 +3280,16 @@ components:
             - type: string
               pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
             - type: 'null'
+        percentDisplay:
+          description: >-
+            The percent rounded at the presentation boundary, two decimals,
+            HALF_UP. A share is almost never a terminating decimal, so the
+            exact figure above stays available while this is what a screen
+            shows; the interface rounds nothing itself.
+          oneOf:
+            - type: string
+              pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
         reason:
           oneOf:
             - $ref: '#/components/schemas/NetWorthShareReason'
@@ -3172,6 +3298,7 @@ components:
       type: string
       enum:
         - MISSING_VALUATION
+        - MIXED_ASSETS
         - ZERO_ELIGIBLE_NET_WORTH
         - NEGATIVE_ELIGIBLE_NET_WORTH
     AccountGroupPage:
@@ -4543,6 +4670,308 @@ components:
           - PERSONAL
           - PROFESSIONAL
           - VARIABLE
+    NetWorthReason:
+      description: >-
+        Why a net-worth figure, a delta or a change rate could not be produced.
+        A reason replaces the figure and never accompanies one.
+      type: string
+      enum:
+        - MISSING_VALUATION
+        - NO_ELIGIBLE_ACCOUNT
+        - MIXED_ASSETS
+        - ZERO_BASE
+        - NEGATIVE_BASE
+    NetWorthAmount:
+      description: >-
+        One published figure: the exact source decimal with its asset, and the
+        same figure rounded at the asset display boundary. A non-zero source
+        that would display as zero is reported as below the step instead of
+        becoming an invented nil.
+      type: object
+      additionalProperties: false
+      required:
+        - value
+        - assetCode
+        - display
+        - belowDisplayStep
+      properties:
+        value:
+          type: string
+          pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        assetCode:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        display:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        belowDisplayStep:
+          type: boolean
+    NetWorthDelta:
+      description: >-
+        How net worth moved between two business days. The amount and the rate
+        carry their own reason, because they fail for different causes.
+      type: object
+      additionalProperties: false
+      required:
+        - comparedOn
+        - previousTotal
+        - amount
+        - amountReason
+        - rate
+        - ratePercent
+        - ratePercentDisplay
+        - rateReason
+      properties:
+        comparedOn:
+          type: string
+          format: date
+        previousTotal:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        amount:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        amountReason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthReason'
+            - type: 'null'
+        rate:
+          description: Signed ratio as a canonical decimal string, never a percentage.
+          oneOf:
+            - type: string
+              pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        ratePercent:
+          description: >-
+            The same ratio expressed in percent by the backend, so no interface
+            multiplies a decimal itself.
+          oneOf:
+            - type: string
+              pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        ratePercentDisplay:
+          description: >-
+            The percent rounded at the presentation boundary, two decimals,
+            HALF_UP. A change rate is almost never a terminating decimal, so
+            the exact figure above stays available while this is what a screen
+            shows; the interface rounds nothing itself.
+          oneOf:
+            - type: string
+              pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        rateReason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthReason'
+            - type: 'null'
+    NetWorthContribution:
+      description: >-
+        One contributing account. `amount` is the stored figure as it appears
+        on a statement; `signedAmount` is what it adds to net worth.
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - label
+        - kind
+        - netWorthSign
+        - primaryGroupId
+        - primaryGroupLabel
+        - eligible
+        - amount
+        - signedAmount
+        - quality
+        - ageDays
+        - valuedOn
+        - share
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        kind:
+          $ref: '#/components/schemas/AccountKind'
+        netWorthSign:
+          type: integer
+          enum:
+            - -1
+            - 1
+        primaryGroupId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        primaryGroupLabel:
+          oneOf:
+            - type: string
+            - type: 'null'
+        eligible:
+          description: Open on the requested day and included in net worth.
+          type: boolean
+        amount:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        signedAmount:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        quality:
+          $ref: '#/components/schemas/ValuationQuality'
+        ageDays:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+        valuedOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        share:
+          $ref: '#/components/schemas/NetWorthShare'
+    NetWorthAllocationEntry:
+      description: >-
+        The exclusive weight of one group: its own accounts and those of its
+        descendants, counted once. A tag never enters this figure, so two
+        groups of the same depth never claim the same account. They do not add
+        up to the published total: an account with no primary group belongs to
+        no bucket, and a group weighed against a small eligible base can exceed
+        100 %.
+      type: object
+      additionalProperties: false
+      required:
+        - groupId
+        - label
+        - parentId
+        - depth
+        - value
+        - share
+      properties:
+        groupId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        parentId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        depth:
+          type: integer
+          minimum: 1
+          maximum: 8
+        value:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        share:
+          $ref: '#/components/schemas/NetWorthShare'
+    NetWorth:
+      type: object
+      additionalProperties: false
+      required:
+        - asOf
+        - total
+        - reason
+        - quality
+        - stalestAgeDays
+        - eligibleAccountCount
+        - valuedAccountCount
+        - missingValuationCount
+        - staleValuationCount
+        - delta
+        - contributions
+        - allocation
+      properties:
+        asOf:
+          type: string
+          format: date
+        total:
+          description: Null with a reason when the sum cannot be produced. Never `0`.
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        reason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthReason'
+            - type: 'null'
+        quality:
+          $ref: '#/components/schemas/ValuationQuality'
+        stalestAgeDays:
+          description: Age in days of the oldest valuation behind the figure.
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+        eligibleAccountCount:
+          type: integer
+          minimum: 0
+        valuedAccountCount:
+          type: integer
+          minimum: 0
+        missingValuationCount:
+          type: integer
+          minimum: 0
+        staleValuationCount:
+          type: integer
+          minimum: 0
+        delta:
+          $ref: '#/components/schemas/NetWorthDelta'
+        contributions:
+          type: array
+          items:
+            $ref: '#/components/schemas/NetWorthContribution'
+        allocation:
+          type: array
+          items:
+            $ref: '#/components/schemas/NetWorthAllocationEntry'
+    NetWorthPoint:
+      type: object
+      additionalProperties: false
+      required:
+        - on
+        - total
+        - reason
+        - quality
+      properties:
+        on:
+          type: string
+          format: date
+        total:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        reason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthReason'
+            - type: 'null'
+        quality:
+          $ref: '#/components/schemas/ValuationQuality'
+    NetWorthHistory:
+      type: object
+      additionalProperties: false
+      required:
+        - asOf
+        - granularity
+        - points
+      properties:
+        asOf:
+          type: string
+          format: date
+        granularity:
+          type: string
+          enum:
+            - MONTH
+        points:
+          description: Oldest first. The last point is the requested day itself.
+          type: array
+          items:
+            $ref: '#/components/schemas/NetWorthPoint'
     DecimalAmount:
       description: >-
         A financial decimal. Every amount, quantity, price and rate travels as

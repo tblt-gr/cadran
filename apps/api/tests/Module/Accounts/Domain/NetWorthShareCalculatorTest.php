@@ -8,6 +8,7 @@ use App\Module\Accounts\Domain\AccountShareInput;
 use App\Module\Accounts\Domain\GroupLineage;
 use App\Module\Accounts\Domain\NetWorthShareCalculator;
 use App\Module\Accounts\Domain\NetWorthShareReason;
+use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use PHPUnit\Framework\TestCase;
 
@@ -91,6 +92,7 @@ final class NetWorthShareCalculatorTest extends TestCase
                 primaryGroupId: self::DEBTS,
                 tagGroupIds: [],
                 value: null,
+                asset: null,
             ),
         ], $this->lineages());
 
@@ -98,6 +100,19 @@ final class NetWorthShareCalculatorTest extends TestCase
         self::assertSame(NetWorthShareReason::MISSING_VALUATION, $shares->account(self::CHECKING)->reason);
         self::assertNull($shares->group(self::LIQUID)->ratio);
         self::assertSame(NetWorthShareReason::MISSING_VALUATION, $shares->group(self::LIQUID)->reason);
+    }
+
+    public function testTwoAssetsMakeEveryIncludedShareNullRatherThanADenominator(): void
+    {
+        $shares = NetWorthShareCalculator::compute([
+            $this->valued(self::CHECKING, self::LIQUID, '4000'),
+            $this->valued(self::LIVRET, self::SAVINGS, '3.00000000', asset: 'BTC'),
+        ], $this->lineages());
+
+        self::assertNull($shares->account(self::CHECKING)->percent);
+        self::assertSame(NetWorthShareReason::MIXED_ASSETS, $shares->account(self::CHECKING)->reason);
+        self::assertNull($shares->group(self::LIQUID)->percent);
+        self::assertSame(NetWorthShareReason::MIXED_ASSETS, $shares->group(self::LIQUID)->reason);
     }
 
     public function testAParentGroupShareRollsUpExclusiveDescendantsOnce(): void
@@ -145,6 +160,7 @@ final class NetWorthShareCalculatorTest extends TestCase
         int $sign = 1,
         bool $included = true,
         array $tags = [],
+        string $asset = 'EUR',
     ): AccountShareInput {
         return new AccountShareInput(
             accountId: $id,
@@ -153,6 +169,7 @@ final class NetWorthShareCalculatorTest extends TestCase
             primaryGroupId: $primary,
             tagGroupIds: $tags,
             value: DecimalValue::fromString($value),
+            asset: AssetCode::fromString($asset),
         );
     }
 }

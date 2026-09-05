@@ -27,6 +27,9 @@ final class AccountPersistenceTest extends KernelTestCase
 {
     private const string OWN_ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
+    private const string EXCLUDED_ACCOUNT = '00000000-0000-7000-8000-0000000000d3';
+    private const string ARCHIVED_ACCOUNT = '00000000-0000-7000-8000-0000000000d4';
+    private const string FOREIGN_ACCOUNT = '00000000-0000-7000-8000-0000000000d5';
     private const string OWN_MODEL = ProductModelFixture::ID;
     private const string OTHER_MODEL = '00000000-0000-7000-8000-0000000000e2';
 
@@ -106,6 +109,40 @@ final class AccountPersistenceTest extends KernelTestCase
         self::assertSame([self::OWN_ACCOUNT], array_column($this->repository->list(WorkspaceFixture::own(), false, false, 100, 0), 'id'));
         self::assertSame(2, $this->repository->count(WorkspaceFixture::own(), false, true));
         self::assertSame(1, $this->repository->count(WorkspaceFixture::own(), false, false));
+    }
+
+    public function testTheNetWorthListingKeepsClosedAccountsAndDropsArchivedAndExcludedOnes(): void
+    {
+        $this->repository->add($this->account(self::OWN_ACCOUNT, WorkspaceFixture::own()));
+        $closed = $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::own(), label: 'Compte clos', closedOn: '2026-02-01');
+        $this->repository->add($closed);
+        $excluded = $this->account(self::EXCLUDED_ACCOUNT, WorkspaceFixture::own(), label: 'Compte joint tiers')
+            ->reconfigure(
+                label: 'Compte joint tiers',
+                kind: AccountKind::SAVINGS,
+                productCode: ProductCode::fromString('FR_LIVRET_A'),
+                productModelId: null,
+                institution: 'Banque X',
+                maskedIdentifier: MaskedIdentifier::fromString('4821'),
+                valuationMode: AccountValuationMode::TRANSACTIONS,
+                liquidityLevel: LiquidityLevel::IMMEDIATE,
+                includeInNetWorth: false,
+                includeInEmergencyFund: false,
+                openedOn: new \DateTimeImmutable('2026-01-10', new \DateTimeZone('UTC')),
+                closedOn: null,
+                updatedAt: new \DateTimeImmutable('2026-09-01T12:00:00+00:00'),
+            );
+        $this->repository->add($excluded);
+        $this->repository->add($this->account(self::ARCHIVED_ACCOUNT, WorkspaceFixture::own(), label: 'Compte archivé')
+            ->archive(new \DateTimeImmutable('2026-09-02T12:00:00+00:00')));
+        $this->repository->add($this->account(self::FOREIGN_ACCOUNT, WorkspaceFixture::other()));
+
+        // Closure is dated, so a closed account still has to reach the
+        // calculation, which decides day by day whether it counted.
+        self::assertSame(
+            [self::OTHER_ACCOUNT, self::OWN_ACCOUNT],
+            array_column($this->repository->listForNetWorth(WorkspaceFixture::own(), 100), 'id'),
+        );
     }
 
     public function testOptimisticVersioningRejectsAStaleUpdate(): void

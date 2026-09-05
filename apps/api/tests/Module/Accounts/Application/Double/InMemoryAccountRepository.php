@@ -60,6 +60,16 @@ final class InMemoryAccountRepository implements AccountRepository
         return count($this->matching($workspace, $includeArchived, $includeClosed, $kind));
     }
 
+    public function listForNetWorth(WorkspaceScope $workspace, int $limit): array
+    {
+        return array_slice(array_values(array_filter(
+            $this->accounts,
+            static fn (Account $account): bool => $account->workspace->equals($workspace)
+                && null === $account->archivedAt
+                && $account->includeInNetWorth,
+        )), 0, $limit);
+    }
+
     public function hasActiveLabel(WorkspaceScope $workspace, string $label, ?string $excludingId = null): bool
     {
         $normalized = mb_strtolower(trim($label));

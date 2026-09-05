@@ -82,6 +82,7 @@ final class AccountControllerTest extends WebTestCase
         self::assertSame([
             'ratio' => null,
             'percent' => null,
+            'percentDisplay' => null,
             'reason' => 'MISSING_VALUATION',
         ], $account['share']);
         $createdValuation = $account['valuation'];

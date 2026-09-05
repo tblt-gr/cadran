@@ -21,6 +21,8 @@ final readonly class DbalAccountBalanceSnapshotRepository implements AccountBala
 {
     private const string COLUMNS = 'id, workspace_id, account_id, as_of::text AS as_of, amount_value, amount_literal, amount_asset, source, reconciliation_status, comment, version, recorded_at::text AS recorded_at, recorded_by, superseded_at::text AS superseded_at';
 
+    private const string JOINED_COLUMNS = 's.id, s.workspace_id, s.account_id, s.as_of::text AS as_of, s.amount_value, s.amount_literal, s.amount_asset, s.source, s.reconciliation_status, s.comment, s.version, s.recorded_at::text AS recorded_at, s.recorded_by, s.superseded_at::text AS superseded_at';
+
     public function __construct(private Connection $connection)
     {
     }
@@ -85,6 +87,43 @@ final readonly class DbalAccountBalanceSnapshotRepository implements AccountBala
         foreach ($rows as $row) {
             $snapshot = AccountBalanceSnapshotRow::hydrate($row, $workspace);
             $latest[$snapshot->accountId] = $snapshot;
+        }
+
+        return $latest;
+    }
+
+    public function findLatestForAccountsOnDates(
+        WorkspaceScope $workspace,
+        array $accountIds,
+        array $dates,
+    ): array {
+        if ([] === $accountIds || [] === $dates) {
+            return [];
+        }
+
+        $placeholders = [];
+        $parameters = ['workspace_id' => $workspace->id, 'account_ids' => $accountIds];
+        foreach ($dates as $index => $date) {
+            $placeholders[] = sprintf('(CAST(:date_%d AS date))', $index);
+            $parameters['date_'.$index] = $date->format('Y-m-d');
+        }
+
+        // One DISTINCT ON per (day, account) lets PostgreSQL answer a whole
+        // curve in a single pass instead of one round trip per point.
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT DISTINCT ON (d.on_date, s.account_id) d.on_date::text AS on_date, '.self::JOINED_COLUMNS
+            .' FROM (VALUES '.implode(', ', $placeholders).') AS d(on_date)'
+            .' JOIN account_balance_snapshots s ON s.workspace_id = :workspace_id'
+            .' AND s.account_id IN (:account_ids) AND s.superseded_at IS NULL AND s.as_of <= d.on_date'
+            .' ORDER BY d.on_date, s.account_id, s.as_of DESC, s.recorded_at DESC, s.id',
+            $parameters,
+            ['account_ids' => ArrayParameterType::STRING],
+        );
+
+        $latest = [];
+        foreach ($rows as $row) {
+            $snapshot = AccountBalanceSnapshotRow::hydrate($row, $workspace);
+            $latest[AccountRow::text($row['on_date'] ?? null)][$snapshot->accountId] = $snapshot;
         }
 
         return $latest;

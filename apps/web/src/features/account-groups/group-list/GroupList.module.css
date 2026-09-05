@@ -27,14 +27,29 @@
   text-transform: uppercase;
 }
 
+.panel tbody th,
+.panel tbody td {
+  vertical-align: top;
+}
+
 .panel tbody th {
-  min-width: 10rem;
+  min-width: 14rem;
   color: var(--text-primary);
   font-size: var(--font-size-body);
 }
 
-.panel tbody th span,
-.panel tbody th small {
+.total {
+  white-space: nowrap;
+}
+
+.pending {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+}
+
+.panel tbody th > span,
+.panel tbody th > small {
   display: block;
 }
 
@@ -57,6 +72,7 @@
 
 .rowActions {
   display: flex;
+  align-items: flex-start;
   gap: var(--spacing-2);
 }
 

@@ -31,6 +31,22 @@ interface AccountBalanceSnapshotRepository
     ): array;
 
     /**
+     * The latest active snapshot on or before each requested day, for each
+     * requested account. One round trip answers a whole history curve.
+     *
+     * @param list<string>             $accountIds
+     * @param list<\DateTimeImmutable> $dates
+     *
+     * @return array<string, array<string, AccountBalanceSnapshot>> keyed by
+     *                                                              `Y-m-d` then by account
+     */
+    public function findLatestForAccountsOnDates(
+        WorkspaceScope $workspace,
+        array $accountIds,
+        array $dates,
+    ): array;
+
+    /**
      * Snapshot history newest day first, superseded rows included.
      *
      * @return list<AccountBalanceSnapshot>

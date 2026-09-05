@@ -83,18 +83,13 @@
   display: block;
   height: 100%;
   border-radius: var(--radius-full);
-}
-
-.cash {
   background: var(--gold-500);
 }
 
-.investment {
-  background: var(--info);
-}
-
-.realEstate {
-  background: var(--allocation-real-estate);
+.empty {
+  margin: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-body);
 }
 
 @media (max-width: 1279px) {

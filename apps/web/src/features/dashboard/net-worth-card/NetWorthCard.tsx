@@ -1,12 +1,24 @@
+import type { NetWorth, NetWorthPoint } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
-import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
-import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
-import { formatDemoMonth } from '@/features/dashboard/formatDemoDate';
+import { FreshnessBadge } from '@/features/dashboard/freshness-badge/FreshnessBadge';
+import { NetWorthDelta } from '@/features/dashboard/net-worth-delta/NetWorthDelta';
+import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { WealthChart } from '@/features/dashboard/wealth-chart/WealthChart';
+import { formatCalendarDay } from '@/lib/decimal';
 import styles from './NetWorthCard.module.css';
 
-export function NetWorthCard() {
+interface NetWorthCardProps {
+  historyPending: boolean;
+  historyPoints: NetWorthPoint[] | null;
+  netWorth: NetWorth;
+}
+
+/**
+ * The headline figure, what moved since the compared day, how fresh the
+ * sources are, and the curve behind it. The card computes nothing: the whole
+ * aggregate arrives from the backend already signed, summed and rounded.
+ */
+export function NetWorthCard({ historyPending, historyPoints, netWorth }: NetWorthCardProps) {
   const { i18n, t } = useTranslation();
 
   return (
@@ -14,47 +26,29 @@ export function NetWorthCard() {
       <div className={styles.header}>
         <div>
           <h2 id="net-worth-title">{t('dashboard.netWorth.title')}</h2>
-          <p className={`money ${styles.amount}`}>
-            <MoneyValue value={dashboardDemoData.netWorth} />
-          </p>
-          <p className={styles.delta}>
-            <span
-              aria-label={t('dashboard.netWorth.increaseAccessible', {
-                amount: dashboardDemoData.delta,
-              })}
-              className={styles.positiveDelta}
-            >
-              <Icon name="arrow-up" size={16} />
-              <span aria-hidden="true">+ {dashboardDemoData.delta}</span>
-            </span>
-            <span>
-              {t('dashboard.netWorth.deltaPeriod', {
-                period: formatDemoMonth(dashboardDemoData.deltaSincePeriod, i18n.language),
-              })}
-            </span>
-          </p>
+          <NetWorthFigure
+            amount={netWorth.total}
+            className={`money ${styles.amount}`}
+            reason={netWorth.reason}
+          />
+          <NetWorthDelta delta={netWorth.delta} />
         </div>
-        <div className={styles.periodControl} aria-label={t('dashboard.period.label')}>
-          <button
-            aria-label={t('dashboard.period.previous')}
-            className="icon-button"
-            disabled
-            type="button"
-          >
-            <Icon name="chevron-left" />
-          </button>
-          <span>{formatDemoMonth(dashboardDemoData.currentPeriod, i18n.language)}</span>
-          <button
-            aria-label={t('dashboard.period.next')}
-            className="icon-button"
-            disabled
-            type="button"
-          >
-            <Icon name="chevron-right" />
-          </button>
+        <div className={styles.context}>
+          <FreshnessBadge netWorth={netWorth} />
+          <p className={styles.asOf}>
+            {t('dashboard.netWorth.asOf', {
+              date: formatCalendarDay(netWorth.asOf, i18n.language),
+            })}
+          </p>
         </div>
       </div>
-      <WealthChart />
+      {historyPoints === null ? (
+        <p className={styles.historyUnavailable} aria-busy={historyPending} role="status">
+          {t(historyPending ? 'dashboard.chart.loading' : 'dashboard.chart.unavailable')}
+        </p>
+      ) : (
+        <WealthChart points={historyPoints} />
+      )}
     </section>
   );
 }

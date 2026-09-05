@@ -1,0 +1,15 @@
+.unavailable {
+  display: inline-flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-body);
+  gap: var(--spacing-0-5);
+}
+
+.unavailable small {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+}

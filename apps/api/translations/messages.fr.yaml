@@ -153,6 +153,15 @@ api:
     account_balance_stale_version:
       title: 'Solde modifié entre-temps'
       detail: 'Le solde a été modifié par une autre requête. Rechargez le solde puis réappliquez la modification.'
+    invalid_net_worth_query:
+      title: 'Requête de patrimoine invalide'
+      detail: "Les dates doivent être des jours calendaires ISO 8601, la date comparée doit précéder la date demandée et l'historique couvre 1 à 60 mois."
+    net_worth_scope_too_large:
+      title: 'Périmètre de patrimoine trop large'
+      detail: "Cet espace contient plus de comptes ou de groupes qu'une agrégation de patrimoine n'en lit en une fois. Archivez ceux qui ne servent plus."
+    net_worth_forbidden:
+      title: 'Patrimoine inaccessible'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
     invalid_product_model_query:
       title: 'Requête de modèles invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
