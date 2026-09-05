@@ -67,6 +67,23 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   date, past ones included, and gives back the inherited rule of each of those dates. The withdrawn
   claim is kept and stays readable in the account's override history, because it is the provenance
   of every statement produced while it applied.
+- Explainable net worth on a business day, read through `/api/v1/net-worth`: the signed sum of the
+  accounts included in net worth and open that day, where a liability keeps its positive outstanding
+  amount and carries the negative sign. Every source travels with the figure — the contributing
+  accounts, their exclusive group weights, the freshness of each valuation and the movement since a
+  compared day — so the total can be challenged rather than trusted. A sum that cannot be produced
+  is null beside its reason: no eligible account, a missing valuation, or eligible accounts
+  denominated in several units, which are refused rather than added together.
+- Net-worth change: the delta since a compared day, and its rate when the base allows one. The two
+  fail apart, so a real movement measured against a zero or a negative base keeps its amount and
+  states why no percentage follows; a percentage against a negative base would read backwards.
+- Net-worth history curve through `/api/v1/net-worth/history`: one point per month end, ending on
+  the requested day itself. Each point is recomputed from the valuations that were valid on its own
+  day, so a balance recorded late lands on the day it describes, and a month that cannot be computed
+  keeps its place with its reason instead of falling to zero.
+- The dashboard now reads that aggregate instead of demonstration figures: the headline amount, the
+  movement since the compared day, the freshness of the sources, the curve with its tabular
+  alternative, and the exclusive allocation of the top-level account groups.
 
 ## [0.1.0] - 2026-09-02
 

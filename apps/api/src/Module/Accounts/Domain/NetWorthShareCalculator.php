@@ -37,9 +37,10 @@ final class NetWorthShareCalculator
                 : NetWorthShare::none(null);
         }
 
+        $rollup = null === $reason ? ExclusiveGroupRollup::totals($included, $lineages) : [];
         foreach ($lineages as $lineage) {
             $groupShares[$lineage->groupId] = null === $reason
-                ? self::groupShare($included, $lineage->groupId, $lineages, self::eligibleNetWorth($included))
+                ? self::ratio($rollup[$lineage->groupId], self::eligibleNetWorth($included))
                 : NetWorthShare::none($reason);
         }
 
@@ -57,6 +58,12 @@ final class NetWorthShareCalculator
             }
         }
 
+        // A denominator that adds euros to bitcoin would publish a percentage
+        // of nothing. Conversion is out of scope, so the weight is refused.
+        if (count(self::assetCodes($included)) > 1) {
+            return NetWorthShareReason::MIXED_ASSETS;
+        }
+
         if ([] === $included) {
             return NetWorthShareReason::ZERO_ELIGIBLE_NET_WORTH;
         }
@@ -71,6 +78,23 @@ final class NetWorthShareCalculator
         }
 
         return null;
+    }
+
+    /**
+     * @param list<AccountShareInput> $included
+     *
+     * @return list<string>
+     */
+    private static function assetCodes(array $included): array
+    {
+        $codes = [];
+        foreach ($included as $account) {
+            if (null !== $account->asset) {
+                $codes[$account->asset->toString()] = true;
+            }
+        }
+
+        return array_keys($codes);
     }
 
     /**
@@ -92,42 +116,12 @@ final class NetWorthShareCalculator
 
     private static function share(?DecimalValue $value, int $sign, DecimalValue $eligible): NetWorthShare
     {
-        $numerator = ExactDecimal::signed($value ?? DecimalValue::fromString('0'), $sign);
-        $ratio = ExactDecimal::divide($numerator, $eligible);
-
-        return NetWorthShare::of($ratio, ExactDecimal::timesHundred($ratio));
+        return self::ratio(ExactDecimal::signed($value ?? DecimalValue::fromString('0'), $sign), $eligible);
     }
 
-    /**
-     * @param list<AccountShareInput> $included
-     * @param list<GroupLineage>      $lineages
-     */
-    private static function groupShare(
-        array $included,
-        string $groupId,
-        array $lineages,
-        DecimalValue $eligible,
-    ): NetWorthShare {
-        $lineageByGroup = [];
-        foreach ($lineages as $lineage) {
-            $lineageByGroup[$lineage->groupId] = $lineage;
-        }
-
-        $total = DecimalValue::fromString('0');
-        foreach ($included as $account) {
-            if (null === $account->value || null === $account->primaryGroupId) {
-                continue;
-            }
-
-            $lineage = $lineageByGroup[$account->primaryGroupId] ?? null;
-            if (null === $lineage || !in_array($groupId, $lineage->ancestorIdsIncludingSelf, true)) {
-                continue;
-            }
-
-            $total = ExactDecimal::add($total, ExactDecimal::signed($account->value, $account->netWorthSign));
-        }
-
-        $ratio = ExactDecimal::divide($total, $eligible);
+    private static function ratio(DecimalValue $numerator, DecimalValue $eligible): NetWorthShare
+    {
+        $ratio = ExactDecimal::divide($numerator, $eligible);
 
         return NetWorthShare::of($ratio, ExactDecimal::timesHundred($ratio));
     }

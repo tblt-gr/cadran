@@ -1,6 +1,6 @@
 import type { NetWorthShare } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { formatSharePercent } from './formatSharePercent';
+import { formatSharePercent } from '@/lib/formatSharePercent';
 import styles from './ShareCell.module.css';
 
 interface ShareCellProps {

@@ -90,6 +90,21 @@ export function formatCalendarDay(value: string, locale: string): string {
   }).format(new Date(`${value}T12:00:00Z`));
 }
 
+/**
+ * Renders the month of an ISO 8601 calendar day, capitalised for a sentence
+ * start. The day is read at midday UTC so a viewer's timezone can never shift
+ * it into the previous month.
+ */
+export function formatCalendarMonth(value: string, locale: string): string {
+  const label = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    timeZone: 'UTC',
+    year: 'numeric',
+  }).format(new Date(`${value}T12:00:00Z`));
+
+  return label.charAt(0).toLocaleUpperCase(locale) + label.slice(1);
+}
+
 const CANONICAL_UNSIGNED_DECIMAL = /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 const CANONICAL_DECIMAL = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 

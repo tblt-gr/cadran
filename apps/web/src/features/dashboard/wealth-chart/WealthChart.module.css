@@ -144,3 +144,14 @@
     clip-path: none;
   }
 }
+
+.emptyPlot {
+  display: flex;
+  min-height: 9rem;
+  align-items: center;
+  justify-content: center;
+  margin: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-body);
+  text-align: center;
+}

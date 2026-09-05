@@ -14,7 +14,8 @@
 }
 
 .amount {
-  margin-top: var(--spacing-3) !important;
+  display: block;
+  margin-top: var(--spacing-3);
   color: var(--text-primary);
   font-size: var(--font-size-display);
   font-weight: var(--font-weight-medium);
@@ -23,39 +24,28 @@
   overflow-wrap: anywhere;
 }
 
-.delta {
+.context {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-top: var(--spacing-3) !important;
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
+  flex-direction: column;
+  align-items: flex-end;
   gap: var(--spacing-2);
 }
 
-.positiveDelta {
-  display: inline-flex;
-  align-items: center;
-  color: var(--positive);
-  font-weight: var(--font-weight-bold);
-  gap: var(--spacing-1);
-}
-
-.periodControl {
-  display: flex;
-  align-items: center;
-  min-height: var(--control-height);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-full);
-  color: var(--text-secondary);
-  background: var(--bg-surface-2);
+.asOf {
+  margin: var(--spacing-none);
+  color: var(--text-muted);
   font-size: var(--font-size-sm);
   white-space: nowrap;
 }
 
-.periodControl :global(.icon-button) {
-  border: var(--border-none);
-  background: var(--color-transparent);
+.historyUnavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-body);
+  text-align: center;
 }
 
 @media (max-width: 1279px) {
@@ -80,9 +70,7 @@
     font-size: var(--font-size-display-mobile);
   }
 
-  .periodControl {
-    align-self: stretch;
-    justify-content: space-between;
-    order: 2;
+  .context {
+    align-items: flex-start;
   }
 }

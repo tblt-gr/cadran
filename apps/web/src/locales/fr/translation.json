@@ -69,6 +69,9 @@
     "retry": "Réessayer"
   },
   "header": {
+    "currentFreshness": "Valorisations du jour",
+    "missingFreshness_one": "1 valorisation manquante",
+    "missingFreshness_other": "{{count}} valorisations manquantes",
     "staleFreshness": "Mis à jour il y a {{count}} jours"
   },
   "foundationActions": {
@@ -135,7 +138,8 @@
     "stale": {
       "description": "Le dernier solde connu date du {{date}}.",
       "label": "Données anciennes",
-      "title": "Mise à jour requise"
+      "title": "Mise à jour requise",
+      "unknown": "Aucune valorisation enregistrée pour l’instant."
     }
   },
   "accounts": {
@@ -578,7 +582,8 @@
       "reasons": {
         "MISSING_VALUATION": "Valorisation manquante",
         "ZERO_ELIGIBLE_NET_WORTH": "Patrimoine éligible nul",
-        "NEGATIVE_ELIGIBLE_NET_WORTH": "Patrimoine éligible négatif"
+        "NEGATIVE_ELIGIBLE_NET_WORTH": "Patrimoine éligible négatif",
+        "MIXED_ASSETS": "Comptes libellés dans plusieurs unités"
       }
     },
     "pagination": {
@@ -1000,19 +1005,19 @@
   },
   "dashboard": {
     "allocation": {
-      "cash": "Liquidités",
-      "classLabel": "classes d’actifs",
-      "description": "Répartition des actifs",
-      "investments": "Investissements",
-      "realEstate": "Immobilier",
+      "description": "Répartition exclusive par groupe de comptes",
+      "empty": "Aucun groupe de comptes de premier niveau. Créez-en un pour répartir votre patrimoine.",
       "title": "Allocation",
-      "viewAccounts": "Voir les comptes"
+      "viewGroups": "Voir les groupes"
     },
     "chart": {
+      "empty": "Aucun point calculable sur la période.",
+      "loading": "Chargement de l’historique…",
       "monthColumn": "Mois",
-      "summary": "Le patrimoine progresse régulièrement entre {{startPeriod}} et {{endPeriod}}.",
       "showTable": "Voir les données sous forme de tableau",
+      "summary": "Évolution du patrimoine net entre {{startPeriod}} et {{endPeriod}}.",
       "title": "Évolution du patrimoine",
+      "unavailable": "Historique indisponible pour le moment.",
       "valueColumn": "Patrimoine net"
     },
     "income": {
@@ -1020,14 +1025,46 @@
       "title": "Revenus"
     },
     "netWorth": {
-      "deltaPeriod": "depuis {{period}}",
+      "asOf": "Au {{date}}",
+      "belowStep": "Inférieur au pas d’affichage",
+      "decreaseAccessible": "Baisse de {{amount}}",
+      "deltaPeriod": "depuis le {{period}}",
+      "freshness": {
+        "current_one": "1 compte valorisé ce jour",
+        "current_other": "{{count}} comptes valorisés ce jour",
+        "missing_one": "1 valorisation manquante",
+        "missing_other": "{{count}} valorisations manquantes",
+        "stale_one": "Valorisation la plus ancienne : 1 jour",
+        "stale_other": "Valorisation la plus ancienne : {{count}} jours"
+      },
       "increaseAccessible": "Hausse de {{amount}}",
-      "title": "Patrimoine net"
-    },
-    "period": {
-      "label": "Période affichée",
-      "next": "Mois suivant",
-      "previous": "Mois précédent"
+      "loading": "Calcul du patrimoine net",
+      "qualities": {
+        "CURRENT": "Données du jour",
+        "MISSING": "Valorisation manquante",
+        "STALE": "Données anciennes"
+      },
+      "rateReasons": {
+        "MISSING_VALUATION": "Taux non calculable : valorisation manquante",
+        "MIXED_ASSETS": "Taux non calculable : unités différentes",
+        "NEGATIVE_BASE": "Taux non calculable sur une base négative",
+        "NO_ELIGIBLE_ACCOUNT": "Taux non calculable : aucun compte éligible",
+        "ZERO_BASE": "Taux non calculable sur une base nulle"
+      },
+      "reasons": {
+        "MISSING_VALUATION": "Au moins un compte inclus n’a pas de valorisation à cette date",
+        "MIXED_ASSETS": "Les comptes inclus sont libellés dans plusieurs unités",
+        "NEGATIVE_BASE": "La base comparée est négative",
+        "NO_ELIGIBLE_ACCOUNT": "Aucun compte ouvert n’est inclus dans le patrimoine",
+        "ZERO_BASE": "La base comparée est nulle"
+      },
+      "retry": "Réessayer",
+      "stableAccessible": "Patrimoine stable, aucune variation",
+      "title": "Patrimoine net",
+      "unauthorized": {
+        "description": "Cette session n’est rattachée à aucun espace de travail.",
+        "title": "Patrimoine inaccessible"
+      }
     },
     "quality": {
       "description": "Exemples des états du shell",

@@ -66,6 +66,22 @@ final class InMemoryAccountBalanceSnapshotRepository implements AccountBalanceSn
         return $latest;
     }
 
+    public function findLatestForAccountsOnDates(
+        WorkspaceScope $workspace,
+        array $accountIds,
+        array $dates,
+    ): array {
+        $latest = [];
+        foreach ($dates as $date) {
+            $found = $this->findLatestForAccounts($workspace, $accountIds, $date);
+            if ([] !== $found) {
+                $latest[$date->format('Y-m-d')] = $found;
+            }
+        }
+
+        return $latest;
+    }
+
     public function pageForAccount(
         WorkspaceScope $workspace,
         string $accountId,

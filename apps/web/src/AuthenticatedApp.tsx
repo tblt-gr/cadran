@@ -7,8 +7,7 @@ import { AccountsPage } from '@/features/accounts/AccountsPage';
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
 import { DashboardContextPanel } from '@/features/dashboard/context-panel/DashboardContextPanel';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
-import { dashboardDemoData } from '@/features/dashboard/dashboardDemoData';
-import { formatDemoDay } from '@/features/dashboard/formatDemoDate';
+import { useDashboardHeader } from '@/features/dashboard/net-worth/useDashboardHeader';
 import { ProductCatalogPage } from '@/features/catalog/ProductCatalogPage';
 import { ProductModelsPage } from '@/features/product-models/ProductModelsPage';
 import { AccountGroupsPage } from '@/features/account-groups/AccountGroupsPage';
@@ -23,7 +22,7 @@ import { getRouteTitleKey } from '@/lib/navigation';
  * probe. Rendered by AuthGate only for an authenticated request.
  */
 export function AuthenticatedApp() {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
   const [path, setPath] = useState(() => window.location.pathname);
   const status = useQuery({
     queryKey: ['foundation-status'],
@@ -38,6 +37,8 @@ export function AuthenticatedApp() {
     },
     retry: false,
   });
+
+  const dashboardHeader = useDashboardHeader(path === '/');
 
   useEffect(() => {
     function updatePath() {
@@ -84,14 +85,8 @@ export function AuthenticatedApp() {
     <AppShell
       accountSlot={<LogoutButton />}
       contextPanel={path === '/' && status.isSuccess ? <DashboardContextPanel /> : undefined}
-      freshnessLabel={
-        path === '/'
-          ? t('header.staleFreshness', { count: dashboardDemoData.freshnessDays })
-          : undefined
-      }
-      headerDate={
-        path === '/' ? formatDemoDay(dashboardDemoData.asOfDate, i18n.language) : undefined
-      }
+      freshnessLabel={path === '/' ? dashboardHeader.freshnessLabel : undefined}
+      headerDate={path === '/' ? dashboardHeader.headerDate : undefined}
       path={path}
       setPath={setPath}
       showGlobalActions={
