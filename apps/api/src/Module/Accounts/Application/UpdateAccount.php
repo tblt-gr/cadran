@@ -31,6 +31,7 @@ final readonly class UpdateAccount
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
+        private ResolveAccountValuation $valuations,
     ) {
     }
 
@@ -121,7 +122,7 @@ final readonly class UpdateAccount
 
             $this->audit($context, $current, $updated);
 
-            return AccountView::fromAccount($updated);
+            return AccountView::fromAccount($updated, valuation: $this->valuations->current($context->workspace, $updated));
         });
     }
 

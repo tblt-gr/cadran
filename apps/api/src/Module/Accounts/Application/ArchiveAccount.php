@@ -25,6 +25,7 @@ final readonly class ArchiveAccount
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
+        private ResolveAccountValuation $valuations,
     ) {
     }
 
@@ -67,7 +68,7 @@ final readonly class ArchiveAccount
                 ),
             ));
 
-            return AccountView::fromAccount($archived);
+            return AccountView::fromAccount($archived, valuation: $this->valuations->current($context->workspace, $archived));
         });
     }
 }

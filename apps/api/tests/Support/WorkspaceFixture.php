@@ -116,8 +116,10 @@ final readonly class WorkspaceFixture
     public function reset(): void
     {
         $this->connection->executeStatement('TRUNCATE TABLE audit_events');
-        // The rule overrides of an account, and the brackets of their rate
-        // scales, follow it through ON DELETE CASCADE.
+        // Snapshots restrict account deletion: the trail of observed balances
+        // must be cleared first. Rule overrides and their rate brackets follow
+        // the account through ON DELETE CASCADE.
+        $this->connection->executeStatement('DELETE FROM account_balance_snapshots');
         $this->connection->executeStatement('DELETE FROM account_financial_accounts');
         $this->connection->executeStatement('DELETE FROM account_groups');
         // The capabilities, rule periods and brackets follow their model

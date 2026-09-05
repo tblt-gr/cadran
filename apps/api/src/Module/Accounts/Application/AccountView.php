@@ -35,10 +35,11 @@ final readonly class AccountView
         /** @var list<string> */
         public array $tagGroupIds = [],
         public ?ShareView $share = null,
+        public ?ValuationView $valuation = null,
     ) {
     }
 
-    public static function fromAccount(Account $account, ?ShareView $share = null): self
+    public static function fromAccount(Account $account, ?ShareView $share = null, ?ValuationView $valuation = null): self
     {
         $archived = null !== $account->archivedAt;
 
@@ -82,6 +83,7 @@ final readonly class AccountView
             primaryGroupId: $account->primaryGroupId,
             tagGroupIds: $account->tagGroupIds,
             share: $share ?? ($account->includeInNetWorth ? ShareView::missingValuation() : ShareView::notApplicable()),
+            valuation: $valuation,
         );
     }
 }

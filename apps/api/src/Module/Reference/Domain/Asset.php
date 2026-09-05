@@ -7,6 +7,8 @@ namespace App\Module\Reference\Domain;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\DisplayedAmount;
+use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\RoundingMode;
 
 /**
@@ -64,5 +66,20 @@ final readonly class Asset
             : '0.'.str_repeat('0', $this->precision->display - 1).'1';
 
         return new AssetAmount(DecimalValue::fromString($literal), $this->code);
+    }
+
+    /**
+     * Rounds a stored figure for a named presentation boundary. A non-zero
+     * source that would display as zero is reported as below the step instead
+     * of becoming an invented nil.
+     */
+    public function displayed(DecimalValue $source): DisplayedAmount
+    {
+        $rounded = ExactDecimal::round($source, $this->precision->display, $this->roundingMode);
+        if (!ExactDecimal::isZero($source) && ExactDecimal::isZero($rounded)) {
+            return new DisplayedAmount(null, $this->code, true);
+        }
+
+        return new DisplayedAmount($rounded, $this->code, false);
     }
 }

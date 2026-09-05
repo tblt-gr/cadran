@@ -31,6 +31,7 @@ final readonly class CreateAccount
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
+        private ResolveAccountValuation $valuations,
     ) {
     }
 
@@ -134,7 +135,7 @@ final readonly class CreateAccount
                 diff: AuditDiff::creation(AccountAuditFingerprint::of($account)),
             ));
 
-            return AccountView::fromAccount($account);
+            return AccountView::fromAccount($account, valuation: $this->valuations->current($context->workspace, $account));
         });
     }
 

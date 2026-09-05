@@ -148,6 +148,24 @@ final class AccountTest extends TestCase
         self::assertSame('2026-06-01', $corrected->openedOn->format('Y-m-d'));
     }
 
+    public function testMarkingAnAccountUsedLocksItsKindOnTheNextEdit(): void
+    {
+        $used = $this->account()->markUsed(new \DateTimeImmutable(self::NOW));
+
+        self::assertNotNull($used->usedAt);
+        self::assertSame(2, $used->version);
+
+        $this->expectException(InvalidAccount::class);
+        $this->reconfigured($used, kind: AccountKind::CURRENT);
+    }
+
+    public function testMarkingAnAlreadyUsedAccountDoesNotBumpItsVersion(): void
+    {
+        $used = $this->account(usedAt: new \DateTimeImmutable(self::NOW));
+
+        self::assertSame($used, $used->markUsed(new \DateTimeImmutable('2026-09-04T10:00:00+00:00')));
+    }
+
     public function testAUsedAccountCannotChangeKind(): void
     {
         $account = $this->account(usedAt: new \DateTimeImmutable(self::NOW));

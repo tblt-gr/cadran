@@ -2,12 +2,14 @@ import {
   archiveAccount,
   createAccount,
   listAccounts,
+  recordAccountBalance,
   recordAccountRuleOverride,
   updateAccount,
   withdrawAccountRuleOverride,
   type Account,
   type AccountRuleClaim,
   type CreateAccountRequest,
+  type RecordAccountBalanceRequest,
   type RecordAccountRuleOverrideRequest,
   type UpdateAccountRequest,
 } from '@cadran/api-client';
@@ -35,6 +37,7 @@ import { WithdrawOverrideDialog } from './account-rules/withdraw-override-dialog
 import { AccountWizard } from './account-wizard/AccountWizard';
 import { AccountsState } from './accounts-state/AccountsState';
 import { ArchiveAccountDialog } from './archive-account-dialog/ArchiveAccountDialog';
+import { RecordBalanceForm } from './record-balance-form/RecordBalanceForm';
 import styles from './AccountsPage.module.css';
 
 const PAGE_SIZE = 50;
@@ -55,7 +58,10 @@ export function AccountsPage() {
   // over it. Closing either returns the reader to the rules they came from.
   const [overriding, setOverriding] = useState<OverrideDraft | null>(null);
   const [withdrawing, setWithdrawing] = useState<AccountRuleClaim | null>(null);
-  const [saved, setSaved] = useState<'saved' | 'archived' | 'claimed' | 'withdrawn' | null>(null);
+  const [recording, setRecording] = useState<Account | null>(null);
+  const [saved, setSaved] = useState<
+    'saved' | 'archived' | 'claimed' | 'withdrawn' | 'recorded' | null
+  >(null);
 
   const accounts = useQuery({
     queryKey: ['accounts', includeArchived, includeClosed, page],
@@ -160,6 +166,30 @@ export function AccountsPage() {
     },
   });
 
+  const recordBalance = useMutation({
+    mutationFn: async ({
+      account,
+      body,
+    }: {
+      account: Account;
+      body: RecordAccountBalanceRequest;
+    }) => {
+      const result = await withCsrfRetry(() =>
+        recordAccountBalance({ ...authApiOptions(), path: { id: account.id }, body }),
+      );
+      if (requestFailed(result)) {
+        throw accountRequestError(result);
+      }
+      return result.data;
+    },
+    onError: refreshOnStaleState,
+    onSuccess: async () => {
+      setRecording(null);
+      setSaved('recorded');
+      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+
   const withdrawOverride = useMutation({
     mutationFn: async ({ account, overrideId }: { account: Account; overrideId: string }) => {
       const result = await withCsrfRetry(() =>
@@ -212,6 +242,17 @@ export function AccountsPage() {
   function closeArchive() {
     setArchiving(null);
     archive.reset();
+  }
+
+  function closeRecording() {
+    setRecording(null);
+    recordBalance.reset();
+  }
+
+  function openRecording(account: Account) {
+    setSaved(null);
+    recordBalance.reset();
+    setRecording(account);
   }
 
   function openEditor(target: Exclude<Editor, null>) {
@@ -337,6 +378,24 @@ export function AccountsPage() {
         </Modal>
       ) : null}
 
+      {recording ? (
+        <Modal
+          close={closeRecording}
+          eyebrow={t('accounts.balances.eyebrow')}
+          title={t('accounts.balances.title', { label: recording.label })}
+        >
+          <RecordBalanceForm
+            account={recording}
+            key={recording.id}
+            onCancel={closeRecording}
+            onSubmit={(body) => recordBalance.mutate({ account: recording, body })}
+            pending={recordBalance.isPending}
+            submitError={accountErrorKind(recordBalance.error, recordBalance.isError)}
+            valuation={recording.valuation}
+          />
+        </Modal>
+      ) : null}
+
       {archiving ? (
         <Modal
           close={closeArchive}
@@ -385,6 +444,7 @@ export function AccountsPage() {
           accounts={items}
           onArchive={openArchive}
           onEdit={openEditor}
+          onRecordBalance={openRecording}
           onRules={setInspecting}
         />
       )}

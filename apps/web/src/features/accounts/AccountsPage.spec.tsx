@@ -15,6 +15,7 @@ const api = vi.hoisted(() => ({
   listProducts: vi.fn(),
   listAccountRuleOverrides: vi.fn(),
   readAccountRules: vi.fn(),
+  recordAccountBalance: vi.fn(),
   recordAccountRuleOverride: vi.fn(),
   withdrawAccountRuleOverride: vi.fn(),
   readProduct: vi.fn(),
@@ -26,6 +27,35 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
   ...api,
 }));
+
+const missingValuation = {
+  accountId: '00000000-0000-7000-8000-0000000000d1',
+  requestedOn: '2026-01-10',
+  asOf: null,
+  amount: null,
+  display: null,
+  belowDisplayStep: false,
+  source: null,
+  ageDays: null,
+  quality: 'MISSING' as const,
+  reconciliationStatus: null,
+  snapshotId: null,
+  version: null,
+};
+
+const staleValuation = {
+  ...missingValuation,
+  requestedOn: '2026-09-05',
+  asOf: '2026-09-03',
+  amount: { value: '231.10', assetCode: 'EUR' },
+  display: { value: '231.10', assetCode: 'EUR' },
+  source: 'MANUAL' as const,
+  ageDays: 2,
+  quality: 'STALE' as const,
+  reconciliationStatus: 'UNRECONCILED' as const,
+  snapshotId: '00000000-0000-7000-8000-0000000000b1',
+  version: 1,
+};
 
 const account: Account = {
   id: '00000000-0000-7000-8000-0000000000d1',
@@ -53,6 +83,7 @@ const account: Account = {
   primaryGroupId: null,
   tagGroupIds: [],
   share: { ratio: null, percent: null, reason: 'MISSING_VALUATION' },
+  valuation: missingValuation,
 };
 
 const livretA: Product = {
@@ -998,5 +1029,67 @@ describe('AccountsPage', () => {
 
     expect(await screen.findByText('Actif (+)')).toBeTruthy();
     expect(screen.getByText('Passif (−)')).toBeTruthy();
+  });
+
+  it('names a missing valuation instead of inventing a zero balance', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Non calculable')).toBeTruthy();
+    expect(screen.getByText('Aucune valorisation')).toBeTruthy();
+    expect(screen.queryByText('0,00')).toBeNull();
+  });
+
+  it('shows a carried-forward balance as stale and records a manual replacement', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({
+        items: [{ ...account, valuation: staleValuation }],
+        page: 1,
+        perPage: 50,
+        total: 1,
+      }),
+    );
+    api.recordAccountBalance.mockImplementation(({ body }) =>
+      success(
+        {
+          id: '00000000-0000-7000-8000-0000000000b2',
+          accountId: account.id,
+          asOf: body.asOf,
+          amount: { value: body.amount, assetCode: body.amountAssetCode },
+          source: 'MANUAL',
+          reconciliationStatus: 'UNRECONCILED',
+          comment: body.comment,
+          active: true,
+          version: 1,
+          recordedAt: '2026-09-05T12:00:00+00:00',
+          supersededAt: null,
+        },
+        201,
+      ),
+    );
+    renderPage();
+
+    expect(await screen.findByText(/231,10/)).toBeTruthy();
+    expect(screen.getByText(/Ancienne/)).toBeTruthy();
+    expect(screen.getByText(/2 jours/)).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Enregistrer un solde sur Livret A Banque X' }),
+    );
+    fireEvent.change(screen.getByLabelText('Date du solde'), { target: { value: '2026-09-05' } });
+    fireEvent.change(screen.getByLabelText('Montant observé'), { target: { value: '240.00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le solde' }));
+
+    await waitFor(() => expect(api.recordAccountBalance).toHaveBeenCalledOnce());
+    expect(api.recordAccountBalance.mock.calls[0]?.[0].body).toMatchObject({
+      asOf: '2026-09-05',
+      amount: '240.00',
+      amountAssetCode: 'EUR',
+      comment: null,
+      version: null,
+    });
+    expect(await screen.findByText('Le solde observé a été enregistré.')).toBeTruthy();
   });
 });

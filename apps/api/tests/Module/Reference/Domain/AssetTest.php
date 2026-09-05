@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Reference\Domain;
 
 use App\Module\Foundation\Domain\AssetCode;
+use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\PrecisionExceeded;
 use App\Module\Foundation\Domain\RoundingMode;
 use App\Module\Reference\Domain\Asset;
@@ -51,6 +52,31 @@ final class AssetTest extends TestCase
         );
 
         self::assertSame($expected, $asset->displayStep()->value->toString());
+    }
+
+    public function testDisplayRoundingKeepsTheSourceLiteralDistinct(): void
+    {
+        $displayed = self::euro()->displayed(DecimalValue::fromString('230.5688'));
+
+        self::assertSame('230.57', $displayed->value?->toString());
+        self::assertFalse($displayed->belowStep);
+        self::assertSame('EUR', $displayed->asset->toString());
+    }
+
+    public function testANonZeroSmallerThanTheDisplayStepIsNeverShownAsZero(): void
+    {
+        $eth = new Asset(
+            code: AssetCode::fromString('ETH'),
+            kind: AssetKind::CRYPTO,
+            displayName: 'Ether',
+            precision: new AssetPrecision(storage: 18, display: 8),
+            roundingMode: RoundingMode::HALF_UP,
+        );
+
+        $displayed = $eth->displayed(DecimalValue::fromString('0.0000000012'));
+
+        self::assertNull($displayed->value);
+        self::assertTrue($displayed->belowStep);
     }
 
     /**

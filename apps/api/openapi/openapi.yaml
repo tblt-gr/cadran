@@ -831,6 +831,7 @@ paths:
           description: Restrict results to one account kind.
           schema:
             $ref: '#/components/schemas/AccountKind'
+        - $ref: '#/components/parameters/BusinessDate'
       responses:
         '200':
           description: One page of accounts from the calling workspace.
@@ -1027,6 +1028,159 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           description: 'The account is already archived (`type: /problems/account-archived`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{id}/valuation:
+    get:
+      operationId: readAccountValuation
+      summary: Read the latest valid balance of an account on a business date
+      description: >-
+        Returns the latest active snapshot on or before the requested date,
+        with its age, source and missing/stale quality. A missing valuation
+        is `null` on both the source and display amounts: a zero would invent
+        a figure the holder never recorded. Display rounding is applied by
+        the backend from the asset's display precision; the source literal
+        is kept exact.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: The latest valid valuation on the requested date.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountValuation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{id}/balances:
+    get:
+      operationId: listAccountBalances
+      summary: List the balance snapshots recorded on an account
+      description: >-
+        The history of observed balances, superseded rows included. What
+        answers on one day is the valuation resource; this list is the trail.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: The snapshot history of the account, newest day first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalanceSnapshotPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: recordAccountBalance
+      summary: Record a manual observed balance on an account
+      description: >-
+        Stores a dated manual snapshot in the account's own unit. The source
+        literal is kept exactly as submitted. A second active snapshot of the
+        same day and source is refused unless the current version is presented,
+        in which case the previous row is superseded and kept on the trail.
+        The author comes from the session.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordAccountBalanceRequest'
+      responses:
+        '201':
+          description: The snapshot as recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalanceSnapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            An active snapshot already exists (`type: /problems/account-balance-conflict`)
+            or the submitted version is stale (`type: /problems/stale-version`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: The snapshot fields are invalid or the account is archived.
           content:
             application/problem+json:
               schema:
@@ -3184,6 +3338,7 @@ components:
         - primaryGroupId
         - tagGroupIds
         - share
+        - valuation
       properties:
         id:
           type: string
@@ -3317,6 +3472,198 @@ components:
             format: uuid
         share:
           $ref: '#/components/schemas/NetWorthShare'
+        valuation:
+          $ref: '#/components/schemas/AccountValuation'
+    AccountValuation:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - requestedOn
+        - asOf
+        - amount
+        - display
+        - belowDisplayStep
+        - source
+        - ageDays
+        - quality
+        - reconciliationStatus
+        - snapshotId
+        - version
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        requestedOn:
+          type: string
+          format: date
+        asOf:
+          description: Date of the snapshot that answers, or null when missing.
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        amount:
+          description: Exact source figure. Null when no snapshot answers.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        display:
+          description: >-
+            Source figure rounded at the asset display boundary. Null when
+            missing or when a non-zero source would display as zero.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        belowDisplayStep:
+          type: boolean
+        source:
+          oneOf:
+            - $ref: '#/components/schemas/BalanceSnapshotSource'
+            - type: 'null'
+        ageDays:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+        quality:
+          $ref: '#/components/schemas/ValuationQuality'
+        reconciliationStatus:
+          oneOf:
+            - $ref: '#/components/schemas/ReconciliationStatus'
+            - type: 'null'
+        snapshotId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        version:
+          oneOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+    ValuationQuality:
+      type: string
+      enum:
+        - CURRENT
+        - STALE
+        - MISSING
+    BalanceSnapshotSource:
+      type: string
+      enum:
+        - MANUAL
+        - IMPORT
+        - BANK_API
+        - CALCULATED
+    ReconciliationStatus:
+      type: string
+      enum:
+        - UNRECONCILED
+        - RECONCILED
+    AccountBalanceSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - accountId
+        - asOf
+        - amount
+        - source
+        - reconciliationStatus
+        - comment
+        - active
+        - version
+        - recordedAt
+        - supersededAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        asOf:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        source:
+          $ref: '#/components/schemas/BalanceSnapshotSource'
+        reconciliationStatus:
+          $ref: '#/components/schemas/ReconciliationStatus'
+        comment:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 200
+            - type: 'null'
+        active:
+          type: boolean
+        version:
+          type: integer
+          minimum: 1
+        recordedAt:
+          type: string
+          format: date-time
+        supersededAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    AccountBalanceSnapshotPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - perPage
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountBalanceSnapshot'
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+    RecordAccountBalanceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - asOf
+        - amount
+        - amountAssetCode
+        - comment
+        - version
+      properties:
+        asOf:
+          type: string
+          format: date
+        amount:
+          type: string
+          pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        amountAssetCode:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        comment:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 200
+            - type: 'null'
+        version:
+          description: Required when replacing the active snapshot of that day and source.
+          oneOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
     CreateAccountRequest:
       type: object
       additionalProperties: false

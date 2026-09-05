@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Module\Accounts\Domain;
+
+use App\Module\Foundation\Domain\WorkspaceScope;
+
+interface AccountBalanceSnapshotRepository
+{
+    public function findForAccount(WorkspaceScope $workspace, string $accountId): AccountBalanceSnapshots;
+
+    public function findActive(
+        WorkspaceScope $workspace,
+        string $accountId,
+        \DateTimeImmutable $asOf,
+        BalanceSnapshotSource $source,
+    ): ?AccountBalanceSnapshot;
+
+    /**
+     * The latest active snapshot on or before $asOf for each requested account.
+     *
+     * @param list<string> $accountIds
+     *
+     * @return array<string, AccountBalanceSnapshot>
+     */
+    public function findLatestForAccounts(
+        WorkspaceScope $workspace,
+        array $accountIds,
+        \DateTimeImmutable $asOf,
+    ): array;
+
+    /**
+     * Snapshot history newest day first, superseded rows included.
+     *
+     * @return list<AccountBalanceSnapshot>
+     */
+    public function pageForAccount(
+        WorkspaceScope $workspace,
+        string $accountId,
+        int $limit,
+        int $offset,
+    ): array;
+
+    public function countForAccount(WorkspaceScope $workspace, string $accountId): int;
+
+    public function add(AccountBalanceSnapshot $snapshot): void;
+
+    /** Returns false when the expected version is stale. */
+    public function update(AccountBalanceSnapshot $snapshot, int $expectedVersion): bool;
+}

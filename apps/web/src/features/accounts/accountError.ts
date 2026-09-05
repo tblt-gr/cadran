@@ -30,6 +30,7 @@ function classify(status: number, problemType: string | undefined): AccountError
     // between the read and the write: both ask the caller to reload the
     // account's claims and reapply, not to correct a field.
     case '/problems/account-rule-override-conflict':
+    case '/problems/account-balance-conflict':
       return 'conflict';
     default:
       // A refused query and a refused body are both the caller's to correct,

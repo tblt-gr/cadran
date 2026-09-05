@@ -91,10 +91,20 @@ export function formatCalendarDay(value: string, locale: string): string {
 }
 
 const CANONICAL_UNSIGNED_DECIMAL = /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
+const CANONICAL_DECIMAL = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 
 /** A decimal string with no sign, no leading zero and no locale formatting. */
 export function isCanonicalUnsignedDecimal(value: string): boolean {
   return CANONICAL_UNSIGNED_DECIMAL.test(value);
+}
+
+/**
+ * A recorded figure as the API stores it: optional minus, no leading zero,
+ * no locale grouping. A signed form is required because an overdraft is a
+ * real balance, not a formatting choice.
+ */
+export function isCanonicalDecimal(value: string): boolean {
+  return CANONICAL_DECIMAL.test(value);
 }
 
 /**
