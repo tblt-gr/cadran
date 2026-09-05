@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\UI\Http;
 
+use App\Module\Categories\Application\CategoryImpactView;
 use App\Module\Categories\Application\CategoryPage;
+use App\Module\Categories\Application\CategoryReplacementView;
 use App\Module\Categories\Application\CategoryView;
 
 /**
@@ -37,6 +39,54 @@ final readonly class CategoryRepresentation
             'typeEditReason' => $category->typeEditReason,
             'canAcceptChildren' => $category->canAcceptChildren,
             'archivedAt' => $category->archivedAt,
+            'replacement' => self::replacement($category->replacement),
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    public static function replacement(?CategoryReplacementView $replacement): ?array
+    {
+        if (null === $replacement) {
+            return null;
+        }
+
+        return [
+            'kind' => $replacement->kind,
+            'targetId' => $replacement->targetId,
+            'targetLabel' => $replacement->targetLabel,
+            'effectiveFrom' => $replacement->effectiveFrom,
+        ];
+    }
+
+    /**
+     * The impact of an operation that has not happened.
+     *
+     * `affectedClassifications` is null rather than zero: transactions do not
+     * exist yet, so the number of historical classifications this would move is
+     * unknown, and `affectedClassificationsReason` says why.
+     *
+     * @return array<string, mixed>
+     */
+    public static function impact(CategoryImpactView $impact): array
+    {
+        return [
+            'operation' => $impact->operation,
+            'categoryId' => $impact->categoryId,
+            'targetId' => $impact->targetId,
+            'targetLabel' => $impact->targetLabel,
+            'effectiveFrom' => $impact->effectiveFrom,
+            'descendantCount' => $impact->descendantCount,
+            'archivedDescendantCount' => $impact->archivedDescendantCount,
+            'reparentedChildCount' => $impact->reparentedChildCount,
+            'incomingRedirectionCount' => $impact->incomingRedirectionCount,
+            'resultingDepth' => $impact->resultingDepth,
+            'maximumDepth' => $impact->maximumDepth,
+            'archivesSource' => $impact->archivesSource,
+            'redirectsHistory' => $impact->redirectsHistory,
+            'allowed' => $impact->allowed,
+            'blockers' => $impact->blockers,
+            'affectedClassifications' => $impact->affectedClassifications,
+            'affectedClassificationsReason' => $impact->affectedClassificationsReason,
         ];
     }
 

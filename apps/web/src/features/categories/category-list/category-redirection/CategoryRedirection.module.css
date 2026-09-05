@@ -1,0 +1,7 @@
+.redirection {
+  color: var(--text-primary);
+}
+
+.none {
+  color: var(--text-muted);
+}

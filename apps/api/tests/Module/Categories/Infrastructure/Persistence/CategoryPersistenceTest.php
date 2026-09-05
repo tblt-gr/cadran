@@ -7,7 +7,9 @@ namespace App\Tests\Module\Categories\Infrastructure\Persistence;
 use App\Module\Categories\Application\CategoryConflict;
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Categories\Domain\Category;
+use App\Module\Categories\Domain\CategoryReplacement;
 use App\Module\Categories\Domain\CategoryType;
+use App\Module\Categories\Infrastructure\Persistence\DbalCategoryReplacementRepository;
 use App\Module\Categories\Infrastructure\Persistence\DbalCategoryRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Tests\Support\WorkspaceFixture;
@@ -225,6 +227,131 @@ final class CategoryPersistenceTest extends KernelTestCase
             }
             $second->close();
         }
+    }
+
+    public function testTheDatabaseRefusesACycleTheApplicationWouldHaveMissed(): void
+    {
+        $root = $this->category('00000000-0000-7000-8000-0000000000c1', WorkspaceFixture::own(), label: 'Alimentation');
+        $child = $this->category(
+            '00000000-0000-7000-8000-0000000000c2',
+            WorkspaceFixture::own(),
+            parentId: $root->id,
+            depth: 2,
+        );
+        $this->repository->add($root);
+        $this->repository->add($child);
+
+        $this->expectException(DbalException::class);
+        $this->expectExceptionMessageMatches('/cannot contain a cycle/');
+
+        // Writing the parent under its own child, which is exactly what a move whose
+        // application-side guard was bypassed would attempt.
+        $this->connection->update(
+            'category_categories',
+            ['parent_id' => $child->id, 'depth' => 3],
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $root->id],
+        );
+    }
+
+    public function testTheBranchIsReadBreadthFirstAndStaysInsideItsWorkspace(): void
+    {
+        // A fan-out, not a chain: on a single chain breadth-first and depth-first agree,
+        // so only a branching fixture can prove the order a move relies on.
+        $root = $this->category('00000000-0000-7000-8000-0000000000c1', WorkspaceFixture::own(), label: 'Alimentation');
+        $restaurants = $this->category(
+            '00000000-0000-7000-8000-0000000000c2',
+            WorkspaceFixture::own(),
+            label: 'Restaurants',
+            parentId: $root->id,
+            depth: 2,
+        );
+        $groceries = $this->category(
+            '00000000-0000-7000-8000-0000000000c3',
+            WorkspaceFixture::own(),
+            label: 'Courses',
+            parentId: $root->id,
+            depth: 2,
+        );
+        $delivery = $this->category(
+            '00000000-0000-7000-8000-0000000000c4',
+            WorkspaceFixture::own(),
+            label: 'Livraison',
+            parentId: $restaurants->id,
+            depth: 3,
+        );
+        foreach ([$root, $restaurants, $groceries, $delivery] as $category) {
+            $this->repository->add($category);
+        }
+        $this->repository->add($this->category(
+            '00000000-0000-7000-8000-0000000000c5',
+            WorkspaceFixture::other(),
+            label: 'Alimentation',
+        ));
+
+        // Both children of the root come before the grandchild: a move writes each row
+        // only once its parent already carries the depth the trigger compares against.
+        self::assertSame(
+            [$restaurants->id, $groceries->id, $delivery->id],
+            array_column($this->repository->descendants(WorkspaceFixture::own(), $root->id), 'id'),
+        );
+        self::assertSame(
+            [$restaurants->id, $groceries->id, $delivery->id],
+            array_column($this->repository->descendantsForUpdate(WorkspaceFixture::own(), $root->id), 'id'),
+        );
+        self::assertSame([], $this->repository->descendants(WorkspaceFixture::other(), $root->id));
+    }
+
+    public function testARedirectionIsUniquePerSourceAndRefusesALoop(): void
+    {
+        $first = $this->category('00000000-0000-7000-8000-0000000000c1', WorkspaceFixture::own(), label: 'Restaurants');
+        $second = $this->category('00000000-0000-7000-8000-0000000000c2', WorkspaceFixture::own(), label: 'Sorties');
+        $this->repository->add($first);
+        $this->repository->add($second);
+        $replacements = new DbalCategoryReplacementRepository($this->connection);
+        $replacements->add(CategoryReplacement::merge(
+            '00000000-0000-7000-8000-0000000000f1',
+            WorkspaceFixture::own(),
+            $first->id,
+            $second->id,
+            new \DateTimeImmutable('2026-09-01T12:00:00+00:00'),
+        ));
+
+        self::assertSame([$second->id], $replacements->chainFrom(WorkspaceFixture::own(), $first->id));
+        self::assertNull($replacements->findBySource(WorkspaceFixture::other(), $first->id));
+
+        $this->expectException(DbalException::class);
+        $this->expectExceptionMessageMatches('/cannot contain a cycle/');
+        $replacements->add(CategoryReplacement::merge(
+            '00000000-0000-7000-8000-0000000000f2',
+            WorkspaceFixture::own(),
+            $second->id,
+            $first->id,
+            new \DateTimeImmutable('2026-09-01T12:00:00+00:00'),
+        ));
+    }
+
+    public function testARedirectionCannotCrossCategoryTypes(): void
+    {
+        $expense = $this->category('00000000-0000-7000-8000-0000000000c1', WorkspaceFixture::own(), label: 'Restaurants');
+        $income = $this->category(
+            '00000000-0000-7000-8000-0000000000c2',
+            WorkspaceFixture::own(),
+            label: 'Salaire',
+            type: CategoryType::INCOME,
+        );
+        $this->repository->add($expense);
+        $this->repository->add($income);
+
+        $this->expectException(DbalException::class);
+        $this->expectExceptionMessageMatches('/one category type/');
+
+        (new DbalCategoryReplacementRepository($this->connection))->add(CategoryReplacement::merge(
+            '00000000-0000-7000-8000-0000000000f1',
+            WorkspaceFixture::own(),
+            $expense->id,
+            $income->id,
+            new \DateTimeImmutable('2026-09-01T12:00:00+00:00'),
+        ));
     }
 
     private function category(

@@ -560,6 +560,270 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/categories/{id}/impact:
+    get:
+      operationId: previewCategoryImpact
+      summary: Preview what a category lifecycle operation would change
+      description: >-
+        Answers what moving, merging, archiving or replacing a category would
+        change, without changing anything. The same assessment gates the write,
+        so a confirmation screen and the operation it leads to never disagree.
+        `affectedClassifications` stays null with an explicit reason while no
+        transaction history exists; it is never an invented `0`.
+      tags:
+        - Categories
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: operation
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/CategoryLifecycleOperation'
+        - name: targetId
+          in: query
+          required: false
+          description: >-
+            The new parent for `MOVE` (absent means the root), and the category
+            receiving the history for `MERGE` and `REPLACE`. Rejected for
+            `ARCHIVE`.
+          schema:
+            type: string
+            format: uuid
+        - name: effectiveFrom
+          in: query
+          required: false
+          description: Required for `REPLACE` and rejected for every other operation.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: The impact the operation would have.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryImpact'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/categories/{id}/move:
+    post:
+      operationId: moveCategory
+      summary: Reparent a category and the branch below it
+      description: >-
+        Moves the category under another active category of the same type, or
+        to the root when `parentId` is null, and rewrites the depth of every
+        descendant in one transaction.
+      tags:
+        - Categories
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveCategoryRequest'
+      responses:
+        '200':
+          description: The moved category.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/CategoryMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/CategoryVersionConflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/CategoryOperationRefused'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/categories/{id}/merge:
+    post:
+      operationId: mergeCategory
+      summary: Fold a category into another one
+      description: >-
+        Moves the direct children under the target, records the redirection
+        that makes the history of the source read as the target's, and archives
+        the source. The three happen in one transaction or not at all.
+      tags:
+        - Categories
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MergeCategoryRequest'
+      responses:
+        '200':
+          description: The archived source category and its redirection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/CategoryMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/CategoryVersionConflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/CategoryOperationRefused'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/categories/{id}/archive:
+    post:
+      operationId: archiveCategory
+      summary: Retire a category without deleting it
+      description: >-
+        Takes the category out of the choices offered for new classifications.
+        A used category is never hard-deleted, and a category with active
+        children is refused until its branch is retired first.
+      tags:
+        - Categories
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchiveCategoryRequest'
+      responses:
+        '200':
+          description: The archived category.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/CategoryMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/CategoryVersionConflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/CategoryOperationRefused'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/categories/{id}/replacement:
+    post:
+      operationId: replaceCategory
+      summary: Replace a category by another one from a date onwards
+      description: >-
+        Records that classifications from `effectiveFrom` belong to the target.
+        The source keeps its tree position and stays selectable for the period
+        before that date: history is never silently rewritten.
+      tags:
+        - Categories
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceCategoryRequest'
+      responses:
+        '200':
+          description: The source category and its dated redirection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/CategoryMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/CategoryVersionConflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/CategoryOperationRefused'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/account-groups:
     get:
       operationId: listAccountGroups
@@ -2027,6 +2291,21 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    CategoryOperationRefused:
+      description: >-
+        The impact assessment refuses the operation, or the request body is
+        invalid. A refusal carries `type: /problems/category-operation-refused`
+        and names every reason in `blockers`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/CategoryOperationProblem'
+    CategoryVersionConflict:
+      description: The submitted version is stale or the label conflicts with an active sibling.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
     AccountMutationForbidden:
       description: >-
         Either the CSRF / Origin check failed (`type: /problems/csrf-token`),
@@ -3082,6 +3361,7 @@ components:
         - typeEditReason
         - canAcceptChildren
         - archivedAt
+        - replacement
       properties:
         id:
           type: string
@@ -3152,6 +3432,249 @@ components:
             - type: string
               format: date-time
             - type: 'null'
+        replacement:
+          description: Where this category is redirected, or null when it is not.
+          oneOf:
+            - $ref: '#/components/schemas/CategoryReplacement'
+            - type: 'null'
+    CategoryLifecycleOperation:
+      type: string
+      enum:
+        - ARCHIVE
+        - MERGE
+        - MOVE
+        - REPLACE
+    CategoryImpactBlocker:
+      description: Why the impact assessment refuses an operation.
+      type: string
+      enum:
+        - ACTIVE_CHILDREN
+        - ALREADY_REDIRECTED
+        - CYCLE
+        - DEPTH_EXCEEDED
+        - REDIRECTION_TARGET
+        - REPLACEMENT_CHAIN_TOO_LONG
+        - REPLACEMENT_CYCLE
+        - SIBLING_LABEL_CONFLICT
+        - SOURCE_ARCHIVED
+        - TARGET_ARCHIVED
+        - TARGET_IS_DESCENDANT
+        - TARGET_IS_SELF
+        - TARGET_MISSING
+        - TARGET_NOT_FOUND
+        - TARGET_TYPE_MISMATCH
+    CategoryReplacement:
+      description: >-
+        Where the classifications of a category are redirected. A merge carries
+        no date and redirects the whole history; a replacement carries the day
+        it takes effect and leaves the period before it untouched.
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - targetId
+        - targetLabel
+        - effectiveFrom
+      properties:
+        kind:
+          type: string
+          enum:
+            - MERGE
+            - REPLACEMENT
+        targetId:
+          type: string
+          format: uuid
+        targetLabel:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
+        effectiveFrom:
+          description: Null for a merge, which redirects the whole history.
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+    CategoryImpact:
+      type: object
+      additionalProperties: false
+      required:
+        - operation
+        - categoryId
+        - targetId
+        - targetLabel
+        - effectiveFrom
+        - descendantCount
+        - archivedDescendantCount
+        - reparentedChildCount
+        - incomingRedirectionCount
+        - resultingDepth
+        - maximumDepth
+        - archivesSource
+        - redirectsHistory
+        - allowed
+        - blockers
+        - affectedClassifications
+        - affectedClassificationsReason
+      properties:
+        operation:
+          $ref: '#/components/schemas/CategoryLifecycleOperation'
+        categoryId:
+          type: string
+          format: uuid
+        targetId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        targetLabel:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
+        effectiveFrom:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        descendantCount:
+          description: Categories below the source, archived ones included.
+          type: integer
+          minimum: 0
+        archivedDescendantCount:
+          type: integer
+          minimum: 0
+        reparentedChildCount:
+          description: Direct children a merge would move under the target.
+          type: integer
+          minimum: 0
+        incomingRedirectionCount:
+          description: >-
+            Redirections that name this category as their target. A merge carries
+            them over to its own target; archiving is refused while any exists,
+            because it names no successor to carry them to.
+          type: integer
+          minimum: 0
+        resultingDepth:
+          description: >-
+            The deepest level the branch would reach afterwards. It may exceed
+            `maximumDepth`, which is exactly what `DEPTH_EXCEEDED` reports.
+          type: integer
+          minimum: 1
+        maximumDepth:
+          type: integer
+          minimum: 1
+        archivesSource:
+          type: boolean
+        redirectsHistory:
+          type: boolean
+        allowed:
+          type: boolean
+        blockers:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryImpactBlocker'
+        affectedClassifications:
+          description: >-
+            Historical classifications the operation would re-point, or null
+            when that count cannot be established. Never an invented `0`.
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+        affectedClassificationsReason:
+          description: Why `affectedClassifications` could not be counted.
+          type: string
+          enum:
+            - TRANSACTIONS_UNAVAILABLE
+    MoveCategoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - parentId
+        - version
+      properties:
+        parentId:
+          description: The new parent, or null to move the category to the root.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        version:
+          type: integer
+          minimum: 1
+    MergeCategoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - targetId
+        - version
+      properties:
+        targetId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+    ArchiveCategoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          minimum: 1
+    ReplaceCategoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - targetId
+        - effectiveFrom
+        - version
+      properties:
+        targetId:
+          type: string
+          format: uuid
+        effectiveFrom:
+          description: The first day the target receives the classifications.
+          type: string
+          format: date
+        version:
+          type: integer
+          minimum: 1
+    CategoryOperationProblem:
+      description: >-
+        An RFC 9457 problem carrying the refusal reasons as an extension member.
+        The members are repeated rather than composed with `allOf`, because
+        `Problem` forbids additional properties and a composed schema would
+        reject the very document this endpoint returns.
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - blockers
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          const: /problems/category-operation-refused
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        blockers:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CategoryImpactBlocker'
     CreateCategoryRequest:
       type: object
       additionalProperties: false

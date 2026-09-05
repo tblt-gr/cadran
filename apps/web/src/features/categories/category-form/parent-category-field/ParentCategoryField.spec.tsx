@@ -30,6 +30,7 @@ const parent: Category = {
   typeEditReason: null,
   canAcceptChildren: true,
   archivedAt: null,
+  replacement: null,
 };
 
 describe('ParentCategoryField', () => {
@@ -57,7 +58,7 @@ describe('ParentCategoryField', () => {
       </QueryClientProvider>,
     );
 
-    fireEvent.change(screen.getByLabelText('Rechercher une catégorie parente'), {
+    fireEvent.change(screen.getByLabelText('Catégorie parente'), {
       target: { value: 'Loge' },
     });
 

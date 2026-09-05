@@ -13,21 +13,19 @@ use App\Module\Categories\Application\ListCategories;
 use App\Module\Categories\Application\UpdateCategory;
 use App\Module\Categories\Application\UpdateCategoryInput;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Adapts HTTP to the category use cases. Field-level validation lives in
- * {@see CategoryPayload} and the wire shape in {@see CategoryRepresentation};
- * what remains here is the envelope, the routing and the status mapping.
+ * Adapts HTTP to the category read and edit use cases. Field-level validation
+ * lives in {@see CategoryPayload}, the wire shape in
+ * {@see CategoryRepresentation} and the envelope in
+ * {@see CategoryHttpEnvelope}; what remains here is the routing and the status
+ * mapping. The lifecycle operations have their own controller.
  */
 final readonly class CategoryController
 {
-    private const int MAX_BODY_BYTES = 16_384;
     private const array CREATE_FIELDS = [
         'type', 'label', 'parentId', 'icon', 'color', 'defaultAnalyticAxes', 'budgetIncluded', 'sortOrder',
     ];
@@ -35,7 +33,7 @@ final readonly class CategoryController
         'type', 'label', 'icon', 'color', 'defaultAnalyticAxes', 'budgetIncluded', 'sortOrder', 'version',
     ];
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private CategoryHttpEnvelope $envelope)
     {
     }
 
@@ -52,7 +50,7 @@ final readonly class CategoryController
             || !in_array($includeArchived, ['', 'true', 'false'], true)
             || !in_array($type, ['', 'EXPENSE', 'INCOME'], true)
             || !in_array($parentEligible, ['', 'true', 'false'], true)) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_category_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_category_query');
         }
 
         try {
@@ -65,18 +63,18 @@ final readonly class CategoryController
                 'true' === $parentEligible,
             );
         } catch (InvalidCategoryInput) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_category_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_category_query');
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.category_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.category_forbidden');
         }
 
-        return self::json(CategoryRepresentation::page($categories));
+        return $this->envelope->json(CategoryRepresentation::page($categories));
     }
 
     #[Route('/api/v1/categories', name: 'api_v1_categories_create', methods: ['POST'])]
     public function create(Request $request, CreateCategory $createCategory): Response
     {
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -95,24 +93,24 @@ final readonly class CategoryController
             );
             $category = $createCategory($input);
         } catch (InvalidCategoryInput|\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_category');
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_category');
         } catch (CategoryConflict) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.category_conflict');
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.category_conflict');
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.category_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.category_forbidden');
         }
 
-        return self::json(CategoryRepresentation::one($category), Response::HTTP_CREATED);
+        return $this->envelope->json(CategoryRepresentation::one($category), Response::HTTP_CREATED);
     }
 
     #[Route('/api/v1/categories/{id}', name: 'api_v1_categories_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateCategory $updateCategory): Response
     {
-        if (!self::identifier($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
+        if (!$this->envelope->isIdentifier($id)) {
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
         }
 
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -131,63 +129,20 @@ final readonly class CategoryController
             );
             $category = $updateCategory($id, $input);
         } catch (InvalidCategoryInput|\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_category');
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_category');
         } catch (CategoryNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
         } catch (CategoryConflict) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.category_conflict');
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.category_conflict');
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.category_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.category_forbidden');
         }
 
-        return self::json(CategoryRepresentation::one($category));
-    }
-
-    /**
-     * Envelope checks only: the media type, the size ceiling and the JSON
-     * syntax each answer their own status, so they stay beside the mapping
-     * rather than travelling as exceptions.
-     *
-     * @return array<mixed>|Response
-     */
-    private function readBody(Request $request): array|Response
-    {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.category_payload_too_large');
-        }
-
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
-        }
+        return $this->envelope->json(CategoryRepresentation::one($category));
     }
 
     private static function unsignedIntegerOrEmpty(string $value): bool
     {
         return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value);
-    }
-
-    /** @param array<string, mixed> $data */
-    private static function json(array $data, int $status = Response::HTTP_OK): JsonResponse
-    {
-        return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
-    }
-
-    private function problem(int $status, string $translationKey): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-        );
     }
 }

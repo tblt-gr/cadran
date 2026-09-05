@@ -78,6 +78,12 @@ api:
     category_forbidden:
       title: 'Catégories inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    category_concurrent_operation:
+      title: 'Opérations de catégorie concurrentes'
+      detail: 'Une autre opération portait sur la même branche au même moment. Réessayez.'
+    category_operation_refused:
+      title: 'Opération de catégorie refusée'
+      detail: "L'aperçu d'impact refuse cette opération. Le champ « blockers » en donne toutes les raisons."
     invalid_account_query:
       title: 'Requête de comptes invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'

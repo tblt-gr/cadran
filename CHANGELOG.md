@@ -84,6 +84,33 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 - The dashboard now reads that aggregate instead of demonstration figures: the headline amount, the
   movement since the compared day, the freshness of the sources, the curve with its tabular
   alternative, and the exclusive allocation of the top-level account groups.
+- Category lifecycle operations at `/api/v1/categories/{id}`: moving a branch, folding a category
+  into another, retiring one, and replacing one from a date onwards. Each is confirmed against an
+  impact preview served by `GET /api/v1/categories/{id}/impact`, which answers what the operation
+  would change without changing anything and names every reason it would be refused. The same
+  assessment gates the write, so the confirmation screen and the operation it leads to never
+  disagree, and a stale confirmation is refused rather than applied.
+- Cycles are now impossible in a category tree at both boundaries: the use case walks the ancestry
+  before a move, and a database trigger walks it again on every write, so no writer can attach a
+  category below itself. A move rewrites the depth of the whole branch, archived categories
+  included, inside one transaction.
+- A merge moves the direct children under the target, records the redirection that makes the
+  history of the source read as the target's, and archives the source. A dated replacement records
+  the same redirection from a chosen day onwards and leaves the source in place, still selectable
+  for the period before it: history is never silently rewritten. A category is redirected at most
+  once, never across income and expense, and never in a loop.
+- No category is ever hard-deleted, used or not: the API exposes archiving only, and archiving waits
+  for the branch below to be retired first. Every lifecycle operation writes a redacted audit event
+  carrying structure and identifiers, never a label.
+- The impact preview reports the historical classifications an operation would re-point as
+  unknown, with an explicit reason, while no transaction history exists. It is never an invented
+  `0`, and the categories interface shows that non-calculable state as such. It also states the
+  archived subcategories a move carries along and the redirections that name the category, so
+  nothing moves without being announced first.
+- Retiring a category that others redirect into is handled rather than left dangling: archiving is
+  refused because it names no successor, while a merge carries those redirections over to its own
+  target in the same transaction. A redirection therefore never ends up naming a category nobody
+  can select.
 
 ## [0.1.0] - 2026-09-02
 

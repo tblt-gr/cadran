@@ -14,17 +14,11 @@ import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { CategoryForm } from './category-form/CategoryForm';
+import { CategoryLifecycleDialog } from './category-lifecycle/CategoryLifecycleDialog';
+import { useCategoryLifecycle } from './category-lifecycle/useCategoryLifecycle';
 import { CategoryList } from './category-list/CategoryList';
+import { CategoryRequestError, categoryErrorKind, categoryRequestError } from './categoryError';
 import styles from './CategoryPage.module.css';
-
-class CategoryRequestError extends Error {
-  readonly status: number;
-
-  constructor(status: number) {
-    super(`Category request failed with status ${status}.`);
-    this.status = status;
-  }
-}
 
 type Editor = Category | 'create' | null;
 
@@ -34,10 +28,11 @@ export function CategoryPage() {
   const [includeArchived, setIncludeArchived] = useState(false);
   const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<Editor>(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState<'applied' | 'saved' | null>(null);
+  const lifecycle = useCategoryLifecycle(() => setSaved('applied'));
 
   function openEditor(target: Exclude<Editor, null>) {
-    setSaved(false);
+    setSaved(null);
     save.reset();
     setEditor(target);
   }
@@ -56,7 +51,7 @@ export function CategoryPage() {
         signal,
       });
       if (!result.response?.ok || !result.data) {
-        throw new CategoryRequestError(result.response?.status ?? 0);
+        throw categoryRequestError(result);
       }
       return result.data;
     },
@@ -79,29 +74,20 @@ export function CategoryPage() {
             );
 
       if (!result.response?.ok || !result.data) {
-        throw new CategoryRequestError(result.response?.status ?? 0);
+        throw categoryRequestError(result);
       }
       return result.data;
     },
     onSuccess: async () => {
       setEditor(null);
-      setSaved(true);
+      setSaved('saved');
       await queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
   });
 
-  const submitError =
-    save.error instanceof CategoryRequestError
-      ? save.error.status === 409
-        ? 'conflict'
-        : save.error.status === 422
-          ? 'invalid'
-          : 'network'
-      : save.isError
-        ? 'network'
-        : null;
+  const submitError = categoryErrorKind(save.error, save.isError);
   const unauthorized =
-    categories.error instanceof CategoryRequestError && categories.error.status === 401;
+    categories.error instanceof CategoryRequestError && categories.error.kind === 'unauthorized';
   const items = categories.data?.items ?? [];
   const totalPages = Math.max(1, Math.ceil((categories.data?.total ?? 0) / 50));
 
@@ -125,7 +111,11 @@ export function CategoryPage() {
         </button>
       </section>
 
-      {saved ? <Toast onDismiss={() => setSaved(false)}>{t('categories.saved')}</Toast> : null}
+      {saved ? (
+        <Toast onDismiss={() => setSaved(null)}>
+          {t(saved === 'applied' ? 'categories.lifecycle.applied' : 'categories.saved')}
+        </Toast>
+      ) : null}
 
       {editor ? (
         <Modal
@@ -144,6 +134,25 @@ export function CategoryPage() {
             onSubmit={(body) => save.mutate(body)}
             pending={save.isPending}
             submitError={submitError}
+          />
+        </Modal>
+      ) : null}
+
+      {lifecycle.target ? (
+        <Modal
+          close={lifecycle.close}
+          eyebrow={t(`categories.lifecycle.${lifecycle.target.operation}.eyebrow`)}
+          title={t(`categories.lifecycle.${lifecycle.target.operation}.title`)}
+        >
+          <CategoryLifecycleDialog
+            category={lifecycle.target.category}
+            key={`${lifecycle.target.category.id}-${lifecycle.target.operation}`}
+            onCancel={lifecycle.close}
+            onConfirm={(confirmation) => lifecycle.apply.mutate(confirmation)}
+            operation={lifecycle.target.operation}
+            pending={lifecycle.apply.isPending}
+            submitError={lifecycle.apply.error}
+            submitFailed={lifecycle.apply.isError}
           />
         </Modal>
       ) : null}
@@ -203,7 +212,14 @@ export function CategoryPage() {
           ) : null}
         </section>
       ) : (
-        <CategoryList categories={items} onEdit={openEditor} />
+        <CategoryList
+          categories={items}
+          onEdit={openEditor}
+          onLifecycle={(category, operation) => {
+            setSaved(null);
+            lifecycle.open(category, operation);
+          }}
+        />
       )}
 
       {categories.isSuccess && (totalPages > 1 || page > 1) ? (

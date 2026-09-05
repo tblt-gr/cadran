@@ -86,17 +86,19 @@ final readonly class DbalCategoryRepository implements CategoryRepository
         CategoryType $type,
         ?string $parentId,
         string $label,
-        ?string $excludingId = null,
+        array $excludingIds = [],
     ): bool {
-        $excludeClause = null === $excludingId ? '' : ' AND id <> :excluding_id';
+        $excludeClause = [] === $excludingIds ? '' : ' AND id NOT IN (:excluding_ids)';
         $parameters = [
             'workspace_id' => $workspace->id,
             'type' => $type->value,
             'parent_id' => $parentId,
             'label' => $label,
         ];
-        if (null !== $excludingId) {
-            $parameters['excluding_id'] = $excludingId;
+        $types = [];
+        if ([] !== $excludingIds) {
+            $parameters['excluding_ids'] = $excludingIds;
+            $types['excluding_ids'] = ArrayParameterType::STRING;
         }
 
         return false !== $this->connection->fetchOne(
@@ -105,6 +107,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             .' AND parent_id IS NOT DISTINCT FROM :parent_id AND normalized_label = lower(btrim(:label))'
             .' AND archived_at IS NULL'.$excludeClause.' LIMIT 1',
             $parameters,
+            $types,
         );
     }
 
@@ -114,6 +117,16 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             'SELECT 1 FROM category_categories WHERE workspace_id = :workspace_id AND parent_id = :parent_id LIMIT 1',
             ['workspace_id' => $workspace->id, 'parent_id' => $id],
         );
+    }
+
+    public function descendantsForUpdate(WorkspaceScope $workspace, string $ancestorId): array
+    {
+        return $this->branch($workspace, $ancestorId, true);
+    }
+
+    public function descendants(WorkspaceScope $workspace, string $ancestorId): array
+    {
+        return $this->branch($workspace, $ancestorId, false);
     }
 
     public function parentIdsWithChildren(WorkspaceScope $workspace, array $ids): array
@@ -185,6 +198,36 @@ final readonly class DbalCategoryRepository implements CategoryRepository
         } catch (UniqueConstraintViolationException $exception) {
             throw new CategoryConflict('An active sibling already uses this label.', previous: $exception);
         }
+    }
+
+    /**
+     * Descends level by level rather than with a recursive CTE: `FOR UPDATE` is not
+     * allowed inside one, and a move has to lock the branch it is about to rewrite.
+     * The bounded tree depth keeps the number of round trips small.
+     *
+     * @return list<Category>
+     */
+    private function branch(WorkspaceScope $workspace, string $ancestorId, bool $forUpdate): array
+    {
+        $found = [];
+        $frontier = [$ancestorId];
+        while ([] !== $frontier) {
+            $rows = $this->connection->fetchAllAssociative(
+                'SELECT '.self::COLUMNS.' FROM category_categories'
+                .' WHERE workspace_id = :workspace_id AND parent_id IN (:ids) ORDER BY id'
+                .($forUpdate ? ' FOR UPDATE' : ''),
+                ['workspace_id' => $workspace->id, 'ids' => $frontier],
+                ['ids' => ArrayParameterType::STRING],
+            );
+            $frontier = [];
+            foreach ($rows as $row) {
+                $category = CategoryRow::hydrate($row, $workspace);
+                $found[] = $category;
+                $frontier[] = $category->id;
+            }
+        }
+
+        return $found;
     }
 
     /**
