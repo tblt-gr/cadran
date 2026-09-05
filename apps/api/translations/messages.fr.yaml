@@ -105,6 +105,30 @@ api:
     account_forbidden:
       title: 'Comptes inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    invalid_account_group_query:
+      title: 'Requête de groupes invalide'
+      detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
+    invalid_account_group:
+      title: 'Groupe de comptes invalide'
+      detail: 'Vérifiez le libellé, le parent et l’ordre du groupe. Un arbre de groupes ne peut pas contenir de cycle ni un parent d’un autre espace.'
+    account_group_payload_too_large:
+      title: 'Corps de groupe trop volumineux'
+      detail: 'Le corps JSON dépasse la taille maximale autorisée.'
+    account_group_label_taken:
+      title: 'Libellé de groupe déjà utilisé'
+      detail: 'Un groupe frère actif porte déjà ce libellé. Choisissez un autre libellé.'
+    account_group_stale_version:
+      title: 'Groupe modifié entre-temps'
+      detail: 'Le groupe a été modifié par une autre requête. Rechargez le groupe puis réappliquez la modification.'
+    account_group_archived:
+      title: 'Groupe archivé'
+      detail: "Un groupe archivé est en lecture seule et n'accepte plus de modification."
+    account_group_not_found:
+      title: 'Groupe introuvable'
+      detail: 'Aucun groupe ne porte cet identifiant dans cet espace de travail.'
+    account_group_forbidden:
+      title: 'Groupes inaccessibles'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
     invalid_account_rule_override:
       title: 'Dérogation de règle invalide'
       detail: "Vérifiez la règle visée, sa valeur, ses dates d'effet et le motif. Une dérogation ne peut énoncer que ce que le produit ou le modèle suivi par le compte pourrait énoncer lui-même, et un montant est libellé dans la devise du compte."

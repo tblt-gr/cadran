@@ -560,6 +560,230 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/account-groups:
+    get:
+      operationId: listAccountGroups
+      summary: List the calling workspace account groups
+      description: >-
+        Requires an authenticated session. The workspace is resolved from the
+        session and cannot be selected by a query parameter. Archived rows are
+        omitted unless explicitly requested. Published shares stay null with an
+        explicit reason until valuations exist; they are never `0%`.
+      tags:
+        - Account groups
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: parentEligible
+          in: query
+          required: false
+          description: Return only active groups below the maximum tree depth.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: One page of account groups from the calling workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroupPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createAccountGroup
+      summary: Create an account group in the calling workspace
+      description: >-
+        Creates a workspace-owned exclusive group. The parent, when present,
+        must be active and belong to the calling workspace. The mutation
+        requires the same-origin CSRF token.
+      tags:
+        - Account groups
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountGroupRequest'
+      responses:
+        '201':
+          description: The group was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroup'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '409':
+          description: An active sibling already uses the normalized label.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          description: The group label, parent or bounds are invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/account-groups/{id}:
+    put:
+      operationId: updateAccountGroup
+      summary: Update an active account group
+      description: >-
+        Replaces editable group fields using optimistic versioning. Reparenting
+        is allowed when it does not create a cycle or cross a workspace.
+      tags:
+        - Account groups
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountGroupRequest'
+      responses:
+        '200':
+          description: The updated group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroup'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The label conflicts or the submitted version is stale.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          description: The group fields are invalid or the tree would cycle.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/account-groups/{id}/archive:
+    post:
+      operationId: archiveAccountGroup
+      summary: Archive an unused account group
+      description: >-
+        Archives a group that has no children and is not referenced by an
+        account. Archived groups are read-only.
+      tags:
+        - Account groups
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchiveAccountGroupRequest'
+      responses:
+        '200':
+          description: The archived group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroup'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The submitted version is stale.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          description: The group is already archived, has children or is referenced.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts:
     get:
       operationId: listAccounts
@@ -627,7 +851,9 @@ paths:
       summary: Create a financial account in the calling workspace
       description: >-
         Creates an account with its denomination, kind, lifecycle dates,
-        valuation mode and inclusion policies. The asset code must exist in the
+        valuation mode and inclusion policies. An optional exclusive group and
+        extra tags may be set at creation; omitting the group (`null`) leaves
+        the account ungrouped. The asset code must exist in the
         read-only system reference. An optional `productCode` backs the account
         with a catalogue product; the submitted kind and valuation mode are then
         checked against what that product declares. The mutation requires the
@@ -2762,6 +2988,173 @@ components:
         total:
           type: integer
           minimum: 0
+    NetWorthShare:
+      description: >-
+        Backend-owned weight of one account or exclusive group. Both the ratio
+        and the percent are canonical decimal strings. When the share cannot
+        be computed it is null with a reason, never `0%`.
+      type: object
+      additionalProperties: false
+      required:
+        - ratio
+        - percent
+        - reason
+      properties:
+        ratio:
+          oneOf:
+            - type: string
+              pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        percent:
+          oneOf:
+            - type: string
+              pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        reason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthShareReason'
+            - type: 'null'
+    NetWorthShareReason:
+      type: string
+      enum:
+        - MISSING_VALUATION
+        - ZERO_ELIGIBLE_NET_WORTH
+        - NEGATIVE_ELIGIBLE_NET_WORTH
+    AccountGroupPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - perPage
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountGroup'
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+    AccountGroup:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - label
+        - parentId
+        - parentLabel
+        - sortOrder
+        - depth
+        - version
+        - hasChildren
+        - canAcceptChildren
+        - share
+        - archivedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        parentId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        parentLabel:
+          description: Label of the parent group, or null when the group is a root.
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 32767
+        depth:
+          type: integer
+          minimum: 1
+          maximum: 8
+        version:
+          type: integer
+          minimum: 1
+        hasChildren:
+          type: boolean
+        canAcceptChildren:
+          type: boolean
+        share:
+          $ref: '#/components/schemas/NetWorthShare'
+        archivedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    CreateAccountGroupRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - label
+        - parentId
+        - sortOrder
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        parentId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 32767
+    UpdateAccountGroupRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - label
+        - parentId
+        - sortOrder
+        - version
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        parentId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 32767
+        version:
+          type: integer
+          minimum: 1
+    ArchiveAccountGroupRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          minimum: 1
     Account:
       type: object
       additionalProperties: false
@@ -2788,6 +3181,9 @@ components:
         - kindEditReason
         - version
         - archivedAt
+        - primaryGroupId
+        - tagGroupIds
+        - share
       properties:
         id:
           type: string
@@ -2902,6 +3298,25 @@ components:
             - type: string
               format: date-time
             - type: 'null'
+        primaryGroupId:
+          description: >-
+            Exclusive membership used by group weights. Null until the account
+            is assigned. A tag is never this field.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        tagGroupIds:
+          description: >-
+            Extra group labels that never enter an exclusive denominator.
+            Each identifier is unique and distinct from `primaryGroupId`.
+          type: array
+          maxItems: 32
+          items:
+            type: string
+            format: uuid
+        share:
+          $ref: '#/components/schemas/NetWorthShare'
     CreateAccountRequest:
       type: object
       additionalProperties: false
@@ -2919,6 +3334,8 @@ components:
         - includeInEmergencyFund
         - openedOn
         - closedOn
+        - primaryGroupId
+        - tagGroupIds
       properties:
         label:
           type: string
@@ -2982,6 +3399,23 @@ components:
             - type: string
               format: date
             - type: 'null'
+        primaryGroupId:
+          description: >-
+            Optional exclusive membership used by group weights. Null leaves
+            the account ungrouped. A tag is never this field.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        tagGroupIds:
+          description: >-
+            Extra group labels that never enter an exclusive denominator.
+            Each identifier is unique and distinct from `primaryGroupId`.
+          type: array
+          maxItems: 32
+          items:
+            type: string
+            format: uuid
     UpdateAccountRequest:
       type: object
       additionalProperties: false
@@ -2999,6 +3433,8 @@ components:
         - openedOn
         - closedOn
         - version
+        - primaryGroupId
+        - tagGroupIds
       properties:
         label:
           type: string
@@ -3056,6 +3492,21 @@ components:
         version:
           type: integer
           minimum: 1
+        primaryGroupId:
+          description: >-
+            Exclusive membership used by group weights, or null to leave the
+            account ungrouped. An unknown or foreign group is refused.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        tagGroupIds:
+          description: Extra group labels that never enter an exclusive denominator.
+          type: array
+          maxItems: 32
+          items:
+            type: string
+            format: uuid
     ArchiveAccountRequest:
       type: object
       additionalProperties: false

@@ -86,6 +86,7 @@
   "navigation": {
     "accounts": "Comptes",
     "budget": "Budget",
+    "accountGroups": "Groupes de comptes",
     "categories": "Catégories",
     "collapse": "Réduire la navigation",
     "expand": "Déployer la navigation",
@@ -165,7 +166,11 @@
       "includeInEmergencyFund": "Compter ce compte dans l’épargne de précaution",
       "openedOn": "Date d’ouverture",
       "closedOn": "Date de clôture",
-      "contribution": "Contribution"
+      "contribution": "Contribution",
+      "grouping": "Groupe",
+      "primaryGroup": "Groupe (optionnel)",
+      "tags": "Étiquettes (hors poids)",
+      "share": "Poids patrimonial"
     },
     "kinds": {
       "CURRENT": "Compte courant",
@@ -210,6 +215,13 @@
       "maskedIdentifierHint": "Uniquement la fin de l’identifiant, 2 à 8 caractères. Ne saisissez jamais un IBAN complet.",
       "closedOnHint": "Laissez vide tant que le compte est ouvert. Une date le clôture, l’effacer le rouvre.",
       "emergencyFundHint": "Un compte exclu du patrimoine net ne peut pas alimenter l’épargne de précaution.",
+      "groupingHint": "Le groupe est le tiroir du compte dans le patrimoine : un seul, ou aucun. Une étiquette le signale aussi ailleurs, sans l’ajouter une seconde fois au poids de ce groupe.",
+      "noGroup": "Aucun groupe",
+      "groupsLoading": "Chargement des groupes…",
+      "groupsError": "Impossible de charger les groupes.",
+      "noTagCandidates": "Créez d’abord un groupe, puis un second si vous voulez une étiquette.",
+      "needAnotherGroupForTag": "Une étiquette est un autre groupe. Créez-en un second pour marquer ce compte ailleurs, sans le compter deux fois.",
+      "tagIsPrimary": "déjà le groupe, pas une étiquette",
       "kindReasons": {
         "ARCHIVED": "La nature d’un compte archivé est verrouillée.",
         "USED": "La nature est verrouillée car ce compte est déjà utilisé."
@@ -435,6 +447,98 @@
         "reason": "Le motif est obligatoire et ne dépasse pas 200 caractères.",
         "network": "La demande n’a pas abouti. Réessayez."
       }
+    }
+  },
+  "accountGroups": {
+    "eyebrow": "Organisation patrimoniale",
+    "title": "Groupes de comptes",
+    "description": "Classez les comptes dans une arborescence exclusive. Les étiquettes n’entrent pas dans le dénominateur d’un groupe.",
+    "add": "Nouveau groupe",
+    "addFirst": "Créer le premier groupe",
+    "includeArchived": "Afficher les groupes archivés",
+    "loading": "Chargement des groupes…",
+    "toasts": {
+      "saved": "Le groupe a été enregistré.",
+      "archived": "Le groupe a été archivé."
+    },
+    "fields": {
+      "label": "Libellé",
+      "parent": "Groupe parent",
+      "order": "Ordre d’affichage",
+      "share": "Poids patrimonial"
+    },
+    "form": {
+      "createEyebrow": "Création",
+      "createTitle": "Nouveau groupe",
+      "editEyebrow": "Modification",
+      "editTitle": "Modifier le groupe",
+      "noParent": "Aucun",
+      "parentsLoading": "Chargement des groupes parents…",
+      "parentsError": "Impossible de charger les groupes parents.",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "validation": {
+      "label": "Le libellé doit contenir entre 1 et 80 caractères.",
+      "order": "L’ordre doit être un entier compris entre 0 et 32767."
+    },
+    "errors": {
+      "conflict": "Un groupe actif porte déjà ce libellé au même niveau. Choisissez-en un autre.",
+      "invalid": "Le groupe est invalide. Vérifiez son libellé, son parent et l’absence de cycle.",
+      "network": "L’enregistrement a échoué. Réessayez.",
+      "stale": "Ce groupe a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le groupe puis réappliquez votre modification."
+    },
+    "empty": {
+      "title": "Aucun groupe",
+      "description": "Créez un groupe exclusif pour classer les comptes et calculer leurs poids."
+    },
+    "emptyArchived": {
+      "title": "Aucun groupe archivé",
+      "description": "Les groupes archivés apparaîtront ici sans redevenir modifiables."
+    },
+    "error": {
+      "title": "Groupes indisponibles",
+      "description": "Impossible de charger les groupes. Vérifiez le service puis réessayez."
+    },
+    "unauthorized": {
+      "title": "Session expirée",
+      "description": "Reconnectez-vous pour accéder aux groupes de votre espace."
+    },
+    "list": {
+      "caption": "Groupes de comptes et poids patrimoniaux",
+      "status": "État",
+      "actions": "Actions",
+      "active": "Actif",
+      "archived": "Archivé",
+      "edit": "Modifier",
+      "archive": "Archiver",
+      "editGroup": "Modifier le groupe {{label}}",
+      "archiveGroup": "Archiver le groupe {{label}}",
+      "depth": "Niveau {{depth}}",
+      "unavailableParent": "Parent non affiché"
+    },
+    "archive": {
+      "eyebrow": "Archivage",
+      "title": "Archiver le groupe",
+      "description": "Archiver « {{label}} » le retire de l’arbre actif. Ce n’est pas une suppression.",
+      "consequences": "Un groupe avec des enfants ou déjà assigné à un compte ne peut pas être archivé.",
+      "confirm": "Archiver",
+      "confirming": "Archivage…"
+    },
+    "share": {
+      "notApplicable": "Hors patrimoine éligible",
+      "reasons": {
+        "MISSING_VALUATION": "Valorisation manquante",
+        "ZERO_ELIGIBLE_NET_WORTH": "Patrimoine éligible nul",
+        "NEGATIVE_ELIGIBLE_NET_WORTH": "Patrimoine éligible négatif"
+      }
+    },
+    "pagination": {
+      "label": "Pagination des groupes",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "position": "Page {{page}} sur {{total}}"
     }
   },
   "categories": {

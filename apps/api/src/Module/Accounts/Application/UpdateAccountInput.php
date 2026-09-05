@@ -20,6 +20,9 @@ final readonly class UpdateAccountInput
         public string $openedOn,
         public ?string $closedOn,
         public int $version,
+        public ?string $primaryGroupId = null,
+        /** @var list<string> */
+        public array $tagGroupIds = [],
     ) {
     }
 }

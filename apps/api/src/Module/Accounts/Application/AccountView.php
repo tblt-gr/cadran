@@ -31,10 +31,14 @@ final readonly class AccountView
         public ?string $kindEditReason,
         public int $version,
         public ?string $archivedAt,
+        public ?string $primaryGroupId = null,
+        /** @var list<string> */
+        public array $tagGroupIds = [],
+        public ?ShareView $share = null,
     ) {
     }
 
-    public static function fromAccount(Account $account): self
+    public static function fromAccount(Account $account, ?ShareView $share = null): self
     {
         $archived = null !== $account->archivedAt;
 
@@ -75,6 +79,9 @@ final readonly class AccountView
             },
             version: $account->version,
             archivedAt: $account->archivedAt?->format(DATE_ATOM),
+            primaryGroupId: $account->primaryGroupId,
+            tagGroupIds: $account->tagGroupIds,
+            share: $share ?? ($account->includeInNetWorth ? ShareView::missingValuation() : ShareView::notApplicable()),
         );
     }
 }

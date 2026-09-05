@@ -9,6 +9,7 @@ const api = vi.hoisted(() => ({
   archiveAccount: vi.fn(),
   createAccount: vi.fn(),
   listAccounts: vi.fn(),
+  listAccountGroups: vi.fn(),
   listAssets: vi.fn(),
   listProductModels: vi.fn(),
   listProducts: vi.fn(),
@@ -49,6 +50,9 @@ const account: Account = {
   kindEditReason: null,
   version: 1,
   archivedAt: null,
+  primaryGroupId: null,
+  tagGroupIds: [],
+  share: { ratio: null, percent: null, reason: 'MISSING_VALUATION' },
 };
 
 const livretA: Product = {
@@ -253,6 +257,9 @@ describe('AccountsPage', () => {
     // Reading the rules of an account also reads the claims recorded against
     // it; an account that never claimed anything is the default.
     api.listAccountRuleOverrides.mockImplementation(() => success({ overrides: [] }));
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
   });
 
   afterEach(() => {
@@ -310,10 +317,63 @@ describe('AccountsPage', () => {
       includeInEmergencyFund: false,
       openedOn: '2026-01-10',
       closedOn: null,
+      primaryGroupId: null,
+      tagGroupIds: [],
     });
     const toast = await screen.findByText('Le compte a été enregistré.');
     expect(toast.closest('[role="status"]')).toBeTruthy();
     expect(container.contains(toast)).toBe(false);
+  });
+
+  it('lets a create choose an optional exclusive group', async () => {
+    const epargne = {
+      id: '00000000-0000-7000-8000-0000000000b1',
+      label: 'Épargne',
+      parentId: null,
+      parentLabel: null,
+      sortOrder: 0,
+      depth: 1,
+      version: 1,
+      hasChildren: false,
+      canAcceptChildren: true,
+      share: { ratio: null, percent: null, reason: 'MISSING_VALUATION' as const },
+      archivedAt: null,
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.listAssets.mockImplementation(() =>
+      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [epargne], page: 1, perPage: 100, total: 1 }),
+    );
+    api.createAccount.mockImplementation(({ body }) => success({ ...account, ...body }, 201));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    fireEvent.click(await screen.findByRole('radio', { name: /Aucun produit/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Livret A Banque X' } });
+    fireEvent.change(screen.getByLabelText('Date d’ouverture'), {
+      target: { value: '2026-01-10' },
+    });
+    expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Groupe (optionnel)'), {
+      target: { value: epargne.id },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le compte' }));
+
+    await waitFor(() => expect(api.createAccount).toHaveBeenCalledOnce());
+    expect(api.createAccount.mock.calls[0]?.[0].body).toMatchObject({
+      label: 'Livret A Banque X',
+      primaryGroupId: epargne.id,
+      tagGroupIds: [],
+    });
   });
 
   it('inherits the kind of a chosen product and submits only its reference', async () => {
@@ -379,8 +439,10 @@ describe('AccountsPage', () => {
       'liquidityLevel',
       'maskedIdentifier',
       'openedOn',
+      'primaryGroupId',
       'productCode',
       'productModelId',
+      'tagGroupIds',
       'valuationMode',
     ]);
   });

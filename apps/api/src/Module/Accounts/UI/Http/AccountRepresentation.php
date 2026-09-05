@@ -6,6 +6,7 @@ namespace App\Module\Accounts\UI\Http;
 
 use App\Module\Accounts\Application\AccountPage;
 use App\Module\Accounts\Application\AccountView;
+use App\Module\Accounts\Application\ShareView;
 
 /**
  * The wire shape of an account, kept apart from the controller that serves it.
@@ -42,6 +43,9 @@ final readonly class AccountRepresentation
             'kindEditReason' => $account->kindEditReason,
             'version' => $account->version,
             'archivedAt' => $account->archivedAt,
+            'primaryGroupId' => $account->primaryGroupId,
+            'tagGroupIds' => $account->tagGroupIds,
+            'share' => AccountGroupRepresentation::share($account->share ?? ShareView::notApplicable()),
         ];
     }
 

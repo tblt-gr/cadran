@@ -119,6 +119,7 @@ final readonly class WorkspaceFixture
         // The rule overrides of an account, and the brackets of their rate
         // scales, follow it through ON DELETE CASCADE.
         $this->connection->executeStatement('DELETE FROM account_financial_accounts');
+        $this->connection->executeStatement('DELETE FROM account_groups');
         // The capabilities, rule periods and brackets follow their model
         // through ON DELETE CASCADE.
         $this->connection->executeStatement('DELETE FROM account_product_models');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
+use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Accounts\Domain\InvalidAccount;
@@ -26,6 +27,7 @@ final readonly class UpdateAccount
         private AccountRepository $accounts,
         private AccountProduct $products,
         private AccountProductModel $productModels,
+        private AccountGroupRepository $groups,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
@@ -83,6 +85,12 @@ final readonly class UpdateAccount
 
             $productCode = $this->resolveProduct($current, $input->productCode, $kind, $valuationMode);
             $productModelId = $this->resolveModel($context->workspace, $current, $input->productModelId, $kind, $valuationMode);
+            $primaryGroupId = $this->resolveGroup($context->workspace, $input->primaryGroupId);
+            $tagGroupIds = [];
+            foreach (AccountGroupInputParser::identifiers($input->tagGroupIds) as $tagGroupId) {
+                $tagGroupIds[] = $this->resolveGroup($context->workspace, $tagGroupId)
+                    ?? throw new InvalidAccountInput('The account group must exist in this workspace.');
+            }
 
             try {
                 $updated = $current->reconfigure(
@@ -99,6 +107,9 @@ final readonly class UpdateAccount
                     openedOn: $openedOn,
                     closedOn: $closedOn,
                     updatedAt: $this->clock->now(),
+                    primaryGroupId: $primaryGroupId,
+                    tagGroupIds: $tagGroupIds,
+                    keepGrouping: false,
                 );
             } catch (InvalidAccount $exception) {
                 throw new InvalidAccountInput($exception->getMessage(), previous: $exception);
@@ -154,6 +165,20 @@ final readonly class UpdateAccount
         }
 
         return $this->productModels->resolve($workspace, $submitted, $kind, $valuationMode);
+    }
+
+    private function resolveGroup(WorkspaceScope $workspace, ?string $groupId): ?string
+    {
+        if (null === $groupId) {
+            return null;
+        }
+
+        $group = $this->groups->find($workspace, $groupId);
+        if (null === $group || null !== $group->archivedAt) {
+            throw new InvalidAccountInput('The account group must exist in this workspace.');
+        }
+
+        return $group->id;
     }
 
     /**

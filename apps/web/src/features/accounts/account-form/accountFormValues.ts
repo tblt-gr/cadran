@@ -27,6 +27,8 @@ export interface AccountFormValues {
   includeInEmergencyFund: boolean;
   openedOn: string;
   closedOn: string;
+  primaryGroupId: string;
+  tagGroupIds: string[];
 }
 
 export function accountFormValues(account: Account): AccountFormValues {
@@ -42,6 +44,8 @@ export function accountFormValues(account: Account): AccountFormValues {
     includeInEmergencyFund: account.includeInEmergencyFund,
     openedOn: account.openedOn,
     closedOn: account.closedOn ?? '',
+    primaryGroupId: account.primaryGroupId ?? '',
+    tagGroupIds: account.tagGroupIds,
   };
 }
 
@@ -63,5 +67,7 @@ export function emptyAccountFormValues(origin: AccountOrigin): AccountFormValues
     includeInEmergencyFund: false,
     openedOn: '',
     closedOn: '',
+    primaryGroupId: '',
+    tagGroupIds: [],
   };
 }

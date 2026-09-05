@@ -36,6 +36,8 @@ final class AccountAuditFingerprint
             'includeInEmergencyFund' => $account->includeInEmergencyFund,
             'identified' => null !== $account->maskedIdentifier,
             'closed' => $account->isClosed(),
+            'grouped' => null !== $account->primaryGroupId,
+            'tagCount' => count($account->tagGroupIds),
             'version' => $account->version,
         ];
     }

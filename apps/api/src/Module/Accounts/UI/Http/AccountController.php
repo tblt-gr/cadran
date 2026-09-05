@@ -44,6 +44,7 @@ final readonly class AccountController
     private const array WRITE_FIELDS = [
         'label', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier', 'valuationMode',
         'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund', 'openedOn', 'closedOn',
+        'primaryGroupId', 'tagGroupIds',
     ];
 
     public function __construct(private TranslatorInterface $translator)
@@ -104,6 +105,8 @@ final readonly class AccountController
                 includeInEmergencyFund: $payload->boolean('includeInEmergencyFund'),
                 openedOn: $payload->string('openedOn'),
                 closedOn: $payload->nullableString('closedOn'),
+                primaryGroupId: $payload->nullableString('primaryGroupId'),
+                tagGroupIds: $payload->stringList('tagGroupIds'),
             ));
         } catch (AccountArchived) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);
@@ -148,6 +151,8 @@ final readonly class AccountController
                 openedOn: $payload->string('openedOn'),
                 closedOn: $payload->nullableString('closedOn'),
                 version: $payload->integer('version'),
+                primaryGroupId: $payload->nullableString('primaryGroupId'),
+                tagGroupIds: $payload->stringList('tagGroupIds'),
             ));
         } catch (AccountArchived) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);

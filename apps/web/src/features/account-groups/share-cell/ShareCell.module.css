@@ -1,0 +1,8 @@
+.value,
+.unknown {
+  font-variant-numeric: tabular-nums;
+}
+
+.unknown {
+  color: var(--text-muted);
+}
