@@ -90,6 +90,86 @@ final class CategoryTest extends TestCase
         $this->category(depth: Category::MAX_TREE_DEPTH + 1);
     }
 
+    public function testAMoveCarriesTheBranchToItsNewDepth(): void
+    {
+        $moved = $this->category()->moveTo(
+            '00000000-0000-7000-8000-0000000000c2',
+            2,
+            new \DateTimeImmutable('2026-09-05T09:00:00+00:00'),
+        );
+
+        self::assertSame('00000000-0000-7000-8000-0000000000c2', $moved->parentId);
+        self::assertSame(2, $moved->depth);
+        self::assertSame(2, $moved->version);
+    }
+
+    public function testAnArchivedCategoryCannotBeMovedByHand(): void
+    {
+        $this->expectException(InvalidCategory::class);
+        $this->expectExceptionMessage('read-only');
+
+        $this->category(archivedAt: new \DateTimeImmutable())
+            ->moveTo(null, 1, new \DateTimeImmutable());
+    }
+
+    public function testAnArchivedCategoryStillFollowsAnAncestorMove(): void
+    {
+        $archived = $this->category(archivedAt: new \DateTimeImmutable('2026-09-01T12:00:00+00:00'));
+
+        $followed = $archived->followAncestorMove(
+            '00000000-0000-7000-8000-0000000000c2',
+            3,
+            new \DateTimeImmutable('2026-09-05T09:00:00+00:00'),
+        );
+
+        self::assertSame(3, $followed->depth);
+        self::assertNotNull($followed->archivedAt);
+    }
+
+    public function testArchivingIsIdempotentOnlyByRefusal(): void
+    {
+        $archived = $this->category()->archive(new \DateTimeImmutable('2026-09-05T09:00:00+00:00'));
+
+        self::assertNotNull($archived->archivedAt);
+
+        $this->expectException(InvalidCategory::class);
+        $archived->archive(new \DateTimeImmutable('2026-09-06T09:00:00+00:00'));
+    }
+
+    public function testMovingUnderOwnDescendantIsACycle(): void
+    {
+        $parents = [
+            '00000000-0000-7000-8000-0000000000c2' => '00000000-0000-7000-8000-0000000000c3',
+            '00000000-0000-7000-8000-0000000000c3' => '00000000-0000-7000-8000-0000000000c1',
+        ];
+        $parentOf = static fn (string $id): ?string => $parents[$id] ?? null;
+
+        self::assertTrue(Category::wouldCycle(
+            '00000000-0000-7000-8000-0000000000c1',
+            '00000000-0000-7000-8000-0000000000c2',
+            $parentOf,
+        ));
+        self::assertFalse(Category::wouldCycle(
+            '00000000-0000-7000-8000-0000000000c9',
+            '00000000-0000-7000-8000-0000000000c2',
+            $parentOf,
+        ));
+        self::assertFalse(Category::wouldCycle('00000000-0000-7000-8000-0000000000c1', null, $parentOf));
+    }
+
+    public function testAnAlreadyLoopingChainIsReportedRatherThanWalkedForever(): void
+    {
+        $parentOf = static fn (string $id): string => '00000000-0000-7000-8000-0000000000c2' === $id
+            ? '00000000-0000-7000-8000-0000000000c3'
+            : '00000000-0000-7000-8000-0000000000c2';
+
+        self::assertTrue(Category::wouldCycle(
+            '00000000-0000-7000-8000-0000000000c1',
+            '00000000-0000-7000-8000-0000000000c2',
+            $parentOf,
+        ));
+    }
+
     private function category(
         string $label = 'Restaurants',
         ?string $icon = 'utensils',

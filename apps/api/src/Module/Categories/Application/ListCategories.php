@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\Application;
 
+use App\Module\Categories\Domain\CategoryReplacement;
+use App\Module\Categories\Domain\CategoryReplacementRepository;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Foundation\Application\CallerWorkspace;
 
@@ -16,6 +18,7 @@ final readonly class ListCategories
     public function __construct(
         private CallerWorkspace $caller,
         private CategoryRepository $categories,
+        private CategoryReplacementRepository $replacements,
     ) {
     }
 
@@ -55,14 +58,30 @@ final readonly class ListCategories
             $workspace,
             array_values(array_unique(array_filter(array_column($categories, 'parentId')))),
         );
+        $replacements = $this->replacements->findBySources($workspace, array_column($categories, 'id'));
+        $replacementTargetLabels = $this->categories->labelsByIds(
+            $workspace,
+            array_values(array_unique(array_map(
+                static fn (CategoryReplacement $replacement): string => $replacement->targetCategoryId,
+                $replacements,
+            ))),
+        );
 
         return new CategoryPage(
             items: array_map(
-                static fn ($category): CategoryView => CategoryView::fromCategory(
-                    $category,
-                    isset($parentIds[$category->id]),
-                    null === $category->parentId ? null : ($parentLabels[$category->parentId] ?? null),
-                ),
+                static function ($category) use ($parentIds, $parentLabels, $replacements, $replacementTargetLabels): CategoryView {
+                    $replacement = $replacements[$category->id] ?? null;
+
+                    return CategoryView::fromCategory(
+                        $category,
+                        isset($parentIds[$category->id]),
+                        null === $category->parentId ? null : ($parentLabels[$category->parentId] ?? null),
+                        null === $replacement ? null : CategoryReplacementView::of(
+                            $replacement,
+                            $replacementTargetLabels[$replacement->targetCategoryId] ?? null,
+                        ),
+                    );
+                },
                 $categories,
             ),
             page: $requestedPage,

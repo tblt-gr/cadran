@@ -17,9 +17,10 @@ final class ApiProblem
     public const string TYPE_CSRF = '/problems/csrf-token';
 
     /**
-     * @param array<string, string> $headers extra response headers
+     * @param array<string, string> $headers    extra response headers
+     * @param array<string, mixed>  $extensions RFC 9457 extension members, merged beside the standard fields
      */
-    public static function response(int $status, string $title, string $detail, string $type = self::TYPE_BLANK, array $headers = []): JsonResponse
+    public static function response(int $status, string $title, string $detail, string $type = self::TYPE_BLANK, array $headers = [], array $extensions = []): JsonResponse
     {
         return new JsonResponse(
             data: [
@@ -27,6 +28,7 @@ final class ApiProblem
                 'title' => $title,
                 'status' => $status,
                 'detail' => $detail,
+                ...$extensions,
             ],
             status: $status,
             headers: [

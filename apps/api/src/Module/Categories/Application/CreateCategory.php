@@ -19,6 +19,7 @@ final readonly class CreateCategory
     public function __construct(
         private CallerWorkspaceContext $caller,
         private CategoryRepository $categories,
+        private PresentCategory $presentCategory,
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
@@ -87,7 +88,7 @@ final readonly class CreateCategory
                 ]),
             ));
 
-            return CategoryView::fromCategory($category, false, $parent?->label);
+            return ($this->presentCategory)($context->workspace, $category);
         });
     }
 }

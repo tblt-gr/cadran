@@ -100,6 +100,116 @@ final readonly class Category
         );
     }
 
+    /**
+     * Reparenting is deliberately separate from {@see reconfigure()}: a rename is a display
+     * change, while a move rewrites where the history of this branch is counted and therefore
+     * travels through its own use case, audit event and impact preview.
+     */
+    public function moveTo(?string $parentId, int $depth, \DateTimeImmutable $updatedAt): self
+    {
+        if (null !== $this->archivedAt) {
+            throw new InvalidCategory('An archived category is read-only.');
+        }
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            type: $this->type,
+            label: $this->label,
+            parentId: $parentId,
+            icon: $this->icon,
+            color: $this->color,
+            defaultAnalyticAxes: $this->defaultAnalyticAxes,
+            budgetIncluded: $this->budgetIncluded,
+            sortOrder: $this->sortOrder,
+            depth: $depth,
+            version: $this->version + 1,
+            createdAt: $this->createdAt,
+            updatedAt: $updatedAt,
+            usedAt: $this->usedAt,
+            archivedAt: $this->archivedAt,
+        );
+    }
+
+    /**
+     * Applies an ancestor's move to this category.
+     *
+     * Unlike {@see moveTo()} it accepts an archived category: an archived branch stays
+     * attached to the tree, and leaving its depth behind would fail the database depth
+     * trigger on the next write to it. The archived guard therefore belongs to the
+     * operation the user asked for, not to the cascade it causes.
+     */
+    public function followAncestorMove(?string $parentId, int $depth, \DateTimeImmutable $updatedAt): self
+    {
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            type: $this->type,
+            label: $this->label,
+            parentId: $parentId,
+            icon: $this->icon,
+            color: $this->color,
+            defaultAnalyticAxes: $this->defaultAnalyticAxes,
+            budgetIncluded: $this->budgetIncluded,
+            sortOrder: $this->sortOrder,
+            depth: $depth,
+            version: $this->version + 1,
+            createdAt: $this->createdAt,
+            updatedAt: $updatedAt,
+            usedAt: $this->usedAt,
+            archivedAt: $this->archivedAt,
+        );
+    }
+
+    public function archive(\DateTimeImmutable $archivedAt): self
+    {
+        if (null !== $this->archivedAt) {
+            throw new InvalidCategory('An archived category is read-only.');
+        }
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            type: $this->type,
+            label: $this->label,
+            parentId: $this->parentId,
+            icon: $this->icon,
+            color: $this->color,
+            defaultAnalyticAxes: $this->defaultAnalyticAxes,
+            budgetIncluded: $this->budgetIncluded,
+            sortOrder: $this->sortOrder,
+            depth: $this->depth,
+            version: $this->version + 1,
+            createdAt: $this->createdAt,
+            updatedAt: $archivedAt,
+            usedAt: $this->usedAt,
+            archivedAt: $archivedAt,
+        );
+    }
+
+    /**
+     * @param callable(string): ?string $parentOf resolves the stored parent of a candidate ancestor
+     */
+    public static function wouldCycle(string $categoryId, ?string $newParentId, callable $parentOf): bool
+    {
+        $cursor = $newParentId;
+        $guard = 0;
+        while (null !== $cursor) {
+            if ($cursor === $categoryId) {
+                return true;
+            }
+
+            ++$guard;
+            if ($guard > self::MAX_TREE_DEPTH) {
+                return true;
+            }
+
+            $cursor = $parentOf($cursor);
+        }
+
+        return false;
+    }
+
     private static function assertIdentifier(string $id): void
     {
         if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {

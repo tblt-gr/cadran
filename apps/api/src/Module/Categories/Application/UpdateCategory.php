@@ -18,6 +18,7 @@ final readonly class UpdateCategory
     public function __construct(
         private CallerWorkspaceContext $caller,
         private CategoryRepository $categories,
+        private PresentCategory $presentCategory,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
     ) {
@@ -53,7 +54,7 @@ final readonly class UpdateCategory
                 $type,
                 $current->parentId,
                 $label,
-                $current->id,
+                [$current->id],
             )) {
                 throw new CategoryConflict('An active sibling already uses this label.');
             }
@@ -95,11 +96,7 @@ final readonly class UpdateCategory
                 diff: AuditDiff::change($beforeAudit, $afterAudit),
             ));
 
-            $parentLabel = null === $updated->parentId
-                ? null
-                : ($this->categories->labelsByIds($context->workspace, [$updated->parentId])[$updated->parentId] ?? null);
-
-            return CategoryView::fromCategory($updated, $hasChildren, $parentLabel);
+            return ($this->presentCategory)($context->workspace, $updated);
         });
     }
 

@@ -637,10 +637,6 @@
       "editEyebrow": "Modification",
       "editTitle": "Modifier la catégorie",
       "noParent": "Aucune",
-      "parentSearch": "Rechercher une catégorie parente",
-      "parentsLoading": "Chargement des catégories parentes…",
-      "parentsError": "Impossible de charger les catégories parentes.",
-      "parentsEmpty": "Aucune catégorie parente correspondante.",
       "typeReasons": {
         "ARCHIVED": "Le type d’une catégorie archivée est verrouillé.",
         "USED": "Le type est verrouillé car cette catégorie est déjà utilisée.",
@@ -660,7 +656,10 @@
     "errors": {
       "conflict": "Ce libellé est déjà utilisé au même niveau ou la catégorie a été modifiée ailleurs. Rechargez puis réessayez.",
       "invalid": "La catégorie est invalide. Vérifiez son type, son parent et ses métadonnées.",
-      "network": "L’enregistrement a échoué. Réessayez."
+      "network": "L’enregistrement a échoué. Réessayez.",
+      "refused": "L’opération est refusée. Les raisons sont listées ci-dessous.",
+      "stale": "Cette catégorie a été modifiée ailleurs entre-temps. Rechargez la liste puis recommencez.",
+      "unauthorized": "Votre session a expiré ou n’autorise pas cette opération. Reconnectez-vous, puis recommencez."
     },
     "empty": {
       "title": "Aucune catégorie",
@@ -686,13 +685,103 @@
       "archived": "Archivée",
       "edit": "Modifier",
       "noAxes": "Aucun axe",
-      "unavailableParent": "Parent non affiché"
+      "unavailableParent": "Parent non affiché",
+      "redirection": "Redirection",
+      "noRedirection": "Aucune",
+      "unavailableTarget": "Catégorie non affichée",
+      "mergedInto": "Fusionnée dans « {{target}} »",
+      "replacedFrom": "Remplacée par « {{target}} » à partir du {{date}}",
+      "actionFor": "{{action}} la catégorie « {{label}} »"
     },
     "pagination": {
       "label": "Pagination des catégories",
       "previous": "Précédent",
       "next": "Suivant",
       "position": "Page {{page}} sur {{total}}"
+    },
+    "picker": {
+      "placeholder": "Taper pour rechercher…",
+      "noneAvailable": "Aucune catégorie disponible.",
+      "loading": "Chargement des catégories…",
+      "error": "Impossible de charger les catégories.",
+      "empty": "Aucune catégorie ne correspond à cette recherche.",
+      "matches_one": "{{count}} catégorie correspondante.",
+      "matches_other": "{{count}} catégories correspondantes."
+    },
+    "lifecycle": {
+      "applied": "L’opération a été appliquée.",
+      "confirming": "Application…",
+      "MOVE": {
+        "action": "Déplacer",
+        "eyebrow": "Déplacement",
+        "title": "Déplacer la catégorie",
+        "description": "Déplacer « {{label}} » change l’endroit où son historique est compté. Toutes ses sous-catégories la suivent.",
+        "target": "Nouvelle catégorie parente",
+        "root": "Aucune : placer à la racine",
+        "confirm": "Déplacer"
+      },
+      "MERGE": {
+        "action": "Fusionner",
+        "eyebrow": "Fusion",
+        "title": "Fusionner la catégorie",
+        "description": "Fusionner « {{label}} » déplace ses sous-catégories vers la catégorie cible, redirige tout son historique et l’archive. Ce n’est pas une suppression.",
+        "target": "Catégorie qui reçoit l’historique",
+        "confirm": "Fusionner"
+      },
+      "REPLACE": {
+        "action": "Remplacer",
+        "eyebrow": "Remplacement daté",
+        "title": "Remplacer la catégorie à partir d’une date",
+        "description": "À partir de la date choisie, les classifications de « {{label}} » reviennent à la catégorie cible. La période antérieure reste inchangée et la catégorie reste sélectionnable pour elle.",
+        "target": "Catégorie qui prend le relais",
+        "effectiveFrom": "Date d’effet",
+        "effectiveHint": "Premier jour où la catégorie cible reçoit les classifications.",
+        "confirm": "Remplacer"
+      },
+      "ARCHIVE": {
+        "action": "Archiver",
+        "eyebrow": "Archivage",
+        "title": "Archiver la catégorie",
+        "description": "Archiver « {{label}} » la retire des choix proposés pour les nouvelles classifications. L’historique déjà classé la conserve : une catégorie n’est jamais supprimée.",
+        "confirm": "Archiver"
+      },
+      "impact": {
+        "title": "Impact de l’opération",
+        "idle": "Choisissez les paramètres de l’opération pour afficher son impact.",
+        "loading": "Calcul de l’impact…",
+        "error": "Impossible de calculer l’impact. Réessayez.",
+        "descendants": "Sous-catégories concernées",
+        "reparented": "Sous-catégories déplacées",
+        "depth": "Profondeur atteinte",
+        "depthValue": "{{depth}} sur {{maximum}}",
+        "classifications": "Écritures reclassées",
+        "classificationsReason": {
+          "TRANSACTIONS_UNAVAILABLE": "Non calculable : aucun historique de transactions n’existe encore."
+        },
+        "archivesSource": "Cette catégorie sera archivée.",
+        "redirectsHistory": "L’historique sera redirigé vers la catégorie cible.",
+        "blocked": "Cette opération est actuellement impossible :",
+        "archivedDescendants": "Dont archivées",
+        "incomingRedirections": "Redirections entrantes",
+        "repointsRedirections": "Les redirections qui pointent vers cette catégorie suivront vers la cible."
+      },
+      "blockers": {
+        "ACTIVE_CHILDREN": "Cette catégorie possède encore des sous-catégories actives. Archivez-les d’abord.",
+        "ALREADY_REDIRECTED": "Cette catégorie est déjà redirigée vers une autre.",
+        "CYCLE": "Une catégorie ne peut pas être déplacée sous l’une de ses propres sous-catégories.",
+        "DEPTH_EXCEEDED": "La branche dépasserait la profondeur maximale de l’arbre.",
+        "REDIRECTION_TARGET": "D’autres catégories redirigent vers celle-ci. Fusionnez-la dans sa remplaçante plutôt que de l’archiver, pour que ces redirections suivent.",
+        "REPLACEMENT_CHAIN_TOO_LONG": "La chaîne de redirections est trop longue. Simplifiez-la avant d’en ajouter une.",
+        "REPLACEMENT_CYCLE": "Cette redirection formerait une boucle avec une redirection existante.",
+        "SIBLING_LABEL_CONFLICT": "Un libellé identique existe déjà parmi les catégories sœurs actives visées.",
+        "SOURCE_ARCHIVED": "Une catégorie archivée ne peut plus être réorganisée.",
+        "TARGET_ARCHIVED": "La catégorie cible est archivée.",
+        "TARGET_IS_DESCENDANT": "La cible fait partie de la branche à fusionner.",
+        "TARGET_IS_SELF": "La cible doit être une autre catégorie.",
+        "TARGET_MISSING": "Choisissez une catégorie cible.",
+        "TARGET_NOT_FOUND": "Cette catégorie cible est introuvable dans votre espace.",
+        "TARGET_TYPE_MISMATCH": "La cible doit être du même type, revenu ou dépense."
+      }
     }
   },
   "catalog": {

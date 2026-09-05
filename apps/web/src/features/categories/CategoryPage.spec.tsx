@@ -1,13 +1,15 @@
 import type { Category } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { CategoryPage } from './CategoryPage';
 
 const api = vi.hoisted(() => ({
+  archiveCategory: vi.fn(),
   createCategory: vi.fn(),
   listCategories: vi.fn(),
+  previewCategoryImpact: vi.fn(),
   updateCategory: vi.fn(),
 }));
 
@@ -34,6 +36,7 @@ const category: Category = {
   typeEditReason: null,
   canAcceptChildren: true,
   archivedAt: null,
+  replacement: null,
 };
 
 function success<T>(data: T, status = 200) {
@@ -169,7 +172,7 @@ describe('CategoryPage', () => {
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(document.querySelector('img')).toBeNull();
     expect(screen.getByText('Archivée')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Modifier' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: /^Modifier/ }).hasAttribute('disabled')).toBe(true);
   });
 
   it('shows an explicit unauthorized state', async () => {
@@ -181,6 +184,89 @@ describe('CategoryPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Session expirée' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
+  });
+
+  it('names where an archived category sends its history', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({
+        items: [
+          {
+            ...category,
+            archivedAt: '2026-09-01T12:00:00+00:00',
+            replacement: {
+              kind: 'MERGE',
+              targetId: '00000000-0000-7000-8000-0000000000c2',
+              targetLabel: 'Sorties',
+              effectiveFrom: null,
+            },
+          },
+          {
+            ...category,
+            id: '00000000-0000-7000-8000-0000000000c3',
+            label: 'Transports',
+            replacement: {
+              kind: 'REPLACEMENT',
+              targetId: '00000000-0000-7000-8000-0000000000c4',
+              targetLabel: 'Mobilité',
+              effectiveFrom: '2026-10-01',
+            },
+          },
+        ],
+        page: 1,
+        perPage: 50,
+        total: 2,
+      }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Fusionnée dans « Sorties »')).toBeTruthy();
+    expect(screen.getByText(/Remplacée par « Mobilité » à partir du/)).toBeTruthy();
+  });
+
+  it('archives a category only after an explicit confirmation of its impact', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [category], page: 1, perPage: 50, total: 1 }),
+    );
+    api.previewCategoryImpact.mockImplementation(() =>
+      success({
+        operation: 'ARCHIVE',
+        categoryId: category.id,
+        targetId: null,
+        targetLabel: null,
+        effectiveFrom: null,
+        descendantCount: 0,
+        archivedDescendantCount: 0,
+        reparentedChildCount: 0,
+        resultingDepth: 1,
+        maximumDepth: 8,
+        archivesSource: true,
+        redirectsHistory: false,
+        allowed: true,
+        blockers: [],
+        affectedClassifications: null,
+        affectedClassificationsReason: 'TRANSACTIONS_UNAVAILABLE',
+      }),
+    );
+    api.archiveCategory.mockImplementation(() =>
+      success({ ...category, archivedAt: '2026-09-05T12:00:00+00:00', version: 2 }),
+    );
+    renderPage();
+
+    await screen.findByText('Restaurants');
+    fireEvent.click(screen.getByRole('button', { name: 'Archiver la catégorie « Restaurants »' }));
+    const dialog = screen.getByRole('dialog', { name: 'Archiver la catégorie' });
+    expect(api.archiveCategory).not.toHaveBeenCalled();
+
+    const confirm = within(dialog).getByRole('button', { name: 'Archiver' });
+    await waitFor(() => expect(confirm.hasAttribute('disabled')).toBe(false));
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(api.archiveCategory).toHaveBeenCalledOnce());
+    expect(api.archiveCategory.mock.calls[0]?.[0]).toMatchObject({
+      body: { version: category.version },
+      path: { id: category.id },
+    });
+    expect(await screen.findByText('L’opération a été appliquée.')).toBeTruthy();
   });
 
   it('explains a backend type-edit restriction', async () => {
@@ -195,7 +281,7 @@ describe('CategoryPage', () => {
     renderPage();
 
     await screen.findByText('Restaurants');
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
 
     expect(screen.getByRole('combobox', { name: 'Type' }).hasAttribute('disabled')).toBe(true);
     expect(

@@ -6,6 +6,7 @@ import type {
 } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { CategoryErrorKind } from '@/features/categories/categoryError';
 import { ParentCategoryField } from './parent-category-field/ParentCategoryField';
 import styles from './CategoryForm.module.css';
 
@@ -23,7 +24,7 @@ const AXES: AnalyticAxis[] = [
 interface CategoryFormProps {
   category?: Category;
   pending: boolean;
-  submitError: 'conflict' | 'invalid' | 'network' | null;
+  submitError: CategoryErrorKind | null;
   onCancel: () => void;
   onSubmit: (body: CreateCategoryRequest | UpdateCategoryRequest) => void;
 }

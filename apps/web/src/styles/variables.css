@@ -106,6 +106,7 @@
   --border-line-subtle: var(--border-width-thin) solid var(--border-subtle);
   --border-line-strong: var(--border-width-thin) solid var(--border-strong);
   --border-line-transparent: var(--border-width-thin) solid var(--color-transparent);
+  --border-line-negative: var(--border-width-thin) solid var(--negative);
   --outline-focus: var(--border-width-focus) solid var(--focus);
   --outline-offset-focus: var(--border-width-thin);
   --radius-none: 0;

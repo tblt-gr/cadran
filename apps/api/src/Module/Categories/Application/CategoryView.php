@@ -27,11 +27,16 @@ final readonly class CategoryView
         public ?string $typeEditReason,
         public bool $canAcceptChildren,
         public ?string $archivedAt,
+        public ?CategoryReplacementView $replacement,
     ) {
     }
 
-    public static function fromCategory(Category $category, bool $hasChildren, ?string $parentLabel): self
-    {
+    public static function fromCategory(
+        Category $category,
+        bool $hasChildren,
+        ?string $parentLabel,
+        ?CategoryReplacementView $replacement = null,
+    ): self {
         [$typeEditable, $typeEditReason] = self::typeEligibility($category, $hasChildren);
 
         return new self(
@@ -52,6 +57,7 @@ final readonly class CategoryView
             typeEditReason: $typeEditReason,
             canAcceptChildren: null === $category->archivedAt && $category->depth < Category::MAX_TREE_DEPTH,
             archivedAt: $category->archivedAt?->format(DATE_ATOM),
+            replacement: $replacement,
         );
     }
 
