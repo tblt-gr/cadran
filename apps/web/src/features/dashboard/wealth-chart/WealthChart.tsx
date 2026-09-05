@@ -65,6 +65,20 @@ export function WealthChart({ points }: WealthChartProps) {
               points={polylinePoints(run)}
             />
           ))}
+          {/* A month standing alone between two uncomputable ones has no
+              segment to belong to. Without a mark it would read as no data at
+              all, which is the opposite of what it is. */}
+          {runs
+            .filter((run) => run.length === 1)
+            .map((run) => (
+              <circle
+                className={styles.point}
+                cx={run[0].x}
+                cy={run[0].y}
+                key={`point-${run[0].index}`}
+                r="4"
+              />
+            ))}
         </svg>
       )}
       <details className={styles.details}>

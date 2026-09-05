@@ -176,6 +176,25 @@ describe('DashboardPage', () => {
     expect(table.textContent).toContain(`124${NARROW}680,00${NBSP}€`);
   });
 
+  it('marks a lone computable month so it does not read as no data at all', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(
+      success({
+        ...history,
+        points: [
+          { on: '2026-07-31', total: null, reason: 'NO_ELIGIBLE_ACCOUNT', quality: 'MISSING' },
+          { on: '2026-08-31', total: null, reason: 'MISSING_VALUATION', quality: 'MISSING' },
+          { on: '2026-09-05', total: amount('124680.00'), reason: null, quality: 'CURRENT' },
+        ],
+      } satisfies NetWorthHistory),
+    );
+
+    renderDashboard();
+
+    const chart = await screen.findByRole('img');
+    expect(chart.querySelectorAll('circle')).toHaveLength(1);
+  });
+
   it('states why a total is missing rather than publishing a zero', async () => {
     api.readNetWorth.mockReturnValue(
       success({

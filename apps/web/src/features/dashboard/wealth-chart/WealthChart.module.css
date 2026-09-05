@@ -45,6 +45,15 @@
   stop-opacity: 0;
 }
 
+.point {
+  fill: var(--gold-300);
+  stroke: var(--gold-300);
+  /* The plot is stretched to its container, so a radius in user units would be
+     drawn as an ellipse. The stroke keeps its own scale and rounds it out. */
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
 .line {
   fill: none;
   stroke: var(--gold-300);
