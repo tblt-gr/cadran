@@ -2,12 +2,14 @@ import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
+import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
 import styles from './AccountList.module.css';
 
 interface AccountListProps {
   accounts: Account[];
   onArchive: (account: Account) => void;
   onEdit: (account: Account) => void;
+  onRecordBalance: (account: Account) => void;
   onRules: (account: Account) => void;
 }
 
@@ -17,7 +19,13 @@ const STATUS_TONE = {
   ARCHIVED: 'warning',
 } as const;
 
-export function AccountList({ accounts, onArchive, onEdit, onRules }: AccountListProps) {
+export function AccountList({
+  accounts,
+  onArchive,
+  onEdit,
+  onRecordBalance,
+  onRules,
+}: AccountListProps) {
   const { t } = useTranslation();
 
   return (
@@ -31,6 +39,7 @@ export function AccountList({ accounts, onArchive, onEdit, onRules }: AccountLis
               <th scope="col">{t('accounts.fields.kind')}</th>
               <th scope="col">{t('accounts.fields.assetCode')}</th>
               <th scope="col">{t('accounts.fields.valuationMode')}</th>
+              <th scope="col">{t('accounts.fields.balance')}</th>
               <th scope="col">{t('accounts.fields.contribution')}</th>
               <th scope="col">{t('accounts.fields.share')}</th>
               <th scope="col">{t('accounts.list.status')}</th>
@@ -59,6 +68,9 @@ export function AccountList({ accounts, onArchive, onEdit, onRules }: AccountLis
                 <td>{account.assetCode}</td>
                 <td>{t(`accounts.valuationModes.${account.valuationMode}`)}</td>
                 <td>
+                  <AccountValuationCell valuation={account.valuation} />
+                </td>
+                <td>
                   {t(
                     account.includeInNetWorth
                       ? account.netWorthSign === -1
@@ -80,6 +92,15 @@ export function AccountList({ accounts, onArchive, onEdit, onRules }: AccountLis
                 <td className={styles.rowActions}>
                   {/* Reading the rules changes nothing, so an archived or closed
                       account still answers for the dates it was open. */}
+                  <button
+                    aria-label={t('accounts.list.recordBalanceOfAccount', { label: account.label })}
+                    className="secondary-action"
+                    disabled={!account.editable}
+                    onClick={() => onRecordBalance(account)}
+                    type="button"
+                  >
+                    {t('accounts.list.recordBalance')}
+                  </button>
                   <button
                     aria-label={t('accounts.list.rulesOfAccount', { label: account.label })}
                     className="secondary-action"

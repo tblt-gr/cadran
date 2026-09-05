@@ -7,12 +7,14 @@ namespace App\Tests\Module\Accounts\Application;
 use App\Module\Accounts\Application\AccountProduct;
 use App\Module\Accounts\Application\AccountProductModel;
 use App\Module\Accounts\Application\InvalidAccountInput;
+use App\Module\Accounts\Application\ResolveAccountValuation;
 use App\Module\Accounts\Application\UpdateAccount;
 use App\Module\Accounts\Application\UpdateAccountInput;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
 use App\Tests\Module\Accounts\Application\Double\ImmediateTransactionBoundary;
+use App\Tests\Module\Accounts\Application\Double\InMemoryAccountBalanceSnapshotRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountGroupRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryProductModelRepository;
@@ -20,6 +22,7 @@ use App\Tests\Module\Accounts\Application\Double\SequenceUuidGenerator;
 use App\Tests\Module\Accounts\Domain\AccountFixture;
 use App\Tests\Module\Accounts\Domain\AccountGroupFixture;
 use App\Tests\Module\Catalog\Application\Double\InMemoryProductCatalog;
+use App\Tests\Module\Reference\Application\Double\InMemoryAssetCatalog;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -108,6 +111,8 @@ final class AssignAccountGroupTest extends TestCase
 
     private function update(InMemoryAccountRepository $accounts, InMemoryAccountGroupRepository $groups): UpdateAccount
     {
+        $clock = new MockClock('2026-09-05 10:00:00');
+
         return new UpdateAccount(
             new FixedCallerWorkspace(AccountFixture::WORKSPACE),
             $accounts,
@@ -116,7 +121,12 @@ final class AssignAccountGroupTest extends TestCase
             $groups,
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),
-            new MockClock('2026-09-05 10:00:00'),
+            $clock,
+            new ResolveAccountValuation(
+                new InMemoryAccountBalanceSnapshotRepository(),
+                InMemoryAssetCatalog::withCodes('EUR'),
+                $clock,
+            ),
         );
     }
 }

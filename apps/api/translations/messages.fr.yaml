@@ -138,6 +138,21 @@ api:
     account_rule_override_not_found:
       title: 'Dérogation introuvable'
       detail: 'Aucune dérogation ne porte cet identifiant sur ce compte.'
+    invalid_account_valuation_query:
+      title: 'Date de valorisation invalide'
+      detail: 'La date de lecture doit être un jour calendaire ISO 8601, compris entre 1900-01-01 et 2100-12-31.'
+    invalid_account_balance_query:
+      title: 'Requête de soldes invalide'
+      detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
+    invalid_account_balance:
+      title: 'Solde invalide'
+      detail: "Vérifiez la date, le montant et l'unité. Un solde est libellé dans la devise du compte, ne peut pas précéder l'ouverture ni suivre la clôture, et conserve exactement les décimales soumises."
+    account_balance_conflict:
+      title: 'Solde déjà enregistré'
+      detail: 'Un solde actif existe déjà pour ce compte, cette date et cette source. Rechargez le solde puis réappliquez la modification.'
+    account_balance_stale_version:
+      title: 'Solde modifié entre-temps'
+      detail: 'Le solde a été modifié par une autre requête. Rechargez le solde puis réappliquez la modification.'
     invalid_product_model_query:
       title: 'Requête de modèles invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'

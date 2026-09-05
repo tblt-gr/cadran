@@ -141,7 +141,7 @@
   "accounts": {
     "eyebrow": "Patrimoine de l’espace",
     "title": "Comptes et supports",
-    "description": "Décrivez chaque compte : devise, nature, dates de vie et portée patrimoniale. Les soldes arrivent avec les valorisations.",
+    "description": "Décrivez chaque compte : devise, nature, dates de vie et portée patrimoniale. Un solde observé à une date reste exact ; une absence reste non calculable.",
     "add": "Nouveau compte",
     "addFirst": "Créer le premier compte",
     "includeClosed": "Afficher les comptes clôturés",
@@ -151,7 +151,8 @@
       "saved": "Le compte a été enregistré.",
       "archived": "Le compte a été archivé.",
       "claimed": "La dérogation a été enregistrée sur ce compte.",
-      "withdrawn": "La dérogation a été retirée : le compte suit de nouveau la règle héritée."
+      "withdrawn": "La dérogation a été retirée : le compte suit de nouveau la règle héritée.",
+      "recorded": "Le solde observé a été enregistré."
     },
     "fields": {
       "label": "Libellé",
@@ -167,6 +168,7 @@
       "openedOn": "Date d’ouverture",
       "closedOn": "Date de clôture",
       "contribution": "Contribution",
+      "balance": "Solde observé",
       "grouping": "Groupe",
       "primaryGroup": "Groupe (optionnel)",
       "tags": "Étiquettes (hors poids)",
@@ -283,7 +285,52 @@
       "editAccount": "Modifier le compte {{label}}",
       "archiveAccount": "Archiver le compte {{label}}",
       "rules": "Règles",
-      "rulesOfAccount": "Règles applicables au compte {{label}}"
+      "rulesOfAccount": "Règles applicables au compte {{label}}",
+      "recordBalance": "Solde",
+      "recordBalanceOfAccount": "Enregistrer un solde sur {{label}}"
+    },
+    "balances": {
+      "eyebrow": "Solde observé",
+      "title": "Enregistrer un solde de « {{label}} »",
+      "missing": "Non calculable",
+      "belowStep": "Inférieur à l’échelon d’affichage",
+      "asOf": "au {{date}}",
+      "age_one": "{{count}} jour",
+      "age_other": "{{count}} jours",
+      "formHint": "Le montant est libellé en {{asset}} et conservé tel que saisi. Un zéro est un solde réel ; une absence n’en est pas un.",
+      "asOfHint": "Jour calendaire du relevé. Il ne peut ni précéder l’ouverture ni suivre la clôture.",
+      "amountHint": "Saisissez le chiffre source, avec le signe moins pour un découvert. Aucune virgule de milliers.",
+      "commentHint": "Note interne facultative, 200 caractères au plus.",
+      "record": "Enregistrer le solde",
+      "recording": "Enregistrement…",
+      "fields": {
+        "asOf": "Date du solde",
+        "amount": "Montant observé",
+        "comment": "Commentaire"
+      },
+      "qualities": {
+        "CURRENT": "Au jour",
+        "STALE": "Ancienne",
+        "MISSING": "Aucune valorisation"
+      },
+      "sources": {
+        "MANUAL": "Saisie",
+        "IMPORT": "Import",
+        "BANK_API": "Banque",
+        "CALCULATED": "Calculée"
+      },
+      "validation": {
+        "asOf": "La date doit tomber entre l’ouverture et la clôture du compte.",
+        "amount": "Saisissez un décimal canonique, éventuellement négatif.",
+        "comment": "Le commentaire ne peut pas dépasser 200 caractères."
+      },
+      "errors": {
+        "conflict": "Un solde actif existe déjà pour cette date. Rechargez la liste puis réappliquez.",
+        "stale": "Ce solde a été modifié ailleurs. La liste vient d’être rechargée : rouvrez puis réappliquez.",
+        "archived": "Ce compte est archivé et ne peut plus recevoir de solde.",
+        "invalid": "Le solde est invalide. Vérifiez la date, le montant et l’unité.",
+        "network": "L’enregistrement a échoué. Réessayez."
+      }
     },
     "rules": {
       "eyebrow": "Règles applicables",

@@ -93,6 +93,16 @@ final readonly class AccountPayload
         return $value;
     }
 
+    public function nullableInteger(string $field): ?int
+    {
+        $value = $this->fields[$field] ?? null;
+        if (null !== $value && !is_int($value)) {
+            throw new \UnexpectedValueException(sprintf('%s must be an integer or null.', $field));
+        }
+
+        return $value;
+    }
+
     /**
      * @return list<string>
      */

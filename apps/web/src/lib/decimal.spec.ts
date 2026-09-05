@@ -4,6 +4,7 @@ import {
   formatAmount,
   formatCalendarDay,
   formatDecimal,
+  isCanonicalDecimal,
   isCanonicalUnsignedDecimal,
 } from './decimal';
 
@@ -92,5 +93,19 @@ describe('isCanonicalUnsignedDecimal', () => {
     expect(isCanonicalUnsignedDecimal('007')).toBe(false);
     expect(isCanonicalUnsignedDecimal('4,5')).toBe(false);
     expect(isCanonicalUnsignedDecimal('')).toBe(false);
+  });
+});
+
+describe('isCanonicalDecimal', () => {
+  it('accepts a signed or unsigned canonical figure', () => {
+    expect(isCanonicalDecimal('0')).toBe(true);
+    expect(isCanonicalDecimal('230.5688')).toBe(true);
+    expect(isCanonicalDecimal('-50.20')).toBe(true);
+  });
+
+  it('refuses a leading zero, a comma or an empty string', () => {
+    expect(isCanonicalDecimal('007')).toBe(false);
+    expect(isCanonicalDecimal('4,5')).toBe(false);
+    expect(isCanonicalDecimal('')).toBe(false);
   });
 });

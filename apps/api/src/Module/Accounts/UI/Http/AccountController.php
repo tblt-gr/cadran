@@ -59,6 +59,7 @@ final readonly class AccountController
         $includeArchived = $request->query->getString('includeArchived');
         $includeClosed = $request->query->getString('includeClosed');
         $kind = $request->query->getString('kind');
+        $asOf = $request->query->getString('asOf');
         if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($perPage)
             || !self::flag($includeArchived) || !self::flag($includeClosed)) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_query');
@@ -71,6 +72,7 @@ final readonly class AccountController
                 '' === $page ? null : (int) $page,
                 '' === $perPage ? null : (int) $perPage,
                 '' === $kind ? null : $kind,
+                '' === $asOf ? null : $asOf,
             );
         } catch (InvalidAccountInput) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_query');

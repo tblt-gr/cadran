@@ -235,6 +235,45 @@ final readonly class Account
     }
 
     /**
+     * A recorded snapshot is history: the kind and product can no longer
+     * change without reinterpreting that figure. A second snapshot does not
+     * bump the version again — the lock is already on.
+     */
+    public function markUsed(\DateTimeImmutable $usedAt): self
+    {
+        if (null !== $this->usedAt) {
+            return $this;
+        }
+
+        $this->assertWritable();
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            label: $this->label,
+            assetCode: $this->assetCode,
+            kind: $this->kind,
+            productCode: $this->productCode,
+            productModelId: $this->productModelId,
+            institution: $this->institution,
+            maskedIdentifier: $this->maskedIdentifier,
+            valuationMode: $this->valuationMode,
+            liquidityLevel: $this->liquidityLevel,
+            includeInNetWorth: $this->includeInNetWorth,
+            includeInEmergencyFund: $this->includeInEmergencyFund,
+            openedOn: $this->openedOn,
+            closedOn: $this->closedOn,
+            version: $this->version + 1,
+            createdAt: $this->createdAt,
+            updatedAt: $usedAt,
+            usedAt: $usedAt,
+            archivedAt: $this->archivedAt,
+            primaryGroupId: $this->primaryGroupId,
+            tagGroupIds: $this->tagGroupIds,
+        );
+    }
+
+    /**
      * The sign this account contributes to net worth. A liability holds a
      * positive outstanding amount and reduces net worth by it, which keeps the
      * stored figure readable while the aggregation stays exact.

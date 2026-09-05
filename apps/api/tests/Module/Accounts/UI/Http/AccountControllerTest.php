@@ -69,7 +69,7 @@ final class AccountControllerTest extends WebTestCase
             'id', 'label', 'assetCode', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier',
             'valuationMode', 'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund',
             'openedOn', 'closedOn', 'status', 'netWorthSign', 'used', 'editable', 'kindEditable',
-            'kindEditReason', 'version', 'archivedAt', 'primaryGroupId', 'tagGroupIds', 'share',
+            'kindEditReason', 'version', 'archivedAt', 'primaryGroupId', 'tagGroupIds', 'share', 'valuation',
         ], array_keys($account));
         self::assertSame('EUR', $account['assetCode']);
         self::assertSame('SAVINGS', $account['kind']);
@@ -84,6 +84,14 @@ final class AccountControllerTest extends WebTestCase
             'percent' => null,
             'reason' => 'MISSING_VALUATION',
         ], $account['share']);
+        $createdValuation = $account['valuation'];
+        self::assertIsArray($createdValuation);
+        self::assertSame('MISSING', $createdValuation['quality']);
+        self::assertNull($createdValuation['amount']);
+        self::assertSame(
+            (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d'),
+            $createdValuation['requestedOn'],
+        );
 
         $this->requestUpdate($id, [...$account, 'label' => 'Livret A Banque Y', 'liquidityLevel' => 'SHORT_TERM']);
         self::assertResponseIsSuccessful();
