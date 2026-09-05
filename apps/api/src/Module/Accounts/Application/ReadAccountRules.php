@@ -5,17 +5,21 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountRepository;
+use App\Module\Accounts\Domain\AccountRuleOverrideRepository;
 use App\Module\Accounts\Domain\AccountRules;
+use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Catalog\Application\ProductCatalog;
 use App\Module\Catalog\Domain\BusinessDay;
+use App\Module\Catalog\Domain\EffectiveProduct;
 use App\Module\Catalog\Domain\InvalidCatalogEntry;
 use App\Module\Foundation\Application\CallerWorkspace;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
  * Resolves the ceilings, rates and terms in force for one account of the
- * calling workspace on a business date.
+ * calling workspace on a business date, through every authority that states
+ * them.
  *
  * The business date drives the whole read and the clock decides nothing but
  * how fresh each verification looks. Asking for 2023 answers with the rules
@@ -29,6 +33,7 @@ final readonly class ReadAccountRules
         private AccountRepository $accounts,
         private ProductCatalog $catalog,
         private ProductModelRepository $models,
+        private AccountRuleOverrideRepository $overrides,
         private ClockInterface $clock,
     ) {
     }
@@ -44,6 +49,8 @@ final readonly class ReadAccountRules
             throw new AccountNotFound('No account carries this identifier in this workspace.');
         }
 
+        $overrides = $this->overrides->findForAccount($workspace, $account->id);
+
         if (null !== $account->productModelId) {
             // The model is never deleted, only archived, and archiving must
             // not change what an existing account resolves. A missing row
@@ -53,24 +60,50 @@ final readonly class ReadAccountRules
                 throw new \LogicException('An account references a product model that no longer exists.');
             }
 
-            return AccountRules::fromModel($account, $model->effectiveOn($businessDay->date));
+            return AccountRules::fromModel(
+                $account,
+                $model->effectiveOn($businessDay->date),
+                $this->catalogBehind($model, $businessDay, $today),
+                $overrides,
+            );
         }
 
         $productCode = $account->productCode;
         if (null === $productCode) {
-            return AccountRules::withoutProduct($account, $businessDay->date);
+            return AccountRules::withoutProduct($account, $businessDay->date, $overrides);
         }
 
         // The catalogue hides an archived product, while the account keeps the
         // reference it was created with. That combination has its own answer:
-        // the account is intact and its rules are unreadable, which is not the
-        // same thing as an account that never had any.
+        // the account is intact and its inherited rules are unreadable, which
+        // is not the same thing as an account that never had any.
         $entry = $this->catalog->findByCode($productCode);
         if (null === $entry) {
-            return AccountRules::withWithdrawnProduct($account, $productCode, $businessDay->date);
+            return AccountRules::withWithdrawnProduct($account, $businessDay->date, $overrides);
         }
 
-        return AccountRules::fromProduct($account, $entry->effectiveOn($businessDay->date, $today->date));
+        return AccountRules::fromProduct($account, $entry->effectiveOn($businessDay->date, $today->date), $overrides);
+    }
+
+    /**
+     * The system product a workspace model was copied from, resolved on the
+     * same business date.
+     *
+     * A model stops following its source the moment it is created, so this is
+     * never what the account resolves against. It is what lets the holder see
+     * the drift: the publication says 22 950 €, the model they edited says
+     * 25 000 €, and the difference is theirs rather than the regulator's. A
+     * model declared from scratch, or copied from another model, has no
+     * catalogue behind it and answers null.
+     */
+    private function catalogBehind(ProductModel $model, BusinessDay $businessDay, BusinessDay $today): ?EffectiveProduct
+    {
+        $code = $model->provenance->systemProductCode;
+        if (null === $code) {
+            return null;
+        }
+
+        return $this->catalog->findByCode($code)?->effectiveOn($businessDay->date, $today->date);
     }
 
     private static function businessDay(string $asOf): BusinessDay

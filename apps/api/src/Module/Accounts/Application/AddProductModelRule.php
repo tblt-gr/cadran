@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Accounts\Domain\InvalidDeclaredRule;
 use App\Module\Accounts\Domain\InvalidProductModel;
 use App\Module\Accounts\Domain\ProductModelIsArchived;
 use App\Module\Accounts\Domain\ProductModelRepository;
@@ -35,7 +36,7 @@ final readonly class AddProductModelRule
     ) {
     }
 
-    public function __invoke(string $id, ModelRuleInput $input, int $expectedVersion): ProductModelView
+    public function __invoke(string $id, DeclaredRuleInput $input, int $expectedVersion): ProductModelView
     {
         $context = $this->caller->resolveContext();
         $rule = $this->submittedRule->toRule($input);
@@ -53,7 +54,7 @@ final readonly class AddProductModelRule
                 $revised = $current->withRule($rule, $this->clock->now());
             } catch (ProductModelIsArchived $exception) {
                 throw new ProductModelArchived($exception->getMessage(), previous: $exception);
-            } catch (InvalidProductModel $exception) {
+            } catch (InvalidProductModel|InvalidDeclaredRule $exception) {
                 throw new InvalidProductModelInput($exception->getMessage(), previous: $exception);
             }
 

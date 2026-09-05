@@ -12,7 +12,10 @@ const api = vi.hoisted(() => ({
   listAssets: vi.fn(),
   listProductModels: vi.fn(),
   listProducts: vi.fn(),
+  listAccountRuleOverrides: vi.fn(),
   readAccountRules: vi.fn(),
+  recordAccountRuleOverride: vi.fn(),
+  withdrawAccountRuleOverride: vi.fn(),
   readProduct: vi.fn(),
   readProductModel: vi.fn(),
   updateAccount: vi.fn(),
@@ -146,6 +149,65 @@ const euro = {
   displayStep: { value: '0.01', assetCode: 'EUR' },
 };
 
+const publishedCeiling = {
+  measurable: true,
+  amount: { value: '22950', assetCode: 'EUR' },
+  validFrom: '2025-04-25',
+  validTo: null,
+  verification: 'VERIFIED' as const,
+  source: livretA.rules[0]!.source,
+  claim: null,
+};
+
+const localClaim = {
+  overrideId: '00000000-0000-7000-8000-0000000000c1',
+  reason: 'La banque a confirmé un plafond plus élevé par écrit.',
+  authorId: '00000000-0000-7000-8000-000000000001',
+  recordedAt: '2026-09-04T09:00:00+00:00',
+};
+
+const passbookRules = {
+  accountId: account.id,
+  assetCode: 'EUR',
+  productCode: 'FR_LIVRET_A',
+  productModelId: null,
+  origin: 'SYSTEM_CATALOG' as const,
+  asOf: '2026-09-03',
+  ceilings: [
+    {
+      kind: 'DEPOSIT_CEILING' as const,
+      basis: 'BALANCE_EXCLUDING_INTEREST' as const,
+      countsCreditedInterest: false,
+      spansSeveralAccounts: false,
+      effectiveLayer: 'CATALOG' as const,
+      catalog: publishedCeiling,
+      inherited: null,
+      override: null,
+    },
+  ],
+  rates: [],
+  terms: [],
+  unavailableRuleKinds: [],
+};
+
+/** The same passbook, with a local ceiling recorded in front of the published one. */
+const claimedRules = {
+  ...passbookRules,
+  ceilings: [
+    {
+      ...passbookRules.ceilings[0]!,
+      effectiveLayer: 'OVERRIDE' as const,
+      override: {
+        ...publishedCeiling,
+        amount: { value: '30000', assetCode: 'EUR' },
+        verification: null,
+        source: null,
+        claim: localClaim,
+      },
+    },
+  ],
+};
+
 function success<T>(data: T, status = 200) {
   return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status }) });
 }
@@ -188,6 +250,9 @@ describe('AccountsPage', () => {
     api.listProductModels.mockImplementation(() =>
       success({ items: [], page: 1, perPage: 100, total: 0 }),
     );
+    // Reading the rules of an account also reads the claims recorded against
+    // it; an account that never claimed anything is the default.
+    api.listAccountRuleOverrides.mockImplementation(() => success({ overrides: [] }));
   });
 
   afterEach(() => {
@@ -685,13 +750,18 @@ describe('AccountsPage', () => {
             basis: 'BALANCE_EXCLUDING_INTEREST',
             countsCreditedInterest: false,
             spansSeveralAccounts: false,
-            measurable: true,
-            breachPolicy: 'WARN',
-            amount: { value: '22950', assetCode: 'EUR' },
-            validFrom: '2025-04-25',
-            validTo: null,
-            verification: 'VERIFIED',
-            source: livretA.rules[0]!.source,
+            effectiveLayer: 'CATALOG',
+            catalog: {
+              measurable: true,
+              amount: { value: '22950', assetCode: 'EUR' },
+              validFrom: '2025-04-25',
+              validTo: null,
+              verification: 'VERIFIED',
+              source: livretA.rules[0]!.source,
+              claim: null,
+            },
+            inherited: null,
+            override: null,
           },
         ],
         rates: [],
@@ -714,6 +784,133 @@ describe('AccountsPage', () => {
     expect(screen.getByRole('dialog', { name: 'Règles de « Livret A clos »' })).toBeTruthy();
     expect(await screen.findByText(/22\s950\s€/)).toBeTruthy();
     expect(api.readAccountRules.mock.calls[0]?.[0].path).toEqual({ id: archived.id });
+  });
+
+  it('records a claim against a rule and hands it back to the rules it came from', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+    );
+    api.readAccountRules.mockImplementation(() => success(passbookRules));
+    api.recordAccountRuleOverride.mockImplementation(() =>
+      success({ id: '00000000-0000-7000-8000-0000000000c1' }, 201),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Déroger' }));
+
+    // Recording a claim replaces the rules dialog rather than stacking a second
+    // one over it, so focus and the escape key still have one owner.
+    const dialog = screen.getByRole('dialog', {
+      name: 'Déroger à une règle de « Livret A Banque X »',
+    });
+    expect(dialog).toBeTruthy();
+
+    // The kinds list is already the ones this account may state. Re-filtering
+    // it against an empty capability set would disable the selected option.
+    const kind = screen.getByLabelText('Nature de la règle') as HTMLSelectElement;
+    expect(kind.selectedOptions[0]?.value).toBe('DEPOSIT_CEILING');
+    expect(kind.selectedOptions[0]?.disabled).toBe(false);
+
+    // The reason is required: an unexplained local figure sitting beside a
+    // published one is the drift the whole feature exists to make visible.
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '30000' } });
+    fireEvent.change(screen.getByLabelText('Date de début'), { target: { value: '2026-01-01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la dérogation' }));
+    expect(api.recordAccountRuleOverride).not.toHaveBeenCalled();
+    expect(
+      screen.getByText('Le motif est obligatoire et ne dépasse pas 200 caractères.'),
+    ).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Motif'), {
+      target: { value: 'La banque a confirmé un plafond plus élevé par écrit.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la dérogation' }));
+
+    await waitFor(() =>
+      expect(api.recordAccountRuleOverride).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: account.id },
+          body: expect.objectContaining({
+            kind: 'DEPOSIT_CEILING',
+            amount: '30000',
+            // The unit is the account's own and is never offered as a choice.
+            amountAssetCode: 'EUR',
+            validFrom: '2026-01-01',
+            validTo: null,
+            reason: 'La banque a confirmé un plafond plus élevé par écrit.',
+          }),
+        }),
+      ),
+    );
+    expect(await screen.findByText('La dérogation a été enregistrée sur ce compte.')).toBeTruthy();
+  });
+
+  it('refuses a second claim over the same dates and says which correction is expected', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+    );
+    api.readAccountRules.mockImplementation(() => success(passbookRules));
+    api.recordAccountRuleOverride.mockImplementation(() =>
+      problem(409, '/problems/account-rule-override-conflict'),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Déroger' }));
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '30000' } });
+    fireEvent.change(screen.getByLabelText('Date de début'), { target: { value: '2026-01-01' } });
+    fireEvent.change(screen.getByLabelText('Motif'), { target: { value: 'Accord de la banque.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la dérogation' }));
+
+    // A conflict asks the reader to reload and reapply, not to correct a field.
+    expect(
+      await screen.findByText(
+        'Une dérogation en vigueur couvre déjà ces dates pour cette règle, ou vient d’être retirée par une autre requête. Rechargez les dérogations du compte puis réessayez.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('withdraws a claim after saying that it stops applying to past dates too', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+    );
+    api.readAccountRules.mockImplementation(() => success(claimedRules));
+    api.withdrawAccountRuleOverride.mockImplementation(() =>
+      success({ id: '00000000-0000-7000-8000-0000000000c1' }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Retirer la dérogation' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Retirer cette dérogation' });
+    expect(dialog.textContent).toContain('y compris passées');
+    // The claim being taken back is quoted, so the confirmation is about a
+    // specific figure rather than about "the override".
+    expect(dialog.textContent).toContain('La banque a confirmé un plafond plus élevé par écrit.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer la dérogation' }));
+
+    await waitFor(() =>
+      expect(api.withdrawAccountRuleOverride).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: account.id, overrideId: '00000000-0000-7000-8000-0000000000c1' },
+          body: {},
+        }),
+      ),
+    );
+    expect(
+      await screen.findByText(
+        'La dérogation a été retirée : le compte suit de nouveau la règle héritée.',
+      ),
+    ).toBeTruthy();
   });
 
   it('states the net-worth contribution in words and marks a liability', async () => {

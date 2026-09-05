@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Domain;
 
 use App\Module\Accounts\Domain\AccountValuationMode;
+use App\Module\Accounts\Domain\DeclaredRuleValue;
 use App\Module\Accounts\Domain\ModelProvenance;
 use App\Module\Accounts\Domain\ModelRule;
 use App\Module\Accounts\Domain\ModelRuleSchedule;
-use App\Module\Accounts\Domain\ModelRuleValue;
 use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Catalog\Domain\EffectivePeriod;
@@ -50,6 +50,7 @@ final class ProductModelFixture
         ?AccountValuationMode $valuationMode = null,
         ?\DateTimeImmutable $archivedAt = null,
         ?WrapperKind $wrapperKind = null,
+        ?ModelProvenance $provenance = null,
     ): ProductModel {
         $now = new \DateTimeImmutable(self::NOW);
 
@@ -67,7 +68,7 @@ final class ProductModelFixture
                 ProductCapability::SUPPORTS_TRANSACTIONS,
                 ProductCapability::SUPPORTS_INTEREST,
             ),
-            provenance: ModelProvenance::declared(),
+            provenance: $provenance ?? ModelProvenance::declared(),
             schedule: $schedule ?? ModelRuleSchedule::empty(),
             version: 1,
             createdAt: $now,
@@ -86,7 +87,7 @@ final class ProductModelFixture
         return new ModelRule(
             id: $id,
             kind: $kind,
-            value: ModelRuleValue::rate($scale ?? self::tieredScale()),
+            value: DeclaredRuleValue::rate($scale ?? self::tieredScale()),
             period: self::period($validFrom, $validTo),
         );
     }
@@ -101,7 +102,7 @@ final class ProductModelFixture
         return new ModelRule(
             id: $id,
             kind: $kind,
-            value: ModelRuleValue::amount(new AssetAmount(
+            value: DeclaredRuleValue::amount(new AssetAmount(
                 DecimalValue::fromString($amount),
                 AssetCode::fromString('EUR'),
             )),

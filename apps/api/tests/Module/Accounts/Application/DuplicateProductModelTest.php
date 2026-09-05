@@ -9,12 +9,11 @@ use App\Module\Accounts\Application\ProductModelArchived;
 use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Audit\Application\RecordAuditEvent;
-use App\Module\Audit\Domain\AuditEvent;
-use App\Module\Audit\Domain\AuditEventRepository;
-use App\Module\Foundation\Application\TransactionBoundary;
-use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
+use App\Tests\Module\Accounts\Application\Double\ImmediateTransactionBoundary;
+use App\Tests\Module\Accounts\Application\Double\SequenceUuidGenerator;
 use App\Tests\Module\Accounts\Domain\ProductModelFixture;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
@@ -100,36 +99,5 @@ final class ArchiveOnLockProductModelRepository implements ProductModelRepositor
     public function update(ProductModel $model, int $expectedVersion): bool
     {
         return false;
-    }
-}
-
-final class ImmediateTransactionBoundary implements TransactionBoundary
-{
-    public function transactional(\Closure $callback): mixed
-    {
-        return $callback();
-    }
-}
-
-final class CollectingAuditEventRepository implements AuditEventRepository
-{
-    /** @var list<AuditEvent> */
-    public array $events = [];
-
-    public function append(AuditEvent $event): void
-    {
-        $this->events[] = $event;
-    }
-}
-
-final class SequenceUuidGenerator implements UuidGenerator
-{
-    private int $sequence = 0;
-
-    public function generate(): string
-    {
-        ++$this->sequence;
-
-        return sprintf('00000000-0000-7000-8000-%012d', $this->sequence);
     }
 }

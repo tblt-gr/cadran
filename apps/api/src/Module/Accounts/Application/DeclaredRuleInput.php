@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 /**
- * One dated period as it arrives from a client: the three value shapes and the
- * dates, still as strings. Nothing is coerced here; the parser decides which
- * shape the submitted kind requires and refuses the others.
+ * One dated rule a workspace declares, as it arrives from a client: the three
+ * value shapes and the dates, still as strings. A reusable product model and a
+ * per-account override submit the same shape, because they state the same
+ * thing about different scopes.
+ *
+ * Nothing is coerced here; {@see DeclaredRuleParser} decides which shape the
+ * submitted kind requires and refuses the others.
  */
-final readonly class ModelRuleInput
+final readonly class DeclaredRuleInput
 {
     /**
      * @param list<RateBracketInput> $brackets

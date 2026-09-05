@@ -105,6 +105,15 @@ api:
     account_forbidden:
       title: 'Comptes inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    invalid_account_rule_override:
+      title: 'Dérogation de règle invalide'
+      detail: "Vérifiez la règle visée, sa valeur, ses dates d'effet et le motif. Une dérogation ne peut énoncer que ce que le produit ou le modèle suivi par le compte pourrait énoncer lui-même, et un montant est libellé dans la devise du compte."
+    account_rule_override_conflict:
+      title: 'Dérogation déjà en place'
+      detail: "Une dérogation en vigueur couvre déjà ces dates pour cette règle, ou vient d'être retirée par une autre requête. Rechargez les dérogations du compte puis réappliquez la modification."
+    account_rule_override_not_found:
+      title: 'Dérogation introuvable'
+      detail: 'Aucune dérogation ne porte cet identifiant sur ce compte.'
     invalid_product_model_query:
       title: 'Requête de modèles invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'

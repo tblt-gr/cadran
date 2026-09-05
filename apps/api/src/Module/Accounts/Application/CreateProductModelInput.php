@@ -7,8 +7,8 @@ namespace App\Module\Accounts\Application;
 final readonly class CreateProductModelInput
 {
     /**
-     * @param list<string>         $capabilities
-     * @param list<ModelRuleInput> $rules
+     * @param list<string>            $capabilities
+     * @param list<DeclaredRuleInput> $rules
      */
     public function __construct(
         public string $name,

@@ -1,11 +1,20 @@
-import type { Account, AccountRules } from '@cadran/api-client';
+import type {
+  Account,
+  AccountCeiling,
+  AccountRate,
+  AccountRuleOverridePage,
+  AccountRules,
+} from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AccountRulesPanel } from './AccountRulesPanel';
 
-const api = vi.hoisted(() => ({ readAccountRules: vi.fn() }));
+const api = vi.hoisted(() => ({
+  listAccountRuleOverrides: vi.fn(),
+  readAccountRules: vi.fn(),
+}));
 
 vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
@@ -37,6 +46,34 @@ const source = {
   retrievedOn: '2026-08-22',
 };
 
+const publishedCeiling: AccountCeiling = {
+  measurable: true,
+  amount: { value: '22950', assetCode: 'EUR' },
+  validFrom: '2025-04-25',
+  validTo: null,
+  verification: 'VERIFIED',
+  source,
+  claim: null,
+};
+
+const publishedRate: AccountRate = {
+  guaranteed: true,
+  application: 'MARGINAL',
+  brackets: [{ percentage: '1.7', lowerBound: '0', upperBound: null }],
+  validFrom: '2026-08-01',
+  validTo: '2027-01-31',
+  verification: 'VERIFIED',
+  source,
+  claim: null,
+};
+
+const claim = {
+  overrideId: '00000000-0000-7000-8000-0000000000c1',
+  reason: 'La banque a confirmé un plafond plus élevé par écrit.',
+  authorId: '00000000-0000-7000-8000-000000000001',
+  recordedAt: '2026-09-04T09:00:00+00:00',
+};
+
 const passbook: AccountRules = {
   accountId: account.id,
   assetCode: 'EUR',
@@ -50,31 +87,28 @@ const passbook: AccountRules = {
       basis: 'BALANCE_EXCLUDING_INTEREST',
       countsCreditedInterest: false,
       spansSeveralAccounts: false,
-      measurable: true,
-      amount: { value: '22950', assetCode: 'EUR' },
-      validFrom: '2025-04-25',
-      validTo: null,
-      verification: 'VERIFIED',
-      source,
+      effectiveLayer: 'CATALOG',
+      catalog: publishedCeiling,
+      inherited: null,
+      override: null,
     },
   ],
   rates: [
     {
       kind: 'ANNUAL_RATE',
-      guaranteed: true,
-      application: 'MARGINAL',
-      brackets: [{ percentage: '1.7', lowerBound: '0', upperBound: null }],
-      validFrom: '2026-08-01',
-      validTo: '2027-01-31',
-      verification: 'VERIFIED',
-      source,
+      effectiveLayer: 'CATALOG',
+      catalog: publishedRate,
+      inherited: null,
+      override: null,
     },
   ],
   terms: [],
   unavailableRuleKinds: [],
 };
 
-function success(data: AccountRules) {
+const noOverrides: AccountRuleOverridePage = { overrides: [] };
+
+function success(data: AccountRules | AccountRuleOverridePage) {
   return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
 }
 
@@ -82,17 +116,24 @@ function failure(status: number) {
   return Promise.resolve({ data: undefined, response: new Response('{}', { status }) });
 }
 
+const onOverride = vi.fn();
+const onWithdraw = vi.fn();
+
 function renderPanel() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <AccountRulesPanel account={account} />
+      <AccountRulesPanel account={account} onOverride={onOverride} onWithdraw={onWithdraw} />
     </QueryClientProvider>,
   );
 }
 
 describe('AccountRulesPanel', () => {
+  beforeEach(() => {
+    api.listAccountRuleOverrides.mockImplementation(() => success(noOverrides));
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
@@ -104,6 +145,9 @@ describe('AccountRulesPanel', () => {
 
     expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
     expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
+    // One tbody per rule so a spanning header with scope="rowgroup" names
+    // only that rule's cells, not every later rate or term in the table.
+    expect(screen.getByRole('table').querySelectorAll('tbody')).toHaveLength(2);
 
     // The amount alone would settle nothing: a passbook carried past 22 950 €
     // by its own interest has broken no rule, so the measure is stated.
@@ -184,14 +228,14 @@ describe('AccountRulesPanel', () => {
             ...passbook.ceilings[0]!,
             kind: 'CONTRIBUTION_CEILING',
             basis: 'CONTRIBUTIONS',
-            amount: { value: '150000', assetCode: 'EUR' },
+            catalog: { ...publishedCeiling, amount: { value: '150000', assetCode: 'EUR' } },
           },
           {
             ...passbook.ceilings[0]!,
             kind: 'COMBINED_CONTRIBUTION_CEILING',
             basis: 'COMBINED_CONTRIBUTIONS',
             spansSeveralAccounts: true,
-            amount: { value: '225000', assetCode: 'EUR' },
+            catalog: { ...publishedCeiling, amount: { value: '225000', assetCode: 'EUR' } },
           },
         ],
       }),
@@ -227,8 +271,22 @@ describe('AccountRulesPanel', () => {
         productCode: null,
         productModelId: '00000000-0000-7000-8000-0000000000e1',
         origin: 'WORKSPACE_MODEL',
-        ceilings: [{ ...passbook.ceilings[0]!, verification: null, source: null }],
-        rates: [{ ...passbook.rates[0]!, verification: null, source: null }],
+        ceilings: [
+          {
+            ...passbook.ceilings[0]!,
+            effectiveLayer: 'INHERITED',
+            catalog: null,
+            inherited: { ...publishedCeiling, verification: null, source: null },
+          },
+        ],
+        rates: [
+          {
+            ...passbook.rates[0]!,
+            effectiveLayer: 'INHERITED',
+            catalog: null,
+            inherited: { ...publishedRate, verification: null, source: null },
+          },
+        ],
       }),
     );
     renderPanel();
@@ -247,7 +305,9 @@ describe('AccountRulesPanel', () => {
         ...passbook,
         assetCode: 'USD',
         rates: [],
-        ceilings: [{ ...passbook.ceilings[0]!, measurable: false }],
+        ceilings: [
+          { ...passbook.ceilings[0]!, catalog: { ...publishedCeiling, measurable: false } },
+        ],
       }),
     );
     renderPanel();
@@ -319,6 +379,134 @@ describe('AccountRulesPanel', () => {
       await screen.findByText('Reconnectez-vous pour consulter les règles de ce compte.'),
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
+  });
+
+  it('shows the published figure, the inherited one and the local claim side by side', async () => {
+    api.readAccountRules.mockImplementation(() =>
+      success({
+        ...passbook,
+        productCode: 'FR_LIVRET_A',
+        productModelId: '00000000-0000-7000-8000-0000000000e1',
+        origin: 'WORKSPACE_MODEL',
+        rates: [],
+        ceilings: [
+          {
+            ...passbook.ceilings[0]!,
+            effectiveLayer: 'OVERRIDE',
+            catalog: publishedCeiling,
+            inherited: {
+              ...publishedCeiling,
+              amount: { value: '25000', assetCode: 'EUR' },
+              verification: null,
+              source: null,
+            },
+            override: {
+              ...publishedCeiling,
+              amount: { value: '30000', assetCode: 'EUR' },
+              verification: null,
+              source: null,
+              claim,
+            },
+          },
+        ],
+      }),
+    );
+    renderPanel();
+
+    // The three authorities answer the same question and none of them is
+    // hidden behind the winner.
+    expect(await screen.findByText(/22\s950\s€/)).toBeTruthy();
+    expect(screen.getByText(/25\s000\s€/)).toBeTruthy();
+    expect(screen.getByText(/30\s000\s€/)).toBeTruthy();
+    expect(screen.getByText('Catalogue système')).toBeTruthy();
+    expect(screen.getByText("Modèle de l'espace")).toBeTruthy();
+    expect(screen.getByText('Dérogation locale')).toBeTruthy();
+
+    // Which one applies is stated in words, never by position or by shade.
+    expect(screen.getAllByText('En vigueur')).toHaveLength(1);
+    expect(screen.getAllByText('Pour comparaison')).toHaveLength(2);
+
+    // A local figure with no reason beside it would be indistinguishable from
+    // a sourced one at a glance.
+    expect(screen.getByText('La banque a confirmé un plafond plus élevé par écrit.')).toBeTruthy();
+    // Only the published layer names a publication.
+    expect(screen.getAllByRole('link', { name: 'Livret A' })).toHaveLength(1);
+  });
+
+  it('hands the rule and the kinds this account may state to the override form', async () => {
+    api.readAccountRules.mockImplementation(() =>
+      success({ ...passbook, unavailableRuleKinds: ['MIN_RATE'] }),
+    );
+    renderPanel();
+
+    const actions = await screen.findAllByRole('button', { name: 'Déroger' });
+    // One per rule the account carries, plus the gap it is expected to carry
+    // and does not: a claim is exactly how that gap gets filled.
+    expect(actions).toHaveLength(3);
+    fireEvent.click(actions[0]!);
+
+    expect(onOverride).toHaveBeenCalledWith({
+      kind: 'DEPOSIT_CEILING',
+      kinds: ['DEPOSIT_CEILING', 'ANNUAL_RATE', 'MIN_RATE'],
+    });
+  });
+
+  it('hands the claim itself to the withdrawal, reason included', async () => {
+    api.readAccountRules.mockImplementation(() =>
+      success({
+        ...passbook,
+        rates: [],
+        ceilings: [
+          {
+            ...passbook.ceilings[0]!,
+            effectiveLayer: 'OVERRIDE',
+            override: { ...publishedCeiling, verification: null, source: null, claim },
+          },
+        ],
+      }),
+    );
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Retirer la dérogation' }));
+
+    expect(onWithdraw).toHaveBeenCalledWith(claim);
+  });
+
+  it('keeps a withdrawn claim visible in the history it no longer applies to', async () => {
+    api.readAccountRules.mockImplementation(() => success(passbook));
+    api.listAccountRuleOverrides.mockImplementation(() =>
+      success({
+        overrides: [
+          {
+            id: claim.overrideId,
+            accountId: account.id,
+            kind: 'DEPOSIT_CEILING',
+            valueType: 'AMOUNT',
+            amount: { value: '30000', assetCode: 'EUR' },
+            text: null,
+            application: null,
+            brackets: null,
+            validFrom: '2026-01-01',
+            validTo: null,
+            standing: false,
+            withdrawnAt: '2026-09-10T09:00:00+00:00',
+            withdrawnBy: claim.authorId,
+            reason: claim.reason,
+            authorId: claim.authorId,
+            recordedAt: claim.recordedAt,
+          },
+        ],
+      }),
+    );
+    renderPanel();
+
+    // The claim no longer applies on any date — the table above resolves the
+    // published ceiling — and it is still readable, because it explains the
+    // statements produced while it did apply.
+    expect(await screen.findByText('Retirée')).toBeTruthy();
+    expect(screen.getByText('Retirée le 10 septembre 2026')).toBeTruthy();
+    expect(screen.getByText(claim.reason)).toBeTruthy();
+    expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
   });
 
   it('names a business date the API refuses instead of calling it a failed read', async () => {

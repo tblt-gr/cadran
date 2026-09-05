@@ -29,13 +29,21 @@
   font-size: var(--font-size-label);
 }
 
+/* The rule name owns the rows of its layers, so its action sits under the
+   name rather than in a column of its own that would be empty seven rows
+   out of eight. */
+.tableScroll tbody th button {
+  display: block;
+  margin-top: var(--spacing-2);
+}
+
 .tableScroll td {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
 }
 
-.tableScroll tbody tr:last-child th,
-.tableScroll tbody tr:last-child td {
+.tableScroll tbody:last-child tr:last-child th,
+.tableScroll tbody:last-child tr:last-child td {
   border-bottom: var(--border-none);
 }
 
@@ -54,22 +62,7 @@
   outline: var(--outline-focus);
 }
 
-.value {
-  color: var(--text-primary);
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-body);
-  white-space: nowrap;
-}
-
 .unavailable {
   color: var(--text-muted);
   font-style: italic;
-}
-
-.notApplicable {
-  color: var(--text-muted);
-}
-
-.notComparable {
-  color: var(--warning);
 }

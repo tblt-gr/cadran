@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Accounts\Domain\DeclaredRuleValue;
+use App\Module\Accounts\Domain\InvalidDeclaredRule;
 use App\Module\Accounts\Domain\InvalidProductModel;
 use App\Module\Accounts\Domain\ModelProvenance;
 use App\Module\Accounts\Domain\ModelRule;
 use App\Module\Accounts\Domain\ModelRuleSchedule;
-use App\Module\Accounts\Domain\ModelRuleValue;
 use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Audit\Application\AuditEventRecord;
@@ -98,7 +99,7 @@ final readonly class CreateProductModelFromProduct
                     createdAt: $now,
                     updatedAt: $now,
                 );
-            } catch (InvalidProductModel $exception) {
+            } catch (InvalidProductModel|InvalidDeclaredRule $exception) {
                 throw new InvalidProductModelInput($exception->getMessage(), previous: $exception);
             }
 
@@ -134,20 +135,20 @@ final readonly class CreateProductModelFromProduct
         return $rules;
     }
 
-    private static function copiedValue(ProductRule $rule): ModelRuleValue
+    private static function copiedValue(ProductRule $rule): DeclaredRuleValue
     {
         return match ($rule->kind->valueType()) {
-            RuleValueType::AMOUNT => ModelRuleValue::amount(
+            RuleValueType::AMOUNT => DeclaredRuleValue::amount(
                 $rule->value->amount ?? throw new \LogicException('A catalogue amount rule carries its amount.'),
             ),
             // A published rate resolves to a one-bracket scale, which is the
             // shape every workspace rate travels in. Copying it that way is
             // what lets a holder then add a bracket without re-entering the
             // figure the catalogue already gave.
-            RuleValueType::PERCENTAGE => ModelRuleValue::rate(
+            RuleValueType::PERCENTAGE => DeclaredRuleValue::rate(
                 $rule->rateScale() ?? throw new \LogicException('A catalogue rate rule carries its rate.'),
             ),
-            RuleValueType::TEXT => ModelRuleValue::text(
+            RuleValueType::TEXT => DeclaredRuleValue::text(
                 $rule->value->text ?? throw new \LogicException('A catalogue text rule carries its token.'),
             ),
         };

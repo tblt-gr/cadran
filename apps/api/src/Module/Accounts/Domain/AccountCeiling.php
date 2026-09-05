@@ -25,10 +25,15 @@ final readonly class AccountCeiling
     public CeilingBasis $basis;
 
     /**
-     * `verification` and `source` are null for a ceiling read from a
-     * workspace product model: nobody published it, so grading how fresh it
-     * is and naming a publication would fabricate a provenance the model
-     * never had. A catalogue-sourced ceiling always carries both.
+     * `verification` and `source` are null for a ceiling that nobody
+     * published: one read from a workspace product model, and one claimed by
+     * an account override. Grading the freshness of a figure the holder typed
+     * or naming a publication behind it would fabricate a provenance it never
+     * had. A catalogue-sourced ceiling always carries both.
+     *
+     * `override` names the local claim when this ceiling is one, so a screen
+     * can say who recorded it and why instead of showing an unexplained
+     * divergence from the published figure beside it.
      */
     public function __construct(
         public RuleKind $kind,
@@ -37,6 +42,7 @@ final readonly class AccountCeiling
         public ?VerificationState $verification,
         public ?CatalogSource $source,
         private AssetCode $accountAsset,
+        public ?AccountRuleOverride $override = null,
     ) {
         if (!$kind->statesACeiling()) {
             throw new InvalidAccount(sprintf('A %s rule states no ceiling.', $kind->value));
@@ -44,6 +50,10 @@ final readonly class AccountCeiling
 
         if ((null === $verification) !== (null === $source)) {
             throw new InvalidAccount('A rule is either published or declared, never half of each.');
+        }
+
+        if (null !== $override && null !== $source) {
+            throw new InvalidAccount('A locally claimed ceiling names no publication.');
         }
 
         $this->basis = $kind->ceilingBasis();

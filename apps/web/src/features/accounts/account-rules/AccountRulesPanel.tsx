@@ -1,9 +1,12 @@
-import type { Account, AccountRules } from '@cadran/api-client';
+import type { Account, AccountRuleClaim, AccountRules, ProductRuleKind } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { AccountRuleTable } from '@/features/accounts/account-rules/account-rule-table/AccountRuleTable';
+import { OverrideHistory } from '@/features/accounts/account-rules/override-history/OverrideHistory';
+import { useAccountRuleOverrides } from '@/features/accounts/account-rules/useAccountRuleOverrides';
 import { useAccountRules } from '@/features/accounts/account-rules/useAccountRules';
+import type { OverrideDraft } from '@/features/accounts/account-rules/overrideTarget';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { todayInBrowser } from '@/lib/businessDay';
 import { formatCalendarDay } from '@/lib/decimal';
@@ -11,19 +14,22 @@ import styles from './AccountRulesPanel.module.css';
 
 interface AccountRulesPanelProps {
   account: Account;
+  onOverride: (draft: OverrideDraft) => void;
+  onWithdraw: (claim: AccountRuleClaim) => void;
 }
 
 /**
- * The ceilings, rates and terms in force for one account, resolved on a business
- * date the reader chooses.
+ * The ceilings, rates and terms in force for one account, resolved on a
+ * business date the reader chooses, and every claim the account has ever made.
  *
  * The date is a deliberate control and not the day the panel happens to be
  * opened: a ceiling raised in April and a rate set for one semester are read by
  * the date of the operation being looked at. Nothing here computes a financial
- * figure; the API resolves every value with its period and its publication, and
- * a rule no period covers stays unavailable rather than becoming a zero.
+ * figure; the API resolves every value with its period, its publication and its
+ * local claim, and a rule no layer covers stays unavailable rather than
+ * becoming a zero.
  */
-export function AccountRulesPanel({ account }: AccountRulesPanelProps) {
+export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRulesPanelProps) {
   const { i18n, t } = useTranslation();
   // The reader's own calendar day, not the server's: the field they are about
   // to move is theirs, and every answer echoes the date it was resolved for, so
@@ -31,6 +37,7 @@ export function AccountRulesPanel({ account }: AccountRulesPanelProps) {
   const today = todayInBrowser();
   const [asOf, setAsOf] = useState(today);
   const rules = useAccountRules(account.id, asOf);
+  const overrides = useAccountRuleOverrides(account.id);
 
   const failure = rules.error instanceof AccountRequestError ? rules.error : null;
   const unauthorized = failure?.status === 401;
@@ -105,10 +112,30 @@ export function AccountRulesPanel({ account }: AccountRulesPanelProps) {
               </p>
             )
           ) : (
-            <AccountRuleTable rules={rules.data} />
+            <AccountRuleTable
+              onOverride={(kind) => onOverride({ kind, kinds: statableKinds(rules.data) })}
+              onWithdraw={onWithdraw}
+              rules={rules.data}
+            />
           )}
         </>
       )}
+
+      <section className={styles.history} aria-labelledby="account-override-history">
+        <h3 id="account-override-history">{t('accounts.overrides.historyTitle')}</h3>
+        <p className={styles.note}>{t('accounts.overrides.historyHint')}</p>
+        {overrides.isPending ? (
+          <p aria-busy="true" className={styles.note} role="status">
+            {t('accounts.overrides.historyLoading')}
+          </p>
+        ) : overrides.isError ? (
+          <p className={styles.note} role="alert">
+            {t('accounts.overrides.historyError')}
+          </p>
+        ) : (
+          <OverrideHistory overrides={overrides.data.overrides} />
+        )}
+      </section>
     </div>
   );
 }
@@ -121,4 +148,20 @@ function isEmpty(rules: AccountRules): boolean {
     rules.terms.length === 0 &&
     rules.unavailableRuleKinds.length === 0
   );
+}
+
+/**
+ * The rule kinds this account may state at all: the ones some authority
+ * already answers for on this date, plus the ones it is expected to carry and
+ * does not. Offering any other kind would present a choice the API refuses,
+ * because an override may only state what the authority behind the account
+ * could itself have stated.
+ */
+function statableKinds(rules: AccountRules): ProductRuleKind[] {
+  return [
+    ...rules.ceilings.map((ceiling) => ceiling.kind),
+    ...rules.rates.map((rate) => rate.kind),
+    ...rules.terms.map((term) => term.kind),
+    ...rules.unavailableRuleKinds,
+  ];
 }

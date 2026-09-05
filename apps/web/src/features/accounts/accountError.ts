@@ -26,6 +26,11 @@ function classify(status: number, problemType: string | undefined): AccountError
       return 'conflict';
     case '/problems/account-archived':
       return 'archived';
+    // A standing override already covering these dates, or one withdrawn
+    // between the read and the write: both ask the caller to reload the
+    // account's claims and reapply, not to correct a field.
+    case '/problems/account-rule-override-conflict':
+      return 'conflict';
     default:
       // A refused query and a refused body are both the caller's to correct,
       // and neither is retried by repeating the same request: a business date

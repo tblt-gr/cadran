@@ -83,8 +83,8 @@ final class AccountRulesControllerTest extends WebTestCase
 
         $ceiling = $this->only($rules, 'ceilings');
         self::assertSame([
-            'kind', 'basis', 'countsCreditedInterest', 'spansSeveralAccounts', 'measurable',
-            'amount', 'validFrom', 'validTo', 'verification', 'source',
+            'kind', 'basis', 'countsCreditedInterest', 'spansSeveralAccounts',
+            'effectiveLayer', 'catalog', 'inherited', 'override',
         ], array_keys($ceiling));
         self::assertSame('DEPOSIT_CEILING', $ceiling['kind']);
         // The amount alone would decide nothing: what makes it usable is that
@@ -92,33 +92,48 @@ final class AccountRulesControllerTest extends WebTestCase
         self::assertSame('BALANCE_EXCLUDING_INTEREST', $ceiling['basis']);
         self::assertFalse($ceiling['countsCreditedInterest']);
         self::assertFalse($ceiling['spansSeveralAccounts']);
-        self::assertTrue($ceiling['measurable']);
-        self::assertSame(['value' => '22950', 'assetCode' => 'EUR'], $ceiling['amount']);
-        self::assertSame('2025-04-25', $ceiling['validFrom']);
+        // Nothing sits between this account and the catalogue, so the
+        // publication is the only layer and the one that wins.
+        self::assertSame('CATALOG', $ceiling['effectiveLayer']);
+        self::assertNull($ceiling['inherited']);
+        self::assertNull($ceiling['override']);
+
+        $published = $this->nested($ceiling, 'catalog');
+        self::assertSame([
+            'measurable', 'amount', 'validFrom', 'validTo', 'verification', 'source', 'claim',
+        ], array_keys($published));
+        self::assertTrue($published['measurable']);
+        self::assertSame(['value' => '22950', 'assetCode' => 'EUR'], $published['amount']);
+        self::assertSame('2025-04-25', $published['validFrom']);
         // An open end is in force for every later date, not an expiry.
-        self::assertNull($ceiling['validTo']);
-        self::assertSame('VERIFIED', $ceiling['verification']);
-        $source = $this->nested($ceiling, 'source');
+        self::assertNull($published['validTo']);
+        self::assertSame('VERIFIED', $published['verification']);
+        self::assertNull($published['claim']);
+        $source = $this->nested($published, 'source');
         self::assertSame(['publisher', 'title', 'url', 'publishedOn', 'retrievedOn'], array_keys($source));
         self::assertIsString($source['url']);
         self::assertStringStartsWith('https://', $source['url']);
 
         $rate = $this->only($rules, 'rates');
-        self::assertSame([
-            'kind', 'guaranteed', 'application', 'brackets',
-            'validFrom', 'validTo', 'verification', 'source',
-        ], array_keys($rate));
+        self::assertSame(['kind', 'effectiveLayer', 'catalog', 'inherited', 'override'], array_keys($rate));
         self::assertSame('ANNUAL_RATE', $rate['kind']);
-        self::assertTrue($rate['guaranteed']);
+        self::assertSame('CATALOG', $rate['effectiveLayer']);
+
+        $publishedRate = $this->nested($rate, 'catalog');
+        self::assertSame([
+            'guaranteed', 'application', 'brackets', 'validFrom', 'validTo',
+            'verification', 'source', 'claim',
+        ], array_keys($publishedRate));
+        self::assertTrue($publishedRate['guaranteed']);
         // A single published rate still resolves to a scale, so a tiered
         // product later needs no second way of reading a rate.
-        self::assertSame('MARGINAL', $rate['application']);
+        self::assertSame('MARGINAL', $publishedRate['application']);
         self::assertSame(
             [['percentage' => '1.7', 'lowerBound' => '0', 'upperBound' => null]],
-            $rate['brackets'],
+            $publishedRate['brackets'],
         );
-        self::assertSame('2026-08-01', $rate['validFrom']);
-        self::assertSame('2027-01-31', $rate['validTo']);
+        self::assertSame('2026-08-01', $publishedRate['validFrom']);
+        self::assertSame('2027-01-31', $publishedRate['validTo']);
     }
 
     /**
@@ -137,7 +152,8 @@ final class AccountRulesControllerTest extends WebTestCase
 
             self::assertSame([], $rules['rates'], $outside);
             self::assertSame(['ANNUAL_RATE'], $rules['unavailableRuleKinds'], $outside);
-            $amount = $this->nested($this->only($rules, 'ceilings'), 'amount');
+            $ceiling = $this->nested($this->only($rules, 'ceilings'), 'catalog');
+            $amount = $this->nested($ceiling, 'amount');
             self::assertSame('22950', $amount['value'], $outside);
         }
     }
@@ -180,13 +196,14 @@ final class AccountRulesControllerTest extends WebTestCase
             ],
             array_map(static function (mixed $ceiling): array {
                 self::assertIsArray($ceiling);
-                self::assertIsArray($ceiling['amount']);
+                self::assertIsArray($ceiling['catalog']);
+                self::assertIsArray($ceiling['catalog']['amount']);
 
                 return [
                     $ceiling['kind'],
                     $ceiling['basis'],
                     $ceiling['spansSeveralAccounts'],
-                    $ceiling['amount']['value'],
+                    $ceiling['catalog']['amount']['value'],
                 ];
             }, $ceilings),
         );
@@ -226,7 +243,10 @@ final class AccountRulesControllerTest extends WebTestCase
         $this->signIn();
         $this->insertAccount(self::IN_DOLLARS, WorkspaceFixture::OWN_WORKSPACE, 'Livret en dollars', 'FR_LIVRET_A', asset: 'USD');
 
-        $ceiling = $this->only($this->readRules(self::IN_DOLLARS, '2026-09-02'), 'ceilings');
+        $ceiling = $this->nested(
+            $this->only($this->readRules(self::IN_DOLLARS, '2026-09-02'), 'ceilings'),
+            'catalog',
+        );
 
         self::assertFalse($ceiling['measurable']);
         self::assertSame('EUR', $this->nested($ceiling, 'amount')['assetCode']);
@@ -254,11 +274,12 @@ final class AccountRulesControllerTest extends WebTestCase
         self::assertSame(ProductModelFixture::ID, $rules['productModelId']);
         self::assertNull($rules['productCode']);
 
-        $ceiling = $this->only($rules, 'ceilings');
+        $ceiling = $this->nested($this->only($rules, 'ceilings'), 'inherited');
         self::assertNull($ceiling['verification']);
         self::assertNull($ceiling['source']);
+        self::assertNull($ceiling['claim']);
 
-        $rate = $this->only($rules, 'rates');
+        $rate = $this->nested($this->only($rules, 'rates'), 'inherited');
         self::assertNull($rate['verification']);
         self::assertNull($rate['source']);
     }

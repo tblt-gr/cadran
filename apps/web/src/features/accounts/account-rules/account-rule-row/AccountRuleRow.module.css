@@ -1,0 +1,11 @@
+.inForce td,
+.inForce th {
+  background: var(--bg-surface-2);
+}
+
+.value {
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-body);
+  white-space: nowrap;
+}
