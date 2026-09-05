@@ -560,7 +560,11 @@
     "list": {
       "caption": "Groupes de comptes, comptes et totaux exclusifs",
       "accounts": "Comptes du groupe",
+      "accountsLoading": "Chargement des comptes…",
+      "accountsUnavailable": "Comptes indisponibles",
       "noAccounts": "Aucun compte dans ce groupe",
+      "totalLoading": "Chargement du total…",
+      "shareLoading": "Chargement du poids…",
       "status": "État",
       "actions": "Actions",
       "active": "Actif",

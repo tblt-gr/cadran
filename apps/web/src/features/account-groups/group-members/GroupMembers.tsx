@@ -6,14 +6,23 @@ import styles from './GroupMembers.module.css';
 
 interface GroupMembersProps {
   accounts: Account[];
+  status: 'error' | 'pending' | 'ready';
 }
 
 /**
  * The exclusive members of one group: accounts whose primary group is this
  * one. Amounts are the backend display strings; the list never adds them.
  */
-export function GroupMembers({ accounts }: GroupMembersProps) {
+export function GroupMembers({ accounts, status }: GroupMembersProps) {
   const { i18n, t } = useTranslation();
+
+  if (status === 'pending') {
+    return <p className={styles.empty}>{t('accountGroups.list.accountsLoading')}</p>;
+  }
+
+  if (status === 'error') {
+    return <p className={styles.empty}>{t('accountGroups.list.accountsUnavailable')}</p>;
+  }
 
   if (accounts.length === 0) {
     return <p className={styles.empty}>{t('accountGroups.list.noAccounts')}</p>;

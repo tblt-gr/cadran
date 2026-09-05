@@ -1,6 +1,6 @@
 .list,
 .empty {
-  margin: var(--spacing-2) 0 0;
+  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
 }
 
 .list {

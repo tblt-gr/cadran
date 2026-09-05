@@ -11,9 +11,13 @@ import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import styles from './GroupList.module.css';
 
+type LoadStatus = 'error' | 'pending' | 'ready';
+
 interface GroupListProps {
   accounts: Account[];
+  accountsStatus: LoadStatus;
   allocation: NetWorthAllocationEntry[];
+  allocationStatus: LoadStatus;
   groups: AccountGroup[];
   netWorthReason: NetWorthReason | null;
   onArchive: (group: AccountGroup) => void;
@@ -22,7 +26,9 @@ interface GroupListProps {
 
 export function GroupList({
   accounts,
+  accountsStatus,
   allocation,
+  allocationStatus,
   groups,
   netWorthReason,
   onArchive,
@@ -70,7 +76,7 @@ export function GroupList({
                   <th scope="row">
                     <span>{group.label}</span>
                     <small>{t('accountGroups.list.depth', { depth: group.depth })}</small>
-                    <GroupMembers accounts={members} />
+                    <GroupMembers accounts={members} status={accountsStatus} />
                   </th>
                   <td>
                     {group.parentId
@@ -78,10 +84,18 @@ export function GroupList({
                       : t('accountGroups.form.noParent')}
                   </td>
                   <td className={`money ${styles.total}`}>
-                    <NetWorthFigure amount={entry?.value ?? null} reason={netWorthReason} />
+                    {allocationStatus === 'pending' ? (
+                      <span className={styles.pending}>{t('accountGroups.list.totalLoading')}</span>
+                    ) : (
+                      <NetWorthFigure amount={entry?.value ?? null} reason={netWorthReason} />
+                    )}
                   </td>
                   <td>
-                    <ShareCell share={entry?.share ?? group.share} />
+                    {allocationStatus === 'pending' ? (
+                      <span className={styles.pending}>{t('accountGroups.list.shareLoading')}</span>
+                    ) : (
+                      <ShareCell share={entry?.share ?? group.share} />
+                    )}
                   </td>
                   <td>
                     <StatusBadge tone={group.archivedAt ? 'warning' : 'positive'}>

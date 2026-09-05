@@ -258,7 +258,9 @@ export function AccountGroupsPage() {
       ) : (
         <GroupList
           accounts={accounts.data?.items ?? []}
+          accountsStatus={accounts.isPending ? 'pending' : accounts.isError ? 'error' : 'ready'}
           allocation={netWorth.data?.allocation ?? []}
+          allocationStatus={netWorth.isPending ? 'pending' : netWorth.isError ? 'error' : 'ready'}
           groups={items}
           netWorthReason={netWorth.data?.reason ?? null}
           onArchive={setArchiving}

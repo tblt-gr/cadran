@@ -42,6 +42,12 @@
   white-space: nowrap;
 }
 
+.pending {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+}
+
 .panel tbody th > span,
 .panel tbody th > small {
   display: block;

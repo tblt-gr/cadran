@@ -178,6 +178,10 @@ describe('AccountGroupsPage', () => {
     api.listAccountGroups.mockImplementation(() =>
       success({ items: [group], page: 1, perPage: 50, total: 1 }),
     );
+    api.readNetWorth.mockImplementation(() => success(netWorth({ allocation: [] })));
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
     renderPage();
 
     expect(await screen.findByText('Valorisation manquante')).toBeTruthy();
@@ -348,6 +352,21 @@ describe('AccountGroupsPage', () => {
     expect(investRow.textContent).toContain(`42${NARROW}000,00${NBSP}€`);
     expect(within(investRow).getByText('PEA')).toBeTruthy();
     expect(within(investRow).queryByText('Livret A')).toBeNull();
+  });
+
+  it('does not treat pending members or totals as an empty group', async () => {
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+    );
+    api.listAccounts.mockImplementation(() => new Promise(() => undefined));
+    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+
+    expect(await screen.findByRole('row', { name: /Épargne/ })).toBeTruthy();
+    expect(screen.queryByText('Aucun compte dans ce groupe')).toBeNull();
+    expect(screen.queryByText('Non calculable')).toBeNull();
+    expect(screen.getByText('Chargement des comptes…')).toBeTruthy();
+    expect(screen.getByText('Chargement du total…')).toBeTruthy();
   });
 
   it('never prints 0 for a group whose exclusive total is absent', async () => {
