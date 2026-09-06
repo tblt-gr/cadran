@@ -37,6 +37,7 @@ export function useProductOptions(asOf: string): ProductOptions {
       }
       return result.data;
     },
+    enabled: asOf.length > 0,
     retry: false,
   });
 

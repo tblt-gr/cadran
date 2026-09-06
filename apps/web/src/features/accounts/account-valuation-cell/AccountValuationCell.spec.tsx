@@ -54,6 +54,19 @@ describe('AccountValuationCell', () => {
     expect(screen.getByText(/Saisie/)).toBeTruthy();
   });
 
+  it('prints the observed figure against the published ceiling and fills a decorative bar', () => {
+    const { container } = render(
+      <AccountValuationCell
+        ceiling={{ assetCode: 'EUR', value: '22950' }}
+        valuation={valuation({ quality: 'CURRENT', ageDays: 0 })}
+      />,
+    );
+
+    expect(container.textContent).toContain('231,10');
+    expect(container.textContent).toContain('22');
+    expect(container.querySelector('[style*="width"]')).toBeTruthy();
+  });
+
   it('does not display a rounded zero for a figure below the step', () => {
     render(
       <AccountValuationCell

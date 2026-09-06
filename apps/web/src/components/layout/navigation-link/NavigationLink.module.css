@@ -24,7 +24,6 @@
 }
 
 .link[aria-current='page'] {
-  color: var(--text-primary);
-  background: var(--bg-surface-2);
-  box-shadow: var(--shadow-nav-active);
+  color: var(--gold-300);
+  background: var(--color-transparent);
 }

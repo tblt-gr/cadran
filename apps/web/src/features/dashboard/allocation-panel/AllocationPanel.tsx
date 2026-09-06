@@ -1,8 +1,11 @@
 import type { NetWorth } from '@cadran/api-client';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
-import { formatSharePercent } from '@/lib/formatSharePercent';
-import { AllocationBar } from './AllocationBar';
+import {
+  AllocationCharts,
+  type ChartView,
+} from '@/features/dashboard/allocation-charts/AllocationCharts';
+import { AllocationLegend } from './AllocationLegend';
 import styles from './AllocationPanel.module.css';
 
 interface AllocationPanelProps {
@@ -19,10 +22,15 @@ interface AllocationPanelProps {
  */
 export function AllocationPanel({ netWorth }: AllocationPanelProps) {
   const { t } = useTranslation();
+  const [view, setView] = useState<ChartView>('treemap');
   const roots = netWorth.allocation.filter((entry) => entry.depth === 1);
 
   return (
-    <section className={`card ${styles.card}`} aria-labelledby="allocation-title">
+    <section
+      className={`card ${styles.card}`}
+      aria-labelledby="allocation-title"
+      data-allocation-view={view}
+    >
       <div className={styles.heading}>
         <div>
           <h2 id="allocation-title">{t('dashboard.allocation.title')}</h2>
@@ -36,22 +44,15 @@ export function AllocationPanel({ netWorth }: AllocationPanelProps) {
       {roots.length === 0 ? (
         <p className={styles.empty}>{t('dashboard.allocation.empty')}</p>
       ) : (
-        <ul className={styles.list}>
-          {roots.map((entry) => (
-            <li key={entry.groupId}>
-              <span className={styles.name}>{entry.label}</span>
-              <span className={styles.share}>
-                {entry.share.percentDisplay === null
-                  ? t('states.notCalculable.label')
-                  : formatSharePercent(entry.share.percentDisplay, { fractionDigits: 2 })}
-              </span>
-              <strong className={`money ${styles.amount}`}>
-                <NetWorthFigure amount={entry.value} reason={netWorth.reason} />
-              </strong>
-              <AllocationBar percent={entry.share.percentDisplay} />
-            </li>
-          ))}
-        </ul>
+        <div className={view === 'pie' ? styles.pieLayout : styles.treeLayout}>
+          <AllocationCharts
+            allocation={netWorth.allocation}
+            onViewChange={setView}
+            reason={netWorth.reason}
+            total={netWorth.total}
+          />
+          {view === 'pie' ? <AllocationLegend entries={roots} reason={netWorth.reason} /> : null}
+        </div>
       )}
     </section>
   );

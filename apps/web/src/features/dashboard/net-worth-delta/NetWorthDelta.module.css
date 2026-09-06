@@ -31,8 +31,16 @@
   color: var(--text-secondary);
 }
 
-.rate {
-  color: var(--text-primary);
+.rate.up {
+  color: var(--positive);
+}
+
+.rate.down {
+  color: var(--negative);
+}
+
+.rate.flat {
+  color: var(--text-secondary);
 }
 
 .unavailable {

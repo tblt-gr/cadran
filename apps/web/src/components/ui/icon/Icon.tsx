@@ -4,23 +4,33 @@ type IconName =
   | 'accounts'
   | 'add'
   | 'alert'
+  | 'archive'
   | 'arrow-down'
   | 'arrow-up'
+  | 'balance'
   | 'budget'
   | 'catalog'
   | 'categories'
   | 'chevron-left'
   | 'chevron-right'
   | 'close'
+  | 'copy'
+  | 'edit'
   | 'goals'
   | 'home'
   | 'investments'
   | 'menu'
+  | 'merge'
   | 'more'
+  | 'move'
+  | 'pie'
+  | 'replace'
+  | 'rules'
   | 'search'
   | 'settings'
   | 'tax'
-  | 'transactions';
+  | 'transactions'
+  | 'treemap';
 
 interface IconProps {
   name: IconName;
@@ -58,11 +68,19 @@ function IconPath({ name }: { name: IconName }) {
     case 'menu':
       return <path d="M4 7h16M4 12h16M4 17h16" />;
     case 'more':
-      return <path d="M5 12h.01M12 12h.01M19 12h.01" />;
+      return (
+        <>
+          <circle cx="5" cy="12" r="2" />
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="19" cy="12" r="2" />
+        </>
+      );
     case 'search':
       return <path d="m20 20-4.4-4.4m2.4-4.6a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />;
     case 'close':
       return <path d="m6 6 12 12M18 6 6 18" />;
+    case 'copy':
+      return <path d="M8 8h11v11H8zM5 16V5h11" />;
     case 'chevron-left':
       return <path d="m15 5-7 7 7 7" />;
     case 'chevron-right':
@@ -73,10 +91,43 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="m7 10 5 5 5-5M12 5v10" />;
     case 'alert':
       return <path d="M12 3 2.8 20h18.4ZM12 9v5m0 3h.01" />;
+    case 'edit':
+      return <path d="M4 20h4L20 8l-4-4L4 16v4Zm10-14 4 4" />;
+    case 'archive':
+      return <path d="M4 6h16v3H4Zm2 3v11h12V9M9 13h6" />;
+    case 'move':
+      return <path d="M12 5v10m-4-4 4 4 4-4M5 19h14" />;
+    case 'merge':
+      return <path d="M8 4v8a4 4 0 0 0 8 0V4M8 8h8" />;
+    case 'replace':
+      return <path d="M7 8h11l-3-3M17 16H6l3 3" />;
+    case 'rules':
+      return <path d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01" />;
+    case 'balance':
+      return <path d="M4 19h16M12 5v14M6 9h5L8.5 14 6 9Zm7 0h5L15.5 14 13 9Z" />;
+    case 'pie':
+      return <path d="M12 4a8 8 0 1 0 8 8h-8Z" />;
+    case 'treemap':
+      return <path d="M4 4h16v16H4Zm0 7h16M12 11v9" />;
   }
 }
 
 export function Icon({ name, size = 20 }: IconProps) {
+  if (name === 'more') {
+    return (
+      <svg
+        aria-hidden="true"
+        className={styles.icon}
+        fill="currentColor"
+        height={size}
+        viewBox="0 0 24 24"
+        width={size}
+      >
+        <IconPath name={name} />
+      </svg>
+    );
+  }
+
   return (
     <svg
       aria-hidden="true"

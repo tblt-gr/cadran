@@ -42,7 +42,7 @@ interface CategoryLifecycleDialogProps {
  */
 export function CategoryLifecycleDialog({
   category,
-  onCancel,
+  onCancel: _onCancel,
   onConfirm,
   operation,
   pending,
@@ -163,9 +163,6 @@ export function CategoryLifecycleDialog({
       <ImpactPreview impact={impact.data} status={previewStatus} />
 
       <div className={styles.actions}>
-        <button className="secondary-action" data-autofocus onClick={onCancel} type="button">
-          {t('categories.form.cancel')}
-        </button>
         <button className="primary-action" disabled={!confirmable} type="submit">
           {t(
             pending

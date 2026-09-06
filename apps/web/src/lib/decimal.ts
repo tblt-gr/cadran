@@ -91,6 +91,16 @@ export function formatCalendarDay(value: string, locale: string): string {
 }
 
 /**
+ * Prints an ISO 8601 calendar day as `dd/mm/yyyy` from its parts, so a
+ * timezone can never shift it to the day before.
+ */
+export function formatCalendarNumericDay(value: string): string {
+  const [year, month, day] = value.split('-');
+
+  return `${day}/${month}/${year}`;
+}
+
+/**
  * Renders the month of an ISO 8601 calendar day, capitalised for a sentence
  * start. The day is read at midday UTC so a viewer's timezone can never shift
  * it into the previous month.

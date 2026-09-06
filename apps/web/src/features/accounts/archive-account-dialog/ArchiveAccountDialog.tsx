@@ -20,7 +20,7 @@ export function ArchiveAccountDialog({
   account,
   pending,
   submitError,
-  onCancel,
+  onCancel: _onCancel,
   onConfirm,
 }: ArchiveAccountDialogProps) {
   const { t } = useTranslation();
@@ -35,9 +35,6 @@ export function ArchiveAccountDialog({
       <p>{t('accounts.archive.description', { label: account.label })}</p>
       <p className={styles.hint}>{t('accounts.archive.consequences')}</p>
       <div className={styles.actions}>
-        <button className="secondary-action" data-autofocus onClick={onCancel} type="button">
-          {t('accounts.form.cancel')}
-        </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(pending ? 'accounts.archive.confirming' : 'accounts.archive.confirm')}
         </button>

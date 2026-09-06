@@ -1,8 +1,8 @@
-import type { Product, ProductRule, ProductRuleKind } from '@cadran/api-client';
+import type { Product, ProductRuleKind } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { formatProductRuleValue } from '@/features/catalog/formatProductRuleValue';
 import { RuleProvenance } from '@/features/catalog-rules/rule-provenance/RuleProvenance';
-import { ruleTextKey } from '@/features/catalog-rules/ruleText';
-import { formatAmount, formatCalendarDay, formatDecimal } from '@/lib/decimal';
+import { formatCalendarDay } from '@/lib/decimal';
 import styles from './ProductRuleList.module.css';
 
 interface ProductRuleListProps {
@@ -44,9 +44,7 @@ export function ProductRuleList({ product }: ProductRuleListProps) {
           {product.rules.map((rule) => (
             <tr key={rule.kind}>
               <th scope="row">{t(`catalog.rules.kinds.${rule.kind}`)}</th>
-              <td className={styles.value}>
-                {formatRuleValue(rule, i18n.language, t as Translate)}
-              </td>
+              <td className={styles.value}>{formatProductRuleValue(rule, i18n.language, t)}</td>
               <RuleProvenance
                 source={rule.source}
                 validFrom={rule.validFrom}
@@ -71,24 +69,4 @@ export function ProductRuleList({ product }: ProductRuleListProps) {
       </table>
     </div>
   );
-}
-
-type Translate = (key: string, options?: Record<string, unknown>) => string;
-
-function formatRuleValue(rule: ProductRule, locale: string, t: Translate): string {
-  if (rule.amount !== null) {
-    return formatAmount(rule.amount.value, rule.amount.assetCode, locale);
-  }
-
-  if (rule.percentage !== null) {
-    return t('catalog.rules.percentValue', { value: formatDecimal(rule.percentage, locale) });
-  }
-
-  if (rule.text !== null) {
-    const wording = ruleTextKey(rule.text);
-
-    return wording === null ? rule.text : t(wording);
-  }
-
-  return t('catalog.rules.unknownValue');
 }

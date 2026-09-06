@@ -19,6 +19,11 @@ import { ArchiveGroupDialog } from '@/features/account-groups/archive-group-dial
 import { GroupForm } from '@/features/account-groups/group-form/GroupForm';
 import { GroupList } from '@/features/account-groups/group-list/GroupList';
 import {
+  AllocationCharts,
+  type ChartView,
+} from '@/features/dashboard/allocation-charts/AllocationCharts';
+import { AllocationLegend } from '@/features/dashboard/allocation-panel/AllocationLegend';
+import {
   groupErrorKind,
   GroupRequestError,
   groupRequestError,
@@ -39,6 +44,7 @@ export function AccountGroupsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<AccountGroup | null>(null);
   const [saved, setSaved] = useState<'saved' | 'archived' | null>(null);
+  const [allocationView, setAllocationView] = useState<ChartView>('treemap');
 
   function openEditor(target: Exclude<Editor, null>) {
     setSaved(null);
@@ -153,6 +159,7 @@ export function AccountGroupsPage() {
   const unauthorized = groups.error instanceof GroupRequestError && groups.error.status === 401;
   const items = groups.data?.items ?? [];
   const totalPages = Math.max(1, Math.ceil((groups.data?.total ?? 0) / 50));
+  const allocationRoots = (netWorth.data?.allocation ?? []).filter((entry) => entry.depth === 1);
 
   if (groups.data && page > totalPages) {
     setPage(totalPages);
@@ -256,16 +263,45 @@ export function AccountGroupsPage() {
           onRetry={() => void groups.refetch()}
         />
       ) : (
-        <GroupList
-          accounts={accounts.data?.items ?? []}
-          accountsStatus={accounts.isPending ? 'pending' : accounts.isError ? 'error' : 'ready'}
-          allocation={netWorth.data?.allocation ?? []}
-          allocationStatus={netWorth.isPending ? 'pending' : netWorth.isError ? 'error' : 'ready'}
-          groups={items}
-          netWorthReason={netWorth.data?.reason ?? null}
-          onArchive={setArchiving}
-          onEdit={openEditor}
-        />
+        <>
+          {netWorth.isPending ? (
+            <section className={`card ${styles.allocation}`} aria-busy="true" role="status">
+              {t('accountGroups.list.allocationLoading')}
+            </section>
+          ) : netWorth.isError ? (
+            <section className={`card ${styles.allocation}`} role="alert">
+              {t('accountGroups.list.allocationUnavailable')}
+            </section>
+          ) : allocationRoots.length > 0 ? (
+            <section className={`card ${styles.allocation}`} data-allocation-view={allocationView}>
+              <div className={allocationView === 'pie' ? styles.pieLayout : undefined}>
+                <AllocationCharts
+                  allocation={netWorth.data?.allocation ?? []}
+                  onViewChange={setAllocationView}
+                  reason={netWorth.data?.reason ?? null}
+                  total={netWorth.data?.total ?? null}
+                />
+                {allocationView === 'pie' ? (
+                  <AllocationLegend
+                    entries={allocationRoots}
+                    reason={netWorth.data?.reason ?? null}
+                  />
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+          <GroupList
+            accounts={accounts.data?.items ?? []}
+            accountsStatus={accounts.isPending ? 'pending' : accounts.isError ? 'error' : 'ready'}
+            allocation={netWorth.data?.allocation ?? []}
+            allocationStatus={netWorth.isPending ? 'pending' : netWorth.isError ? 'error' : 'ready'}
+            contributions={netWorth.data?.contributions ?? []}
+            groups={items}
+            netWorthReason={netWorth.data?.reason ?? null}
+            onArchive={setArchiving}
+            onEdit={openEditor}
+          />
+        </>
       )}
 
       {groups.isSuccess && (totalPages > 1 || page > 1) ? (

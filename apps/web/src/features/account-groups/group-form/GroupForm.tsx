@@ -17,7 +17,7 @@ interface GroupFormProps {
   onSubmit: (body: CreateAccountGroupRequest | UpdateAccountGroupRequest) => void;
 }
 
-export function GroupForm({ group, pending, submitError, onCancel, onSubmit }: GroupFormProps) {
+export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormProps) {
   const { t } = useTranslation();
   const [label, setLabel] = useState(group?.label ?? '');
   const [parentId, setParentId] = useState(group?.parentId ?? '');
@@ -87,9 +87,6 @@ export function GroupForm({ group, pending, submitError, onCancel, onSubmit }: G
       </div>
 
       <div className={styles.actions}>
-        <button className="secondary-action" onClick={onCancel} type="button">
-          {t('accountGroups.form.cancel')}
-        </button>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'accountGroups.form.saving' : 'accountGroups.form.save')}
         </button>

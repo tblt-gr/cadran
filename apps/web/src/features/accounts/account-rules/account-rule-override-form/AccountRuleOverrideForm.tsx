@@ -43,7 +43,7 @@ export function AccountRuleOverrideForm({
   accountAsset,
   initialKind,
   kinds,
-  onCancel,
+  onCancel: _onCancel,
   onSubmit,
   pending,
   submitError,
@@ -110,9 +110,6 @@ export function AccountRuleOverrideForm({
       </FormField>
 
       <div className={styles.actions}>
-        <button className="secondary-action" onClick={onCancel} type="button">
-          {t('accounts.form.cancel')}
-        </button>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'accounts.overrides.recording' : 'accounts.overrides.record')}
         </button>

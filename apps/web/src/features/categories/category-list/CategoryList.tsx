@@ -1,10 +1,18 @@
 import type { Category, CategoryLifecycleOperation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { CategoryRedirection } from './category-redirection/CategoryRedirection';
 import styles from './CategoryList.module.css';
 
 const LIFECYCLE_ACTIONS: CategoryLifecycleOperation[] = ['MOVE', 'MERGE', 'REPLACE', 'ARCHIVE'];
+
+const LIFECYCLE_ICONS = {
+  ARCHIVE: 'archive',
+  MERGE: 'merge',
+  MOVE: 'move',
+  REPLACE: 'replace',
+} as const;
 
 interface CategoryListProps {
   categories: Category[];
@@ -65,37 +73,35 @@ export function CategoryList({ categories, onEdit, onLifecycle }: CategoryListPr
                     </StatusBadge>
                   </td>
                   <td>
-                    <div className={styles.actions}>
-                      <button
-                        aria-label={t('categories.list.actionFor', {
-                          action: t('categories.list.edit'),
-                          label: category.label,
-                        })}
-                        className="secondary-action"
-                        disabled={archived}
-                        onClick={() => onEdit(category)}
-                        type="button"
-                      >
-                        {t('categories.list.edit')}
-                      </button>
-                      {LIFECYCLE_ACTIONS.map((operation) => (
-                        <button
+                    <ActionMenu
+                      items={[
+                        {
+                          disabled: archived,
+                          icon: 'edit',
+                          id: 'edit',
+                          label: t('categories.list.actionFor', {
+                            action: t('categories.list.edit'),
+                            label: category.label,
+                          }),
+                          onSelect: () => onEdit(category),
+                          text: t('categories.list.edit'),
+                        },
+                        ...LIFECYCLE_ACTIONS.map((operation) => ({
+                          disabled: archived,
+                          icon: LIFECYCLE_ICONS[operation],
+                          id: operation,
                           // Fifty rows carry fifty identical verbs; the accessible name
                           // has to say which category is about to be reorganised.
-                          aria-label={t('categories.list.actionFor', {
+                          label: t('categories.list.actionFor', {
                             action: t(`categories.lifecycle.${operation}.action`),
                             label: category.label,
-                          })}
-                          className="secondary-action"
-                          disabled={archived}
-                          key={operation}
-                          onClick={() => onLifecycle(category, operation)}
-                          type="button"
-                        >
-                          {t(`categories.lifecycle.${operation}.action`)}
-                        </button>
-                      ))}
-                    </div>
+                          }),
+                          onSelect: () => onLifecycle(category, operation),
+                          text: t(`categories.lifecycle.${operation}.action`),
+                        })),
+                      ]}
+                      label={t('categories.list.openActions', { label: category.label })}
+                    />
                   </td>
                 </tr>
               );

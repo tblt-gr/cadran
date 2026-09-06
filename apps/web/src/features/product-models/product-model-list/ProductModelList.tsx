@@ -1,5 +1,6 @@
 import type { ProductModel } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import styles from './ProductModelList.module.css';
 
@@ -72,42 +73,43 @@ export function ProductModelList({
                     )}
                   </StatusBadge>
                 </td>
-                <td className={styles.rowActions}>
-                  <button
-                    aria-label={t('productModels.list.inspectModel', { name: model.name })}
-                    className="secondary-action"
-                    onClick={() => onInspect(model)}
-                    type="button"
-                  >
-                    {t('productModels.list.inspect')}
-                  </button>
-                  <button
-                    aria-label={t('productModels.list.addPeriodTo', { name: model.name })}
-                    className="secondary-action"
-                    disabled={!model.editable}
-                    onClick={() => onAddPeriod(model)}
-                    type="button"
-                  >
-                    {t('productModels.list.addPeriod')}
-                  </button>
-                  <button
-                    aria-label={t('productModels.list.duplicateModel', { name: model.name })}
-                    className="secondary-action"
-                    disabled={!model.editable}
-                    onClick={() => onDuplicate(model)}
-                    type="button"
-                  >
-                    {t('productModels.list.duplicate')}
-                  </button>
-                  <button
-                    aria-label={t('productModels.list.archiveModel', { name: model.name })}
-                    className="secondary-action"
-                    disabled={!model.editable}
-                    onClick={() => onArchive(model)}
-                    type="button"
-                  >
-                    {t('productModels.list.archive')}
-                  </button>
+                <td>
+                  <ActionMenu
+                    label={t('productModels.list.openActions', { name: model.name })}
+                    items={[
+                      {
+                        icon: 'rules',
+                        id: 'inspect',
+                        label: t('productModels.list.inspectModel', { name: model.name }),
+                        onSelect: () => onInspect(model),
+                        text: t('productModels.list.inspect'),
+                      },
+                      {
+                        disabled: !model.editable,
+                        icon: 'add',
+                        id: 'addPeriod',
+                        label: t('productModels.list.addPeriodTo', { name: model.name }),
+                        onSelect: () => onAddPeriod(model),
+                        text: t('productModels.list.addPeriod'),
+                      },
+                      {
+                        disabled: !model.editable,
+                        icon: 'copy',
+                        id: 'duplicate',
+                        label: t('productModels.list.duplicateModel', { name: model.name }),
+                        onSelect: () => onDuplicate(model),
+                        text: t('productModels.list.duplicate'),
+                      },
+                      {
+                        disabled: !model.editable,
+                        icon: 'archive',
+                        id: 'archive',
+                        label: t('productModels.list.archiveModel', { name: model.name }),
+                        onSelect: () => onArchive(model),
+                        text: t('productModels.list.archive'),
+                      },
+                    ]}
+                  />
                 </td>
               </tr>
             ))}

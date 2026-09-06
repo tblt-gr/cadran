@@ -55,12 +55,3 @@
 .panel tbody tr:last-child td {
   border-bottom: var(--border-none);
 }
-
-.rowActions {
-  display: flex;
-  gap: var(--spacing-2);
-}
-
-.rowActions button {
-  min-width: max-content;
-}

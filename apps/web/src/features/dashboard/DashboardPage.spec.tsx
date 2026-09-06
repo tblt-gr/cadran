@@ -158,8 +158,15 @@ describe('DashboardPage', () => {
     expect(section?.textContent).toContain('1,42 %');
     expect(section?.textContent).not.toContain('1,415365137180803644054 %');
     expect(
-      section?.querySelector(`[aria-label="Hausse de 1${NARROW}740,00${NBSP}€"]`),
-    ).toBeTruthy();
+      section
+        ?.querySelector(`[aria-label="Hausse de 1${NARROW}740,00${NBSP}€"]`)
+        ?.getAttribute('data-tone'),
+    ).toBe('up');
+    expect(
+      within(section as HTMLElement)
+        .getByText('1,42 %')
+        .getAttribute('data-tone'),
+    ).toBe('up');
   });
 
   it('lists only the top-level exclusive groups in the allocation', async () => {
@@ -170,13 +177,49 @@ describe('DashboardPage', () => {
 
     const allocation = (await screen.findByRole('heading', { name: 'Allocation' })).closest(
       'section',
-    );
-    expect(allocation?.textContent).toContain('Liquidités');
-    expect(allocation?.textContent).not.toContain('Livrets');
-    expect(allocation?.textContent).toContain('4,20 %');
-    expect(allocation?.textContent).not.toContain('4,20080440935498286906');
-    const bars = Array.from(allocation?.querySelectorAll<HTMLElement>('[style*="width"]') ?? []);
+    ) as HTMLElement;
+    fireEvent.click(within(allocation).getByRole('button', { name: 'Camembert' }));
+    expect(allocation.textContent).toContain('Liquidités');
+    expect(allocation.textContent).not.toContain('Livrets');
+    expect(allocation.textContent).toContain('4,20 %');
+    expect(allocation.textContent).not.toContain('4,20080440935498286906');
+    const bars = Array.from(allocation.querySelectorAll<HTMLElement>('[style*="width"]'));
     expect(bars.map((bar) => bar.style.width)).toEqual(['4.2%']);
+  });
+
+  it('offers Treemap and Camembert toggles in the allocation section', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard();
+
+    const allocation = (await screen.findByRole('heading', { name: 'Allocation' })).closest(
+      'section',
+    ) as HTMLElement;
+    expect(within(allocation).getByRole('button', { name: 'Treemap' })).toBeTruthy();
+    expect(within(allocation).getByRole('button', { name: 'Camembert' })).toBeTruthy();
+  });
+
+  it('labels the wealth chart axes and shows date plus primary value on hover', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard();
+
+    await screen.findByRole('img', { name: /Évolution du patrimoine net/ });
+
+    const yAxis = screen.getByRole('group', { name: 'Patrimoine net' });
+    expect(yAxis.textContent).toContain(`122${NARROW}940,00${NBSP}€`);
+    expect(yAxis.textContent).toContain(`124${NARROW}680,00${NBSP}€`);
+
+    const xAxis = screen.getByRole('group', { name: 'Date' });
+    expect(xAxis.textContent).toContain('31/07/2026');
+    expect(xAxis.textContent).toContain('05/09/2026');
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /31\/08\/2026/ }));
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip.textContent).toContain('31/08/2026');
+    expect(tooltip.textContent).toContain(`122${NARROW}940,00${NBSP}€`);
   });
 
   it('offers a tabular alternative that names an uncomputable month instead of showing zero', async () => {
@@ -295,7 +338,13 @@ describe('DashboardPage', () => {
     api.readNetWorth.mockReturnValue(
       success({
         ...netWorth,
-        delta: { ...netWorth.delta, amount: amount('-1740.00') },
+        delta: {
+          ...netWorth.delta,
+          amount: amount('-1740.00'),
+          rate: '-0.014153651371808036440540',
+          ratePercent: '-1.415365137180803644054000',
+          ratePercentDisplay: '-1.42',
+        },
       } satisfies NetWorth),
     );
     api.readNetWorthHistory.mockReturnValue(success(history));
@@ -306,8 +355,15 @@ describe('DashboardPage', () => {
       'section',
     );
     expect(
-      section?.querySelector(`[aria-label="Baisse de 1${NARROW}740,00${NBSP}€"]`),
-    ).toBeTruthy();
+      section
+        ?.querySelector(`[aria-label="Baisse de 1${NARROW}740,00${NBSP}€"]`)
+        ?.getAttribute('data-tone'),
+    ).toBe('down');
+    expect(
+      within(section as HTMLElement)
+        .getByText('−1,42 %')
+        .getAttribute('data-tone'),
+    ).toBe('down');
   });
 
   it('tells an outage apart from a missing valuation in the quality panel', async () => {

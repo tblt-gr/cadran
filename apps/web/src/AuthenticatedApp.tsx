@@ -86,7 +86,7 @@ export function AuthenticatedApp() {
 
   return (
     <AppShell
-      accountSlot={<LogoutButton />}
+      accountSlot={path === '/settings/profile' ? <LogoutButton /> : undefined}
       contextPanel={path === '/' && status.isSuccess ? <DashboardContextPanel /> : undefined}
       freshnessLabel={path === '/' ? dashboardHeader.freshnessLabel : undefined}
       headerDate={path === '/' ? dashboardHeader.headerDate : undefined}

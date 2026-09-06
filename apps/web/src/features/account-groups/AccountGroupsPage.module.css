@@ -39,6 +39,23 @@
   line-height: var(--line-height-body);
 }
 
+.allocation {
+  padding: var(--spacing-6);
+}
+
+.pieLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(10rem, 0.8fr);
+  align-items: start;
+  gap: var(--spacing-6);
+}
+
+@media (max-width: 1279px) {
+  .pieLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .toolbar {
   justify-content: flex-end;
 }

@@ -23,7 +23,7 @@ export function DuplicateModelForm({
   model,
   pending,
   submitError,
-  onCancel,
+  onCancel: _onCancel,
   onSubmit,
 }: DuplicateModelFormProps) {
   const { t } = useTranslation();
@@ -76,9 +76,6 @@ export function DuplicateModelForm({
       </FieldRow>
 
       <div className={styles.actions}>
-        <button className="secondary-action" onClick={onCancel} type="button">
-          {t('productModels.form.cancel')}
-        </button>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'productModels.duplicate.confirming' : 'productModels.duplicate.confirm')}
         </button>

@@ -20,7 +20,7 @@ interface WithdrawOverrideDialogProps {
  * offered as a deletion.
  */
 export function WithdrawOverrideDialog({
-  onCancel,
+  onCancel: _onCancel,
   onConfirm,
   pending,
   reason,
@@ -39,9 +39,6 @@ export function WithdrawOverrideDialog({
       <p className={styles.quote}>{reason}</p>
       <p className={styles.hint}>{t('accounts.overrides.withdrawConsequences')}</p>
       <div className={styles.actions}>
-        <button className="secondary-action" data-autofocus onClick={onCancel} type="button">
-          {t('accounts.form.cancel')}
-        </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(pending ? 'accounts.overrides.withdrawing' : 'accounts.overrides.withdrawConfirm')}
         </button>

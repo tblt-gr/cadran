@@ -1,0 +1,56 @@
+.wrap {
+  display: grid;
+  min-width: 0;
+  gap: var(--spacing-3);
+}
+
+.toggles {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-1);
+}
+
+.plot {
+  width: 100%;
+  min-width: 0;
+  height: 18rem;
+  overflow: hidden;
+}
+
+.plot :global(.recharts-wrapper),
+.plot :global(.recharts-surface) {
+  max-width: 100%;
+}
+
+.plot :global(.recharts-wrapper),
+.plot :global(.recharts-surface),
+.plot :global(.recharts-sector),
+.plot :global(.recharts-pie-sector) {
+  outline: none;
+}
+
+.plot :global(.recharts-sector),
+.plot :global(.recharts-pie-sector) {
+  cursor: pointer;
+  stroke: none;
+}
+
+.tile {
+  stroke: var(--bg-surface-1);
+}
+
+.tileLabel {
+  fill: var(--text-primary);
+  font-size: var(--font-size-xs);
+}
+
+.centerTotal {
+  fill: var(--text-primary);
+  font-size: var(--font-size-kpi);
+  font-weight: var(--font-weight-semibold);
+}
+
+.centerTitle {
+  fill: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
