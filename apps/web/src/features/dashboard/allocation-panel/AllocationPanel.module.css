@@ -83,7 +83,19 @@
   display: block;
   height: 100%;
   border-radius: var(--radius-full);
-  background: var(--gold-500);
+  background: var(--chart-allocation-1);
+}
+
+.list li:nth-child(2) .fill {
+  background: var(--chart-allocation-2);
+}
+
+.list li:nth-child(3) .fill {
+  background: var(--chart-allocation-3);
+}
+
+.list li:nth-child(4) .fill {
+  background: var(--chart-allocation-4);
 }
 
 .empty {

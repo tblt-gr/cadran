@@ -3,26 +3,26 @@
 
   /* Colors */
   --color-transparent: transparent;
-  --bg-page: #050506;
-  --bg-shell: #08090d;
-  --bg-sidebar: #090a10;
-  --bg-surface-1: #101114;
-  --bg-surface-2: #181a21;
-  --bg-surface-hover: #1d1f27;
-  --bg-mobile-navigation: #111217;
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.15);
-  --chart-grid: rgba(255, 255, 255, 0.055);
-  --gold-200: #f7d58f;
-  --gold-300: #f0c77b;
-  --gold-500: #d3ac5f;
-  --gold-soft: rgba(211, 172, 95, 0.14);
+  --bg-page: #000000;
+  --bg-shell: #000000;
+  --bg-sidebar: #050506;
+  --bg-surface-1: #0e0e0f;
+  --bg-surface-2: #181818;
+  --bg-surface-hover: #1c1c1e;
+  --bg-mobile-navigation: #0a0a0a;
+  --border-subtle: #212122;
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --chart-grid: rgba(255, 255, 255, 0.04);
+  --gold-200: #f7d4a3;
+  --gold-300: #f1c086;
+  --gold-500: #c8a070;
+  --gold-soft: rgba(241, 192, 134, 0.14);
   --text-on-primary: #17130b;
-  --text-primary: #f5f4ef;
-  --text-secondary: #a5a9b5;
-  --text-muted: #7c818e;
-  --positive: #36c9a0;
-  --positive-soft: rgba(54, 201, 160, 0.12);
+  --text-primary: #f7f7f7;
+  --text-secondary: #8a8a8e;
+  --text-muted: #686868;
+  --positive: #28a870;
+  --positive-soft: rgba(40, 168, 112, 0.12);
   --negative: #f07878;
   --negative-soft: rgba(240, 120, 120, 0.12);
   --warning: #e3a56f;
@@ -30,11 +30,20 @@
   --info: #8ea8e8;
   --info-soft: rgba(142, 168, 232, 0.12);
   --allocation-real-estate: #a58bce;
-  --focus: #f4cf86;
+  --chart-allocation-1: #486df0;
+  --chart-allocation-2: #803078;
+  --chart-allocation-3: #58b8c0;
+  --chart-allocation-4: #f0a8d8;
+  --focus: #f7d4a3;
   --overlay-sheet: rgba(0, 0, 0, 0.72);
   --chart-area-fill: url(#wealth-chart-area);
+  --gradient-cta: linear-gradient(135deg, var(--gold-200) 0%, var(--gold-500) 100%);
+  --gradient-chart-fill: url(#wealth-chart-area);
 
   /* Effects */
+  --shadow-card: none;
+  --shadow-nav-active: inset 0.125rem 0 0 var(--gold-300);
+  --glow-cta: 0 0 1.5rem rgba(241, 192, 134, 0.18);
   --shadow-mobile-navigation: 0 1rem 2.5rem rgba(0, 0, 0, 0.46);
   --shadow-sheet: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
 
@@ -110,8 +119,8 @@
   --outline-focus: var(--border-width-focus) solid var(--focus);
   --outline-offset-focus: var(--border-width-thin);
   --radius-none: 0;
-  --radius-control: 0.5rem;
-  --radius-card: 0.75rem;
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
   --radius-full: 999px;
   --radius-circle: 50%;
   --radius-button: var(--radius-full);
