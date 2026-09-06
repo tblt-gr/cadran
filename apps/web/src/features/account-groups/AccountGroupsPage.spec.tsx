@@ -489,6 +489,8 @@ describe('AccountGroupsPage', () => {
     expect(screen.queryByText('Non calculable')).toBeNull();
     expect(screen.getByText('Chargement des comptes…')).toBeTruthy();
     expect(screen.getByText('Chargement du total…')).toBeTruthy();
+    expect(screen.getByText('Chargement de l’allocation…')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Treemap' })).toBeNull();
   });
 
   it('never prints 0 for a group whose exclusive total is absent', async () => {

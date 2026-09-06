@@ -64,95 +64,105 @@ export function AccountList({
             </tr>
           </thead>
           <tbody>
-            {accounts.map((account) => (
-              <tr key={account.id}>
-                <th scope="row">
-                  <span>{account.label}</span>
-                  {account.institution || account.maskedIdentifier ? (
-                    <small>
-                      {[
-                        account.institution,
-                        account.maskedIdentifier && `••${account.maskedIdentifier}`,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </small>
-                  ) : null}
-                </th>
-                <td>{t(`accounts.kinds.${account.kind}`)}</td>
-                <td>{account.assetCode}</td>
-                <td>{t(`accounts.valuationModes.${account.valuationMode}`)}</td>
-                <td>
-                  <AccountValuationCell
-                    ceiling={
-                      asOf === undefined
-                        ? null
-                        : depositCeilingOf(account, products.items, models.items)
-                    }
-                    valuation={account.valuation}
-                  />
-                </td>
-                <td>
-                  {t(
-                    account.includeInNetWorth
-                      ? account.netWorthSign === -1
-                        ? 'accounts.contribution.liability'
-                        : 'accounts.contribution.asset'
-                      : 'accounts.contribution.excluded',
-                  )}
-                </td>
-                <td>
-                  <ShareCell share={shareByAccount.get(account.id) ?? account.share} />
-                </td>
-                <td>
-                  <StatusBadge tone={STATUS_TONE[account.status]}>
-                    {account.status === 'CLOSED' && account.closedOn
-                      ? `${t('accounts.statuses.CLOSED')} · ${account.closedOn}`
-                      : t(`accounts.statuses.${account.status}`)}
-                  </StatusBadge>
-                </td>
-                <td>
-                  <ActionMenu
-                    items={[
-                      {
-                        disabled: !account.editable,
-                        icon: 'balance',
-                        id: 'recordBalance',
-                        label: t('accounts.list.recordBalanceOfAccount', { label: account.label }),
-                        onSelect: () => onRecordBalance(account),
-                        text: t('accounts.list.recordBalance'),
-                      },
-                      {
-                        // Reading the rules changes nothing, so an archived or closed
-                        // account still answers for the dates it was open.
-                        icon: 'rules',
-                        id: 'rules',
-                        label: t('accounts.list.rulesOfAccount', { label: account.label }),
-                        onSelect: () => onRules(account),
-                        text: t('accounts.list.rules'),
-                      },
-                      {
-                        disabled: !account.editable,
-                        icon: 'edit',
-                        id: 'edit',
-                        label: t('accounts.list.editAccount', { label: account.label }),
-                        onSelect: () => onEdit(account),
-                        text: t('accounts.list.edit'),
-                      },
-                      {
-                        disabled: !account.editable,
-                        icon: 'archive',
-                        id: 'archive',
-                        label: t('accounts.list.archiveAccount', { label: account.label }),
-                        onSelect: () => onArchive(account),
-                        text: t('accounts.list.archive'),
-                      },
-                    ]}
-                    label={t('accounts.list.openActions', { label: account.label })}
-                  />
-                </td>
-              </tr>
-            ))}
+            {accounts.map((account) => {
+              const share = shareByAccount.get(account.id);
+
+              return (
+                <tr key={account.id}>
+                  <th scope="row">
+                    <span>{account.label}</span>
+                    {account.institution || account.maskedIdentifier ? (
+                      <small>
+                        {[
+                          account.institution,
+                          account.maskedIdentifier && `••${account.maskedIdentifier}`,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </small>
+                    ) : null}
+                  </th>
+                  <td>{t(`accounts.kinds.${account.kind}`)}</td>
+                  <td>{account.assetCode}</td>
+                  <td>{t(`accounts.valuationModes.${account.valuationMode}`)}</td>
+                  <td>
+                    <AccountValuationCell
+                      ceiling={
+                        asOf === undefined
+                          ? null
+                          : depositCeilingOf(account, products.items, models.items)
+                      }
+                      valuation={account.valuation}
+                    />
+                  </td>
+                  <td>
+                    {t(
+                      account.includeInNetWorth
+                        ? account.netWorthSign === -1
+                          ? 'accounts.contribution.liability'
+                          : 'accounts.contribution.asset'
+                        : 'accounts.contribution.excluded',
+                    )}
+                  </td>
+                  <td>
+                    {netWorth.isPending ? (
+                      t('accountGroups.list.shareLoading')
+                    ) : share === undefined ? null : (
+                      <ShareCell share={share} />
+                    )}
+                  </td>
+                  <td>
+                    <StatusBadge tone={STATUS_TONE[account.status]}>
+                      {account.status === 'CLOSED' && account.closedOn
+                        ? `${t('accounts.statuses.CLOSED')} · ${account.closedOn}`
+                        : t(`accounts.statuses.${account.status}`)}
+                    </StatusBadge>
+                  </td>
+                  <td>
+                    <ActionMenu
+                      items={[
+                        {
+                          disabled: !account.editable,
+                          icon: 'balance',
+                          id: 'recordBalance',
+                          label: t('accounts.list.recordBalanceOfAccount', {
+                            label: account.label,
+                          }),
+                          onSelect: () => onRecordBalance(account),
+                          text: t('accounts.list.recordBalance'),
+                        },
+                        {
+                          // Reading the rules changes nothing, so an archived or closed
+                          // account still answers for the dates it was open.
+                          icon: 'rules',
+                          id: 'rules',
+                          label: t('accounts.list.rulesOfAccount', { label: account.label }),
+                          onSelect: () => onRules(account),
+                          text: t('accounts.list.rules'),
+                        },
+                        {
+                          disabled: !account.editable,
+                          icon: 'edit',
+                          id: 'edit',
+                          label: t('accounts.list.editAccount', { label: account.label }),
+                          onSelect: () => onEdit(account),
+                          text: t('accounts.list.edit'),
+                        },
+                        {
+                          disabled: !account.editable,
+                          icon: 'archive',
+                          id: 'archive',
+                          label: t('accounts.list.archiveAccount', { label: account.label }),
+                          onSelect: () => onArchive(account),
+                          text: t('accounts.list.archive'),
+                        },
+                      ]}
+                      label={t('accounts.list.openActions', { label: account.label })}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -264,22 +264,32 @@ export function AccountGroupsPage() {
         />
       ) : (
         <>
-          <section className={`card ${styles.allocation}`} data-allocation-view={allocationView}>
-            <div className={allocationView === 'pie' ? styles.pieLayout : undefined}>
-              <AllocationCharts
-                allocation={netWorth.data?.allocation ?? []}
-                onViewChange={setAllocationView}
-                reason={netWorth.data?.reason ?? null}
-                total={netWorth.data?.total ?? null}
-              />
-              {allocationView === 'pie' && allocationRoots.length > 0 ? (
-                <AllocationLegend
-                  entries={allocationRoots}
+          {netWorth.isPending ? (
+            <section className={`card ${styles.allocation}`} aria-busy="true" role="status">
+              {t('accountGroups.list.allocationLoading')}
+            </section>
+          ) : netWorth.isError ? (
+            <section className={`card ${styles.allocation}`} role="alert">
+              {t('accountGroups.list.allocationUnavailable')}
+            </section>
+          ) : allocationRoots.length > 0 ? (
+            <section className={`card ${styles.allocation}`} data-allocation-view={allocationView}>
+              <div className={allocationView === 'pie' ? styles.pieLayout : undefined}>
+                <AllocationCharts
+                  allocation={netWorth.data?.allocation ?? []}
+                  onViewChange={setAllocationView}
                   reason={netWorth.data?.reason ?? null}
+                  total={netWorth.data?.total ?? null}
                 />
-              ) : null}
-            </div>
-          </section>
+                {allocationView === 'pie' ? (
+                  <AllocationLegend
+                    entries={allocationRoots}
+                    reason={netWorth.data?.reason ?? null}
+                  />
+                ) : null}
+              </div>
+            </section>
+          ) : null}
           <GroupList
             accounts={accounts.data?.items ?? []}
             accountsStatus={accounts.isPending ? 'pending' : accounts.isError ? 'error' : 'ready'}

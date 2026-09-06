@@ -35,13 +35,7 @@ export function ArchiveAccountDialog({
       <p>{t('accounts.archive.description', { label: account.label })}</p>
       <p className={styles.hint}>{t('accounts.archive.consequences')}</p>
       <div className={styles.actions}>
-        <button
-          className="primary-action"
-          data-autofocus
-          disabled={pending}
-          onClick={onConfirm}
-          type="button"
-        >
+        <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(pending ? 'accounts.archive.confirming' : 'accounts.archive.confirm')}
         </button>
       </div>

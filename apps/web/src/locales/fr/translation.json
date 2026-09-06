@@ -604,6 +604,8 @@
       "noAccounts": "Aucun compte dans ce groupe",
       "totalLoading": "Chargement du total…",
       "shareLoading": "Chargement du poids…",
+      "allocationLoading": "Chargement de l’allocation…",
+      "allocationUnavailable": "Allocation indisponible",
       "status": "État",
       "actions": "Actions",
       "active": "Actif",

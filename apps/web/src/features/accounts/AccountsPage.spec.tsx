@@ -897,6 +897,26 @@ describe('AccountsPage', () => {
     expect(container.contains(toast)).toBe(false);
   });
 
+  it('does not focus the archive confirm, so Enter closes instead of archiving', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+    );
+    renderPage();
+
+    await openAccountActions('Livret A Banque X');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Archiver le compte Livret A Banque X' }),
+    );
+
+    const close = screen.getByRole('button', { name: 'Fermer' });
+    await waitFor(() => expect(document.activeElement).toBe(close));
+    fireEvent.keyDown(close, { key: 'Enter' });
+    fireEvent.click(close);
+
+    expect(api.archiveAccount).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: 'Archiver le compte' })).toBeNull();
+  });
+
   it('separates a taken label from a stale version and shows the unauthorized state', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 50, total: 1 }),
@@ -1255,6 +1275,24 @@ describe('AccountsPage', () => {
 
     expect(await screen.findByText('48,2 %')).toBeTruthy();
     await waitFor(() => expect(screen.queryByText('Valorisation manquante')).toBeNull());
+  });
+
+  it('does not print the list share stub while net worth is still loading', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({
+        items: [{ ...account, valuation: staleValuation }],
+        page: 1,
+        perPage: 50,
+        total: 1,
+      }),
+    );
+    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+
+    expect(await screen.findByText(/231,10/)).toBeTruthy();
+    expect(screen.getByText('Chargement du poids…')).toBeTruthy();
+    expect(screen.queryByText('Valorisation manquante')).toBeNull();
+    expect(screen.queryByText('48,2 %')).toBeNull();
   });
 
   it('shows a carried-forward balance as stale and records a manual replacement', async () => {
