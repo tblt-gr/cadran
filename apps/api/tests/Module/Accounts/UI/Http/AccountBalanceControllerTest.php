@@ -24,6 +24,7 @@ final class AccountBalanceControllerTest extends WebTestCase
 {
     private const string LIVRET = '00000000-0000-7000-8000-0000000000e1';
     private const string FOREIGN = '00000000-0000-7000-8000-0000000000e5';
+    private const string DEFAULT_GROUP = '00000000-0000-7000-8000-0000000000c1';
 
     private KernelBrowser $client;
     private Connection $connection;
@@ -45,6 +46,17 @@ final class AccountBalanceControllerTest extends WebTestCase
         $hasher = self::getContainer()->get(PasswordHasher::class);
         self::assertInstanceOf(PasswordHasher::class, $hasher);
         $this->fixture->seed($hasher);
+        $this->connection->insert('account_groups', [
+            'id' => self::DEFAULT_GROUP,
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+            'label' => 'Épargne',
+            'parent_id' => null,
+            'sort_order' => 0,
+            'depth' => 1,
+            'version' => 1,
+            'created_at' => '2026-09-01 12:00:00+00',
+            'updated_at' => '2026-09-01 12:00:00+00',
+        ]);
     }
 
     protected function tearDown(): void
@@ -380,7 +392,7 @@ final class AccountBalanceControllerTest extends WebTestCase
                 'includeInEmergencyFund' => false,
                 'openedOn' => '2026-01-10',
                 'closedOn' => null,
-                'primaryGroupId' => null,
+                'primaryGroupId' => self::DEFAULT_GROUP,
                 'tagGroupIds' => [],
             ], JSON_THROW_ON_ERROR),
         );
