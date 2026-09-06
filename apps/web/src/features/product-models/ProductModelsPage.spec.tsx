@@ -105,6 +105,10 @@ function renderPage() {
   );
 }
 
+async function openModelActions(name: string) {
+  fireEvent.click(await screen.findByRole('button', { name: `Actions du modèle ${name}` }));
+}
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -166,6 +170,7 @@ describe('ProductModelsPage', () => {
     );
     renderPage();
 
+    await openModelActions('Livret Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Ajouter une période au modèle Livret Banque X' }),
     );
@@ -278,6 +283,7 @@ describe('ProductModelsPage', () => {
     );
     renderPage();
 
+    await openModelActions('Livret Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Dupliquer le modèle Livret Banque X' }),
     );
@@ -289,6 +295,7 @@ describe('ProductModelsPage', () => {
       name: 'Livret Banque X (copie)',
     });
 
+    await openModelActions('Livret Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Archiver le modèle Livret Banque X' }),
     );
@@ -308,6 +315,7 @@ describe('ProductModelsPage', () => {
     );
     renderPage();
 
+    await openModelActions('Livret Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Dupliquer le modèle Livret Banque X' }),
     );
@@ -325,6 +333,7 @@ describe('ProductModelsPage', () => {
     );
     api.archiveProductModel.mockImplementation(() => problem(409, '/problems/stale-version'));
     renderPage();
+    await openModelActions('Livret Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Archiver le modèle Livret Banque X' }),
     );
@@ -368,6 +377,7 @@ describe('ProductModelsPage', () => {
     );
     renderPage();
 
+    await openModelActions('Livret retiré');
     const inspect = await screen.findByRole('button', {
       name: 'Voir les périodes du modèle Livret retiré',
     });
@@ -406,6 +416,7 @@ describe('ProductModelsPage', () => {
     );
     renderPage();
 
+    await openModelActions('Livret Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Ajouter une période au modèle Livret Banque X' }),
     );

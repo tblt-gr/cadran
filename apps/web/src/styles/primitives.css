@@ -1,4 +1,5 @@
 .icon-button,
+.icon-ghost,
 .primary-action,
 .secondary-action {
   min-height: var(--control-height);
@@ -22,9 +23,30 @@
   border-color: var(--border-strong);
 }
 
-.icon-button:disabled {
+.icon-button:disabled,
+.icon-ghost:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.icon-ghost {
+  display: inline-grid;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  background: var(--color-transparent);
+  place-items: center;
+}
+
+.icon-ghost:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.icon-ghost[aria-pressed='true'] {
+  color: var(--gold-300);
 }
 
 .primary-action,

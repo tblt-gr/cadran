@@ -3,6 +3,7 @@ import {
   compareUnsignedDecimals,
   formatAmount,
   formatCalendarDay,
+  formatCalendarNumericDay,
   formatDecimal,
   isCanonicalDecimal,
   isCanonicalUnsignedDecimal,
@@ -55,6 +56,13 @@ describe('formatAmount', () => {
 describe('formatCalendarDay', () => {
   it('reads a day in UTC so no timezone shifts it', () => {
     expect(normalize(formatCalendarDay('2026-08-01', 'fr-FR'))).toBe('1 août 2026');
+  });
+});
+
+describe('formatCalendarNumericDay', () => {
+  it('prints an ISO calendar day as dd/mm/yyyy without shifting the date', () => {
+    expect(formatCalendarNumericDay('2026-08-01')).toBe('01/08/2026');
+    expect(formatCalendarNumericDay('2026-09-05')).toBe('05/09/2026');
   });
 });
 

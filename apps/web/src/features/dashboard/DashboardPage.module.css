@@ -5,6 +5,12 @@
   gap: var(--spacing-4);
 }
 
+@media (min-width: 1280px) {
+  .grid:has([data-allocation-view='pie']) :global(section[aria-labelledby='net-worth-title']) {
+    grid-column: span 5;
+  }
+}
+
 @media (max-width: 767px) {
   .grid {
     grid-template-columns: minmax(0, 1fr);

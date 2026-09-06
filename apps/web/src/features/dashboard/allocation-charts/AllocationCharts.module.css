@@ -1,58 +1,56 @@
 .wrap {
   display: grid;
-  justify-items: start;
-  gap: var(--spacing-4);
+  min-width: 0;
+  gap: var(--spacing-3);
 }
 
 .toggles {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
+  justify-content: flex-end;
+  gap: var(--spacing-1);
 }
 
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--control-height);
-  padding: var(--spacing-control-block) var(--spacing-3);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-button);
-  color: var(--text-secondary);
-  background: var(--bg-surface-2);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
+.plot {
+  width: 100%;
+  min-width: 0;
+  height: 18rem;
+  overflow: hidden;
+}
+
+.plot :global(.recharts-wrapper),
+.plot :global(.recharts-surface) {
+  max-width: 100%;
+}
+
+.plot :global(.recharts-wrapper),
+.plot :global(.recharts-surface),
+.plot :global(.recharts-sector),
+.plot :global(.recharts-pie-sector) {
+  outline: none;
+}
+
+.plot :global(.recharts-sector),
+.plot :global(.recharts-pie-sector) {
   cursor: pointer;
-  gap: var(--spacing-2);
-}
-
-.toggle[aria-pressed='true'] {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-  background: var(--bg-surface-hover);
+  stroke: none;
 }
 
 .tile {
   stroke: var(--bg-surface-1);
 }
 
-.label {
+.tileLabel {
   fill: var(--text-primary);
   font-size: var(--font-size-xs);
 }
 
-.tooltip {
-  display: grid;
-  min-width: 8rem;
-  padding: var(--spacing-3);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-control);
-  background: var(--bg-surface-1);
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
-  box-shadow: var(--shadow-sheet);
-  gap: var(--spacing-1);
+.centerTotal {
+  fill: var(--text-primary);
+  font-size: var(--font-size-kpi);
+  font-weight: var(--font-weight-semibold);
 }
 
-.tooltip strong {
-  font-weight: var(--font-weight-semibold);
+.centerTitle {
+  fill: var(--text-secondary);
+  font-size: var(--font-size-sm);
 }

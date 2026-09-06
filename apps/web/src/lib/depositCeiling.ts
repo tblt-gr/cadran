@@ -1,0 +1,50 @@
+import type { Account, Product, ProductModel } from '@cadran/api-client';
+
+const CEILING_KINDS = new Set([
+  'BALANCE_CEILING',
+  'COMBINED_CONTRIBUTION_CEILING',
+  'CONTRIBUTION_CEILING',
+  'DEPOSIT_CEILING',
+]);
+
+/**
+ * The published max the account's origin states, if any. Geometry only later
+ * reads `Number` for a bar width; the strings stay the backend figures.
+ */
+export function depositCeilingOf(
+  account: Account,
+  products: readonly Product[],
+  models: readonly ProductModel[],
+): { assetCode: string; value: string } | null {
+  if (account.productCode !== null) {
+    const product = products.find((item) => item.code === account.productCode);
+    return amountCeiling(product?.rules);
+  }
+
+  if (account.productModelId !== null) {
+    const model = models.find((item) => item.id === account.productModelId);
+    return amountCeiling(model?.rules);
+  }
+
+  return null;
+}
+
+/** Pixel fill only. The printed pair stays the two backend display strings. */
+export function ceilingFillPercent(current: string, ceiling: string): number | null {
+  const observed = Number(current);
+  const max = Number(ceiling);
+  if (!Number.isFinite(observed) || !Number.isFinite(max) || max <= 0) {
+    return null;
+  }
+
+  return Math.min(100, Math.max(0, (observed / max) * 100));
+}
+
+function amountCeiling(
+  rules:
+    | ReadonlyArray<{ amount?: { assetCode: string; value: string } | null; kind: string }>
+    | undefined,
+): { assetCode: string; value: string } | null {
+  const rule = rules?.find((item) => CEILING_KINDS.has(item.kind) && item.amount !== null);
+  return rule?.amount ?? null;
+}

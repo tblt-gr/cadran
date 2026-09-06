@@ -30,7 +30,7 @@ interface FromProductFormProps {
 export function FromProductForm({
   pending,
   submitError,
-  onCancel,
+  onCancel: _onCancel,
   onSubmit,
 }: FromProductFormProps) {
   const { t } = useTranslation();
@@ -167,9 +167,6 @@ export function FromProductForm({
       </FieldRow>
 
       <div className={styles.actions}>
-        <button className="secondary-action" onClick={onCancel} type="button">
-          {t('productModels.form.cancel')}
-        </button>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'productModels.form.saving' : 'productModels.fromProduct.confirm')}
         </button>

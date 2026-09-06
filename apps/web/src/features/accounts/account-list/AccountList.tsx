@@ -4,6 +4,10 @@ import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
+import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
+import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
+import { useNetWorth } from '@/features/dashboard/net-worth/useNetWorth';
+import { depositCeilingOf } from '@/lib/depositCeiling';
 import styles from './AccountList.module.css';
 
 interface AccountListProps {
@@ -28,6 +32,16 @@ export function AccountList({
   onRules,
 }: AccountListProps) {
   const { t } = useTranslation();
+  const asOf = accounts.find((account) => account.valuation.requestedOn)?.valuation.requestedOn;
+  const products = useProductOptions(asOf ?? '');
+  const models = useTemplateOptions();
+  const netWorth = useNetWorth();
+  const shareByAccount = new Map(
+    (netWorth.data?.contributions ?? []).map((contribution) => [
+      contribution.accountId,
+      contribution.share,
+    ]),
+  );
 
   return (
     <div className={`card ${styles.panel}`}>
@@ -69,7 +83,14 @@ export function AccountList({
                 <td>{account.assetCode}</td>
                 <td>{t(`accounts.valuationModes.${account.valuationMode}`)}</td>
                 <td>
-                  <AccountValuationCell valuation={account.valuation} />
+                  <AccountValuationCell
+                    ceiling={
+                      asOf === undefined
+                        ? null
+                        : depositCeilingOf(account, products.items, models.items)
+                    }
+                    valuation={account.valuation}
+                  />
                 </td>
                 <td>
                   {t(
@@ -81,7 +102,7 @@ export function AccountList({
                   )}
                 </td>
                 <td>
-                  <ShareCell share={account.share} />
+                  <ShareCell share={shareByAccount.get(account.id) ?? account.share} />
                 </td>
                 <td>
                   <StatusBadge tone={STATUS_TONE[account.status]}>

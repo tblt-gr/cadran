@@ -232,9 +232,11 @@ export function AccountForm({
       />
 
       <div className={styles.actions}>
-        <button className="secondary-action" onClick={() => onCancel(values)} type="button">
-          {t(submitLabel === 'continue' ? 'accounts.form.back' : 'accounts.form.cancel')}
-        </button>
+        {submitLabel === 'continue' ? (
+          <button className="secondary-action" onClick={() => onCancel(values)} type="button">
+            {t('accounts.form.back')}
+          </button>
+        ) : null}
         <button className="primary-action" disabled={pending} type="submit">
           {t(
             submitLabel === 'continue'

@@ -1,10 +1,12 @@
 import type { AccountValuation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { ceilingFillPercent } from '@/lib/depositCeiling';
 import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import styles from './AccountValuationCell.module.css';
 
 interface AccountValuationCellProps {
+  ceiling?: { assetCode: string; value: string } | null;
   valuation: AccountValuation;
 }
 
@@ -15,7 +17,7 @@ interface AccountValuationCellProps {
  * figure is a reason, never `0`. Quality is named in words so colour is not
  * the only signal.
  */
-export function AccountValuationCell({ valuation }: AccountValuationCellProps) {
+export function AccountValuationCell({ ceiling = null, valuation }: AccountValuationCellProps) {
   const { i18n, t } = useTranslation();
 
   if (valuation.quality === 'MISSING') {
@@ -33,12 +35,33 @@ export function AccountValuationCell({ valuation }: AccountValuationCellProps) {
       ? formatAmount(valuation.display.value, valuation.display.assetCode, i18n.language)
       : t('accounts.balances.missing');
 
+  const ceilingLabel =
+    ceiling === null ? null : formatAmount(ceiling.value, ceiling.assetCode, i18n.language);
+  const ratio =
+    ceiling === null || valuation.display === null
+      ? null
+      : ceilingFillPercent(valuation.display.value, ceiling.value);
+
   return (
     <div className={styles.cell}>
       {valuation.belowDisplayStep || !valuation.display ? (
         <span className={styles.unknown}>{figure}</span>
-      ) : (
+      ) : ceilingLabel === null ? (
         <MoneyValue value={figure} />
+      ) : (
+        <div className={styles.ceiling}>
+          <MoneyValue
+            value={t('accounts.balances.againstCeiling', {
+              ceiling: ceilingLabel,
+              current: figure,
+            })}
+          />
+          {ratio === null ? null : (
+            <span className={styles.track} aria-hidden="true">
+              <span className={styles.fill} style={{ width: `${ratio}%` }} />
+            </span>
+          )}
+        </div>
       )}
       <small>
         {t(`accounts.balances.qualities.${valuation.quality}`)}

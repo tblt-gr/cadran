@@ -33,7 +33,7 @@ export function CategoryForm({
   category,
   pending,
   submitError,
-  onCancel,
+  onCancel: _onCancel,
   onSubmit,
 }: CategoryFormProps) {
   const { t } = useTranslation();
@@ -197,9 +197,6 @@ export function CategoryForm({
       </label>
 
       <div className={styles.actions}>
-        <button className="secondary-action" onClick={onCancel} type="button">
-          {t('categories.form.cancel')}
-        </button>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'categories.form.saving' : 'categories.form.save')}
         </button>

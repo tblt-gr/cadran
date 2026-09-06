@@ -17,9 +17,12 @@ import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { ArchiveGroupDialog } from '@/features/account-groups/archive-group-dialog/ArchiveGroupDialog';
 import { GroupForm } from '@/features/account-groups/group-form/GroupForm';
-import { GroupAccountsTable } from '@/features/account-groups/group-accounts-table/GroupAccountsTable';
 import { GroupList } from '@/features/account-groups/group-list/GroupList';
-import { AllocationCharts } from '@/features/dashboard/allocation-charts/AllocationCharts';
+import {
+  AllocationCharts,
+  type ChartView,
+} from '@/features/dashboard/allocation-charts/AllocationCharts';
+import { AllocationLegend } from '@/features/dashboard/allocation-panel/AllocationLegend';
 import {
   groupErrorKind,
   GroupRequestError,
@@ -41,6 +44,7 @@ export function AccountGroupsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<AccountGroup | null>(null);
   const [saved, setSaved] = useState<'saved' | 'archived' | null>(null);
+  const [allocationView, setAllocationView] = useState<ChartView>('treemap');
 
   function openEditor(target: Exclude<Editor, null>) {
     setSaved(null);
@@ -155,6 +159,7 @@ export function AccountGroupsPage() {
   const unauthorized = groups.error instanceof GroupRequestError && groups.error.status === 401;
   const items = groups.data?.items ?? [];
   const totalPages = Math.max(1, Math.ceil((groups.data?.total ?? 0) / 50));
+  const allocationRoots = (netWorth.data?.allocation ?? []).filter((entry) => entry.depth === 1);
 
   if (groups.data && page > totalPages) {
     setPage(totalPages);
@@ -259,17 +264,28 @@ export function AccountGroupsPage() {
         />
       ) : (
         <>
-          <AllocationCharts
-            allocation={netWorth.data?.allocation ?? []}
-            className={`card ${styles.allocation}`}
-            reason={netWorth.data?.reason ?? null}
-          />
-          <GroupAccountsTable accounts={accounts.data?.items ?? []} groups={items} />
+          <section className={`card ${styles.allocation}`} data-allocation-view={allocationView}>
+            <div className={allocationView === 'pie' ? styles.pieLayout : undefined}>
+              <AllocationCharts
+                allocation={netWorth.data?.allocation ?? []}
+                onViewChange={setAllocationView}
+                reason={netWorth.data?.reason ?? null}
+                total={netWorth.data?.total ?? null}
+              />
+              {allocationView === 'pie' && allocationRoots.length > 0 ? (
+                <AllocationLegend
+                  entries={allocationRoots}
+                  reason={netWorth.data?.reason ?? null}
+                />
+              ) : null}
+            </div>
+          </section>
           <GroupList
             accounts={accounts.data?.items ?? []}
             accountsStatus={accounts.isPending ? 'pending' : accounts.isError ? 'error' : 'ready'}
             allocation={netWorth.data?.allocation ?? []}
             allocationStatus={netWorth.isPending ? 'pending' : netWorth.isError ? 'error' : 'ready'}
+            contributions={netWorth.data?.contributions ?? []}
             groups={items}
             netWorthReason={netWorth.data?.reason ?? null}
             onArchive={setArchiving}

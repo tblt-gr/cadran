@@ -29,7 +29,7 @@ interface AccountWizardProps {
  * figure's period and — for a catalogue product — its official source,
  * before anything is written.
  */
-export function AccountWizard({ onCancel, onCreate, pending, submitError }: AccountWizardProps) {
+export function AccountWizard({ onCreate, pending, submitError }: AccountWizardProps) {
   const { t } = useTranslation();
   const [asOf] = useState(todayInBrowser);
   const [step, setStep] = useState<WizardStep>('product');
@@ -76,7 +76,6 @@ export function AccountWizard({ onCancel, onCreate, pending, submitError }: Acco
         {step === 'product' ? (
           <ProductStep
             asOf={asOf}
-            onCancel={onCancel}
             onContinue={() => setStep('details')}
             onSelect={chooseOrigin}
             products={products}

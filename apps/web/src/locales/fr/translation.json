@@ -303,6 +303,7 @@
     "balances": {
       "eyebrow": "Solde observé",
       "title": "Enregistrer un solde de « {{label}} »",
+      "againstCeiling": "{{current}} / {{ceiling}}",
       "missing": "Non calculable",
       "belowStep": "Inférieur à l’échelon d’affichage",
       "asOf": "au {{date}}",
@@ -1014,7 +1015,8 @@
       "duplicate": "Dupliquer",
       "duplicateModel": "Dupliquer le modèle {{name}}",
       "archive": "Archiver",
-      "archiveModel": "Archiver le modèle {{name}}"
+      "archiveModel": "Archiver le modèle {{name}}",
+      "openActions": "Actions du modèle {{name}}"
     },
     "pagination": {
       "label": "Pagination des modèles de produits",
@@ -1160,7 +1162,8 @@
       "summary": "Évolution du patrimoine net entre {{startPeriod}} et {{endPeriod}}.",
       "title": "Évolution du patrimoine",
       "unavailable": "Historique indisponible pour le moment.",
-      "valueColumn": "Patrimoine net"
+      "valueColumn": "Patrimoine net",
+      "xAxis": "Date"
     },
     "income": {
       "description": "{{count}} opérations en {{period}}",

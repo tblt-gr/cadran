@@ -15,7 +15,7 @@ export function ArchiveGroupDialog({
   group,
   pending,
   submitError,
-  onCancel,
+  onCancel: _onCancel,
   onConfirm,
 }: ArchiveGroupDialogProps) {
   const { t } = useTranslation();
@@ -30,10 +30,13 @@ export function ArchiveGroupDialog({
       <p>{t('accountGroups.archive.description', { label: group.label })}</p>
       <p className={styles.hint}>{t('accountGroups.archive.consequences')}</p>
       <div className={styles.actions}>
-        <button className="secondary-action" data-autofocus onClick={onCancel} type="button">
-          {t('accountGroups.form.cancel')}
-        </button>
-        <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
+        <button
+          className="primary-action"
+          data-autofocus
+          disabled={pending}
+          onClick={onConfirm}
+          type="button"
+        >
           {t(pending ? 'accountGroups.archive.confirming' : 'accountGroups.archive.confirm')}
         </button>
       </div>

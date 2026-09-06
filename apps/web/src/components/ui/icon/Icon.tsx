@@ -14,6 +14,7 @@ type IconName =
   | 'chevron-left'
   | 'chevron-right'
   | 'close'
+  | 'copy'
   | 'edit'
   | 'goals'
   | 'home'
@@ -67,11 +68,19 @@ function IconPath({ name }: { name: IconName }) {
     case 'menu':
       return <path d="M4 7h16M4 12h16M4 17h16" />;
     case 'more':
-      return <path d="M5 12h.01M12 12h.01M19 12h.01" />;
+      return (
+        <>
+          <circle cx="5" cy="12" r="2" />
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="19" cy="12" r="2" />
+        </>
+      );
     case 'search':
       return <path d="m20 20-4.4-4.4m2.4-4.6a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />;
     case 'close':
       return <path d="m6 6 12 12M18 6 6 18" />;
+    case 'copy':
+      return <path d="M8 8h11v11H8zM5 16V5h11" />;
     case 'chevron-left':
       return <path d="m15 5-7 7 7 7" />;
     case 'chevron-right':
@@ -104,6 +113,21 @@ function IconPath({ name }: { name: IconName }) {
 }
 
 export function Icon({ name, size = 20 }: IconProps) {
+  if (name === 'more') {
+    return (
+      <svg
+        aria-hidden="true"
+        className={styles.icon}
+        fill="currentColor"
+        height={size}
+        viewBox="0 0 24 24"
+        width={size}
+      >
+        <IconPath name={name} />
+      </svg>
+    );
+  }
+
   return (
     <svg
       aria-hidden="true"

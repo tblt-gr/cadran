@@ -3,7 +3,7 @@
  *
  * The numbers produced here are coordinates inside an SVG viewBox, never a
  * financial figure: nothing computed in this file is shown to a reader. Every
- * amount on the screen — the headline, the tooltipless labels and the tabular
+ * amount on the screen — the headline, the hover tooltip and the tabular
  * alternative — is the canonical decimal string the backend produced. Turning
  * a decimal into a coordinate is the one place `Number` is the right tool,
  * because a pixel has no cents.

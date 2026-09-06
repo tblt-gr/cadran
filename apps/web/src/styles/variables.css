@@ -123,7 +123,7 @@
   --radius-card: 0.5rem;
   --radius-full: 999px;
   --radius-circle: 50%;
-  --radius-button: var(--radius-control);
+  --radius-button: var(--radius-full);
 
   /* Icons */
   --icon-size-sm: 2rem;

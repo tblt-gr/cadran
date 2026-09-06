@@ -15,6 +15,7 @@ const api = vi.hoisted(() => ({
   listProducts: vi.fn(),
   listAccountRuleOverrides: vi.fn(),
   readAccountRules: vi.fn(),
+  readNetWorth: vi.fn(),
   recordAccountBalance: vi.fn(),
   recordAccountRuleOverride: vi.fn(),
   withdrawAccountRuleOverride: vi.fn(),
@@ -328,6 +329,34 @@ describe('AccountsPage', () => {
     api.listAccountRuleOverrides.mockImplementation(() => success({ overrides: [] }));
     api.listAccountGroups.mockImplementation(() =>
       success({ items: [defaultGroup], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+    );
+    api.readNetWorth.mockImplementation(() =>
+      success({
+        asOf: '2026-09-05',
+        total: null,
+        reason: 'MISSING_VALUATION',
+        quality: 'MISSING',
+        stalestAgeDays: null,
+        eligibleAccountCount: 0,
+        valuedAccountCount: 0,
+        missingValuationCount: 0,
+        staleValuationCount: 0,
+        delta: {
+          comparedOn: '2026-08-05',
+          previousTotal: null,
+          amount: null,
+          amountReason: 'MISSING_VALUATION',
+          rate: null,
+          ratePercent: null,
+          ratePercentDisplay: null,
+          rateReason: 'MISSING_VALUATION',
+        },
+        contributions: [],
+        allocation: [],
+      }),
     );
   });
 
@@ -1152,6 +1181,82 @@ describe('AccountsPage', () => {
     expect(screen.queryByText('0,00')).toBeNull();
   });
 
+  it('prints the exclusive net-worth share instead of the list stub', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({
+        items: [{ ...account, valuation: staleValuation }],
+        page: 1,
+        perPage: 50,
+        total: 1,
+      }),
+    );
+    api.readNetWorth.mockImplementation(() =>
+      success({
+        asOf: '2026-09-05',
+        total: {
+          value: '231.10',
+          assetCode: 'EUR',
+          display: { value: '231.10', assetCode: 'EUR' },
+          belowDisplayStep: false,
+        },
+        reason: null,
+        quality: 'CURRENT',
+        stalestAgeDays: 2,
+        eligibleAccountCount: 1,
+        valuedAccountCount: 1,
+        missingValuationCount: 0,
+        staleValuationCount: 1,
+        delta: {
+          comparedOn: '2026-08-05',
+          previousTotal: null,
+          amount: null,
+          amountReason: 'MISSING_VALUATION',
+          rate: null,
+          ratePercent: null,
+          ratePercentDisplay: null,
+          rateReason: 'MISSING_VALUATION',
+        },
+        contributions: [
+          {
+            accountId: account.id,
+            label: account.label,
+            kind: account.kind,
+            netWorthSign: 1,
+            primaryGroupId: account.primaryGroupId,
+            primaryGroupLabel: 'Épargne',
+            eligible: true,
+            amount: {
+              value: '231.10',
+              assetCode: 'EUR',
+              display: { value: '231.10', assetCode: 'EUR' },
+              belowDisplayStep: false,
+            },
+            signedAmount: {
+              value: '231.10',
+              assetCode: 'EUR',
+              display: { value: '231.10', assetCode: 'EUR' },
+              belowDisplayStep: false,
+            },
+            quality: 'STALE',
+            ageDays: 2,
+            valuedOn: '2026-09-03',
+            share: {
+              ratio: null,
+              percent: '48.20',
+              percentDisplay: '48.20',
+              reason: null,
+            },
+          },
+        ],
+        allocation: [],
+      }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('48,2 %')).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText('Valorisation manquante')).toBeNull());
+  });
+
   it('shows a carried-forward balance as stale and records a manual replacement', async () => {
     api.listAccounts.mockImplementation(() =>
       success({
@@ -1184,6 +1289,10 @@ describe('AccountsPage', () => {
     expect(await screen.findByText(/231,10/)).toBeTruthy();
     expect(screen.getByText(/Ancienne/)).toBeTruthy();
     expect(screen.getByText(/2 jours/)).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByRole('table').textContent).toContain('950');
+    });
+    expect(screen.getByRole('table').querySelector('[style*="width"]')).toBeTruthy();
 
     await openAccountActions('Livret A Banque X');
     fireEvent.click(

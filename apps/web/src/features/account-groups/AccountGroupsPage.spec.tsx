@@ -1,7 +1,7 @@
 import type { Account, AccountGroup, NetWorth } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AccountGroupsPage } from './AccountGroupsPage';
 
@@ -10,6 +10,8 @@ const api = vi.hoisted(() => ({
   createAccountGroup: vi.fn(),
   listAccountGroups: vi.fn(),
   listAccounts: vi.fn(),
+  listProductModels: vi.fn(),
+  listProducts: vi.fn(),
   readNetWorth: vi.fn(),
   updateAccountGroup: vi.fn(),
 }));
@@ -150,7 +152,21 @@ function renderPage() {
   );
 }
 
+const livretAProduct = {
+  code: 'FR_LIVRET_A',
+  rules: [{ kind: 'DEPOSIT_CEILING', amount: { value: '22950', assetCode: 'EUR' } }],
+};
+
 describe('AccountGroupsPage', () => {
+  beforeEach(() => {
+    api.listProductModels.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
@@ -276,6 +292,48 @@ describe('AccountGroupsPage', () => {
     api.readNetWorth.mockImplementation(() =>
       success(
         netWorth({
+          contributions: [
+            {
+              accountId: '00000000-0000-7000-8000-0000000000d1',
+              label: 'Livret A',
+              kind: 'SAVINGS',
+              netWorthSign: 1,
+              primaryGroupId: LIVRETS_ID,
+              primaryGroupLabel: 'Livrets',
+              eligible: true,
+              amount: amount('20100.00'),
+              signedAmount: amount('20100.00'),
+              quality: 'CURRENT',
+              ageDays: 0,
+              valuedOn: '2026-09-05',
+              share: {
+                ratio: null,
+                percent: '23.90',
+                percentDisplay: '23.90',
+                reason: null,
+              },
+            },
+            {
+              accountId: '00000000-0000-7000-8000-0000000000d2',
+              label: 'LDDS',
+              kind: 'SAVINGS',
+              netWorthSign: 1,
+              primaryGroupId: LIVRETS_ID,
+              primaryGroupLabel: 'Livrets',
+              eligible: true,
+              amount: amount('1000.00'),
+              signedAmount: amount('1000.00'),
+              quality: 'CURRENT',
+              ageDays: 0,
+              valuedOn: '2026-09-05',
+              share: {
+                ratio: null,
+                percent: '1.19',
+                percentDisplay: '1.19',
+                reason: null,
+              },
+            },
+          ],
           allocation: [
             {
               groupId: LIVRETS_ID,
@@ -307,12 +365,16 @@ describe('AccountGroupsPage', () => {
         }),
       ),
     );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [livretAProduct], page: 1, perPage: 100, total: 1 }),
+    );
     api.listAccounts.mockImplementation(() =>
       success({
         items: [
           account({
             id: '00000000-0000-7000-8000-0000000000d1',
             label: 'Livret A',
+            productCode: 'FR_LIVRET_A',
             primaryGroupId: LIVRETS_ID,
             valuation: {
               accountId: '00000000-0000-7000-8000-0000000000d1',
@@ -357,13 +419,61 @@ describe('AccountGroupsPage', () => {
     });
     expect(within(livretsRow).getByText('Livret A')).toBeTruthy();
     expect(within(livretsRow).getByText('LDDS')).toBeTruthy();
+    await waitFor(() => {
+      expect(within(livretsRow).queryByText('Non calculable')).toBeNull();
+      expect(within(livretsRow).getByText('23,9 %')).toBeTruthy();
+      expect(within(livretsRow).getByText('1,19 %')).toBeTruthy();
+    });
     expect(within(livretsRow).queryByText('PEA')).toBeNull();
     expect(livretsRow.textContent).toContain(`20${NARROW}100,00${NBSP}€`);
+    await waitFor(() => {
+      const memberBars = Array.from(livretsRow.querySelectorAll<HTMLElement>('[style*="width"]'));
+      expect(memberBars.map((bar) => bar.style.width)).toEqual([`${(20100 / 22950) * 100}%`]);
+    });
 
     const investRow = within(groupsTable).getByRole('row', { name: /Investissements/ });
     expect(investRow.textContent).toContain(`42${NARROW}000,00${NBSP}€`);
     expect(within(investRow).getByText('PEA')).toBeTruthy();
     expect(within(investRow).queryByText('Livret A')).toBeNull();
+    expect(investRow.querySelectorAll('[style*="width"]')).toHaveLength(0);
+  });
+
+  it('lists exclusive allocation rows beside the pie, like the synthèse card', async () => {
+    const livrets: AccountGroup = { ...group, id: LIVRETS_ID, label: 'Livrets' };
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [livrets], page: 1, perPage: 50, total: 1 }),
+    );
+    api.readNetWorth.mockImplementation(() =>
+      success(
+        netWorth({
+          allocation: [
+            {
+              groupId: LIVRETS_ID,
+              label: 'Livrets',
+              parentId: null,
+              depth: 1,
+              value: amount('42100.00'),
+              share: {
+                ratio: null,
+                percent: '24.12',
+                percentDisplay: '24.12',
+                reason: null,
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Camembert' }));
+    const legend = await screen.findByRole('list', { name: 'Allocation' });
+    expect(within(legend).getByText('Livrets')).toBeTruthy();
+    expect(within(legend).getByText('24,12 %')).toBeTruthy();
+    expect(legend.textContent).toContain(`42${NARROW}100,00${NBSP}€`);
   });
 
   it('does not treat pending members or totals as an empty group', async () => {

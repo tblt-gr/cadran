@@ -42,7 +42,7 @@ interface ModelFormProps {
  * afterwards through their own endpoint, so this form never duplicates the
  * period editor and a model with no period yet is a valid starting point.
  */
-export function ModelForm({ pending, submitError, onCancel, onSubmit }: ModelFormProps) {
+export function ModelForm({ pending, submitError, onSubmit }: ModelFormProps) {
   const { t } = useTranslation();
   const [asOf] = useState(todayInBrowser);
   const products = useCatalogProducts(asOf);
@@ -217,9 +217,6 @@ export function ModelForm({ pending, submitError, onCancel, onSubmit }: ModelFor
       />
 
       <div className={styles.actions}>
-        <button className="secondary-action" onClick={onCancel} type="button">
-          {t('productModels.form.cancel')}
-        </button>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'productModels.form.saving' : 'productModels.form.save')}
         </button>

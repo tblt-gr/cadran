@@ -2,6 +2,7 @@
   display: grid;
   grid-column: span 7;
   grid-template-rows: auto 1fr;
+  min-width: 0;
   min-height: 24rem;
   padding: var(--spacing-6);
 }
@@ -50,7 +51,7 @@
 
 @media (max-width: 1279px) {
   .card {
-    grid-column: 1 / -1;
+    grid-column: span 6;
   }
 }
 

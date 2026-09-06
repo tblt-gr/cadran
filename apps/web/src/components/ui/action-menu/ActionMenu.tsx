@@ -92,12 +92,12 @@ export function ActionMenu({ items, label }: ActionMenuProps) {
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={label}
-        className={`icon-button ${styles.trigger}`}
+        className={`icon-ghost ${styles.trigger}`}
         onClick={() => setOpen((current) => !current)}
         ref={trigger}
         type="button"
       >
-        <Icon name="more" size={16} />
+        <Icon name="more" size={20} />
       </button>
       {open
         ? createPortal(

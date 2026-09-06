@@ -2,6 +2,7 @@ import type {
   Account,
   AccountGroup,
   NetWorthAllocationEntry,
+  NetWorthContribution,
   NetWorthReason,
 } from '@cadran/api-client';
 import { useState } from 'react';
@@ -11,6 +12,8 @@ import { SortableHeader } from '@/components/ui/sortable-header/SortableHeader';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { GroupMembers } from '@/features/account-groups/group-members/GroupMembers';
 import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
+import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
+import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { compareDecimalString, compareText, toggleSort, type SortDirection } from '@/lib/tableSort';
 import styles from './GroupList.module.css';
@@ -23,6 +26,7 @@ interface GroupListProps {
   accountsStatus: LoadStatus;
   allocation: NetWorthAllocationEntry[];
   allocationStatus: LoadStatus;
+  contributions: NetWorthContribution[];
   groups: AccountGroup[];
   netWorthReason: NetWorthReason | null;
   onArchive: (group: AccountGroup) => void;
@@ -38,6 +42,7 @@ export function GroupList({
   accountsStatus,
   allocation,
   allocationStatus,
+  contributions,
   groups,
   netWorthReason,
   onArchive,
@@ -48,7 +53,13 @@ export function GroupList({
     column: 'label',
     direction: 'asc',
   });
+  const asOf = accounts.find((account) => account.valuation.requestedOn)?.valuation.requestedOn;
+  const products = useProductOptions(asOf ?? '');
+  const models = useTemplateOptions();
   const allocationByGroup = new Map(allocation.map((entry) => [entry.groupId, entry]));
+  const shareByAccount = new Map(
+    contributions.map((contribution) => [contribution.accountId, contribution.share]),
+  );
   const accountsByGroup = new Map<string, Account[]>();
   for (const account of accounts) {
     if (account.primaryGroupId === null) {
@@ -165,7 +176,14 @@ export function GroupList({
                   <th scope="row">
                     <span>{group.label}</span>
                     <small>{t('accountGroups.list.depth', { depth: group.depth })}</small>
-                    <GroupMembers accounts={members} status={accountsStatus} />
+                    <GroupMembers
+                      accounts={members}
+                      models={models.items}
+                      products={products.items}
+                      shareByAccount={shareByAccount}
+                      sharesStatus={allocationStatus}
+                      status={accountsStatus}
+                    />
                   </th>
                   <td>{parentLabel(group)}</td>
                   <td className={`money ${styles.total}`}>

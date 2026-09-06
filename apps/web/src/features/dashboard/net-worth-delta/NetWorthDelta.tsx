@@ -59,6 +59,7 @@ export function NetWorthDelta({ delta }: NetWorthDeltaProps) {
       <span
         aria-label={t(ACCESSIBLE_LABEL[direction], { amount: spoken })}
         className={styles[direction]}
+        data-tone={direction}
       >
         {direction === 'flat' ? null : (
           <Icon name={direction === 'down' ? 'arrow-down' : 'arrow-up'} size={16} />
@@ -70,7 +71,9 @@ export function NetWorthDelta({ delta }: NetWorthDeltaProps) {
           {delta.rateReason ? t(`dashboard.netWorth.rateReasons.${delta.rateReason}`) : null}
         </span>
       ) : (
-        <span className={styles.rate}>{formatSharePercent(delta.ratePercentDisplay)}</span>
+        <span className={`${styles.rate} ${styles[direction]}`} data-tone={direction}>
+          {formatSharePercent(delta.ratePercentDisplay)}
+        </span>
       )}
       <span>{since}</span>
     </p>

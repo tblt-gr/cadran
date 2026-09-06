@@ -2,9 +2,14 @@
   display: grid;
   grid-column: span 5;
   grid-template-rows: auto 1fr;
+  min-width: 0;
   min-height: 24rem;
   padding: var(--spacing-6);
   gap: var(--spacing-6);
+}
+
+.card[data-allocation-view='pie'] {
+  grid-column: span 7;
 }
 
 .heading {
@@ -27,6 +32,18 @@
   text-decoration-thickness: var(--border-width-thin);
   text-underline-offset: var(--spacing-1);
   white-space: nowrap;
+}
+
+.treeLayout,
+.pieLayout {
+  min-width: 0;
+}
+
+.pieLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(10rem, 0.8fr);
+  align-items: start;
+  gap: var(--spacing-6);
 }
 
 .list {
@@ -105,8 +122,13 @@
 }
 
 @media (max-width: 1279px) {
-  .card {
-    grid-column: 1 / -1;
+  .card,
+  .card[data-allocation-view='pie'] {
+    grid-column: span 6;
+  }
+
+  .pieLayout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

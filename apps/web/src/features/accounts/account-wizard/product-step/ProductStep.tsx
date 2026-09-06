@@ -10,7 +10,6 @@ const NO_PRODUCT = 'NONE';
 
 interface ProductStepProps {
   asOf: string;
-  onCancel: () => void;
   onContinue: () => void;
   onSelect: (origin: AccountOrigin) => void;
   products: ProductOptions;
@@ -32,7 +31,6 @@ interface ProductStepProps {
  */
 export function ProductStep({
   asOf,
-  onCancel,
   onContinue,
   onSelect,
   products,
@@ -194,9 +192,6 @@ export function ProductStep({
       </fieldset>
 
       <div className={styles.actions}>
-        <button className="secondary-action" onClick={onCancel} type="button">
-          {t('accounts.form.cancel')}
-        </button>
         <button className="primary-action" onClick={onContinue} type="button">
           {t('accounts.form.continue')}
         </button>

@@ -21,7 +21,7 @@ export function ArchiveModelDialog({
   model,
   pending,
   submitError,
-  onCancel,
+  onCancel: _onCancel,
   onConfirm,
 }: ArchiveModelDialogProps) {
   const { t } = useTranslation();
@@ -36,9 +36,6 @@ export function ArchiveModelDialog({
       <p>{t('productModels.archive.description', { name: model.name })}</p>
       <p className={styles.hint}>{t('productModels.archive.consequences')}</p>
       <div className={styles.actions}>
-        <button className="secondary-action" data-autofocus onClick={onCancel} type="button">
-          {t('productModels.form.cancel')}
-        </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(pending ? 'productModels.archive.confirming' : 'productModels.archive.confirm')}
         </button>
