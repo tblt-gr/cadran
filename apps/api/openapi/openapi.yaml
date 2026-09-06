@@ -4798,6 +4798,7 @@ components:
         - rates
         - terms
         - unavailableRuleKinds
+        - yieldReading
       properties:
         accountId:
           type: string
@@ -4855,6 +4856,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProductRuleKind'
+        yieldReading:
+          $ref: '#/components/schemas/AccountYieldReading'
+    AccountYieldReading:
+      description: >-
+        The three readings a rate screen must keep apart: the contractual or
+        regulated rate, an optional projection assumption, and observed
+        performance. An assumption is never stored as a rate on a market
+        product. Observed performance is not computed from a pair of
+        valuations: inventing a return from two stocks would present a
+        movement as a yield.
+      type: object
+      additionalProperties: false
+      required:
+        - contractual
+        - assumption
+        - assumptionReason
+        - observed
+        - observedReason
+      properties:
+        contractual:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required:
+                - kind
+                - guaranteed
+              properties:
+                kind:
+                  $ref: '#/components/schemas/ProductRuleKind'
+                guaranteed:
+                  type: boolean
+            - type: 'null'
+        assumption:
+          description: A projection rate is not recorded as a product rule.
+          type: 'null'
+        assumptionReason:
+          type: string
+          enum:
+            - NOT_RECORDED
+        observed:
+          description: No return series is computed from account valuations.
+          type: 'null'
+        observedReason:
+          type: string
+          enum:
+            - NO_RETURN_SERIES
     AccountRulesOrigin:
       description: >-
         Where the account reads the rules it inherits. An account that inherits
@@ -4896,6 +4943,7 @@ components:
         - catalog
         - inherited
         - override
+        - check
       properties:
         kind:
           $ref: '#/components/schemas/ProductRuleKind'
@@ -4926,6 +4974,48 @@ components:
         override:
           oneOf:
             - $ref: '#/components/schemas/AccountCeiling'
+            - type: 'null'
+        check:
+          $ref: '#/components/schemas/CeilingCheck'
+    CeilingCheck:
+      description: >-
+        Comparison of a measured figure to the effective ceiling. EXCEEDED is
+        a warning, never a refusal: a Livret Bleu, credited interest or an
+        imported history may sit above the published amount. The scale, not
+        this status, decides what the excess earns.
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - warning
+        - measured
+        - excess
+        - unsettledReason
+      properties:
+        status:
+          type: string
+          enum:
+            - WITHIN
+            - EXCEEDED
+            - NOT_COMPARABLE
+            - UNSETTLED
+        warning:
+          type: boolean
+        measured:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        excess:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        unsettledReason:
+          oneOf:
+            - type: string
+              enum:
+                - MISSING_VALUATION
+                - CONTRIBUTIONS_NOT_TRACKED
+                - COMBINED_CEILING
             - type: 'null'
     AccountCeiling:
       description: One authority's ceiling for the account, with its provenance.
@@ -4973,6 +5063,7 @@ components:
         - catalog
         - inherited
         - override
+        - applied
       properties:
         kind:
           $ref: '#/components/schemas/ProductRuleKind'
@@ -4989,6 +5080,47 @@ components:
         override:
           oneOf:
             - $ref: '#/components/schemas/AccountRate'
+            - type: 'null'
+        applied:
+          description: >-
+            How the effective scale reads the latest recorded balance. Null
+            when no valuation exists on the business date. A Livret Bleu
+            above the Livret A figure shifts onto the next bracket; that is
+            allowed, not a refusal.
+          oneOf:
+            - $ref: '#/components/schemas/AppliedRate'
+            - type: 'null'
+    AppliedRate:
+      type: object
+      additionalProperties: false
+      required:
+        - interest
+        - effectivePercentage
+        - reachedPercentage
+        - reachedLowerBound
+        - rateShiftsAboveFirstBracket
+        - unsettledReason
+      properties:
+        interest:
+          oneOf:
+            - type: string
+            - type: 'null'
+        effectivePercentage:
+          oneOf:
+            - type: string
+            - type: 'null'
+        reachedPercentage:
+          type: string
+        reachedLowerBound:
+          type: string
+        rateShiftsAboveFirstBracket:
+          type: boolean
+        unsettledReason:
+          oneOf:
+            - type: string
+              enum:
+                - ZERO_BALANCE
+                - NEGATIVE_BALANCE
             - type: 'null'
     AccountRate:
       description: >-
@@ -5179,6 +5311,7 @@ components:
         - overrideId
         - reason
         - authorId
+        - authorDisplayName
         - recordedAt
       properties:
         overrideId:
@@ -5197,6 +5330,11 @@ components:
           description: Who recorded the claim. It comes from the session, never from a request body.
           type: string
           format: uuid
+        authorDisplayName:
+          description: The author's display name, or null when the account no longer exists.
+          oneOf:
+            - type: string
+            - type: 'null'
         recordedAt:
           type: string
           format: date-time
@@ -5235,6 +5373,7 @@ components:
         - withdrawnBy
         - reason
         - authorId
+        - authorDisplayName
         - recordedAt
       properties:
         id:
@@ -5302,6 +5441,11 @@ components:
         authorId:
           type: string
           format: uuid
+        authorDisplayName:
+          description: The author's display name, or null when the account no longer exists.
+          oneOf:
+            - type: string
+            - type: 'null'
         recordedAt:
           type: string
           format: date-time

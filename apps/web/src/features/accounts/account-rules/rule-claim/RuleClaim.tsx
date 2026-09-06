@@ -23,9 +23,15 @@ export function RuleClaim({ claim, onWithdraw }: RuleClaimProps) {
     <div className={styles.claim}>
       <p>{claim.reason}</p>
       <small>
-        {t('accounts.rules.claimedOn', {
-          date: formatCalendarDay(claim.recordedAt.slice(0, 10), i18n.language),
-        })}
+        {t(
+          claim.authorDisplayName === null
+            ? 'accounts.rules.claimedOn'
+            : 'accounts.rules.claimedOnBy',
+          {
+            date: formatCalendarDay(claim.recordedAt.slice(0, 10), i18n.language),
+            author: claim.authorDisplayName ?? t('accounts.overrides.unknownAuthor'),
+          },
+        )}
       </small>
       <button className="secondary-action" onClick={() => onWithdraw(claim)} type="button">
         {t('accounts.rules.withdraw')}

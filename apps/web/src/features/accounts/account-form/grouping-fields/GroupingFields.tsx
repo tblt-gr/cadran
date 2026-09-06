@@ -1,11 +1,14 @@
 import { listAccountGroups, type NetWorthShare } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import styles from './GroupingFields.module.css';
 
 interface GroupingFieldsProps {
+  includeInNetWorth: boolean;
+  invalid?: boolean;
   primaryGroupId: string;
   share?: NetWorthShare;
   tagGroupIds: string[];
@@ -14,6 +17,8 @@ interface GroupingFieldsProps {
 }
 
 export function GroupingFields({
+  includeInNetWorth,
+  invalid = false,
   primaryGroupId,
   share,
   tagGroupIds,
@@ -38,6 +43,13 @@ export function GroupingFields({
   });
   const items = groups.data?.items ?? [];
   const tagCandidates = items.filter((group) => group.id !== primaryGroupId);
+  const onlyGroupId = items.length === 1 ? items[0]?.id : undefined;
+
+  useEffect(() => {
+    if (includeInNetWorth && primaryGroupId === '' && onlyGroupId !== undefined) {
+      onPrimaryChange(onlyGroupId);
+    }
+  }, [includeInNetWorth, onlyGroupId, onPrimaryChange, primaryGroupId]);
 
   function toggleTag(id: string, checked: boolean) {
     if (id === primaryGroupId) {
@@ -50,20 +62,36 @@ export function GroupingFields({
   return (
     <fieldset className={styles.fieldset}>
       <legend>{t('accounts.fields.grouping')}</legend>
-      <p className={styles.hint}>{t('accounts.form.groupingHint')}</p>
+      <p className={styles.hint}>
+        {t(includeInNetWorth ? 'accounts.form.groupingHint' : 'accounts.form.groupingHintExcluded')}
+      </p>
 
       <label>
-        <span>{t('accounts.fields.primaryGroup')}</span>
+        <span>
+          {t(
+            includeInNetWorth
+              ? 'accounts.fields.primaryGroupRequired'
+              : 'accounts.fields.primaryGroup',
+          )}
+        </span>
         <select
+          aria-invalid={invalid ? true : undefined}
           disabled={groups.isPending || groups.isError}
           onChange={(event) => {
             const next = event.target.value;
             onPrimaryChange(next);
             onTagsChange(tagGroupIds.filter((tag) => tag !== next));
           }}
+          required={includeInNetWorth}
           value={primaryGroupId}
         >
-          <option value="">{t('accounts.form.noGroup')}</option>
+          {includeInNetWorth ? (
+            primaryGroupId === '' ? (
+              <option value="">{t('accounts.form.chooseGroup')}</option>
+            ) : null
+          ) : (
+            <option value="">{t('accounts.form.noGroup')}</option>
+          )}
           {items.map((group) => (
             <option key={group.id} value={group.id}>
               {group.label}
@@ -71,6 +99,13 @@ export function GroupingFields({
           ))}
         </select>
       </label>
+      {invalid ? (
+        <p className={styles.error} role="alert">
+          {items.length === 0
+            ? t('accounts.form.noGroupWhenIncluded')
+            : t('accounts.validation.primaryGroup')}
+        </p>
+      ) : null}
 
       <fieldset className={styles.tags}>
         <legend>{t('accounts.fields.tags')}</legend>

@@ -18,16 +18,27 @@ use App\Module\Catalog\Domain\RateBracket;
  */
 final readonly class AccountRuleOverrideRepresentation
 {
-    /** @return array<string, mixed> */
-    public static function list(AccountRuleOverrides $overrides): array
+    /**
+     * @param array<string, string> $authorNames
+     *
+     * @return array<string, mixed>
+     */
+    public static function list(AccountRuleOverrides $overrides, array $authorNames = []): array
     {
         return [
-            'overrides' => array_map(self::one(...), $overrides->overrides),
+            'overrides' => array_map(
+                static fn (AccountRuleOverride $override): array => self::one($override, $authorNames),
+                $overrides->overrides,
+            ),
         ];
     }
 
-    /** @return array<string, mixed> */
-    public static function one(AccountRuleOverride $override): array
+    /**
+     * @param array<string, string> $authorNames
+     *
+     * @return array<string, mixed>
+     */
+    public static function one(AccountRuleOverride $override, array $authorNames = []): array
     {
         $amount = $override->value->amount;
         $scale = $override->value->scale;
@@ -58,6 +69,7 @@ final readonly class AccountRuleOverrideRepresentation
             'withdrawnBy' => $override->withdrawnBy,
             'reason' => $override->reason,
             'authorId' => $override->authorId,
+            'authorDisplayName' => $authorNames[$override->authorId] ?? null,
             'recordedAt' => $override->recordedAt->format(\DATE_ATOM),
         ];
     }
@@ -67,12 +79,18 @@ final readonly class AccountRuleOverrideRepresentation
      *
      * @return array<string, mixed>
      */
-    public static function claim(AccountRuleOverride $override): array
+    /**
+     * @param array<string, string> $authorNames
+     *
+     * @return array<string, mixed>
+     */
+    public static function claim(AccountRuleOverride $override, array $authorNames = []): array
     {
         return [
             'overrideId' => $override->id,
             'reason' => $override->reason,
             'authorId' => $override->authorId,
+            'authorDisplayName' => $authorNames[$override->authorId] ?? null,
             'recordedAt' => $override->recordedAt->format(\DATE_ATOM),
         ];
     }

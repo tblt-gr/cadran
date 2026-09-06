@@ -44,7 +44,14 @@ export function ceilingLayers(
   return present<AccountCeiling>(rule).map(([layer, ceiling]) => ({
     ...provenance(layer, ceiling),
     value: formatAmount(ceiling.amount.value, ceiling.amount.assetCode, language),
-    measure: <CeilingMeasure accountAsset={accountAsset} ceiling={ceiling} rule={rule} />,
+    measure: (
+      <CeilingMeasure
+        accountAsset={accountAsset}
+        ceiling={ceiling}
+        check={layer === rule.effectiveLayer ? (rule.check ?? null) : null}
+        rule={rule}
+      />
+    ),
   }));
 }
 
@@ -52,7 +59,14 @@ export function rateLayers(rule: AccountRateRule, accountAsset: string): RuleLay
   return present<AccountRate>(rule).map(([layer, rate]) => ({
     ...provenance(layer, rate),
     value: <RateBrackets assetCode={accountAsset} rate={rate} />,
-    measure: <RateMeasure rate={rate} />,
+    measure: (
+      <RateMeasure
+        applied={rule.applied}
+        assetCode={accountAsset}
+        rate={rate}
+        showApplied={layer === rule.effectiveLayer}
+      />
+    ),
   }));
 }
 

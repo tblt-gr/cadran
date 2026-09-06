@@ -69,7 +69,7 @@ final class AccountRuleOverrideControllerTest extends WebTestCase
         self::assertSame([
             'id', 'accountId', 'kind', 'valueType', 'amount', 'text', 'application', 'brackets',
             'validFrom', 'validTo', 'standing', 'withdrawnAt', 'withdrawnBy',
-            'reason', 'authorId', 'recordedAt',
+            'reason', 'authorId', 'authorDisplayName', 'recordedAt',
         ], array_keys($recorded));
         self::assertSame('DEPOSIT_CEILING', $recorded['kind']);
         self::assertSame(['value' => '30000', 'assetCode' => 'EUR'], $recorded['amount']);
@@ -91,7 +91,8 @@ final class AccountRuleOverrideControllerTest extends WebTestCase
         self::assertNull($claimed['verification']);
         self::assertNull($claimed['source']);
         $claim = $this->fields($claimed['claim']);
-        self::assertSame(['overrideId', 'reason', 'authorId', 'recordedAt'], array_keys($claim));
+        self::assertSame(['overrideId', 'reason', 'authorId', 'authorDisplayName', 'recordedAt'], array_keys($claim));
+        self::assertSame('Owner', $claim['authorDisplayName']);
         self::assertSame($recorded['id'], $claim['overrideId']);
         self::assertSame('The branch confirmed a higher ceiling in writing.', $claim['reason']);
     }

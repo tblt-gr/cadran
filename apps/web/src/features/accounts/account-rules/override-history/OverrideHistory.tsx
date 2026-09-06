@@ -32,6 +32,7 @@ export function OverrideHistory({ overrides }: OverrideHistoryProps) {
             <th scope="col">{t('accounts.rules.columns.rule')}</th>
             <th scope="col">{t('accounts.rules.columns.period')}</th>
             <th scope="col">{t('accounts.overrides.columns.status')}</th>
+            <th scope="col">{t('accounts.overrides.columns.author')}</th>
             <th scope="col">{t('accounts.overrides.columns.reason')}</th>
           </tr>
         </thead>
@@ -66,6 +67,7 @@ export function OverrideHistory({ overrides }: OverrideHistoryProps) {
                   </small>
                 )}
               </td>
+              <td>{override.authorDisplayName ?? t('accounts.overrides.unknownAuthor')}</td>
               <td>
                 {override.reason}
                 <small>

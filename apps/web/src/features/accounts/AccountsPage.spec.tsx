@@ -80,7 +80,7 @@ const account: Account = {
   kindEditReason: null,
   version: 1,
   archivedAt: null,
-  primaryGroupId: null,
+  primaryGroupId: '00000000-0000-7000-8000-0000000000c1',
   tagGroupIds: [],
   share: { ratio: null, percent: null, percentDisplay: null, reason: 'MISSING_VALUATION' },
   valuation: missingValuation,
@@ -184,6 +184,25 @@ const euro = {
   displayStep: { value: '0.01', assetCode: 'EUR' },
 };
 
+const defaultGroup = {
+  id: '00000000-0000-7000-8000-0000000000c1',
+  label: 'Épargne',
+  parentId: null,
+  parentLabel: null,
+  sortOrder: 0,
+  depth: 1,
+  version: 1,
+  hasChildren: false,
+  canAcceptChildren: true,
+  share: {
+    ratio: null,
+    percent: null,
+    percentDisplay: null,
+    reason: 'MISSING_VALUATION' as const,
+  },
+  archivedAt: null,
+};
+
 const publishedCeiling = {
   measurable: true,
   amount: { value: '22950', assetCode: 'EUR' },
@@ -198,6 +217,7 @@ const localClaim = {
   overrideId: '00000000-0000-7000-8000-0000000000c1',
   reason: 'La banque a confirmé un plafond plus élevé par écrit.',
   authorId: '00000000-0000-7000-8000-000000000001',
+  authorDisplayName: 'Owner',
   recordedAt: '2026-09-04T09:00:00+00:00',
 };
 
@@ -218,11 +238,25 @@ const passbookRules = {
       catalog: publishedCeiling,
       inherited: null,
       override: null,
+      check: {
+        status: 'UNSETTLED',
+        warning: false,
+        measured: null,
+        excess: null,
+        unsettledReason: 'MISSING_VALUATION',
+      },
     },
   ],
   rates: [],
   terms: [],
   unavailableRuleKinds: [],
+  yieldReading: {
+    contractual: null,
+    assumption: null,
+    assumptionReason: 'NOT_RECORDED',
+    observed: null,
+    observedReason: 'NO_RETURN_SERIES',
+  },
 };
 
 /** The same passbook, with a local ceiling recorded in front of the published one. */
@@ -289,7 +323,7 @@ describe('AccountsPage', () => {
     // it; an account that never claimed anything is the default.
     api.listAccountRuleOverrides.mockImplementation(() => success({ overrides: [] }));
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [defaultGroup], page: 1, perPage: 100, total: 1 }),
     );
   });
 
@@ -326,6 +360,9 @@ describe('AccountsPage', () => {
     // The denomination comes from the reference, so the form waits for it
     // instead of submitting a currency the user never saw.
     expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
+    await waitFor(() =>
+      expect((screen.getByLabelText('Groupe') as HTMLSelectElement).value).toBe(defaultGroup.id),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
     expect(
@@ -348,7 +385,7 @@ describe('AccountsPage', () => {
       includeInEmergencyFund: false,
       openedOn: '2026-01-10',
       closedOn: null,
-      primaryGroupId: null,
+      primaryGroupId: defaultGroup.id,
       tagGroupIds: [],
     });
     const toast = await screen.findByText('Le compte a été enregistré.');
@@ -356,7 +393,7 @@ describe('AccountsPage', () => {
     expect(container.contains(toast)).toBe(false);
   });
 
-  it('lets a create choose an optional exclusive group', async () => {
+  it('lets a create choose the exclusive group of an included account', async () => {
     const epargne = {
       id: '00000000-0000-7000-8000-0000000000b1',
       label: 'Épargne',
@@ -398,7 +435,7 @@ describe('AccountsPage', () => {
       target: { value: '2026-01-10' },
     });
     expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Groupe (optionnel)'), {
+    fireEvent.change(screen.getByLabelText('Groupe'), {
       target: { value: epargne.id },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
@@ -410,6 +447,38 @@ describe('AccountsPage', () => {
       primaryGroupId: epargne.id,
       tagGroupIds: [],
     });
+  });
+
+  it('refuses an included account without a primary group', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.listAssets.mockImplementation(() =>
+      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listProducts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier compte' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Compte courant' } });
+    fireEvent.change(screen.getByLabelText('Date d’ouverture'), {
+      target: { value: '2026-01-10' },
+    });
+    expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    expect(api.createAccount).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        'Créez d’abord un groupe : un compte compté dans le patrimoine net doit y appartenir.',
+      ),
+    ).toBeTruthy();
   });
 
   it('inherits the kind of a chosen product and submits only its reference', async () => {
@@ -442,6 +511,9 @@ describe('AccountsPage', () => {
       target: { value: '2026-01-10' },
     });
     expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
+    await waitFor(() =>
+      expect((screen.getByLabelText('Groupe') as HTMLSelectElement).value).toBe(defaultGroup.id),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
     // The review shows the ceiling with its period and its official source, and
@@ -512,6 +584,9 @@ describe('AccountsPage', () => {
       target: { value: '2026-01-10' },
     });
     expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
+    await waitFor(() =>
+      expect((screen.getByLabelText('Groupe') as HTMLSelectElement).value).toBe(defaultGroup.id),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
     expect(
@@ -576,6 +651,9 @@ describe('AccountsPage', () => {
     );
 
     expect(await screen.findByRole('option', { name: 'EUR · Euro' })).toBeTruthy();
+    await waitFor(() =>
+      expect((screen.getByLabelText('Groupe') as HTMLSelectElement).value).toBe(defaultGroup.id),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
     // A PEA is capped on what was paid in, whatever the plan is worth.
@@ -860,11 +938,25 @@ describe('AccountsPage', () => {
             },
             inherited: null,
             override: null,
+            check: {
+              status: 'UNSETTLED',
+              warning: false,
+              measured: null,
+              excess: null,
+              unsettledReason: 'MISSING_VALUATION',
+            },
           },
         ],
         rates: [],
         terms: [],
         unavailableRuleKinds: ['ANNUAL_RATE'],
+        yieldReading: {
+          contractual: null,
+          assumption: null,
+          assumptionReason: 'NOT_RECORDED',
+          observed: null,
+          observedReason: 'NO_RETURN_SERIES',
+        },
       }),
     );
     renderPage();

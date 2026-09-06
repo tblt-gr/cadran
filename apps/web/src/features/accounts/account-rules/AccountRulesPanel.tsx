@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { AccountRuleTable } from '@/features/accounts/account-rules/account-rule-table/AccountRuleTable';
 import { OverrideHistory } from '@/features/accounts/account-rules/override-history/OverrideHistory';
+import { YieldReading } from '@/features/accounts/account-rules/yield-reading/YieldReading';
 import { useAccountRuleOverrides } from '@/features/accounts/account-rules/useAccountRuleOverrides';
 import { useAccountRules } from '@/features/accounts/account-rules/useAccountRules';
 import type { OverrideDraft } from '@/features/accounts/account-rules/overrideTarget';
@@ -118,6 +119,8 @@ export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRu
               rules={rules.data}
             />
           )}
+
+          <YieldReading reading={rules.data.yieldReading} />
         </>
       )}
 

@@ -92,6 +92,7 @@ export function AccountForm({
   const valuationInvalid =
     (valuationMode === 'PORTFOLIO' && !POSITION_KINDS.includes(kind)) ||
     !productFeedsValuationMode(origin, valuationMode);
+  const groupingInvalid = includeInNetWorth && primaryGroupId === '';
 
   const values: AccountFormValues = {
     label,
@@ -118,7 +119,8 @@ export function AccountForm({
       assetInvalid ||
       openedInvalid ||
       closedInvalid ||
-      valuationInvalid
+      valuationInvalid ||
+      groupingInvalid
     ) {
       setShowErrors(true);
       return;
@@ -208,6 +210,8 @@ export function AccountForm({
       </div>
 
       <GroupingFields
+        includeInNetWorth={includeInNetWorth}
+        invalid={showErrors && groupingInvalid}
         onPrimaryChange={setPrimaryGroupId}
         onTagsChange={setTagGroupIds}
         primaryGroupId={primaryGroupId}

@@ -1,4 +1,3 @@
-.notComparable,
-.warning {
+.shifted {
   color: var(--warning);
 }

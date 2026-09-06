@@ -16,6 +16,7 @@ use App\Module\Accounts\Application\InvalidDeclaredRuleInput;
 use App\Module\Accounts\Application\ListAccountRuleOverrides;
 use App\Module\Accounts\Application\RateBracketInput;
 use App\Module\Accounts\Application\RecordAccountRuleOverride;
+use App\Module\Accounts\Application\ResolveAuthorNames;
 use App\Module\Accounts\Application\WithdrawAccountRuleOverride;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
@@ -59,7 +60,7 @@ final readonly class AccountRuleOverrideController
      * account's rules resource instead.
      */
     #[Route('/api/v1/accounts/{id}/rule-overrides', name: 'api_v1_account_rule_overrides_list', methods: ['GET'])]
-    public function list(string $id, ListAccountRuleOverrides $listOverrides): Response
+    public function list(string $id, ListAccountRuleOverrides $listOverrides, ResolveAuthorNames $authors): Response
     {
         if (!self::identifier($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
@@ -73,7 +74,12 @@ final readonly class AccountRuleOverrideController
             return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
         }
 
-        return self::json(AccountRuleOverrideRepresentation::list($overrides));
+        $ids = [];
+        foreach ($overrides->overrides as $override) {
+            $ids[] = $override->authorId;
+        }
+
+        return self::json(AccountRuleOverrideRepresentation::list($overrides, $authors->forIds($ids)));
     }
 
     #[Route('/api/v1/accounts/{id}/rule-overrides', name: 'api_v1_account_rule_overrides_record', methods: ['POST'])]
