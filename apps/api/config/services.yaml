@@ -22,6 +22,16 @@ services:
   App\Module\Foundation\Application\TransactionBoundary:
     alias: App\Module\Identity\Infrastructure\Persistence\DbalTransactionManager
 
+  # Session records in PostgreSQL (ADR-0024). The handler keeps its own
+  # connection — it must survive a rolled-back business transaction — but takes
+  # its parameters from the Doctrine connection, so it reaches the same database
+  # that connection does. See SessionHandlerFactory for why the raw DATABASE_URL
+  # is the wrong source.
+  Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler:
+    factory: ['App\Module\Identity\Infrastructure\Persistence\SessionHandlerFactory', 'create']
+    arguments:
+      $connection: '@doctrine.dbal.default_connection'
+
   # Replaces the security bundle's fixed-window login limiter (see ADR-0016).
   security.login_throttling.limiter:
     class: Symfony\Component\Security\Http\RateLimiter\DefaultLoginRateLimiter

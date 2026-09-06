@@ -15,6 +15,7 @@ import { CategoryPage } from '@/features/categories/CategoryPage';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
+import { ProfileSettingsPage } from '@/features/settings/ProfileSettingsPage';
 import { getRouteTitleKey } from '@/lib/navigation';
 
 /**
@@ -65,6 +66,8 @@ export function AuthenticatedApp() {
     content = <ProductCatalogPage />;
   } else if (path === '/product-models') {
     content = <ProductModelsPage />;
+  } else if (path === '/settings/profile') {
+    content = <ProfileSettingsPage />;
   } else if (path !== '/') {
     content = <PlaceholderPage />;
   } else if (status.isPending) {
@@ -94,7 +97,8 @@ export function AuthenticatedApp() {
         path !== '/account-groups' &&
         path !== '/categories' &&
         path !== '/catalog' &&
-        path !== '/product-models'
+        path !== '/product-models' &&
+        path !== '/settings/profile'
       }
     >
       {content}

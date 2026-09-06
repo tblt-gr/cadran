@@ -45,3 +45,11 @@ when@test:
         algorithm: argon2id
         memory_cost: 10
         time_cost: 3
+
+when@sessiondb:
+  security:
+    password_hashers:
+      App\Module\Identity\Infrastructure\Security\SecurityUser:
+        algorithm: argon2id
+        memory_cost: 10
+        time_cost: 3

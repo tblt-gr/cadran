@@ -146,9 +146,23 @@ final class InMemoryAuthenticationUserRepository implements AuthenticationUserRe
         return 0 === strcasecmp($email, $this->owner->email) ? $this->owner : null;
     }
 
+    public function findById(string $userId): ?AuthenticatedUser
+    {
+        return null !== $this->owner && $userId === $this->owner->id ? $this->owner : null;
+    }
+
     public function findCredentialsByEmail(string $email): ?OwnerCredentials
     {
-        $user = $this->findByEmail($email);
+        return self::credentialsFor($this->findByEmail($email));
+    }
+
+    public function findCredentialsById(string $userId): ?OwnerCredentials
+    {
+        return self::credentialsFor($this->findById($userId));
+    }
+
+    private static function credentialsFor(?AuthenticatedUser $user): ?OwnerCredentials
+    {
         if (null === $user || !$user->hasPassword) {
             return null;
         }

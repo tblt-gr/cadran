@@ -1,0 +1,84 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.intro p,
+.intro h2,
+.intro span,
+.state h2,
+.state p,
+.section header p,
+.readOnly dt,
+.readOnly dd {
+  margin: var(--spacing-none);
+}
+
+.intro p {
+  color: var(--gold-300);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.intro h2 {
+  margin-top: var(--spacing-1);
+  font-size: var(--font-size-kpi);
+}
+
+.intro span,
+.state p,
+.section header p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.state {
+  display: flex;
+  min-height: 14rem;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  padding: var(--spacing-8);
+  gap: var(--spacing-3);
+}
+
+.sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  gap: var(--spacing-6);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-6);
+  gap: var(--spacing-4);
+}
+
+.section header h3 {
+  margin: var(--spacing-none) var(--spacing-none) var(--spacing-1);
+  font-size: var(--font-size-card-title);
+}
+
+.readOnly dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.readOnly dd {
+  margin-top: var(--spacing-1);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+}
+
+@media (max-width: 42rem) {
+  .state,
+  .section {
+    padding: var(--spacing-4);
+  }
+}

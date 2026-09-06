@@ -39,7 +39,12 @@ RUN composer install \
 
 FROM dunglas/frankenphp:1.12.7-php8.5-bookworm AS runtime
 
-RUN install-php-extensions pdo_pgsql \
+# bookworm-security published libssh2 1.10.0-3+deb12u1 (CVE-2026-58050,
+# CVE-2026-7598). The FrankenPHP base image still ships 1.10.0-3+b1.
+RUN apt-get update \
+    && apt-get install --no-install-recommends --yes --only-upgrade libssh2-1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && install-php-extensions pdo_pgsql \
     && setcap -r /usr/local/bin/frankenphp \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && mkdir -p /app/apps/api/var /app/apps/web/dist /data /config \

@@ -13,4 +13,13 @@ interface OwnerPasswordWriter
      *              call had already set one (compare-and-set on password_hash IS NULL)
      */
     public function storeInitialHash(string $userId, string $passwordHash): bool;
+
+    /**
+     * Replaces an existing hash with a new one, but only while the stored hash
+     * is still the one the caller verified.
+     *
+     * @return bool true when this call replaced the hash, false when another
+     *              change landed first (compare-and-set on the expected hash)
+     */
+    public function replaceHash(string $userId, string $expectedHash, string $newPasswordHash): bool;
 }

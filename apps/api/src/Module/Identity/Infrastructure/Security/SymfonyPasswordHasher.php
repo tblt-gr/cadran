@@ -22,4 +22,12 @@ final readonly class SymfonyPasswordHasher implements PasswordHasher
         // to verify the same password at login (Argon2id, config/packages/security.yaml).
         return $this->factory->getPasswordHasher(SecurityUser::class)->hash($password->value);
     }
+
+    public function verify(string $passwordHash, string $candidate): bool
+    {
+        // Symfony's hashers answer false on an unparsable digest instead of
+        // throwing, and compare in constant time; nothing about the candidate
+        // is echoed back or logged either way.
+        return $this->factory->getPasswordHasher(SecurityUser::class)->verify($passwordHash, $candidate);
+    }
 }

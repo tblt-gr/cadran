@@ -106,7 +106,17 @@ final class StubAuthenticationUserRepository implements AuthenticationUserReposi
         return $this->user;
     }
 
+    public function findById(string $userId): ?AuthenticatedUser
+    {
+        return $this->user;
+    }
+
     public function findCredentialsByEmail(string $email): ?OwnerCredentials
+    {
+        throw new \LogicException('The workspace resolver never reads credentials.');
+    }
+
+    public function findCredentialsById(string $userId): ?OwnerCredentials
     {
         throw new \LogicException('The workspace resolver never reads credentials.');
     }

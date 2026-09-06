@@ -31,22 +31,30 @@ final readonly class DbalAuthenticationUserRepository implements AuthenticationU
         return false === $row ? null : $this->hydrateUser($row);
     }
 
-    public function findCredentialsByEmail(string $email): ?OwnerCredentials
+    public function findById(string $userId): ?AuthenticatedUser
     {
         $row = $this->connection->fetchAssociative(
+            'SELECT '.self::COLUMNS.' FROM identity_users WHERE id = ?',
+            [$userId],
+        );
+
+        return false === $row ? null : $this->hydrateUser($row);
+    }
+
+    public function findCredentialsByEmail(string $email): ?OwnerCredentials
+    {
+        return $this->hydrateCredentials($this->connection->fetchAssociative(
             'SELECT email, password_hash, disabled_at FROM identity_users WHERE LOWER(email) = LOWER(?)',
             [$email],
-        );
+        ));
+    }
 
-        if (false === $row || null === $row['password_hash']) {
-            return null;
-        }
-
-        return new OwnerCredentials(
-            email: self::asString($row['email'] ?? null),
-            passwordHash: self::asString($row['password_hash']),
-            disabledAt: self::toDate(self::asNullableString($row['disabled_at'] ?? null)),
-        );
+    public function findCredentialsById(string $userId): ?OwnerCredentials
+    {
+        return $this->hydrateCredentials($this->connection->fetchAssociative(
+            'SELECT email, password_hash, disabled_at FROM identity_users WHERE id = ?',
+            [$userId],
+        ));
     }
 
     public function findProvisionedOwner(): ?AuthenticatedUser
@@ -58,6 +66,22 @@ final readonly class DbalAuthenticationUserRepository implements AuthenticationU
         );
 
         return false === $row ? null : $this->hydrateUser($row);
+    }
+
+    /**
+     * @param array<string, mixed>|false $row
+     */
+    private function hydrateCredentials(array|false $row): ?OwnerCredentials
+    {
+        if (false === $row || null === $row['password_hash']) {
+            return null;
+        }
+
+        return new OwnerCredentials(
+            email: self::asString($row['email'] ?? null),
+            passwordHash: self::asString($row['password_hash']),
+            disabledAt: self::toDate(self::asNullableString($row['disabled_at'] ?? null)),
+        );
     }
 
     /**

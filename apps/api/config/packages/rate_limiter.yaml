@@ -10,3 +10,11 @@ framework:
       policy: sliding_window
       limit: 25
       interval: '15 minutes'
+    # Independent of the login limiters: the current-password check on
+    # PUT /api/v1/profile/password is reachable only with a valid session, and
+    # exhausting it must neither lock the owner out of signing in nor be
+    # refillable by signing in again.
+    password_change:
+      policy: sliding_window
+      limit: 5
+      interval: '15 minutes'

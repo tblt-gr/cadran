@@ -16,8 +16,8 @@
     },
     "notProvisioned": {
       "title": "Serveur non initialisé",
-      "description": "Aucun compte propriétaire n’existe encore. Exécutez la commande de provisioning sur le serveur, puis rechargez la page.",
-      "command": "make provision-owner EMAIL=… WORKSPACE=… NAME=… CURRENCY=EUR"
+      "description": "Aucun compte propriétaire n’existe encore. Exécutez la commande d’installation sur le serveur, puis rechargez la page.",
+      "command": "make setup"
     },
     "fields": {
       "email": "Adresse e-mail",
@@ -1172,6 +1172,68 @@
     "spending": {
       "description": "{{count}} opérations en {{period}}",
       "title": "Dépenses"
+    }
+  },
+  "settings": {
+    "eyebrow": "Compte",
+    "title": "Paramètres du profil",
+    "description": "Gérez le nom affiché et le mot de passe de votre compte propriétaire.",
+    "loading": "Chargement du profil…",
+    "error": {
+      "title": "Profil indisponible",
+      "description": "Impossible de charger votre profil. Vérifiez que le service local est démarré, puis réessayez."
+    },
+    "unauthorized": {
+      "title": "Session expirée",
+      "description": "Votre session n’est plus valide. Reconnectez-vous pour accéder à vos paramètres."
+    },
+    "saved": {
+      "profile": "Le nom affiché a été enregistré.",
+      "password": "Le mot de passe a été changé. Les autres sessions ont été déconnectées."
+    },
+    "profile": {
+      "title": "Identité",
+      "description": "Le nom affiché apparaît dans l’application. L’adresse e-mail sert à vous connecter et n’est pas modifiable ici.",
+      "fields": {
+        "email": "Adresse e-mail",
+        "displayName": "Nom affiché"
+      },
+      "submit": "Enregistrer le nom",
+      "submitting": "Enregistrement…",
+      "errors": {
+        "displayName": "Le nom affiché est refusé par le serveur.",
+        "displayNameLength": "Le nom affiché doit comporter entre 1 et {{max}} caractères.",
+        "network": "L’enregistrement a échoué. Réessayez.",
+        "unauthorized": "Votre session n’est plus valide. Reconnectez-vous, puis réessayez.",
+        "throttled": "Trop de tentatives. Patientez quelques minutes avant de réessayer.",
+        "currentPassword": "Le mot de passe actuel est incorrect.",
+        "reused": "Le nouveau mot de passe doit être différent de l’actuel.",
+        "weakPassword": "Le mot de passe ne respecte pas la politique de sécurité."
+      }
+    },
+    "password": {
+      "title": "Mot de passe",
+      "description": "Changer le mot de passe déconnecte toutes les autres sessions ouvertes. La vôtre reste active.",
+      "hint": "Au moins {{min}} caractères.",
+      "fields": {
+        "currentPassword": "Mot de passe actuel",
+        "newPassword": "Nouveau mot de passe",
+        "confirmPassword": "Confirmer le nouveau mot de passe"
+      },
+      "submit": "Changer le mot de passe",
+      "submitting": "Changement…",
+      "errors": {
+        "currentPassword": "Le mot de passe actuel est incorrect.",
+        "currentPasswordRequired": "Saisissez votre mot de passe actuel.",
+        "length": "Le nouveau mot de passe doit comporter entre {{min}} et {{max}} caractères.",
+        "mismatch": "Les deux mots de passe ne correspondent pas.",
+        "reused": "Le nouveau mot de passe doit être différent de l’actuel.",
+        "weakPassword": "Le mot de passe ne respecte pas la politique de sécurité.",
+        "displayName": "Le serveur a refusé la requête.",
+        "network": "Le changement a échoué. Réessayez.",
+        "throttled": "Trop de tentatives. Patientez quelques minutes avant de réessayer.",
+        "unauthorized": "Votre session n’est plus valide. Reconnectez-vous, puis réessayez."
+      }
     }
   }
 }

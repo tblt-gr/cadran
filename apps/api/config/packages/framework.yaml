@@ -8,9 +8,8 @@ framework:
       - fr
 
   # The session will be started ONLY if you read or write from it.
-  # Storage stays on the native file handler, under a path that survives
-  # cache:clear so a deploy does not sign everyone out. Moving it to
-  # PdoSessionHandler in PostgreSQL is recorded as deferred in ADR-0015.
+  # Records live in PostgreSQL rather than in files, so a password change can
+  # drop every other open session in the same transaction (ADR-0024).
   session:
     name: cadran_session
     cookie_httponly: true
@@ -21,7 +20,7 @@ framework:
     cookie_secure: true
     cookie_lifetime: 0 # cookie dies with the browser session
     gc_maxlifetime: 1209600 # 14-day idle ceiling on the server side
-    save_path: '%kernel.project_dir%/var/sessions'
+    handler_id: Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
 
   #esi: true
   #fragments: true
@@ -31,3 +30,13 @@ when@test:
     test: true
     session:
       storage_factory_id: session.storage.factory.mock_file
+
+# The suite runs on mock_file storage, which never reaches a save handler. That
+# would leave the session table — and therefore revocation on a password change
+# — asserted by inspection only, so this environment exists to run the handler
+# the application actually ships. Used by the session-handler integration tests.
+when@sessiondb:
+  framework:
+    test: true
+    session:
+      storage_factory_id: session.storage.factory.native
