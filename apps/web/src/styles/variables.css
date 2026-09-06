@@ -52,7 +52,7 @@
   --sidebar-width-collapsed: 4.75rem;
   --header-height: 5rem;
   --header-height-mobile: 6.25rem;
-  --control-height: 2.75rem;
+  --control-height: 2.25rem;
   --modal-width: 44rem;
   --navigation-link-height: 2.875rem;
   --mobile-navigation-height: 4.5rem;
@@ -100,7 +100,7 @@
   --spacing-1: 0.25rem;
   --spacing-1-5: 0.375rem;
   --spacing-2: 0.5rem;
-  --spacing-control-block: 0.6875rem;
+  --spacing-control-block: 0.375rem;
   --spacing-3: 0.75rem;
   --spacing-4: 1rem;
   --spacing-6: 1.5rem;
@@ -119,16 +119,16 @@
   --outline-focus: var(--border-width-focus) solid var(--focus);
   --outline-offset-focus: var(--border-width-thin);
   --radius-none: 0;
-  --radius-control: 0.625rem;
-  --radius-card: 1rem;
+  --radius-control: 0.375rem;
+  --radius-card: 0.5rem;
   --radius-full: 999px;
   --radius-circle: 50%;
-  --radius-button: var(--radius-full);
+  --radius-button: var(--radius-control);
 
   /* Icons */
   --icon-size-sm: 2rem;
   --icon-size-md: 2.25rem;
-  --icon-size-lg: 2.75rem;
+  --icon-size-lg: 2.25rem;
 
   /* Transitions */
   --duration-reduced-motion: 0.01ms;

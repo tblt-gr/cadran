@@ -134,6 +134,10 @@ function netWorth(overrides: Partial<NetWorth> = {}): NetWorth {
   };
 }
 
+function openGroupActions(label: string) {
+  fireEvent.click(screen.getByRole('button', { name: `Actions du groupe ${label}` }));
+}
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -210,6 +214,7 @@ describe('AccountGroupsPage', () => {
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(document.querySelector('img')).toBeNull();
     expect(screen.getByText('Archivé')).toBeTruthy();
+    openGroupActions('<img src=x onerror=alert(1)>');
     expect(screen.getByRole('button', { name: /Modifier/ }).hasAttribute('disabled')).toBe(true);
   });
 
@@ -222,6 +227,8 @@ describe('AccountGroupsPage', () => {
     );
     renderPage();
 
+    await screen.findByRole('button', { name: 'Actions du groupe Épargne' });
+    openGroupActions('Épargne');
     fireEvent.click(await screen.findByRole('button', { name: 'Modifier le groupe Épargne' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer' }));
     expect(
@@ -238,6 +245,8 @@ describe('AccountGroupsPage', () => {
     api.updateAccountGroup.mockImplementation(() => problem(409, '/problems/stale-version'));
     renderPage();
 
+    await screen.findByRole('button', { name: 'Actions du groupe Épargne' });
+    openGroupActions('Épargne');
     fireEvent.click(await screen.findByRole('button', { name: 'Modifier le groupe Épargne' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer' }));
     expect(
@@ -339,7 +348,10 @@ describe('AccountGroupsPage', () => {
     );
     renderPage();
 
-    const livretsRow = await screen.findByRole('row', { name: /Livrets/ });
+    const groupsTable = await screen.findByRole('table', {
+      name: 'Groupes de comptes, comptes et totaux exclusifs',
+    });
+    const livretsRow = within(groupsTable).getByRole('row', { name: /Livrets/ });
     await waitFor(() => {
       expect(livretsRow.textContent).toContain(`42${NARROW}100,00${NBSP}€`);
     });
@@ -348,7 +360,7 @@ describe('AccountGroupsPage', () => {
     expect(within(livretsRow).queryByText('PEA')).toBeNull();
     expect(livretsRow.textContent).toContain(`20${NARROW}100,00${NBSP}€`);
 
-    const investRow = screen.getByRole('row', { name: /Investissements/ });
+    const investRow = within(groupsTable).getByRole('row', { name: /Investissements/ });
     expect(investRow.textContent).toContain(`42${NARROW}000,00${NBSP}€`);
     expect(within(investRow).getByText('PEA')).toBeTruthy();
     expect(within(investRow).queryByText('Livret A')).toBeNull();
@@ -404,5 +416,58 @@ describe('AccountGroupsPage', () => {
     expect(await screen.findByText('Non calculable')).toBeTruthy();
     expect(screen.queryByText(/^0/)).toBeNull();
     expect(screen.getByText('Aucun compte dans ce groupe')).toBeTruthy();
+  });
+
+  it('marks a group column as sorted when its header is clicked', async () => {
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+    );
+    api.readNetWorth.mockImplementation(() => success(netWorth({ allocation: [] })));
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    const groupsTable = await screen.findByRole('table', {
+      name: 'Groupes de comptes, comptes et totaux exclusifs',
+    });
+    const labelHeader = within(groupsTable).getByRole('columnheader', { name: /Libellé/ });
+    expect(labelHeader.getAttribute('aria-sort')).toBe('ascending');
+    fireEvent.click(within(labelHeader).getByRole('button'));
+    expect(labelHeader.getAttribute('aria-sort')).toBe('descending');
+  });
+
+  it('offers Treemap and Camembert toggles when allocation is present', async () => {
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+    );
+    api.readNetWorth.mockImplementation(() =>
+      success(
+        netWorth({
+          allocation: [
+            {
+              groupId: group.id,
+              label: group.label,
+              parentId: null,
+              depth: 1,
+              value: amount('84100.00'),
+              share: {
+                ratio: null,
+                percent: '100',
+                percentDisplay: '100.00',
+                reason: null,
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'Treemap' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Camembert' })).toBeTruthy();
   });
 });

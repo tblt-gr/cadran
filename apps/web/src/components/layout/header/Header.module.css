@@ -4,7 +4,7 @@
   justify-content: space-between;
   min-height: var(--header-height);
   padding: var(--spacing-none) var(--spacing-8);
-  border-bottom: var(--border-line-subtle);
+  border-bottom: var(--border-none);
   gap: var(--spacing-6);
 }
 

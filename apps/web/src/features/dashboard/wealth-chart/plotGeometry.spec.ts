@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { plotRuns, polylinePoints, type PlotArea } from './plotGeometry';
+import { plotRuns, polylinePoints, smoothPath, type PlotArea } from './plotGeometry';
 
 const area: PlotArea = { height: 100, padding: 10, width: 300 };
 
@@ -31,5 +31,26 @@ describe('plotRuns', () => {
     const runs = plotRuns(['-100', '0', '100'], area);
 
     expect(polylinePoints(runs[0])).toBe('0,90 150,50 300,10');
+  });
+});
+
+describe('smoothPath', () => {
+  it('turns a three-point run into a cubic starting at M', () => {
+    const path = smoothPath(plotRuns(['100', '200', '300'], area)[0]);
+
+    expect(path.startsWith('M')).toBe(true);
+    expect(path).toContain('C');
+    expect(path.includes('L') && !path.includes('C')).toBe(false);
+  });
+
+  it('draws nothing, a move, or a line for shorter runs', () => {
+    expect(smoothPath([])).toBe('');
+    expect(smoothPath([{ index: 0, x: 10, y: 20 }])).toBe('M10,20');
+    expect(
+      smoothPath([
+        { index: 0, x: 0, y: 10 },
+        { index: 1, x: 20, y: 30 },
+      ]),
+    ).toBe('M0,10 L20,30');
   });
 });

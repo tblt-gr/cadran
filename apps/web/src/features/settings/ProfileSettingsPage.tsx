@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Toast } from '@/components/ui/toast/Toast';
+import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { sessionQueryKey } from '@/features/auth/useSession';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -139,6 +140,14 @@ export function ProfileSettingsPage() {
               pending={changePassword.isPending}
               submitError={profileErrorKind(changePassword.error, changePassword.isError)}
             />
+          </section>
+
+          <section className={`card ${styles.section}`} aria-labelledby="settings-session-title">
+            <header>
+              <h3 id="settings-session-title">{t('settings.session.title')}</h3>
+              <p>{t('settings.session.description')}</p>
+            </header>
+            <LogoutButton />
           </section>
         </div>
       )}

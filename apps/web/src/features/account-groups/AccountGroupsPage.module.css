@@ -39,6 +39,10 @@
   line-height: var(--line-height-body);
 }
 
+.allocation {
+  padding: var(--spacing-6);
+}
+
 .toolbar {
   justify-content: flex-end;
 }

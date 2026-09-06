@@ -1,5 +1,6 @@
 import type { NetWorth } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { AllocationCharts } from '@/features/dashboard/allocation-charts/AllocationCharts';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { formatSharePercent } from '@/lib/formatSharePercent';
 import { AllocationBar } from './AllocationBar';
@@ -36,22 +37,25 @@ export function AllocationPanel({ netWorth }: AllocationPanelProps) {
       {roots.length === 0 ? (
         <p className={styles.empty}>{t('dashboard.allocation.empty')}</p>
       ) : (
-        <ul className={styles.list}>
-          {roots.map((entry) => (
-            <li key={entry.groupId}>
-              <span className={styles.name}>{entry.label}</span>
-              <span className={styles.share}>
-                {entry.share.percentDisplay === null
-                  ? t('states.notCalculable.label')
-                  : formatSharePercent(entry.share.percentDisplay, { fractionDigits: 2 })}
-              </span>
-              <strong className={`money ${styles.amount}`}>
-                <NetWorthFigure amount={entry.value} reason={netWorth.reason} />
-              </strong>
-              <AllocationBar percent={entry.share.percentDisplay} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <AllocationCharts allocation={netWorth.allocation} reason={netWorth.reason} />
+          <ul className={styles.list}>
+            {roots.map((entry) => (
+              <li key={entry.groupId}>
+                <span className={styles.name}>{entry.label}</span>
+                <span className={styles.share}>
+                  {entry.share.percentDisplay === null
+                    ? t('states.notCalculable.label')
+                    : formatSharePercent(entry.share.percentDisplay, { fractionDigits: 2 })}
+                </span>
+                <strong className={`money ${styles.amount}`}>
+                  <NetWorthFigure amount={entry.value} reason={netWorth.reason} />
+                </strong>
+                <AllocationBar percent={entry.share.percentDisplay} />
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );

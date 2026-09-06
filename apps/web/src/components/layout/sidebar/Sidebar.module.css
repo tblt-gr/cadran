@@ -6,7 +6,7 @@
   height: 100vh;
   height: 100svh;
   overflow: hidden;
-  border-right: var(--border-line-subtle);
+  border-right: var(--border-none);
   background: var(--bg-sidebar);
 }
 

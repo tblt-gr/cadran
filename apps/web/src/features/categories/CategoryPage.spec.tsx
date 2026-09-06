@@ -172,6 +172,11 @@ describe('CategoryPage', () => {
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(document.querySelector('img')).toBeNull();
     expect(screen.getByText('Archivée')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Actions de la catégorie « <img src=x onerror=alert(1)> »',
+      }),
+    );
     expect(screen.getByRole('button', { name: /^Modifier/ }).hasAttribute('disabled')).toBe(true);
   });
 
@@ -253,6 +258,9 @@ describe('CategoryPage', () => {
     renderPage();
 
     await screen.findByText('Restaurants');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la catégorie « Restaurants »' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Archiver la catégorie « Restaurants »' }));
     const dialog = screen.getByRole('dialog', { name: 'Archiver la catégorie' });
     expect(api.archiveCategory).not.toHaveBeenCalled();
@@ -281,6 +289,9 @@ describe('CategoryPage', () => {
     renderPage();
 
     await screen.findByText('Restaurants');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la catégorie « Restaurants »' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
 
     expect(screen.getByRole('combobox', { name: 'Type' }).hasAttribute('disabled')).toBe(true);

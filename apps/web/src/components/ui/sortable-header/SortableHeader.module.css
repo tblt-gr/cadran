@@ -1,0 +1,17 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  color: inherit;
+  background: var(--color-transparent);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  gap: var(--spacing-1);
+}
+
+.button:hover {
+  color: var(--text-primary);
+}

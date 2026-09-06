@@ -1,5 +1,6 @@
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
@@ -89,44 +90,45 @@ export function AccountList({
                       : t(`accounts.statuses.${account.status}`)}
                   </StatusBadge>
                 </td>
-                <td className={styles.rowActions}>
-                  {/* Reading the rules changes nothing, so an archived or closed
-                      account still answers for the dates it was open. */}
-                  <button
-                    aria-label={t('accounts.list.recordBalanceOfAccount', { label: account.label })}
-                    className="secondary-action"
-                    disabled={!account.editable}
-                    onClick={() => onRecordBalance(account)}
-                    type="button"
-                  >
-                    {t('accounts.list.recordBalance')}
-                  </button>
-                  <button
-                    aria-label={t('accounts.list.rulesOfAccount', { label: account.label })}
-                    className="secondary-action"
-                    onClick={() => onRules(account)}
-                    type="button"
-                  >
-                    {t('accounts.list.rules')}
-                  </button>
-                  <button
-                    aria-label={t('accounts.list.editAccount', { label: account.label })}
-                    className="secondary-action"
-                    disabled={!account.editable}
-                    onClick={() => onEdit(account)}
-                    type="button"
-                  >
-                    {t('accounts.list.edit')}
-                  </button>
-                  <button
-                    aria-label={t('accounts.list.archiveAccount', { label: account.label })}
-                    className="secondary-action"
-                    disabled={!account.editable}
-                    onClick={() => onArchive(account)}
-                    type="button"
-                  >
-                    {t('accounts.list.archive')}
-                  </button>
+                <td>
+                  <ActionMenu
+                    items={[
+                      {
+                        disabled: !account.editable,
+                        icon: 'balance',
+                        id: 'recordBalance',
+                        label: t('accounts.list.recordBalanceOfAccount', { label: account.label }),
+                        onSelect: () => onRecordBalance(account),
+                        text: t('accounts.list.recordBalance'),
+                      },
+                      {
+                        // Reading the rules changes nothing, so an archived or closed
+                        // account still answers for the dates it was open.
+                        icon: 'rules',
+                        id: 'rules',
+                        label: t('accounts.list.rulesOfAccount', { label: account.label }),
+                        onSelect: () => onRules(account),
+                        text: t('accounts.list.rules'),
+                      },
+                      {
+                        disabled: !account.editable,
+                        icon: 'edit',
+                        id: 'edit',
+                        label: t('accounts.list.editAccount', { label: account.label }),
+                        onSelect: () => onEdit(account),
+                        text: t('accounts.list.edit'),
+                      },
+                      {
+                        disabled: !account.editable,
+                        icon: 'archive',
+                        id: 'archive',
+                        label: t('accounts.list.archiveAccount', { label: account.label }),
+                        onSelect: () => onArchive(account),
+                        text: t('accounts.list.archive'),
+                      },
+                    ]}
+                    label={t('accounts.list.openActions', { label: account.label })}
+                  />
                 </td>
               </tr>
             ))}

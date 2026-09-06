@@ -17,7 +17,9 @@ import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { ArchiveGroupDialog } from '@/features/account-groups/archive-group-dialog/ArchiveGroupDialog';
 import { GroupForm } from '@/features/account-groups/group-form/GroupForm';
+import { GroupAccountsTable } from '@/features/account-groups/group-accounts-table/GroupAccountsTable';
 import { GroupList } from '@/features/account-groups/group-list/GroupList';
+import { AllocationCharts } from '@/features/dashboard/allocation-charts/AllocationCharts';
 import {
   groupErrorKind,
   GroupRequestError,
@@ -256,16 +258,24 @@ export function AccountGroupsPage() {
           onRetry={() => void groups.refetch()}
         />
       ) : (
-        <GroupList
-          accounts={accounts.data?.items ?? []}
-          accountsStatus={accounts.isPending ? 'pending' : accounts.isError ? 'error' : 'ready'}
-          allocation={netWorth.data?.allocation ?? []}
-          allocationStatus={netWorth.isPending ? 'pending' : netWorth.isError ? 'error' : 'ready'}
-          groups={items}
-          netWorthReason={netWorth.data?.reason ?? null}
-          onArchive={setArchiving}
-          onEdit={openEditor}
-        />
+        <>
+          <AllocationCharts
+            allocation={netWorth.data?.allocation ?? []}
+            className={`card ${styles.allocation}`}
+            reason={netWorth.data?.reason ?? null}
+          />
+          <GroupAccountsTable accounts={accounts.data?.items ?? []} groups={items} />
+          <GroupList
+            accounts={accounts.data?.items ?? []}
+            accountsStatus={accounts.isPending ? 'pending' : accounts.isError ? 'error' : 'ready'}
+            allocation={netWorth.data?.allocation ?? []}
+            allocationStatus={netWorth.isPending ? 'pending' : netWorth.isError ? 'error' : 'ready'}
+            groups={items}
+            netWorthReason={netWorth.data?.reason ?? null}
+            onArchive={setArchiving}
+            onEdit={openEditor}
+          />
+        </>
       )}
 
       {groups.isSuccess && (totalPages > 1 || page > 1) ? (

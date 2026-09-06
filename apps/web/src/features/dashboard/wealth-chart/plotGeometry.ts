@@ -82,3 +82,37 @@ export function plotRuns(values: readonly (string | null)[], area: PlotArea): Pl
 export function polylinePoints(run: readonly PlotPoint[]): string {
   return run.map((point) => `${point.x},${point.y}`).join(' ');
 }
+
+/**
+ * Catmull-Rom spline as cubic Bézier commands. Coordinates only — never a
+ * published figure.
+ */
+export function smoothPath(run: readonly PlotPoint[]): string {
+  if (run.length === 0) {
+    return '';
+  }
+
+  if (run.length === 1) {
+    return `M${run[0].x},${run[0].y}`;
+  }
+
+  if (run.length === 2) {
+    return `M${run[0].x},${run[0].y} L${run[1].x},${run[1].y}`;
+  }
+
+  const parts = [`M${run[0].x},${run[0].y}`];
+
+  for (let index = 0; index < run.length - 1; index += 1) {
+    const previous = run[index === 0 ? 0 : index - 1];
+    const current = run[index];
+    const next = run[index + 1];
+    const after = run[index + 2] ?? next;
+    const control1x = current.x + (next.x - previous.x) / 6;
+    const control1y = current.y + (next.y - previous.y) / 6;
+    const control2x = next.x - (after.x - current.x) / 6;
+    const control2y = next.y - (after.y - current.y) / 6;
+    parts.push(`C${control1x},${control1y} ${control2x},${control2y} ${next.x},${next.y}`);
+  }
+
+  return parts.join(' ');
+}

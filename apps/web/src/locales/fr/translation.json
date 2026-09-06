@@ -58,7 +58,8 @@
     "collapse": "Réduire",
     "expand": "Déployer",
     "more": "Plus",
-    "search": "Rechercher"
+    "search": "Rechercher",
+    "openRowActions": "Actions de « {{label}} »"
   },
   "foundation": {
     "apiVersion": "API {{version}}",
@@ -296,7 +297,8 @@
       "rules": "Règles",
       "rulesOfAccount": "Règles applicables au compte {{label}}",
       "recordBalance": "Solde",
-      "recordBalanceOfAccount": "Enregistrer un solde sur {{label}}"
+      "recordBalanceOfAccount": "Enregistrer un solde sur {{label}}",
+      "openActions": "Actions du compte {{label}}"
     },
     "balances": {
       "eyebrow": "Solde observé",
@@ -609,6 +611,10 @@
       "archive": "Archiver",
       "editGroup": "Modifier le groupe {{label}}",
       "archiveGroup": "Archiver le groupe {{label}}",
+      "openActions": "Actions du groupe {{label}}",
+      "accountsCaption": "Comptes rattachés aux groupes affichés",
+      "accountGroup": "Groupe",
+      "sortBy": "Trier par {{column}}",
       "depth": "Niveau {{depth}}",
       "unavailableParent": "Parent non affiché"
     },
@@ -727,7 +733,8 @@
       "unavailableTarget": "Catégorie non affichée",
       "mergedInto": "Fusionnée dans « {{target}} »",
       "replacedFrom": "Remplacée par « {{target}} » à partir du {{date}}",
-      "actionFor": "{{action}} la catégorie « {{label}} »"
+      "actionFor": "{{action}} la catégorie « {{label}} »",
+      "openActions": "Actions de la catégorie « {{label}} »"
     },
     "pagination": {
       "label": "Pagination des catégories",
@@ -1140,7 +1147,10 @@
       "description": "Répartition exclusive par groupe de comptes",
       "empty": "Aucun groupe de comptes de premier niveau. Créez-en un pour répartir votre patrimoine.",
       "title": "Allocation",
-      "viewGroups": "Voir les groupes"
+      "viewGroups": "Voir les groupes",
+      "chartView": "Forme du graphique d’allocation",
+      "treemap": "Treemap",
+      "pie": "Camembert"
     },
     "chart": {
       "empty": "Aucun point calculable sur la période.",
@@ -1246,6 +1256,10 @@
         "reused": "Le nouveau mot de passe doit être différent de l’actuel.",
         "weakPassword": "Le mot de passe ne respecte pas la politique de sécurité."
       }
+    },
+    "session": {
+      "title": "Session",
+      "description": "La déconnexion ferme cette session sur cet appareil."
     },
     "password": {
       "title": "Mot de passe",

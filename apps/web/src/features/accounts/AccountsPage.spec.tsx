@@ -308,6 +308,10 @@ function renderPage() {
   );
 }
 
+async function openAccountActions(label: string) {
+  fireEvent.click(await screen.findByRole('button', { name: `Actions du compte ${label}` }));
+}
+
 describe('AccountsPage', () => {
   beforeEach(() => {
     // Editing resolves the model an account follows before offering a kind, so
@@ -706,6 +710,7 @@ describe('AccountsPage', () => {
     api.readProductModel.mockImplementation(() => failure(500));
     renderPage();
 
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Modifier le compte Livret A Banque X' }),
     );
@@ -814,6 +819,7 @@ describe('AccountsPage', () => {
     api.updateAccount.mockImplementation(({ body }) => success({ ...account, ...body }));
     renderPage();
 
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Modifier le compte Livret A Banque X' }),
     );
@@ -848,6 +854,7 @@ describe('AccountsPage', () => {
     );
     const { container } = renderPage();
 
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Archiver le compte Livret A Banque X' }),
     );
@@ -868,6 +875,7 @@ describe('AccountsPage', () => {
     api.updateAccount.mockImplementation(() => problem(409, '/problems/account-label-taken'));
     renderPage();
 
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Modifier le compte Livret A Banque X' }),
     );
@@ -885,6 +893,7 @@ describe('AccountsPage', () => {
     api.updateAccount.mockImplementation(() => problem(409, '/problems/stale-version'));
     renderPage();
 
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Modifier le compte Livret A Banque X' }),
     );
@@ -961,6 +970,7 @@ describe('AccountsPage', () => {
     );
     renderPage();
 
+    await openAccountActions('Livret A clos');
     const rules = await screen.findByRole('button', {
       name: 'Règles applicables au compte Livret A clos',
     });
@@ -986,6 +996,7 @@ describe('AccountsPage', () => {
     );
     renderPage();
 
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
     );
@@ -1048,6 +1059,7 @@ describe('AccountsPage', () => {
     );
     renderPage();
 
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
     );
@@ -1075,6 +1087,7 @@ describe('AccountsPage', () => {
     );
     renderPage();
 
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
     );
@@ -1172,6 +1185,7 @@ describe('AccountsPage', () => {
     expect(screen.getByText(/Ancienne/)).toBeTruthy();
     expect(screen.getByText(/2 jours/)).toBeTruthy();
 
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       screen.getByRole('button', { name: 'Enregistrer un solde sur Livret A Banque X' }),
     );

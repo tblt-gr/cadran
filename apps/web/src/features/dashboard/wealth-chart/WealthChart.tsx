@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { formatCalendarMonth } from '@/lib/decimal';
-import { plotRuns, polylinePoints, type PlotArea } from './plotGeometry';
+import { plotRuns, smoothPath, type PlotArea } from './plotGeometry';
 import styles from './WealthChart.module.css';
 
 const AREA: PlotArea = { height: 170, padding: 16, width: 620 };
@@ -51,19 +51,21 @@ export function WealthChart({ points }: WealthChartProps) {
           <g className={styles.grid}>
             <path d={`M0 30H${AREA.width}M0 90H${AREA.width}`} />
           </g>
+          {runs.map((run) => {
+            const line = smoothPath(run);
+            const first = run[0];
+            const last = run[run.length - 1];
+
+            return (
+              <path
+                className={styles.area}
+                d={`${line} L${last.x},${AREA.height} L${first.x},${AREA.height} Z`}
+                key={`area-${first.index}`}
+              />
+            );
+          })}
           {runs.map((run) => (
-            <polygon
-              className={styles.area}
-              key={`area-${run[0].index}`}
-              points={`${run[0].x},${AREA.height} ${polylinePoints(run)} ${run[run.length - 1].x},${AREA.height}`}
-            />
-          ))}
-          {runs.map((run) => (
-            <polyline
-              className={styles.line}
-              key={`line-${run[0].index}`}
-              points={polylinePoints(run)}
-            />
+            <path className={styles.line} d={smoothPath(run)} key={`line-${run[0].index}`} />
           ))}
           {/* A month standing alone between two uncomputable ones has no
               segment to belong to. Without a mark it would read as no data at

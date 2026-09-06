@@ -179,6 +179,19 @@ describe('DashboardPage', () => {
     expect(bars.map((bar) => bar.style.width)).toEqual(['4.2%']);
   });
 
+  it('offers Treemap and Camembert toggles in the allocation section', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard();
+
+    const allocation = (await screen.findByRole('heading', { name: 'Allocation' })).closest(
+      'section',
+    ) as HTMLElement;
+    expect(within(allocation).getByRole('button', { name: 'Treemap' })).toBeTruthy();
+    expect(within(allocation).getByRole('button', { name: 'Camembert' })).toBeTruthy();
+  });
+
   it('offers a tabular alternative that names an uncomputable month instead of showing zero', async () => {
     api.readNetWorth.mockReturnValue(success(netWorth));
     api.readNetWorthHistory.mockReturnValue(success(history));
