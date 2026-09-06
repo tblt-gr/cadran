@@ -12,6 +12,7 @@ use App\Module\Accounts\Application\CreateAccount;
 use App\Module\Accounts\Application\CreateAccountInput;
 use App\Module\Accounts\Application\InvalidAccountInput;
 use App\Module\Accounts\Application\ListAccounts;
+use App\Module\Accounts\Application\PresentAccountRules;
 use App\Module\Accounts\Application\ReadAccountRules;
 use App\Module\Accounts\Application\StaleAccountVersion;
 use App\Module\Accounts\Application\UpdateAccount;
@@ -180,8 +181,12 @@ final readonly class AccountController
      * for two different dates.
      */
     #[Route('/api/v1/accounts/{id}/rules', name: 'api_v1_accounts_rules', methods: ['GET'])]
-    public function rules(string $id, Request $request, ReadAccountRules $readAccountRules): Response
-    {
+    public function rules(
+        string $id,
+        Request $request,
+        ReadAccountRules $readAccountRules,
+        PresentAccountRules $presentAccountRules,
+    ): Response {
         if (!self::identifier($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
@@ -198,7 +203,7 @@ final readonly class AccountController
             return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
         }
 
-        return self::json(AccountRulesRepresentation::of($rules));
+        return self::json(AccountRulesRepresentation::of($rules, $presentAccountRules($rules)));
     }
 
     /**

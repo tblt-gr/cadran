@@ -65,6 +65,9 @@ final readonly class Account
         self::assertInstitution($institution);
         self::assertProductModelId($productModelId);
         self::assertGrouping($primaryGroupId, $tagGroupIds);
+        // Hydration of a row written before this rule still reaches here
+        // without a group. Writes go through reconfigure/regroup/open and
+        // refuse an included account that has none.
 
         if (null !== $productCode && null !== $productModelId) {
             throw new InvalidAccount('An account references at most one product or model.');
@@ -129,6 +132,12 @@ final readonly class Account
             throw new InvalidAccount('A used account cannot change model.');
         }
 
+        if (!$keepGrouping) {
+            self::assertIncludedHasPrimaryGroup($includeInNetWorth, $primaryGroupId);
+        } elseif ($includeInNetWorth && !$this->includeInNetWorth) {
+            self::assertIncludedHasPrimaryGroup(true, $this->primaryGroupId);
+        }
+
         return new self(
             id: $this->id,
             workspace: $this->workspace,
@@ -168,6 +177,7 @@ final readonly class Account
         \DateTimeImmutable $updatedAt,
     ): self {
         $this->assertWritable();
+        self::assertIncludedHasPrimaryGroup($this->includeInNetWorth, $primaryGroupId);
 
         return new self(
             id: $this->id,
@@ -305,6 +315,17 @@ final readonly class Account
 
         if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $productModelId)) {
             throw new InvalidAccount('A product model reference must be a canonical UUID.');
+        }
+    }
+
+    /**
+     * Exclusive allocation needs one primary group per included account.
+     * An excluded account may stay ungrouped.
+     */
+    public static function assertIncludedHasPrimaryGroup(bool $includeInNetWorth, ?string $primaryGroupId): void
+    {
+        if ($includeInNetWorth && null === $primaryGroupId) {
+            throw new InvalidAccount('An account included in net worth must belong to one primary group.');
         }
     }
 

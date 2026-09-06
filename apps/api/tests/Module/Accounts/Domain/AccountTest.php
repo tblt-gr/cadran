@@ -315,6 +315,36 @@ final class AccountTest extends TestCase
         self::assertSame([], $account->tagGroupIds);
     }
 
+    public function testAnIncludedAccountCannotClearItsPrimaryGroup(): void
+    {
+        $grouped = $this->account()->regroup(
+            primaryGroupId: '00000000-0000-7000-8000-0000000000b1',
+            tagGroupIds: [],
+            updatedAt: new \DateTimeImmutable(self::NOW),
+        );
+
+        $this->expectException(InvalidAccount::class);
+        $this->expectExceptionMessage('primary group');
+
+        $grouped->regroup(
+            primaryGroupId: null,
+            tagGroupIds: [],
+            updatedAt: new \DateTimeImmutable(self::NOW),
+        );
+    }
+
+    public function testAnExcludedAccountMayStayUngrouped(): void
+    {
+        $cleared = $this->account(includeInNetWorth: false)->regroup(
+            primaryGroupId: null,
+            tagGroupIds: [],
+            updatedAt: new \DateTimeImmutable(self::NOW),
+        );
+
+        self::assertNull($cleared->primaryGroupId);
+        self::assertFalse($cleared->includeInNetWorth);
+    }
+
     public function testItAcceptsOnePrimaryGroupAndDistinctTags(): void
     {
         $grouped = $this->account()->regroup(

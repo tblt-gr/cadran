@@ -175,6 +175,7 @@
       "balance": "Solde observé",
       "grouping": "Groupe",
       "primaryGroup": "Groupe (optionnel)",
+      "primaryGroupRequired": "Groupe",
       "tags": "Étiquettes (hors poids)",
       "share": "Poids patrimonial"
     },
@@ -221,8 +222,11 @@
       "maskedIdentifierHint": "Uniquement la fin de l’identifiant, 2 à 8 caractères. Ne saisissez jamais un IBAN complet.",
       "closedOnHint": "Laissez vide tant que le compte est ouvert. Une date le clôture, l’effacer le rouvre.",
       "emergencyFundHint": "Un compte exclu du patrimoine net ne peut pas alimenter l’épargne de précaution.",
-      "groupingHint": "Le groupe est le tiroir du compte dans le patrimoine : un seul, ou aucun. Une étiquette le signale aussi ailleurs, sans l’ajouter une seconde fois au poids de ce groupe.",
+      "groupingHint": "Un compte compté dans le patrimoine net a un groupe, et un seul. Une étiquette le signale aussi ailleurs, sans l’ajouter une seconde fois au poids de ce groupe.",
+      "groupingHintExcluded": "Un compte exclu du patrimoine net peut rester sans groupe. Le groupe redevient obligatoire dès qu’il est de nouveau compté.",
       "noGroup": "Aucun groupe",
+      "chooseGroup": "Choisir un groupe",
+      "noGroupWhenIncluded": "Créez d’abord un groupe : un compte compté dans le patrimoine net doit y appartenir.",
       "groupsLoading": "Chargement des groupes…",
       "groupsError": "Impossible de charger les groupes.",
       "noTagCandidates": "Créez d’abord un groupe, puis un second si vous voulez une étiquette.",
@@ -259,7 +263,8 @@
       "closedOn": "La date de clôture doit suivre l’ouverture et ne peut pas être future.",
       "valuationMode": "Seuls les comptes qui portent des positions acceptent la valorisation par portefeuille.",
       "assetCode": "Choisissez une devise du référentiel. Elle est fixée à la création et ne pourra plus être changée.",
-      "institution": "Le nom de l’établissement ne peut pas dépasser 80 caractères."
+      "institution": "Le nom de l’établissement ne peut pas dépasser 80 caractères.",
+      "primaryGroup": "Choisissez le groupe patrimonial de ce compte. Un compte compté dans le patrimoine net ne peut pas rester sans groupe."
     },
     "errors": {
       "conflict": "Un compte actif porte déjà ce libellé. Choisissez-en un autre.",
@@ -358,6 +363,34 @@
       },
       "shared": "Plafond atteint à plusieurs comptes : la lecture de ce compte seul ne permet pas de le trancher.",
       "notComparable": "Plafond publié en {{ceiling}} et compte tenu en {{account}} : non comparable, aucune conversion n’est appliquée.",
+      "check": {
+        "WITHIN": "Sous le plafond (mesure {{measured}}).",
+        "EXCEEDED": "Au-dessus du plafond de {{excess}} : autorisé. Le barème peut changer le rendement ; ce n’est pas un refus.",
+        "NOT_COMPARABLE": "Plafond non comparable à ce compte : aucun verdict.",
+        "UNSETTLED": "Plafond non tranché."
+      },
+      "unsettled": {
+        "MISSING_VALUATION": "Aucun solde observé à cette date : la comparaison attend une valorisation.",
+        "CONTRIBUTIONS_NOT_TRACKED": "Les versements cumulés ne sont pas encore suivis : le plafond n’est pas tranché.",
+        "COMBINED_CEILING": "Plafond commun à plusieurs comptes : la lecture de ce compte seul ne le tranche pas."
+      },
+      "applied": {
+        "effective": "Sur le solde observé : {{rate}} (intérêt calculé {{interest}}).",
+        "shifted": "Le solde a dépassé la première tranche : le rendement change, le dépassement reste autorisé.",
+        "missingValuation": "Aucun solde observé : le barème n’est pas appliqué à un exemple tapé.",
+        "ZERO_BALANCE": "Solde à zéro : aucun taux effectif n’est produit.",
+        "NEGATIVE_BALANCE": "Solde négatif : un barème d’épargne ne se lit pas à l’envers."
+      },
+      "yield": {
+        "title": "Lecture du rendement",
+        "hint": "Trois lectures distinctes. Une hypothèse de projection n’est pas un taux de produit, et deux valorisations ne font pas une performance.",
+        "contractual": "Taux contractuel ou réglementé",
+        "assumption": "Hypothèse de projection",
+        "observed": "Performance observée",
+        "noContractual": "Aucun taux contractuel en vigueur à cette date.",
+        "assumptionEmpty": "Non enregistrée : une hypothèse n’est jamais stockée comme taux d’un produit de marché.",
+        "observedEmpty": "Aucune série de rendements : inventer un rendement à partir de deux stocks présenterait un mouvement comme un rendement."
+      },
       "bracketFrom": "À partir de {{from}}",
       "bracketRange": "De {{from}} à {{to}}",
       "columns": {
@@ -389,6 +422,7 @@
       "inForce": "En vigueur",
       "superseded": "Pour comparaison",
       "claimedOn": "Déclaré le {{date}}",
+      "claimedOnBy": "Déclaré le {{date}} par {{author}}",
       "layers": {
         "CATALOG": "Catalogue système",
         "INHERITED": "Modèle de l'espace",
@@ -484,8 +518,10 @@
       "historyError": "Les dérogations de ce compte n’ont pas pu être lues.",
       "columns": {
         "status": "État",
-        "reason": "Motif"
+        "reason": "Motif",
+        "author": "Auteur"
       },
+      "unknownAuthor": "Auteur inconnu",
       "statuses": {
         "standing": "En vigueur",
         "withdrawn": "Retirée"

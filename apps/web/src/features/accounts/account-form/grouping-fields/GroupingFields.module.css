@@ -45,6 +45,17 @@
   color: var(--text-secondary);
 }
 
+.error {
+  margin: var(--spacing-none);
+  color: var(--negative);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}
+
+.fieldset select[aria-invalid='true'] {
+  border-color: var(--negative);
+}
+
 .hint,
 .share {
   margin: var(--spacing-none);

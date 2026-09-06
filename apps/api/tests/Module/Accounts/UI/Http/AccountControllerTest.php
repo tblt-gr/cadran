@@ -19,6 +19,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 final class AccountControllerTest extends WebTestCase
 {
     private const string OTHER_MODEL = '00000000-0000-7000-8000-0000000000e2';
+    private const string DEFAULT_GROUP = '00000000-0000-7000-8000-0000000000c1';
 
     private KernelBrowser $client;
     private Connection $connection;
@@ -42,6 +43,17 @@ final class AccountControllerTest extends WebTestCase
         $hasher = self::getContainer()->get(PasswordHasher::class);
         self::assertInstanceOf(PasswordHasher::class, $hasher);
         $this->fixture->seed($hasher);
+        $this->connection->insert('account_groups', [
+            'id' => self::DEFAULT_GROUP,
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+            'label' => 'Épargne',
+            'parent_id' => null,
+            'sort_order' => 0,
+            'depth' => 1,
+            'version' => 1,
+            'created_at' => '2026-09-01 12:00:00+00',
+            'updated_at' => '2026-09-01 12:00:00+00',
+        ]);
 
         $this->client->request('GET', '/api/v1/session');
         $csrf = $this->client->getCookieJar()->get(SignedCsrfToken::COOKIE_NAME);
@@ -77,7 +89,7 @@ final class AccountControllerTest extends WebTestCase
         self::assertSame(1, $account['netWorthSign']);
         self::assertTrue($account['kindEditable']);
         self::assertNull($account['closedOn']);
-        self::assertNull($account['primaryGroupId']);
+        self::assertSame(self::DEFAULT_GROUP, $account['primaryGroupId']);
         self::assertSame([], $account['tagGroupIds']);
         self::assertSame([
             'ratio' => null,
@@ -671,30 +683,25 @@ final class AccountControllerTest extends WebTestCase
             'SELECT primary_group_id FROM account_financial_accounts WHERE workspace_id = ? AND id = ?',
             [WorkspaceFixture::OWN_WORKSPACE, $id],
         );
-        self::assertNull($stored);
+        self::assertSame(self::DEFAULT_GROUP, $stored);
     }
 
-    public function testAnAccountCanBeCreatedWithAnOptionalPrimaryGroup(): void
+    public function testAnIncludedAccountRequiresAPrimaryGroup(): void
     {
-        $this->client->request(
-            'POST',
-            '/api/v1/account-groups',
-            server: self::jsonHeaders(),
-            content: json_encode(['label' => 'Épargne', 'parentId' => null, 'sortOrder' => 0], JSON_THROW_ON_ERROR),
-        );
-        self::assertResponseStatusCodeSame(201);
-        $group = $this->decode();
+        $this->requestCreate($this->payload('Compte courant', [
+            'includeInNetWorth' => true,
+            'primaryGroupId' => null,
+        ]));
+        self::assertResponseStatusCodeSame(422);
 
-        $ungrouped = $this->createAccount(label: 'Compte courant');
-        self::assertNull($ungrouped['primaryGroupId']);
-        self::assertSame([], $ungrouped['tagGroupIds']);
-
-        $grouped = $this->createAccount(label: 'Livret A Banque X', overrides: [
-            'primaryGroupId' => $group['id'],
-            'tagGroupIds' => [],
+        $excluded = $this->createAccount(label: 'Hors patrimoine', overrides: [
+            'includeInNetWorth' => false,
+            'primaryGroupId' => null,
         ]);
-        self::assertSame($group['id'], $grouped['primaryGroupId']);
-        self::assertSame([], $grouped['tagGroupIds']);
+        self::assertNull($excluded['primaryGroupId']);
+
+        $grouped = $this->createAccount(label: 'Livret A Banque X');
+        self::assertSame(self::DEFAULT_GROUP, $grouped['primaryGroupId']);
 
         $this->requestCreate($this->payload('Livret refusé', [
             'primaryGroupId' => '00000000-0000-7000-8000-0000000000ff',
@@ -708,7 +715,7 @@ final class AccountControllerTest extends WebTestCase
             'POST',
             '/api/v1/account-groups',
             server: self::jsonHeaders(),
-            content: json_encode(['label' => 'Épargne', 'parentId' => null, 'sortOrder' => 0], JSON_THROW_ON_ERROR),
+            content: json_encode(['label' => 'Livrets', 'parentId' => null, 'sortOrder' => 0], JSON_THROW_ON_ERROR),
         );
         self::assertResponseStatusCodeSame(201);
         $primary = $this->decode();
@@ -716,7 +723,7 @@ final class AccountControllerTest extends WebTestCase
             'POST',
             '/api/v1/account-groups',
             server: self::jsonHeaders(),
-            content: json_encode(['label' => 'Liquidités', 'parentId' => null, 'sortOrder' => 1], JSON_THROW_ON_ERROR),
+            content: json_encode(['label' => 'Objectifs', 'parentId' => null, 'sortOrder' => 1], JSON_THROW_ON_ERROR),
         );
         self::assertResponseStatusCodeSame(201);
         $tag = $this->decode();
@@ -882,7 +889,7 @@ final class AccountControllerTest extends WebTestCase
             'includeInEmergencyFund' => false,
             'openedOn' => '2026-01-10',
             'closedOn' => null,
-            'primaryGroupId' => null,
+            'primaryGroupId' => self::DEFAULT_GROUP,
             'tagGroupIds' => [],
             ...$overrides,
         ];

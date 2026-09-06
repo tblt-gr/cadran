@@ -7,6 +7,11 @@ namespace App\Tests\Module\Accounts\UI\Http;
 use App\Module\Accounts\Domain\ModelRuleSchedule;
 use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Accounts\Infrastructure\Persistence\DbalProductModelRepository;
+use App\Module\Catalog\Domain\RateApplication;
+use App\Module\Catalog\Domain\RateBracket;
+use App\Module\Catalog\Domain\RateScale;
+use App\Module\Catalog\Domain\RuleKind;
+use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Tests\Module\Accounts\Domain\ProductModelFixture;
@@ -74,7 +79,7 @@ final class AccountRulesControllerTest extends WebTestCase
 
         self::assertSame([
             'accountId', 'assetCode', 'productCode', 'productModelId', 'origin', 'asOf',
-            'ceilings', 'rates', 'terms', 'unavailableRuleKinds',
+            'ceilings', 'rates', 'terms', 'unavailableRuleKinds', 'yieldReading',
         ], array_keys($rules));
         self::assertSame('SYSTEM_CATALOG', $rules['origin']);
         self::assertSame('FR_LIVRET_A', $rules['productCode']);
@@ -84,7 +89,7 @@ final class AccountRulesControllerTest extends WebTestCase
         $ceiling = $this->only($rules, 'ceilings');
         self::assertSame([
             'kind', 'basis', 'countsCreditedInterest', 'spansSeveralAccounts',
-            'effectiveLayer', 'catalog', 'inherited', 'override',
+            'effectiveLayer', 'catalog', 'inherited', 'override', 'check',
         ], array_keys($ceiling));
         self::assertSame('DEPOSIT_CEILING', $ceiling['kind']);
         // The amount alone would decide nothing: what makes it usable is that
@@ -115,7 +120,7 @@ final class AccountRulesControllerTest extends WebTestCase
         self::assertStringStartsWith('https://', $source['url']);
 
         $rate = $this->only($rules, 'rates');
-        self::assertSame(['kind', 'effectiveLayer', 'catalog', 'inherited', 'override'], array_keys($rate));
+        self::assertSame(['kind', 'effectiveLayer', 'catalog', 'inherited', 'override', 'applied'], array_keys($rate));
         self::assertSame('ANNUAL_RATE', $rate['kind']);
         self::assertSame('CATALOG', $rate['effectiveLayer']);
 
@@ -134,6 +139,63 @@ final class AccountRulesControllerTest extends WebTestCase
         );
         self::assertSame('2026-08-01', $publishedRate['validFrom']);
         self::assertSame('2027-01-31', $publishedRate['validTo']);
+        self::assertSame('UNSETTLED', $this->nested($ceiling, 'check')['status']);
+        self::assertSame('MISSING_VALUATION', $this->nested($ceiling, 'check')['unsettledReason']);
+        self::assertNull($rate['applied']);
+    }
+
+    /**
+     * A Livret Bleu may sit above the Livret A figure: the check warns, the
+     * write is not refused, and the excess earns the next bracket.
+     */
+    public function testALivretBleuAboveTheLivretACeilingWarnsAndShiftsTheRate(): void
+    {
+        $this->signIn();
+        $this->persistModel(ProductModelFixture::model(
+            name: 'Livret Bleu',
+            schedule: new ModelRuleSchedule([
+                ProductModelFixture::ceiling(
+                    '00000000-0000-7000-8000-0000000000b1',
+                    '22950',
+                    '2025-04-25',
+                    kind: RuleKind::DEPOSIT_CEILING,
+                ),
+                ProductModelFixture::rate(
+                    '00000000-0000-7000-8000-0000000000b2',
+                    '2026-01-01',
+                    scale: new RateScale(
+                        [
+                            new RateBracket(
+                                DecimalValue::fromString('0'),
+                                DecimalValue::fromString('22950'),
+                                DecimalValue::fromString('1.7'),
+                            ),
+                            new RateBracket(
+                                DecimalValue::fromString('22950'),
+                                null,
+                                DecimalValue::fromString('0.5'),
+                            ),
+                        ],
+                        RateApplication::MARGINAL,
+                    ),
+                ),
+            ]),
+        ));
+        $this->insertAccount(
+            self::CUSTOM_SAVINGS,
+            WorkspaceFixture::OWN_WORKSPACE,
+            'Livret Bleu',
+            productModelId: ProductModelFixture::ID,
+        );
+        $this->insertSnapshot(self::CUSTOM_SAVINGS, '2026-09-02', '25000');
+
+        $rules = $this->readRules(self::CUSTOM_SAVINGS, '2026-09-02');
+        $check = $this->nested($this->only($rules, 'ceilings'), 'check');
+        self::assertSame('EXCEEDED', $check['status']);
+        self::assertTrue($check['warning']);
+        $applied = $this->nested($this->only($rules, 'rates'), 'applied');
+        self::assertTrue($applied['rateShiftsAboveFirstBracket']);
+        self::assertSame('0.5', $applied['reachedPercentage']);
     }
 
     /**
@@ -452,6 +514,26 @@ final class AccountRulesControllerTest extends WebTestCase
             'password' => WorkspaceFixture::OWNER_PASSWORD,
         ], JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(204);
+    }
+
+    private function insertSnapshot(string $accountId, string $asOf, string $amount): void
+    {
+        $this->connection->insert('account_balance_snapshots', [
+            'id' => substr(sha1($accountId.$asOf), 0, 8).'-0000-7000-8000-000000000000',
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+            'account_id' => $accountId,
+            'as_of' => $asOf,
+            'amount_value' => $amount,
+            'amount_literal' => $amount,
+            'amount_asset' => 'EUR',
+            'source' => 'MANUAL',
+            'reconciliation_status' => 'UNRECONCILED',
+            'comment' => null,
+            'version' => 1,
+            'recorded_at' => $asOf.' 12:00:00+00',
+            'recorded_by' => WorkspaceFixture::OWNER_ID,
+            'superseded_at' => null,
+        ]);
     }
 
     private function insertAccount(

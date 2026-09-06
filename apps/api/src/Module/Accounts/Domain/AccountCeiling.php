@@ -11,6 +11,7 @@ use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Catalog\Domain\VerificationState;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
+use App\Module\Foundation\Domain\ExactDecimal;
 
 /**
  * A ceiling that applies to one account on one business date, together with
@@ -77,5 +78,63 @@ final readonly class AccountCeiling
     public function spansSeveralAccounts(): bool
     {
         return $this->basis->spansSeveralAccounts();
+    }
+
+    /**
+     * Compares a measured figure to this ceiling. The result is never a
+     * write refusal: exceeding is a warning so a Livret Bleu, credited
+     * interest or an imported history can sit above the published amount.
+     */
+    public function compare(?AssetAmount $measured): CeilingComparison
+    {
+        if (!$this->isMeasurable()) {
+            return new CeilingComparison(CeilingCheckStatus::NOT_COMPARABLE, null, null, null);
+        }
+
+        if ($this->spansSeveralAccounts()) {
+            return new CeilingComparison(
+                CeilingCheckStatus::UNSETTLED,
+                null,
+                null,
+                CeilingUnsettledReason::COMBINED_CEILING,
+            );
+        }
+
+        if (CeilingBasis::CONTRIBUTIONS === $this->basis) {
+            return new CeilingComparison(
+                CeilingCheckStatus::UNSETTLED,
+                null,
+                null,
+                CeilingUnsettledReason::CONTRIBUTIONS_NOT_TRACKED,
+            );
+        }
+
+        if (null === $measured) {
+            return new CeilingComparison(
+                CeilingCheckStatus::UNSETTLED,
+                null,
+                null,
+                CeilingUnsettledReason::MISSING_VALUATION,
+            );
+        }
+
+        if (!$measured->asset->equals($this->accountAsset)) {
+            return new CeilingComparison(CeilingCheckStatus::NOT_COMPARABLE, $measured, null, null);
+        }
+
+        $order = $measured->value->compareTo($this->amount->value);
+        if ($order <= 0) {
+            return new CeilingComparison(CeilingCheckStatus::WITHIN, $measured, null, null);
+        }
+
+        return new CeilingComparison(
+            CeilingCheckStatus::EXCEEDED,
+            $measured,
+            new AssetAmount(
+                ExactDecimal::subtract($measured->value, $this->amount->value),
+                $measured->asset,
+            ),
+            null,
+        );
     }
 }

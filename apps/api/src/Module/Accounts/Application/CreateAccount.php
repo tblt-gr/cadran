@@ -99,6 +99,7 @@ final readonly class CreateAccount
             }
 
             try {
+                Account::assertIncludedHasPrimaryGroup($input->includeInNetWorth, $primaryGroupId);
                 $account = new Account(
                     id: $this->uuidGenerator->generate(),
                     workspace: $context->workspace,

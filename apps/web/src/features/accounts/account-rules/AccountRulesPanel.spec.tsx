@@ -71,6 +71,7 @@ const claim = {
   overrideId: '00000000-0000-7000-8000-0000000000c1',
   reason: 'La banque a confirmé un plafond plus élevé par écrit.',
   authorId: '00000000-0000-7000-8000-000000000001',
+  authorDisplayName: 'Owner',
   recordedAt: '2026-09-04T09:00:00+00:00',
 };
 
@@ -91,6 +92,13 @@ const passbook: AccountRules = {
       catalog: publishedCeiling,
       inherited: null,
       override: null,
+      check: {
+        status: 'UNSETTLED',
+        warning: false,
+        measured: null,
+        excess: null,
+        unsettledReason: 'MISSING_VALUATION',
+      },
     },
   ],
   rates: [
@@ -100,10 +108,18 @@ const passbook: AccountRules = {
       catalog: publishedRate,
       inherited: null,
       override: null,
+      applied: null,
     },
   ],
   terms: [],
   unavailableRuleKinds: [],
+  yieldReading: {
+    contractual: { kind: 'ANNUAL_RATE', guaranteed: true },
+    assumption: null,
+    assumptionReason: 'NOT_RECORDED',
+    observed: null,
+    observedReason: 'NO_RETURN_SERIES',
+  },
 };
 
 const noOverrides: AccountRuleOverridePage = { overrides: [] };
@@ -166,7 +182,21 @@ describe('AccountRulesPanel', () => {
     // One bracket covering every amount reads the same under both application
     // modes, so naming the mode beside it would be noise.
     expect(screen.queryByText(/tranche/i)).toBeNull();
-    expect(screen.getByText('Taux dû au titulaire')).toBeTruthy();
+    expect(screen.getAllByText('Taux dû au titulaire').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText('Aucun solde observé : le barème n’est pas appliqué à un exemple tapé.'),
+    ).toBeTruthy();
+    expect(screen.getByText('Lecture du rendement')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Non enregistrée : une hypothèse n’est jamais stockée comme taux d’un produit de marché.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Aucune série de rendements : inventer un rendement à partir de deux stocks présenterait un mouvement comme un rendement.',
+      ),
+    ).toBeTruthy();
     // Every figure travels with the publication it was read from, so the
     // ceiling and the rate each carry their own link.
     expect(
@@ -493,6 +523,7 @@ describe('AccountRulesPanel', () => {
             withdrawnBy: claim.authorId,
             reason: claim.reason,
             authorId: claim.authorId,
+            authorDisplayName: claim.authorDisplayName,
             recordedAt: claim.recordedAt,
           },
         ],
@@ -506,7 +537,64 @@ describe('AccountRulesPanel', () => {
     expect(await screen.findByText('Retirée')).toBeTruthy();
     expect(screen.getByText('Retirée le 10 septembre 2026')).toBeTruthy();
     expect(screen.getByText(claim.reason)).toBeTruthy();
+    expect(screen.getByText('Owner')).toBeTruthy();
     expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
+  });
+
+  it('warns when a Livret Bleu sits above the Livret A ceiling and shifts the rate', async () => {
+    api.readAccountRules.mockImplementation(() =>
+      success({
+        ...passbook,
+        productCode: 'FR_LIVRET_BLEU',
+        ceilings: [
+          {
+            ...passbook.ceilings[0]!,
+            check: {
+              status: 'EXCEEDED',
+              warning: true,
+              measured: { value: '25000', assetCode: 'EUR' },
+              excess: { value: '2050', assetCode: 'EUR' },
+              unsettledReason: null,
+            },
+          },
+        ],
+        rates: [
+          {
+            ...passbook.rates[0]!,
+            catalog: {
+              ...publishedRate,
+              application: 'MARGINAL',
+              brackets: [
+                { percentage: '1.7', lowerBound: '0', upperBound: '22950' },
+                { percentage: '0.5', lowerBound: '22950', upperBound: null },
+              ],
+            },
+            applied: {
+              interest: '400.40',
+              effectivePercentage: '1.6016',
+              reachedPercentage: '0.5',
+              reachedLowerBound: '22950',
+              rateShiftsAboveFirstBracket: true,
+              unsettledReason: null,
+            },
+          },
+        ],
+      }),
+    );
+    renderPanel();
+
+    expect(
+      await screen.findByText(
+        /Au-dessus du plafond de .* : autorisé. Le barème peut changer le rendement/,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(/1,6016\s%/)).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Le solde a dépassé la première tranche : le rendement change, le dépassement reste autorisé.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/interdit/i)).toBeNull();
   });
 
   it('names a business date the API refuses instead of calling it a failed read', async () => {

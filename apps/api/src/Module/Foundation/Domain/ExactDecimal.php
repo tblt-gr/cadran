@@ -27,6 +27,11 @@ final class ExactDecimal
         return self::fromBig(self::toBig($left)->minus(self::toBig($right)));
     }
 
+    public static function multiply(DecimalValue $left, DecimalValue $right): DecimalValue
+    {
+        return self::fromBig(self::toBig($left)->multipliedBy(self::toBig($right)));
+    }
+
     public static function signed(DecimalValue $value, int $sign): DecimalValue
     {
         return $sign < 0 ? self::fromBig(self::toBig($value)->negated()) : $value;
