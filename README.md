@@ -49,10 +49,12 @@ make init
 `cadran_app` and `cadran_db` images, applies database migrations, and brings the stack up on
 <https://localhost:8443>.
 
-Create the first owner and their workspace (one-time; a second run is rejected):
+Create the first owner, their workspace and their password (one-time; a second run is rejected).
+The command prompts for every value, including a hidden password, so nothing lands in the shell
+history:
 
 ```bash
-make provision-owner EMAIL=you@example.test WORKSPACE="Household" NAME="You" CURRENCY=EUR
+make setup
 ```
 
 The stack serves local HTTPS through an internal Caddy authority. Export and trust its root
@@ -192,11 +194,11 @@ workspace-scope guards alone, `make test-api` and `make test-web` run one side o
 `make generate` regenerates the TypeScript client from OpenAPI, `make migrate` applies pending
 migrations, and `make tls-certificate` exports the local certificate authority.
 
-A fresh install has no user until the first owner and workspace are provisioned. This is a
-one-time action; a second run is rejected.
+A fresh install has no user until the first owner, workspace and password are set up. The command
+prompts for every value; it is a one-time action and a second run is rejected.
 
 ```bash
-make provision-owner EMAIL=you@example.test WORKSPACE="Household" NAME="You" CURRENCY=EUR
+make setup
 ```
 
 Documentation and contract checks also run without Docker:

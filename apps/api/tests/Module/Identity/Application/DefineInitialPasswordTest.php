@@ -169,10 +169,23 @@ final class StubAuthenticationUserRepository implements AuthenticationUserReposi
         return null !== $this->owner && 0 === strcasecmp($email, $this->owner->email) ? $this->owner : null;
     }
 
+    public function findById(string $userId): ?AuthenticatedUser
+    {
+        return null !== $this->owner && $userId === $this->owner->id ? $this->owner : null;
+    }
+
     public function findCredentialsByEmail(string $email): ?OwnerCredentials
     {
-        $user = $this->findByEmail($email);
+        return self::credentialsFor($this->findByEmail($email));
+    }
 
+    public function findCredentialsById(string $userId): ?OwnerCredentials
+    {
+        return self::credentialsFor($this->findById($userId));
+    }
+
+    private static function credentialsFor(?AuthenticatedUser $user): ?OwnerCredentials
+    {
         return null === $user || !$user->hasPassword ? null : new OwnerCredentials($user->email, 'hash', null);
     }
 
@@ -210,16 +223,29 @@ final class RecordingOwnerPasswordWriter implements OwnerPasswordWriter
 
         return $this->applied;
     }
+
+    public function replaceHash(string $userId, string $expectedHash, string $newPasswordHash): bool
+    {
+        throw new \LogicException('The first-run flow never replaces a hash.');
+    }
 }
 
 final class PrefixPasswordHasher implements PasswordHasher
 {
     public int $calls = 0;
+    public int $verifyCalls = 0;
 
     public function hash(PlainPassword $password): string
     {
         ++$this->calls;
 
         return 'hashed:'.$password->value;
+    }
+
+    public function verify(string $passwordHash, string $candidate): bool
+    {
+        ++$this->verifyCalls;
+
+        return hash_equals($passwordHash, 'hashed:'.$candidate);
     }
 }

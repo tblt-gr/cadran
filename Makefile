@@ -1,4 +1,4 @@
-.PHONY: init install tools up down migrate provision-owner status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
+.PHONY: init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 COMPOSE := docker compose --env-file $(COMPOSE_ENV)
@@ -41,11 +41,12 @@ migrate:
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) run --rm --no-deps app php apps/api/bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 
-# One-time: create the first owner, their isolated workspace and the OWNER membership.
-# make provision-owner EMAIL=you@example.test WORKSPACE="Household" NAME="You" CURRENCY=EUR
-provision-owner:
+# One-time: create the first owner, their isolated workspace, the OWNER
+# membership and the account password. Every value is prompted for, so no
+# credential lands in the shell history or the host process list.
+setup:
 	sh scripts/check-local-runtime.sh
-	$(COMPOSE) run --rm --no-deps app php apps/api/bin/console cadran:identity:provision-initial-owner "$(EMAIL)" "$(WORKSPACE)" "$(NAME)" "$(CURRENCY)"
+	$(COMPOSE) run --rm --no-deps app php apps/api/bin/console cadran:identity:setup
 
 status:
 	sh scripts/check-local-runtime.sh

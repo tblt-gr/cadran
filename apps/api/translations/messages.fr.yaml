@@ -39,6 +39,24 @@ api:
     owner_not_provisioned:
       title: 'Compte propriétaire absent'
       detail: "Aucun compte propriétaire n'a été initialisé sur ce serveur."
+    invalid_current_password:
+      title: 'Mot de passe actuel incorrect'
+      detail: 'Le mot de passe actuel saisi ne correspond pas à celui du compte.'
+    reused_password:
+      title: 'Nouveau mot de passe identique'
+      detail: 'Le nouveau mot de passe doit être différent du mot de passe actuel.'
+    password_change_throttled:
+      title: 'Trop de tentatives'
+      detail: 'Trop de tentatives de changement de mot de passe. Réessayez dans quelques minutes.'
+    invalid_display_name:
+      title: 'Nom affiché invalide'
+      detail: 'Le nom affiché doit comporter entre 1 et 100 caractères.'
+    profile_payload_too_large:
+      title: 'Corps de profil trop volumineux'
+      detail: 'Le corps JSON dépasse la taille maximale autorisée.'
+    profile_forbidden:
+      title: 'Profil inaccessible'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
     invalid_audit_query:
       title: "Requête d'audit invalide"
       detail: 'La taille de page doit être comprise entre 1 et 100 et le curseur doit provenir de la page précédente.'

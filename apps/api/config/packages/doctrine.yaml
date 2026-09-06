@@ -8,3 +8,8 @@ when@test:
   doctrine:
     dbal:
       dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+
+when@sessiondb:
+  doctrine:
+    dbal:
+      dbname_suffix: '_test%env(default::TEST_TOKEN)%'

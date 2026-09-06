@@ -1,0 +1,20 @@
+.form {
+  display: flex;
+  max-width: 26rem;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.formError {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3);
+  border: var(--border-line-negative);
+  border-radius: var(--radius-control);
+  color: var(--negative);
+  background: var(--negative-soft);
+  font-size: var(--font-size-body);
+}
+
+.submit {
+  align-self: flex-start;
+}

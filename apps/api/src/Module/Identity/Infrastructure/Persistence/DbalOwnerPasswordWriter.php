@@ -26,4 +26,18 @@ final readonly class DbalOwnerPasswordWriter implements OwnerPasswordWriter
 
         return 1 === $affected;
     }
+
+    public function replaceHash(string $userId, string $expectedHash, string $newPasswordHash): bool
+    {
+        // Same compare-and-set shape as the initial write, against the hash the
+        // caller verified rather than against NULL: two concurrent changes
+        // cannot both succeed, and the loser is told so instead of silently
+        // losing its new password.
+        $affected = $this->connection->executeStatement(
+            'UPDATE identity_users SET password_hash = ? WHERE id = ? AND password_hash = ?',
+            [$newPasswordHash, $userId, $expectedHash],
+        );
+
+        return 1 === $affected;
+    }
 }

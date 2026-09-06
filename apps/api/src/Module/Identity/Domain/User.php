@@ -6,10 +6,12 @@ namespace App\Module\Identity\Domain;
 
 final readonly class User
 {
+    public string $displayName;
+
     public function __construct(
         public string $id,
         public string $email,
-        public string $displayName,
+        string $displayName,
         public \DateTimeImmutable $createdAt,
     ) {
         if ('' === $id) {
@@ -20,8 +22,6 @@ final readonly class User
             throw new \InvalidArgumentException('A user requires a valid email address of at most 254 characters.');
         }
 
-        if ('' === trim($displayName) || mb_strlen($displayName) > 100) {
-            throw new \InvalidArgumentException('A user display name must be between 1 and 100 characters.');
-        }
+        $this->displayName = DisplayName::fromString($displayName)->value;
     }
 }

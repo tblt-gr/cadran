@@ -111,6 +111,36 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   refused because it names no successor, while a merge carries those redirections over to its own
   target in the same transaction. A redirection therefore never ends up naming a category nobody
   can select.
+- Owner account self-service at `/settings/profile`: the signed-in owner edits their display name
+  and changes their password without touching the command line. `GET`, `PATCH /api/v1/profile` and
+  `PUT /api/v1/profile/password` act on the account behind the session and take no account
+  identifier, and the screen covers its loading, saved, error and expired-session states. The
+  profile section reads from the identity record alone, so it renders on an install that holds no
+  account or transaction yet.
+- A password change re-verifies the current password server-side, refuses a new password that
+  breaks the 12-to-128-character policy or repeats the current one, and names the offending field
+  through a distinct RFC 9457 problem type rather than a bare 422. None of the three refusals
+  writes anything.
+
+### Changed
+
+- `cadran:identity:setup` replaces the four positional arguments of
+  `cadran:identity:provision-initial-owner`. It prompts for the owner email, display name,
+  workspace name, base currency and a hidden password, sets all of them in one run, and refuses to
+  run once provisioning is complete. No credential reaches the shell history or the host process
+  list. `make provision-owner` becomes `make setup`.
+- Sessions are stored in PostgreSQL instead of files on disk, so they survive a container restart
+  and a credential change can drop them.
+
+### Security
+
+- A successful password change revokes every other open session and rotates the identifier of the
+  session that made the change, so a cookie captured earlier stops authenticating while the acting
+  browser stays signed in. The stored hash is replaced under a compare-and-set against the hash
+  that was just verified, so two concurrent changes cannot both win.
+- The current-password check is rate-limited on its own sliding window, separate from sign-in
+  throttling: exhausting it cannot lock the owner out of signing in, and signing in cannot refill
+  it. Neither password reaches a log, an error body or the audit trail.
 
 ## [0.1.0] - 2026-09-02
 

@@ -3,7 +3,7 @@ import styles from './FormField.module.css';
 interface FormFieldProps {
   id: string;
   label: string;
-  type: 'email' | 'password';
+  type: 'email' | 'password' | 'text';
   value: string;
   autoComplete: string;
   onChange: (value: string) => void;

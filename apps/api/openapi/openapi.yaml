@@ -138,6 +138,124 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/profile:
+    get:
+      operationId: getOwnerProfile
+      summary: Read the signed-in owner's own account
+      description: >-
+        Requires an authenticated session. The account is resolved from the
+        session; there is no way to ask for another one. It answers from the
+        identity record alone, so the settings screen renders on an install
+        that holds no account or transaction yet.
+      tags:
+        - Profile
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The owner account as its own owner sees it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '409':
+          $ref: '#/components/responses/OwnerNotProvisioned'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      operationId: updateOwnerProfile
+      summary: Edit the signed-in owner's display name
+      description: >-
+        A same-origin browser mutation: it must send the X-CSRF-TOKEN header
+        matching the csrf_token cookie, with an Origin of this server. The
+        display name is the only editable field; a body carrying any other key
+        is refused rather than silently ignored.
+      tags:
+        - Profile
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: The stored account, with the new display name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProfileMutationForbidden'
+        '409':
+          $ref: '#/components/responses/OwnerNotProvisioned'
+        '413':
+          $ref: '#/components/responses/ProfilePayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/InvalidDisplayName'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/profile/password:
+    put:
+      operationId: changeOwnerPassword
+      summary: Change the signed-in owner's password
+      description: >-
+        Requires the current password in the same request, verified server-side
+        and rate-limited on its own budget, independently of sign-in throttling.
+        On success every other session is revoked and the calling session is
+        issued a new identifier, so the acting browser stays signed in and a
+        cookie captured earlier stops working. A same-origin browser mutation:
+        it must send the X-CSRF-TOKEN header matching the csrf_token cookie,
+        with an Origin of this server.
+      tags:
+        - Profile
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: >-
+            The password is replaced. The response carries a new session cookie;
+            refetch GET /api/v1/session.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProfileMutationForbidden'
+        '409':
+          $ref: '#/components/responses/OwnerNotProvisioned'
+        '413':
+          $ref: '#/components/responses/ProfilePayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/PasswordChangeRefused'
+        '429':
+          $ref: '#/components/responses/PasswordChangeThrottled'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/audit-events:
     get:
       operationId: listAuditEvents
@@ -2334,6 +2452,61 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    OwnerNotProvisioned:
+      description: >-
+        The account behind the session no longer exists or has lost its
+        password. The browser is signed out on its next session probe.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProfileMutationForbidden:
+      description: >-
+        Either the CSRF / Origin check failed (`type: /problems/csrf-token`),
+        or the authenticated session belongs to no workspace (`type: about:blank`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProfilePayloadTooLarge:
+      description: The JSON request body exceeds the 4 KiB profile limit.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InvalidDisplayName:
+      description: >-
+        The display name is empty, whitespace only, or longer than 100
+        characters (`type: /problems/invalid-display-name`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    PasswordChangeRefused:
+      description: >-
+        The change was refused. The `type` names which field caused it:
+        `/problems/invalid-current-password`, `/problems/weak-password` when the
+        new password is outside 12 to 128 characters, or
+        `/problems/reused-password` when it equals the current one. Nothing is
+        written in any of the three cases.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    PasswordChangeThrottled:
+      description: >-
+        Too many current-password checks for this account. This budget is
+        separate from sign-in throttling: exhausting it does not lock the owner
+        out of signing in.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
     TooManyRequests:
       description: >-
         Too many failed sign-in attempts for this email and source address.
@@ -2478,6 +2651,57 @@ components:
           format: password
           minLength: 12
           maxLength: 128
+    OwnerProfile:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - email
+        - displayName
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+          description: >-
+            The firewall identifier. Read-only here: changing it would rewrite
+            the subject of every open session.
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+    UpdateProfileRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - displayName
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: >-
+            Surrounding whitespace is trimmed before the length is measured, and
+            the length counts Unicode code points.
+    ChangePasswordRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          description: The password currently on the account, re-verified server-side.
+        newPassword:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 128
+          description: Must differ from the current password.
     AuditEventPage:
       type: object
       additionalProperties: false
