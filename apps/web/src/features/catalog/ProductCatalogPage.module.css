@@ -47,9 +47,15 @@
 }
 
 .products {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-4);
+}
+
+@media (min-width: 1280px) {
+  .products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .state {

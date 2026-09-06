@@ -1,0 +1,60 @@
+.section {
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
+}
+
+.section h3 {
+  margin: var(--spacing-none);
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: var(--spacing-none);
+  gap: var(--spacing-4);
+}
+
+.figures div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-1);
+}
+
+.figures dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.figures dd {
+  margin: var(--spacing-none);
+}
+
+.value {
+  color: var(--text-primary);
+  font-size: var(--font-size-kpi);
+  font-weight: var(--font-weight-strong);
+  letter-spacing: var(--letter-spacing-kpi);
+  line-height: var(--line-height-tight);
+}
+
+.period {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-context);
+}
+
+.unavailable {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  font-style: italic;
+  line-height: var(--line-height-body);
+}
+
+@media (max-width: 42rem) {
+  .figures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

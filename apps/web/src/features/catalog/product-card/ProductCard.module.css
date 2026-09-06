@@ -1,5 +1,6 @@
 .card {
   display: flex;
+  height: 100%;
   flex-direction: column;
   padding: var(--spacing-6);
   gap: var(--spacing-4);
@@ -32,24 +33,25 @@
 }
 
 .classification {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: var(--spacing-none);
-  gap: var(--spacing-6);
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
+  gap: var(--spacing-4);
 }
 
 .classification dt {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
 }
 
 .classification dd {
   margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
+  line-height: var(--line-height-context);
 }
 
 @media (max-width: 42rem) {
@@ -66,6 +68,7 @@
   }
 
   .classification {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--spacing-4);
   }
 }

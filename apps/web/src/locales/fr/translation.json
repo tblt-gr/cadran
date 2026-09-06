@@ -856,7 +856,29 @@
     "fields": {
       "wrapper": "Enveloppe",
       "yield": "Rendement",
-      "catalogVersion": "Version du catalogue"
+      "catalogVersion": "Version du catalogue",
+      "jurisdiction": "Juridiction",
+      "ceilingBasis": "Base du plafond",
+      "group": "Groupe patrimonial",
+      "status": "Statut"
+    },
+    "jurisdictions": {
+      "none": "Aucune"
+    },
+    "ceilingBases": {
+      "NONE": "Aucun plafond suivi",
+      "BALANCE_EXCLUDING_INTEREST": "Plafond sur les sommes déposées, hors intérêts",
+      "TOTAL_BALANCE": "Plafond sur le solde total, intérêts compris",
+      "CONTRIBUTIONS": "Plafond sur les versements cumulés",
+      "COMBINED_CONTRIBUTIONS": "Plafond de versements commun à plusieurs comptes"
+    },
+    "status": {
+      "archived": "Retiré du catalogue",
+      "archivedOn": "Retiré le {{date}}"
+    },
+    "figures": {
+      "title": "Valeurs au {{date}}",
+      "unavailable": "Non disponible au {{date}}"
     },
     "list": {
       "caption": "Règles datées de {{product}}",
