@@ -24,30 +24,28 @@ export function compareText(
 }
 
 /**
- * Orders backend decimal strings for a table. `Number` is used only as a sort
- * key — nothing here is shown as a figure.
+ * Orders backend decimal strings exactly, including signed values and scales
+ * beyond the range a binary number can distinguish.
  */
 export function compareDecimalString(
   left: string | null,
   right: string | null,
   direction: SortDirection,
 ): number {
-  const leftValue = left === null ? null : Number(left);
-  const rightValue = right === null ? null : Number(right);
-  const leftKnown = leftValue !== null && Number.isFinite(leftValue);
-  const rightKnown = rightValue !== null && Number.isFinite(rightValue);
-
-  if (!leftKnown && !rightKnown) {
+  if (left === null && right === null) {
     return 0;
   }
 
-  if (!leftKnown) {
+  if (left === null) {
     return 1;
   }
 
-  if (!rightKnown) {
+  if (right === null) {
     return -1;
   }
 
-  return direction === 'asc' ? leftValue - rightValue : rightValue - leftValue;
+  const result = compareDecimals(left, right);
+
+  return direction === 'asc' ? result : -result;
 }
+import { compareDecimals } from './decimal';

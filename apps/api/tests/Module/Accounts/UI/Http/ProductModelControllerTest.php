@@ -356,6 +356,27 @@ final class ProductModelControllerTest extends WebTestCase
         self::assertSame(0, $this->ownModelCount());
     }
 
+    public function testARateCannotHideNonStringInactiveAmountMembers(): void
+    {
+        foreach ([
+            ['amount', ['unexpected' => true], '/rules/0/amount'],
+            ['amountAssetCode', 978, '/rules/0/amountAssetCode'],
+        ] as [$field, $literal, $pointer]) {
+            $period = $this->ratePeriod('2026-01-01');
+            $period[$field] = $literal;
+            $body = $this->payload();
+            $body['rules'] = [$period];
+
+            $this->request('POST', '/api/v1/product-models', $body);
+
+            self::assertResponseStatusCodeSame(422);
+            $problem = $this->decode();
+            self::assertSame('/problems/amount.not_a_string', $problem['type']);
+            self::assertSame($pointer, $problem['pointer']);
+            self::assertSame(0, $this->ownModelCount());
+        }
+    }
+
     public function testACeilingDeeperThanTheAssetStorageScaleIsRefused(): void
     {
         $body = $this->payload();
@@ -372,6 +393,27 @@ final class ProductModelControllerTest extends WebTestCase
 
         $this->request('POST', '/api/v1/product-models', $body);
         self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->ownModelCount());
+    }
+
+    public function testAnInvalidCeilingNamesItsIndexedRequestMember(): void
+    {
+        $body = $this->payload();
+        $rules = $body['rules'] ?? null;
+        self::assertIsList($rules);
+        $ceiling = $rules[0] ?? null;
+        self::assertIsArray($ceiling);
+        $ceiling['amount'] = '1e3';
+        $rules[0] = $ceiling;
+        $body['rules'] = $rules;
+
+        $this->request('POST', '/api/v1/product-models', $body);
+
+        self::assertResponseStatusCodeSame(422);
+        $problem = $this->decode();
+        self::assertSame('/problems/amount.not_canonical', $problem['type']);
+        self::assertSame('/rules/0/amount', $problem['pointer']);
+        self::assertStringNotContainsString('1e3', (string) $this->client->getResponse()->getContent());
         self::assertSame(0, $this->ownModelCount());
     }
 

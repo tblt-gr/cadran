@@ -14,6 +14,8 @@ use App\Module\Accounts\Application\StaleAccountVersion;
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Audit\Application\RecordAuditEvent;
+use App\Module\Foundation\Application\AmountInputParser;
+use App\Module\Foundation\Application\InvalidAmountInput;
 use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
 use App\Tests\Module\Accounts\Application\Double\ImmediateTransactionBoundary;
@@ -123,7 +125,8 @@ final class RecordAccountBalanceTest extends TestCase
 
     public function testAFigureDeeperThanTheAssetStorageScaleIsRefused(): void
     {
-        $this->expectException(InvalidAccountBalanceInput::class);
+        $this->expectException(InvalidAmountInput::class);
+        $this->expectExceptionMessage('validation rule');
 
         ($this->record())(AccountFixture::ID, $this->input(amount: '1.123456789'));
     }
@@ -212,7 +215,7 @@ final class RecordAccountBalanceTest extends TestCase
             new FixedCallerWorkspace($caller),
             $accounts ?? new InMemoryAccountRepository($account ?? AccountFixture::account()),
             $snapshots ?? new InMemoryAccountBalanceSnapshotRepository(),
-            InMemoryAssetCatalog::withCodes('EUR', 'USD'),
+            new AmountInputParser(InMemoryAssetCatalog::withCodes('EUR', 'USD')),
             new SequenceUuidGenerator(),
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),

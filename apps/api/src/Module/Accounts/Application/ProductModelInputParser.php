@@ -13,6 +13,7 @@ use App\Module\Catalog\Domain\InvalidCatalogEntry;
 use App\Module\Catalog\Domain\ProductCapabilities;
 use App\Module\Catalog\Domain\WrapperKind;
 use App\Module\Catalog\Domain\YieldKind;
+use App\Module\Foundation\Application\AmountInputParser;
 
 /**
  * Turns the strings a client submits for a product model into the closed types
@@ -64,7 +65,7 @@ final class ProductModelInputParser
         }
     }
 
-    public static function rule(DeclaredRuleInput $input, string $id): ModelRule
+    public static function rule(DeclaredRuleInput $input, string $id, AmountInputParser $amounts): ModelRule
     {
         try {
             $kind = DeclaredRuleParser::kind($input->kind);
@@ -72,7 +73,7 @@ final class ProductModelInputParser
             return new ModelRule(
                 id: $id,
                 kind: $kind,
-                value: DeclaredRuleParser::value($kind, $input),
+                value: DeclaredRuleParser::value($kind, $input, $amounts),
                 period: DeclaredRuleParser::period($input),
             );
         } catch (InvalidProductModel|InvalidDeclaredRule|InvalidDeclaredRuleInput $failure) {

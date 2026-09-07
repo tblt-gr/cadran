@@ -268,16 +268,34 @@ final class AccountBalanceControllerTest extends WebTestCase
         );
     }
 
-    public function testExcessPrecisionAndAForeignAssetAreRefused(): void
+    public function testAmountRuleFailuresAreMemberSpecificAndNeverWrite(): void
     {
         $this->signIn();
         $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'Livret A');
 
-        $this->requestRecord(self::LIVRET, $this->body('2026-09-03', '230.568812345'));
-        self::assertResponseStatusCodeSame(422);
+        $cases = [
+            ['amount', 150, 'amount.not_a_string', '/amount'],
+            ['amountAssetCode', 978, 'amount.not_a_string', '/amountAssetCode'],
+            ['amount', '1e3', 'amount.not_canonical', '/amount'],
+            ['amount', '100000000000000000000000000', 'amount.precision_exceeded', '/amount'],
+            ['amountAssetCode', 'ZZZ', 'amount.asset_unknown', '/amountAssetCode'],
+            ['amount', '1.123456789', 'amount.asset_precision_exceeded', '/amount'],
+        ];
 
-        $this->requestRecord(self::LIVRET, $this->body('2026-09-03', '230.5688', asset: 'USD'));
-        self::assertResponseStatusCodeSame(422);
+        foreach ($cases as [$field, $literal, $rule, $pointer]) {
+            $body = $this->body('2026-09-03', '230.5688');
+            $body[$field] = $literal;
+            $this->requestRecord(self::LIVRET, $body);
+
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame('application/problem+json', $this->client->getResponse()->headers->get('Content-Type'));
+            $problem = $this->decode();
+            self::assertSame('/problems/'.$rule, $problem['type']);
+            self::assertSame($pointer, $problem['pointer']);
+            self::assertStringNotContainsString((string) $literal, (string) $this->client->getResponse()->getContent());
+            self::assertSame(0, $this->countSnapshots());
+        }
+
         self::assertSame(0, $this->countSnapshots());
     }
 

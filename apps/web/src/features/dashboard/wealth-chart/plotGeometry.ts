@@ -1,3 +1,10 @@
+import {
+  compareDecimals,
+  decimalRatioForGeometry,
+  isZeroDecimal,
+  subtractDecimals,
+} from '@/lib/decimal';
+
 /**
  * Pixel geometry for the net-worth curve.
  *
@@ -5,8 +12,8 @@
  * financial figure: nothing computed in this file is shown to a reader. Every
  * amount on the screen — the headline, the hover tooltip and the tabular
  * alternative — is the canonical decimal string the backend produced. Turning
- * a decimal into a coordinate is the one place `Number` is the right tool,
- * because a pixel has no cents.
+ * a decimal into a coordinate happens only after exact comparison and
+ * subtraction, because a pixel has no cents.
  */
 
 export interface PlotPoint {
@@ -28,16 +35,22 @@ export interface PlotArea {
  */
 export function plotRuns(values: readonly (string | null)[], area: PlotArea): PlotPoint[][] {
   const known = values
-    .map((value, index) => ({ index, value: value === null ? null : Number(value) }))
-    .filter((entry): entry is { index: number; value: number } => entry.value !== null);
+    .map((value, index) => ({ index, value }))
+    .filter((entry): entry is { index: number; value: string } => entry.value !== null);
 
   if (known.length === 0) {
     return [];
   }
 
-  const lowest = Math.min(...known.map((entry) => entry.value));
-  const highest = Math.max(...known.map((entry) => entry.value));
-  const span = highest - lowest;
+  const lowest = known.reduce(
+    (current, entry) => (compareDecimals(entry.value, current) < 0 ? entry.value : current),
+    known[0].value,
+  );
+  const highest = known.reduce(
+    (current, entry) => (compareDecimals(entry.value, current) > 0 ? entry.value : current),
+    known[0].value,
+  );
+  const span = subtractDecimals(highest, lowest);
   const usable = area.height - area.padding * 2;
   const step = values.length > 1 ? area.width / (values.length - 1) : 0;
 
@@ -49,10 +62,11 @@ export function plotRuns(values: readonly (string | null)[], area: PlotArea): Pl
         x: values.length > 1 ? entry.index * step : area.width / 2,
         // A flat series has no span to scale against; it sits on the middle
         // line rather than dividing by zero.
-        y:
-          span === 0
-            ? area.padding + usable / 2
-            : area.height - area.padding - ((entry.value - lowest) / span) * usable,
+        y: isZeroDecimal(span)
+          ? area.padding + usable / 2
+          : area.height -
+            area.padding -
+            decimalRatioForGeometry(subtractDecimals(entry.value, lowest), span) * usable,
       },
     ]),
   );

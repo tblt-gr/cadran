@@ -63,6 +63,11 @@ final readonly class AccountPayload
         return $value;
     }
 
+    public function raw(string $field): mixed
+    {
+        return $this->fields[$field] ?? null;
+    }
+
     public function nullableString(string $field): ?string
     {
         $value = $this->fields[$field] ?? null;

@@ -41,7 +41,7 @@ describe('depositCeilingOf', () => {
 
 describe('ceilingFillPercent', () => {
   it('fills the track from the observed balance against the product ceiling', () => {
-    expect(ceilingFillPercent('20100.00', '22950')).toBe((20100 / 22950) * 100);
+    expect(ceilingFillPercent('20100.00', '22950')).toBeCloseTo((20100 / 22950) * 100, 10);
   });
 
   it('returns nothing when the ceiling cannot size a bar', () => {

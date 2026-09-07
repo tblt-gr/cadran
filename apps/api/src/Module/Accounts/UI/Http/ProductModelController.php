@@ -266,18 +266,20 @@ final readonly class ProductModelController
      */
     private static function rules(ProductModelPayload $payload): array
     {
-        return array_map(
-            self::rule(...),
-            $payload->objects('rules', self::RULE_FIELDS, ProductModelInputParser::MAX_RULES_PER_REQUEST),
-        );
+        $rules = [];
+        foreach ($payload->objects('rules', self::RULE_FIELDS, ProductModelInputParser::MAX_RULES_PER_REQUEST) as $index => $rule) {
+            $rules[] = self::rule($rule, '/rules/'.$index);
+        }
+
+        return $rules;
     }
 
-    private static function rule(ProductModelPayload $payload): DeclaredRuleInput
+    private static function rule(ProductModelPayload $payload, string $pointer = ''): DeclaredRuleInput
     {
         return new DeclaredRuleInput(
             kind: $payload->string('kind'),
-            amount: $payload->nullableString('amount'),
-            amountAssetCode: $payload->nullableString('amountAssetCode'),
+            amount: $payload->raw('amount'),
+            amountAssetCode: $payload->raw('amountAssetCode'),
             text: $payload->nullableString('text'),
             rateApplication: $payload->nullableString('rateApplication'),
             brackets: array_map(
@@ -290,6 +292,8 @@ final readonly class ProductModelController
             ),
             validFrom: $payload->string('validFrom'),
             validTo: $payload->nullableString('validTo'),
+            amountPointer: $pointer.'/amount',
+            amountAssetCodePointer: $pointer.'/amountAssetCode',
         );
     }
 

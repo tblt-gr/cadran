@@ -162,8 +162,8 @@ final readonly class AccountRuleOverrideController
         return new AccountRuleOverrideInput(
             rule: new DeclaredRuleInput(
                 kind: $payload->string('kind'),
-                amount: $payload->nullableString('amount'),
-                amountAssetCode: $payload->nullableString('amountAssetCode'),
+                amount: $payload->raw('amount'),
+                amountAssetCode: $payload->raw('amountAssetCode'),
                 text: $payload->nullableString('text'),
                 rateApplication: $payload->nullableString('rateApplication'),
                 brackets: array_map(

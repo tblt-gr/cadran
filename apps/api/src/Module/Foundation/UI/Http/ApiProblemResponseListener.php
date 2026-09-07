@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Foundation\UI\Http;
 
+use App\Module\Foundation\Application\InvalidAmountInput;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
@@ -25,6 +26,18 @@ final class ApiProblemResponseListener
         }
 
         $throwable = $event->getThrowable();
+        if ($throwable instanceof InvalidAmountInput) {
+            $event->setResponse(ApiProblem::response(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                $this->translator->trans('api.problem.invalid_amount.title'),
+                $this->translator->trans('api.problem.invalid_amount.detail'),
+                '/problems/'.$throwable->ruleCode,
+                extensions: ['pointer' => $throwable->pointer],
+            ));
+
+            return;
+        }
+
         $status = $throwable instanceof HttpExceptionInterface ? $throwable->getStatusCode() : 500;
         $translationKey = self::translationKey($status);
 

@@ -7,9 +7,8 @@ namespace App\Module\Foundation\Domain;
 /**
  * An exact decimal figure in its canonical string form.
  *
- * This value object parses, constrains and orders; it deliberately computes
- * nothing. Exact arithmetic arrives with the decimal value objects of DEC-001,
- * and no caller may reach for a float in the meantime.
+ * This value object parses, constrains and orders. ExactDecimal performs
+ * arithmetic on it through Brick Math, and no caller may reach for a float.
  *
  * Canonical means one string per recorded figure: an optional `-` only on a
  * non-zero value, at least one integer digit, no leading zero unless the
@@ -64,6 +63,11 @@ final readonly class DecimalValue
         }
 
         return new self($literal, $scale);
+    }
+
+    public static function zero(): self
+    {
+        return new self('0', 0);
     }
 
     public function toString(): string

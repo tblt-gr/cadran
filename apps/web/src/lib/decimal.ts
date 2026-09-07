@@ -118,6 +118,14 @@ export function formatCalendarMonth(value: string, locale: string): string {
 const CANONICAL_UNSIGNED_DECIMAL = /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 const CANONICAL_DECIMAL = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 
+interface ScaledInteger {
+  coefficient: bigint;
+  scale: number;
+}
+
+const GEOMETRY_RATIO_RESOLUTION = 1_000_000_000_000n;
+const MAX_SAFE_GEOMETRY_INTEGER = 9_007_199_254_740_991n;
+
 /** A decimal string with no sign, no leading zero and no locale formatting. */
 export function isCanonicalUnsignedDecimal(value: string): boolean {
   return CANONICAL_UNSIGNED_DECIMAL.test(value);
@@ -129,7 +137,107 @@ export function isCanonicalUnsignedDecimal(value: string): boolean {
  * real balance, not a formatting choice.
  */
 export function isCanonicalDecimal(value: string): boolean {
-  return CANONICAL_DECIMAL.test(value);
+  if (!CANONICAL_DECIMAL.test(value)) {
+    return false;
+  }
+
+  return !value.startsWith('-') || !/^0(?:\.0+)?$/.test(value.slice(1));
+}
+
+function parseDecimal(value: string): ScaledInteger {
+  if (!isCanonicalDecimal(value)) {
+    throw new Error('Exact decimal arithmetic expects a canonical decimal');
+  }
+
+  const negative = value.startsWith('-');
+  const unsigned = negative ? value.slice(1) : value;
+  const [integer, fraction = ''] = unsigned.split('.');
+  const coefficient = BigInt(integer + fraction);
+
+  return {
+    coefficient: negative ? -coefficient : coefficient,
+    scale: fraction.length,
+  };
+}
+
+function align(value: ScaledInteger, scale: number): bigint {
+  return value.coefficient * 10n ** BigInt(scale - value.scale);
+}
+
+function canonicalFrom(coefficient: bigint, scale: number): string {
+  const negative = coefficient < 0n;
+  const digits = (negative ? -coefficient : coefficient).toString().padStart(scale + 1, '0');
+  const unsigned = scale === 0 ? digits : `${digits.slice(0, -scale)}.${digits.slice(-scale)}`;
+
+  return negative && coefficient !== 0n ? `-${unsigned}` : unsigned;
+}
+
+export function addDecimals(a: string, b: string): string {
+  const left = parseDecimal(a);
+  const right = parseDecimal(b);
+  const scale = Math.max(left.scale, right.scale);
+
+  return canonicalFrom(align(left, scale) + align(right, scale), scale);
+}
+
+export function subtractDecimals(a: string, b: string): string {
+  const left = parseDecimal(a);
+  const right = parseDecimal(b);
+  const scale = Math.max(left.scale, right.scale);
+
+  return canonicalFrom(align(left, scale) - align(right, scale), scale);
+}
+
+export function sumDecimals(values: readonly string[]): string {
+  return values.reduce(addDecimals, '0');
+}
+
+export function negateDecimal(value: string): string {
+  const parsed = parseDecimal(value);
+
+  return canonicalFrom(-parsed.coefficient, parsed.scale);
+}
+
+export function isZeroDecimal(value: string): boolean {
+  return parseDecimal(value).coefficient === 0n;
+}
+
+export function compareDecimals(a: string, b: string): -1 | 0 | 1 {
+  const left = parseDecimal(a);
+  const right = parseDecimal(b);
+  const scale = Math.max(left.scale, right.scale);
+  const alignedLeft = align(left, scale);
+  const alignedRight = align(right, scale);
+
+  if (alignedLeft === alignedRight) {
+    return 0;
+  }
+
+  return alignedLeft < alignedRight ? -1 : 1;
+}
+
+/**
+ * Converts an exact rational decimal to a bounded, dimensionless coordinate.
+ *
+ * Financial operands remain BigInts until the ratio has been truncated to
+ * twelve decimal places. Only that small geometry integer crosses into the
+ * SVG/CSS number system; no displayed or stored financial figure does.
+ */
+export function decimalRatioForGeometry(numerator: string, denominator: string): number {
+  const top = parseDecimal(numerator);
+  const bottom = parseDecimal(denominator);
+  if (bottom.coefficient <= 0n) {
+    throw new Error('A geometry ratio expects a positive denominator');
+  }
+
+  const scaled =
+    (top.coefficient * 10n ** BigInt(bottom.scale) * GEOMETRY_RATIO_RESOLUTION) /
+    (bottom.coefficient * 10n ** BigInt(top.scale));
+  if (scaled > MAX_SAFE_GEOMETRY_INTEGER || scaled < -MAX_SAFE_GEOMETRY_INTEGER) {
+    throw new Error('A geometry ratio must fit the bounded plot range');
+  }
+
+  return parseInt(scaled.toString(), 10) / parseInt(GEOMETRY_RATIO_RESOLUTION.toString(), 10);
 }
 
 /**

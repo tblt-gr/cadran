@@ -171,6 +171,9 @@ api:
     invalid_account_balance:
       title: 'Solde invalide'
       detail: "Vérifiez la date, le montant et l'unité. Un solde est libellé dans la devise du compte, ne peut pas précéder l'ouverture ni suivre la clôture, et conserve exactement les décimales soumises."
+    invalid_amount:
+      title: 'Montant invalide'
+      detail: 'Le montant doit contenir une valeur décimale canonique et un code d’actif connus, dans les limites de précision autorisées.'
     account_balance_conflict:
       title: 'Solde déjà enregistré'
       detail: 'Un solde actif existe déjà pour ce compte, cette date et cette source. Rechargez le solde puis réappliquez la modification.'

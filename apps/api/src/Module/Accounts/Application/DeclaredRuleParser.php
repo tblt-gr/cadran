@@ -14,8 +14,8 @@ use App\Module\Catalog\Domain\RateBracket;
 use App\Module\Catalog\Domain\RateScale;
 use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Catalog\Domain\RuleValueType;
-use App\Module\Foundation\Domain\AssetAmount;
-use App\Module\Foundation\Domain\AssetCode;
+use App\Module\Foundation\Application\AmountInputParser;
+use App\Module\Foundation\Application\InvalidAmountInput;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
@@ -47,13 +47,25 @@ final class DeclaredRuleParser
         return RuleKind::tryFrom($value) ?? throw new InvalidDeclaredRuleInput('The rule kind must be a supported kind.');
     }
 
-    public static function value(RuleKind $kind, DeclaredRuleInput $input): DeclaredRuleValue
+    public static function value(RuleKind $kind, DeclaredRuleInput $input, AmountInputParser $amounts): DeclaredRuleValue
     {
+        $valueType = $kind->valueType();
+        if (RuleValueType::AMOUNT !== $valueType) {
+            if (null !== $input->amount && !is_string($input->amount)) {
+                throw new InvalidAmountInput($input->amountPointer, 'amount.not_a_string');
+            }
+            if (null !== $input->amountAssetCode && !is_string($input->amountAssetCode)) {
+                throw new InvalidAmountInput($input->amountAssetCodePointer, 'amount.not_a_string');
+            }
+        }
+
         try {
-            return match ($kind->valueType()) {
-                RuleValueType::AMOUNT => DeclaredRuleValue::amount(new AssetAmount(
-                    self::decimal($input->amount ?? throw new InvalidDeclaredRuleInput('A ceiling period carries an amount.')),
-                    self::assetCode($input->amountAssetCode ?? throw new InvalidDeclaredRuleInput('A ceiling amount carries the asset it is denominated in.')),
+            return match ($valueType) {
+                RuleValueType::AMOUNT => DeclaredRuleValue::amount($amounts->fromFields(
+                    $input->amount,
+                    $input->amountAssetCode,
+                    $input->amountPointer,
+                    $input->amountAssetCodePointer,
                 )),
                 RuleValueType::PERCENTAGE => DeclaredRuleValue::rate(self::scale($input)),
                 RuleValueType::TEXT => DeclaredRuleValue::text(
@@ -84,15 +96,6 @@ final class DeclaredRuleParser
             return BusinessDay::fromIsoDate($value)->date;
         } catch (InvalidCatalogEntry $failure) {
             throw new InvalidDeclaredRuleInput(sprintf('The %s must be an ISO 8601 calendar day.', $subject), previous: $failure);
-        }
-    }
-
-    public static function assetCode(string $value): AssetCode
-    {
-        try {
-            return AssetCode::fromString($value);
-        } catch (\InvalidArgumentException $failure) {
-            throw new InvalidDeclaredRuleInput('The amount asset must be a supported asset code.', previous: $failure);
         }
     }
 

@@ -1566,7 +1566,9 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AmountInputProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{id}/rules:
@@ -1737,7 +1739,9 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AmountInputProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{id}/rule-overrides/{overrideId}/withdraw:
@@ -2037,7 +2041,9 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AmountInputProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/product-models/from-product:
@@ -2268,7 +2274,9 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AmountInputProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/product-models/{id}/archive:
@@ -4522,7 +4530,7 @@ components:
           format: date
         amount:
           type: string
-          pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+          pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
         amountAssetCode:
           type: string
           pattern: '^[A-Z][A-Z0-9]{1,11}$'
@@ -5877,7 +5885,7 @@ components:
       properties:
         value:
           type: string
-          pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+          pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
           examples:
             - '230.5688'
         assetCode:
@@ -5905,3 +5913,30 @@ components:
           maximum: 599
         detail:
           type: string
+    AmountInputProblem:
+      description: >-
+        An RFC 9457 problem raised by the shared exact-amount parser. The JSON
+        pointer names the public request member that failed validation.
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - pointer
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          pattern: '^/problems/amount\.'
+        title:
+          type: string
+        status:
+          type: integer
+          const: 422
+        detail:
+          type: string
+        pointer:
+          type: string
+          pattern: '^/'

@@ -11,6 +11,7 @@ export default defineConfig({
       // same cases. A relative import from src/ would trip
       // import/no-relative-parent-imports.
       '@contracts': fileURLToPath(new URL('../../tests/contracts', import.meta.url)),
+      '@fixtures': fileURLToPath(new URL('../../tests/fixtures', import.meta.url)),
     },
   },
   test: {
