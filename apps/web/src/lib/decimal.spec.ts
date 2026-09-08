@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import referenceCases from '@fixtures/decimal-reference-cases.json';
 import {
+  addDecimals,
+  compareDecimals,
   compareUnsignedDecimals,
   formatAmount,
   formatCalendarDay,
@@ -7,6 +10,10 @@ import {
   formatDecimal,
   isCanonicalDecimal,
   isCanonicalUnsignedDecimal,
+  isZeroDecimal,
+  negateDecimal,
+  subtractDecimals,
+  sumDecimals,
 } from './decimal';
 
 const narrowNoBreakSpace = / | |\s/g;
@@ -115,5 +122,64 @@ describe('isCanonicalDecimal', () => {
     expect(isCanonicalDecimal('007')).toBe(false);
     expect(isCanonicalDecimal('4,5')).toBe(false);
     expect(isCanonicalDecimal('')).toBe(false);
+    expect(isCanonicalDecimal('-0')).toBe(false);
+    expect(isCanonicalDecimal('-0.00')).toBe(false);
+  });
+});
+
+describe('signed exact decimal arithmetic', () => {
+  it('matches every shared reference case without changing scale', () => {
+    for (const testCase of referenceCases.add) {
+      expect(addDecimals(testCase.a, testCase.b)).toBe(testCase.result);
+    }
+    for (const testCase of referenceCases.subtract) {
+      expect(subtractDecimals(testCase.a, testCase.b)).toBe(testCase.result);
+    }
+    for (const testCase of referenceCases.sum) {
+      expect(sumDecimals(testCase.values)).toBe(testCase.result);
+    }
+    for (const testCase of referenceCases.compare) {
+      expect(compareDecimals(testCase.a, testCase.b)).toBe(testCase.result);
+    }
+    for (const rejected of referenceCases.rejected) {
+      expect(() => addDecimals(rejected, '1')).toThrow();
+      expect(() => compareDecimals('1', rejected)).toThrow();
+    }
+  });
+
+  it('keeps zero unsigned while retaining its submitted scale', () => {
+    expect(negateDecimal('0')).toBe('0');
+    expect(negateDecimal('0.00')).toBe('0.00');
+    expect(subtractDecimals('1.50', '1.50')).toBe('0.00');
+    expect(isZeroDecimal('0.000')).toBe(true);
+    expect(isZeroDecimal('-0.001')).toBe(false);
+  });
+
+  it('obeys inverse, sum and ordering properties over generated canonical operands', () => {
+    let seed = 1_234_567;
+    const next = () => {
+      seed = (seed * 48_271) % 2_147_483_647;
+      return seed;
+    };
+    const operand = () => {
+      const integer = String(next() % 1_000_000);
+      const scale = next() % 9;
+      let fraction = '';
+      for (let index = 0; index < scale; index += 1) fraction += String(next() % 10);
+      const unsigned = `${integer}${fraction === '' ? '' : `.${fraction}`}`;
+      return !isZeroDecimal(unsigned) && next() % 2 === 0 ? `-${unsigned}` : unsigned;
+    };
+
+    for (let attempt = 0; attempt < 250; attempt += 1) {
+      const [a, b, c] = [operand(), operand(), operand()];
+      expect(compareDecimals(subtractDecimals(addDecimals(a, b), b), a)).toBe(0);
+      expect(negateDecimal(negateDecimal(a))).toBe(a);
+      expect(sumDecimals([a, b, c])).toBe(addDecimals(addDecimals(a, b), c));
+
+      const comparison = compareDecimals(a, b);
+      expect([-1, 0, 1]).toContain(comparison);
+      expect(compareDecimals(b, a)).toBe(comparison === 0 ? 0 : -comparison);
+      expect(compareDecimals(a, a)).toBe(0);
+    }
   });
 });

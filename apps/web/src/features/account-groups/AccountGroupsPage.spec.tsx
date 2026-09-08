@@ -428,7 +428,7 @@ describe('AccountGroupsPage', () => {
     expect(livretsRow.textContent).toContain(`20${NARROW}100,00${NBSP}€`);
     await waitFor(() => {
       const memberBars = Array.from(livretsRow.querySelectorAll<HTMLElement>('[style*="width"]'));
-      expect(memberBars.map((bar) => bar.style.width)).toEqual([`${(20100 / 22950) * 100}%`]);
+      expect(memberBars.map((bar) => bar.style.width)).toEqual(['87.5816993464%']);
     });
 
     const investRow = within(groupsTable).getByRole('row', { name: /Investissements/ });

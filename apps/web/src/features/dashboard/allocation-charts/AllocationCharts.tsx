@@ -5,6 +5,7 @@ import { Cell, Pie, PieChart, Treemap } from 'recharts';
 import { Icon } from '@/components/ui/icon/Icon';
 import { formatAmount } from '@/lib/decimal';
 import { formatSharePercent } from '@/lib/formatSharePercent';
+import { allocationSize } from './allocationSize';
 import { sliceCaption } from './sliceCaption';
 import styles from './AllocationCharts.module.css';
 
@@ -41,8 +42,8 @@ function sliceFromEntry(entry: NetWorthAllocationEntry, index: number): Allocati
     return null;
   }
 
-  const size = Number(entry.share.percent);
-  if (!Number.isFinite(size) || size <= 0) {
+  const size = allocationSize(entry.share.percent);
+  if (size === null) {
     return null;
   }
 
@@ -157,8 +158,8 @@ function TreemapTile(node: {
 }
 
 /**
- * Exclusive top-level weights as Treemap or pie. Slice geometry reads
- * `Number(share.percent)`; every visible figure is a backend display string.
+ * Exclusive top-level weights as Treemap or pie. Slice geometry uses a bounded
+ * dimensionless ratio; every visible figure is a backend display string.
  */
 export function AllocationCharts({
   allocation,

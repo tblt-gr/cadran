@@ -105,8 +105,8 @@ final readonly class AccountBalanceController
             $payload = AccountPayload::of($body, self::RECORD_FIELDS);
             $snapshot = $recordBalance($id, new RecordAccountBalanceInput(
                 asOf: $payload->string('asOf'),
-                amount: $payload->string('amount'),
-                amountAssetCode: $payload->string('amountAssetCode'),
+                amount: $payload->raw('amount'),
+                amountAssetCode: $payload->raw('amountAssetCode'),
                 comment: $payload->nullableString('comment'),
                 version: $payload->nullableInteger('version'),
             ));

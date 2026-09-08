@@ -180,6 +180,38 @@ final class AccountRuleOverrideControllerTest extends WebTestCase
         self::assertStringNotContainsString('"5"', (string) $this->client->getResponse()->getContent());
     }
 
+    public function testARateCannotHideNonStringInactiveAmountMembers(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, 'Livret A', 'FR_LIVRET_A');
+
+        foreach ([
+            ['amount', ['unexpected' => true], '/amount'],
+            ['amountAssetCode', 978, '/amountAssetCode'],
+        ] as [$field, $literal, $pointer]) {
+            $body = [
+                'kind' => 'ANNUAL_RATE',
+                'amount' => null,
+                'amountAssetCode' => null,
+                'text' => null,
+                'rateApplication' => 'MARGINAL',
+                'brackets' => [['lowerBound' => '0', 'upperBound' => null, 'percentage' => '5']],
+                'validFrom' => '2026-01-01',
+                'validTo' => null,
+                'reason' => 'The branch confirmed the rate in writing.',
+            ];
+            $body[$field] = $literal;
+
+            $this->requestRecord(self::LIVRET_A, $body);
+
+            self::assertResponseStatusCodeSame(422);
+            $problem = $this->decode();
+            self::assertSame('/problems/amount.not_a_string', $problem['type']);
+            self::assertSame($pointer, $problem['pointer']);
+            self::assertSame(0, $this->countOverrides());
+        }
+    }
+
     public function testAnAccountThatFollowsNothingAcceptsNoClaim(): void
     {
         $this->signIn();

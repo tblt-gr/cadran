@@ -27,6 +27,30 @@ final class ExactDecimal
         return self::fromBig(self::toBig($left)->minus(self::toBig($right)));
     }
 
+    public static function sum(DecimalValue ...$values): DecimalValue
+    {
+        if ([] === $values) {
+            return DecimalValue::zero();
+        }
+
+        $sum = $values[0];
+        foreach (array_slice($values, 1) as $value) {
+            $sum = self::add($sum, $value);
+        }
+
+        return $sum;
+    }
+
+    public static function negate(DecimalValue $value): DecimalValue
+    {
+        return self::isZero($value) ? $value : self::fromBig(self::toBig($value)->negated());
+    }
+
+    public static function absolute(DecimalValue $value): DecimalValue
+    {
+        return $value->isNegative() ? self::negate($value) : $value;
+    }
+
     public static function multiply(DecimalValue $left, DecimalValue $right): DecimalValue
     {
         return self::fromBig(self::toBig($left)->multipliedBy(self::toBig($right)));

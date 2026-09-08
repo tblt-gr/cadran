@@ -21,6 +21,7 @@ use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Catalog\Domain\CatalogEntry;
 use App\Module\Catalog\Domain\RuleSchedule;
+use App\Module\Foundation\Application\AmountInputParser;
 use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
 use App\Tests\Module\Accounts\Application\Double\ImmediateTransactionBoundary;
@@ -270,7 +271,7 @@ final class RecordAccountRuleOverrideTest extends TestCase
             new ResolveAccountRuleAuthority($productCatalog, $productModels),
             new SubmittedAccountRuleOverride(
                 new SequenceUuidGenerator(),
-                InMemoryAssetCatalog::withCodes('EUR', 'USD'),
+                new AmountInputParser(InMemoryAssetCatalog::withCodes('EUR', 'USD')),
             ),
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),

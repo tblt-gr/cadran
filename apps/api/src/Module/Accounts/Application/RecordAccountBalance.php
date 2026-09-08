@@ -16,12 +16,10 @@ use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Catalog\Domain\BusinessDay;
+use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
-use App\Module\Foundation\Domain\MalformedDecimal;
-use App\Module\Foundation\Domain\PrecisionExceeded;
 use App\Module\Foundation\Domain\UuidGenerator;
-use App\Module\Reference\Application\AssetCatalog;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -37,7 +35,7 @@ final readonly class RecordAccountBalance
         private CallerWorkspaceContext $caller,
         private AccountRepository $accounts,
         private AccountBalanceSnapshotRepository $snapshots,
-        private AssetCatalog $assets,
+        private AmountInputParser $amounts,
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
@@ -136,20 +134,15 @@ final readonly class RecordAccountBalance
             throw new InvalidAccountBalanceInput('A snapshot cannot postdate the account closing.');
         }
 
-        $assetCode = AccountInputParser::assetCode($input->amountAssetCode);
-        if (!$assetCode->equals($account->assetCode)) {
+        $amount = $this->amounts->fromFields(
+            $input->amount,
+            $input->amountAssetCode,
+            '/amount',
+            '/amountAssetCode',
+        );
+
+        if (!$amount->asset->equals($account->assetCode)) {
             throw new InvalidAccountBalanceInput('A snapshot is recorded in the account unit.');
-        }
-
-        $asset = $this->assets->findByCode($assetCode);
-        if (null === $asset) {
-            throw new InvalidAccountBalanceInput('The snapshot asset is not in the reference.');
-        }
-
-        try {
-            $amount = $asset->amount($input->amount);
-        } catch (MalformedDecimal|PrecisionExceeded $exception) {
-            throw new InvalidAccountBalanceInput($exception->getMessage(), previous: $exception);
         }
 
         $comment = null === $input->comment ? null : trim($input->comment);
