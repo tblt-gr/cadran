@@ -1,0 +1,189 @@
+import type {
+  Account,
+  CreateTransactionRequest,
+  Transaction,
+  UpdateTransactionRequest,
+} from '@cadran/api-client';
+import { compareDecimals, isCanonicalDecimal, isZeroDecimal } from '@/lib/decimal';
+
+export type TransactionFormValues = {
+  accountId: string;
+  amountValue: string;
+  authorizedOn: string;
+  bankReference: string;
+  bookedOn: string;
+  categoryId: string;
+  counterparty: string;
+  maskedCard: string;
+  mcc: string;
+  nature: CreateTransactionRequest['nature'];
+  note: string;
+  paymentMethod: NonNullable<CreateTransactionRequest['paymentMethod']> | '';
+  rawLabel: string;
+  state: CreateTransactionRequest['state'] | 'REJECTED';
+  valueOn: string;
+};
+
+export type TransactionFormErrors = Partial<Record<keyof TransactionFormValues, true>>;
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const OPTIONAL_LIMITS = {
+  bankReference: 64,
+  counterparty: 80,
+  note: 500,
+} as const;
+
+export function todayInParis(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' });
+}
+
+export function initialTransactionValues(
+  transaction: Transaction | undefined,
+  accounts: Account[],
+  today = todayInParis(),
+): TransactionFormValues {
+  return {
+    accountId: transaction?.accountId ?? accounts[0]?.id ?? '',
+    amountValue: transaction?.amount.value ?? '',
+    authorizedOn: transaction?.authorizedOn ?? '',
+    bankReference: transaction?.bankReference ?? '',
+    bookedOn: transaction?.bookedOn ?? today,
+    categoryId: transaction?.splits[0]?.categoryId ?? '',
+    counterparty: transaction?.counterparty ?? '',
+    maskedCard: transaction?.maskedCard ?? '',
+    mcc: transaction?.mcc ?? '',
+    nature: transaction?.nature ?? 'EXPENSE',
+    note: transaction?.note ?? '',
+    paymentMethod: transaction?.paymentMethod ?? '',
+    rawLabel: transaction?.rawLabel ?? '',
+    state:
+      transaction?.state === 'PENDING' || transaction?.state === 'REJECTED'
+        ? transaction.state
+        : 'BOOKED',
+    valueOn: transaction?.valueOn ?? '',
+  };
+}
+
+export function validateTransactionValues(
+  values: TransactionFormValues,
+  accounts: Account[],
+  today = todayInParis(),
+): TransactionFormErrors {
+  const errors: TransactionFormErrors = {};
+  const account = accounts.find((candidate) => candidate.id === values.accountId);
+  const amount = values.amountValue.trim();
+  const exactAmount = isCanonicalDecimal(amount);
+
+  if (account === undefined || account.status !== 'ACTIVE') {
+    errors.accountId = true;
+  }
+
+  if (!exactAmount || isZeroDecimal(amount)) {
+    errors.amountValue = true;
+  } else {
+    const negative = compareDecimals(amount, '0') < 0;
+    if (
+      (values.nature === 'INCOME' && negative) ||
+      ((values.nature === 'EXPENSE' || values.nature === 'FEE') && !negative)
+    ) {
+      errors.amountValue = true;
+      errors.nature = true;
+    }
+  }
+
+  if (!ISO_DAY.test(values.bookedOn) || values.bookedOn > today) {
+    errors.bookedOn = true;
+  } else if (account !== undefined && values.bookedOn < account.openedOn) {
+    errors.bookedOn = true;
+  }
+
+  if (
+    values.authorizedOn !== '' &&
+    (!ISO_DAY.test(values.authorizedOn) || values.authorizedOn > values.bookedOn)
+  ) {
+    errors.authorizedOn = true;
+  }
+
+  if (
+    values.valueOn !== '' &&
+    (!ISO_DAY.test(values.valueOn) || !withinDays(values.bookedOn, values.valueOn, 90))
+  ) {
+    errors.valueOn = true;
+  }
+
+  const rawLabel = values.rawLabel.trim();
+  if (rawLabel.length === 0 || [...rawLabel].length > 140) {
+    errors.rawLabel = true;
+  }
+
+  for (const [field, limit] of Object.entries(OPTIONAL_LIMITS) as Array<
+    [keyof typeof OPTIONAL_LIMITS, number]
+  >) {
+    const value = values[field].trim();
+    if (value !== '' && [...value].length > limit) {
+      errors[field] = true;
+    }
+  }
+
+  if (values.mcc !== '' && !/^\d{4}$/.test(values.mcc)) {
+    errors.mcc = true;
+  }
+  if (values.maskedCard !== '' && !/^\d{4}$/.test(values.maskedCard)) {
+    errors.maskedCard = true;
+  }
+
+  return errors;
+}
+
+export function transactionRequest(
+  values: TransactionFormValues,
+  accounts: Account[],
+  transaction?: Transaction,
+): CreateTransactionRequest | UpdateTransactionRequest {
+  const account = accounts.find((candidate) => candidate.id === values.accountId);
+  const assetCode = transaction?.amount.assetCode ?? account?.assetCode ?? '';
+  const common = {
+    accountId: values.accountId,
+    amount: { value: values.amountValue.trim(), assetCode },
+    nature: values.nature,
+    bookedOn: values.bookedOn,
+    valueOn: optional(values.valueOn),
+    authorizedOn: optional(values.authorizedOn),
+    rawLabel: values.rawLabel.trim(),
+    counterparty: optional(values.counterparty),
+    note: optional(values.note),
+    paymentMethod: values.paymentMethod || null,
+    mcc: optional(values.mcc),
+    maskedCard: optional(values.maskedCard),
+    bankReference: optional(values.bankReference),
+    categoryId: values.categoryId || null,
+  };
+
+  if (transaction !== undefined) {
+    return { ...common, state: values.state, version: transaction.version };
+  }
+
+  return {
+    ...common,
+    state: values.state === 'REJECTED' ? 'BOOKED' : values.state,
+  };
+}
+
+export function categoryTypeForAmount(amount: string): 'EXPENSE' | 'INCOME' {
+  return amount.trim().startsWith('-') ? 'EXPENSE' : 'INCOME';
+}
+
+function optional(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
+function withinDays(reference: string, candidate: string, maximum: number): boolean {
+  const referenceDay = Date.parse(`${reference}T12:00:00Z`);
+  const candidateDay = Date.parse(`${candidate}T12:00:00Z`);
+  if (!Number.isFinite(referenceDay) || !Number.isFinite(candidateDay)) {
+    return false;
+  }
+
+  return Math.abs(candidateDay - referenceDay) <= maximum * 86_400_000;
+}

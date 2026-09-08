@@ -61,9 +61,9 @@ final readonly class CategoryRepresentation
     /**
      * The impact of an operation that has not happened.
      *
-     * `affectedClassifications` is null rather than zero: transactions do not
-     * exist yet, so the number of historical classifications this would move is
-     * unknown, and `affectedClassificationsReason` says why.
+     * `affectedClassifications` counts the splits a merge or replacement would
+     * re-point. When the count cannot be established it stays null and
+     * `affectedClassificationsReason` says why, never a guessed zero.
      *
      * @return array<string, mixed>
      */

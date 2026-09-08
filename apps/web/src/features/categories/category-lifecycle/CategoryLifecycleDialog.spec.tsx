@@ -61,8 +61,8 @@ function impact(overrides: Partial<CategoryImpact> = {}): CategoryImpact {
     redirectsHistory: true,
     allowed: true,
     blockers: [],
-    affectedClassifications: null,
-    affectedClassificationsReason: 'TRANSACTIONS_UNAVAILABLE',
+    affectedClassifications: 0,
+    affectedClassificationsReason: null,
     ...overrides,
   };
 }
@@ -132,7 +132,7 @@ describe('CategoryLifecycleDialog', () => {
     );
   });
 
-  it('reports an uncountable history rather than an invented zero', async () => {
+  it('reports a counted classification total rather than hiding it as unavailable', async () => {
     api.listCategories.mockImplementation(() =>
       success({ items: [target], page: 1, perPage: 50, total: 1 }),
     );
@@ -141,10 +141,12 @@ describe('CategoryLifecycleDialog', () => {
 
     await chooseTarget('Catégorie qui reçoit l’historique');
 
+    expect(await screen.findByText('Impact de l’opération')).toBeTruthy();
     expect(
-      await screen.findByText('Non calculable : aucun historique de transactions n’existe encore.'),
-    ).toBeTruthy();
+      screen.queryByText('Non calculable : aucun historique de transactions n’existe encore.'),
+    ).toBeNull();
     expect(screen.queryByText('Écritures reclassées')).toBeTruthy();
+    expect(screen.getByText('0')).toBeTruthy();
     expect(screen.getByText('2 sur 8')).toBeTruthy();
   });
 

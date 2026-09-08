@@ -1,0 +1,66 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-4);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+
+.fields label {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-1-5);
+}
+
+.fields input,
+.fields select {
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.fields input[aria-invalid='true'],
+.fields select[aria-invalid='true'] {
+  border-color: var(--negative);
+}
+
+.fields small {
+  color: var(--negative);
+  line-height: var(--line-height-body);
+}
+
+.fields > div {
+  grid-column: 1 / -1;
+}
+
+.alert {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-color: var(--negative);
+  border-radius: var(--radius-control);
+  color: var(--negative);
+  background: var(--negative-soft);
+}
+
+@media (max-width: 42rem) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}

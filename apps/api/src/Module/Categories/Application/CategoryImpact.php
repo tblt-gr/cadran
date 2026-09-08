@@ -42,7 +42,7 @@ final readonly class CategoryImpact
         public array $reparentedChildren,
         public array $rebasedDepths,
         public ?int $affectedClassifications,
-        public string $affectedClassificationsReason,
+        public ?string $affectedClassificationsReason,
     ) {
     }
 

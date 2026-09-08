@@ -12,6 +12,7 @@ import { ProductCatalogPage } from '@/features/catalog/ProductCatalogPage';
 import { ProductModelsPage } from '@/features/product-models/ProductModelsPage';
 import { AccountGroupsPage } from '@/features/account-groups/AccountGroupsPage';
 import { CategoryPage } from '@/features/categories/CategoryPage';
+import { TransactionsPage } from '@/features/transactions/TransactionsPage';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
@@ -66,6 +67,8 @@ export function AuthenticatedApp() {
     content = <ProductCatalogPage />;
   } else if (path === '/product-models') {
     content = <ProductModelsPage />;
+  } else if (path === '/transactions') {
+    content = <TransactionsPage />;
   } else if (path === '/settings/profile') {
     content = <ProfileSettingsPage />;
   } else if (path !== '/') {
@@ -98,6 +101,7 @@ export function AuthenticatedApp() {
         path !== '/categories' &&
         path !== '/catalog' &&
         path !== '/product-models' &&
+        path !== '/transactions' &&
         path !== '/settings/profile'
       }
     >

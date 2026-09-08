@@ -1312,5 +1312,126 @@
         "unauthorized": "Votre session n’est plus valide. Reconnectez-vous, puis réessayez."
       }
     }
+  },
+  "transactions": {
+    "eyebrow": "Mouvements de l’espace",
+    "title": "Mouvements enregistrés",
+    "description": "Enregistrez chaque entrée ou sortie sur un compte, avec son montant exact, sa date et éventuellement une catégorie.",
+    "add": "Nouvelle transaction",
+    "addFirst": "Enregistrer la première transaction",
+    "includeVoided": "Afficher les transactions annulées",
+    "loading": "Chargement des transactions…",
+    "toasts": {
+      "saved": "La transaction a été enregistrée.",
+      "voided": "La transaction a été annulée. Elle reste dans l’historique.",
+      "duplicated": "La transaction a été dupliquée à la date du jour."
+    },
+    "fields": {
+      "account": "Compte",
+      "amount": "Montant",
+      "nature": "Nature",
+      "state": "État",
+      "bookedOn": "Date comptable",
+      "valueOn": "Date de valeur",
+      "authorizedOn": "Date d’autorisation",
+      "rawLabel": "Libellé d’origine",
+      "counterparty": "Tiers",
+      "note": "Note",
+      "paymentMethod": "Moyen de paiement",
+      "category": "Catégorie"
+    },
+    "natures": {
+      "INCOME": "Revenu",
+      "EXPENSE": "Dépense",
+      "TRANSFER": "Virement interne",
+      "REFUND": "Remboursement",
+      "FEE": "Frais",
+      "ADJUSTMENT": "Ajustement"
+    },
+    "states": {
+      "PENDING": "En attente",
+      "BOOKED": "Comptabilisée",
+      "VOIDED": "Annulée",
+      "REJECTED": "Rejetée"
+    },
+    "paymentMethods": {
+      "CARD": "Carte",
+      "TRANSFER": "Virement",
+      "DIRECT_DEBIT": "Prélèvement",
+      "CHECK": "Chèque",
+      "CASH": "Espèces",
+      "OTHER": "Autre"
+    },
+    "validation": {
+      "account": "Choisissez un compte actif de cet espace.",
+      "amount": "Saisissez un montant exact non nul, avec le signe qui correspond à la nature.",
+      "nature": "Le signe du montant doit correspondre à la nature.",
+      "bookedOn": "La date comptable doit tomber entre l’ouverture du compte et aujourd’hui.",
+      "valueOn": "La date de valeur doit rester à 90 jours de la date comptable.",
+      "authorizedOn": "La date d’autorisation ne peut pas être postérieure à la date comptable.",
+      "rawLabel": "Le libellé d’origine est obligatoire et ne peut pas dépasser 140 caractères.",
+      "counterparty": "Le tiers ne peut pas dépasser 80 caractères.",
+      "note": "La note ne peut pas dépasser 500 caractères."
+    },
+    "errors": {
+      "conflict": "Cette transaction ne peut plus être modifiée. Rechargez la liste.",
+      "stale": "Cette transaction a été modifiée ailleurs entre-temps. La liste vient d’être rechargée : rouvrez-la puis réappliquez votre modification.",
+      "invalid": "La transaction est invalide. Vérifiez le compte, le montant, la date et la catégorie.",
+      "unauthorized": "Votre session a expiré. Reconnectez-vous.",
+      "network": "L’enregistrement a échoué. Réessayez."
+    },
+    "empty": {
+      "title": "Aucune transaction",
+      "description": "Enregistrez un mouvement pour suivre les entrées et sorties de vos comptes."
+    },
+    "error": {
+      "title": "Transactions indisponibles",
+      "description": "La liste des transactions n’a pas pu être chargée."
+    },
+    "unauthorized": {
+      "title": "Session expirée",
+      "description": "Reconnectez-vous pour consulter les mouvements de cet espace."
+    },
+    "list": {
+      "caption": "Transactions de l’espace de travail",
+      "actions": "Actions",
+      "edit": "Modifier",
+      "void": "Annuler",
+      "duplicate": "Dupliquer",
+      "actionFor": "{{action}} la transaction « {{label}} »",
+      "openActions": "Actions de la transaction « {{label}} »",
+      "categorised": "Catégorisée",
+      "toCategorise": "À catégoriser",
+      "noCounterparty": "—",
+      "unknownAccount": "Compte indisponible"
+    },
+    "amount": {
+      "inflow": "Entrée de {{amount}}",
+      "outflow": "Sortie de {{amount}}"
+    },
+    "form": {
+      "createEyebrow": "Saisie",
+      "createTitle": "Nouvelle transaction",
+      "editEyebrow": "Modification",
+      "editTitle": "Modifier la transaction",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "noCategory": "Sans catégorie",
+      "noPaymentMethod": "Non renseigné"
+    },
+    "void": {
+      "eyebrow": "Annulation",
+      "title": "Annuler la transaction",
+      "description": "Annuler « {{label}} » la retire des listes courantes sans la supprimer. Elle restera visible dans l’historique d’audit.",
+      "consequences": "Une transaction annulée ne peut plus être modifiée.",
+      "confirm": "Annuler la transaction",
+      "confirming": "Annulation…"
+    },
+    "filters": {
+      "allAccounts": "Tous les comptes"
+    },
+    "pagination": {
+      "next": "Mouvements plus anciens"
+    }
   }
 }

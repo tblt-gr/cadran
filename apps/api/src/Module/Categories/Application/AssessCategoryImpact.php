@@ -9,6 +9,7 @@ use App\Module\Categories\Domain\CategoryReplacementRepository;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Categories\Domain\CategoryTree;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Transactions\Domain\TransactionRepository;
 
 /**
  * Decides what a lifecycle operation changes and whether it may proceed.
@@ -21,11 +22,10 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  */
 final readonly class AssessCategoryImpact
 {
-    public const string CLASSIFICATIONS_UNAVAILABLE = 'TRANSACTIONS_UNAVAILABLE';
-
     public function __construct(
         private CategoryRepository $categories,
         private CategoryReplacementRepository $replacements,
+        private TransactionRepository $transactions,
     ) {
     }
 
@@ -148,6 +148,11 @@ final readonly class AssessCategoryImpact
             [CategoryLifecycleOperation::ARCHIVE, CategoryLifecycleOperation::MERGE],
             true,
         );
+        $redirectsHistory = in_array(
+            $operation,
+            [CategoryLifecycleOperation::MERGE, CategoryLifecycleOperation::REPLACE],
+            true,
+        );
 
         return new CategoryImpact(
             operation: $operation,
@@ -156,20 +161,16 @@ final readonly class AssessCategoryImpact
             effectiveFrom: $effectiveFrom,
             resultingDepth: $resultingDepth,
             archivesSource: $archivesSource,
-            redirectsHistory: in_array(
-                $operation,
-                [CategoryLifecycleOperation::MERGE, CategoryLifecycleOperation::REPLACE],
-                true,
-            ),
+            redirectsHistory: $redirectsHistory,
             blockers: self::distinct($blockers),
             descendants: $descendants,
             incomingRedirections: $incoming,
             reparentedChildren: $reparentedChildren,
             rebasedDepths: $rebasedDepths,
-            // Transactions do not exist yet, so nothing can count the classifications a
-            // redirection would move. TX-001 replaces the reason with the count.
-            affectedClassifications: null,
-            affectedClassificationsReason: self::CLASSIFICATIONS_UNAVAILABLE,
+            affectedClassifications: $redirectsHistory
+                ? $this->transactions->countSplitsByCategory($workspace, $source->id)
+                : 0,
+            affectedClassificationsReason: null,
         );
     }
 

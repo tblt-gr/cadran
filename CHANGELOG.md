@@ -4,6 +4,15 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Workspace-scoped transactions: a signed movement on one account, with exact decimal
+  scale preservation, optional single-category allocation, optimistic editing, voiding
+  without deletion, duplication dated today, cursor listing, and the `/transactions`
+  screen.
+
 ## [0.2.0] - 2026-09-06
 
 ### Added
