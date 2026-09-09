@@ -9,7 +9,6 @@ use App\Module\Categories\Domain\CategoryReplacementRepository;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Categories\Domain\CategoryTree;
 use App\Module\Foundation\Domain\WorkspaceScope;
-use App\Module\Transactions\Domain\TransactionRepository;
 
 /**
  * Decides what a lifecycle operation changes and whether it may proceed.
@@ -25,7 +24,7 @@ final readonly class AssessCategoryImpact
     public function __construct(
         private CategoryRepository $categories,
         private CategoryReplacementRepository $replacements,
-        private TransactionRepository $transactions,
+        private CategoryClassificationCounter $classifications,
     ) {
     }
 
@@ -168,7 +167,7 @@ final readonly class AssessCategoryImpact
             reparentedChildren: $reparentedChildren,
             rebasedDepths: $rebasedDepths,
             affectedClassifications: $redirectsHistory
-                ? $this->transactions->countSplitsByCategory($workspace, $source->id)
+                ? $this->classifications->countForCategory($workspace, $source->id)
                 : 0,
             affectedClassificationsReason: null,
         );

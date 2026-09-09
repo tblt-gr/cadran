@@ -137,6 +137,25 @@ final class TransactionPersistenceTest extends KernelTestCase
         ));
     }
 
+    public function testTheDeferredTriggerRejectsAnAmountUpdateThatLeavesItsSplitBehind(): void
+    {
+        $this->repository->add($this->transaction(
+            self::OWN_TRANSACTION,
+            WorkspaceFixture::own(),
+            self::OWN_ACCOUNT,
+            '-42.90',
+            true,
+        ));
+
+        $this->expectException(DbalException::class);
+        $this->connection->transactional(function (): void {
+            $this->connection->update('transaction_transactions', ['amount_value' => '-43.00'], [
+                'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+                'id' => self::OWN_TRANSACTION,
+            ]);
+        });
+    }
+
     private function seedAccount(string $id, string $workspace, string $label): void
     {
         $this->connection->insert('account_financial_accounts', [

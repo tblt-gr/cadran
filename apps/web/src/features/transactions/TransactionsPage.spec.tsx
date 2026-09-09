@@ -1,6 +1,6 @@
 import type { Account, Transaction } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { TransactionsPage } from './TransactionsPage';
@@ -231,5 +231,81 @@ describe('TransactionsPage', () => {
 
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByText(/ne peut plus être modifiée/)).toBeTruthy();
+  });
+
+  it('keeps duplication single-flight while the request is pending', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    let resolveDuplicate:
+      ((value: Awaited<ReturnType<typeof success<Transaction>>>) => void) | undefined;
+    api.duplicateTransaction.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveDuplicate = resolve;
+        }),
+    );
+    renderPage();
+
+    await screen.findByText('CB CARREFOUR 1234');
+    const menu = screen.getByRole('button', {
+      name: 'Actions de la transaction « CB CARREFOUR 1234 »',
+    });
+    fireEvent.click(menu);
+    fireEvent.click(screen.getByRole('button', { name: /^Dupliquer/ }));
+    await waitFor(() => expect(api.duplicateTransaction).toHaveBeenCalledOnce());
+    fireEvent.click(menu);
+
+    expect((screen.getByRole('button', { name: /^Dupliquer/ }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+
+    await act(async () => {
+      resolveDuplicate?.(await success(transaction, 201));
+    });
+  });
+
+  it('shows and hydrates the assigned category when editing', async () => {
+    const categorized = {
+      ...transaction,
+      splits: [
+        {
+          id: '00000000-0000-7000-8000-0000000000e1',
+          categoryId: '00000000-0000-7000-8000-0000000000c1',
+          categoryLabel: 'Courses',
+          amount: transaction.amount,
+          note: null,
+        },
+      ],
+    } satisfies Transaction;
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [categorized], nextCursor: null }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Courses')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
+
+    expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
+      'Courses',
+    );
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Montant')));
+
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '42.90' } });
+    expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
+      '',
+    );
   });
 });

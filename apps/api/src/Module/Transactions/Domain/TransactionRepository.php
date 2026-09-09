@@ -25,6 +25,4 @@ interface TransactionRepository
 
     /** Returns false when the expected version is stale. */
     public function update(Transaction $transaction, int $expectedVersion): bool;
-
-    public function countSplitsByCategory(WorkspaceScope $workspace, string $categoryId): int;
 }

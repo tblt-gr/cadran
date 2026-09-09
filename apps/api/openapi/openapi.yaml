@@ -6341,6 +6341,7 @@ components:
       required:
         - id
         - categoryId
+        - categoryLabel
         - amount
         - note
       properties:
@@ -6350,6 +6351,10 @@ components:
         categoryId:
           type: string
           format: uuid
+        categoryLabel:
+          type: string
+          minLength: 1
+          maxLength: 80
         amount:
           $ref: '#/components/schemas/DecimalAmount'
         note:
@@ -6365,6 +6370,13 @@ components:
         - EXPENSE
         - TRANSFER
         - REFUND
+        - FEE
+        - ADJUSTMENT
+    StandaloneTransactionNature:
+      type: string
+      enum:
+        - INCOME
+        - EXPENSE
         - FEE
         - ADJUSTMENT
     TransactionState:
@@ -6415,7 +6427,7 @@ components:
         amount:
           $ref: '#/components/schemas/DecimalAmount'
         nature:
-          $ref: '#/components/schemas/TransactionNature'
+          $ref: '#/components/schemas/StandaloneTransactionNature'
         state:
           type: string
           enum:
@@ -6502,7 +6514,7 @@ components:
         amount:
           $ref: '#/components/schemas/DecimalAmount'
         nature:
-          $ref: '#/components/schemas/TransactionNature'
+          $ref: '#/components/schemas/StandaloneTransactionNature'
         state:
           type: string
           enum:

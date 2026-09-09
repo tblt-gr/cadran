@@ -17,6 +17,7 @@ final readonly class ListTransactions
         private CallerWorkspace $caller,
         private TransactionRepository $transactions,
         private AccountRepository $accounts,
+        private PresentTransaction $presentTransaction,
     ) {
     }
 
@@ -33,13 +34,13 @@ final readonly class ListTransactions
         $after = null === $cursor ? null : TransactionCursor::decode($cursor);
         $found = $this->transactions->list($workspace, $accountId, $includeVoided, $limit + 1, $after?->position());
         if (count($found) <= $limit) {
-            return new TransactionPage(array_map(TransactionView::fromTransaction(...), $found), null);
+            return new TransactionPage($this->presentTransaction->many($found), null);
         }
         $page = array_slice($found, 0, $limit);
         $last = $page[$limit - 1];
 
         return new TransactionPage(
-            array_map(TransactionView::fromTransaction(...), $page),
+            $this->presentTransaction->many($page),
             (new TransactionCursor($last->bookedOn, $last->id))->encode(),
         );
     }

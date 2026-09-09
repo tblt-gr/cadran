@@ -52,7 +52,7 @@ export function initialTransactionValues(
     counterparty: transaction?.counterparty ?? '',
     maskedCard: transaction?.maskedCard ?? '',
     mcc: transaction?.mcc ?? '',
-    nature: transaction?.nature ?? 'EXPENSE',
+    nature: standaloneNature(transaction?.nature),
     note: transaction?.note ?? '',
     paymentMethod: transaction?.paymentMethod ?? '',
     rawLabel: transaction?.rawLabel ?? '',
@@ -71,7 +71,7 @@ export function validateTransactionValues(
 ): TransactionFormErrors {
   const errors: TransactionFormErrors = {};
   const account = accounts.find((candidate) => candidate.id === values.accountId);
-  const amount = values.amountValue.trim();
+  const amount = values.amountValue;
   const exactAmount = isCanonicalDecimal(amount);
 
   if (account === undefined || account.status !== 'ACTIVE') {
@@ -111,16 +111,16 @@ export function validateTransactionValues(
     errors.valueOn = true;
   }
 
-  const rawLabel = values.rawLabel.trim();
-  if (rawLabel.length === 0 || [...rawLabel].length > 140) {
+  const rawLabel = values.rawLabel;
+  if (rawLabel !== rawLabel.trim() || rawLabel.length === 0 || [...rawLabel].length > 140) {
     errors.rawLabel = true;
   }
 
   for (const [field, limit] of Object.entries(OPTIONAL_LIMITS) as Array<
     [keyof typeof OPTIONAL_LIMITS, number]
   >) {
-    const value = values[field].trim();
-    if (value !== '' && [...value].length > limit) {
+    const value = values[field];
+    if (value !== '' && (value !== value.trim() || [...value].length > limit)) {
       errors[field] = true;
     }
   }
@@ -144,12 +144,12 @@ export function transactionRequest(
   const assetCode = transaction?.amount.assetCode ?? account?.assetCode ?? '';
   const common = {
     accountId: values.accountId,
-    amount: { value: values.amountValue.trim(), assetCode },
+    amount: { value: values.amountValue, assetCode },
     nature: values.nature,
     bookedOn: values.bookedOn,
     valueOn: optional(values.valueOn),
     authorizedOn: optional(values.authorizedOn),
-    rawLabel: values.rawLabel.trim(),
+    rawLabel: values.rawLabel,
     counterparty: optional(values.counterparty),
     note: optional(values.note),
     paymentMethod: values.paymentMethod || null,
@@ -170,12 +170,21 @@ export function transactionRequest(
 }
 
 export function categoryTypeForAmount(amount: string): 'EXPENSE' | 'INCOME' {
-  return amount.trim().startsWith('-') ? 'EXPENSE' : 'INCOME';
+  return amount.startsWith('-') ? 'EXPENSE' : 'INCOME';
 }
 
 function optional(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed === '' ? null : trimmed;
+  return value === '' ? null : value;
+}
+
+function standaloneNature(
+  nature: Transaction['nature'] | undefined,
+): CreateTransactionRequest['nature'] {
+  if (nature === 'TRANSFER' || nature === 'REFUND') {
+    throw new Error('Linked transactions require their dedicated editor.');
+  }
+
+  return nature ?? 'EXPENSE';
 }
 
 function withinDays(reference: string, candidate: string, maximum: number): boolean {

@@ -84,6 +84,7 @@ final class TransactionControllerTest extends WebTestCase
         self::assertCount(1, $splits);
         self::assertIsArray($splits[0]);
         self::assertSame(self::OWN_EXPENSE, $splits[0]['categoryId']);
+        self::assertSame('Courses', $splits[0]['categoryLabel']);
         self::assertSame(['value' => '-42.90', 'assetCode' => 'EUR'], $splits[0]['amount']);
         self::assertSame(1, $created['version']);
 
@@ -124,6 +125,13 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame(['value' => '-42.90', 'assetCode' => 'EUR'], $duplicate['amount']);
         self::assertSame('CB CARREFOUR 1234', $duplicate['rawLabel']);
         self::assertSame(self::OWN_ACCOUNT, $duplicate['accountId']);
+        self::assertSame('Carrefour Market', $duplicate['counterparty']);
+        self::assertSame('Corrigé', $duplicate['note']);
+        self::assertSame('CARD', $duplicate['paymentMethod']);
+        $duplicateSplits = $duplicate['splits'] ?? null;
+        self::assertIsList($duplicateSplits);
+        self::assertIsArray($duplicateSplits[0] ?? null);
+        self::assertSame('Courses', $duplicateSplits[0]['categoryLabel']);
     }
 
     public function testSubmittedScaleIsPreservedBesideTheNumericValue(): void
@@ -178,6 +186,45 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame(0, $this->ownTransactionCount());
     }
 
+    public function testStandaloneCreationRejectsTransferAndRefundNatures(): void
+    {
+        foreach (['TRANSFER', 'REFUND'] as $nature) {
+            $this->requestCreate($this->payload(overrides: ['nature' => $nature, 'categoryId' => null]));
+            self::assertResponseStatusCodeSame(422);
+        }
+
+        self::assertSame(0, $this->ownTransactionCount());
+    }
+
+    public function testStandaloneUpdateRejectsTransferAndRefundNatures(): void
+    {
+        $created = $this->createTransaction();
+
+        foreach (['TRANSFER', 'REFUND'] as $nature) {
+            $this->requestUpdate(self::stringValue($created, 'id'), [
+                ...$created,
+                'nature' => $nature,
+                'categoryId' => null,
+            ]);
+            self::assertResponseStatusCodeSame(422);
+        }
+
+        $stored = $this->decodeFromRow(self::stringValue($created, 'id'));
+        self::assertSame('EXPENSE', $stored['nature']);
+        self::assertSame(1, $stored['version']);
+    }
+
+    public function testMalformedReferenceIdentifiersAreValidationErrors(): void
+    {
+        $this->requestCreate($this->payload(overrides: ['accountId' => 'not-a-uuid']));
+        self::assertResponseStatusCodeSame(422);
+
+        $this->requestCreate($this->payload(overrides: ['categoryId' => 'not-a-uuid']));
+        self::assertResponseStatusCodeSame(422);
+
+        self::assertSame(0, $this->ownTransactionCount());
+    }
+
     public function testAnUpdateUsesOptimisticVersioningAndKeepsImmutableFields(): void
     {
         $created = $this->createTransaction();
@@ -213,23 +260,7 @@ final class TransactionControllerTest extends WebTestCase
 
     public function testAForeignTransactionAnswersExactlyLikeAnUnknownOne(): void
     {
-        $this->seedAccount('00000000-0000-7000-8000-0000000000d9', WorkspaceFixture::OTHER_WORKSPACE, 'Étranger');
-        $this->connection->insert('transaction_transactions', [
-            'id' => self::FOREIGN_TRANSACTION,
-            'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE,
-            'account_id' => '00000000-0000-7000-8000-0000000000d9',
-            'asset_code' => 'EUR',
-            'amount_value' => '-10.00',
-            'amount_scale' => 2,
-            'state' => 'BOOKED',
-            'nature' => 'EXPENSE',
-            'source' => 'MANUAL',
-            'booked_on' => '2026-03-14',
-            'raw_label' => 'Secret neighbour label',
-            'version' => 1,
-            'created_at' => '2026-03-14 09:12:04+00',
-            'updated_at' => '2026-03-14 09:12:04+00',
-        ]);
+        $this->seedForeignTransaction();
 
         $this->client->request('GET', '/api/v1/transactions/'.self::FOREIGN_TRANSACTION);
         self::assertResponseStatusCodeSame(404);
@@ -239,6 +270,29 @@ final class TransactionControllerTest extends WebTestCase
         $this->client->request('GET', '/api/v1/transactions/'.self::UNKNOWN_TRANSACTION);
         self::assertResponseStatusCodeSame(404);
         self::assertSame($foreign, (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testForeignMutationsAnswerExactlyLikeUnknownTransactions(): void
+    {
+        $this->seedForeignTransaction();
+
+        foreach (['update', 'void', 'duplicate'] as $operation) {
+            $this->requestMutation($operation, self::FOREIGN_TRANSACTION);
+            self::assertResponseStatusCodeSame(404);
+            $foreign = (string) $this->client->getResponse()->getContent();
+
+            $this->requestMutation($operation, self::UNKNOWN_TRANSACTION);
+            self::assertResponseStatusCodeSame(404);
+            self::assertSame($foreign, (string) $this->client->getResponse()->getContent());
+        }
+
+        self::assertSame(0, $this->ownTransactionCount());
+        $otherCount = $this->connection->fetchOne(
+            'SELECT count(*) FROM transaction_transactions WHERE workspace_id = ?',
+            [WorkspaceFixture::OTHER_WORKSPACE],
+        );
+        self::assertTrue(is_int($otherCount) || is_string($otherCount));
+        self::assertSame(1, (int) $otherCount);
     }
 
     public function testListingPagesNewestFirstAndRejectsAnUndecodableCursor(): void
@@ -283,6 +337,29 @@ final class TransactionControllerTest extends WebTestCase
         self::assertStringNotContainsString('Carrefour', $event['after_json']);
         self::assertStringNotContainsString('-42.90', $event['after_json']);
         self::assertStringNotContainsString('42.90', $event['after_json']);
+
+        $this->requestUpdate(self::stringValue($created, 'id'), [...$created, 'note' => 'Sensitive update']);
+        self::assertResponseIsSuccessful();
+        $updated = $this->decode();
+        $updatedVersion = $updated['version'] ?? null;
+        self::assertIsInt($updatedVersion);
+        $this->requestVoid(self::stringValue($updated, 'id'), $updatedVersion);
+        self::assertResponseIsSuccessful();
+        $this->requestDuplicate(self::stringValue($updated, 'id'));
+        self::assertResponseStatusCodeSame(201);
+
+        $events = $this->connection->fetchAllAssociative(
+            "SELECT event_type, before_json, after_json FROM audit_events WHERE workspace_id = ? AND event_type LIKE 'transaction.%' ORDER BY occurred_at, id",
+            [WorkspaceFixture::OWN_WORKSPACE],
+        );
+        self::assertSame(
+            ['transaction.created', 'transaction.updated', 'transaction.voided', 'transaction.duplicated'],
+            array_column($events, 'event_type'),
+        );
+        $encodedEvents = json_encode($events, JSON_THROW_ON_ERROR);
+        foreach (['CB CARREFOUR 1234', 'Carrefour', 'Sensitive update', '-42.90', '42.90'] as $sensitive) {
+            self::assertStringNotContainsString($sensitive, $encodedEvents);
+        }
     }
 
     public function testMassAssignmentAndOversizedBodiesAreRejected(): void
@@ -344,6 +421,38 @@ final class TransactionControllerTest extends WebTestCase
     private function requestDuplicate(string $id): void
     {
         $this->client->request('POST', '/api/v1/transactions/'.$id.'/duplicate', server: self::jsonHeaders(), content: '{}');
+    }
+
+    private function requestMutation(string $operation, string $id): void
+    {
+        match ($operation) {
+            'update' => $this->requestUpdate($id, $this->payload(overrides: ['version' => 1])),
+            'void' => $this->requestVoid($id, 1),
+            'duplicate' => $this->requestDuplicate($id),
+            default => throw new \UnexpectedValueException('Unknown transaction mutation.'),
+        };
+    }
+
+    private function seedForeignTransaction(): void
+    {
+        $accountId = '00000000-0000-7000-8000-0000000000d9';
+        $this->seedAccount($accountId, WorkspaceFixture::OTHER_WORKSPACE, 'Étranger');
+        $this->connection->insert('transaction_transactions', [
+            'id' => self::FOREIGN_TRANSACTION,
+            'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE,
+            'account_id' => $accountId,
+            'asset_code' => 'EUR',
+            'amount_value' => '-10.00',
+            'amount_scale' => 2,
+            'state' => 'BOOKED',
+            'nature' => 'EXPENSE',
+            'source' => 'MANUAL',
+            'booked_on' => '2026-03-14',
+            'raw_label' => 'Secret neighbour label',
+            'version' => 1,
+            'created_at' => '2026-03-14 09:12:04+00',
+            'updated_at' => '2026-03-14 09:12:04+00',
+        ]);
     }
 
     /**

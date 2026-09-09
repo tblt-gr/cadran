@@ -32,9 +32,14 @@ final readonly class TransactionInputParser
         ?string $bankReference,
     ): TransactionDraft {
         try {
+            $parsedNature = TransactionNature::from($nature);
+            if (in_array($parsedNature, [TransactionNature::TRANSFER, TransactionNature::REFUND], true)) {
+                throw new \DomainException('Linked transaction natures require their dedicated use case.');
+            }
+
             return new TransactionDraft(
                 amount: ($this->amountParser)($amount, '/amount'),
-                nature: TransactionNature::from($nature),
+                nature: $parsedNature,
                 state: TransactionState::from($state),
                 bookedOn: BusinessDay::fromIsoDate($bookedOn)->date,
                 valueOn: $this->optionalDay($valueOn),

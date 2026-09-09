@@ -56,6 +56,26 @@ final readonly class TransactionPayload
         return $value;
     }
 
+    public function identifier(string $field): string
+    {
+        $value = $this->string($field);
+        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+            throw new \UnexpectedValueException(sprintf('%s must be a canonical UUID.', $field));
+        }
+
+        return $value;
+    }
+
+    public function nullableIdentifier(string $field): ?string
+    {
+        $value = $this->nullableString($field);
+        if (null !== $value && 1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+            throw new \UnexpectedValueException(sprintf('%s must be a canonical UUID or null.', $field));
+        }
+
+        return $value;
+    }
+
     public function integer(string $field): int
     {
         $value = $this->fields[$field] ?? null;

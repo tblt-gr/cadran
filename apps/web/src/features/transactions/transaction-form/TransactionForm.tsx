@@ -57,6 +57,17 @@ export function TransactionForm({
     setValues((current) => ({ ...current, [field]: value }));
   }
 
+  function setAmount(value: string) {
+    setValues((current) => ({
+      ...current,
+      amountValue: value,
+      categoryId:
+        categoryTypeForAmount(current.amountValue) === categoryTypeForAmount(value)
+          ? current.categoryId
+          : '',
+    }));
+  }
+
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (Object.keys(errors).length > 0) {
@@ -139,8 +150,9 @@ export function TransactionForm({
           <input
             aria-invalid={showErrors && errors.amountValue ? true : undefined}
             autoComplete="off"
+            data-autofocus
             inputMode="decimal"
-            onChange={(event) => set('amountValue', event.target.value)}
+            onChange={(event) => setAmount(event.target.value)}
             spellCheck={false}
             value={values.amountValue}
           />
@@ -238,8 +250,14 @@ export function TransactionForm({
 
         <CategoryPicker
           emptyOptionLabel={t('transactions.form.noCategory')}
+          key={categoryTypeForAmount(values.amountValue)}
           label={t('transactions.fields.category')}
           onChange={(categoryId) => set('categoryId', categoryId)}
+          selectedLabel={
+            values.categoryId === transaction?.splits[0]?.categoryId
+              ? transaction.splits[0].categoryLabel
+              : undefined
+          }
           type={categoryTypeForAmount(values.amountValue)}
           value={values.categoryId}
         />

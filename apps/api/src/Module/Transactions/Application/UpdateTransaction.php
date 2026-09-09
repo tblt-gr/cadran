@@ -24,6 +24,7 @@ final readonly class UpdateTransaction
         private TransactionReferences $references,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
+        private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
     ) {
     }
@@ -82,7 +83,7 @@ final readonly class UpdateTransaction
                 AuditDiff::change(TransactionAuditFingerprint::of($current), TransactionAuditFingerprint::of($updated)),
             ));
 
-            return TransactionView::fromTransaction($updated);
+            return $this->presentTransaction->one($updated);
         });
     }
 

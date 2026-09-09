@@ -10,7 +10,7 @@ import {
   type UpdateTransactionRequest,
 } from '@cadran/api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
@@ -38,6 +38,8 @@ export function TransactionsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [voiding, setVoiding] = useState<Transaction | null>(null);
   const [saved, setSaved] = useState<'saved' | 'voided' | 'duplicated' | null>(null);
+  const duplicatingIdsRef = useRef(new Set<string>());
+  const [duplicatingIds, setDuplicatingIds] = useState<ReadonlySet<string>>(new Set());
 
   const filters = {
     accountId: accountId === '' ? undefined : accountId,
@@ -158,7 +160,21 @@ export function TransactionsPage() {
       setSaved('duplicated');
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
+    onSettled: (_data, _error, transaction) => {
+      duplicatingIdsRef.current.delete(transaction.id);
+      setDuplicatingIds(new Set(duplicatingIdsRef.current));
+    },
   });
+
+  function duplicateOnce(transaction: Transaction) {
+    if (duplicatingIdsRef.current.has(transaction.id)) {
+      return;
+    }
+
+    duplicatingIdsRef.current.add(transaction.id);
+    setDuplicatingIds(new Set(duplicatingIdsRef.current));
+    duplicate.mutate(transaction);
+  }
 
   const submitError = transactionErrorKind(save.error, save.isError);
   const voidError = transactionErrorKind(voidMutation.error, voidMutation.isError);
@@ -273,7 +289,8 @@ export function TransactionsPage() {
         <>
           <TransactionList
             accounts={accountOptions}
-            onDuplicate={(transaction) => duplicate.mutate(transaction)}
+            duplicatingIds={duplicatingIds}
+            onDuplicate={duplicateOnce}
             onEdit={(transaction) => openEditor(transaction)}
             onVoid={setVoiding}
             transactions={items}

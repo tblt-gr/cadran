@@ -41,10 +41,10 @@ const transaction = {
 } as Transaction;
 
 describe('transactionFormValues', () => {
-  it('keeps the exact decimal literal and immutable edit fields in the update request', () => {
+  it('keeps canonical literals and immutable edit fields unchanged in the update request', () => {
     const values = initialTransactionValues(transaction, [account], '2026-09-08');
     values.amountValue = '-1.5000';
-    values.counterparty = '  Boulangerie  ';
+    values.counterparty = 'Boulangerie';
 
     expect(transactionRequest(values, [account], transaction)).toMatchObject({
       accountId: account.id,
@@ -52,6 +52,21 @@ describe('transactionFormValues', () => {
       rawLabel: 'CARTE BOULANGERIE',
       counterparty: 'Boulangerie',
       version: 7,
+    });
+  });
+
+  it('rejects surrounding whitespace and whitespace-only optional fields without normalizing them', () => {
+    const values = initialTransactionValues(undefined, [account], '2026-09-08');
+    Object.assign(values, {
+      amountValue: ' -42.90 ',
+      rawLabel: ' CB BOULANGERIE ',
+      counterparty: '   ',
+    });
+
+    expect(validateTransactionValues(values, [account], '2026-09-08')).toMatchObject({
+      amountValue: true,
+      rawLabel: true,
+      counterparty: true,
     });
   });
 

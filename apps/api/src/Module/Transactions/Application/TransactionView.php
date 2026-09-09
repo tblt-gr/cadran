@@ -8,7 +8,7 @@ use App\Module\Transactions\Domain\Transaction;
 
 final readonly class TransactionView
 {
-    /** @param list<array{id: string, categoryId: string, amount: array{value: string, assetCode: string}, note: ?string}> $splits */
+    /** @param list<array{id: string, categoryId: string, categoryLabel: string, amount: array{value: string, assetCode: string}, note: ?string}> $splits */
     public function __construct(
         public string $id,
         public string $accountId,
@@ -38,7 +38,8 @@ final readonly class TransactionView
     ) {
     }
 
-    public static function fromTransaction(Transaction $transaction): self
+    /** @param array<string, string> $categoryLabels */
+    public static function fromTransaction(Transaction $transaction, array $categoryLabels): self
     {
         return new self(
             id: $transaction->id,
@@ -65,6 +66,8 @@ final readonly class TransactionView
             splits: array_map(static fn ($split): array => [
                 'id' => $split->id,
                 'categoryId' => $split->categoryId,
+                'categoryLabel' => $categoryLabels[$split->categoryId]
+                    ?? throw new \UnexpectedValueException('A transaction category label is missing.'),
                 'amount' => ['value' => $split->amount->value->toString(), 'assetCode' => $split->amount->asset->toString()],
                 'note' => $split->note,
             ], $transaction->splits),

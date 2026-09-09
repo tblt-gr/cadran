@@ -20,6 +20,7 @@ final readonly class VoidTransaction
         private TransactionRepository $transactions,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
+        private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
     ) {
     }
@@ -53,7 +54,7 @@ final readonly class VoidTransaction
                 AuditDiff::change(TransactionAuditFingerprint::of($current), TransactionAuditFingerprint::of($voided)),
             ));
 
-            return TransactionView::fromTransaction($voided);
+            return $this->presentTransaction->one($voided);
         });
     }
 }

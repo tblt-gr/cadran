@@ -8,6 +8,7 @@ import styles from './TransactionList.module.css';
 
 interface TransactionListProps {
   accounts: Account[];
+  duplicatingIds: ReadonlySet<string>;
   onDuplicate: (transaction: Transaction) => void;
   onEdit: (transaction: Transaction) => void;
   onVoid: (transaction: Transaction) => void;
@@ -16,6 +17,7 @@ interface TransactionListProps {
 
 export function TransactionList({
   accounts,
+  duplicatingIds,
   onDuplicate,
   onEdit,
   onVoid,
@@ -33,6 +35,7 @@ export function TransactionList({
               <th scope="col">{t('transactions.fields.bookedOn')}</th>
               <th scope="col">{t('transactions.fields.rawLabel')}</th>
               <th scope="col">{t('transactions.fields.counterparty')}</th>
+              <th scope="col">{t('transactions.fields.category')}</th>
               <th scope="col">{t('transactions.fields.account')}</th>
               <th scope="col">{t('transactions.fields.amount')}</th>
               <th scope="col">{t('transactions.fields.state')}</th>
@@ -46,24 +49,29 @@ export function TransactionList({
               const account = accounts.find((candidate) => candidate.id === transaction.accountId);
               const voided = transaction.state === 'VOIDED';
               const terminal = voided || transaction.state === 'REJECTED';
+              const linked = transaction.nature === 'TRANSFER' || transaction.nature === 'REFUND';
 
               return (
                 <tr key={transaction.id}>
-                  <td>{formatCalendarDay(transaction.bookedOn, i18n.language)}</td>
-                  <th scope="row">
+                  <td data-label={t('transactions.fields.bookedOn')}>
+                    {formatCalendarDay(transaction.bookedOn, i18n.language)}
+                  </td>
+                  <th data-label={t('transactions.fields.rawLabel')} scope="row">
                     <span>{transaction.rawLabel}</span>
-                    {transaction.splits[0] ? (
-                      <small>{t('transactions.list.categorised')}</small>
-                    ) : (
-                      <small>{t('transactions.list.toCategorise')}</small>
-                    )}
                   </th>
-                  <td>{transaction.counterparty ?? t('transactions.list.noCounterparty')}</td>
-                  <td>{account?.label ?? t('transactions.list.unknownAccount')}</td>
-                  <td>
+                  <td data-label={t('transactions.fields.counterparty')}>
+                    {transaction.counterparty ?? t('transactions.list.noCounterparty')}
+                  </td>
+                  <td data-label={t('transactions.fields.category')}>
+                    {transaction.splits[0]?.categoryLabel ?? t('transactions.list.toCategorise')}
+                  </td>
+                  <td data-label={t('transactions.fields.account')}>
+                    {account?.label ?? t('transactions.list.unknownAccount')}
+                  </td>
+                  <td data-label={t('transactions.fields.amount')}>
                     <TransactionAmount amount={transaction.amount} />
                   </td>
-                  <td>
+                  <td data-label={t('transactions.fields.state')}>
                     <StatusBadge
                       tone={
                         voided
@@ -76,11 +84,11 @@ export function TransactionList({
                       {t(`transactions.states.${transaction.state}`)}
                     </StatusBadge>
                   </td>
-                  <td>
+                  <td className={styles.actions}>
                     <ActionMenu
                       items={[
                         {
-                          disabled: terminal,
+                          disabled: terminal || linked,
                           icon: 'edit',
                           id: 'edit',
                           label: t('transactions.list.actionFor', {
@@ -91,8 +99,7 @@ export function TransactionList({
                           text: t('transactions.list.edit'),
                         },
                         {
-                          disabled:
-                            transaction.nature === 'TRANSFER' || transaction.nature === 'REFUND',
+                          disabled: duplicatingIds.has(transaction.id) || linked,
                           icon: 'copy',
                           id: 'duplicate',
                           label: t('transactions.list.actionFor', {

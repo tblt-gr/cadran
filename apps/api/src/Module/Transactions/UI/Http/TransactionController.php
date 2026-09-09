@@ -194,7 +194,7 @@ final readonly class TransactionController
     private static function createInput(TransactionPayload $payload): CreateTransactionInput
     {
         return new CreateTransactionInput(
-            accountId: $payload->string('accountId'),
+            accountId: $payload->identifier('accountId'),
             amount: $payload->amount('amount'),
             nature: $payload->string('nature'),
             state: $payload->string('state'),
@@ -208,14 +208,14 @@ final readonly class TransactionController
             mcc: $payload->nullableString('mcc'),
             maskedCard: $payload->nullableString('maskedCard'),
             bankReference: $payload->nullableString('bankReference'),
-            categoryId: $payload->nullableString('categoryId'),
+            categoryId: $payload->nullableIdentifier('categoryId'),
         );
     }
 
     private static function updateInput(TransactionPayload $payload): UpdateTransactionInput
     {
         return new UpdateTransactionInput(
-            accountId: $payload->string('accountId'),
+            accountId: $payload->identifier('accountId'),
             amount: $payload->amount('amount'),
             nature: $payload->string('nature'),
             state: $payload->string('state'),
@@ -229,7 +229,7 @@ final readonly class TransactionController
             mcc: $payload->nullableString('mcc'),
             maskedCard: $payload->nullableString('maskedCard'),
             bankReference: $payload->nullableString('bankReference'),
-            categoryId: $payload->nullableString('categoryId'),
+            categoryId: $payload->nullableIdentifier('categoryId'),
             version: $payload->integer('version'),
         );
     }

@@ -28,6 +28,7 @@ final readonly class CreateTransaction
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
+        private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
     ) {
     }
@@ -72,7 +73,7 @@ final readonly class CreateTransaction
                 AuditDiff::creation(TransactionAuditFingerprint::of($transaction)),
             ));
 
-            return TransactionView::fromTransaction($transaction);
+            return $this->presentTransaction->one($transaction);
         });
     }
 }

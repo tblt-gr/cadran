@@ -9,8 +9,11 @@ use App\Module\Transactions\Domain\TransactionRepository;
 
 final readonly class ReadTransaction
 {
-    public function __construct(private CallerWorkspace $caller, private TransactionRepository $transactions)
-    {
+    public function __construct(
+        private CallerWorkspace $caller,
+        private TransactionRepository $transactions,
+        private PresentTransaction $presentTransaction,
+    ) {
     }
 
     public function __invoke(string $id): TransactionView
@@ -20,6 +23,6 @@ final readonly class ReadTransaction
             throw new TransactionNotFound();
         }
 
-        return TransactionView::fromTransaction($transaction);
+        return $this->presentTransaction->one($transaction);
     }
 }

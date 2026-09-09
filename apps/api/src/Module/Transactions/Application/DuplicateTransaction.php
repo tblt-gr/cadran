@@ -28,6 +28,7 @@ final readonly class DuplicateTransaction
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
+        private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
     ) {
     }
@@ -77,7 +78,7 @@ final readonly class DuplicateTransaction
                 AuditDiff::creation(TransactionAuditFingerprint::of($duplicate)),
             ));
 
-            return TransactionView::fromTransaction($duplicate);
+            return $this->presentTransaction->one($duplicate);
         });
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
+use App\Module\Categories\Application\CategoryClassificationCounter;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -18,7 +19,7 @@ use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
 #[AsAlias(TransactionRepository::class)]
-final readonly class DbalTransactionRepository implements TransactionRepository
+final readonly class DbalTransactionRepository implements CategoryClassificationCounter, TransactionRepository
 {
     private const string COLUMNS = 'id, workspace_id, account_id, asset_code, amount_value, amount_scale, original_amount_value, original_amount_scale, original_asset_code, exchange_rate, state, nature, source, source_ref, booked_on, value_on, authorized_on, raw_label, counterparty, note, payment_method, mcc, masked_card, bank_reference, version, created_at, updated_at, voided_at, last_editor_id';
 
@@ -64,7 +65,7 @@ final readonly class DbalTransactionRepository implements TransactionRepository
         return $this->hydrateMany($workspace, $rows);
     }
 
-    public function countSplitsByCategory(WorkspaceScope $workspace, string $categoryId): int
+    public function countForCategory(WorkspaceScope $workspace, string $categoryId): int
     {
         return (int) TransactionRow::text($this->connection->fetchOne(
             'SELECT count(*) FROM transaction_splits WHERE workspace_id = :workspace_id AND category_id = :category_id',
