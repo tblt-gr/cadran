@@ -1,4 +1,4 @@
-import type { Account, Transaction } from '@cadran/api-client';
+import type { Account, Category, Transaction } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -27,6 +27,13 @@ const account = {
   openedOn: '2026-01-01',
   status: 'ACTIVE',
 } as Account;
+
+const expenseCategory = {
+  id: '00000000-0000-7000-8000-0000000000c1',
+  type: 'EXPENSE',
+  label: 'Courses',
+  archivedAt: null,
+} as Category;
 
 const transaction: Transaction = {
   id: '00000000-0000-7000-8000-0000000000f1',
@@ -76,6 +83,34 @@ describe('TransactionsPage', () => {
     vi.clearAllMocks();
   });
 
+  it('offers expense categories before an amount is entered', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(({ query }) =>
+      success({
+        items: query.type === 'EXPENSE' ? [expenseCategory] : [],
+        page: 1,
+        perPage: 50,
+        total: query.type === 'EXPENSE' ? 1 : 0,
+      }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Catégorie' }));
+
+    expect(await screen.findByRole('option', { name: 'Courses' })).toBeTruthy();
+    expect(api.listCategories).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ type: 'EXPENSE' }),
+      }),
+    );
+  });
+
   it('covers the empty state and creates a signed expense', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 100, total: 1 }),
@@ -93,7 +128,7 @@ describe('TransactionsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la première transaction' }));
     expect(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '-42.90' } });
-    fireEvent.change(screen.getByLabelText('Libellé d’origine'), {
+    fireEvent.change(screen.getByLabelText('Libellé'), {
       target: { value: 'CB CARREFOUR 1234' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -345,6 +380,74 @@ describe('TransactionsPage', () => {
     expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
       '',
     );
+  });
+
+  it('edits a manual label and explains the fields that stay locked', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.updateTransaction.mockImplementation(({ body }) => success({ ...transaction, ...body }));
+    renderPage();
+
+    await screen.findByText('CB CARREFOUR 1234');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Modifier la transaction' });
+    const accountField = within(dialog).getByRole('combobox', {
+      name: 'Compte',
+    }) as HTMLSelectElement;
+    const labelField = within(dialog).getByRole('textbox', {
+      name: 'Libellé',
+    }) as HTMLInputElement;
+    expect(accountField.disabled).toBe(true);
+    expect(labelField.readOnly).toBe(false);
+    expect(within(dialog).getByText(/Pour changer de compte/)).toBeTruthy();
+    expect(within(dialog).getByText(/ne revient pas en attente/)).toBeTruthy();
+
+    fireEvent.change(labelField, { target: { value: 'CARREFOUR MARKET' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.updateTransaction).toHaveBeenCalledOnce());
+    expect(api.updateTransaction.mock.calls[0]?.[0].body).toMatchObject({
+      rawLabel: 'CARREFOUR MARKET',
+    });
+  });
+
+  it('keeps an imported source label read-only and explains why', async () => {
+    const imported = { ...transaction, source: 'IMPORT' } satisfies Transaction;
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [imported], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    await screen.findByText('CB CARREFOUR 1234');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Modifier la transaction' });
+    expect(
+      (
+        within(dialog).getByRole('textbox', {
+          name: 'Libellé d’origine',
+        }) as HTMLInputElement
+      ).readOnly,
+    ).toBe(true);
+    expect(within(dialog).getByText(/source externe/)).toBeTruthy();
   });
 
   it('resolves and edits a historical account beyond the first account page', async () => {

@@ -171,7 +171,14 @@ export function transactionRequest(
   };
 }
 
-export function categoryTypeForAmount(amount: string): 'EXPENSE' | 'INCOME' {
+export function categoryTypeForAmount(
+  amount: string,
+  nature: TransactionFormValues['nature'] = 'EXPENSE',
+): 'EXPENSE' | 'INCOME' {
+  if (amount.trim() === '') {
+    return nature === 'INCOME' ? 'INCOME' : 'EXPENSE';
+  }
+
   return amount.startsWith('-') ? 'EXPENSE' : 'INCOME';
 }
 

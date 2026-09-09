@@ -97,7 +97,10 @@ final readonly class DbalTransactionRepository implements CategoryClassification
     {
         $written = 1 === (int) $this->connection->update(
             'transaction_transactions',
-            TransactionRow::mutableColumns($transaction),
+            [
+                'raw_label' => $transaction->rawLabel,
+                ...TransactionRow::mutableColumns($transaction),
+            ],
             ['workspace_id' => $transaction->workspace->id, 'id' => $transaction->id, 'version' => $expectedVersion],
         );
         if ($written) {

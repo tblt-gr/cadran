@@ -129,15 +129,18 @@ export function CategoryPicker({
     }
   }
 
-  const status = loading
-    ? t('categories.picker.loading')
-    : candidates.isError
-      ? t('categories.picker.error')
-      : matches.length === 0
-        ? t(debouncedSearch ? 'categories.picker.empty' : 'categories.picker.noneAvailable')
-        : debouncedSearch
-          ? t('categories.picker.matches', { count: matches.length })
-          : null;
+  const searching = expanded && chosen === null;
+  const status = !searching
+    ? null
+    : loading
+      ? t('categories.picker.loading')
+      : candidates.isError
+        ? t('categories.picker.error')
+        : matches.length === 0
+          ? t(debouncedSearch ? 'categories.picker.empty' : 'categories.picker.noneAvailable')
+          : debouncedSearch
+            ? t('categories.picker.matches', { count: matches.length })
+            : null;
 
   return (
     <div className={styles.picker}>

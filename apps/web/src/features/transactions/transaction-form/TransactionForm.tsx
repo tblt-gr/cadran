@@ -52,6 +52,8 @@ export function TransactionForm({
   const errors = validateTransactionValues(resolved, accounts, transaction);
   const editing = transaction !== undefined;
   const stateLocked = editing && transaction.state !== 'PENDING';
+  const rawLabelLocked = editing && transaction.source !== 'MANUAL';
+  const categoryType = categoryTypeForAmount(values.amountValue, values.nature);
 
   function set<K extends keyof TransactionFormValues>(field: K, value: TransactionFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -62,7 +64,20 @@ export function TransactionForm({
       ...current,
       amountValue: value,
       categoryId:
-        categoryTypeForAmount(current.amountValue) === categoryTypeForAmount(value)
+        categoryTypeForAmount(current.amountValue, current.nature) ===
+        categoryTypeForAmount(value, current.nature)
+          ? current.categoryId
+          : '',
+    }));
+  }
+
+  function setNature(value: TransactionFormValues['nature']) {
+    setValues((current) => ({
+      ...current,
+      nature: value,
+      categoryId:
+        categoryTypeForAmount(current.amountValue, current.nature) ===
+        categoryTypeForAmount(current.amountValue, value)
           ? current.categoryId
           : '',
     }));
@@ -90,7 +105,9 @@ export function TransactionForm({
         <label>
           <span>{t('transactions.fields.account')}</span>
           <select
+            aria-describedby={editing ? 'transaction-account-hint' : undefined}
             aria-invalid={showErrors && errors.accountId ? true : undefined}
+            aria-label={t('transactions.fields.account')}
             disabled={editing}
             onChange={(event) => set('accountId', event.target.value)}
             value={resolved.accountId}
@@ -103,6 +120,11 @@ export function TransactionForm({
           </select>
           {showErrors && errors.accountId ? (
             <small>{t('transactions.validation.account')}</small>
+          ) : null}
+          {editing ? (
+            <small className={styles.hint} id="transaction-account-hint">
+              {t('transactions.form.accountLocked')}
+            </small>
           ) : null}
         </label>
 
@@ -165,9 +187,7 @@ export function TransactionForm({
           <span>{t('transactions.fields.nature')}</span>
           <select
             aria-invalid={showErrors && errors.nature ? true : undefined}
-            onChange={(event) =>
-              set('nature', event.target.value as TransactionFormValues['nature'])
-            }
+            onChange={(event) => setNature(event.target.value as TransactionFormValues['nature'])}
             value={values.nature}
           >
             {NATURES.map((nature) => (
@@ -184,6 +204,8 @@ export function TransactionForm({
         <label>
           <span>{t('transactions.fields.state')}</span>
           <select
+            aria-describedby={stateLocked ? 'transaction-state-hint' : undefined}
+            aria-label={t('transactions.fields.state')}
             disabled={stateLocked}
             onChange={(event) => set('state', event.target.value as TransactionFormValues['state'])}
             value={values.state}
@@ -194,18 +216,34 @@ export function TransactionForm({
               <option value="REJECTED">{t('transactions.states.REJECTED')}</option>
             ) : null}
           </select>
+          {stateLocked ? (
+            <small className={styles.hint} id="transaction-state-hint">
+              {t('transactions.form.stateLocked')}
+            </small>
+          ) : null}
         </label>
 
         <label>
-          <span>{t('transactions.fields.rawLabel')}</span>
+          <span>
+            {t(rawLabelLocked ? 'transactions.fields.rawLabel' : 'transactions.fields.label')}
+          </span>
           <input
+            aria-describedby={rawLabelLocked ? 'transaction-raw-label-hint' : undefined}
             aria-invalid={showErrors && errors.rawLabel ? true : undefined}
-            disabled={editing}
+            aria-label={t(
+              rawLabelLocked ? 'transactions.fields.rawLabel' : 'transactions.fields.label',
+            )}
             onChange={(event) => set('rawLabel', event.target.value)}
+            readOnly={rawLabelLocked}
             value={values.rawLabel}
           />
           {showErrors && errors.rawLabel ? (
             <small>{t('transactions.validation.rawLabel')}</small>
+          ) : null}
+          {rawLabelLocked ? (
+            <small className={styles.hint} id="transaction-raw-label-hint">
+              {t('transactions.form.rawLabelLocked')}
+            </small>
           ) : null}
         </label>
 
@@ -250,7 +288,7 @@ export function TransactionForm({
 
         <CategoryPicker
           emptyOptionLabel={t('transactions.form.noCategory')}
-          key={categoryTypeForAmount(values.amountValue)}
+          key={categoryType}
           label={t('transactions.fields.category')}
           onChange={(categoryId) => set('categoryId', categoryId)}
           selectedLabel={
@@ -258,7 +296,7 @@ export function TransactionForm({
               ? transaction.splits[0].categoryLabel
               : undefined
           }
-          type={categoryTypeForAmount(values.amountValue)}
+          type={categoryType}
           value={values.categoryId}
         />
       </div>

@@ -100,6 +100,7 @@ final readonly class Transaction
         \DateTimeImmutable $bookedOn,
         ?\DateTimeImmutable $valueOn,
         ?\DateTimeImmutable $authorizedOn,
+        string $rawLabel,
         ?string $counterparty,
         ?string $note,
         ?PaymentMethod $paymentMethod,
@@ -116,6 +117,9 @@ final readonly class Transaction
         if ($amount->asset->toString() !== $this->amount->asset->toString()) {
             throw new InvalidTransaction('A transaction asset cannot change.');
         }
+        if (TransactionSource::MANUAL !== $this->source && $rawLabel !== $this->rawLabel) {
+            throw new InvalidTransaction('An external transaction raw label cannot change.');
+        }
         if ($state !== $this->state
             && !(TransactionState::PENDING === $this->state && in_array($state, [TransactionState::BOOKED, TransactionState::REJECTED], true))) {
             throw new InvalidTransaction('The requested transaction state transition is not supported.');
@@ -123,7 +127,7 @@ final readonly class Transaction
 
         return new self(
             $this->id, $this->workspace, $this->accountId, $amount, $this->originalAmount, $this->exchangeRate,
-            $state, $nature, $this->source, $this->sourceRef, $bookedOn, $valueOn, $authorizedOn, $this->rawLabel,
+            $state, $nature, $this->source, $this->sourceRef, $bookedOn, $valueOn, $authorizedOn, $rawLabel,
             $counterparty, $note, $paymentMethod, $mcc, $maskedCard, $bankReference, $splits, $this->version + 1,
             $this->createdAt, $updatedAt, null, $lastEditorId,
         );

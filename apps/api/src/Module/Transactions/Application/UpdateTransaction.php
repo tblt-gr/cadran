@@ -51,8 +51,8 @@ final readonly class UpdateTransaction
             if ($current->state->isTerminal()) {
                 throw new TransactionConflict('A terminal transaction cannot be edited.');
             }
-            if ($input->accountId !== $current->accountId || $input->rawLabel !== $current->rawLabel) {
-                throw new InvalidTransactionInput('The account and raw label are immutable.');
+            if ($input->accountId !== $current->accountId) {
+                throw new InvalidTransactionInput('The account is immutable.');
             }
             $now = $this->clock->now();
             $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
@@ -66,7 +66,8 @@ final readonly class UpdateTransaction
                 $updated = $current->edit(
                     amount: $draft->amount, nature: $draft->nature, state: $draft->state,
                     bookedOn: $draft->bookedOn, valueOn: $draft->valueOn, authorizedOn: $draft->authorizedOn,
-                    counterparty: $draft->counterparty, note: $draft->note, paymentMethod: $draft->paymentMethod,
+                    rawLabel: $draft->rawLabel, counterparty: $draft->counterparty, note: $draft->note,
+                    paymentMethod: $draft->paymentMethod,
                     mcc: $draft->mcc, maskedCard: $draft->maskedCard, bankReference: $draft->bankReference,
                     splits: null === $split ? [] : [$split], updatedAt: $now, lastEditorId: $context->actorId,
                 );

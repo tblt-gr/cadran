@@ -6284,6 +6284,9 @@ components:
           type: string
           minLength: 1
           maxLength: 140
+          description: >-
+            Original source wording. It can be corrected only for a manually entered
+            transaction.
         counterparty:
           oneOf:
             - type: string
@@ -6538,6 +6541,9 @@ components:
           type: string
           minLength: 1
           maxLength: 140
+          description: >-
+            Editable for manually entered transactions. Imported or provider-sourced
+            transactions must echo their original source label unchanged.
         counterparty:
           oneOf:
             - type: string

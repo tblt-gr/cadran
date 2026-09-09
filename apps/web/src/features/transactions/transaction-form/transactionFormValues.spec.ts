@@ -1,6 +1,7 @@
 import type { Account, Transaction } from '@cadran/api-client';
 import { describe, expect, it } from 'vitest';
 import {
+  categoryTypeForAmount,
   initialTransactionValues,
   transactionRequest,
   validateTransactionValues,
@@ -41,6 +42,14 @@ const transaction = {
 } as Transaction;
 
 describe('transactionFormValues', () => {
+  it('uses the selected nature to load categories before an amount is entered', () => {
+    expect(categoryTypeForAmount('', 'EXPENSE')).toBe('EXPENSE');
+    expect(categoryTypeForAmount('', 'FEE')).toBe('EXPENSE');
+    expect(categoryTypeForAmount('', 'INCOME')).toBe('INCOME');
+    expect(categoryTypeForAmount('-42.90', 'INCOME')).toBe('EXPENSE');
+    expect(categoryTypeForAmount('42.90', 'EXPENSE')).toBe('INCOME');
+  });
+
   it('keeps canonical literals and immutable edit fields unchanged in the update request', () => {
     const values = initialTransactionValues(transaction, [account], '2026-09-08');
     values.amountValue = '-1.5000';

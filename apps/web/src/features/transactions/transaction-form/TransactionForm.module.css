@@ -45,6 +45,10 @@
   line-height: var(--line-height-body);
 }
 
+.fields .hint {
+  color: var(--text-secondary);
+}
+
 .fields > div {
   grid-column: 1 / -1;
 }

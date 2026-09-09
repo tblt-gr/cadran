@@ -1334,6 +1334,7 @@
       "bookedOn": "Date comptable",
       "valueOn": "Date de valeur",
       "authorizedOn": "Date d’autorisation",
+      "label": "Libellé",
       "rawLabel": "Libellé d’origine",
       "counterparty": "Tiers",
       "note": "Note",
@@ -1369,7 +1370,7 @@
       "bookedOn": "La date comptable doit tomber entre l’ouverture du compte et aujourd’hui.",
       "valueOn": "La date de valeur doit rester à 90 jours de la date comptable.",
       "authorizedOn": "La date d’autorisation ne peut pas être postérieure à la date comptable.",
-      "rawLabel": "Le libellé d’origine est obligatoire et ne peut pas dépasser 140 caractères.",
+      "rawLabel": "Le libellé est obligatoire et ne peut pas dépasser 140 caractères.",
       "counterparty": "Le tiers ne peut pas dépasser 80 caractères.",
       "note": "La note ne peut pas dépasser 500 caractères."
     },
@@ -1416,6 +1417,9 @@
       "editTitle": "Modifier la transaction",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
+      "accountLocked": "Pour changer de compte, annulez cette transaction puis recréez-la.",
+      "stateLocked": "Une transaction comptabilisée ne revient pas en attente. Utilisez l’action Annuler si nécessaire.",
+      "rawLabelLocked": "Ce libellé provient d’une source externe et reste inchangé pour la traçabilité.",
       "noCategory": "Sans catégorie",
       "noPaymentMethod": "Non renseigné"
     },

@@ -13,6 +13,7 @@ describe('TransactionAmount', () => {
 
     const amount = screen.getByLabelText(/Sortie de/);
     expect(amount.textContent).toMatch(/−|-/);
+    expect(amount.getAttribute('data-sign')).toBe('outflow');
   });
 
   it('names an inflow in words and keeps an explicit plus', () => {
@@ -20,5 +21,6 @@ describe('TransactionAmount', () => {
 
     const amount = screen.getByLabelText(/Entrée de/);
     expect(amount.textContent).toMatch(/\+/);
+    expect(amount.getAttribute('data-sign')).toBe('inflow');
   });
 });

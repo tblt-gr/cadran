@@ -93,12 +93,17 @@ final class TransactionControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame($id, $this->decode()['id']);
 
-        $this->requestUpdate($id, [...$created, 'counterparty' => 'Carrefour Market', 'note' => 'Corrigé']);
+        $this->requestUpdate($id, [
+            ...$created,
+            'rawLabel' => 'CARREFOUR MARKET',
+            'counterparty' => 'Carrefour Market',
+            'note' => 'Corrigé',
+        ]);
         self::assertResponseIsSuccessful();
         $edited = $this->decode();
         self::assertSame('Carrefour Market', $edited['counterparty']);
         self::assertSame('Corrigé', $edited['note']);
-        self::assertSame('CB CARREFOUR 1234', $edited['rawLabel']);
+        self::assertSame('CARREFOUR MARKET', $edited['rawLabel']);
         self::assertSame(self::OWN_ACCOUNT, $edited['accountId']);
         self::assertSame(2, $edited['version']);
 
@@ -123,7 +128,7 @@ final class TransactionControllerTest extends WebTestCase
         self::assertNull($duplicate['maskedCard']);
         self::assertSame((new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris')))->format('Y-m-d'), $duplicate['bookedOn']);
         self::assertSame(['value' => '-42.90', 'assetCode' => 'EUR'], $duplicate['amount']);
-        self::assertSame('CB CARREFOUR 1234', $duplicate['rawLabel']);
+        self::assertSame('CARREFOUR MARKET', $duplicate['rawLabel']);
         self::assertSame(self::OWN_ACCOUNT, $duplicate['accountId']);
         self::assertSame('Carrefour Market', $duplicate['counterparty']);
         self::assertSame('Corrigé', $duplicate['note']);
@@ -284,7 +289,7 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame(0, $this->ownTransactionCount());
     }
 
-    public function testAnUpdateUsesOptimisticVersioningAndKeepsImmutableFields(): void
+    public function testAnUpdateUsesOptimisticVersioningAndKeepsTheAccountImmutable(): void
     {
         $created = $this->createTransaction();
         $id = self::stringValue($created, 'id');
@@ -296,8 +301,20 @@ final class TransactionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(409);
         self::assertSame('/problems/stale-version', $this->decode()['type']);
 
-        $this->requestUpdate($id, [...$this->decodeFromRow($id), 'rawLabel' => 'Autre libellé']);
+        $this->requestUpdate($id, [...$this->decodeFromRow($id), 'accountId' => self::OTHER_ACCOUNT]);
         self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testAnUpdateKeepsAnImportedRawLabelImmutable(): void
+    {
+        $created = $this->createTransaction();
+        $id = self::stringValue($created, 'id');
+        $this->connection->update('transaction_transactions', ['source' => 'IMPORT'], ['id' => $id]);
+
+        $this->requestUpdate($id, [...$this->decodeFromRow($id), 'rawLabel' => 'Autre libellé']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('CB CARREFOUR 1234', $this->decodeFromRow($id)['rawLabel']);
     }
 
     public function testVoidingATerminalTransactionConflictsAndLeavesTheRow(): void
