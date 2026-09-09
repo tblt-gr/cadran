@@ -75,6 +75,14 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
         return jsonResponse(authenticatedSession);
       }
 
+      if (url.includes('/api/v1/transactions')) {
+        return jsonResponse({ items: [], nextCursor: null });
+      }
+
+      if (url.includes('/api/v1/accounts')) {
+        return jsonResponse({ items: [], page: 1, perPage: 50, total: 0 });
+      }
+
       if (url.includes('/api/v1/net-worth/history')) {
         return jsonResponse({ asOf: '2026-09-05', granularity: 'MONTH', points: [] });
       }

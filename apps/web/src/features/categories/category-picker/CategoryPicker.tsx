@@ -18,6 +18,8 @@ interface CategoryPickerProps {
   onChange: (categoryId: string) => void;
   /** Restrict the choices to categories that can still take a child. */
   parentEligible?: boolean;
+  /** Visible label of an already selected value, used to hydrate controlled edit forms. */
+  selectedLabel?: string | null;
   type: CategoryType;
   value: string;
 }
@@ -41,6 +43,7 @@ export function CategoryPicker({
   label,
   onChange,
   parentEligible = false,
+  selectedLabel,
   type,
   value,
 }: CategoryPickerProps) {
@@ -50,10 +53,12 @@ export function CategoryPicker({
   const statusId = useId();
   const blurTimeout = useRef<number | undefined>(undefined);
 
-  const [query, setQuery] = useState('');
+  const initialChoice =
+    value !== NONE && selectedLabel ? { id: value, label: selectedLabel } : null;
+  const [query, setQuery] = useState(initialChoice?.label ?? '');
   const [expanded, setExpanded] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [chosen, setChosen] = useState<Choice | null>(null);
+  const [chosen, setChosen] = useState<Choice | null>(initialChoice);
 
   const debouncedSearch = useDebouncedValue(query.trim());
   const candidates = useQuery({
@@ -124,15 +129,18 @@ export function CategoryPicker({
     }
   }
 
-  const status = loading
-    ? t('categories.picker.loading')
-    : candidates.isError
-      ? t('categories.picker.error')
-      : matches.length === 0
-        ? t(debouncedSearch ? 'categories.picker.empty' : 'categories.picker.noneAvailable')
-        : debouncedSearch
-          ? t('categories.picker.matches', { count: matches.length })
-          : null;
+  const searching = expanded && chosen === null;
+  const status = !searching
+    ? null
+    : loading
+      ? t('categories.picker.loading')
+      : candidates.isError
+        ? t('categories.picker.error')
+        : matches.length === 0
+          ? t(debouncedSearch ? 'categories.picker.empty' : 'categories.picker.noneAvailable')
+          : debouncedSearch
+            ? t('categories.picker.matches', { count: matches.length })
+            : null;
 
   return (
     <div className={styles.picker}>
@@ -155,7 +163,7 @@ export function CategoryPicker({
           setQuery(event.target.value);
           setExpanded(true);
           setActiveIndex(0);
-          if (chosen !== null) {
+          if (chosen !== null || value !== NONE) {
             setChosen(null);
             onChange(NONE);
           }
@@ -168,7 +176,7 @@ export function CategoryPicker({
         placeholder={t('categories.picker.placeholder')}
         role="combobox"
         type="text"
-        value={query}
+        value={value !== NONE && selectedLabel ? selectedLabel : query}
       />
 
       {expanded && choices.length > 0 ? (

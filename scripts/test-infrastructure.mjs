@@ -128,6 +128,14 @@ if (caddyfile.includes('Strict-Transport-Security')) {
   fail('The localhost runtime must not persist an HSTS policy in the browser');
 }
 
+if (
+  !caddyfile.includes('admin off') ||
+  caddyfile.includes('reverse_proxy') ||
+  /\b(?:grpc|xds)\b/i.test(caddyfile)
+) {
+  fail('The app runtime must keep Caddy administration and gRPC/xDS paths disabled');
+}
+
 const phpunitConfiguration = readFileSync(
   new URL('../apps/api/phpunit.dist.xml', import.meta.url),
   'utf8',

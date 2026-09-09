@@ -187,6 +187,33 @@ final readonly class Category
         );
     }
 
+    /** A first transaction makes the category type historical and immutable. */
+    public function markUsed(\DateTimeImmutable $usedAt): self
+    {
+        if (null !== $this->usedAt) {
+            return $this;
+        }
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            type: $this->type,
+            label: $this->label,
+            parentId: $this->parentId,
+            icon: $this->icon,
+            color: $this->color,
+            defaultAnalyticAxes: $this->defaultAnalyticAxes,
+            budgetIncluded: $this->budgetIncluded,
+            sortOrder: $this->sortOrder,
+            depth: $this->depth,
+            version: $this->version + 1,
+            createdAt: $this->createdAt,
+            updatedAt: $usedAt,
+            usedAt: $usedAt,
+            archivedAt: $this->archivedAt,
+        );
+    }
+
     /**
      * @param callable(string): ?string $parentOf resolves the stored parent of a candidate ancestor
      */

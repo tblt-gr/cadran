@@ -26,7 +26,7 @@ final readonly class CategoryImpactView
         public bool $allowed,
         public array $blockers,
         public ?int $affectedClassifications,
-        public string $affectedClassificationsReason,
+        public ?string $affectedClassificationsReason,
     ) {
     }
 

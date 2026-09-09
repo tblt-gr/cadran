@@ -78,7 +78,9 @@ export function ImpactPreview({ impact, status }: ImpactPreviewProps) {
             {impact.affectedClassifications === null ? (
               <span className={styles.unavailable}>
                 {t(
-                  `categories.lifecycle.impact.classificationsReason.${impact.affectedClassificationsReason}`,
+                  impact.affectedClassificationsReason === null
+                    ? 'states.notCalculable.label'
+                    : `categories.lifecycle.impact.classificationsReason.${impact.affectedClassificationsReason}`,
                 )}
               </span>
             ) : (

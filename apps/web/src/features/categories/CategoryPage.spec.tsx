@@ -248,8 +248,8 @@ describe('CategoryPage', () => {
         redirectsHistory: false,
         allowed: true,
         blockers: [],
-        affectedClassifications: null,
-        affectedClassificationsReason: 'TRANSACTIONS_UNAVAILABLE',
+        affectedClassifications: 0,
+        affectedClassificationsReason: null,
       }),
     );
     api.archiveCategory.mockImplementation(() =>

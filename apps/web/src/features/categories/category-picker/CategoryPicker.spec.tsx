@@ -123,6 +123,7 @@ describe('CategoryPicker', () => {
     expect((combobox as HTMLInputElement).value).toBe('Sorties');
     expect(combobox.getAttribute('aria-expanded')).toBe('false');
     expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.queryByText('1 catégorie correspondante.')).toBeNull();
   });
 
   it('closes on Escape without choosing anything', async () => {

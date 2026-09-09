@@ -2340,6 +2340,316 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/transactions:
+    get:
+      operationId: listTransactions
+      summary: List the calling workspace transactions
+      description: >-
+        Requires an authenticated session. Newest booked day first, then
+        identifier. Voided rows are omitted unless explicitly requested.
+        This release accepts only account, voided-inclusion, page size and
+        cursor filters.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: accountId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: includeVoided
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor encoding the last returned booked day and identifier.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+      responses:
+        '200':
+          description: One cursor page of transactions from the calling workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createTransaction
+      summary: Record a signed movement on one account
+      description: >-
+        Creates a pending or booked transaction on an active account of the
+        calling workspace. An inflow is positive and an outflow negative.
+        The submitted decimal scale is stored beside the amount. The mutation
+        requires the same-origin CSRF token.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: The transaction was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: A linked account or category changed concurrently.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The amount, dates, nature, category or bounds are invalid.
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AmountInputProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/transactions/{id}:
+    get:
+      operationId: getTransaction
+      summary: Read one transaction of the calling workspace
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The transaction.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      operationId: updateTransaction
+      summary: Replace the editable fields of a transaction
+      description: >-
+        Optimistic versioning. The account, asset, raw label and provenance
+        never change. A voided or rejected transaction cannot be edited.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransactionRequest'
+      responses:
+        '200':
+          description: The updated transaction.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The submitted version is stale (`type: /problems/stale-version`)
+            or the transaction is terminal (`type: /problems/transaction-conflict`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: The edit is invalid or tried to change an immutable field.
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AmountInputProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/transactions/{id}/void:
+    post:
+      operationId: voidTransaction
+      summary: Void a transaction without deleting it
+      description: >-
+        Sets the state to VOIDED, keeps the row, and excludes it from listings
+        that do not ask for voided movements. Terminal transactions cannot be
+        voided again.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoidTransactionRequest'
+      responses:
+        '200':
+          description: The voided transaction.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The submitted version is stale (`type: /problems/stale-version`)
+            or the transaction is already terminal (`type: /problems/transaction-conflict`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/transactions/{id}/duplicate:
+    post:
+      operationId: duplicateTransaction
+      summary: Duplicate a transaction as a booked movement dated today
+      description: >-
+        Copies account, nature, amount, labels, counterparty, note, payment
+        method and category. Drops external identity, provenance, bank
+        reference and masked card. Transfer legs and refunds cannot be duplicated.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: The duplicated transaction.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: A linked account or category changed concurrently.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: A transfer leg or refund cannot be duplicated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     sessionCookie:
@@ -2444,6 +2754,20 @@ components:
       description: >-
         Either the CSRF / Origin check failed (`type: /problems/csrf-token`),
         or the authenticated session belongs to no workspace (`type: about:blank`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TransactionMutationForbidden:
+      description: >-
+        Either the CSRF / Origin check failed (`type: /problems/csrf-token`),
+        or the authenticated session belongs to no workspace (`type: about:blank`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TransactionPayloadTooLarge:
+      description: The transaction JSON body exceeds 32 KiB.
       content:
         application/problem+json:
           schema:
@@ -3817,10 +4141,14 @@ components:
               minimum: 0
             - type: 'null'
         affectedClassificationsReason:
-          description: Why `affectedClassifications` could not be counted.
-          type: string
-          enum:
-            - TRANSACTIONS_UNAVAILABLE
+          description: >-
+            Why `affectedClassifications` could not be counted, or null when the
+            count is known.
+          oneOf:
+            - type: string
+              enum:
+                - TRANSACTIONS_UNAVAILABLE
+            - type: 'null'
     MoveCategoryRequest:
       type: object
       additionalProperties: false
@@ -5871,6 +6199,400 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/NetWorthPoint'
+    TransactionPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        nextCursor:
+          description: Cursor for the following page, or null on the last page.
+          oneOf:
+            - type: string
+            - type: 'null'
+    Transaction:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - accountId
+        - amount
+        - originalAmount
+        - exchangeRate
+        - nature
+        - state
+        - source
+        - bookedOn
+        - valueOn
+        - authorizedOn
+        - rawLabel
+        - counterparty
+        - note
+        - paymentMethod
+        - mcc
+        - maskedCard
+        - bankReference
+        - splits
+        - version
+        - createdAt
+        - updatedAt
+        - voidedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        originalAmount:
+          description: Cross-asset figure carried beside the booked amount, or null.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        exchangeRate:
+          oneOf:
+            - type: string
+              pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        nature:
+          $ref: '#/components/schemas/TransactionNature'
+        state:
+          $ref: '#/components/schemas/TransactionState'
+        source:
+          $ref: '#/components/schemas/TransactionSource'
+        bookedOn:
+          type: string
+          format: date
+        valueOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        authorizedOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        rawLabel:
+          type: string
+          minLength: 1
+          maxLength: 140
+          description: >-
+            Original source wording. It can be corrected only for a manually entered
+            transaction.
+        counterparty:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
+        note:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 500
+            - type: 'null'
+        paymentMethod:
+          oneOf:
+            - $ref: '#/components/schemas/PaymentMethod'
+            - type: 'null'
+        mcc:
+          oneOf:
+            - type: string
+              pattern: '^[0-9]{4}$'
+            - type: 'null'
+        maskedCard:
+          oneOf:
+            - type: string
+              pattern: '^[0-9]{4}$'
+            - type: 'null'
+        bankReference:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 64
+            - type: 'null'
+        splits:
+          type: array
+          maxItems: 1
+          items:
+            $ref: '#/components/schemas/TransactionSplit'
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        voidedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    TransactionSplit:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - categoryId
+        - categoryLabel
+        - amount
+        - note
+      properties:
+        id:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        categoryLabel:
+          type: string
+          minLength: 1
+          maxLength: 80
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        note:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 140
+            - type: 'null'
+    TransactionNature:
+      type: string
+      enum:
+        - INCOME
+        - EXPENSE
+        - TRANSFER
+        - REFUND
+        - FEE
+        - ADJUSTMENT
+    StandaloneTransactionNature:
+      type: string
+      enum:
+        - INCOME
+        - EXPENSE
+        - FEE
+        - ADJUSTMENT
+    TransactionState:
+      type: string
+      enum:
+        - PENDING
+        - BOOKED
+        - VOIDED
+        - REJECTED
+    TransactionSource:
+      type: string
+      enum:
+        - MANUAL
+        - IMPORT
+        - PROVIDER
+    PaymentMethod:
+      type: string
+      enum:
+        - CARD
+        - TRANSFER
+        - DIRECT_DEBIT
+        - CHECK
+        - CASH
+        - OTHER
+    CreateTransactionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - amount
+        - nature
+        - state
+        - bookedOn
+        - valueOn
+        - authorizedOn
+        - rawLabel
+        - counterparty
+        - note
+        - paymentMethod
+        - mcc
+        - maskedCard
+        - bankReference
+        - categoryId
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        nature:
+          $ref: '#/components/schemas/StandaloneTransactionNature'
+        state:
+          type: string
+          enum:
+            - PENDING
+            - BOOKED
+        bookedOn:
+          type: string
+          format: date
+        valueOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        authorizedOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        rawLabel:
+          type: string
+          minLength: 1
+          maxLength: 140
+        counterparty:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
+        note:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 500
+            - type: 'null'
+        paymentMethod:
+          oneOf:
+            - $ref: '#/components/schemas/PaymentMethod'
+            - type: 'null'
+        mcc:
+          oneOf:
+            - type: string
+              pattern: '^[0-9]{4}$'
+            - type: 'null'
+        maskedCard:
+          oneOf:
+            - type: string
+              pattern: '^[0-9]{4}$'
+            - type: 'null'
+        bankReference:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 64
+            - type: 'null'
+        categoryId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+    UpdateTransactionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - amount
+        - nature
+        - state
+        - bookedOn
+        - valueOn
+        - authorizedOn
+        - rawLabel
+        - counterparty
+        - note
+        - paymentMethod
+        - mcc
+        - maskedCard
+        - bankReference
+        - categoryId
+        - version
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        nature:
+          $ref: '#/components/schemas/StandaloneTransactionNature'
+        state:
+          type: string
+          enum:
+            - PENDING
+            - BOOKED
+            - REJECTED
+        bookedOn:
+          type: string
+          format: date
+        valueOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        authorizedOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        rawLabel:
+          type: string
+          minLength: 1
+          maxLength: 140
+          description: >-
+            Editable for manually entered transactions. Imported or provider-sourced
+            transactions must echo their original source label unchanged.
+        counterparty:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
+        note:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 500
+            - type: 'null'
+        paymentMethod:
+          oneOf:
+            - $ref: '#/components/schemas/PaymentMethod'
+            - type: 'null'
+        mcc:
+          oneOf:
+            - type: string
+              pattern: '^[0-9]{4}$'
+            - type: 'null'
+        maskedCard:
+          oneOf:
+            - type: string
+              pattern: '^[0-9]{4}$'
+            - type: 'null'
+        bankReference:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 64
+            - type: 'null'
+        categoryId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        version:
+          type: integer
+          minimum: 1
+    VoidTransactionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          minimum: 1
     DecimalAmount:
       description: >-
         A financial decimal. Every amount, quantity, price and rate travels as

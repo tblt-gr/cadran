@@ -116,6 +116,10 @@ final readonly class WorkspaceFixture
     public function reset(): void
     {
         $this->connection->executeStatement('TRUNCATE TABLE audit_events');
+        // Transactions restrict account and category deletion. Splits follow a
+        // deleted transaction, but clearing both keeps reset order explicit.
+        $this->connection->executeStatement('DELETE FROM transaction_splits');
+        $this->connection->executeStatement('DELETE FROM transaction_transactions');
         // Snapshots restrict account deletion: the trail of observed balances
         // must be cleared first. Rule overrides and their rate brackets follow
         // the account through ON DELETE CASCADE.

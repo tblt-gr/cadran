@@ -68,8 +68,8 @@ final class CategoryLifecycleControllerTest extends WebTestCase
         self::assertSame(1, self::intValue($impact, 'descendantCount'));
         self::assertSame(3, self::intValue($impact, 'resultingDepth'));
         self::assertFalse(self::boolValue($impact, 'archivesSource'));
-        self::assertNull($impact['affectedClassifications']);
-        self::assertSame('TRANSACTIONS_UNAVAILABLE', $impact['affectedClassificationsReason']);
+        self::assertNull($impact['affectedClassificationsReason']);
+        self::assertSame(0, self::intValue($impact, 'affectedClassifications'));
 
         $this->move($restaurants['id'], $leisure['id'], $restaurants['version']);
         self::assertResponseIsSuccessful();

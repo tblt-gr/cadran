@@ -1,12 +1,18 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import {
   createCategory,
+  createTransaction,
   getFoundationStatus,
   listAssets,
   listAuditEvents,
   listProducts,
 } from './generated';
-import type { CreateCategoryRequest, DecimalAmount, ProductCapability } from './generated';
+import type {
+  CreateCategoryRequest,
+  CreateTransactionRequest,
+  DecimalAmount,
+  ProductCapability,
+} from './generated';
 
 describe('generated Cadran client', () => {
   it('calls the versioned endpoint with its generated response type', async () => {
@@ -191,6 +197,60 @@ describe('generated Cadran client', () => {
     expect(request.mock.calls[0]?.[0]).toMatchObject({
       method: 'POST',
       url: 'https://cadran.test/api/v1/categories',
+    });
+  });
+
+  it('binds transaction mutations and keeps amount values as canonical strings', async () => {
+    const body: CreateTransactionRequest = {
+      accountId: '00000000-0000-7000-8000-0000000000d1',
+      amount: { value: '-42.90', assetCode: 'EUR' },
+      nature: 'EXPENSE',
+      state: 'BOOKED',
+      bookedOn: '2026-03-14',
+      valueOn: null,
+      authorizedOn: null,
+      rawLabel: 'CB CARREFOUR 1234',
+      counterparty: 'Carrefour',
+      note: null,
+      paymentMethod: 'CARD',
+      mcc: null,
+      maskedCard: null,
+      bankReference: null,
+      categoryId: null,
+    };
+    const request = vi.fn<typeof fetch>(async (_input, _init) =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            id: '00000000-0000-7000-8000-0000000000f1',
+            ...body,
+            originalAmount: null,
+            exchangeRate: null,
+            source: 'MANUAL',
+            splits: [],
+            version: 1,
+            createdAt: '2026-03-14T09:12:04.113221+01:00',
+            updatedAt: '2026-03-14T09:12:04.113221+01:00',
+            voidedAt: null,
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+
+    const response = await createTransaction({
+      baseUrl: 'https://cadran.test',
+      fetch: request,
+      headers: { 'X-CSRF-TOKEN': 'signed-token' },
+      body,
+      throwOnError: true,
+    });
+
+    expectTypeOf<CreateTransactionRequest['amount']['value']>().toEqualTypeOf<string>();
+    expect(response.data.amount.value).toBe('-42.90');
+    expect(request.mock.calls[0]?.[0]).toMatchObject({
+      method: 'POST',
+      url: 'https://cadran.test/api/v1/transactions',
     });
   });
 });

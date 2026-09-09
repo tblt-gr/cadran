@@ -1,0 +1,13 @@
+.amount {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.amount[data-sign='outflow'] {
+  color: var(--negative);
+}
+
+.amount[data-sign='inflow'] {
+  color: var(--positive);
+}

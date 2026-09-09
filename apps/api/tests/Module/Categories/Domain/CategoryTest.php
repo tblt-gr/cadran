@@ -45,6 +45,17 @@ final class CategoryTest extends TestCase
         yield 'non canonical color' => ['Restaurants', 'utensils', '#aabbcc'];
     }
 
+    public function testAFirstUseMakesTypeHistoricalWithoutTouchingAnAlreadyUsedCategory(): void
+    {
+        $fresh = $this->category();
+        $usedAt = new \DateTimeImmutable('2026-09-08T09:00:00+00:00');
+        $used = $fresh->markUsed($usedAt);
+
+        self::assertSame($usedAt, $used->usedAt);
+        self::assertSame(2, $used->version);
+        self::assertSame($used, $used->markUsed(new \DateTimeImmutable('2026-09-09T09:00:00+00:00')));
+    }
+
     public function testAUsedCategoryCannotSwitchFinancialType(): void
     {
         $category = $this->category(usedAt: new \DateTimeImmutable());
