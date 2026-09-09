@@ -63,7 +63,7 @@ describe('transactionFormValues', () => {
       counterparty: '   ',
     });
 
-    expect(validateTransactionValues(values, [account], '2026-09-08')).toMatchObject({
+    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toMatchObject({
       amountValue: true,
       rawLabel: true,
       counterparty: true,
@@ -80,7 +80,7 @@ describe('transactionFormValues', () => {
       rawLabel: 'Test',
     });
 
-    expect(validateTransactionValues(values, [account], '2026-09-08')).toMatchObject({
+    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toMatchObject({
       amountValue: true,
       bookedOn: true,
       authorizedOn: true,
@@ -89,7 +89,7 @@ describe('transactionFormValues', () => {
 
     values.amountValue = '42.90';
     values.bookedOn = '2026-09-01';
-    expect(validateTransactionValues(values, [account], '2026-09-08')).toMatchObject({
+    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toMatchObject({
       amountValue: true,
       nature: true,
     });
@@ -102,9 +102,24 @@ describe('transactionFormValues', () => {
       rawLabel: 'Prélèvement exact',
     });
 
-    expect(validateTransactionValues(values, [account], '2026-09-08')).toEqual({});
+    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toEqual({});
     expect(transactionRequest(values, [account])).toMatchObject({
       amount: { value: '-99999999999999999999999999.123456789012345678901234' },
+    });
+  });
+
+  it('accepts the immutable historical account while editing', () => {
+    const historicalAccount = { ...account, status: 'ARCHIVED' } as Account;
+    const values = initialTransactionValues(transaction, [historicalAccount], '2026-09-08');
+
+    expect(
+      validateTransactionValues(values, [historicalAccount], transaction, '2026-09-08'),
+    ).toEqual({});
+    expect(validateTransactionValues(values, [], transaction, '2026-09-08')).toEqual({});
+    expect(
+      validateTransactionValues(values, [historicalAccount], undefined, '2026-09-08'),
+    ).toMatchObject({
+      accountId: true,
     });
   });
 });

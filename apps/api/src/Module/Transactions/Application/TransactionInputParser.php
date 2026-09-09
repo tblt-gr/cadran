@@ -6,6 +6,7 @@ namespace App\Module\Transactions\Application;
 
 use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\AmountInputParser;
+use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Transactions\Domain\PaymentMethod;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionState;
@@ -36,9 +37,13 @@ final readonly class TransactionInputParser
             if (in_array($parsedNature, [TransactionNature::TRANSFER, TransactionNature::REFUND], true)) {
                 throw new \DomainException('Linked transaction natures require their dedicated use case.');
             }
+            $parsedAmount = ($this->amountParser)($amount, '/amount');
+            if (0 === $parsedAmount->value->compareTo(DecimalValue::zero())) {
+                throw new \DomainException('A transaction amount cannot be zero.');
+            }
 
             return new TransactionDraft(
-                amount: ($this->amountParser)($amount, '/amount'),
+                amount: $parsedAmount,
                 nature: $parsedNature,
                 state: TransactionState::from($state),
                 bookedOn: BusinessDay::fromIsoDate($bookedOn)->date,

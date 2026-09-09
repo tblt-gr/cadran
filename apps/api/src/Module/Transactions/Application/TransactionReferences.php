@@ -66,7 +66,7 @@ final readonly class TransactionReferences
         ?string $categoryId,
         TransactionDraft $draft,
         \DateTimeImmutable $now,
-        ?string $existingId = null,
+        ?TransactionSplit $existing = null,
     ): ?TransactionSplit {
         if (null === $categoryId) {
             return null;
@@ -75,7 +75,8 @@ final readonly class TransactionReferences
         if (null === $category) {
             throw new TransactionNotFound();
         }
-        if (null !== $category->archivedAt) {
+        $keepsExistingCategory = $existing?->categoryId === $categoryId;
+        if (null !== $category->archivedAt && !$keepsExistingCategory) {
             throw new InvalidTransactionInput('A transaction category must be active.');
         }
         $expectedType = $draft->amount->value->isNegative() ? CategoryType::EXPENSE : CategoryType::INCOME;
@@ -83,19 +84,21 @@ final readonly class TransactionReferences
             throw new InvalidTransactionInput('The category type must match the transaction amount sign.');
         }
 
-        $used = $category->markUsed($now);
-        if ($used !== $category && !$this->categories->update($used, $category->version)) {
-            throw new TransactionConflict('The transaction category changed concurrently.');
+        if (!$keepsExistingCategory) {
+            $used = $category->markUsed($now);
+            if ($used !== $category && !$this->categories->update($used, $category->version)) {
+                throw new TransactionConflict('The transaction category changed concurrently.');
+            }
         }
 
         return new TransactionSplit(
-            id: $existingId ?? $this->uuidGenerator->generate(),
+            id: $existing->id ?? $this->uuidGenerator->generate(),
             workspace: $workspace,
             transactionId: $transactionId,
             categoryId: $categoryId,
             amount: $draft->amount,
             note: null,
-            createdAt: $now,
+            createdAt: $existing->createdAt ?? $now,
         );
     }
 

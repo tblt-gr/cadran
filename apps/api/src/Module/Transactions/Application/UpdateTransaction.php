@@ -57,9 +57,9 @@ final readonly class UpdateTransaction
             $now = $this->clock->now();
             $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
             $this->references->accountForExisting($context->workspace, $current->accountId, $draft, $today);
-            $existingSplitId = $current->splits[0]->id ?? null;
+            $existingSplit = $current->splits[0] ?? null;
             $split = $this->references->split(
-                $context->workspace, $current->id, $input->categoryId, $draft, $now, $existingSplitId,
+                $context->workspace, $current->id, $input->categoryId, $draft, $now, $existingSplit,
             );
 
             try {

@@ -67,14 +67,16 @@ export function initialTransactionValues(
 export function validateTransactionValues(
   values: TransactionFormValues,
   accounts: Account[],
+  transaction?: Transaction,
   today = todayInParis(),
 ): TransactionFormErrors {
   const errors: TransactionFormErrors = {};
   const account = accounts.find((candidate) => candidate.id === values.accountId);
+  const editingCurrentAccount = transaction?.accountId === values.accountId;
   const amount = values.amountValue;
   const exactAmount = isCanonicalDecimal(amount);
 
-  if (account === undefined || account.status !== 'ACTIVE') {
+  if (!editingCurrentAccount && (account === undefined || account.status !== 'ACTIVE')) {
     errors.accountId = true;
   }
 

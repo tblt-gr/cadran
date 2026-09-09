@@ -210,6 +210,44 @@ describe('TransactionsPage', () => {
     });
   });
 
+  it('refreshes a stale void and retries with the current version', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions
+      .mockImplementationOnce(() => success({ items: [transaction], nextCursor: null }))
+      .mockImplementation(() =>
+        success({ items: [{ ...transaction, version: 2 }], nextCursor: null }),
+      );
+    api.voidTransaction
+      .mockResolvedValueOnce({
+        error: { type: '/problems/stale-version' },
+        response: new Response('{}', { status: 409 }),
+      })
+      .mockImplementation(({ body }) =>
+        success({ ...transaction, state: 'VOIDED', version: body.version + 1 }),
+      );
+    renderPage();
+
+    await screen.findByText('CB CARREFOUR 1234');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Annuler la transaction/ }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Annuler la transaction' }),
+    );
+
+    expect(await screen.findByText(/modifiée ailleurs entre-temps/)).toBeTruthy();
+    await waitFor(() => expect(api.listTransactions).toHaveBeenCalledTimes(2));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Annuler la transaction' }),
+    );
+
+    await waitFor(() => expect(api.voidTransaction).toHaveBeenCalledTimes(2));
+    expect(api.voidTransaction.mock.calls[1]?.[0]).toMatchObject({ body: { version: 2 } });
+  });
+
   it('duplicates from the row actions and reports a refused copy', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 100, total: 1 }),
@@ -307,5 +345,45 @@ describe('TransactionsPage', () => {
     expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
       '',
     );
+  });
+
+  it('resolves and edits a historical account beyond the first account page', async () => {
+    const historicalAccount = {
+      ...account,
+      id: '00000000-0000-7000-8000-0000000000d9',
+      label: 'Ancien compte',
+      status: 'ARCHIVED',
+    } as Account;
+    const historicalTransaction = { ...transaction, accountId: historicalAccount.id };
+    api.listAccounts.mockImplementation(({ query }) => {
+      if (!query.includeArchived) {
+        return success({ items: [account], page: 1, perPage: 100, total: 1 });
+      }
+      return query.page === 1
+        ? success({ items: [account], page: 1, perPage: 100, total: 101 })
+        : success({ items: [historicalAccount], page: 2, perPage: 100, total: 101 });
+    });
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [historicalTransaction], nextCursor: null }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.updateTransaction.mockImplementation(({ body }) =>
+      success({ ...historicalTransaction, ...body }),
+    );
+    renderPage();
+
+    expect(await screen.findByRole('cell', { name: 'Ancien compte' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Ancien compte' })).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Enregistrer' }),
+    );
+
+    await waitFor(() => expect(api.updateTransaction).toHaveBeenCalledOnce());
   });
 });

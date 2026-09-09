@@ -49,7 +49,7 @@ export function TransactionForm({
     values.accountId === '' && accounts[0] !== undefined
       ? { ...values, accountId: accounts[0].id }
       : values;
-  const errors = validateTransactionValues(resolved, accounts);
+  const errors = validateTransactionValues(resolved, accounts, transaction);
   const editing = transaction !== undefined;
   const stateLocked = editing && transaction.state !== 'PENDING';
 

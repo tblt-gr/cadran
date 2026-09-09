@@ -24,6 +24,7 @@ import {
   transactionErrorKind,
   transactionRequestError,
 } from './transactionError';
+import { listReferencedAccounts, mergeAccountOptions } from './transactionAccounts';
 import { VoidTransactionDialog } from './void-transaction-dialog/VoidTransactionDialog';
 import styles from './TransactionsPage.module.css';
 
@@ -36,7 +37,7 @@ export function TransactionsPage() {
   const [includeVoided, setIncludeVoided] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor>(null);
-  const [voiding, setVoiding] = useState<Transaction | null>(null);
+  const [voidingId, setVoidingId] = useState<string | null>(null);
   const [saved, setSaved] = useState<'saved' | 'voided' | 'duplicated' | null>(null);
   const duplicatingIdsRef = useRef(new Set<string>());
   const [duplicatingIds, setDuplicatingIds] = useState<ReadonlySet<string>>(new Set());
@@ -90,6 +91,23 @@ export function TransactionsPage() {
     },
     retry: false,
   });
+  const items = transactions.data?.items ?? [];
+  const referencedAccountIds = [...new Set(items.map((transaction) => transaction.accountId))];
+  const referencedAccounts = useQuery({
+    queryKey: ['transaction-accounts', referencedAccountIds],
+    queryFn: ({ signal }) => listReferencedAccounts(referencedAccountIds, signal),
+    enabled: referencedAccountIds.length > 0,
+    retry: false,
+  });
+  const activeAccountOptions = accounts.data?.items ?? [];
+  const accountOptions = mergeAccountOptions(activeAccountOptions, referencedAccounts.data ?? []);
+  const voiding = items.find((transaction) => transaction.id === voidingId) ?? null;
+
+  async function refreshOnStaleTransaction(error: unknown) {
+    if (error instanceof TransactionRequestError && error.kind === 'stale') {
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    }
+  }
 
   const save = useMutation({
     mutationFn: async (body: CreateTransactionRequest | UpdateTransactionRequest) => {
@@ -115,11 +133,7 @@ export function TransactionsPage() {
       setSaved('saved');
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
-    onError: (error) => {
-      if (error instanceof TransactionRequestError && error.kind === 'stale') {
-        void queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      }
-    },
+    onError: refreshOnStaleTransaction,
   });
 
   const voidMutation = useMutation({
@@ -136,8 +150,9 @@ export function TransactionsPage() {
       }
       return result.data;
     },
+    onError: refreshOnStaleTransaction,
     onSuccess: async () => {
-      setVoiding(null);
+      setVoidingId(null);
       setSaved('voided');
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
@@ -182,9 +197,6 @@ export function TransactionsPage() {
   const unauthorized =
     transactions.error instanceof TransactionRequestError &&
     transactions.error.kind === 'unauthorized';
-  const items = transactions.data?.items ?? [];
-  const accountOptions = accounts.data?.items ?? [];
-
   return (
     <div className={styles.page}>
       <section aria-labelledby="transactions-intro-title" className={styles.intro}>
@@ -209,7 +221,7 @@ export function TransactionsPage() {
 
       {editor ? (
         <TransactionEditor
-          accounts={accountOptions}
+          accounts={editor === 'create' ? activeAccountOptions : accountOptions}
           close={closeEditor}
           onSubmit={(body) => save.mutate(body)}
           pending={save.isPending}
@@ -221,7 +233,7 @@ export function TransactionsPage() {
       {voiding ? (
         <Modal
           close={() => {
-            setVoiding(null);
+            setVoidingId(null);
             voidMutation.reset();
           }}
           eyebrow={t('transactions.void.eyebrow')}
@@ -292,7 +304,7 @@ export function TransactionsPage() {
             duplicatingIds={duplicatingIds}
             onDuplicate={duplicateOnce}
             onEdit={(transaction) => openEditor(transaction)}
-            onVoid={setVoiding}
+            onVoid={(transaction) => setVoidingId(transaction.id)}
             transactions={items}
           />
           {transactions.data?.nextCursor ? (

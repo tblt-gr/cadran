@@ -186,6 +186,65 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame(0, $this->ownTransactionCount());
     }
 
+    public function testZeroAmountWithAnIncomeCategoryIsRejectedForCreationAndEdition(): void
+    {
+        $this->requestCreate($this->payload(overrides: [
+            'amount' => ['value' => '0.00', 'assetCode' => 'EUR'],
+            'nature' => 'ADJUSTMENT',
+            'categoryId' => self::OWN_INCOME,
+        ]));
+        self::assertResponseStatusCodeSame(422);
+
+        $created = $this->createTransaction();
+        $this->requestUpdate(self::stringValue($created, 'id'), [
+            ...$created,
+            'amount' => ['value' => '0.00', 'assetCode' => 'EUR'],
+            'nature' => 'ADJUSTMENT',
+            'categoryId' => self::OWN_INCOME,
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(1, $this->decodeFromRow(self::stringValue($created, 'id'))['version']);
+    }
+
+    public function testEditingKeepsAnExistingArchivedCategoryAssignment(): void
+    {
+        $created = $this->createTransaction();
+        $splits = $created['splits'] ?? null;
+        self::assertIsList($splits);
+        $split = $splits[0] ?? null;
+        self::assertIsArray($split);
+        $splitId = $split['id'] ?? null;
+        self::assertIsString($splitId);
+        $createdAt = $this->connection->fetchOne(
+            'SELECT created_at FROM transaction_splits WHERE workspace_id = ? AND id = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, $splitId],
+        );
+        self::assertIsString($createdAt);
+        $this->connection->update('category_categories', [
+            'archived_at' => '2026-03-15 09:00:00+00',
+            'version' => 2,
+        ], [
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+            'id' => self::OWN_EXPENSE,
+        ]);
+
+        $this->requestUpdate(self::stringValue($created, 'id'), [...$created, 'note' => 'Corrigé']);
+        self::assertResponseIsSuccessful();
+        $edited = $this->decode();
+        self::assertSame('Corrigé', $edited['note']);
+        $editedSplits = $edited['splits'] ?? null;
+        self::assertIsList($editedSplits);
+        self::assertIsArray($editedSplits[0] ?? null);
+        self::assertSame($splitId, $editedSplits[0]['id']);
+        self::assertSame($createdAt, $this->connection->fetchOne(
+            'SELECT created_at FROM transaction_splits WHERE workspace_id = ? AND id = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, $splitId],
+        ));
+
+        $this->requestCreate($this->payload(overrides: ['rawLabel' => 'Nouvelle affectation']));
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testStandaloneCreationRejectsTransferAndRefundNatures(): void
     {
         foreach (['TRANSFER', 'REFUND'] as $nature) {
