@@ -5,10 +5,18 @@ import { CategoryPicker } from '@/features/categories/category-picker/CategoryPi
 import { QuickCategoryDialog } from '@/features/categories/quick-category/QuickCategoryDialog';
 import styles from './TransactionCategoryField.module.css';
 
+/** The category already on the edited transaction, with what its pill needs. */
+export interface SavedCategory {
+  color: string | null;
+  icon: string | null;
+  id: string;
+  label: string;
+}
+
 interface TransactionCategoryFieldProps {
   onChange: (categoryId: string) => void;
   /** Category of the edited transaction, displayed while it stays selected. */
-  savedCategory: { id: string; label: string } | null;
+  savedCategory: SavedCategory | null;
   /** Category type the draft accepts, derived from its sign. */
   type: CategoryType;
   value: string;
@@ -30,12 +38,8 @@ export function TransactionCategoryField({
   const [created, setCreated] = useState<Category | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const selectedLabel =
-    value === created?.id
-      ? created.label
-      : value === savedCategory?.id
-        ? savedCategory.label
-        : undefined;
+  const selected =
+    value === created?.id ? created : value === savedCategory?.id ? savedCategory : undefined;
 
   function selectCreated(category: Category) {
     // The quick form keeps the type editable, but the draft only accepts a category of
@@ -68,7 +72,9 @@ export function TransactionCategoryField({
           setQuickLabel(label);
         }}
         ref={picker}
-        selectedLabel={selectedLabel}
+        selectedColor={selected?.color}
+        selectedIcon={selected?.icon}
+        selectedLabel={selected?.label}
         type={type}
         value={value}
       />

@@ -1,0 +1,16 @@
+.preview {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  gap: var(--spacing-2);
+}
+
+.heading,
+.preview small {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}

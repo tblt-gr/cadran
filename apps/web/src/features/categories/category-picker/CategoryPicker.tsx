@@ -1,11 +1,11 @@
-import { listCategories, type Category, type CategoryType } from '@cadran/api-client';
-import { useQuery } from '@tanstack/react-query';
+import type { Category, CategoryType } from '@cadran/api-client';
 import { useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authApiOptions } from '@/features/auth/apiOptions';
+import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { CategoryOptionList } from './category-option-list/CategoryOptionList';
 import { optionId, type CategoryChoice } from './categoryChoice';
+import { useCategoryCandidates } from './useCategoryCandidates';
 import styles from './CategoryPicker.module.css';
 
 /** The "no category" entry, which carries an empty identifier. */
@@ -26,6 +26,10 @@ interface CategoryPickerProps {
    */
   onCreateRequest?: (label: string) => void;
   ref?: Ref<HTMLInputElement>;
+  /** Stored colour of a value selected from outside, so its pill matches the options. */
+  selectedColor?: string | null;
+  /** Stored icon key of a value selected from outside, so its pill matches the options. */
+  selectedIcon?: string | null;
   /** Visible label of a value selected from outside: an edited record or a category just created. */
   selectedLabel?: string | null;
   type: CategoryType;
@@ -50,6 +54,8 @@ export function CategoryPicker({
   onCreateRequest,
   parentEligible = false,
   ref,
+  selectedColor,
+  selectedIcon,
   selectedLabel,
   type,
   value,
@@ -65,7 +71,13 @@ export function CategoryPicker({
 
   const initialChoice =
     value !== NONE && selectedLabel
-      ? { id: value, kind: 'category' as const, label: selectedLabel }
+      ? {
+          color: selectedColor,
+          icon: selectedIcon,
+          id: value,
+          kind: 'category' as const,
+          label: selectedLabel,
+        }
       : null;
   const [query, setQuery] = useState(initialChoice?.label ?? '');
   const [expanded, setExpanded] = useState(false);
@@ -73,28 +85,16 @@ export function CategoryPicker({
   const [chosen, setChosen] = useState<CategoryChoice | null>(initialChoice);
 
   const debouncedSearch = useDebouncedValue(query.trim());
-  const candidates = useQuery({
-    queryKey: ['category-candidates', type, parentEligible, debouncedSearch],
-    queryFn: async ({ signal }) => {
-      const result = await listCategories({
-        ...authApiOptions(),
-        query: {
-          type,
-          search: debouncedSearch || undefined,
-          parentEligible,
-          page: 1,
-          perPage: 50,
-        },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) {
-        throw new Error('Unable to load category candidates.');
-      }
-      return result.data;
-    },
-    placeholderData: (previous) => previous,
-    retry: false,
-  });
+  const candidates = useCategoryCandidates(type, parentEligible, debouncedSearch);
+  // The selection is known from one of three places, in order of freshness: the
+  // current search result, the choice just made here, or what the host handed
+  // over for a record it is editing.
+  const identity =
+    candidates.data?.items.find((category) => category.id === value) ??
+    (chosen?.id === value ? chosen : undefined) ??
+    (value === NONE
+      ? undefined
+      : { color: selectedColor, icon: selectedIcon, label: selectedLabel ?? '' });
 
   const matches: CategoryChoice[] = (candidates.data?.items ?? [])
     .filter((candidate: Category) => candidate.id !== excludeId && candidate.archivedAt === null)
@@ -102,6 +102,8 @@ export function CategoryPicker({
       id: candidate.id,
       kind: 'category' as const,
       label: candidate.label,
+      color: candidate.color,
+      icon: candidate.icon,
     }));
   const categoryChoices: CategoryChoice[] =
     undefined === emptyOptionLabel
@@ -226,8 +228,20 @@ export function CategoryPicker({
         ref={ref}
         role="combobox"
         type="text"
-        value={value !== NONE && selectedLabel ? selectedLabel : query}
+        value={value !== NONE ? (identity?.label ?? selectedLabel ?? query) : query}
       />
+
+      {/* The combobox value is plain editable text, so the pill of the current
+          selection sits beside the field instead of framing it. */}
+      {value !== NONE ? (
+        <p className={styles.selected}>
+          <CategoryIdentity
+            color={identity?.color}
+            icon={identity?.icon}
+            label={identity?.label ?? selectedLabel ?? ''}
+          />
+        </p>
+      ) : null}
 
       {expanded && choices.length > 0 ? (
         <CategoryOptionList

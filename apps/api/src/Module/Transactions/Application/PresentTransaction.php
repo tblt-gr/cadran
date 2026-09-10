@@ -40,10 +40,10 @@ final readonly class PresentTransaction
             }
         }
 
-        $labels = $this->categories->labelsByIds($workspace, array_values(array_unique($categoryIds)));
+        $identities = $this->categories->identitiesByIds($workspace, array_values(array_unique($categoryIds)));
 
         return array_map(
-            static fn (Transaction $transaction): TransactionView => TransactionView::fromTransaction($transaction, $labels),
+            static fn (Transaction $transaction): TransactionView => TransactionView::fromTransaction($transaction, $identities),
             $transactions,
         );
     }

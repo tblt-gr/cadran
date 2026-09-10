@@ -12,6 +12,8 @@
    looks right when its host happens to style descendant inputs is a component
    that renders unstyled in the next place it is used. */
 .picker input {
+  width: 100%;
+  min-width: 0;
   min-height: var(--control-height);
   padding: var(--spacing-2) var(--spacing-3);
   border: var(--border-line-strong);
@@ -22,4 +24,8 @@
 
 .hint {
   color: var(--text-secondary);
+}
+
+.selected {
+  margin: var(--spacing-none);
 }

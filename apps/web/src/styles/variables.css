@@ -126,6 +126,7 @@
   --radius-button: var(--radius-full);
 
   /* Icons */
+  --category-glyph-size: 0.9375rem;
   --icon-size-sm: 2rem;
   --icon-size-md: 2.25rem;
   --icon-size-lg: 2.25rem;
