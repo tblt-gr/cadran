@@ -35,6 +35,21 @@ Closes #
 - [ ] `pnpm quality` and all applicable application checks pass locally
 - [ ] No unrelated change is mixed into this PR
 
+## Manual visual check
+
+<!--
+What the reviewer must check by hand in the running application before merging, as a
+to-do list. One checkbox per observable behaviour: where to go, what to do, what to expect.
+Cover the nominal path, each error or empty state the change touches, keyboard-only use and a
+360 px wide viewport. Write "Not applicable" when the change has no visible effect.
+
+Example:
+- [ ] Transactions > New transaction: type -12.34 and pick "Create…" in the category picker;
+      the category dialog opens over the transaction dialog with the label prefilled.
+-->
+
+- [ ]
+
 ## Visual changes
 
 <!-- Add sanitized desktop and mobile screenshots, or write "Not applicable". -->
