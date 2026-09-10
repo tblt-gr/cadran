@@ -6,7 +6,6 @@ import type {
 } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
 import {
   categoryTypeForAmount,
@@ -15,6 +14,7 @@ import {
   validateTransactionValues,
   type TransactionFormValues,
 } from './transactionFormValues';
+import { TransactionCategoryField } from './transaction-category-field/TransactionCategoryField';
 import styles from './TransactionForm.module.css';
 
 const NATURES: TransactionFormValues['nature'][] = ['EXPENSE', 'INCOME', 'FEE', 'ADJUSTMENT'];
@@ -286,16 +286,10 @@ export function TransactionForm({
           </select>
         </label>
 
-        <CategoryPicker
-          emptyOptionLabel={t('transactions.form.noCategory')}
+        <TransactionCategoryField
           key={categoryType}
-          label={t('transactions.fields.category')}
           onChange={(categoryId) => set('categoryId', categoryId)}
-          selectedLabel={
-            values.categoryId === transaction?.splits[0]?.categoryId
-              ? transaction.splits[0].categoryLabel
-              : undefined
-          }
+          savedCategory={savedCategory(transaction)}
           type={categoryType}
           value={values.categoryId}
         />
@@ -308,4 +302,10 @@ export function TransactionForm({
       </div>
     </form>
   );
+}
+
+function savedCategory(transaction: Transaction | undefined): { id: string; label: string } | null {
+  const split = transaction?.splits[0];
+
+  return split ? { id: split.categoryId, label: split.categoryLabel } : null;
 }

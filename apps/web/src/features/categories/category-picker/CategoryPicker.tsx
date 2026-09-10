@@ -1,9 +1,11 @@
 import { listCategories, type Category, type CategoryType } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
-import { useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { CategoryOptionList } from './category-option-list/CategoryOptionList';
+import { optionId, type CategoryChoice } from './categoryChoice';
 import styles from './CategoryPicker.module.css';
 
 /** The "no category" entry, which carries an empty identifier. */
@@ -18,16 +20,19 @@ interface CategoryPickerProps {
   onChange: (categoryId: string) => void;
   /** Restrict the choices to categories that can still take a child. */
   parentEligible?: boolean;
-  /** Visible label of an already selected value, used to hydrate controlled edit forms. */
+  /**
+   * Adds a last "create" entry handing the typed label to the host, which owns the
+   * creation flow and selects the result through `value` and `selectedLabel`.
+   */
+  onCreateRequest?: (label: string) => void;
+  ref?: Ref<HTMLInputElement>;
+  /** Visible label of a value selected from outside: an edited record or a category just created. */
   selectedLabel?: string | null;
   type: CategoryType;
   value: string;
 }
 
-interface Choice {
-  id: string;
-  label: string;
-}
+const CREATE_ID = 'create-category';
 
 /**
  * Picks one active category through a bounded server search.
@@ -42,7 +47,9 @@ export function CategoryPicker({
   excludeId,
   label,
   onChange,
+  onCreateRequest,
   parentEligible = false,
+  ref,
   selectedLabel,
   type,
   value,
@@ -52,13 +59,18 @@ export function CategoryPicker({
   const listId = useId();
   const statusId = useId();
   const blurTimeout = useRef<number | undefined>(undefined);
+  // Set when the host takes over for a creation: focus coming back from its dialog
+  // must not reopen the list, where one Enter would clear the fresh selection.
+  const skipFocusOpen = useRef(false);
 
   const initialChoice =
-    value !== NONE && selectedLabel ? { id: value, label: selectedLabel } : null;
+    value !== NONE && selectedLabel
+      ? { id: value, kind: 'category' as const, label: selectedLabel }
+      : null;
   const [query, setQuery] = useState(initialChoice?.label ?? '');
   const [expanded, setExpanded] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [chosen, setChosen] = useState<Choice | null>(initialChoice);
+  const [chosen, setChosen] = useState<CategoryChoice | null>(initialChoice);
 
   const debouncedSearch = useDebouncedValue(query.trim());
   const candidates = useQuery({
@@ -84,17 +96,43 @@ export function CategoryPicker({
     retry: false,
   });
 
-  const matches: Choice[] = (candidates.data?.items ?? [])
+  const matches: CategoryChoice[] = (candidates.data?.items ?? [])
     .filter((candidate: Category) => candidate.id !== excludeId && candidate.archivedAt === null)
-    .map((candidate: Category) => ({ id: candidate.id, label: candidate.label }));
-  const choices: Choice[] =
-    undefined === emptyOptionLabel ? matches : [{ id: NONE, label: emptyOptionLabel }, ...matches];
+    .map((candidate: Category) => ({
+      id: candidate.id,
+      kind: 'category' as const,
+      label: candidate.label,
+    }));
+  const categoryChoices: CategoryChoice[] =
+    undefined === emptyOptionLabel
+      ? matches
+      : [{ id: NONE, kind: 'category', label: emptyOptionLabel }, ...matches];
+  const hasSelection = chosen !== null || value !== NONE;
+  // Once a category is selected the field shows its label, not a search: offering to
+  // create it again would only meet the sibling-uniqueness refusal.
+  const createLabel = hasSelection ? '' : query.trim();
+  const createChoice: CategoryChoice = {
+    id: CREATE_ID,
+    kind: 'create',
+    label: t(createLabel ? 'categories.picker.createNamed' : 'categories.picker.create', {
+      label: createLabel,
+    }),
+  };
+  const choices = onCreateRequest ? [...categoryChoices, createChoice] : categoryChoices;
   // A new search key restarts the query; keeping the previous page visible avoids the
   // list flickering empty on every keystroke.
   const loading = undefined === candidates.data && !candidates.isError;
   const active = choices[Math.min(activeIndex, Math.max(choices.length - 1, 0))];
 
-  function choose(choice: Choice) {
+  function choose(choice: CategoryChoice) {
+    if (choice.kind === 'create') {
+      setExpanded(false);
+      setActiveIndex(0);
+      skipFocusOpen.current = true;
+      onCreateRequest?.(createLabel);
+      return;
+    }
+
     setChosen(choice.id === NONE ? null : choice);
     setQuery(choice.id === NONE ? '' : choice.label);
     setExpanded(false);
@@ -103,7 +141,9 @@ export function CategoryPicker({
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && expanded) {
+      event.preventDefault();
+      event.stopPropagation();
       setExpanded(false);
       return;
     }
@@ -129,7 +169,7 @@ export function CategoryPicker({
     }
   }
 
-  const searching = expanded && chosen === null;
+  const searching = expanded && !hasSelection;
   const status = !searching
     ? null
     : loading
@@ -146,7 +186,7 @@ export function CategoryPicker({
     <div className={styles.picker}>
       <label htmlFor={inputId}>{label}</label>
       <input
-        aria-activedescendant={expanded && active ? `${listId}-${active.id || 'none'}` : undefined}
+        aria-activedescendant={expanded && active ? optionId(listId, active) : undefined}
         aria-autocomplete="list"
         aria-controls={listId}
         aria-describedby={status === null ? undefined : statusId}
@@ -170,34 +210,35 @@ export function CategoryPicker({
         }}
         onFocus={() => {
           window.clearTimeout(blurTimeout.current);
+          if (skipFocusOpen.current) {
+            skipFocusOpen.current = false;
+            return;
+          }
           setExpanded(true);
         }}
         onKeyDown={onKeyDown}
+        onMouseDown={(event) => {
+          // A pointer on the field asks for the list, even when it already has focus.
+          skipFocusOpen.current = false;
+          if (document.activeElement === event.currentTarget) setExpanded(true);
+        }}
         placeholder={t('categories.picker.placeholder')}
+        ref={ref}
         role="combobox"
         type="text"
         value={value !== NONE && selectedLabel ? selectedLabel : query}
       />
 
       {expanded && choices.length > 0 ? (
-        <ul aria-label={label} className={styles.list} id={listId} role="listbox">
-          {choices.map((choice, index) => (
-            <li
-              aria-selected={choice.id === value}
-              className={index === activeIndex ? styles.active : undefined}
-              id={`${listId}-${choice.id || 'none'}`}
-              key={choice.id || 'none'}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                choose(choice);
-              }}
-              onMouseEnter={() => setActiveIndex(index)}
-              role="option"
-            >
-              {choice.label}
-            </li>
-          ))}
-        </ul>
+        <CategoryOptionList
+          activeIndex={activeIndex}
+          choices={choices}
+          id={listId}
+          label={label}
+          onActivate={setActiveIndex}
+          onChoose={choose}
+          value={value}
+        />
       ) : null}
 
       {status === null ? null : (
