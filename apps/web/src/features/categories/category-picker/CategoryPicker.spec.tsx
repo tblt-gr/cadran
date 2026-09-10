@@ -37,7 +37,7 @@ function success<T>(data: T) {
   return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
 }
 
-function renderPicker(onChange = vi.fn()) {
+function renderPicker(onChange = vi.fn(), onCreateRequest?: (label: string) => void) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
@@ -45,6 +45,7 @@ function renderPicker(onChange = vi.fn()) {
         excludeId="00000000-0000-7000-8000-0000000000c1"
         label="Catégorie qui reçoit l’historique"
         onChange={onChange}
+        onCreateRequest={onCreateRequest}
         type="EXPENSE"
         value=""
       />
@@ -160,5 +161,61 @@ describe('CategoryPicker', () => {
 
     expect(await screen.findByRole('option', { name: 'Sorties' })).toBeTruthy();
     expect(screen.queryByRole('option', { name: 'Restaurants' })).toBeNull();
+  });
+
+  it('offers creation last and hands the searched label to the host', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [candidate], page: 1, perPage: 50, total: 1 }),
+    );
+    const onCreateRequest = vi.fn();
+    renderPicker(vi.fn(), onCreateRequest);
+    const picker = screen.getByRole('combobox', { name: 'Catégorie qui reçoit l’historique' });
+
+    fireEvent.change(picker, { target: { value: ' Boulangerie ' } });
+
+    const options = await screen.findAllByRole('option');
+    expect(options.at(-1)?.textContent).toBe('Créer « Boulangerie »');
+    fireEvent.mouseDown(options.at(-1) as HTMLElement);
+
+    expect(onCreateRequest).toHaveBeenCalledWith('Boulangerie');
+    expect(picker.getAttribute('aria-expanded')).toBe('false');
+
+    // Focus coming back from the host's dialog leaves the list closed.
+    picker.focus();
+    expect(picker.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.mouseDown(picker);
+    expect(picker.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('does not offer to recreate the category already selected', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [candidate], page: 1, perPage: 50, total: 1 }),
+    );
+    const onCreateRequest = vi.fn();
+    renderPicker(vi.fn(), onCreateRequest);
+    const picker = screen.getByRole('combobox', { name: 'Catégorie qui reçoit l’historique' });
+
+    fireEvent.focus(picker);
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Sorties' }));
+    fireEvent.keyDown(picker, { key: 'ArrowDown' });
+    fireEvent.mouseDown(screen.getByRole('option', { name: 'Créer une catégorie' }));
+
+    expect(onCreateRequest).toHaveBeenCalledWith('');
+  });
+
+  it('offers no creation without a host to handle it', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPicker();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Catégorie qui reçoit l’historique' }), {
+      target: { value: 'Boulangerie' },
+    });
+
+    expect(
+      await screen.findByText('Aucune catégorie ne correspond à cette recherche.'),
+    ).toBeTruthy();
+    expect(screen.queryByRole('option')).toBeNull();
   });
 });

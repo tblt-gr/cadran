@@ -751,8 +751,25 @@
       "loading": "Chargement des catégories…",
       "error": "Impossible de charger les catégories.",
       "empty": "Aucune catégorie ne correspond à cette recherche.",
+      "create": "Créer une catégorie",
+      "createNamed": "Créer « {{label}} »",
+      "createdOtherType": "« {{label}} » est créée avec le type {{type}}, qui ne correspond pas au signe de ce mouvement : elle n’a pas été sélectionnée.",
       "matches_one": "{{count}} catégorie correspondante.",
       "matches_other": "{{count}} catégories correspondantes."
+    },
+    "quick": {
+      "eyebrow": "Création rapide",
+      "title": "Nouvelle catégorie",
+      "create": "Créer",
+      "creating": "Création…",
+      "typeMismatch": "Ce mouvement attend une catégorie de type {{type}} : celle-ci sera créée sans être sélectionnée.",
+      "errors": {
+        "conflict": "Ce libellé existe déjà sous ce parent. Choisissez-en un autre.",
+        "invalid": "Vérifiez le libellé, le type et la catégorie parente.",
+        "network": "La création a échoué. Vérifiez la connexion, puis réessayez.",
+        "refused": "Cette catégorie ne peut pas être créée à cet emplacement.",
+        "unauthorized": "Votre session a expiré ou n’autorise pas cette création. Reconnectez-vous, puis recommencez."
+      }
     },
     "lifecycle": {
       "applied": "L’opération a été appliquée.",

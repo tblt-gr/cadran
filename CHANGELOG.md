@@ -12,6 +12,10 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   scale preservation, optional single-category allocation, optimistic editing, voiding
   without deletion, duplication dated today, cursor listing, and the `/transactions`
   screen.
+- Category creation from the transaction form: the category picker offers to create the searched
+  label in a second-level dialog, prefilled with the type matching the movement sign, and selects
+  the new category without losing the transaction draft. Nested dialogs keep a single active focus
+  trap and return focus to the control that opened them.
 
 ## [0.2.0] - 2026-09-06
 

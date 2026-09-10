@@ -6,6 +6,7 @@ import '@/i18n';
 import { TransactionsPage } from './TransactionsPage';
 
 const api = vi.hoisted(() => ({
+  createCategory: vi.fn(),
   createTransaction: vi.fn(),
   duplicateTransaction: vi.fn(),
   listAccounts: vi.fn(),
@@ -109,6 +110,262 @@ describe('TransactionsPage', () => {
         query: expect.objectContaining({ type: 'EXPENSE' }),
       }),
     );
+
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Catégorie' }), { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
+  });
+
+  it('quick-creates and selects a category without changing the transaction draft', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    const created = {
+      ...expenseCategory,
+      id: '00000000-0000-7000-8000-0000000000c9',
+      label: 'Boulangerie',
+    };
+    api.createCategory.mockImplementation(({ body }) => success({ ...created, ...body }, 201));
+    api.createTransaction.mockImplementation(({ body }) =>
+      success({ ...transaction, ...body, splits: [] }, 201),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '-42.90' } });
+    fireEvent.change(screen.getByLabelText('Date de valeur'), { target: { value: '2026-09-09' } });
+    fireEvent.change(screen.getByLabelText('Libellé'), {
+      target: { value: 'CB BOULANGERIE 1234' },
+    });
+    fireEvent.change(screen.getByLabelText('Note'), { target: { value: 'Petit-déjeuner' } });
+    fireEvent.change(screen.getByLabelText('Moyen de paiement'), { target: { value: 'CARD' } });
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' });
+    fireEvent.change(picker, { target: { value: 'Boulangerie' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Créer « Boulangerie »' }));
+
+    const quickDialog = screen.getByRole('dialog', { name: 'Nouvelle catégorie' });
+    fireEvent.click(within(quickDialog).getByRole('button', { name: 'Créer' }));
+
+    await waitFor(() => expect(api.createCategory).toHaveBeenCalledOnce());
+    expect(api.createCategory.mock.calls[0]?.[0].body).toEqual({
+      type: 'EXPENSE',
+      label: 'Boulangerie',
+      parentId: null,
+      icon: null,
+      color: null,
+      defaultAnalyticAxes: [],
+      budgetIncluded: true,
+      sortOrder: 0,
+    });
+    expect(screen.queryByRole('dialog', { name: 'Nouvelle catégorie' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(picker));
+    expect((picker as HTMLInputElement).value).toBe('Boulangerie');
+    // The list stays closed on focus return, so Enter cannot pick another option.
+    expect(picker.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.keyDown(picker, { key: 'Enter' });
+    expect((picker as HTMLInputElement).value).toBe('Boulangerie');
+
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).getByRole('button', {
+        name: 'Enregistrer',
+      }),
+    );
+    await waitFor(() => expect(api.createTransaction).toHaveBeenCalledOnce());
+    expect(api.createTransaction.mock.calls[0]?.[0].body).toMatchObject({
+      amount: { value: '-42.90', assetCode: 'EUR' },
+      valueOn: '2026-09-09',
+      rawLabel: 'CB BOULANGERIE 1234',
+      note: 'Petit-déjeuner',
+      paymentMethod: 'CARD',
+      categoryId: created.id,
+    });
+  });
+
+  it('keeps quick-create errors inside the nested dialog and leaves the draft untouched', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.createCategory.mockResolvedValue({
+      error: { type: '/problems/category-label-conflict' },
+      response: new Response('{}', { status: 409 }),
+    });
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '-12.34' } });
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'ACHAT TEST' } });
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' });
+    fireEvent.change(picker, { target: { value: 'Courses' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Créer « Courses »' }));
+    const quickDialog = screen.getByRole('dialog', { name: 'Nouvelle catégorie' });
+    fireEvent.click(within(quickDialog).getByRole('button', { name: 'Créer' }));
+
+    const alert = await within(quickDialog).findByRole('alert');
+    expect(alert.textContent).toContain('Ce libellé existe déjà sous ce parent.');
+    expect(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
+    expect((screen.getByLabelText('Montant') as HTMLInputElement).value).toBe('-12.34');
+    expect(
+      (
+        within(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).getByLabelText(
+          'Libellé',
+        ) as HTMLInputElement
+      ).value,
+    ).toBe('ACHAT TEST');
+    expect((picker as HTMLInputElement).value).toBe('Courses');
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Nouvelle catégorie' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(picker));
+  });
+
+  it('cancels quick creation without touching the draft or the transaction focus trap', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    const transactionDialog = screen.getByRole('dialog', { name: 'Nouvelle transaction' });
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '-7.10' } });
+    fireEvent.change(screen.getByLabelText('Note'), { target: { value: 'Café' } });
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' });
+
+    fireEvent.change(picker, { target: { value: 'Café' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Créer « Café »' }));
+    expect(transactionDialog.hasAttribute('inert')).toBe(true);
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Nouvelle catégorie' })).getByRole('button', {
+        name: 'Fermer',
+      }),
+    );
+
+    expect(screen.queryByRole('dialog', { name: 'Nouvelle catégorie' })).toBeNull();
+    expect(transactionDialog.hasAttribute('inert')).toBe(false);
+    await waitFor(() => expect(document.activeElement).toBe(picker));
+
+    fireEvent.mouseDown(picker);
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Créer « Café »' }));
+    const quickDialog = screen.getByRole('dialog', { name: 'Nouvelle catégorie' });
+    fireEvent.mouseDown(quickDialog.parentElement as HTMLElement);
+
+    expect(screen.queryByRole('dialog', { name: 'Nouvelle catégorie' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).toBe(transactionDialog);
+    expect((screen.getByLabelText('Montant') as HTMLInputElement).value).toBe('-7.10');
+    expect((screen.getByLabelText('Note') as HTMLTextAreaElement).value).toBe('Café');
+    expect((picker as HTMLInputElement).value).toBe('Café');
+    expect(api.createCategory).not.toHaveBeenCalled();
+  });
+
+  it('prefills the income type for a positive amount', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '1500.00' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Catégorie' }), {
+      target: { value: 'Salaire' },
+    });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Créer « Salaire »' }));
+
+    const quickDialog = screen.getByRole('dialog', { name: 'Nouvelle catégorie' });
+    expect(
+      (within(quickDialog).getByRole('combobox', { name: 'Type' }) as HTMLSelectElement).value,
+    ).toBe('INCOME');
+  });
+
+  it('creates a category of the other type without selecting it in the draft', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.createCategory.mockImplementation(({ body }) =>
+      success({ ...expenseCategory, ...body, id: '00000000-0000-7000-8000-0000000000c9' }, 201),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '-30.00' } });
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' });
+    fireEvent.change(picker, { target: { value: 'Prime' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Créer « Prime »' }));
+    const quickDialog = screen.getByRole('dialog', { name: 'Nouvelle catégorie' });
+    fireEvent.change(within(quickDialog).getByRole('combobox', { name: /^Type/ }), {
+      target: { value: 'INCOME' },
+    });
+    fireEvent.click(within(quickDialog).getByRole('button', { name: 'Créer' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Nouvelle catégorie' })).toBeNull(),
+    );
+    expect(api.createCategory.mock.calls[0]?.[0].body).toMatchObject({
+      label: 'Prime',
+      type: 'INCOME',
+    });
+    expect((picker as HTMLInputElement).value).toBe('Prime');
+    expect(
+      within(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).getByText(
+        '« Prime » est créée avec le type Revenu, qui ne correspond pas au signe de ce mouvement : elle n’a pas été sélectionnée.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('issues one category request for two rapid quick-create submissions', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.createCategory.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' });
+    fireEvent.change(picker, { target: { value: 'Boulangerie' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Créer « Boulangerie »' }));
+    const form = within(screen.getByRole('dialog', { name: 'Nouvelle catégorie' }))
+      .getByRole('button', { name: 'Créer' })
+      .closest('form') as HTMLFormElement;
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(api.createCategory).toHaveBeenCalledOnce());
   });
 
   it('covers the empty state and creates a signed expense', async () => {

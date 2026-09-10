@@ -1,0 +1,42 @@
+.list {
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  right: 0;
+  left: 0;
+  max-height: 14rem;
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+  padding: var(--spacing-1);
+  overflow-y: auto;
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface-2);
+  box-shadow: var(--shadow-sheet);
+  list-style: none;
+}
+
+.list li {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  cursor: pointer;
+}
+
+.list li[aria-selected='true'] {
+  color: var(--gold-300);
+}
+
+.list .active {
+  background: var(--bg-surface-hover);
+}
+
+/* The creation entry is an action, not a category: set apart from the results
+   and carried by the accent reserved for calls to action. */
+.list .create {
+  margin-top: var(--spacing-1);
+  border-top: var(--border-line-subtle);
+  border-radius: var(--radius-none);
+  color: var(--gold-300);
+  font-weight: var(--font-weight-medium);
+}

@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useId, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
@@ -9,12 +9,13 @@ interface ModalProps {
   children: ReactNode;
   close: () => void;
   eyebrow?: string;
+  returnFocus?: RefObject<HTMLElement | null>;
   title: string;
 }
 
-export function Modal({ children, close, eyebrow, title }: ModalProps) {
+export function Modal({ children, close, eyebrow, returnFocus, title }: ModalProps) {
   const { t } = useTranslation();
-  const container = useDialogOverlay(close);
+  const container = useDialogOverlay(close, returnFocus);
   const titleId = useId();
 
   return createPortal(

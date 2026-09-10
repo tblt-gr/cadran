@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { Modal } from './Modal';
@@ -59,5 +60,53 @@ describe('Modal', () => {
 
     fireEvent.mouseDown(dialog.parentElement as HTMLElement);
     expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('keeps only the top nested dialog active and restores focus to its trigger', async () => {
+    function NestedDialogs() {
+      const [childOpen, setChildOpen] = useState(false);
+      const [parentOpen, setParentOpen] = useState(true);
+
+      return parentOpen ? (
+        <Modal close={() => setParentOpen(false)} title="Transaction">
+          <button onClick={() => setChildOpen(true)} type="button">
+            Créer une catégorie
+          </button>
+          {childOpen ? (
+            <Modal close={() => setChildOpen(false)} title="Nouvelle catégorie">
+              <input aria-label="Libellé" data-autofocus />
+            </Modal>
+          ) : null}
+        </Modal>
+      ) : null;
+    }
+
+    render(<NestedDialogs />);
+    const trigger = screen.getByRole('button', { name: 'Créer une catégorie' });
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    const parent = screen.getByRole('dialog', { name: 'Transaction' });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Libellé')));
+    expect(parent.hasAttribute('inert')).toBe(true);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(screen.queryByRole('dialog', { name: 'Nouvelle catégorie' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Transaction' }).hasAttribute('inert')).toBe(false);
+    expect(screen.getByRole('dialog', { name: 'Transaction' })).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+
+    fireEvent.click(trigger);
+    const childClosedByButton = screen.getByRole('dialog', { name: 'Nouvelle catégorie' });
+    fireEvent.click(within(childClosedByButton).getByRole('button', { name: 'Fermer' }));
+    expect(screen.queryByRole('dialog', { name: 'Nouvelle catégorie' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Transaction' })).toBeTruthy();
+
+    fireEvent.click(trigger);
+    const childClosedByBackdrop = screen.getByRole('dialog', { name: 'Nouvelle catégorie' });
+    fireEvent.mouseDown(childClosedByBackdrop.parentElement as HTMLElement);
+    expect(screen.queryByRole('dialog', { name: 'Nouvelle catégorie' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Transaction' })).toBeTruthy();
   });
 });

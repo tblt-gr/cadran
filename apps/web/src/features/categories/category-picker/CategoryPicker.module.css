@@ -20,39 +20,6 @@
   background: var(--bg-surface-2);
 }
 
-.list {
-  position: absolute;
-  z-index: 1;
-  top: 100%;
-  right: 0;
-  left: 0;
-  max-height: 14rem;
-  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
-  padding: var(--spacing-1);
-  overflow-y: auto;
-  border: var(--border-line-strong);
-  border-radius: var(--radius-control);
-  background: var(--bg-surface-2);
-  box-shadow: var(--shadow-sheet);
-  list-style: none;
-}
-
-.list li {
-  padding: var(--spacing-2) var(--spacing-3);
-  border-radius: var(--radius-control);
-  color: var(--text-primary);
-  font-size: var(--font-size-body);
-  cursor: pointer;
-}
-
-.list li[aria-selected='true'] {
-  color: var(--gold-300);
-}
-
-.active {
-  background: var(--bg-surface-hover);
-}
-
 .hint {
   color: var(--text-secondary);
 }
