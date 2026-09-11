@@ -81,7 +81,13 @@ export function CategoryPage() {
     onSuccess: async () => {
       setEditor(null);
       setSaved('saved');
-      await queryClient.invalidateQueries({ queryKey: ['categories'] });
+      // A category carries its colour and icon into every transaction row that
+      // references it, so a recoloured category invalidates those rows too.
+      await Promise.all(
+        [['categories'], ['category-candidates'], ['transactions']].map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        ),
+      );
     },
   });
 

@@ -169,6 +169,35 @@ final readonly class DbalCategoryRepository implements CategoryRepository
         return $labels;
     }
 
+    /**
+     * @param list<string> $ids
+     *
+     * @return array<string, array{label: string, icon: ?string, color: ?string}>
+     */
+    public function identitiesByIds(WorkspaceScope $workspace, array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT id, label, icon, color FROM category_categories WHERE workspace_id = :workspace_id AND id IN (:ids)',
+            ['workspace_id' => $workspace->id, 'ids' => $ids],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        $identities = [];
+        foreach ($rows as $row) {
+            $identities[CategoryRow::text($row['id'])] = [
+                'label' => CategoryRow::text($row['label']),
+                'icon' => CategoryRow::nullableText($row['icon']),
+                'color' => CategoryRow::nullableText($row['color']),
+            ];
+        }
+
+        return $identities;
+    }
+
     public function add(Category $category): void
     {
         try {

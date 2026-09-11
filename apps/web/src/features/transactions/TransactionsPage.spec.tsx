@@ -606,6 +606,8 @@ describe('TransactionsPage', () => {
           id: '00000000-0000-7000-8000-0000000000e1',
           categoryId: '00000000-0000-7000-8000-0000000000c1',
           categoryLabel: 'Courses',
+          categoryIcon: 'basket',
+          categoryColor: '#2E7D32',
           amount: transaction.amount,
           note: null,
         },

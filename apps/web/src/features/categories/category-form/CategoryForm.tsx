@@ -6,6 +6,11 @@ import type {
 } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { canonicalCategoryColor } from '@/features/categories/category-color';
+import { CategoryColorPicker } from '@/features/categories/category-color-picker/CategoryColorPicker';
+import { CategoryIconPicker } from '@/features/categories/category-icon-picker/CategoryIconPicker';
+import { categoryIcon } from '@/features/categories/category-icons';
+import { CategoryIdentityPreview } from '@/features/categories/category-identity-preview/CategoryIdentityPreview';
 import type { CategoryErrorKind } from '@/features/categories/categoryError';
 import { ParentCategoryField } from './parent-category-field/ParentCategoryField';
 import styles from './CategoryForm.module.css';
@@ -41,7 +46,7 @@ export function CategoryForm({
   const [label, setLabel] = useState(category?.label ?? '');
   const [parentId, setParentId] = useState(category?.parentId ?? '');
   const [icon, setIcon] = useState(category?.icon ?? '');
-  const [color, setColor] = useState(category?.color ?? '');
+  const [color, setColor] = useState(category?.color?.toUpperCase() ?? '');
   const [axes, setAxes] = useState<AnalyticAxis[]>(category?.defaultAnalyticAxes ?? []);
   const [budgetIncluded, setBudgetIncluded] = useState(category?.budgetIncluded ?? true);
   const [sortOrder, setSortOrder] = useState(String(category?.sortOrder ?? 0));
@@ -51,8 +56,8 @@ export function CategoryForm({
   const parsedOrder = Number.parseInt(sortOrder, 10);
   const labelInvalid = cleanLabel.length < 1 || [...cleanLabel].length > 80;
   const orderInvalid = !/^\d{1,5}$/.test(sortOrder) || parsedOrder < 0 || parsedOrder > 32767;
-  const iconInvalid = icon !== '' && !/^[a-z][a-z0-9-]{0,31}$/.test(icon);
-  const colorInvalid = color !== '' && !/^#[0-9a-fA-F]{6}$/.test(color);
+  const iconInvalid = icon !== '' && !categoryIcon(icon);
+  const colorInvalid = color !== '' && canonicalCategoryColor(color) === null;
 
   function toggleAxis(axis: AnalyticAxis) {
     setAxes((current) =>
@@ -136,32 +141,6 @@ export function CategoryForm({
         ) : null}
 
         <label>
-          <span>{t('categories.fields.icon')}</span>
-          <input
-            aria-invalid={showErrors && iconInvalid ? true : undefined}
-            autoComplete="off"
-            maxLength={32}
-            onChange={(event) => setIcon(event.target.value)}
-            placeholder="utensils"
-            value={icon}
-          />
-          {showErrors && iconInvalid ? <small>{t('categories.validation.icon')}</small> : null}
-        </label>
-
-        <label>
-          <span>{t('categories.fields.color')}</span>
-          <input
-            aria-invalid={showErrors && colorInvalid ? true : undefined}
-            autoComplete="off"
-            maxLength={7}
-            onChange={(event) => setColor(event.target.value)}
-            placeholder="#AABBCC"
-            value={color}
-          />
-          {showErrors && colorInvalid ? <small>{t('categories.validation.color')}</small> : null}
-        </label>
-
-        <label>
           <span>{t('categories.fields.order')}</span>
           <input
             aria-invalid={showErrors && orderInvalid ? true : undefined}
@@ -172,6 +151,11 @@ export function CategoryForm({
           {showErrors && orderInvalid ? <small>{t('categories.validation.order')}</small> : null}
         </label>
       </div>
+
+      <CategoryIdentityPreview color={color} icon={icon} label={cleanLabel} />
+      <CategoryColorPicker onChange={setColor} value={color} />
+      <CategoryIconPicker onChange={setIcon} value={icon} />
+      {showErrors && iconInvalid ? <p role="alert">{t('categories.validation.icon')}</p> : null}
 
       <fieldset className={styles.axes}>
         <legend>{t('categories.fields.axes')}</legend>

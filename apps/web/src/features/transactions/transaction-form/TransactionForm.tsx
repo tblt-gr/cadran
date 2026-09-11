@@ -14,7 +14,10 @@ import {
   validateTransactionValues,
   type TransactionFormValues,
 } from './transactionFormValues';
-import { TransactionCategoryField } from './transaction-category-field/TransactionCategoryField';
+import {
+  TransactionCategoryField,
+  type SavedCategory,
+} from './transaction-category-field/TransactionCategoryField';
 import styles from './TransactionForm.module.css';
 
 const NATURES: TransactionFormValues['nature'][] = ['EXPENSE', 'INCOME', 'FEE', 'ADJUSTMENT'];
@@ -304,8 +307,15 @@ export function TransactionForm({
   );
 }
 
-function savedCategory(transaction: Transaction | undefined): { id: string; label: string } | null {
+function savedCategory(transaction: Transaction | undefined): SavedCategory | null {
   const split = transaction?.splits[0];
 
-  return split ? { id: split.categoryId, label: split.categoryLabel } : null;
+  return split
+    ? {
+        color: split.categoryColor,
+        icon: split.categoryIcon,
+        id: split.categoryId,
+        label: split.categoryLabel,
+      }
+    : null;
 }

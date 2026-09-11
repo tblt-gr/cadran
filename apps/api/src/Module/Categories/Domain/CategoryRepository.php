@@ -71,6 +71,16 @@ interface CategoryRepository
      */
     public function labelsByIds(WorkspaceScope $workspace, array $ids): array;
 
+    /**
+     * The display identity of each requested category: what a row needs to draw
+     * a category, resolved in one bounded lookup rather than one per row.
+     *
+     * @param list<string> $ids
+     *
+     * @return array<string, array{label: string, icon: ?string, color: ?string}>
+     */
+    public function identitiesByIds(WorkspaceScope $workspace, array $ids): array;
+
     public function add(Category $category): void;
 
     /** Returns false when the expected version is stale. */

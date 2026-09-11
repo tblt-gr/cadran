@@ -2,6 +2,7 @@ import type { Category, CategoryLifecycleOperation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
+import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
 import { CategoryRedirection } from './category-redirection/CategoryRedirection';
 import styles from './CategoryList.module.css';
 
@@ -48,8 +49,11 @@ export function CategoryList({ categories, onEdit, onLifecycle }: CategoryListPr
               return (
                 <tr key={category.id}>
                   <th scope="row">
-                    <span>{category.label}</span>
-                    {category.color ? <small>{category.color}</small> : null}
+                    <CategoryIdentity
+                      color={category.color}
+                      icon={category.icon}
+                      label={category.label}
+                    />
                   </th>
                   <td>{t(`categories.types.${category.type}`)}</td>
                   <td>

@@ -8,6 +8,16 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ### Added
 
+- Category identity pickers: a category is either colourless or carries one freely chosen colour,
+  with the canonical `#RRGGBB` value editable beside the native control and no palette to pick
+  from. Icons come from a flat, searchable catalogue of 71 local glyphs that carries no category
+  meaning, so any icon fits any category. Each category then renders as one pill filled with its
+  colour, whose text and glyph use black or white by WCAG contrast ratio; a category without an
+  icon shows none, and a category without a colour keeps a neutral pill. The pill accompanies
+  categories in lists, selection fields and transactions, and refreshes immediately after category
+  edits. A transaction split exposes the read-only `categoryIcon` and `categoryColor` of its
+  category, resolved in the bounded lookup that already supplies its label, so a transaction row
+  draws its pill with no extra request.
 - Workspace-scoped transactions: a signed movement on one account, with exact decimal
   scale preservation, optional single-category allocation, optimistic editing, voiding
   without deletion, duplication dated today, cursor listing, and the `/transactions`

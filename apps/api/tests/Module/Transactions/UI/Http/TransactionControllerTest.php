@@ -19,6 +19,7 @@ final class TransactionControllerTest extends WebTestCase
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
     private const string OWN_EXPENSE = '00000000-0000-7000-8000-0000000000c1';
     private const string OWN_INCOME = '00000000-0000-7000-8000-0000000000c2';
+    private const string OWN_PLAIN_EXPENSE = '00000000-0000-7000-8000-0000000000c4';
     private const string OTHER_CATEGORY = '00000000-0000-7000-8000-0000000000c3';
     private const string FOREIGN_TRANSACTION = '00000000-0000-7000-8000-0000000000f9';
     private const string UNKNOWN_TRANSACTION = '00000000-0000-7000-8000-0000000000f8';
@@ -45,8 +46,9 @@ final class TransactionControllerTest extends WebTestCase
         $this->fixture->seed($hasher);
         $this->seedAccount(self::OWN_ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Compte courant');
         $this->seedAccount(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Compte voisin');
-        $this->seedCategory(self::OWN_EXPENSE, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Courses');
+        $this->seedCategory(self::OWN_EXPENSE, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Courses', 'basket', '#2E7D32');
         $this->seedCategory(self::OWN_INCOME, WorkspaceFixture::OWN_WORKSPACE, 'INCOME', 'Salaire');
+        $this->seedCategory(self::OWN_PLAIN_EXPENSE, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Divers');
         $this->seedCategory(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, 'EXPENSE', 'Privé voisin');
 
         $this->client->request('GET', '/api/v1/session');
@@ -85,6 +87,10 @@ final class TransactionControllerTest extends WebTestCase
         self::assertIsArray($splits[0]);
         self::assertSame(self::OWN_EXPENSE, $splits[0]['categoryId']);
         self::assertSame('Courses', $splits[0]['categoryLabel']);
+        // The split carries the display identity of its category so a transaction
+        // row draws the same marker as the categories screen.
+        self::assertSame('basket', $splits[0]['categoryIcon']);
+        self::assertSame('#2E7D32', $splits[0]['categoryColor']);
         self::assertSame(['value' => '-42.90', 'assetCode' => 'EUR'], $splits[0]['amount']);
         self::assertSame(1, $created['version']);
 
@@ -189,6 +195,18 @@ final class TransactionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
 
         self::assertSame(0, $this->ownTransactionCount());
+    }
+
+    public function testASplitExposesNoDisplayMetadataWhenItsCategoryHasNone(): void
+    {
+        $created = $this->createTransaction(overrides: ['categoryId' => self::OWN_PLAIN_EXPENSE]);
+
+        $splits = $created['splits'];
+        self::assertIsList($splits);
+        self::assertIsArray($splits[0]);
+        self::assertSame('Divers', $splits[0]['categoryLabel']);
+        self::assertNull($splits[0]['categoryIcon']);
+        self::assertNull($splits[0]['categoryColor']);
     }
 
     public function testZeroAmountWithAnIncomeCategoryIsRejectedForCreationAndEdition(): void
@@ -621,16 +639,22 @@ final class TransactionControllerTest extends WebTestCase
         ]);
     }
 
-    private function seedCategory(string $id, string $workspace, string $type, string $label): void
-    {
+    private function seedCategory(
+        string $id,
+        string $workspace,
+        string $type,
+        string $label,
+        ?string $icon = null,
+        ?string $color = null,
+    ): void {
         $this->connection->insert('category_categories', [
             'id' => $id,
             'workspace_id' => $workspace,
             'type' => $type,
             'label' => $label,
             'parent_id' => null,
-            'icon' => null,
-            'color' => null,
+            'icon' => $icon,
+            'color' => $color,
             'default_analytic_axes' => '[]',
             'budget_included' => true,
             'sort_order' => 0,

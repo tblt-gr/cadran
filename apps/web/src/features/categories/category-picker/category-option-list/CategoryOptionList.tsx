@@ -3,6 +3,7 @@ import {
   type CategoryChoice,
 } from '@/features/categories/category-picker/categoryChoice';
 import styles from './CategoryOptionList.module.css';
+import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
 
 interface CategoryOptionListProps {
   activeIndex: number;
@@ -45,7 +46,11 @@ export function CategoryOptionList({
           onMouseEnter={() => onActivate(index)}
           role="option"
         >
-          {choice.label}
+          {choice.kind === 'category' ? (
+            <CategoryIdentity color={choice.color} icon={choice.icon} label={choice.label} />
+          ) : (
+            choice.label
+          )}
         </li>
       ))}
     </ul>

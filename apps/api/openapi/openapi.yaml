@@ -6345,6 +6345,8 @@ components:
         - id
         - categoryId
         - categoryLabel
+        - categoryIcon
+        - categoryColor
         - amount
         - note
       properties:
@@ -6358,6 +6360,20 @@ components:
           type: string
           minLength: 1
           maxLength: 80
+        categoryIcon:
+          description: >-
+            Read-only display icon of the split category. Never accepted on write.
+          oneOf:
+            - type: string
+              pattern: '^[a-z][a-z0-9-]{0,31}$'
+            - type: 'null'
+        categoryColor:
+          description: >-
+            Read-only display colour of the split category. Never accepted on write.
+          oneOf:
+            - type: string
+              pattern: '^#[0-9A-F]{6}$'
+            - type: 'null'
         amount:
           $ref: '#/components/schemas/DecimalAmount'
         note:

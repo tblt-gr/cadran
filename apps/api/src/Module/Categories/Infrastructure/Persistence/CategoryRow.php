@@ -98,7 +98,7 @@ final readonly class CategoryRow
         return (string) $value;
     }
 
-    private static function nullableText(mixed $value): ?string
+    public static function nullableText(mixed $value): ?string
     {
         return null === $value ? null : self::text($value);
     }

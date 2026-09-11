@@ -8,7 +8,7 @@ use App\Module\Transactions\Domain\Transaction;
 
 final readonly class TransactionView
 {
-    /** @param list<array{id: string, categoryId: string, categoryLabel: string, amount: array{value: string, assetCode: string}, note: ?string}> $splits */
+    /** @param list<array{id: string, categoryId: string, categoryLabel: string, categoryIcon: ?string, categoryColor: ?string, amount: array{value: string, assetCode: string}, note: ?string}> $splits */
     public function __construct(
         public string $id,
         public string $accountId,
@@ -38,8 +38,14 @@ final readonly class TransactionView
     ) {
     }
 
-    /** @param array<string, string> $categoryLabels */
-    public static function fromTransaction(Transaction $transaction, array $categoryLabels): self
+    /**
+     * The split carries the current display identity of its category so a
+     * transaction row draws the same marker as the categories screen. It is a
+     * read-only projection: nothing about it is stored on the split.
+     *
+     * @param array<string, array{label: string, icon: ?string, color: ?string}> $categoryIdentities
+     */
+    public static function fromTransaction(Transaction $transaction, array $categoryIdentities): self
     {
         return new self(
             id: $transaction->id,
@@ -63,14 +69,20 @@ final readonly class TransactionView
             mcc: $transaction->mcc,
             maskedCard: $transaction->maskedCard,
             bankReference: $transaction->bankReference,
-            splits: array_map(static fn ($split): array => [
-                'id' => $split->id,
-                'categoryId' => $split->categoryId,
-                'categoryLabel' => $categoryLabels[$split->categoryId]
-                    ?? throw new \UnexpectedValueException('A transaction category label is missing.'),
-                'amount' => ['value' => $split->amount->value->toString(), 'assetCode' => $split->amount->asset->toString()],
-                'note' => $split->note,
-            ], $transaction->splits),
+            splits: array_map(static function ($split) use ($categoryIdentities): array {
+                $identity = $categoryIdentities[$split->categoryId]
+                    ?? throw new \UnexpectedValueException('A transaction category identity is missing.');
+
+                return [
+                    'id' => $split->id,
+                    'categoryId' => $split->categoryId,
+                    'categoryLabel' => $identity['label'],
+                    'categoryIcon' => $identity['icon'],
+                    'categoryColor' => $identity['color'],
+                    'amount' => ['value' => $split->amount->value->toString(), 'assetCode' => $split->amount->asset->toString()],
+                    'note' => $split->note,
+                ];
+            }, $transaction->splits),
             version: $transaction->version,
             createdAt: $transaction->createdAt->format(DATE_ATOM),
             updatedAt: $transaction->updatedAt->format(DATE_ATOM),
