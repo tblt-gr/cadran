@@ -7,11 +7,10 @@ import type {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
-import {
-  ADVANCED_FIELDS,
-  AdvancedTransactionFields,
-} from './advanced-fields/AdvancedTransactionFields';
-import { CategorizationField } from './categorization-field/CategorizationField';
+import { ADVANCED_FIELDS } from './advanced-fields/advancedFields';
+import { AdvancedTransactionFields } from './advanced-fields/AdvancedTransactionFields';
+import { SplitField } from './split-field/SplitField';
+import { TransactionCategoryField } from './transaction-category-field/TransactionCategoryField';
 import {
   categoryTypeForAmount,
   initialTransactionValues,
@@ -54,7 +53,8 @@ export function TransactionForm({
   const { t } = useTranslation();
   const [values, setValues] = useState(() => initialTransactionValues(transaction, accounts));
   const [showErrors, setShowErrors] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  // A split transaction is edited in the advanced section, so it opens there.
+  const [advancedOpen, setAdvancedOpen] = useState(() => values.splitMode);
   const resolved =
     values.accountId === '' && accounts[0] !== undefined
       ? { ...values, accountId: accounts[0].id }
@@ -208,30 +208,26 @@ export function TransactionForm({
           </select>
         </label>
 
-        <CategorizationField
-          assetCode={
-            transaction?.amount.assetCode ??
-            accounts.find((account) => account.id === resolved.accountId)?.assetCode ??
-            ''
-          }
-          categoryError={
-            errors.categoryId && values.categoryType !== null
-              ? t(`transactions.validation.categoryMismatch.${values.categoryType}`)
-              : null
-          }
-          categoryId={values.categoryId}
-          onChangeCategory={(categoryId, categoryType) =>
-            setValues((current) => ({ ...current, categoryId, categoryType }))
-          }
-          onChangeSplitMode={(splitMode) => set('splitMode', splitMode)}
-          onChangeSplits={(splits) => set('splits', splits)}
-          preferredType={preferredType}
-          savedCategory={savedCategory(transaction)}
-          showErrors={showErrors}
-          splitMode={values.splitMode}
-          splits={values.splits}
-          total={values.amountValue}
-        />
+        {values.splitMode ? (
+          <div className={styles.splitNotice}>
+            <span>{t('transactions.fields.category')}</span>
+            <p>{t('transactions.split.inAdvanced')}</p>
+          </div>
+        ) : (
+          <TransactionCategoryField
+            error={
+              errors.categoryId && values.categoryType !== null
+                ? t(`transactions.validation.categoryMismatch.${values.categoryType}`)
+                : null
+            }
+            onChange={(categoryId, categoryType) =>
+              setValues((current) => ({ ...current, categoryId, categoryType }))
+            }
+            preferredType={preferredType}
+            savedCategory={savedCategory(transaction)}
+            value={values.categoryId}
+          />
+        )}
 
         <AdvancedTransactionFields
           errors={errors}
@@ -240,6 +236,22 @@ export function TransactionForm({
           open={advancedOpen}
           rejectable={editing && transaction.state === 'PENDING'}
           showErrors={showErrors}
+          split={
+            <SplitField
+              assetCode={
+                transaction?.amount.assetCode ??
+                accounts.find((account) => account.id === resolved.accountId)?.assetCode ??
+                ''
+              }
+              onChangeSplitMode={(splitMode) => set('splitMode', splitMode)}
+              onChangeSplits={(splits) => set('splits', splits)}
+              preferredType={preferredType}
+              showErrors={showErrors}
+              splitMode={values.splitMode}
+              splits={values.splits}
+              total={values.amountValue}
+            />
+          }
           stateLockedHint={stateLocked ? t('transactions.form.stateLocked') : null}
           values={values}
         />

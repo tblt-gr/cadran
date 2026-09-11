@@ -1580,7 +1580,9 @@
       "axesNone": "aucun",
       "axesInherited": "{{axes}} — ceux de la catégorie",
       "axesInheritedUnknown": "ceux de la catégorie",
-      "axesReset": "Revenir aux axes de la catégorie"
+      "axesReset": "Revenir aux axes de la catégorie",
+      "summary": "Répartition",
+      "inAdvanced": "Répartie entre plusieurs catégories : voir la répartition en bas des champs avancés."
     },
     "pagination": {
       "next": "Mouvements plus anciens"

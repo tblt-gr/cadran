@@ -1,42 +1,35 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import type {
   TransactionFormErrors,
   TransactionFormValues,
 } from '@/features/transactions/transaction-form/transactionFormValues';
+import { LABELLED_FIELDS, type LabelledField } from './advancedFields';
 import styles from './AdvancedTransactionFields.module.css';
-
-/** The fields a manual entry rarely needs, folded under the essential ones. */
-export const ADVANCED_FIELDS = [
-  'counterparty',
-  'note',
-  'state',
-  'valueOn',
-  'authorizedOn',
-] as const satisfies ReadonlyArray<keyof TransactionFormValues>;
-
-type AdvancedField = (typeof ADVANCED_FIELDS)[number];
 
 interface AdvancedTransactionFieldsProps {
   errors: TransactionFormErrors;
-  onChange: <K extends AdvancedField>(field: K, value: TransactionFormValues[K]) => void;
+  onChange: <K extends LabelledField>(field: K, value: TransactionFormValues[K]) => void;
   onToggle: (open: boolean) => void;
   open: boolean;
   /** Offers the rejection of a pending transaction, which only an edit can do. */
   rejectable: boolean;
   showErrors: boolean;
+  /** The split across several categories, closing the section. */
+  split: ReactNode;
   /** Why the state cannot change any more, or `null` while it can. */
   stateLockedHint: string | null;
-  values: Pick<TransactionFormValues, AdvancedField>;
+  values: Pick<TransactionFormValues, LabelledField | 'splitMode'>;
 }
 
 /** Whether a field holds something other than what a new manual entry starts with. */
-function filled(field: AdvancedField, values: Pick<TransactionFormValues, AdvancedField>) {
+function filled(field: LabelledField, values: Pick<TransactionFormValues, LabelledField>) {
   return field === 'state' ? values.state !== 'BOOKED' : values[field] !== '';
 }
 
 /**
- * Counterparty, note, state and the secondary dates of a transaction. They stay
+ * Counterparty, state, secondary dates, note and the split of a transaction. They stay
  * folded by default; the summary names those holding a value so nothing is hidden
  * without a trace, and the form opens the section when one of them is invalid.
  */
@@ -47,13 +40,17 @@ export function AdvancedTransactionFields({
   open,
   rejectable,
   showErrors,
+  split,
   stateLockedHint,
   values,
 }: AdvancedTransactionFieldsProps) {
   const { t } = useTranslation();
-  const filledNames = ADVANCED_FIELDS.filter((field) => filled(field, values)).map((field) =>
-    t(`transactions.fields.${field}`),
-  );
+  const filledNames = [
+    ...LABELLED_FIELDS.filter((field) => filled(field, values)).map((field) =>
+      t(`transactions.fields.${field}`),
+    ),
+    ...(values.splitMode ? [t('transactions.split.summary')] : []),
+  ];
 
   return (
     <Disclosure
@@ -134,6 +131,8 @@ export function AdvancedTransactionFields({
           />
           {showErrors && errors.note ? <small>{t('transactions.validation.note')}</small> : null}
         </label>
+
+        {split}
       </div>
     </Disclosure>
   );

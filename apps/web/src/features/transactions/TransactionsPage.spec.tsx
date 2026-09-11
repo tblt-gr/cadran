@@ -506,6 +506,45 @@ describe('TransactionsPage', () => {
     expect(api.createTransaction).not.toHaveBeenCalled();
   });
 
+  it('closes the advanced fields with the split, which takes over the category slot', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Nouvelle transaction' });
+    const advanced = within(dialog)
+      .getByText('Champs avancés')
+      .closest('details') as HTMLDetailsElement;
+    const toggle = within(dialog).getByLabelText('Répartir entre plusieurs catégories');
+    const fields = within(advanced).getAllByRole('checkbox');
+    expect(fields.at(-1)).toBe(toggle);
+    expect(
+      within(advanced).getByLabelText('Note').compareDocumentPosition(toggle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(toggle);
+
+    expect(within(dialog).queryByRole('combobox', { name: 'Catégorie' })).toBeNull();
+    expect(
+      within(dialog).getByText(
+        'Répartie entre plusieurs catégories : voir la répartition en bas des champs avancés.',
+      ),
+    ).toBeTruthy();
+    expect(advanced.querySelector('summary')?.textContent).toContain('Répartition');
+    expect(
+      within(advanced).getByRole('combobox', { name: 'Catégorie de la ligne 1' }),
+    ).toBeTruthy();
+  });
+
   it('switches to the to-categorise queue, requests it and shows its own empty state', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 100, total: 1 }),
