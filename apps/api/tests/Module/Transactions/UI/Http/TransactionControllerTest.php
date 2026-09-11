@@ -668,6 +668,34 @@ final class TransactionControllerTest extends WebTestCase
         self::assertCount(2, $duplicateSplits);
     }
 
+    public function testDuplicatingATransactionWhoseCategoryHasSinceBeenArchivedStillSucceeds(): void
+    {
+        $created = $this->createTransaction(overrides: ['categoryId' => self::OWN_PLAIN_EXPENSE]);
+        $this->connection->update(
+            'category_categories',
+            ['archived_at' => '2026-03-14 09:12:04+00'],
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::OWN_PLAIN_EXPENSE],
+        );
+
+        $this->requestDuplicate(self::stringValue($created, 'id'));
+
+        self::assertResponseStatusCodeSame(201);
+        $duplicateSplits = $this->decode()['splits'];
+        self::assertIsList($duplicateSplits);
+        self::assertCount(1, $duplicateSplits);
+    }
+
+    public function testASplitValidationFailureInsideTheDomainIsReportedAsAProblemNotACrash(): void
+    {
+        $created = $this->createTransaction();
+
+        $this->requestReplaceSplits(self::stringValue($created, 'id'), 1, [
+            $this->splitRow(self::OWN_EXPENSE, '-42.90', ['ESSENTIAL', 'ESSENTIAL']),
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
     /**
      * @param array<string, mixed> $overrides
      *

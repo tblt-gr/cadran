@@ -69,15 +69,15 @@ final readonly class UpdateTransaction
             foreach ($current->splits as $existingSplit) {
                 $existingByCategory[$existingSplit->categoryId] = $existingSplit;
             }
-            $splits = null === $input->splits
-                ? self::wrap($this->references->split(
-                    $context->workspace, $current->id, $input->categoryId, $draft, $now, $current->splits[0] ?? null,
-                ))
-                : $this->references->splits(
-                    $context->workspace, $current->id, $this->splitParser->parse($input->splits), $draft->amount, $now, $existingByCategory,
-                );
 
             try {
+                $splits = null === $input->splits
+                    ? self::wrap($this->references->split(
+                        $context->workspace, $current->id, $input->categoryId, $draft, $now, $current->splits[0] ?? null,
+                    ))
+                    : $this->references->splits(
+                        $context->workspace, $current->id, $this->splitParser->parse($input->splits), $draft->amount, $now, $existingByCategory,
+                    );
                 $updated = $current->edit(
                     amount: $draft->amount, nature: $draft->nature, state: $draft->state,
                     bookedOn: $draft->bookedOn, valueOn: $draft->valueOn, authorizedOn: $draft->authorizedOn,

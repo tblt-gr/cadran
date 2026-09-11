@@ -7,8 +7,7 @@ import type {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
-import { emptySplitRow } from '@/features/transactions/split-editor/splitAllocation';
-import { SplitEditor } from '@/features/transactions/split-editor/SplitEditor';
+import { CategorizationField } from './categorization-field/CategorizationField';
 import {
   categoryTypeForAmount,
   initialTransactionValues,
@@ -16,10 +15,7 @@ import {
   validateTransactionValues,
   type TransactionFormValues,
 } from './transactionFormValues';
-import {
-  TransactionCategoryField,
-  type SavedCategory,
-} from './transaction-category-field/TransactionCategoryField';
+import type { SavedCategory } from './transaction-category-field/TransactionCategoryField';
 import styles from './TransactionForm.module.css';
 
 const NATURES: TransactionFormValues['nature'][] = ['EXPENSE', 'INCOME', 'FEE', 'ADJUSTMENT'];
@@ -290,49 +286,25 @@ export function TransactionForm({
             ))}
           </select>
         </label>
-      </div>
 
-      <div className={styles.splitToggle}>
-        <label>
-          <input
-            checked={values.splitMode}
-            onChange={(event) => {
-              const splitMode = event.target.checked;
-              setValues((current) => ({
-                ...current,
-                splitMode,
-                splits:
-                  splitMode && current.splits.length === 0 ? [emptySplitRow()] : current.splits,
-              }));
-            }}
-            type="checkbox"
-          />
-          <span>{t('transactions.split.toggle')}</span>
-        </label>
-      </div>
-
-      {values.splitMode ? (
-        <SplitEditor
+        <CategorizationField
           assetCode={
             transaction?.amount.assetCode ??
             accounts.find((account) => account.id === resolved.accountId)?.assetCode ??
             ''
           }
+          categoryId={values.categoryId}
           categoryType={categoryType}
-          onChange={(splits) => set('splits', splits)}
-          rows={values.splits}
+          onChangeCategoryId={(categoryId) => set('categoryId', categoryId)}
+          onChangeSplitMode={(splitMode) => set('splitMode', splitMode)}
+          onChangeSplits={(splits) => set('splits', splits)}
+          savedCategory={savedCategory(transaction)}
           showErrors={showErrors}
+          splitMode={values.splitMode}
+          splits={values.splits}
           total={values.amountValue}
         />
-      ) : (
-        <TransactionCategoryField
-          key={categoryType}
-          onChange={(categoryId) => set('categoryId', categoryId)}
-          savedCategory={savedCategory(transaction)}
-          type={categoryType}
-          value={values.categoryId}
-        />
-      )}
+      </div>
 
       <div className={styles.actions}>
         <button className="primary-action" disabled={pending} type="submit">

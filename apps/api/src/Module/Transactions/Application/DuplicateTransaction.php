@@ -55,15 +55,22 @@ final readonly class DuplicateTransaction
             );
             $this->references->accountForNew($context->workspace, $source->accountId, $draft, $today, $now);
             $newId = $this->uuidGenerator->generate();
-            $splits = [] === $source->splits
-                ? []
-                : $this->references->splits($context->workspace, $newId, array_map(
-                    static fn (TransactionSplit $split): TransactionSplitInput => new TransactionSplitInput(
-                        $split->categoryId, $split->amount, $split->analyticAxes, $split->note,
-                    ),
-                    $source->splits,
-                ), $source->amount, $now);
+
             try {
+                // Archived categories stay allowed here: the source transaction was
+                // valid when it was assigned, and this builds a brand-new split row
+                // (its own fresh identity) rather than editing the source in place.
+                $splits = [] === $source->splits
+                    ? []
+                    : $this->references->splits(
+                        $context->workspace, $newId, array_map(
+                            static fn (TransactionSplit $split): TransactionSplitInput => new TransactionSplitInput(
+                                $split->categoryId, $split->amount, $split->analyticAxes, $split->note,
+                            ),
+                            $source->splits,
+                        ),
+                        $source->amount, $now, allowArchivedCategories: true,
+                    );
                 $duplicate = new Transaction(
                     id: $newId, workspace: $context->workspace, accountId: $source->accountId,
                     amount: $source->amount, originalAmount: null, exchangeRate: null,

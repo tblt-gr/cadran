@@ -142,6 +142,27 @@ describe('SplitEditor', () => {
     );
   });
 
+  it('announces a zero-amount row as an error even though its sum still balances', async () => {
+    api.listAssets.mockImplementation(() =>
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+
+    renderEditor(
+      [
+        { ...emptySplitRow(), amount: '-20.00' },
+        { ...emptySplitRow(), amount: '0.00' },
+      ],
+      { showErrors: true, total: '-20.00' },
+    );
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    const amountInputs = await screen.findAllByLabelText(/^Montant de la ligne/);
+    expect(amountInputs[1]?.getAttribute('aria-invalid')).toBe('true');
+  });
+
   it('assigns the remainder to a row so the allocation balances exactly', async () => {
     api.listAssets.mockImplementation(() =>
       success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),

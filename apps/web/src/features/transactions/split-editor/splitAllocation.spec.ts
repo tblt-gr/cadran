@@ -70,6 +70,12 @@ describe('evenSplitRows', () => {
     expect(canEvenSplit('-100.00', 2, 21)).toBe(false);
   });
 
+  it('is unavailable when the amount holds fewer smallest units than rows, rather than forcing a zero row', () => {
+    expect(canEvenSplit('-0.01', 2, 3)).toBe(false);
+    expect(() => evenSplitRows('-0.01', 2, 3)).toThrow();
+    expect(canEvenSplit('-0.02', 2, 2)).toBe(true);
+  });
+
   it('always sums exactly to the amount and never varies between two runs, for many amounts and row counts', () => {
     let seed = 42;
     const nextInt = (max: number): number => {

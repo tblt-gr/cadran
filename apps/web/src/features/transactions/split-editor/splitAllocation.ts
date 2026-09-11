@@ -48,19 +48,25 @@ export function assignRemainderToRow(
 
 /**
  * Whether {@see evenSplitRows} can serve this amount: it is an exact,
- * non-zero canonical decimal, the row count is within bounds, and the amount
+ * non-zero canonical decimal, the row count is within bounds, the amount
  * carries no more fraction digits than the asset's display precision — a more
  * precise source figure would need rounding to spread evenly, which the
- * helper refuses to do silently.
+ * helper refuses to do silently — and the amount holds at least one smallest
+ * unit per row, so no row would be forced to zero (itself refused elsewhere:
+ * a split amount cannot be zero).
  */
 export function canEvenSplit(total: string, precision: number, rowCount: number): boolean {
-  return (
-    isCanonicalDecimal(total) &&
-    !isZeroDecimal(total) &&
-    rowCount >= MIN_EVEN_SPLIT_ROWS &&
-    rowCount <= MAX_SPLIT_ROWS &&
-    fractionDigits(total) <= precision
-  );
+  if (
+    !isCanonicalDecimal(total) ||
+    isZeroDecimal(total) ||
+    rowCount < MIN_EVEN_SPLIT_ROWS ||
+    rowCount > MAX_SPLIT_ROWS ||
+    fractionDigits(total) > precision
+  ) {
+    return false;
+  }
+
+  return unitsOf(total, precision) >= BigInt(rowCount);
 }
 
 /**
@@ -77,9 +83,7 @@ export function evenSplitRows(total: string, precision: number, rowCount: number
   }
 
   const negative = total.startsWith('-');
-  const unsigned = negative ? total.slice(1) : total;
-  const [integer, fraction = ''] = unsigned.split('.');
-  const units = BigInt(integer + fraction.padEnd(precision, '0'));
+  const units = unitsOf(total, precision);
   const rows = BigInt(rowCount);
   const base = units / rows;
   const remainderUnits = units % rows;
@@ -89,6 +93,14 @@ export function evenSplitRows(total: string, precision: number, rowCount: number
 
     return formatUnits(negative ? -rowUnits : rowUnits, precision);
   });
+}
+
+/** The unsigned magnitude of a canonical decimal, in `10^-precision` smallest units. */
+function unitsOf(value: string, precision: number): bigint {
+  const unsigned = value.startsWith('-') ? value.slice(1) : value;
+  const [integer, fraction = ''] = unsigned.split('.');
+
+  return BigInt(integer + fraction.padEnd(precision, '0'));
 }
 
 function fractionDigits(value: string): number {

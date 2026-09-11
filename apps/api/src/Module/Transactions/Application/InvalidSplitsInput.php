@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Application;
 
 /**
- * A safe, machine-readable split-allocation rejection, handled globally by
- * {@see \App\Module\Foundation\UI\Http\ApiProblemResponseListener} the same
- * way as {@see \App\Module\Foundation\Application\InvalidAmountInput}: the
- * rule code names the RFC 9457 problem type and the translation parameters,
- * so a controller never has to know the split rules to report them.
+ * A safe, machine-readable split-allocation rejection. Each transaction
+ * controller action that can resolve a split allocation catches this
+ * explicitly and reports it through
+ * {@see \App\Module\Transactions\UI\Http\TransactionHttpEnvelope::invalidSplitsProblem()},
+ * which turns the rule code into the RFC 9457 problem type and the
+ * translation parameters — unlike
+ * {@see \App\Module\Foundation\Application\InvalidAmountInput}, which the
+ * global {@see \App\Module\Foundation\UI\Http\ApiProblemResponseListener}
+ * handles without any controller catch. A new call site must add its own
+ * catch block.
  */
 final class InvalidSplitsInput extends \RuntimeException
 {

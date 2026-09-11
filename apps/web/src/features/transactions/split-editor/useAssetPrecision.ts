@@ -1,6 +1,4 @@
-import { listAssets } from '@cadran/api-client';
-import { useQuery } from '@tanstack/react-query';
-import { authApiOptions } from '@/features/auth/apiOptions';
+import { useReferenceAssets } from '@/hooks/use-reference-assets';
 
 /**
  * The display precision of one asset, read from the system reference so the
@@ -9,21 +7,7 @@ import { authApiOptions } from '@/features/auth/apiOptions';
  * than guessing a scale.
  */
 export function useAssetPrecision(assetCode: string): number | null {
-  const assets = useQuery({
-    queryKey: ['reference-assets'],
-    queryFn: async ({ signal }) => {
-      const result = await listAssets({
-        ...authApiOptions(),
-        query: { page: 1, perPage: 100 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) {
-        throw new Error('Unable to load the asset reference.');
-      }
-      return result.data;
-    },
-    retry: false,
-  });
+  const assets = useReferenceAssets();
 
   return assets.data?.items.find((asset) => asset.code === assetCode)?.displayPrecision ?? null;
 }

@@ -52,11 +52,11 @@ final readonly class CreateTransaction
             $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
             $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
             $id = $this->uuidGenerator->generate();
-            $splits = null === $input->splits
-                ? self::wrap($this->references->split($context->workspace, $id, $input->categoryId, $draft, $now))
-                : $this->references->splits($context->workspace, $id, $this->splitParser->parse($input->splits), $draft->amount, $now);
 
             try {
+                $splits = null === $input->splits
+                    ? self::wrap($this->references->split($context->workspace, $id, $input->categoryId, $draft, $now))
+                    : $this->references->splits($context->workspace, $id, $this->splitParser->parse($input->splits), $draft->amount, $now);
                 $transaction = new Transaction(
                     id: $id, workspace: $context->workspace, accountId: $input->accountId, amount: $draft->amount,
                     originalAmount: null, exchangeRate: null, state: $draft->state, nature: $draft->nature,

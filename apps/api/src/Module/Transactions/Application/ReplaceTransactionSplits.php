@@ -57,11 +57,10 @@ final readonly class ReplaceTransactionSplits
             foreach ($current->splits as $split) {
                 $existingByCategory[$split->categoryId] = $split;
             }
-            $splits = $this->references->splits(
-                $context->workspace, $current->id, $inputs, $current->amount, $now, $existingByCategory,
-            );
-
             try {
+                $splits = $this->references->splits(
+                    $context->workspace, $current->id, $inputs, $current->amount, $now, $existingByCategory,
+                );
                 $updated = $current->edit(
                     amount: $current->amount, nature: $current->nature, state: $current->state,
                     bookedOn: $current->bookedOn, valueOn: $current->valueOn, authorizedOn: $current->authorizedOn,

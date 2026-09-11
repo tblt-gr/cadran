@@ -1,6 +1,5 @@
-import { listAssets, type Asset } from '@cadran/api-client';
-import { useQuery } from '@tanstack/react-query';
-import { authApiOptions } from '@/features/auth/apiOptions';
+import type { Asset } from '@cadran/api-client';
+import { useReferenceAssets } from '@/hooks/use-reference-assets';
 
 const PREFERRED_ASSET = 'EUR';
 
@@ -23,23 +22,9 @@ export interface AssetOptions {
  * creation and could not be corrected afterwards.
  */
 export function useAssetOptions(selection: string): AssetOptions {
-  const assets = useQuery({
-    queryKey: ['reference-assets'],
-    queryFn: async ({ signal }) => {
-      const result = await listAssets({
-        ...authApiOptions(),
-        query: { page: 1, perPage: 100 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) {
-        throw new Error('Unable to load the asset reference.');
-      }
-      return result.data;
-    },
-    retry: false,
-  });
+  const assets = useReferenceAssets();
 
-  const items = assets.data?.items ?? [];
+  const items: Asset[] = assets.data?.items ?? [];
   const codes = items.map((asset) => asset.code);
   const fallback = codes.includes(PREFERRED_ASSET) ? PREFERRED_ASSET : (codes[0] ?? '');
 

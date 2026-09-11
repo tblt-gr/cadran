@@ -114,8 +114,12 @@ final readonly class TransactionReferences
      * client computed is never assumed correct.
      *
      * @param list<TransactionSplitInput>     $inputs
-     * @param array<string, TransactionSplit> $existingByCategory splits already on the transaction, keyed by category, so
-     *                                                            a row that keeps its category keeps its identity and creation date
+     * @param array<string, TransactionSplit> $existingByCategory      splits already on the transaction, keyed by category, so
+     *                                                                 a row that keeps its category keeps its identity and creation date
+     * @param bool                            $allowArchivedCategories lets a category already legitimately assigned elsewhere
+     *                                                                 (duplicating a transaction) carry over even if archived
+     *                                                                 since, without an $existing row here, its identity is
+     *                                                                 still freshly generated
      *
      * @return list<TransactionSplit>
      */
@@ -126,6 +130,7 @@ final readonly class TransactionReferences
         AssetAmount $transactionAmount,
         \DateTimeImmutable $now,
         array $existingByCategory = [],
+        bool $allowArchivedCategories = false,
     ): array {
         if (count($inputs) > Transaction::MAX_SPLITS) {
             throw new InvalidSplitsInput(InvalidSplitsInput::TOO_MANY);
@@ -145,7 +150,8 @@ final readonly class TransactionReferences
         $resolvedByCategory = [];
         foreach ($sortedInputs as $input) {
             $resolvedByCategory[$input->categoryId] = $this->resolveSplit(
-                $workspace, $transactionId, $input, $transactionAmount, $now, $existingByCategory[$input->categoryId] ?? null,
+                $workspace, $transactionId, $input, $transactionAmount, $now,
+                $existingByCategory[$input->categoryId] ?? null, $allowArchivedCategories,
             );
         }
         $splits = array_map(
@@ -171,6 +177,7 @@ final readonly class TransactionReferences
         AssetAmount $transactionAmount,
         \DateTimeImmutable $now,
         ?TransactionSplit $existing,
+        bool $allowArchivedCategory = false,
     ): TransactionSplit {
         if ($input->amount->asset->toString() !== $transactionAmount->asset->toString()
             || $input->amount->value->isNegative() !== $transactionAmount->value->isNegative()
@@ -182,7 +189,7 @@ final readonly class TransactionReferences
         if (null === $category) {
             throw new TransactionNotFound();
         }
-        if (null !== $category->archivedAt && null === $existing) {
+        if (null !== $category->archivedAt && null === $existing && !$allowArchivedCategory) {
             throw new InvalidTransactionInput('A transaction category must be active.');
         }
         $expectedType = $transactionAmount->value->isNegative() ? CategoryType::EXPENSE : CategoryType::INCOME;

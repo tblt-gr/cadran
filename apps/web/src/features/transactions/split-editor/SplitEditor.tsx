@@ -44,16 +44,28 @@ export function SplitEditor({
   const exactTotal = isCanonicalDecimal(total) ? total : null;
   const amounts = rows.map((row) => (isCanonicalDecimal(row.amount) ? row.amount : '0'));
   const remaining = exactTotal === null ? null : remainingAmount(exactTotal, amounts);
-  const balanced = remaining !== null && isZeroDecimal(remaining);
+  const sumBalanced = remaining !== null && isZeroDecimal(remaining);
   const signMismatch = (row: SplitRowValues): boolean =>
     exactTotal !== null &&
     isCanonicalDecimal(row.amount) &&
     !isZeroDecimal(row.amount) &&
     exactTotal.startsWith('-') !== row.amount.startsWith('-');
+  // A row whose amount cannot become a real split — inexact, zero, or the
+  // wrong sign — is flagged on the amount field itself.
+  const amountInvalid = (row: SplitRowValues): boolean =>
+    !isCanonicalDecimal(row.amount) || isZeroDecimal(row.amount) || signMismatch(row);
+  // A row missing its category blocks submission exactly as much as a bad
+  // amount does, even though no single field carries that error visually
+  // beyond the shared banner below.
+  const rowIsIncomplete = (row: SplitRowValues): boolean =>
+    row.categoryId === '' || amountInvalid(row);
   const categoryIds = rows.map((row) => row.categoryId).filter((id) => id !== '');
   const duplicateCategoryIds = new Set(
     categoryIds.filter((id, index) => categoryIds.indexOf(id) !== index),
   );
+  const allocationValid =
+    rows.length === 0 ||
+    (sumBalanced && duplicateCategoryIds.size === 0 && !rows.some(rowIsIncomplete));
   const evenSplitAvailable =
     precision !== null && exactTotal !== null && canEvenSplit(exactTotal, precision, rows.length);
 
@@ -101,7 +113,7 @@ export function SplitEditor({
             : formatAmount(remaining, assetCode, i18n.language)}
         </strong>
       </div>
-      {showErrors && !balanced ? (
+      {showErrors && !allocationValid ? (
         <p className={styles.error} role="alert">
           {t('transactions.split.remainingError')}
         </p>
@@ -113,14 +125,14 @@ export function SplitEditor({
             <SplitRow
               duplicateCategory={row.categoryId !== '' && duplicateCategoryIds.has(row.categoryId)}
               index={index}
-              invalid={showErrors && (!isCanonicalDecimal(row.amount) || signMismatch(row))}
+              invalid={showErrors && amountInvalid(row)}
               onChange={(values) => updateRow(index, values)}
               onRemove={() => removeRow(index)}
               removable
               type={categoryType}
               values={row}
             />
-            {!balanced ? (
+            {!sumBalanced ? (
               <button
                 className="secondary-action"
                 onClick={() => assignRemainder(index)}
