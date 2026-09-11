@@ -64,6 +64,7 @@ const transaction: Transaction = {
       categoryIcon: category.icon,
       categoryColor: category.color,
       amount: { value: '-12.50', assetCode: 'EUR' },
+      analyticAxes: [],
       note: null,
     },
   ],

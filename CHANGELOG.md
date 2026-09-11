@@ -8,6 +8,14 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ### Added
 
+- Split a transaction across zero to twenty categories, each with its own exact amount, optional
+  analytic axes and note, summing exactly to the transaction amount or left empty. The transaction
+  modal offers a split editor with a live remaining amount, "assign the remainder to this row" and
+  a deterministic "split evenly across N rows" helper, both computed with exact decimal arithmetic.
+  A dedicated `PUT /api/v1/transactions/{id}/splits` endpoint replaces an allocation on its own,
+  and the transactions screen exposes a "to categorise" tab (`GET
+/api/v1/transactions?categorization=NONE`) with its own empty state for the non-voided
+  transactions that carry no split yet.
 - Category identity pickers: a category is either colourless or carries one freely chosen colour,
   with the canonical `#RRGGBB` value editable beside the native control and no palette to pick
   from. Icons come from a flat, searchable catalogue of 71 local glyphs that carries no category

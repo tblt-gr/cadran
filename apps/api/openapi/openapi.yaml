@@ -2347,8 +2347,8 @@ paths:
       description: >-
         Requires an authenticated session. Newest booked day first, then
         identifier. Voided rows are omitted unless explicitly requested.
-        This release accepts only account, voided-inclusion, page size and
-        cursor filters.
+        This release accepts only account, voided-inclusion, categorization,
+        page size and cursor filters.
       tags:
         - Transactions
       security:
@@ -2366,6 +2366,17 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: categorization
+          in: query
+          required: false
+          description: >-
+            `NONE` restricts the page to the non-voided transactions carrying
+            no split at all — the "to categorise" queue — and takes precedence
+            over includeVoided.
+          schema:
+            type: string
+            enum:
+              - NONE
         - name: pageSize
           in: query
           required: false
@@ -2446,7 +2457,11 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           description: >-
-            The amount, dates, nature, category or bounds are invalid.
+            The amount, dates, nature, category or bounds are invalid, or the
+            splits allocation does not sum to the amount
+            (`type: /problems/splits.sum_mismatch`), carries more than twenty
+            rows (`type: /problems/splits.too_many`) or repeats a category
+            (`type: /problems/splits.duplicate_category`).
           content:
             application/problem+json:
               schema:
@@ -2537,7 +2552,83 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: The edit is invalid or tried to change an immutable field.
+          description: >-
+            The edit is invalid, tried to change an immutable field, or the
+            splits allocation does not sum to the amount
+            (`type: /problems/splits.sum_mismatch`), carries more than twenty
+            rows (`type: /problems/splits.too_many`) or repeats a category
+            (`type: /problems/splits.duplicate_category`).
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AmountInputProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/transactions/{id}/splits:
+    put:
+      operationId: replaceTransactionSplits
+      summary: Replace the whole split allocation of a transaction
+      description: >-
+        Zero to twenty splits, each sharing the transaction asset and sign,
+        no category repeated, summing exactly to the transaction amount, or
+        an empty list to return the transaction to the "to categorise" queue.
+        The amount, state and every other field stay untouched.
+        Optimistic versioning.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceTransactionSplitsRequest'
+      responses:
+        '200':
+          description: The transaction with its new allocation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The submitted version is stale (`type: /problems/stale-version`)
+            or the transaction is terminal (`type: /problems/transaction-conflict`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The allocation does not sum to the amount
+            (`type: /problems/splits.sum_mismatch`), carries more than twenty
+            rows (`type: /problems/splits.too_many`), repeats a category
+            (`type: /problems/splits.duplicate_category`), or a split is
+            zero, of the opposite sign, of another asset, or its category is
+            archived or of the wrong type.
           content:
             application/problem+json:
               schema:
@@ -6321,7 +6412,7 @@ components:
             - type: 'null'
         splits:
           type: array
-          maxItems: 1
+          maxItems: 20
           items:
             $ref: '#/components/schemas/TransactionSplit'
         version:
@@ -6348,6 +6439,7 @@ components:
         - categoryIcon
         - categoryColor
         - amount
+        - analyticAxes
         - note
       properties:
         id:
@@ -6376,6 +6468,8 @@ components:
             - type: 'null'
         amount:
           $ref: '#/components/schemas/DecimalAmount'
+        analyticAxes:
+          $ref: '#/components/schemas/AnalyticAxes'
         note:
           oneOf:
             - type: string
@@ -6439,6 +6533,7 @@ components:
         - maskedCard
         - bankReference
         - categoryId
+        - splits
       properties:
         accountId:
           type: string
@@ -6506,6 +6601,17 @@ components:
             - type: string
               format: uuid
             - type: 'null'
+        splits:
+          description: >-
+            An explicit multi-row allocation, replacing the categoryId
+            shorthand. Null keeps the shorthand; an empty list is a
+            deliberate, uncategorised transaction.
+          oneOf:
+            - type: array
+              maxItems: 20
+              items:
+                $ref: '#/components/schemas/TransactionSplitInput'
+            - type: 'null'
     UpdateTransactionRequest:
       type: object
       additionalProperties: false
@@ -6525,6 +6631,7 @@ components:
         - maskedCard
         - bankReference
         - categoryId
+        - splits
         - version
       properties:
         accountId:
@@ -6597,9 +6704,64 @@ components:
             - type: string
               format: uuid
             - type: 'null'
+        splits:
+          description: >-
+            An explicit multi-row allocation, replacing the categoryId
+            shorthand. Null keeps the shorthand; an empty list clears the
+            allocation and returns the transaction to the "to categorise"
+            queue.
+          oneOf:
+            - type: array
+              maxItems: 20
+              items:
+                $ref: '#/components/schemas/TransactionSplitInput'
+            - type: 'null'
         version:
           type: integer
           minimum: 1
+    ReplaceTransactionSplitsRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - splits
+        - version
+      properties:
+        splits:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/TransactionSplitInput'
+        version:
+          type: integer
+          minimum: 1
+    TransactionSplitInput:
+      type: object
+      additionalProperties: false
+      required:
+        - categoryId
+        - amount
+        - analyticAxes
+        - note
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        analyticAxes:
+          description: >-
+            Null inherits the picked category's default axes; an explicit
+            list, even empty, overrides them. An override never rewrites the
+            category itself.
+          oneOf:
+            - $ref: '#/components/schemas/AnalyticAxes'
+            - type: 'null'
+        note:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 140
+            - type: 'null'
     VoidTransactionRequest:
       type: object
       additionalProperties: false

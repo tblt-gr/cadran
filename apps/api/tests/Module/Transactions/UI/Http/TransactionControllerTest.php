@@ -6,6 +6,7 @@ namespace App\Tests\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Module\Transactions\UI\Http\TransactionHttpEnvelope;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -20,6 +21,7 @@ final class TransactionControllerTest extends WebTestCase
     private const string OWN_EXPENSE = '00000000-0000-7000-8000-0000000000c1';
     private const string OWN_INCOME = '00000000-0000-7000-8000-0000000000c2';
     private const string OWN_PLAIN_EXPENSE = '00000000-0000-7000-8000-0000000000c4';
+    private const string OWN_EXPENSE_WITH_DEFAULT_AXES = '00000000-0000-7000-8000-0000000000c5';
     private const string OTHER_CATEGORY = '00000000-0000-7000-8000-0000000000c3';
     private const string FOREIGN_TRANSACTION = '00000000-0000-7000-8000-0000000000f9';
     private const string UNKNOWN_TRANSACTION = '00000000-0000-7000-8000-0000000000f8';
@@ -49,6 +51,10 @@ final class TransactionControllerTest extends WebTestCase
         $this->seedCategory(self::OWN_EXPENSE, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Courses', 'basket', '#2E7D32');
         $this->seedCategory(self::OWN_INCOME, WorkspaceFixture::OWN_WORKSPACE, 'INCOME', 'Salaire');
         $this->seedCategory(self::OWN_PLAIN_EXPENSE, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Divers');
+        $this->seedCategory(
+            self::OWN_EXPENSE_WITH_DEFAULT_AXES, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Loyer',
+            defaultAnalyticAxes: ['ESSENTIAL'],
+        );
         $this->seedCategory(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, 'EXPENSE', 'Privé voisin');
 
         $this->client->request('GET', '/api/v1/session');
@@ -370,7 +376,7 @@ final class TransactionControllerTest extends WebTestCase
     {
         $this->seedForeignTransaction();
 
-        foreach (['update', 'void', 'duplicate'] as $operation) {
+        foreach (['update', 'void', 'duplicate', 'replaceSplits'] as $operation) {
             $this->requestMutation($operation, self::FOREIGN_TRANSACTION);
             self::assertResponseStatusCodeSame(404);
             $foreign = (string) $this->client->getResponse()->getContent();
@@ -472,6 +478,196 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame(0, $this->ownTransactionCount());
     }
 
+    public function testASplitAllocationSummingExactlyToTheAmountIsAcceptedAndClearingItReturnsTheQueue(): void
+    {
+        $created = $this->createTransaction(overrides: ['amount' => ['value' => '-87.40', 'assetCode' => 'EUR']]);
+        $id = self::stringValue($created, 'id');
+
+        $this->requestReplaceSplits($id, 1, [
+            $this->splitRow(self::OWN_EXPENSE, '-62.10', ['ESSENTIAL']),
+            $this->splitRow(self::OWN_PLAIN_EXPENSE, '-25.30'),
+        ]);
+        self::assertResponseIsSuccessful();
+        $replaced = $this->decode();
+        $replacedSplits = $replaced['splits'];
+        self::assertIsList($replacedSplits);
+        self::assertCount(2, $replacedSplits);
+        self::assertIsArray($replacedSplits[0]);
+        self::assertSame(['ESSENTIAL'], $replacedSplits[0]['analyticAxes']);
+        self::assertSame(2, $replaced['version']);
+
+        $this->client->request('GET', '/api/v1/transactions?categorization=NONE');
+        self::assertSame([], $this->items());
+
+        $this->requestReplaceSplits($id, 2, []);
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->decode()['splits']);
+
+        $this->client->request('GET', '/api/v1/transactions?categorization=NONE');
+        self::assertSame([$id], array_column($this->items(), 'id'));
+    }
+
+    public function testASplitAllocationOffByOneCentIsRefusedWithTheMissingAmount(): void
+    {
+        $created = $this->createTransaction(overrides: ['amount' => ['value' => '-87.40', 'assetCode' => 'EUR']]);
+
+        $this->requestReplaceSplits(self::stringValue($created, 'id'), 1, [
+            $this->splitRow(self::OWN_EXPENSE, '-62.10'),
+            $this->splitRow(self::OWN_PLAIN_EXPENSE, '-25.29'),
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        $problem = $this->decode();
+        self::assertSame('/problems/splits.sum_mismatch', $problem['type']);
+    }
+
+    public function testMoreThanTwentySplitsAreRefused(): void
+    {
+        $created = $this->createTransaction(overrides: ['amount' => ['value' => '-21.00', 'assetCode' => 'EUR']]);
+        $rows = array_map(fn (): array => $this->splitRow(self::OWN_EXPENSE, '-1.00'), range(1, 21));
+
+        $this->requestReplaceSplits(self::stringValue($created, 'id'), 1, $rows);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/splits.too_many', $this->decode()['type']);
+    }
+
+    public function testTheSameCategoryTwiceIsRefused(): void
+    {
+        $created = $this->createTransaction(overrides: ['amount' => ['value' => '-10.00', 'assetCode' => 'EUR']]);
+
+        $this->requestReplaceSplits(self::stringValue($created, 'id'), 1, [
+            $this->splitRow(self::OWN_EXPENSE, '-6.00'),
+            $this->splitRow(self::OWN_EXPENSE, '-4.00'),
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/splits.duplicate_category', $this->decode()['type']);
+    }
+
+    public function testASplitOfAnotherWorkspaceCategoryIsRefused(): void
+    {
+        $created = $this->createTransaction();
+
+        $this->requestReplaceSplits(self::stringValue($created, 'id'), 1, [
+            $this->splitRow(self::OTHER_CATEGORY, '-42.90'),
+        ]);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testReplacingSplitsOnAStaleOrVoidedTransactionIsRejected(): void
+    {
+        $created = $this->createTransaction();
+        $id = self::stringValue($created, 'id');
+
+        $this->requestReplaceSplits($id, 2, [$this->splitRow(self::OWN_EXPENSE, '-42.90')]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame(TransactionHttpEnvelope::TYPE_STALE_VERSION, $this->decode()['type']);
+
+        $this->requestVoid($id, 1);
+        self::assertResponseIsSuccessful();
+        $this->requestReplaceSplits($id, 2, [$this->splitRow(self::OWN_EXPENSE, '-42.90')]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame(TransactionHttpEnvelope::TYPE_CONFLICT, $this->decode()['type']);
+    }
+
+    public function testANullAnalyticAxesInheritsTheCategoryDefaultsAndAnEmptyListOverridesThem(): void
+    {
+        $created = $this->createTransaction();
+        $id = self::stringValue($created, 'id');
+
+        $this->requestReplaceSplits($id, 1, [
+            $this->splitRow(self::OWN_EXPENSE_WITH_DEFAULT_AXES, '-42.90', null),
+        ]);
+        self::assertResponseIsSuccessful();
+        $inherited = $this->decode()['splits'];
+        self::assertIsList($inherited);
+        self::assertIsArray($inherited[0]);
+        self::assertSame(['ESSENTIAL'], $inherited[0]['analyticAxes']);
+
+        $this->requestReplaceSplits($id, 2, [
+            $this->splitRow(self::OWN_EXPENSE_WITH_DEFAULT_AXES, '-42.90', []),
+        ]);
+        self::assertResponseIsSuccessful();
+        $overridden = $this->decode()['splits'];
+        self::assertIsList($overridden);
+        self::assertIsArray($overridden[0]);
+        self::assertSame([], $overridden[0]['analyticAxes']);
+    }
+
+    public function testCreatingAndUpdatingThroughTheExplicitSplitsArrayReplacesTheCategoryIdShorthand(): void
+    {
+        $created = $this->createTransaction(overrides: [
+            'amount' => ['value' => '-87.40', 'assetCode' => 'EUR'],
+            'categoryId' => null,
+            'splits' => [
+                $this->splitRow(self::OWN_EXPENSE, '-62.10'),
+                $this->splitRow(self::OWN_PLAIN_EXPENSE, '-25.30'),
+            ],
+        ]);
+        $splits = $created['splits'];
+        self::assertIsList($splits);
+        self::assertCount(2, $splits);
+
+        $id = self::stringValue($created, 'id');
+        $body = $this->payload(overrides: [
+            'amount' => ['value' => '-87.40', 'assetCode' => 'EUR'],
+            'categoryId' => null,
+        ]);
+
+        // Changing the amount without a matching allocation is refused...
+        $this->requestRawUpdate($id, [
+            ...$body,
+            'amount' => ['value' => '-90.00', 'assetCode' => 'EUR'],
+            'splits' => [
+                $this->splitRow(self::OWN_EXPENSE, '-62.10'),
+                $this->splitRow(self::OWN_PLAIN_EXPENSE, '-25.30'),
+            ],
+            'version' => 1,
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/splits.sum_mismatch', $this->decode()['type']);
+
+        // ...and using the categoryId shorthand on a multi-split transaction is refused too.
+        $this->requestRawUpdate($id, [
+            ...$body,
+            'splits' => null,
+            'categoryId' => self::OWN_EXPENSE,
+            'version' => 1,
+        ]);
+        self::assertResponseStatusCodeSame(422);
+
+        // A matching explicit allocation succeeds.
+        $this->requestRawUpdate($id, [
+            ...$body,
+            'amount' => ['value' => '-90.00', 'assetCode' => 'EUR'],
+            'splits' => [
+                $this->splitRow(self::OWN_EXPENSE, '-65.00'),
+                $this->splitRow(self::OWN_PLAIN_EXPENSE, '-25.00'),
+            ],
+            'version' => 1,
+        ]);
+        self::assertResponseIsSuccessful();
+        $updatedSplits = $this->decode()['splits'];
+        self::assertIsList($updatedSplits);
+        self::assertCount(2, $updatedSplits);
+    }
+
+    public function testDuplicatingCopiesTheFullSplitAllocation(): void
+    {
+        $created = $this->createTransaction(overrides: [
+            'amount' => ['value' => '-87.40', 'assetCode' => 'EUR'],
+            'categoryId' => null,
+            'splits' => [
+                $this->splitRow(self::OWN_EXPENSE, '-62.10'),
+                $this->splitRow(self::OWN_PLAIN_EXPENSE, '-25.30'),
+            ],
+        ]);
+
+        $this->requestDuplicate(self::stringValue($created, 'id'));
+        self::assertResponseStatusCodeSame(201);
+        $duplicateSplits = $this->decode()['splits'];
+        self::assertIsList($duplicateSplits);
+        self::assertCount(2, $duplicateSplits);
+    }
+
     /**
      * @param array<string, mixed> $overrides
      *
@@ -494,11 +690,17 @@ final class TransactionControllerTest extends WebTestCase
     /** @param array<string, mixed> $transaction */
     private function requestUpdate(string $id, array $transaction): void
     {
+        $this->requestRawUpdate($id, $this->updateBody($transaction));
+    }
+
+    /** @param array<string, mixed> $body already in the wire shape — not derived from a Transaction resource */
+    private function requestRawUpdate(string $id, array $body): void
+    {
         $this->client->request(
             'PUT',
             '/api/v1/transactions/'.$id,
             server: self::jsonHeaders(),
-            content: json_encode($this->updateBody($transaction), JSON_THROW_ON_ERROR),
+            content: json_encode($body, JSON_THROW_ON_ERROR),
         );
     }
 
@@ -517,12 +719,44 @@ final class TransactionControllerTest extends WebTestCase
         $this->client->request('POST', '/api/v1/transactions/'.$id.'/duplicate', server: self::jsonHeaders(), content: '{}');
     }
 
+    /** @param list<array<string, mixed>> $splits */
+    private function requestReplaceSplits(string $id, int $version, array $splits): void
+    {
+        $this->client->request(
+            'PUT',
+            '/api/v1/transactions/'.$id.'/splits',
+            server: self::jsonHeaders(),
+            content: json_encode(['version' => $version, 'splits' => $splits], JSON_THROW_ON_ERROR),
+        );
+    }
+
+    /**
+     * @param list<string> $analyticAxes
+     *
+     * @return array{categoryId: string, amount: array{value: string, assetCode: string}, analyticAxes: list<string>, note: ?string}
+     */
+    /**
+     * @param ?list<string> $analyticAxes
+     *
+     * @return array{categoryId: string, amount: array{value: string, assetCode: string}, analyticAxes: ?list<string>, note: ?string}
+     */
+    private function splitRow(string $categoryId, string $amount, ?array $analyticAxes = [], ?string $note = null): array
+    {
+        return [
+            'categoryId' => $categoryId,
+            'amount' => ['value' => $amount, 'assetCode' => 'EUR'],
+            'analyticAxes' => $analyticAxes,
+            'note' => $note,
+        ];
+    }
+
     private function requestMutation(string $operation, string $id): void
     {
         match ($operation) {
             'update' => $this->requestUpdate($id, $this->payload(overrides: ['version' => 1])),
             'void' => $this->requestVoid($id, 1),
             'duplicate' => $this->requestDuplicate($id),
+            'replaceSplits' => $this->requestReplaceSplits($id, 1, []),
             default => throw new \UnexpectedValueException('Unknown transaction mutation.'),
         };
     }
@@ -572,6 +806,7 @@ final class TransactionControllerTest extends WebTestCase
             'maskedCard' => null,
             'bankReference' => null,
             'categoryId' => self::OWN_EXPENSE,
+            'splits' => null,
             ...$overrides,
         ];
     }
@@ -602,6 +837,7 @@ final class TransactionControllerTest extends WebTestCase
             'maskedCard' => $transaction['maskedCard'],
             'bankReference' => $transaction['bankReference'],
             'categoryId' => is_array($first) ? ($first['categoryId'] ?? null) : null,
+            'splits' => null,
             'version' => $transaction['version'],
         ];
     }
@@ -639,6 +875,7 @@ final class TransactionControllerTest extends WebTestCase
         ]);
     }
 
+    /** @param list<string> $defaultAnalyticAxes */
     private function seedCategory(
         string $id,
         string $workspace,
@@ -646,6 +883,7 @@ final class TransactionControllerTest extends WebTestCase
         string $label,
         ?string $icon = null,
         ?string $color = null,
+        array $defaultAnalyticAxes = [],
     ): void {
         $this->connection->insert('category_categories', [
             'id' => $id,
@@ -655,7 +893,7 @@ final class TransactionControllerTest extends WebTestCase
             'parent_id' => null,
             'icon' => $icon,
             'color' => $color,
-            'default_analytic_axes' => '[]',
+            'default_analytic_axes' => json_encode($defaultAnalyticAxes, JSON_THROW_ON_ERROR),
             'budget_included' => true,
             'sort_order' => 0,
             'depth' => 1,

@@ -11,8 +11,8 @@ use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Domain\InvalidTransaction;
-use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionRepository;
+use App\Module\Transactions\Domain\TransactionSplit;
 use Symfony\Component\Clock\ClockInterface;
 
 final readonly class UpdateTransaction
@@ -21,6 +21,7 @@ final readonly class UpdateTransaction
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
         private TransactionInputParser $parser,
+        private TransactionSplitInputParser $splitParser,
         private TransactionReferences $references,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
@@ -57,10 +58,24 @@ final readonly class UpdateTransaction
             $now = $this->clock->now();
             $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
             $this->references->accountForExisting($context->workspace, $current->accountId, $draft, $today);
-            $existingSplit = $current->splits[0] ?? null;
-            $split = $this->references->split(
-                $context->workspace, $current->id, $input->categoryId, $draft, $now, $existingSplit,
-            );
+            if (null === $input->splits && count($current->splits) > 1) {
+                // The categoryId shorthand always replaces the whole allocation with
+                // at most one row; a transaction that already carries several would
+                // have that allocation silently collapsed. The request must name the
+                // allocation explicitly through `splits`, even to leave it unchanged.
+                throw new InvalidTransactionInput('An existing multi-category allocation requires an explicit splits array.');
+            }
+            $existingByCategory = [];
+            foreach ($current->splits as $existingSplit) {
+                $existingByCategory[$existingSplit->categoryId] = $existingSplit;
+            }
+            $splits = null === $input->splits
+                ? self::wrap($this->references->split(
+                    $context->workspace, $current->id, $input->categoryId, $draft, $now, $current->splits[0] ?? null,
+                ))
+                : $this->references->splits(
+                    $context->workspace, $current->id, $this->splitParser->parse($input->splits), $draft->amount, $now, $existingByCategory,
+                );
 
             try {
                 $updated = $current->edit(
@@ -69,12 +84,11 @@ final readonly class UpdateTransaction
                     rawLabel: $draft->rawLabel, counterparty: $draft->counterparty, note: $draft->note,
                     paymentMethod: $draft->paymentMethod,
                     mcc: $draft->mcc, maskedCard: $draft->maskedCard, bankReference: $draft->bankReference,
-                    splits: null === $split ? [] : [$split], updatedAt: $now, lastEditorId: $context->actorId,
+                    splits: $splits, updatedAt: $now, lastEditorId: $context->actorId,
                 );
             } catch (InvalidTransaction $exception) {
                 throw new InvalidTransactionInput('The requested transaction edit is invalid.', previous: $exception);
             }
-            self::assertSingleFullSplit($updated);
             if (!$this->transactions->update($updated, $current->version)) {
                 throw new StaleTransactionVersion('The transaction changed concurrently.');
             }
@@ -88,14 +102,9 @@ final readonly class UpdateTransaction
         });
     }
 
-    private static function assertSingleFullSplit(Transaction $transaction): void
+    /** @return list<TransactionSplit> */
+    private static function wrap(?TransactionSplit $split): array
     {
-        if (count($transaction->splits) > 1) {
-            throw new InvalidTransactionInput('A transaction carries at most one split in this release.');
-        }
-        if ([] !== $transaction->splits
-            && 0 !== $transaction->splits[0]->amount->value->compareTo($transaction->amount->value)) {
-            throw new InvalidTransactionInput('The transaction split must sum exactly to its amount.');
-        }
+        return null === $split ? [] : [$split];
     }
 }

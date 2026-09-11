@@ -1,0 +1,109 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  gap: var(--spacing-4);
+}
+
+.remaining {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.remaining strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+}
+
+.error {
+  margin: var(--spacing-none);
+  color: var(--negative);
+  font-size: var(--font-size-label);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-none);
+  margin: var(--spacing-none);
+  list-style: none;
+  gap: var(--spacing-3);
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-3);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  gap: var(--spacing-2);
+}
+
+.rowFields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--spacing-2);
+}
+
+.rowFields input {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.rowFields input[aria-invalid='true'] {
+  border-color: var(--negative);
+}
+
+.axes {
+  display: flex;
+  flex-wrap: wrap;
+  border: var(--border-none);
+  padding: var(--spacing-none);
+  margin: var(--spacing-none);
+  gap: var(--spacing-3);
+}
+
+.axes label {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  gap: var(--spacing-1);
+}
+
+.rowError {
+  margin: var(--spacing-none);
+  color: var(--negative);
+  font-size: var(--font-size-xs);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.hint {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}
+
+@media (max-width: 480px) {
+  .rowFields {
+    grid-template-columns: 1fr;
+  }
+}

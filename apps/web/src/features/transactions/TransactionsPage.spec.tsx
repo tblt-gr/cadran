@@ -400,6 +400,27 @@ describe('TransactionsPage', () => {
     expect(await screen.findByText('La transaction a été enregistrée.')).toBeTruthy();
   });
 
+  it('switches to the to-categorise queue, requests it and shows its own empty state', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(({ query }) =>
+      success({ items: query.categorization === 'NONE' ? [] : [transaction], nextCursor: null }),
+    );
+    renderPage();
+
+    expect(await screen.findByRole('row', { name: /CB CARREFOUR/ })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'À catégoriser' }));
+
+    await waitFor(() =>
+      expect(api.listTransactions).toHaveBeenCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ categorization: 'NONE' }) }),
+      ),
+    );
+    expect(await screen.findByRole('heading', { name: 'Rien à catégoriser' })).toBeTruthy();
+  });
+
   it('names the signed amount and the voided state in words', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 100, total: 1 }),
@@ -609,6 +630,7 @@ describe('TransactionsPage', () => {
           categoryIcon: 'basket',
           categoryColor: '#2E7D32',
           amount: transaction.amount,
+          analyticAxes: [],
           note: null,
         },
       ],

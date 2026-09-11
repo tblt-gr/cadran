@@ -7,6 +7,8 @@ import type {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
+import { emptySplitRow } from '@/features/transactions/split-editor/splitAllocation';
+import { SplitEditor } from '@/features/transactions/split-editor/SplitEditor';
 import {
   categoryTypeForAmount,
   initialTransactionValues,
@@ -288,7 +290,41 @@ export function TransactionForm({
             ))}
           </select>
         </label>
+      </div>
 
+      <div className={styles.splitToggle}>
+        <label>
+          <input
+            checked={values.splitMode}
+            onChange={(event) => {
+              const splitMode = event.target.checked;
+              setValues((current) => ({
+                ...current,
+                splitMode,
+                splits:
+                  splitMode && current.splits.length === 0 ? [emptySplitRow()] : current.splits,
+              }));
+            }}
+            type="checkbox"
+          />
+          <span>{t('transactions.split.toggle')}</span>
+        </label>
+      </div>
+
+      {values.splitMode ? (
+        <SplitEditor
+          assetCode={
+            transaction?.amount.assetCode ??
+            accounts.find((account) => account.id === resolved.accountId)?.assetCode ??
+            ''
+          }
+          categoryType={categoryType}
+          onChange={(splits) => set('splits', splits)}
+          rows={values.splits}
+          showErrors={showErrors}
+          total={values.amountValue}
+        />
+      ) : (
         <TransactionCategoryField
           key={categoryType}
           onChange={(categoryId) => set('categoryId', categoryId)}
@@ -296,7 +332,7 @@ export function TransactionForm({
           type={categoryType}
           value={values.categoryId}
         />
-      </div>
+      )}
 
       <div className={styles.actions}>
         <button className="primary-action" disabled={pending} type="submit">

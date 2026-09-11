@@ -15,6 +15,7 @@ use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionRepository;
 use App\Module\Transactions\Domain\TransactionSource;
+use App\Module\Transactions\Domain\TransactionSplit;
 use App\Module\Transactions\Domain\TransactionState;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -24,6 +25,7 @@ final readonly class CreateTransaction
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
         private TransactionInputParser $parser,
+        private TransactionSplitInputParser $splitParser,
         private TransactionReferences $references,
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
@@ -50,7 +52,9 @@ final readonly class CreateTransaction
             $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
             $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
             $id = $this->uuidGenerator->generate();
-            $split = $this->references->split($context->workspace, $id, $input->categoryId, $draft, $now);
+            $splits = null === $input->splits
+                ? self::wrap($this->references->split($context->workspace, $id, $input->categoryId, $draft, $now))
+                : $this->references->splits($context->workspace, $id, $this->splitParser->parse($input->splits), $draft->amount, $now);
 
             try {
                 $transaction = new Transaction(
@@ -60,7 +64,7 @@ final readonly class CreateTransaction
                     valueOn: $draft->valueOn, authorizedOn: $draft->authorizedOn, rawLabel: $draft->rawLabel,
                     counterparty: $draft->counterparty, note: $draft->note, paymentMethod: $draft->paymentMethod,
                     mcc: $draft->mcc, maskedCard: $draft->maskedCard, bankReference: $draft->bankReference,
-                    splits: null === $split ? [] : [$split], version: 1, createdAt: $now, updatedAt: $now,
+                    splits: $splits, version: 1, createdAt: $now, updatedAt: $now,
                     voidedAt: null, lastEditorId: $context->actorId,
                 );
             } catch (InvalidTransaction $exception) {
@@ -75,5 +79,11 @@ final readonly class CreateTransaction
 
             return $this->presentTransaction->one($transaction);
         });
+    }
+
+    /** @return list<TransactionSplit> */
+    private static function wrap(?TransactionSplit $split): array
+    {
+        return null === $split ? [] : [$split];
     }
 }

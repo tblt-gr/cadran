@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Categories\Application\CategoryClassificationCounter;
+use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -43,12 +44,20 @@ final readonly class DbalTransactionRepository implements CategoryClassification
         bool $includeVoided,
         int $limit,
         ?TransactionPosition $after,
+        bool $uncategorized = false,
     ): array {
         $sql = 'SELECT '.self::COLUMNS.' FROM transaction_transactions WHERE workspace_id = :workspace_id';
         $parameters = ['workspace_id' => $workspace->id, 'limit' => $limit];
         $types = ['limit' => ParameterType::INTEGER];
-        if (!$includeVoided) {
+        if ($uncategorized || !$includeVoided) {
             $sql .= " AND state <> 'VOIDED'";
+        }
+        if ($uncategorized) {
+            $sql .= ' AND NOT EXISTS ('
+                .'SELECT 1 FROM transaction_splits s '
+                .'WHERE s.workspace_id = transaction_transactions.workspace_id '
+                .'AND s.transaction_id = transaction_transactions.id'
+                .')';
         }
         if (null !== $accountId) {
             $sql .= ' AND account_id = :account_id';
@@ -151,7 +160,7 @@ final readonly class DbalTransactionRepository implements CategoryClassification
             return [];
         }
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT id, workspace_id, transaction_id, category_id, amount_value, amount_scale, asset_code, note, created_at'
+            'SELECT id, workspace_id, transaction_id, category_id, amount_value, amount_scale, asset_code, analytic_axes, note, created_at'
             .' FROM transaction_splits WHERE workspace_id = :workspace_id AND transaction_id IN (:transaction_ids) ORDER BY id',
             ['workspace_id' => $workspace->id, 'transaction_ids' => $transactionIds],
             ['transaction_ids' => ArrayParameterType::STRING],
@@ -159,6 +168,10 @@ final readonly class DbalTransactionRepository implements CategoryClassification
         $grouped = [];
         foreach ($rows as $row) {
             $transactionId = TransactionRow::text($row['transaction_id'] ?? null);
+            $axes = json_decode(TransactionRow::text($row['analytic_axes'] ?? null), true, flags: JSON_THROW_ON_ERROR);
+            if (!is_array($axes)) {
+                throw new \UnexpectedValueException('Expected a transaction split axes to be an array.');
+            }
             $grouped[$transactionId][] = new TransactionSplit(
                 id: TransactionRow::text($row['id'] ?? null),
                 workspace: $workspace,
@@ -168,6 +181,10 @@ final readonly class DbalTransactionRepository implements CategoryClassification
                     DecimalValue::fromString(TransactionRow::decimal($row['amount_value'] ?? null, $row['amount_scale'] ?? null)),
                     AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null)),
                 ),
+                analyticAxes: array_map(
+                    static fn (mixed $axis): AnalyticAxis => AnalyticAxis::from(TransactionRow::text($axis)),
+                    array_values($axes),
+                ),
                 note: null === ($row['note'] ?? null) ? null : TransactionRow::text($row['note']),
                 createdAt: new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)),
             );
@@ -176,6 +193,12 @@ final readonly class DbalTransactionRepository implements CategoryClassification
         return $grouped;
     }
 
+    /**
+     * Splits are replaced as a whole under the row lock the caller already
+     * holds on the transaction ({@see findForUpdate}), so a concurrent second
+     * writer either sees this result in full or fails on a stale version
+     * instead of interleaving with a partial delete-then-insert.
+     */
     private function replaceSplits(Transaction $transaction): void
     {
         $this->connection->delete('transaction_splits', [
@@ -191,6 +214,10 @@ final readonly class DbalTransactionRepository implements CategoryClassification
                 'amount_value' => $split->amount->value->toString(),
                 'amount_scale' => $split->amount->value->scale(),
                 'asset_code' => $split->amount->asset->toString(),
+                'analytic_axes' => json_encode(
+                    array_map(static fn (AnalyticAxis $axis): string => $axis->value, $split->analyticAxes),
+                    JSON_THROW_ON_ERROR,
+                ),
                 'note' => $split->note,
                 'created_at' => $split->createdAt->format('Y-m-d H:i:s.uP'),
             ]);

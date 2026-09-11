@@ -1539,7 +1539,30 @@
       "confirming": "Annulation…"
     },
     "filters": {
-      "allAccounts": "Tous les comptes"
+      "allAccounts": "Tous les comptes",
+      "categorizationLabel": "Filtrer par catégorisation",
+      "categorizationAll": "Toutes",
+      "categorizationQueue": "À catégoriser"
+    },
+    "queue": {
+      "emptyTitle": "Rien à catégoriser",
+      "emptyDescription": "Toutes les transactions non annulées portent au moins une catégorie."
+    },
+    "split": {
+      "toggle": "Répartir entre plusieurs catégories",
+      "categoryRow": "Catégorie de la ligne {{row}}",
+      "amountRow": "Montant de la ligne {{row}}",
+      "noteRow": "Note de la ligne {{row}}",
+      "axesRow": "Axes analytiques de la ligne {{row}}",
+      "removeRow": "Supprimer la ligne {{row}}",
+      "duplicateCategory": "Cette catégorie est déjà utilisée sur une autre ligne.",
+      "remaining": "Reste à répartir",
+      "remainingUnknown": "Renseignez un montant de transaction exact pour calculer la répartition.",
+      "remainingError": "La répartition doit atteindre exactement le montant de la transaction, sans catégorie répétée.",
+      "addRow": "Ajouter une ligne",
+      "assignRemainder": "Assigner le reste à cette ligne",
+      "splitEvenly": "Répartir également",
+      "splitEvenlyUnavailable": "Indisponible : le montant est plus précis que l’affichage de cet actif, ou le nombre de lignes n’est pas compris entre 2 et 20."
     },
     "pagination": {
       "next": "Mouvements plus anciens"
