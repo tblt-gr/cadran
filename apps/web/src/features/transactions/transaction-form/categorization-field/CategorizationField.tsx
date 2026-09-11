@@ -11,11 +11,14 @@ import styles from './CategorizationField.module.css';
 
 interface CategorizationFieldProps {
   assetCode: string;
+  /** Message for a single category the transaction sign would refuse. */
+  categoryError: string | null;
   categoryId: string;
-  categoryType: CategoryType;
-  onChangeCategoryId: (categoryId: string) => void;
+  onChangeCategory: (categoryId: string, type: CategoryType | null) => void;
   onChangeSplitMode: (splitMode: boolean) => void;
   onChangeSplits: (splits: SplitRowValues[]) => void;
+  /** Category type the transaction sign expects, offered first. */
+  preferredType: CategoryType;
   savedCategory: SavedCategory | null;
   showErrors: boolean;
   splitMode: boolean;
@@ -30,11 +33,12 @@ interface CategorizationFieldProps {
  */
 export function CategorizationField({
   assetCode,
+  categoryError,
   categoryId,
-  categoryType,
-  onChangeCategoryId,
+  onChangeCategory,
   onChangeSplitMode,
   onChangeSplits,
+  preferredType,
   savedCategory,
   showErrors,
   splitMode,
@@ -63,7 +67,7 @@ export function CategorizationField({
       {splitMode ? (
         <SplitEditor
           assetCode={assetCode}
-          categoryType={categoryType}
+          preferredType={preferredType}
           onChange={onChangeSplits}
           rows={splits}
           showErrors={showErrors}
@@ -71,10 +75,10 @@ export function CategorizationField({
         />
       ) : (
         <TransactionCategoryField
-          key={categoryType}
-          onChange={onChangeCategoryId}
+          error={categoryError}
+          onChange={onChangeCategory}
+          preferredType={preferredType}
           savedCategory={savedCategory}
-          type={categoryType}
           value={categoryId}
         />
       )}

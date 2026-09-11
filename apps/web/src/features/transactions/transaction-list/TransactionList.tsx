@@ -2,9 +2,9 @@ import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
 import { formatCalendarDay } from '@/lib/decimal';
 import { TransactionAmount } from './transaction-amount/TransactionAmount';
+import { TransactionCategories } from './transaction-categories/TransactionCategories';
 import styles from './TransactionList.module.css';
 
 interface TransactionListProps {
@@ -48,7 +48,6 @@ export function TransactionList({
           <tbody>
             {transactions.map((transaction) => {
               const account = accounts.find((candidate) => candidate.id === transaction.accountId);
-              const split = transaction.splits[0];
               const voided = transaction.state === 'VOIDED';
               const terminal = voided || transaction.state === 'REJECTED';
               const linked = transaction.nature === 'TRANSFER' || transaction.nature === 'REFUND';
@@ -65,15 +64,7 @@ export function TransactionList({
                     {transaction.counterparty ?? t('transactions.list.noCounterparty')}
                   </td>
                   <td data-label={t('transactions.fields.category')}>
-                    {split ? (
-                      <CategoryIdentity
-                        color={split.categoryColor}
-                        icon={split.categoryIcon}
-                        label={split.categoryLabel}
-                      />
-                    ) : (
-                      t('transactions.list.toCategorise')
-                    )}
+                    <TransactionCategories splits={transaction.splits} />
                   </td>
                   <td data-label={t('transactions.fields.account')}>
                     {account?.label ?? t('transactions.list.unknownAccount')}

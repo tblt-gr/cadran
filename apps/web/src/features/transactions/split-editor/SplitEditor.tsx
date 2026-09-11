@@ -1,5 +1,6 @@
 import type { CategoryType } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { categoryContradictsAmount } from '@/features/transactions/categorySign';
 import { formatAmount, isCanonicalDecimal, isZeroDecimal } from '@/lib/decimal';
 import { SplitRow, type SplitRowValues } from './SplitRow';
 import {
@@ -15,7 +16,8 @@ import styles from './SplitEditor.module.css';
 
 interface SplitEditorProps {
   assetCode: string;
-  categoryType: CategoryType;
+  /** Category type the transaction sign expects, offered first in each row. */
+  preferredType: CategoryType;
   onChange: (rows: SplitRowValues[]) => void;
   rows: SplitRowValues[];
   showErrors: boolean;
@@ -29,7 +31,7 @@ interface SplitEditorProps {
  */
 export function SplitEditor({
   assetCode,
-  categoryType,
+  preferredType,
   onChange,
   rows,
   showErrors,
@@ -54,11 +56,18 @@ export function SplitEditor({
   // wrong sign — is flagged on the amount field itself.
   const amountInvalid = (row: SplitRowValues): boolean =>
     !isCanonicalDecimal(row.amount) || isZeroDecimal(row.amount) || signMismatch(row);
+  // The type of a row's category when the transaction sign refuses it, else null.
+  const mismatchedType = (row: SplitRowValues): CategoryType | null =>
+    row.categoryType &&
+    exactTotal !== null &&
+    categoryContradictsAmount(row.categoryType, exactTotal)
+      ? row.categoryType
+      : null;
   // A row missing its category blocks submission exactly as much as a bad
   // amount does, even though no single field carries that error visually
   // beyond the shared banner below.
   const rowIsIncomplete = (row: SplitRowValues): boolean =>
-    row.categoryId === '' || amountInvalid(row);
+    row.categoryId === '' || mismatchedType(row) !== null || amountInvalid(row);
   const categoryIds = rows.map((row) => row.categoryId).filter((id) => id !== '');
   const duplicateCategoryIds = new Set(
     categoryIds.filter((id, index) => categoryIds.indexOf(id) !== index),
@@ -120,29 +129,40 @@ export function SplitEditor({
       ) : null}
 
       <ol className={styles.rows}>
-        {rows.map((row, index) => (
-          <li key={row.key}>
-            <SplitRow
-              duplicateCategory={row.categoryId !== '' && duplicateCategoryIds.has(row.categoryId)}
-              index={index}
-              invalid={showErrors && amountInvalid(row)}
-              onChange={(values) => updateRow(index, values)}
-              onRemove={() => removeRow(index)}
-              removable
-              type={categoryType}
-              values={row}
-            />
-            {!sumBalanced ? (
-              <button
-                className="secondary-action"
-                onClick={() => assignRemainder(index)}
-                type="button"
-              >
-                {t('transactions.split.assignRemainder')}
-              </button>
-            ) : null}
-          </li>
-        ))}
+        {rows.map((row, index) => {
+          const refusedType = mismatchedType(row);
+
+          return (
+            <li key={row.key}>
+              <SplitRow
+                categoryError={
+                  refusedType === null
+                    ? null
+                    : t(`transactions.validation.categoryMismatch.${refusedType}`)
+                }
+                duplicateCategory={
+                  row.categoryId !== '' && duplicateCategoryIds.has(row.categoryId)
+                }
+                index={index}
+                invalid={showErrors && amountInvalid(row)}
+                onChange={(values) => updateRow(index, values)}
+                onRemove={() => removeRow(index)}
+                preferredType={preferredType}
+                removable
+                values={row}
+              />
+              {!sumBalanced ? (
+                <button
+                  className="secondary-action"
+                  onClick={() => assignRemainder(index)}
+                  type="button"
+                >
+                  {t('transactions.split.assignRemainder')}
+                </button>
+              ) : null}
+            </li>
+          );
+        })}
       </ol>
 
       <div className={styles.actions}>

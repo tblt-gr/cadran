@@ -60,6 +60,14 @@
   font-weight: var(--font-weight-medium);
 }
 
+.axesHint {
+  grid-column: 1 / -1;
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}
+
 .axes label,
 .check {
   display: flex;

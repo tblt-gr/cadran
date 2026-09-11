@@ -53,6 +53,13 @@
   grid-column: 1 / -1;
 }
 
+/* The advanced section closes the form, set apart from the essential fields. */
+.fields > details {
+  grid-column: 1 / -1;
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
+}
+
 .alert {
   margin: var(--spacing-none);
   padding: var(--spacing-3) var(--spacing-4);

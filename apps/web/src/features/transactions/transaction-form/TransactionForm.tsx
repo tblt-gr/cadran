@@ -7,6 +7,10 @@ import type {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
+import {
+  ADVANCED_FIELDS,
+  AdvancedTransactionFields,
+} from './advanced-fields/AdvancedTransactionFields';
 import { CategorizationField } from './categorization-field/CategorizationField';
 import {
   categoryTypeForAmount,
@@ -36,6 +40,10 @@ interface TransactionFormProps {
   transaction?: Transaction;
 }
 
+/**
+ * The fields of nearly every entry — account, date, amount, nature, label, payment
+ * method and category — come first; the rest is folded under "advanced fields".
+ */
 export function TransactionForm({
   accounts,
   onSubmit,
@@ -46,6 +54,7 @@ export function TransactionForm({
   const { t } = useTranslation();
   const [values, setValues] = useState(() => initialTransactionValues(transaction, accounts));
   const [showErrors, setShowErrors] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const resolved =
     values.accountId === '' && accounts[0] !== undefined
       ? { ...values, accountId: accounts[0].id }
@@ -54,40 +63,20 @@ export function TransactionForm({
   const editing = transaction !== undefined;
   const stateLocked = editing && transaction.state !== 'PENDING';
   const rawLabelLocked = editing && transaction.source !== 'MANUAL';
-  const categoryType = categoryTypeForAmount(values.amountValue, values.nature);
+  const preferredType = categoryTypeForAmount(values.amountValue, values.nature);
 
   function set<K extends keyof TransactionFormValues>(field: K, value: TransactionFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
-  }
-
-  function setAmount(value: string) {
-    setValues((current) => ({
-      ...current,
-      amountValue: value,
-      categoryId:
-        categoryTypeForAmount(current.amountValue, current.nature) ===
-        categoryTypeForAmount(value, current.nature)
-          ? current.categoryId
-          : '',
-    }));
-  }
-
-  function setNature(value: TransactionFormValues['nature']) {
-    setValues((current) => ({
-      ...current,
-      nature: value,
-      categoryId:
-        categoryTypeForAmount(current.amountValue, current.nature) ===
-        categoryTypeForAmount(current.amountValue, value)
-          ? current.categoryId
-          : '',
-    }));
   }
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (Object.keys(errors).length > 0) {
       setShowErrors(true);
+      // An invalid field must never stay folded out of sight.
+      if (ADVANCED_FIELDS.some((field) => errors[field])) {
+        setAdvancedOpen(true);
+      }
       return;
     }
 
@@ -143,39 +132,13 @@ export function TransactionForm({
         </label>
 
         <label>
-          <span>{t('transactions.fields.valueOn')}</span>
-          <input
-            aria-invalid={showErrors && errors.valueOn ? true : undefined}
-            onChange={(event) => set('valueOn', event.target.value)}
-            type="date"
-            value={values.valueOn}
-          />
-          {showErrors && errors.valueOn ? (
-            <small>{t('transactions.validation.valueOn')}</small>
-          ) : null}
-        </label>
-
-        <label>
-          <span>{t('transactions.fields.authorizedOn')}</span>
-          <input
-            aria-invalid={showErrors && errors.authorizedOn ? true : undefined}
-            onChange={(event) => set('authorizedOn', event.target.value)}
-            type="date"
-            value={values.authorizedOn}
-          />
-          {showErrors && errors.authorizedOn ? (
-            <small>{t('transactions.validation.authorizedOn')}</small>
-          ) : null}
-        </label>
-
-        <label>
           <span>{t('transactions.fields.amount')}</span>
           <input
             aria-invalid={showErrors && errors.amountValue ? true : undefined}
             autoComplete="off"
             data-autofocus
             inputMode="decimal"
-            onChange={(event) => setAmount(event.target.value)}
+            onChange={(event) => set('amountValue', event.target.value)}
             spellCheck={false}
             value={values.amountValue}
           />
@@ -188,7 +151,9 @@ export function TransactionForm({
           <span>{t('transactions.fields.nature')}</span>
           <select
             aria-invalid={showErrors && errors.nature ? true : undefined}
-            onChange={(event) => setNature(event.target.value as TransactionFormValues['nature'])}
+            onChange={(event) =>
+              set('nature', event.target.value as TransactionFormValues['nature'])
+            }
             value={values.nature}
           >
             {NATURES.map((nature) => (
@@ -199,28 +164,6 @@ export function TransactionForm({
           </select>
           {showErrors && errors.nature ? (
             <small>{t('transactions.validation.nature')}</small>
-          ) : null}
-        </label>
-
-        <label>
-          <span>{t('transactions.fields.state')}</span>
-          <select
-            aria-describedby={stateLocked ? 'transaction-state-hint' : undefined}
-            aria-label={t('transactions.fields.state')}
-            disabled={stateLocked}
-            onChange={(event) => set('state', event.target.value as TransactionFormValues['state'])}
-            value={values.state}
-          >
-            <option value="PENDING">{t('transactions.states.PENDING')}</option>
-            <option value="BOOKED">{t('transactions.states.BOOKED')}</option>
-            {editing && transaction.state === 'PENDING' ? (
-              <option value="REJECTED">{t('transactions.states.REJECTED')}</option>
-            ) : null}
-          </select>
-          {stateLocked ? (
-            <small className={styles.hint} id="transaction-state-hint">
-              {t('transactions.form.stateLocked')}
-            </small>
           ) : null}
         </label>
 
@@ -249,28 +192,6 @@ export function TransactionForm({
         </label>
 
         <label>
-          <span>{t('transactions.fields.counterparty')}</span>
-          <input
-            aria-invalid={showErrors && errors.counterparty ? true : undefined}
-            onChange={(event) => set('counterparty', event.target.value)}
-            value={values.counterparty}
-          />
-          {showErrors && errors.counterparty ? (
-            <small>{t('transactions.validation.counterparty')}</small>
-          ) : null}
-        </label>
-
-        <label>
-          <span>{t('transactions.fields.note')}</span>
-          <input
-            aria-invalid={showErrors && errors.note ? true : undefined}
-            onChange={(event) => set('note', event.target.value)}
-            value={values.note}
-          />
-          {showErrors && errors.note ? <small>{t('transactions.validation.note')}</small> : null}
-        </label>
-
-        <label>
           <span>{t('transactions.fields.paymentMethod')}</span>
           <select
             onChange={(event) =>
@@ -293,16 +214,34 @@ export function TransactionForm({
             accounts.find((account) => account.id === resolved.accountId)?.assetCode ??
             ''
           }
+          categoryError={
+            errors.categoryId && values.categoryType !== null
+              ? t(`transactions.validation.categoryMismatch.${values.categoryType}`)
+              : null
+          }
           categoryId={values.categoryId}
-          categoryType={categoryType}
-          onChangeCategoryId={(categoryId) => set('categoryId', categoryId)}
+          onChangeCategory={(categoryId, categoryType) =>
+            setValues((current) => ({ ...current, categoryId, categoryType }))
+          }
           onChangeSplitMode={(splitMode) => set('splitMode', splitMode)}
           onChangeSplits={(splits) => set('splits', splits)}
+          preferredType={preferredType}
           savedCategory={savedCategory(transaction)}
           showErrors={showErrors}
           splitMode={values.splitMode}
           splits={values.splits}
           total={values.amountValue}
+        />
+
+        <AdvancedTransactionFields
+          errors={errors}
+          onChange={set}
+          onToggle={setAdvancedOpen}
+          open={advancedOpen}
+          rejectable={editing && transaction.state === 'PENDING'}
+          showErrors={showErrors}
+          stateLockedHint={stateLocked ? t('transactions.form.stateLocked') : null}
+          values={values}
         />
       </div>
 

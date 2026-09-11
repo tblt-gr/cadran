@@ -1,0 +1,22 @@
+/* Field chrome (labels, controls, messages) comes from the transaction form
+   that hosts this section, so both halves of the form read as one. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+/* Outranks the host's error colour for messages. */
+.grid .hint {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 42rem) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

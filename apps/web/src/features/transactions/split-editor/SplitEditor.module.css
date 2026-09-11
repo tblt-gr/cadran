@@ -48,7 +48,9 @@
 .rowFields {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
-  align-items: end;
+  /* Every field keeps its label for assistive technologies only, so the inputs
+     share one top line and a message under one of them never moves the others. */
+  align-items: start;
   gap: var(--spacing-2);
 }
 
@@ -64,23 +66,6 @@
 
 .rowFields input[aria-invalid='true'] {
   border-color: var(--negative);
-}
-
-.axes {
-  display: flex;
-  flex-wrap: wrap;
-  border: var(--border-none);
-  padding: var(--spacing-none);
-  margin: var(--spacing-none);
-  gap: var(--spacing-3);
-}
-
-.axes label {
-  display: flex;
-  align-items: center;
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  gap: var(--spacing-1);
 }
 
 .rowError {

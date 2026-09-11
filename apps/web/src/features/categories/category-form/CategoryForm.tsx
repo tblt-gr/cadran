@@ -157,8 +157,11 @@ export function CategoryForm({
       <CategoryIconPicker onChange={setIcon} value={icon} />
       {showErrors && iconInvalid ? <p role="alert">{t('categories.validation.icon')}</p> : null}
 
-      <fieldset className={styles.axes}>
+      <fieldset aria-describedby="category-axes-hint" className={styles.axes}>
         <legend>{t('categories.fields.axes')}</legend>
+        <p className={styles.axesHint} id="category-axes-hint">
+          {t('categories.fields.axesHint')}
+        </p>
         {AXES.map((axis) => (
           <label key={axis}>
             <input

@@ -1,6 +1,6 @@
 import type { Category } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
@@ -34,7 +34,7 @@ function renderEditor(
     <QueryClientProvider client={queryClient}>
       <SplitEditor
         assetCode="EUR"
-        categoryType="EXPENSE"
+        preferredType="EXPENSE"
         onChange={onChange}
         rows={rows}
         showErrors={props.showErrors ?? false}
@@ -229,7 +229,7 @@ describe('SplitEditor', () => {
       return (
         <SplitEditor
           assetCode="EUR"
-          categoryType="EXPENSE"
+          preferredType="EXPENSE"
           onChange={setRows}
           rows={rows}
           showErrors={false}
@@ -265,5 +265,99 @@ describe('SplitEditor', () => {
     }) as HTMLInputElement;
     expect(remainingFirst.value).toBe('Beauté');
     expect(remainingSecond.value).toBe('Culture');
+  });
+
+  function renderControlled(initial: SplitRowValues[], total: string, showErrors = false) {
+    const onRows = vi.fn();
+    function ControlledEditor() {
+      const [rows, setRows] = useState(initial);
+
+      return (
+        <SplitEditor
+          assetCode="EUR"
+          onChange={(next) => {
+            onRows(next);
+            setRows(next);
+          }}
+          preferredType="EXPENSE"
+          rows={rows}
+          showErrors={showErrors}
+          total={total}
+        />
+      );
+    }
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ControlledEditor />
+      </QueryClientProvider>,
+    );
+
+    return () => (onRows.mock.calls.at(-1)?.[0] ?? initial) as SplitRowValues[];
+  }
+
+  it('inherits the default axes of the picked category until they are overridden', async () => {
+    const groceries = {
+      id: 'cat-a',
+      type: 'EXPENSE',
+      label: 'Alimentation',
+      archivedAt: null,
+      defaultAnalyticAxes: ['ESSENTIAL', 'VARIABLE'],
+    } as Category;
+    api.listAssets.mockImplementation(() =>
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [groceries], page: 1, perPage: 50, total: 1 }),
+    );
+    const rows = renderControlled([{ ...emptySplitRow(), amount: '-10.00' }], '-10.00');
+
+    const combobox = await screen.findByRole('combobox', { name: 'Catégorie de la ligne 1' });
+    fireEvent.change(combobox, { target: { value: 'Alim' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Alimentation' }));
+
+    const summary = screen.getByText('Axes analytiques').closest('summary') as HTMLElement;
+    expect(summary.textContent).toContain('Essentiel, Variable — ceux de la catégorie');
+    const axes = screen.getByRole('group', { name: 'Axes analytiques de la ligne 1' });
+    expect((within(axes).getByLabelText('Essentiel') as HTMLInputElement).checked).toBe(true);
+    expect((within(axes).getByLabelText('Fixe') as HTMLInputElement).checked).toBe(false);
+    expect(rows()[0]?.analyticAxes).toBeNull();
+
+    fireEvent.click(within(axes).getByLabelText('Variable'));
+    expect(rows()[0]?.analyticAxes).toEqual(['ESSENTIAL']);
+    expect(summary.textContent).not.toContain('ceux de la catégorie');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revenir aux axes de la catégorie' }));
+    expect(rows()[0]?.analyticAxes).toBeNull();
+  });
+
+  it('refuses a row whose category type contradicts the transaction sign', async () => {
+    const salary = {
+      id: 'cat-s',
+      type: 'INCOME',
+      label: 'Salaire',
+      archivedAt: null,
+      defaultAnalyticAxes: [] as Category['defaultAnalyticAxes'],
+    } as Category;
+    api.listAssets.mockImplementation(() =>
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [salary], page: 1, perPage: 50, total: 1 }),
+    );
+    renderControlled([{ ...emptySplitRow(), amount: '-10.00' }], '-10.00', true);
+
+    const combobox = await screen.findByRole('combobox', { name: 'Catégorie de la ligne 1' });
+    fireEvent.focus(combobox);
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Salaire' }));
+
+    expect(combobox.getAttribute('aria-invalid')).toBe('true');
+    expect(
+      screen.getByText('Catégorie de revenu : le montant doit être positif, comme toute entrée.'),
+    ).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain(
+      'La répartition doit atteindre exactement le montant de la transaction',
+    );
   });
 });

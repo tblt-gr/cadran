@@ -125,7 +125,7 @@ describe('category identity flow', () => {
 
     const selected = screen.getByRole('combobox', { name: 'Catégorie choisie' });
     const row = screen.getByRole('row', { name: /Déjeuner/ });
-    // The pill sits beside the combobox, not around it: the value stays plain
+    // The swatch sits inside the control, beside the text: the value stays plain
     // editable text.
     await waitFor(() =>
       expect(selected.parentElement?.querySelector('[data-icon="utensils"]')).toBeTruthy(),

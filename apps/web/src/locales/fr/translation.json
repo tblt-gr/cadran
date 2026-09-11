@@ -662,7 +662,8 @@
       "color": "Couleur",
       "axes": "Axes par défaut",
       "budgetIncluded": "Inclure cette catégorie dans le budget",
-      "order": "Ordre d’affichage"
+      "order": "Ordre d’affichage",
+      "axesHint": "Étiquettes cumulables qui qualifient un mouvement au-delà de sa catégorie : essentiel ou non, fixe ou variable, personnel ou professionnel. Elles s’appliquent par défaut aux transactions de cette catégorie et alimentent les analyses, par exemple la part des dépenses essentielles."
     },
     "types": {
       "EXPENSE": "Dépense",
@@ -843,9 +844,12 @@
       "empty": "Aucune catégorie ne correspond à cette recherche.",
       "create": "Créer une catégorie",
       "createNamed": "Créer « {{label}} »",
-      "createdOtherType": "« {{label}} » est créée avec le type {{type}}, qui ne correspond pas au signe de ce mouvement : elle n’a pas été sélectionnée.",
       "matches_one": "{{count}} catégorie correspondante.",
-      "matches_other": "{{count}} catégories correspondantes."
+      "matches_other": "{{count}} catégories correspondantes.",
+      "groups": {
+        "EXPENSE": "Dépenses",
+        "INCOME": "Revenus"
+      }
     },
     "quick": {
       "eyebrow": "Création rapide",
@@ -1479,7 +1483,11 @@
       "authorizedOn": "La date d’autorisation ne peut pas être postérieure à la date comptable.",
       "rawLabel": "Le libellé est obligatoire et ne peut pas dépasser 140 caractères.",
       "counterparty": "Le tiers ne peut pas dépasser 80 caractères.",
-      "note": "La note ne peut pas dépasser 500 caractères."
+      "note": "La note ne peut pas dépasser 500 caractères.",
+      "categoryMismatch": {
+        "EXPENSE": "Catégorie de dépense : le montant doit être négatif, comme toute sortie.",
+        "INCOME": "Catégorie de revenu : le montant doit être positif, comme toute entrée."
+      }
     },
     "errors": {
       "conflict": "Cette transaction ne peut plus être modifiée. Rechargez la liste.",
@@ -1511,7 +1519,11 @@
       "categorised": "Catégorisée",
       "toCategorise": "À catégoriser",
       "noCounterparty": "—",
-      "unknownAccount": "Compte indisponible"
+      "unknownAccount": "Compte indisponible",
+      "splitCount_one": "Répartie en {{count}} catégorie",
+      "splitCount_other": "Répartie en {{count}} catégories",
+      "moreSplits_one": "+ {{count}} autre catégorie",
+      "moreSplits_other": "+ {{count}} autres catégories"
     },
     "amount": {
       "inflow": "Entrée de {{amount}}",
@@ -1528,7 +1540,8 @@
       "stateLocked": "Une transaction comptabilisée ne revient pas en attente. Utilisez l’action Annuler si nécessaire.",
       "rawLabelLocked": "Ce libellé provient d’une source externe et reste inchangé pour la traçabilité.",
       "noCategory": "Sans catégorie",
-      "noPaymentMethod": "Non renseigné"
+      "noPaymentMethod": "Non renseigné",
+      "advanced": "Champs avancés"
     },
     "void": {
       "eyebrow": "Annulation",
@@ -1558,11 +1571,16 @@
       "duplicateCategory": "Cette catégorie est déjà utilisée sur une autre ligne.",
       "remaining": "Reste à répartir",
       "remainingUnknown": "Renseignez un montant de transaction exact pour calculer la répartition.",
-      "remainingError": "La répartition doit atteindre exactement le montant de la transaction, sans catégorie répétée.",
+      "remainingError": "La répartition doit atteindre exactement le montant de la transaction, avec sur chaque ligne une catégorie différente et compatible avec son signe.",
       "addRow": "Ajouter une ligne",
       "assignRemainder": "Assigner le reste à cette ligne",
       "splitEvenly": "Répartir également",
-      "splitEvenlyUnavailable": "Indisponible : le montant est plus précis que l’affichage de cet actif, ou le nombre de lignes n’est pas compris entre 2 et 20."
+      "splitEvenlyUnavailable": "Indisponible : le montant est plus précis que l’affichage de cet actif, ou le nombre de lignes n’est pas compris entre 2 et 20.",
+      "axesTitle": "Axes analytiques",
+      "axesNone": "aucun",
+      "axesInherited": "{{axes}} — ceux de la catégorie",
+      "axesInheritedUnknown": "ceux de la catégorie",
+      "axesReset": "Revenir aux axes de la catégorie"
     },
     "pagination": {
       "next": "Mouvements plus anciens"

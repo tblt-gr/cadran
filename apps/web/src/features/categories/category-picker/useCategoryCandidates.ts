@@ -2,9 +2,13 @@ import { listCategories, type CategoryType } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
 
-export function useCategoryCandidates(type: CategoryType, parentEligible: boolean, search: string) {
+export function useCategoryCandidates(
+  type: CategoryType | undefined,
+  parentEligible: boolean,
+  search: string,
+) {
   return useQuery({
-    queryKey: ['category-candidates', type, parentEligible, search],
+    queryKey: ['category-candidates', type ?? 'ALL', parentEligible, search],
     queryFn: async ({ signal }) => {
       const result = await listCategories({
         ...authApiOptions(),

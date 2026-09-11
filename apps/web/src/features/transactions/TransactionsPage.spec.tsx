@@ -84,18 +84,20 @@ describe('TransactionsPage', () => {
     vi.clearAllMocks();
   });
 
-  it('offers expense categories before an amount is entered', async () => {
+  it('offers every category, expenses first, whatever the nature or the sign', async () => {
+    const incomeCategory = {
+      ...expenseCategory,
+      id: '00000000-0000-7000-8000-0000000000c2',
+      type: 'INCOME',
+      label: 'Salaire',
+    } as Category;
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
-    api.listCategories.mockImplementation(({ query }) =>
-      success({
-        items: query.type === 'EXPENSE' ? [expenseCategory] : [],
-        page: 1,
-        perPage: 50,
-        total: query.type === 'EXPENSE' ? 1 : 0,
-      }),
+    // The server lists income first here: the picker still leads with what the sign expects.
+    api.listCategories.mockImplementation(() =>
+      success({ items: [incomeCategory, expenseCategory], page: 1, perPage: 50, total: 2 }),
     );
     renderPage();
 
@@ -104,15 +106,67 @@ describe('TransactionsPage', () => {
     );
     fireEvent.focus(screen.getByRole('combobox', { name: 'Catégorie' }));
 
-    expect(await screen.findByRole('option', { name: 'Courses' })).toBeTruthy();
+    const expenses = await screen.findByRole('group', { name: 'Dépenses' });
+    const incomes = screen.getByRole('group', { name: 'Revenus' });
+    expect(within(expenses).getByRole('option', { name: 'Courses' })).toBeTruthy();
+    expect(within(incomes).getByRole('option', { name: 'Salaire' })).toBeTruthy();
+    expect(
+      expenses.compareDocumentPosition(incomes) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(api.listCategories).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({ type: 'EXPENSE' }),
-      }),
+      expect.objectContaining({ query: expect.objectContaining({ type: undefined }) }),
     );
+
+    // Switching the nature keeps both types on offer, income now first.
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Catégorie' }), { key: 'Escape' });
+    fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'INCOME' } });
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Catégorie' }));
+    const listbox = await screen.findByRole('listbox');
+    expect(
+      within(listbox)
+        .getAllByRole('group')
+        .map((group) => document.getElementById(group.getAttribute('aria-labelledby') ?? '')),
+    ).toEqual([within(listbox).getByText('Revenus'), within(listbox).getByText('Dépenses')]);
 
     fireEvent.keyDown(screen.getByRole('combobox', { name: 'Catégorie' }), { key: 'Escape' });
     expect(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
+  });
+
+  it('keeps a category whose type contradicts the sign and says why it is refused', async () => {
+    const incomeCategory = {
+      ...expenseCategory,
+      id: '00000000-0000-7000-8000-0000000000c2',
+      type: 'INCOME',
+      label: 'Salaire',
+    } as Category;
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [expenseCategory, incomeCategory], page: 1, perPage: 50, total: 2 }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '-1500.00' } });
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'VIR EMPLOYEUR' } });
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' });
+    fireEvent.focus(picker);
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Salaire' }));
+
+    expect((picker as HTMLInputElement).value).toBe('Salaire');
+    expect(picker.getAttribute('aria-invalid')).toBe('true');
+    const message = 'Catégorie de revenu : le montant doit être positif, comme toute entrée.';
+    expect(screen.getByText(message)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(api.createTransaction).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '1500.00' } });
+    expect(screen.queryByText(message)).toBeNull();
+    expect((picker as HTMLInputElement).value).toBe('Salaire');
   });
 
   it('quick-creates and selects a category without changing the transaction draft', async () => {
@@ -300,7 +354,7 @@ describe('TransactionsPage', () => {
     ).toBe('INCOME');
   });
 
-  it('creates a category of the other type without selecting it in the draft', async () => {
+  it('selects a quick-created category of the other type and flags the sign', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 100, total: 1 }),
     );
@@ -336,7 +390,7 @@ describe('TransactionsPage', () => {
     expect((picker as HTMLInputElement).value).toBe('Prime');
     expect(
       within(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).getByText(
-        '« Prime » est créée avec le type Revenu, qui ne correspond pas au signe de ce mouvement : elle n’a pas été sélectionnée.',
+        'Catégorie de revenu : le montant doit être positif, comme toute entrée.',
       ),
     ).toBeTruthy();
   });
@@ -398,6 +452,58 @@ describe('TransactionsPage', () => {
       rawLabel: 'CB CARREFOUR 1234',
     });
     expect(await screen.findByText('La transaction a été enregistrée.')).toBeTruthy();
+  });
+
+  it('folds the rarely used fields, names the filled ones and opens them on an error', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Nouvelle transaction' });
+    const advanced = within(dialog)
+      .getByText('Champs avancés')
+      .closest('details') as HTMLDetailsElement;
+    expect(advanced.open).toBe(false);
+    for (const label of [
+      'Compte',
+      'Date comptable',
+      'Montant',
+      'Nature',
+      'Libellé',
+      'Moyen de paiement',
+    ]) {
+      expect(advanced.contains(within(dialog).getByLabelText(label))).toBe(false);
+    }
+    expect(advanced.contains(within(dialog).getByRole('combobox', { name: 'Catégorie' }))).toBe(
+      false,
+    );
+    for (const label of ['Tiers', 'Note', 'État', 'Date de valeur', 'Date d’autorisation']) {
+      expect(advanced.contains(within(dialog).getByLabelText(label))).toBe(true);
+    }
+
+    fireEvent.change(within(dialog).getByLabelText('Tiers'), { target: { value: 'Carrefour' } });
+    expect(advanced.querySelector('summary')?.textContent).toContain('Tiers');
+
+    fireEvent.change(within(dialog).getByLabelText('Montant'), { target: { value: '-10.00' } });
+    fireEvent.change(within(dialog).getByLabelText('Libellé'), { target: { value: 'TEST' } });
+    fireEvent.change(within(dialog).getByLabelText('Date de valeur'), {
+      target: { value: '2020-01-01' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+
+    expect(advanced.open).toBe(true);
+    expect(
+      within(dialog).getByText('La date de valeur doit rester à 90 jours de la date comptable.'),
+    ).toBeTruthy();
+    expect(api.createTransaction).not.toHaveBeenCalled();
   });
 
   it('switches to the to-categorise queue, requests it and shows its own empty state', async () => {
@@ -657,10 +763,14 @@ describe('TransactionsPage', () => {
     );
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Montant')));
 
+    // Flipping the sign keeps the category and says what now contradicts it.
     fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '42.90' } });
     expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
-      '',
+      'Courses',
     );
+    expect(
+      screen.getByText('Catégorie de dépense : le montant doit être négatif, comme toute sortie.'),
+    ).toBeTruthy();
   });
 
   it('edits a manual label and explains the fields that stay locked', async () => {

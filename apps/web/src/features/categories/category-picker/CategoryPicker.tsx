@@ -1,7 +1,7 @@
 import type { Category, CategoryType } from '@cadran/api-client';
 import { useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
+import { CategorySwatch } from '@/features/categories/category-swatch/CategorySwatch';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { CategoryOptionList } from './category-option-list/CategoryOptionList';
 import { optionId, type CategoryChoice } from './categoryChoice';
@@ -14,12 +14,21 @@ const NONE = '';
 interface CategoryPickerProps {
   /** Label of the entry that selects no category. Omitting it makes the choice mandatory. */
   emptyOptionLabel?: string;
+  /** Validation message of the host, announced with the field. */
+  error?: string | null;
   /** Kept out of the choices, typically the category the operation acts on. */
   excludeId?: string;
   label: string;
-  onChange: (categoryId: string) => void;
+  /** Keeps the label for assistive technologies only, in a row whose columns speak for it. */
+  labelHidden?: boolean;
+  /**
+   * Receives the chosen category as the search returned it, so the host can read its
+   * type or default axes; `null` for "no category" and for a category known only by id.
+   */
+  onChange: (categoryId: string, category: Category | null) => void;
   /** Restrict the choices to categories that can still take a child. */
   parentEligible?: boolean;
+  placeholder?: string;
   /**
    * Adds a last "create" entry handing the typed label to the host, which owns the
    * creation flow and selects the result through `value` and `selectedLabel`.
@@ -32,9 +41,16 @@ interface CategoryPickerProps {
   selectedIcon?: string | null;
   /** Visible label of a value selected from outside: an edited record or a category just created. */
   selectedLabel?: string | null;
-  type: CategoryType;
+  /**
+   * Restricts the choices to one type. Without it both types are offered, grouped,
+   * with `preferredType` first — the host then validates the pairing itself.
+   */
+  type?: CategoryType;
+  preferredType?: CategoryType;
   value: string;
 }
+
+const TYPE_ORDER: CategoryType[] = ['EXPENSE', 'INCOME'];
 
 const CREATE_ID = 'create-category';
 
@@ -48,11 +64,15 @@ const CREATE_ID = 'create-category';
  */
 export function CategoryPicker({
   emptyOptionLabel,
+  error,
   excludeId,
   label,
+  labelHidden = false,
   onChange,
   onCreateRequest,
   parentEligible = false,
+  placeholder,
+  preferredType,
   ref,
   selectedColor,
   selectedIcon,
@@ -64,6 +84,7 @@ export function CategoryPicker({
   const inputId = useId();
   const listId = useId();
   const statusId = useId();
+  const errorId = useId();
   const blurTimeout = useRef<number | undefined>(undefined);
   // Set when the host takes over for a creation: focus coming back from its dialog
   // must not reopen the list, where one Enter would clear the fresh selection.
@@ -96,14 +117,19 @@ export function CategoryPicker({
       ? undefined
       : { color: selectedColor, icon: selectedIcon, label: selectedLabel ?? '' });
 
+  const typeRank = (candidate: Category): number =>
+    candidate.type === preferredType ? -1 : TYPE_ORDER.indexOf(candidate.type);
   const matches: CategoryChoice[] = (candidates.data?.items ?? [])
     .filter((candidate: Category) => candidate.id !== excludeId && candidate.archivedAt === null)
+    // Stable, so the server order is kept inside each type.
+    .toSorted((first, second) => (type ? 0 : typeRank(first) - typeRank(second)))
     .map((candidate: Category) => ({
       id: candidate.id,
       kind: 'category' as const,
       label: candidate.label,
       color: candidate.color,
       icon: candidate.icon,
+      type: type ? undefined : candidate.type,
     }));
   const categoryChoices: CategoryChoice[] =
     undefined === emptyOptionLabel
@@ -139,7 +165,10 @@ export function CategoryPicker({
     setQuery(choice.id === NONE ? '' : choice.label);
     setExpanded(false);
     setActiveIndex(0);
-    onChange(choice.id);
+    onChange(
+      choice.id,
+      candidates.data?.items.find((category) => category.id === choice.id) ?? null,
+    );
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -184,75 +213,87 @@ export function CategoryPicker({
             ? t('categories.picker.matches', { count: matches.length })
             : null;
 
+  const describedBy = [error ? errorId : null, status === null ? null : statusId]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div className={styles.picker}>
-      <label htmlFor={inputId}>{label}</label>
-      <input
-        aria-activedescendant={expanded && active ? optionId(listId, active) : undefined}
-        aria-autocomplete="list"
-        aria-controls={listId}
-        aria-describedby={status === null ? undefined : statusId}
-        aria-expanded={expanded}
-        autoComplete="off"
-        id={inputId}
-        maxLength={80}
-        onBlur={() => {
-          // A pointer selection lands after the blur, so the list stays open long
-          // enough for the click on it to register.
-          blurTimeout.current = window.setTimeout(() => setExpanded(false), 120);
-        }}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          setExpanded(true);
-          setActiveIndex(0);
-          if (chosen !== null || value !== NONE) {
-            setChosen(null);
-            onChange(NONE);
-          }
-        }}
-        onFocus={() => {
-          window.clearTimeout(blurTimeout.current);
-          if (skipFocusOpen.current) {
+      <label className={labelHidden ? 'sr-only' : undefined} htmlFor={inputId}>
+        {label}
+      </label>
+      {/* The selection shows as the field text, led by its colour and glyph inside
+          the control: a pill beside the field would change its height and push
+          every neighbouring field out of line. */}
+      <div className={styles.control}>
+        {value !== NONE ? (
+          <span className={styles.swatch}>
+            <CategorySwatch color={identity?.color} icon={identity?.icon} />
+          </span>
+        ) : null}
+        <input
+          aria-activedescendant={expanded && active ? optionId(listId, active) : undefined}
+          aria-autocomplete="list"
+          aria-controls={listId}
+          aria-describedby={describedBy || undefined}
+          aria-expanded={expanded}
+          aria-invalid={error ? true : undefined}
+          autoComplete="off"
+          className={value !== NONE ? styles.withSwatch : undefined}
+          id={inputId}
+          maxLength={80}
+          onBlur={() => {
+            // A pointer selection lands after the blur, so the list stays open long
+            // enough for the click on it to register.
+            blurTimeout.current = window.setTimeout(() => setExpanded(false), 120);
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setExpanded(true);
+            setActiveIndex(0);
+            if (chosen !== null || value !== NONE) {
+              setChosen(null);
+              onChange(NONE, null);
+            }
+          }}
+          onFocus={() => {
+            window.clearTimeout(blurTimeout.current);
+            if (skipFocusOpen.current) {
+              skipFocusOpen.current = false;
+              return;
+            }
+            setExpanded(true);
+          }}
+          onKeyDown={onKeyDown}
+          onMouseDown={(event) => {
+            // A pointer on the field asks for the list, even when it already has focus.
             skipFocusOpen.current = false;
-            return;
-          }
-          setExpanded(true);
-        }}
-        onKeyDown={onKeyDown}
-        onMouseDown={(event) => {
-          // A pointer on the field asks for the list, even when it already has focus.
-          skipFocusOpen.current = false;
-          if (document.activeElement === event.currentTarget) setExpanded(true);
-        }}
-        placeholder={t('categories.picker.placeholder')}
-        ref={ref}
-        role="combobox"
-        type="text"
-        value={value !== NONE ? (identity?.label ?? selectedLabel ?? query) : query}
-      />
-
-      {/* The combobox value is plain editable text, so the pill of the current
-          selection sits beside the field instead of framing it. */}
-      {value !== NONE ? (
-        <p className={styles.selected}>
-          <CategoryIdentity
-            color={identity?.color}
-            icon={identity?.icon}
-            label={identity?.label ?? selectedLabel ?? ''}
-          />
-        </p>
-      ) : null}
-
-      {expanded && choices.length > 0 ? (
-        <CategoryOptionList
-          activeIndex={activeIndex}
-          choices={choices}
-          id={listId}
-          label={label}
-          onActivate={setActiveIndex}
-          onChoose={choose}
-          value={value}
+            if (document.activeElement === event.currentTarget) setExpanded(true);
+          }}
+          placeholder={placeholder ?? t('categories.picker.placeholder')}
+          ref={ref}
+          role="combobox"
+          type="text"
+          value={value !== NONE ? (identity?.label ?? selectedLabel ?? query) : query}
         />
+
+        {expanded && choices.length > 0 ? (
+          <CategoryOptionList
+            activeIndex={activeIndex}
+            choices={choices}
+            id={listId}
+            label={label}
+            onActivate={setActiveIndex}
+            onChoose={choose}
+            value={value}
+          />
+        ) : null}
+      </div>
+
+      {error ? (
+        <small className={styles.error} id={errorId}>
+          {error}
+        </small>
       ) : null}
 
       {status === null ? null : (

@@ -2,24 +2,20 @@ import type { AnalyticAxes, CategoryType } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
+import { SplitAxes } from './split-axes/SplitAxes';
 import styles from './SplitEditor.module.css';
 
 type AnalyticAxis = AnalyticAxes[number];
-
-const AXES: AnalyticAxis[] = [
-  'ESSENTIAL',
-  'DISCRETIONARY',
-  'FIXED',
-  'VARIABLE',
-  'PERSONAL',
-  'PROFESSIONAL',
-];
 
 export interface SplitRowValues {
   categoryId: string;
   categoryColor?: string | null;
   categoryIcon?: string | null;
   categoryLabel?: string | null;
+  /** Type of the picked category, `null` or absent while unknown. */
+  categoryType?: CategoryType | null;
+  /** Default axes of the picked category, which a `null` `analyticAxes` inherits. */
+  defaultAxes?: AnalyticAxis[] | null;
   amount: string;
   /** `null` inherits the picked category's default axes; an explicit array, even empty, overrides them. */
   analyticAxes: AnalyticAxis[] | null;
@@ -29,49 +25,58 @@ export interface SplitRowValues {
 }
 
 interface SplitRowProps {
+  /** Message for a category the transaction sign would refuse. */
+  categoryError: string | null;
   index: number;
   invalid: boolean;
   duplicateCategory: boolean;
   onChange: (values: SplitRowValues) => void;
   onRemove: () => void;
+  preferredType: CategoryType;
   removable: boolean;
-  type: CategoryType;
   values: SplitRowValues;
 }
 
 /** One row of a transaction's split allocation: its category, exact amount, analytic axes and note. */
 export function SplitRow({
+  categoryError,
   index,
   invalid,
   duplicateCategory,
   onChange,
   onRemove,
+  preferredType,
   removable,
-  type,
   values,
 }: SplitRowProps) {
   const { t } = useTranslation();
-
-  function toggleAxis(axis: AnalyticAxis) {
-    const current = values.analyticAxes ?? [];
-    onChange({
-      ...values,
-      analyticAxes: current.includes(axis)
-        ? current.filter((candidate) => candidate !== axis)
-        : [...current, axis],
-    });
-  }
 
   return (
     <div className={styles.row}>
       <div className={styles.rowFields}>
         <CategoryPicker
+          error={categoryError}
           label={t('transactions.split.categoryRow', { row: index + 1 })}
-          onChange={(categoryId) => onChange({ ...values, categoryId })}
+          labelHidden
+          onChange={(categoryId, category) =>
+            onChange({
+              ...values,
+              // A new category brings its own defaults; an override made for the
+              // previous one no longer describes this row.
+              analyticAxes: categoryId === values.categoryId ? values.analyticAxes : null,
+              categoryColor: category?.color ?? null,
+              categoryIcon: category?.icon ?? null,
+              categoryId,
+              categoryLabel: category?.label ?? null,
+              categoryType: category?.type ?? null,
+              defaultAxes: category?.defaultAnalyticAxes ?? null,
+            })
+          }
+          placeholder={t('transactions.fields.category')}
+          preferredType={preferredType}
           selectedColor={values.categoryColor}
           selectedIcon={values.categoryIcon}
           selectedLabel={values.categoryLabel}
-          type={type}
           value={values.categoryId}
         />
 
@@ -83,6 +88,7 @@ export function SplitRow({
             autoComplete="off"
             inputMode="decimal"
             onChange={(event) => onChange({ ...values, amount: event.target.value })}
+            placeholder={t('transactions.fields.amount')}
             spellCheck={false}
             value={values.amount}
           />
@@ -109,19 +115,12 @@ export function SplitRow({
         </button>
       </div>
 
-      <fieldset className={styles.axes}>
-        <legend className="sr-only">{t('transactions.split.axesRow', { row: index + 1 })}</legend>
-        {AXES.map((axis) => (
-          <label key={axis}>
-            <input
-              checked={(values.analyticAxes ?? []).includes(axis)}
-              onChange={() => toggleAxis(axis)}
-              type="checkbox"
-            />
-            <span>{t(`categories.axes.${axis}`)}</span>
-          </label>
-        ))}
-      </fieldset>
+      <SplitAxes
+        axes={values.analyticAxes}
+        defaultAxes={values.defaultAxes ?? null}
+        index={index}
+        onChange={(analyticAxes) => onChange({ ...values, analyticAxes })}
+      />
 
       {duplicateCategory ? (
         <p className={styles.rowError} role="alert">

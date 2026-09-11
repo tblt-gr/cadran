@@ -1,0 +1,27 @@
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  border-radius: var(--radius-circle);
+}
+
+/* No stored colour: a ring on the control surface still marks the field as
+   holding a chosen category rather than a search in progress. */
+.neutral {
+  border: var(--border-line-strong);
+  color: var(--text-primary);
+  background: var(--bg-surface-1);
+}
+
+.glyph {
+  width: var(--category-glyph-size);
+  height: var(--category-glyph-size);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
