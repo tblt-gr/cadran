@@ -2,7 +2,8 @@ import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { formatAmount, formatCalendarDay } from '@/lib/decimal';
+import { formatCalendarDay } from '@/lib/decimal';
+import { RefundBadge } from '@/features/transactions/refund-editor/refund-badge/RefundBadge';
 import { TransactionAmount } from './transaction-amount/TransactionAmount';
 import { TransactionCategories } from './transaction-categories/TransactionCategories';
 import styles from './TransactionList.module.css';
@@ -78,24 +79,7 @@ export function TransactionList({
                         <small>{t('transactions.list.transferLocked')}</small>
                       </>
                     ) : null}
-                    {transaction.refundOriginalLabel ? (
-                      <small>
-                        {t('transactions.list.refundOf', {
-                          label: transaction.refundOriginalLabel,
-                        })}
-                      </small>
-                    ) : null}
-                    {transaction.refundedAmount ? (
-                      <small>
-                        {t('transactions.list.refundedAmount', {
-                          amount: formatAmount(
-                            transaction.refundedAmount.value,
-                            transaction.refundedAmount.assetCode,
-                            i18n.language,
-                          ),
-                        })}
-                      </small>
-                    ) : null}
+                    <RefundBadge transaction={transaction} />
                   </th>
                   <td data-label={t('transactions.fields.counterparty')}>
                     {transaction.counterparty ?? t('transactions.list.noCounterparty')}

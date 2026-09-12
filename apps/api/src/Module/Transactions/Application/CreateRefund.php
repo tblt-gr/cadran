@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -28,6 +29,7 @@ use Symfony\Component\Clock\ClockInterface;
 final readonly class CreateRefund
 {
     public function __construct(
+        private AccountRepository $accounts,
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
         private RefundRepository $refunds,
@@ -77,14 +79,22 @@ final readonly class CreateRefund
                 throw new InvalidRefundRule('asset_mismatch');
             }
             $amount = $magnitude;
+            // Checked ahead of accountForNew(): that call's own asset invariant
+            // compares against the refund's own amount, already proven equal to
+            // the original's above, so it would otherwise mask this rule behind
+            // a generic invalid-transaction problem instead of the refund one.
+            $account = $this->accounts->find($context->workspace, $input->accountId);
+            if (null === $account) {
+                throw new TransactionNotFound();
+            }
+            if ($account->assetCode->toString() !== $original->amount->asset->toString()) {
+                throw new InvalidRefundRule('asset_mismatch');
+            }
             $draft = new TransactionDraft($amount, TransactionNature::REFUND, TransactionState::BOOKED, $bookedOn, null, null,
                 $input->rawLabel, $input->counterparty, $input->note, null, null, null, null);
             $now = $this->clock->now();
             $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
-            $account = $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
-            if ($account->assetCode->toString() !== $original->amount->asset->toString()) {
-                throw new InvalidRefundRule('asset_mismatch');
-            }
+            $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
             $id = $this->uuidGenerator->generate();
             $asset = $this->assets->findByCode($amount->asset) ?? throw new \UnexpectedValueException('Transaction asset is missing.');
             $proposal = $this->allocation->propose($original, $magnitude, $asset->precision->display);
