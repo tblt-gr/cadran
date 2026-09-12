@@ -21,6 +21,7 @@ final readonly class TransactionSplit
         public array $analyticAxes,
         public ?string $note,
         public \DateTimeImmutable $createdAt,
+        public int $position = 0,
     ) {
         self::identifier($id);
         self::identifier($transactionId);
@@ -30,6 +31,9 @@ final readonly class TransactionSplit
             throw new InvalidTransaction('A split amount cannot be zero.');
         }
         self::assertAxes($analyticAxes);
+        if ($position < 0 || $position >= Transaction::MAX_SPLITS) {
+            throw new InvalidTransaction('A transaction split position must be within the allocation bounds.');
+        }
     }
 
     private static function identifier(string $id): void

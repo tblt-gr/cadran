@@ -10,6 +10,7 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Domain\InvalidTransaction;
+use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
 use App\Module\Transactions\Domain\TransferRepository;
 use Symfony\Component\Clock\ClockInterface;
@@ -25,6 +26,7 @@ final readonly class ReplaceTransactionSplits
     public function __construct(
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
+        private RefundRepository $refunds,
         private TransferRepository $transfers,
         private TransactionSplitInputParser $parser,
         private TransactionReferences $references,
@@ -45,6 +47,10 @@ final readonly class ReplaceTransactionSplits
         if (null !== $transfer) {
             throw new TransactionBelongsToTransfer($transfer->id);
         }
+        $refund = $this->refunds->findByRefundTransactionId($context->workspace, $id);
+        if (null !== $refund) {
+            throw new TransactionBelongsToRefund($refund->originalTransactionId);
+        }
         $inputs = $this->parser->parse($input->splits);
 
         return $this->transactionBoundary->transactional(function () use ($context, $inputs, $input, $id): TransactionView {
@@ -53,6 +59,9 @@ final readonly class ReplaceTransactionSplits
             $current = $this->transactions->findForUpdate($context->workspace, $id);
             if (null === $current) {
                 throw new TransactionNotFound();
+            }
+            if ($this->refunds->hasLiveRefund($context->workspace, $id)) {
+                throw new TransactionHasRefunds('An original with live refunds cannot be recategorised.');
             }
             if ($input->version !== $current->version) {
                 throw new StaleTransactionVersion('The transaction changed concurrently.');

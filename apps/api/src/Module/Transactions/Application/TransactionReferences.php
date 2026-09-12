@@ -15,6 +15,7 @@ use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\Transaction;
+use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionSplit;
 
 final readonly class TransactionReferences
@@ -131,6 +132,7 @@ final readonly class TransactionReferences
         \DateTimeImmutable $now,
         array $existingByCategory = [],
         bool $allowArchivedCategories = false,
+        ?TransactionNature $nature = null,
     ): array {
         if (count($inputs) > Transaction::MAX_SPLITS) {
             throw new InvalidSplitsInput(InvalidSplitsInput::TOO_MANY);
@@ -149,9 +151,13 @@ final readonly class TransactionReferences
         usort($sortedInputs, static fn (TransactionSplitInput $a, TransactionSplitInput $b): int => $a->categoryId <=> $b->categoryId);
         $resolvedByCategory = [];
         foreach ($sortedInputs as $input) {
+            $position = array_search($input, $inputs, true);
+            if (false === $position) {
+                throw new \LogicException('A split input must retain its submitted position.');
+            }
             $resolvedByCategory[$input->categoryId] = $this->resolveSplit(
                 $workspace, $transactionId, $input, $transactionAmount, $now,
-                $existingByCategory[$input->categoryId] ?? null, $allowArchivedCategories,
+                $existingByCategory[$input->categoryId] ?? null, $allowArchivedCategories, $nature, $position,
             );
         }
         $splits = array_map(
@@ -178,6 +184,8 @@ final readonly class TransactionReferences
         \DateTimeImmutable $now,
         ?TransactionSplit $existing,
         bool $allowArchivedCategory = false,
+        ?TransactionNature $nature = null,
+        int $position = 0,
     ): TransactionSplit {
         if ($input->amount->asset->toString() !== $transactionAmount->asset->toString()
             || $input->amount->value->isNegative() !== $transactionAmount->value->isNegative()
@@ -192,7 +200,8 @@ final readonly class TransactionReferences
         if (null !== $category->archivedAt && null === $existing && !$allowArchivedCategory) {
             throw new InvalidTransactionInput('A transaction category must be active.');
         }
-        $expectedType = $transactionAmount->value->isNegative() ? CategoryType::EXPENSE : CategoryType::INCOME;
+        $expectedType = TransactionNature::REFUND === $nature || $transactionAmount->value->isNegative()
+            ? CategoryType::EXPENSE : CategoryType::INCOME;
         if ($category->type !== $expectedType) {
             throw new InvalidTransactionInput('The category type must match the transaction amount sign.');
         }
@@ -208,6 +217,7 @@ final readonly class TransactionReferences
             analyticAxes: $input->analyticAxes ?? $category->defaultAnalyticAxes,
             note: $input->note,
             createdAt: $existing->createdAt ?? $now,
+            position: $position,
         );
     }
 

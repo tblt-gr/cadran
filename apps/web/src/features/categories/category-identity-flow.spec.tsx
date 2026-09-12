@@ -48,6 +48,9 @@ const transaction: Transaction = {
   updatedAt: '2026-09-01T12:00:00+02:00',
   voidedAt: null,
   transferId: null,
+  refundOriginalId: null,
+  refundOriginalLabel: null,
+  refundedAmount: null,
   nature: 'EXPENSE',
   state: 'BOOKED',
   source: 'MANUAL',
@@ -79,6 +82,7 @@ function rows(transactions: Transaction[]) {
       duplicatingIds={new Set()}
       onDuplicate={vi.fn()}
       onEdit={vi.fn()}
+      onRefund={vi.fn()}
       onVoid={vi.fn()}
       transactions={transactions}
     />

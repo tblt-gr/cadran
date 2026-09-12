@@ -37,6 +37,9 @@ final readonly class TransactionRepresentation
             'updatedAt' => $transaction->updatedAt,
             'voidedAt' => $transaction->voidedAt,
             'transferId' => $transaction->transferId,
+            'refundOriginalId' => $transaction->refundOriginalId,
+            'refundOriginalLabel' => $transaction->refundOriginalLabel,
+            'refundedAmount' => $transaction->refundedAmount,
         ];
     }
 

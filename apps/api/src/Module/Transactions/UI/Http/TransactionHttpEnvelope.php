@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Transactions\Application\InvalidRefundRule;
 use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransferRule;
+use App\Module\Transactions\Application\RefundConflict;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -86,6 +88,31 @@ final readonly class TransactionHttpEnvelope
             $this->translator->trans($key.'.title'),
             $this->translator->trans($key.'.detail'),
             '/problems/'.$exception->ruleCode,
+        );
+    }
+
+    public function invalidRefundRuleProblem(InvalidRefundRule $exception): JsonResponse
+    {
+        $key = 'api.problem.invalid_refund_'.str_replace('.', '_', $exception->ruleCode);
+
+        return ApiProblem::response(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            $this->translator->trans($key.'.title'),
+            $this->translator->trans($key.'.detail'),
+            '/problems/refund.'.$exception->ruleCode,
+        );
+    }
+
+    public function refundConflictProblem(RefundConflict $exception): JsonResponse
+    {
+        $key = 'api.problem.refund_'.$exception->ruleCode;
+
+        return ApiProblem::response(
+            Response::HTTP_CONFLICT,
+            $this->translator->trans($key.'.title'),
+            $this->translator->trans($key.'.detail', ['%remaining%' => $exception->remaining->toString()]),
+            '/problems/refund.'.$exception->ruleCode,
+            extensions: ['remaining' => $exception->remaining->toString()],
         );
     }
 

@@ -1148,6 +1148,7 @@
       "addPeriod": "Ajouter une période",
       "addPeriodTo": "Ajouter une période au modèle {{name}}",
       "duplicate": "Dupliquer",
+      "refund": "Créer un remboursement",
       "duplicateModel": "Dupliquer le modèle {{name}}",
       "archive": "Archiver",
       "archiveModel": "Archiver le modèle {{name}}",
@@ -1516,6 +1517,7 @@
       "edit": "Modifier",
       "void": "Annuler",
       "duplicate": "Dupliquer",
+      "refund": "Créer un remboursement",
       "actionFor": "{{action}} la transaction « {{label}} »",
       "openActions": "Actions de la transaction « {{label}} »",
       "categorised": "Catégorisée",
@@ -1528,7 +1530,9 @@
       "moreSplits_other": "+ {{count}} autres catégories",
       "transferMarker": "Virement",
       "transferFeeMarker": "Frais de virement",
-      "transferLocked": "Utilisez le virement pour modifier ou annuler ce mouvement."
+      "transferLocked": "Utilisez le virement pour modifier ou annuler ce mouvement.",
+      "refundOf": "Remboursement de « {{label}} »",
+      "refundedAmount": "Remboursé : {{amount}}"
     },
     "amount": {
       "inflow": "Entrée de {{amount}}",
@@ -1555,6 +1559,17 @@
       "consequences": "Une transaction annulée ne peut plus être modifiée.",
       "confirm": "Annuler la transaction",
       "confirming": "Annulation…"
+    },
+    "refund": {
+      "eyebrow": "Remboursement",
+      "title": "Créer un remboursement",
+      "loading": "Calcul de la part remboursable…",
+      "error": "Le remboursement ne peut pas être préparé. Rechargez la liste et réessayez.",
+      "remaining": "Montant encore remboursable",
+      "amountTooHigh": "Le montant ne peut pas dépasser le solde remboursable affiché.",
+      "allocation": "Répartition proposée",
+      "save": "Créer le remboursement",
+      "saving": "Création…"
     },
     "filters": {
       "allAccounts": "Tous les comptes",

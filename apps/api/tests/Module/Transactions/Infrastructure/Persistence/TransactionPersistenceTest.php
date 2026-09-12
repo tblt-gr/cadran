@@ -173,12 +173,12 @@ final class TransactionPersistenceTest extends KernelTestCase
                 new TransactionSplit(
                     '00000000-0000-7000-8000-0000000000e1', $transaction->workspace, $transaction->id,
                     self::OWN_CATEGORY, new AssetAmount(DecimalValue::fromString('-62.10'), AssetCode::fromString('EUR')),
-                    [AnalyticAxis::ESSENTIAL], 'Courses', $transaction->createdAt,
+                    [AnalyticAxis::ESSENTIAL], 'Courses', $transaction->createdAt, 0,
                 ),
                 new TransactionSplit(
                     '00000000-0000-7000-8000-0000000000e2', $transaction->workspace, $transaction->id,
                     self::OWN_SECOND_CATEGORY, new AssetAmount(DecimalValue::fromString('-25.30'), AssetCode::fromString('EUR')),
-                    [], null, $transaction->createdAt,
+                    [], null, $transaction->createdAt, 1,
                 ),
             ],
             version: 1, createdAt: $transaction->createdAt, updatedAt: $transaction->updatedAt, voidedAt: null,

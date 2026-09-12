@@ -2,7 +2,7 @@ import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { formatCalendarDay } from '@/lib/decimal';
+import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import { TransactionAmount } from './transaction-amount/TransactionAmount';
 import { TransactionCategories } from './transaction-categories/TransactionCategories';
 import styles from './TransactionList.module.css';
@@ -12,6 +12,7 @@ interface TransactionListProps {
   duplicatingIds: ReadonlySet<string>;
   onDuplicate: (transaction: Transaction) => void;
   onEdit: (transaction: Transaction) => void;
+  onRefund: (transaction: Transaction) => void;
   onVoid: (transaction: Transaction) => void;
   transactions: Transaction[];
 }
@@ -21,6 +22,7 @@ export function TransactionList({
   duplicatingIds,
   onDuplicate,
   onEdit,
+  onRefund,
   onVoid,
   transactions,
 }: TransactionListProps) {
@@ -52,6 +54,10 @@ export function TransactionList({
               const terminal = voided || transaction.state === 'REJECTED';
               const transferLinked = transaction.transferId !== null;
               const linked = transferLinked || transaction.nature === 'REFUND';
+              const refundable =
+                transaction.state === 'BOOKED' &&
+                !transferLinked &&
+                (transaction.nature === 'EXPENSE' || transaction.nature === 'FEE');
 
               return (
                 <tr key={transaction.id}>
@@ -71,6 +77,24 @@ export function TransactionList({
                         </small>
                         <small>{t('transactions.list.transferLocked')}</small>
                       </>
+                    ) : null}
+                    {transaction.refundOriginalLabel ? (
+                      <small>
+                        {t('transactions.list.refundOf', {
+                          label: transaction.refundOriginalLabel,
+                        })}
+                      </small>
+                    ) : null}
+                    {transaction.refundedAmount ? (
+                      <small>
+                        {t('transactions.list.refundedAmount', {
+                          amount: formatAmount(
+                            transaction.refundedAmount.value,
+                            transaction.refundedAmount.assetCode,
+                            i18n.language,
+                          ),
+                        })}
+                      </small>
                     ) : null}
                   </th>
                   <td data-label={t('transactions.fields.counterparty')}>
@@ -101,6 +125,17 @@ export function TransactionList({
                   <td className={styles.actions}>
                     <ActionMenu
                       items={[
+                        {
+                          disabled: !refundable,
+                          icon: 'replace',
+                          id: 'refund',
+                          label: t('transactions.list.actionFor', {
+                            action: t('transactions.list.refund'),
+                            label: transaction.rawLabel,
+                          }),
+                          onSelect: () => onRefund(transaction),
+                          text: t('transactions.list.refund'),
+                        },
                         {
                           disabled: terminal || linked,
                           icon: 'edit',

@@ -62,6 +62,9 @@ const transaction: Transaction = {
   updatedAt: '2026-03-14T09:12:04+01:00',
   voidedAt: null,
   transferId: null,
+  refundOriginalId: null,
+  refundOriginalLabel: null,
+  refundedAmount: null,
 };
 
 function success<T>(data: T, status = 200) {

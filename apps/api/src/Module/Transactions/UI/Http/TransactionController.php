@@ -5,18 +5,25 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Transactions\Application\CreateRefund;
+use App\Module\Transactions\Application\CreateRefundInput;
 use App\Module\Transactions\Application\CreateTransaction;
 use App\Module\Transactions\Application\CreateTransactionInput;
 use App\Module\Transactions\Application\DuplicateTransaction;
+use App\Module\Transactions\Application\InvalidRefundRule;
 use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
 use App\Module\Transactions\Application\ListTransactions;
+use App\Module\Transactions\Application\ReadRefundable;
 use App\Module\Transactions\Application\ReadTransaction;
+use App\Module\Transactions\Application\RefundConflict;
 use App\Module\Transactions\Application\ReplaceTransactionSplits;
 use App\Module\Transactions\Application\ReplaceTransactionSplitsInput;
 use App\Module\Transactions\Application\StaleTransactionVersion;
+use App\Module\Transactions\Application\TransactionBelongsToRefund;
 use App\Module\Transactions\Application\TransactionBelongsToTransfer;
 use App\Module\Transactions\Application\TransactionConflict;
+use App\Module\Transactions\Application\TransactionHasRefunds;
 use App\Module\Transactions\Application\TransactionNotFound;
 use App\Module\Transactions\Application\UpdateTransaction;
 use App\Module\Transactions\Application\UpdateTransactionInput;
@@ -32,6 +39,7 @@ final readonly class TransactionController
         'counterparty', 'note', 'paymentMethod', 'mcc', 'maskedCard', 'bankReference', 'categoryId', 'splits',
     ];
     private const array UPDATE_FIELDS = [...self::CREATE_FIELDS, 'version'];
+    private const array REFUND_FIELDS = ['accountId', 'amount', 'bookedOn', 'rawLabel', 'counterparty', 'note', 'splits'];
     private const array LIST_QUERY_FIELDS = ['accountId', 'includeVoided', 'pageSize', 'cursor', 'categorization'];
 
     public function __construct(private TransactionHttpEnvelope $envelope)
@@ -120,6 +128,62 @@ final readonly class TransactionController
         return $this->envelope->json(TransactionRepresentation::one($transaction));
     }
 
+    #[Route('/api/v1/transactions/{id}/refundable', name: 'api_v1_transactions_refundable', methods: ['GET'])]
+    public function refundable(string $id, ReadRefundable $readRefundable): Response
+    {
+        if (!$this->envelope->isIdentifier($id)) {
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
+        }
+        try {
+            $view = $readRefundable($id);
+        } catch (InvalidRefundRule $exception) {
+            return $this->envelope->invalidRefundRuleProblem($exception);
+        } catch (TransactionNotFound) {
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
+        } catch (WorkspaceAccessDenied) {
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        }
+
+        return $this->envelope->json(RefundRepresentation::refundable($view));
+    }
+
+    #[Route('/api/v1/transactions/{id}/refunds', name: 'api_v1_transactions_create_refund', methods: ['POST'])]
+    public function createRefund(string $id, Request $request, CreateRefund $createRefund): Response
+    {
+        if (!$this->envelope->isIdentifier($id)) {
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
+        }
+        $body = $this->envelope->body($request);
+        if ($body instanceof Response) {
+            return $body;
+        }
+        try {
+            $body += ['splits' => null];
+            $payload = TransactionPayload::of($body, self::REFUND_FIELDS);
+            $refund = $createRefund($id, new CreateRefundInput(
+                $payload->identifier('accountId'), $payload->amount('amount'), $payload->string('bookedOn'),
+                $payload->string('rawLabel'), $payload->nullableString('counterparty'), $payload->nullableString('note'),
+                $payload->nullableSplitRows('splits'),
+            ));
+        } catch (InvalidSplitsInput $exception) {
+            return $this->envelope->invalidSplitsProblem($exception);
+        } catch (InvalidRefundRule $exception) {
+            return $this->envelope->invalidRefundRuleProblem($exception);
+        } catch (RefundConflict $exception) {
+            return $this->envelope->refundConflictProblem($exception);
+        } catch (InvalidTransactionInput|\UnexpectedValueException) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
+        } catch (TransactionNotFound) {
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
+        } catch (TransactionConflict) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
+        } catch (WorkspaceAccessDenied) {
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        }
+
+        return $this->envelope->json(TransactionRepresentation::one($refund), Response::HTTP_CREATED);
+    }
+
     #[Route('/api/v1/transactions/{id}', name: 'api_v1_transactions_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateTransaction $updateTransaction): Response
     {
@@ -143,6 +207,13 @@ final readonly class TransactionController
                 Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_transfer',
                 ['transferId' => $exception->transferId], '/problems/transaction-belongs-to-transfer',
             );
+        } catch (TransactionBelongsToRefund $exception) {
+            return $this->envelope->problemWithExtensions(
+                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_refund',
+                ['originalId' => $exception->originalTransactionId], '/problems/transaction.belongs_to_refund',
+            );
+        } catch (TransactionHasRefunds) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_has_refunds', '/problems/transaction.has_refunds');
         } catch (TransactionNotFound) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         } catch (StaleTransactionVersion) {
@@ -183,6 +254,13 @@ final readonly class TransactionController
                 Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_transfer',
                 ['transferId' => $exception->transferId], '/problems/transaction-belongs-to-transfer',
             );
+        } catch (TransactionBelongsToRefund $exception) {
+            return $this->envelope->problemWithExtensions(
+                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_refund',
+                ['originalId' => $exception->originalTransactionId], '/problems/transaction.belongs_to_refund',
+            );
+        } catch (TransactionHasRefunds) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_has_refunds', '/problems/transaction.has_refunds');
         } catch (TransactionNotFound) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         } catch (StaleTransactionVersion) {
@@ -217,6 +295,8 @@ final readonly class TransactionController
                 Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_transfer',
                 ['transferId' => $exception->transferId], '/problems/transaction-belongs-to-transfer',
             );
+        } catch (TransactionHasRefunds) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_has_refunds', '/problems/transaction.has_refunds');
         } catch (TransactionNotFound) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         } catch (StaleTransactionVersion) {
@@ -243,6 +323,11 @@ final readonly class TransactionController
             return $this->envelope->invalidSplitsProblem($exception);
         } catch (InvalidTransactionInput) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
+        } catch (TransactionBelongsToRefund $exception) {
+            return $this->envelope->problemWithExtensions(
+                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_refund',
+                ['originalId' => $exception->originalTransactionId], '/problems/transaction.belongs_to_refund',
+            );
         } catch (TransactionNotFound) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         } catch (TransactionConflict) {
