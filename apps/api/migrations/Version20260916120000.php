@@ -37,6 +37,9 @@ final class Version20260916120000 extends AbstractMigration
         $this->addSql('CREATE INDEX transaction_refunds_original_index ON transaction_refunds (workspace_id, original_transaction_id)');
         $this->addSql('ALTER TABLE transaction_transactions DROP CONSTRAINT transaction_transactions_sign_matches_nature');
         $this->addSql("ALTER TABLE transaction_transactions ADD CONSTRAINT transaction_transactions_sign_matches_nature CHECK ((nature IN ('INCOME', 'REFUND') AND amount_value > 0) OR (nature IN ('EXPENSE', 'FEE') AND amount_value < 0) OR nature IN ('TRANSFER', 'ADJUSTMENT'))");
+        // PostgreSQL cannot change this table while any deferred trigger event is queued.
+        // Keeping constraints immediate also checks the ordering backfill as it is written.
+        $this->addSql('SET CONSTRAINTS ALL IMMEDIATE');
         $this->addSql('ALTER TABLE transaction_splits ADD COLUMN position SMALLINT NOT NULL DEFAULT 0');
         $this->addSql('WITH ordered AS (SELECT id, row_number() OVER (PARTITION BY transaction_id ORDER BY id) - 1 AS position FROM transaction_splits) UPDATE transaction_splits s SET position = ordered.position FROM ordered WHERE ordered.id = s.id');
         $this->addSql('ALTER TABLE transaction_splits ADD CONSTRAINT transaction_splits_position_valid CHECK (position BETWEEN 0 AND 19)');
