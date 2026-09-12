@@ -2553,7 +2553,9 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           description: >-
-            The edit is invalid, tried to change an immutable field, or the
+            The edit is invalid, tried to change an immutable field, targets
+            a transfer leg or its fee
+            (`type: /problems/transaction-belongs-to-transfer`), or the
             splits allocation does not sum to the amount
             (`type: /problems/splits.sum_mismatch`), carries more than twenty
             rows (`type: /problems/splits.too_many`) or repeats a category
@@ -2564,6 +2566,7 @@ paths:
                 oneOf:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/AmountInputProblem'
+                  - $ref: '#/components/schemas/TransactionBelongsToTransferProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/splits:
@@ -2623,7 +2626,9 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           description: >-
-            The allocation does not sum to the amount
+            The transaction is a transfer leg or its fee
+            (`type: /problems/transaction-belongs-to-transfer`), or the
+            allocation does not sum to the amount
             (`type: /problems/splits.sum_mismatch`), carries more than twenty
             rows (`type: /problems/splits.too_many`), repeats a category
             (`type: /problems/splits.duplicate_category`), or a split is
@@ -2635,6 +2640,7 @@ paths:
                 oneOf:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/AmountInputProblem'
+                  - $ref: '#/components/schemas/TransactionBelongsToTransferProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/void:
@@ -2691,7 +2697,15 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          description: >-
+            The transaction is a transfer leg or its fee
+            (`type: /problems/transaction-belongs-to-transfer`).
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/TransactionBelongsToTransferProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/duplicate:
@@ -2739,6 +2753,217 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/transfers:
+    post:
+      operationId: createTransfer
+      summary: Move money between two accounts of the calling workspace atomically
+      description: >-
+        Creates both legs — source negative, target positive — and an
+        optional fee, in one PostgreSQL transaction. sourceAmount and
+        targetAmount are positive magnitudes; the server applies the signs.
+        Same-asset transfers may omit targetAmount, defaulting it to the
+        source magnitude; a cross-asset transfer must supply it, and the
+        exchange rate is derived and stored on both legs. Neither leg carries
+        income or expense, and neither accepts a split.
+      tags:
+        - Transfers
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferRequest'
+      responses:
+        '201':
+          description: The transfer with both legs and the optional fee.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: A source or target account changed concurrently.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The accounts, amounts, dates, state, label or fee are invalid.
+            The source and target account must differ
+            (`type: /problems/transfer.same_account`), and a same-asset pair
+            with an explicit targetAmount must net exactly to zero
+            (`type: /problems/transfer.amount_mismatch`).
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AmountInputProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/transfers/{id}:
+    get:
+      operationId: getTransfer
+      summary: Read one transfer of the calling workspace
+      tags:
+        - Transfers
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The transfer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      operationId: updateTransfer
+      summary: Replace the editable fields of a transfer atomically
+      description: >-
+        Optimistic versioning. The two accounts and both leg amounts are set
+        once at creation and never change; an edit corrects the state,
+        dates, label, note or fee of both legs together. Voiding and
+        recreating the transfer is how an amount is corrected.
+      tags:
+        - Transfers
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransferRequest'
+      responses:
+        '200':
+          description: The updated transfer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The submitted version is stale (`type: /problems/stale-version`)
+            or the transfer is already voided (`type: /problems/transfer-conflict`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: The edit is invalid or tried to change an immutable field.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/transfers/{id}/void:
+    post:
+      operationId: voidTransfer
+      summary: Void a transfer and its legs together, without deleting them
+      description: >-
+        Voids both legs and the fee, if any, in one PostgreSQL transaction.
+        An already-voided transfer cannot be voided again.
+      tags:
+        - Transfers
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoidTransferRequest'
+      responses:
+        '200':
+          description: The voided transfer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The submitted version is stale (`type: /problems/stale-version`)
+            or the transfer is already voided (`type: /problems/transfer-conflict`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
@@ -6333,6 +6558,7 @@ components:
         - createdAt
         - updatedAt
         - voidedAt
+        - transferId
       properties:
         id:
           type: string
@@ -6428,6 +6654,15 @@ components:
           oneOf:
             - type: string
               format: date-time
+            - type: 'null'
+        transferId:
+          description: >-
+            Read-only. Set when this transaction is a transfer leg or its
+            fee; editing or voiding it then requires the transfer's own
+            endpoint instead of this one.
+          oneOf:
+            - type: string
+              format: uuid
             - type: 'null'
     TransactionSplit:
       type: object
@@ -6771,6 +7006,176 @@ components:
         version:
           type: integer
           minimum: 1
+    Transfer:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - source
+        - target
+        - fee
+        - exchangeRate
+        - version
+        - createdAt
+        - updatedAt
+        - voidedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        source:
+          $ref: '#/components/schemas/Transaction'
+        target:
+          $ref: '#/components/schemas/Transaction'
+        fee:
+          description: The separate FEE transaction on the source account, or null.
+          oneOf:
+            - $ref: '#/components/schemas/Transaction'
+            - type: 'null'
+        exchangeRate:
+          description: Derived rate for a cross-asset transfer, or null for a same-asset one.
+          oneOf:
+            - type: string
+              pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        voidedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    CreateTransferRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - sourceAccountId
+        - targetAccountId
+        - sourceAmount
+        - targetAmount
+        - state
+        - bookedOn
+        - valueOn
+        - label
+        - note
+        - fee
+      properties:
+        sourceAccountId:
+          type: string
+          format: uuid
+        targetAccountId:
+          type: string
+          format: uuid
+        sourceAmount:
+          description: A positive magnitude; the server negates it for the source leg.
+          $ref: '#/components/schemas/DecimalAmount'
+        targetAmount:
+          description: >-
+            A positive magnitude in the target account asset. Required when
+            the two accounts do not share an asset; optional otherwise,
+            where it defaults to the source magnitude.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        state:
+          type: string
+          enum:
+            - PENDING
+            - BOOKED
+        bookedOn:
+          type: string
+          format: date
+        valueOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 140
+          description: Becomes the raw label of both legs and the fee, unsuffixed in storage.
+        note:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 500
+            - type: 'null'
+        fee:
+          description: >-
+            A negative amount in the source account asset, producing a
+            separate FEE transaction on the source account. Null when there
+            is no fee.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+    UpdateTransferRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - sourceAccountId
+        - targetAccountId
+        - state
+        - bookedOn
+        - valueOn
+        - label
+        - note
+        - fee
+        - version
+      properties:
+        sourceAccountId:
+          type: string
+          format: uuid
+        targetAccountId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum:
+            - PENDING
+            - BOOKED
+        bookedOn:
+          type: string
+          format: date
+        valueOn:
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 140
+        note:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 500
+            - type: 'null'
+        fee:
+          description: Replaces, adds or removes the fee. Null means no fee.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        version:
+          type: integer
+          minimum: 1
+    VoidTransferRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          minimum: 1
     DecimalAmount:
       description: >-
         A financial decimal. Every amount, quantity, price and rate travels as
@@ -6840,3 +7245,32 @@ components:
         pointer:
           type: string
           pattern: '^/'
+    TransactionBelongsToTransferProblem:
+      description: >-
+        Raised by the transaction update, void and split-replacement
+        endpoints when the targeted transaction is a transfer leg or its
+        fee: only the transfer's own endpoint may change it.
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - transferId
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          const: /problems/transaction-belongs-to-transfer
+        title:
+          type: string
+        status:
+          type: integer
+          const: 422
+        detail:
+          type: string
+        transferId:
+          description: The transfer to use instead.
+          type: string
+          format: uuid

@@ -6,6 +6,7 @@ namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Transactions\Application\InvalidSplitsInput;
+use App\Module\Transactions\Application\InvalidTransferRule;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -56,6 +57,35 @@ final readonly class TransactionHttpEnvelope
             $this->translator->trans($translationKey.'.title'),
             $this->translator->trans($translationKey.'.detail'),
             $type,
+        );
+    }
+
+    /** @param array<string, mixed> $extensions */
+    public function problemWithExtensions(int $status, string $translationKey, array $extensions, string $type = ApiProblem::TYPE_BLANK): JsonResponse
+    {
+        return ApiProblem::response(
+            $status,
+            $this->translator->trans($translationKey.'.title'),
+            $this->translator->trans($translationKey.'.detail'),
+            $type,
+            extensions: $extensions,
+        );
+    }
+
+    /**
+     * The rule code both selects the translated title and detail — one entry
+     * per rule, `api.problem.invalid_transfer_<rule>` — and names the RFC 9457
+     * problem type, mirroring {@see invalidSplitsProblem()}.
+     */
+    public function invalidTransferRuleProblem(InvalidTransferRule $exception): JsonResponse
+    {
+        $key = 'api.problem.invalid_transfer_'.str_replace('.', '_', $exception->ruleCode);
+
+        return ApiProblem::response(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            $this->translator->trans($key.'.title'),
+            $this->translator->trans($key.'.detail'),
+            '/problems/'.$exception->ruleCode,
         );
     }
 

@@ -11,6 +11,7 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\TransactionRepository;
+use App\Module\Transactions\Domain\TransferRepository;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -24,6 +25,7 @@ final readonly class ReplaceTransactionSplits
     public function __construct(
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
+        private TransferRepository $transfers,
         private TransactionSplitInputParser $parser,
         private TransactionReferences $references,
         private TransactionBoundary $transactionBoundary,
@@ -36,6 +38,13 @@ final readonly class ReplaceTransactionSplits
     public function __invoke(string $id, ReplaceTransactionSplitsInput $input): TransactionView
     {
         $context = $this->caller->resolveContext();
+        // A transfer leg carries no split at all, so this is checked before
+        // parsing: the database trigger would otherwise turn it into a raw
+        // constraint violation instead of the contractual 422.
+        $transfer = $this->transfers->findByLegTransactionId($context->workspace, $id);
+        if (null !== $transfer) {
+            throw new TransactionBelongsToTransfer($transfer->id);
+        }
         $inputs = $this->parser->parse($input->splits);
 
         return $this->transactionBoundary->transactional(function () use ($context, $inputs, $input, $id): TransactionView {

@@ -243,3 +243,27 @@ api:
     transaction_forbidden:
       title: 'Transactions inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    transaction_belongs_to_transfer:
+      title: 'Mouvement lié à un virement'
+      detail: "Cette transaction appartient à un virement : modifiez ou annulez le virement plutôt qu'une de ses jambes."
+    invalid_transfer:
+      title: 'Virement invalide'
+      detail: "Vérifiez les comptes, les montants, la date, l'état, le libellé et les frais du virement."
+    invalid_transfer_transfer_same_account:
+      title: 'Virement vers le même compte'
+      detail: 'Un virement relie deux comptes différents.'
+    invalid_transfer_transfer_amount_mismatch:
+      title: 'Montants du virement incohérents'
+      detail: 'Un virement dans la même devise doit avoir des montants strictement opposés.'
+    transfer_stale_version:
+      title: 'Virement modifié entre-temps'
+      detail: 'Le virement a été modifié par une autre requête. Rechargez-le puis réappliquez la modification.'
+    transfer_conflict:
+      title: 'Conflit de virement'
+      detail: "Ce virement n'accepte plus l'opération demandée, ou une ressource liée a changé entre-temps."
+    transfer_not_found:
+      title: 'Virement introuvable'
+      detail: 'Aucun virement ne porte cet identifiant dans cet espace de travail.'
+    transfer_forbidden:
+      title: 'Virements inaccessibles'
+      detail: "Cette session n'est rattachée à aucun espace de travail."

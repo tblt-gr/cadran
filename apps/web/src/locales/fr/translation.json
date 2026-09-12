@@ -1430,12 +1430,14 @@
     "description": "Enregistrez chaque entrée ou sortie sur un compte, avec son montant exact, sa date et éventuellement une catégorie.",
     "add": "Nouvelle transaction",
     "addFirst": "Enregistrer la première transaction",
+    "addTransfer": "Nouveau virement",
     "includeVoided": "Afficher les transactions annulées",
     "loading": "Chargement des transactions…",
     "toasts": {
       "saved": "La transaction a été enregistrée.",
       "voided": "La transaction a été annulée. Elle reste dans l’historique.",
-      "duplicated": "La transaction a été dupliquée à la date du jour."
+      "duplicated": "La transaction a été dupliquée à la date du jour.",
+      "transferSaved": "Le virement a été enregistré."
     },
     "fields": {
       "account": "Compte",
@@ -1523,7 +1525,10 @@
       "splitCount_one": "Répartie en {{count}} catégorie",
       "splitCount_other": "Répartie en {{count}} catégories",
       "moreSplits_one": "+ {{count}} autre catégorie",
-      "moreSplits_other": "+ {{count}} autres catégories"
+      "moreSplits_other": "+ {{count}} autres catégories",
+      "transferMarker": "Virement",
+      "transferFeeMarker": "Frais de virement",
+      "transferLocked": "Utilisez le virement pour modifier ou annuler ce mouvement."
     },
     "amount": {
       "inflow": "Entrée de {{amount}}",
@@ -1586,6 +1591,35 @@
     },
     "pagination": {
       "next": "Mouvements plus anciens"
+    },
+    "transfer": {
+      "eyebrow": "Virement",
+      "title": "Nouveau virement",
+      "notice": "Un virement déplace de l’argent entre deux comptes : il ne compte ni comme dépense, ni comme revenu.",
+      "fields": {
+        "sourceAccount": "Compte source",
+        "targetAccount": "Compte de destination",
+        "selectAccount": "Choisir un compte",
+        "sourceAmount": "Montant",
+        "targetAmount": "Montant reçu",
+        "bookedOn": "Date",
+        "valueOn": "Date de valeur",
+        "label": "Libellé",
+        "note": "Note",
+        "hasFee": "Avec des frais",
+        "fee": "Montant des frais"
+      },
+      "validation": {
+        "sourceAccount": "Choisissez un compte source actif.",
+        "targetAccount": "Choisissez un compte de destination actif, différent du compte source.",
+        "sourceAmount": "Indiquez un montant strictement positif.",
+        "targetAmount": "Indiquez un montant strictement positif reçu sur le compte de destination.",
+        "bookedOn": "La date doit être une date valide, non future.",
+        "label": "Le libellé doit contenir entre 1 et 140 caractères.",
+        "fee": "Indiquez un montant de frais strictement positif."
+      },
+      "save": "Créer le virement",
+      "saving": "Enregistrement…"
     }
   }
 }

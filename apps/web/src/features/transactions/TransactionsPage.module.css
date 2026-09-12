@@ -38,6 +38,12 @@
   line-height: var(--line-height-body);
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
 .toolbar {
   justify-content: flex-end;
 }
@@ -80,7 +86,12 @@
     flex-direction: column;
   }
 
-  .intro button,
+  .actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .actions button,
   .toolbar select {
     width: 100%;
   }

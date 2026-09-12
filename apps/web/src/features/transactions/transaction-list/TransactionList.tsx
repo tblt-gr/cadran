@@ -50,7 +50,8 @@ export function TransactionList({
               const account = accounts.find((candidate) => candidate.id === transaction.accountId);
               const voided = transaction.state === 'VOIDED';
               const terminal = voided || transaction.state === 'REJECTED';
-              const linked = transaction.nature === 'TRANSFER' || transaction.nature === 'REFUND';
+              const transferLinked = transaction.transferId !== null;
+              const linked = transferLinked || transaction.nature === 'REFUND';
 
               return (
                 <tr key={transaction.id}>
@@ -59,6 +60,18 @@ export function TransactionList({
                   </td>
                   <th data-label={t('transactions.fields.rawLabel')} scope="row">
                     <span>{transaction.rawLabel}</span>
+                    {transferLinked ? (
+                      <>
+                        <small>
+                          {t(
+                            transaction.nature === 'FEE'
+                              ? 'transactions.list.transferFeeMarker'
+                              : 'transactions.list.transferMarker',
+                          )}
+                        </small>
+                        <small>{t('transactions.list.transferLocked')}</small>
+                      </>
+                    ) : null}
                   </th>
                   <td data-label={t('transactions.fields.counterparty')}>
                     {transaction.counterparty ?? t('transactions.list.noCounterparty')}
@@ -111,7 +124,7 @@ export function TransactionList({
                           text: t('transactions.list.duplicate'),
                         },
                         {
-                          disabled: terminal,
+                          disabled: terminal || transferLinked,
                           icon: 'archive',
                           id: 'void',
                           label: t('transactions.list.actionFor', {

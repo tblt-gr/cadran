@@ -39,6 +39,7 @@ const transaction = {
   createdAt: '2026-09-01T09:00:00+02:00',
   updatedAt: '2026-09-01T09:00:00+02:00',
   voidedAt: null,
+  transferId: null,
 } as Transaction;
 
 describe('transactionFormValues', () => {
