@@ -137,7 +137,7 @@ export function CategoryForm({
         </label>
 
         {!category ? (
-          <ParentCategoryField onChange={setParentId} type={type} value={parentId} />
+          <ParentCategoryField key={type} onChange={setParentId} type={type} value={parentId} />
         ) : null}
 
         <label>

@@ -1,8 +1,16 @@
 import type { Category } from '@cadran/api-client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { CategoryForm } from './CategoryForm';
+
+const api = vi.hoisted(() => ({ listCategories: vi.fn() }));
+
+vi.mock('@cadran/api-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@cadran/api-client')>()),
+  ...api,
+}));
 
 const category: Category = {
   id: '00000000-0000-7000-8000-0000000000c1',
@@ -24,6 +32,10 @@ const category: Category = {
   archivedAt: null,
   replacement: null,
 };
+
+function success<T>(data: T) {
+  return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
+}
 
 function form(value = category) {
   const onSubmit = vi.fn();
@@ -92,5 +104,44 @@ describe('CategoryForm identity', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Sans icône' }));
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ icon: null }));
+  });
+});
+
+describe('CategoryForm creation parent', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('drops the chosen parent, on screen and in the payload, when the type changes', async () => {
+    const parent: Category = { ...category, id: '00000000-0000-7000-8000-0000000000c2' };
+    api.listCategories.mockImplementation(({ query }) => {
+      const items = query.type === 'EXPENSE' ? [parent] : [];
+      return success({ items, page: 1, perPage: 50, total: items.length });
+    });
+    const onSubmit = vi.fn();
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <CategoryForm onCancel={vi.fn()} onSubmit={onSubmit} pending={false} submitError={null} />
+      </QueryClientProvider>,
+    );
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Sorties' } });
+    const parentField = screen.getByRole('combobox', { name: 'Catégorie parente' });
+
+    parentField.focus();
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Restaurants' }));
+    expect((parentField as HTMLInputElement).value).toBe('Restaurants');
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Type' }), {
+      target: { value: 'INCOME' },
+    });
+
+    expect(
+      (screen.getByRole('combobox', { name: 'Catégorie parente' }) as HTMLInputElement).value,
+    ).toBe('');
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'INCOME', parentId: null }),
+    );
   });
 });
