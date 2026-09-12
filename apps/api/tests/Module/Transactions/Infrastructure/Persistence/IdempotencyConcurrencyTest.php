@@ -59,9 +59,9 @@ final class IdempotencyConcurrencyTest extends KernelTestCase
 
         self::assertSame(1, $this->transactionCount("raw_label = 'Concurrent idempotent create'"));
         self::assertSame(1, $this->transactionCount('id <> ?', [self::DUPLICATE_ORIGINAL], "raw_label = 'Concurrent duplicate seed'"));
-        self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM transaction_refunds WHERE original_transaction_id = ?', [self::REFUND_ORIGINAL]));
+        self::assertSame(1, $this->scalarCount('SELECT COUNT(*) FROM transaction_refunds WHERE original_transaction_id = ?', [self::REFUND_ORIGINAL]));
         self::assertSame(2, $this->transactionCount("raw_label = 'Concurrent idempotent transfer'"));
-        self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM transaction_transfers'));
+        self::assertSame(1, $this->scalarCount('SELECT COUNT(*) FROM transaction_transfers'));
     }
 
     /** @return list<array{status: int, replayed: bool}> */
@@ -69,15 +69,19 @@ final class IdempotencyConcurrencyTest extends KernelTestCase
     {
         $barrier = sys_get_temp_dir().'/cadran-idempotency-'.bin2hex(random_bytes(8));
         $key = 'parallel-'.$case.'-idempotency-key';
-        $processes = [];
+        /** @var array<int, resource> $handles */
+        $handles = [];
+        /** @var array<int, array<int, resource>> $pipesByWorker */
+        $pipesByWorker = [];
         try {
             foreach ([0, 1] as $worker) {
-                $processes[] = proc_open(
+                $process = proc_open(
                     [PHP_BINARY, 'tests/Support/ConcurrentIdempotencyWorker.php', $case, $key, $originalId, $barrier, (string) $worker],
                     [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, dirname(__DIR__, 5), null,
                 );
-                self::assertIsResource($processes[$worker]);
-                $processes[$worker] = [$processes[$worker], $pipes];
+                self::assertIsResource($process);
+                $handles[$worker] = $process;
+                $pipesByWorker[$worker] = $pipes;
             }
             $deadline = microtime(true) + 10;
             while (!file_exists($barrier.'.owner') && microtime(true) < $deadline) {
@@ -87,7 +91,8 @@ final class IdempotencyConcurrencyTest extends KernelTestCase
             usleep(100_000);
             file_put_contents($barrier.'.release', '');
             $responses = [];
-            foreach ($processes as [$process, $pipes]) {
+            foreach ($handles as $worker => $process) {
+                $pipes = $pipesByWorker[$worker];
                 $stdout = stream_get_contents($pipes[1]);
                 $stderr = stream_get_contents($pipes[2]);
                 self::assertSame(0, proc_close($process), $stderr);
@@ -108,7 +113,14 @@ final class IdempotencyConcurrencyTest extends KernelTestCase
     private function transactionCount(string $condition, array $parameters = [], string $prefix = ''): int
     {
         $where = '' === $prefix ? $condition : $prefix.' AND '.$condition;
-        $value = $this->connection->fetchOne('SELECT COUNT(*) FROM transaction_transactions WHERE '.$where, $parameters);
+
+        return $this->scalarCount('SELECT COUNT(*) FROM transaction_transactions WHERE '.$where, $parameters);
+    }
+
+    /** @param list<string> $parameters */
+    private function scalarCount(string $sql, array $parameters = []): int
+    {
+        $value = $this->connection->fetchOne($sql, $parameters);
         self::assertTrue(is_int($value) || is_string($value));
 
         return (int) $value;
