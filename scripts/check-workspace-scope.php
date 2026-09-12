@@ -25,6 +25,7 @@ declare(strict_types=1);
  */
 const SCOPE_RESOLUTION_QUERIES = [
     'App\\Module\\Identity\\Infrastructure\\Persistence\\DbalWorkspaceMembershipReader::findForUser' => 'Turns an authenticated user into the workspace every other query is then filtered by.',
+    'App\\Module\\Transactions\\Infrastructure\\Persistence\\DbalIdempotencyKeyRepository::purgeExpired' => 'Retention maintenance run by a console command with no caller workspace; it must retire expired keys across every workspace.',
 ];
 
 /**

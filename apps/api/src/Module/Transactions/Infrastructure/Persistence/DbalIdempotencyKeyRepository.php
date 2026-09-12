@@ -87,12 +87,9 @@ final readonly class DbalIdempotencyKeyRepository implements IdempotencyKeyRepos
 
     public function purgeExpired(\DateTimeImmutable $now, int $limit): int
     {
-        // This maintenance command has no caller workspace and must retire keys
-        // for every workspace. The null system scope is deliberately internal:
-        // it is never derived from an HTTP request or a console argument.
         return (int) $this->connection->executeStatement(
-            'DELETE FROM transaction_idempotency_keys WHERE (workspace_id = :workspace_id OR CAST(:workspace_id AS uuid) IS NULL) AND ctid IN (SELECT ctid FROM transaction_idempotency_keys WHERE (workspace_id = :workspace_id OR CAST(:workspace_id AS uuid) IS NULL) AND expires_at <= :now ORDER BY expires_at LIMIT :limit)',
-            ['workspace_id' => null, 'now' => $now->format('Y-m-d H:i:s.uP'), 'limit' => $limit],
+            'DELETE FROM transaction_idempotency_keys WHERE ctid IN (SELECT ctid FROM transaction_idempotency_keys WHERE expires_at <= :now ORDER BY expires_at LIMIT :limit)',
+            ['now' => $now->format('Y-m-d H:i:s.uP'), 'limit' => $limit],
             ['limit' => ParameterType::INTEGER],
         );
     }

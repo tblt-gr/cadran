@@ -194,6 +194,12 @@ final class TransactionControllerTest extends WebTestCase
             self::assertSame(4, (int) $moneyScale);
             self::assertSame(['value' => '-230.5688', 'assetCode' => 'EUR'], $this->decodeFromRow($moneyId)['amount']);
 
+            $this->requestCreate($this->payload([
+                'amount' => ['value' => '-42.123456789', 'assetCode' => 'EUR'],
+            ]));
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame('/problems/amount.asset_precision_exceeded', $this->decode()['type']);
+
             $this->connection->insert('reference_assets', [
                 'code' => $asset, 'kind' => 'CRYPTO', 'display_name' => 'Test precision asset',
                 'storage_precision' => 24, 'display_precision' => 8, 'rounding_mode' => 'HALF_UP',
@@ -244,6 +250,10 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
         self::assertEquals($first, $this->decode());
         self::assertSame(1, $this->ownTransactionCount());
+        self::assertSame($first['id'], $this->connection->fetchOne(
+            'SELECT entity_id FROM transaction_idempotency_keys WHERE workspace_id = ? AND idempotency_key = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, $key],
+        ));
     }
 
     public function testAnIdempotencyKeyCannotBeReusedForADifferentCreationAndIsRequiredForImportedSources(): void
@@ -260,6 +270,18 @@ final class TransactionControllerTest extends WebTestCase
         $this->requestCreate($this->payload(['source' => 'IMPORT']));
         self::assertResponseStatusCodeSame(422);
         self::assertSame('/problems/idempotency.required', $this->decode()['type']);
+        self::assertSame(1, $this->ownTransactionCount());
+    }
+
+    public function testAMalformedIdempotencyKeyIsRejectedBeforeTheWriteAtTheLengthBoundary(): void
+    {
+        $this->requestCreate($this->payload(), str_repeat('a', 15));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/idempotency.invalid', $this->decode()['type']);
+        self::assertSame(0, $this->ownTransactionCount());
+
+        $this->requestCreate($this->payload(), str_repeat('a', 16));
+        self::assertResponseStatusCodeSame(201);
         self::assertSame(1, $this->ownTransactionCount());
     }
 
@@ -323,6 +345,44 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
         self::assertEquals($refund, $this->decode());
         self::assertSame(3, $this->ownTransactionCount());
+    }
+
+    public function testAnIdempotencyKeyCannotBeUsedAcrossWorkspacesToPoisonAnotherOnesReplay(): void
+    {
+        $key = 'shared-key-across-workspaces-01';
+        $this->requestCreate($this->payload(), $key);
+        self::assertResponseStatusCodeSame(201);
+        $own = $this->decode();
+
+        $this->client->request('DELETE', '/api/v1/session');
+        $this->resetLoginThrottling();
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+
+        $this->requestCreate($this->payload(overrides: [
+            'accountId' => self::OTHER_ACCOUNT,
+            'categoryId' => self::OTHER_CATEGORY,
+            'rawLabel' => 'Voisin distinct',
+        ]), $key);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertFalse($this->client->getResponse()->headers->has('Idempotency-Replayed'));
+        $stranger = $this->decode();
+        self::assertNotSame($own['id'], $stranger['id']);
+        self::assertSame('Voisin distinct', $stranger['rawLabel']);
+
+        self::assertSame(1, $this->ownTransactionCount());
+        $strangerCount = $this->connection->fetchOne(
+            'SELECT count(*) FROM transaction_transactions WHERE workspace_id = ?',
+            [WorkspaceFixture::OTHER_WORKSPACE],
+        );
+        self::assertTrue(is_int($strangerCount) || is_string($strangerCount));
+        self::assertSame(1, (int) $strangerCount);
+        $keyRows = $this->connection->fetchOne(
+            'SELECT count(*) FROM transaction_idempotency_keys WHERE idempotency_key = ?',
+            [$key],
+        );
+        self::assertTrue(is_int($keyRows) || is_string($keyRows));
+        self::assertSame(2, (int) $keyRows);
     }
 
     public function testAnExpiredIdempotencyKeyIsTreatedAsANewCreation(): void
@@ -1353,10 +1413,10 @@ final class TransactionControllerTest extends WebTestCase
         return (int) $count;
     }
 
-    private function signIn(): void
+    private function signIn(string $email = WorkspaceFixture::OWNER_EMAIL): void
     {
         $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: json_encode([
-            'email' => WorkspaceFixture::OWNER_EMAIL,
+            'email' => $email,
             'password' => WorkspaceFixture::OWNER_PASSWORD,
         ], JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(204);
