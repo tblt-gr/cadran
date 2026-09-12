@@ -18,25 +18,13 @@ use PHPUnit\Framework\TestCase;
 
 final class RefundAllocationTest extends TestCase
 {
-    private const string TRANSACTION_ID = '00000000-0000-7000-8000-0000000000f1';
     private const string GROCERIES = '00000000-0000-7000-8000-0000000000c1';
     private const string HOUSEHOLD = '00000000-0000-7000-8000-0000000000c2';
     private const string EXTRAS = '00000000-0000-7000-8000-0000000000c3';
 
-    /**
-     * The original's own amount literal ("-87.400") carries a wider scale than
-     * every one of its splits ("-62.10" etc, scale 2): a client may submit
-     * either literal since {@see DecimalValue::fromString} accepts trailing
-     * zeros and {@see TransactionReferences::splits()} compares the sum by
-     * value, not by scale. The allocation must still be exact instead of
-     * silently treating the original as ten times larger than its splits.
-     */
     public function testAllocationIsExactWhenTheOriginalAmountCarriesMoreFractionDigitsThanItsSplits(): void
     {
-        $allocation = new RefundAllocation();
-        $original = $this->original('-87.400');
-
-        $proposal = $allocation->propose($original, $this->amount('30.00'), displayPrecision: 2);
+        $proposal = (new RefundAllocation())->propose($this->defaultOriginal('-87.400'), $this->amount('30.00'), 2);
 
         self::assertSame([
             self::GROCERIES => '21.32',
@@ -47,12 +35,70 @@ final class RefundAllocationTest extends TestCase
 
     public function testASmallRefundDoesNotCrashOrMisallocateAgainstAWiderOriginalScale(): void
     {
-        $allocation = new RefundAllocation();
-        $original = $this->original('-87.400');
-
-        $proposal = $allocation->propose($original, $this->amount('0.02'), displayPrecision: 2);
+        $proposal = (new RefundAllocation())->propose($this->defaultOriginal('-87.400'), $this->amount('0.02'), 2);
 
         self::assertSame([self::GROCERIES => '0.02'], $this->byCategory($proposal));
+    }
+
+    public function testItOmitsZeroRowsWhenARefundIsSmallerThanOneOriginalSplitUnit(): void
+    {
+        $allocation = (new RefundAllocation())->propose(
+            $this->original('-100.00', [
+                $this->split('00000000-0000-7000-8000-0000000000c1', '-99.99', 0),
+                $this->split('00000000-0000-7000-8000-0000000000c2', '-0.01', 1),
+            ]),
+            $this->amount('0.01'),
+            2,
+        );
+
+        self::assertCount(1, $allocation);
+        self::assertSame('00000000-0000-7000-8000-0000000000c1', $allocation[0]['categoryId']);
+        self::assertSame('0.01', $allocation[0]['amount']->value->toString());
+    }
+
+    public function testItBreaksEqualRemaindersByThePersistedSplitPosition(): void
+    {
+        $allocation = (new RefundAllocation())->propose(
+            $this->original('-100.00', [
+                $this->split('00000000-0000-7000-8000-0000000000c2', '-50.00', 0),
+                $this->split('00000000-0000-7000-8000-0000000000c1', '-50.00', 1),
+            ]),
+            $this->amount('0.01'),
+            2,
+        );
+
+        self::assertSame('00000000-0000-7000-8000-0000000000c2', $allocation[0]['categoryId']);
+        self::assertSame('0.01', $allocation[0]['amount']->value->toString());
+    }
+
+    /** @param list<TransactionSplit> $splits */
+    private function original(string $amount, array $splits): Transaction
+    {
+        $now = new \DateTimeImmutable('2026-03-14T09:12:04+00:00');
+
+        return new Transaction(
+            '00000000-0000-7000-8000-0000000000f1', WorkspaceFixture::own(), '00000000-0000-7000-8000-0000000000d1',
+            $this->amount($amount), null, null, TransactionState::BOOKED, TransactionNature::EXPENSE, TransactionSource::MANUAL,
+            null, new \DateTimeImmutable('2026-03-14'), null, null, 'Original expense', null, null, null, null, null,
+            null, $splits, 1, $now, $now, null, WorkspaceFixture::OWNER_ID,
+        );
+    }
+
+    private function split(string $categoryId, string $amount, int $position): TransactionSplit
+    {
+        return new TransactionSplit(
+            '00000000-0000-7000-8000-0000000000a'.($position + 1), WorkspaceFixture::own(), '00000000-0000-7000-8000-0000000000f1',
+            $categoryId, $this->amount($amount), [], null, new \DateTimeImmutable('2026-03-14T09:12:04+00:00'), $position,
+        );
+    }
+
+    private function defaultOriginal(string $amount): Transaction
+    {
+        return $this->original($amount, [
+            $this->split(self::GROCERIES, '-62.10', 0),
+            $this->split(self::HOUSEHOLD, '-18.30', 1),
+            $this->split(self::EXTRAS, '-7.00', 2),
+        ]);
     }
 
     /**
@@ -68,36 +114,6 @@ final class RefundAllocationTest extends TestCase
         }
 
         return $byCategory;
-    }
-
-    private function original(string $amount): Transaction
-    {
-        $workspace = WorkspaceFixture::own();
-        $now = new \DateTimeImmutable('2026-03-14T09:12:04+00:00');
-
-        return new Transaction(
-            id: self::TRANSACTION_ID, workspace: $workspace, accountId: '00000000-0000-7000-8000-0000000000d1',
-            amount: $this->amount($amount), originalAmount: null, exchangeRate: null, state: TransactionState::BOOKED,
-            nature: TransactionNature::EXPENSE, source: TransactionSource::MANUAL, sourceRef: null,
-            bookedOn: new \DateTimeImmutable('2026-03-14'), valueOn: null, authorizedOn: null,
-            rawLabel: 'CB CARREFOUR 1234', counterparty: null, note: null, paymentMethod: null,
-            mcc: null, maskedCard: null, bankReference: null,
-            splits: [
-                new TransactionSplit(
-                    '00000000-0000-7000-8000-0000000000e1', $workspace, self::TRANSACTION_ID,
-                    self::GROCERIES, $this->amount('-62.10'), [], null, $now, 0,
-                ),
-                new TransactionSplit(
-                    '00000000-0000-7000-8000-0000000000e2', $workspace, self::TRANSACTION_ID,
-                    self::HOUSEHOLD, $this->amount('-18.30'), [], null, $now, 1,
-                ),
-                new TransactionSplit(
-                    '00000000-0000-7000-8000-0000000000e3', $workspace, self::TRANSACTION_ID,
-                    self::EXTRAS, $this->amount('-7.00'), [], null, $now, 2,
-                ),
-            ],
-            version: 1, createdAt: $now, updatedAt: $now, voidedAt: null, lastEditorId: WorkspaceFixture::OWNER_ID,
-        );
     }
 
     private function amount(string $value): AssetAmount

@@ -62,7 +62,13 @@ export function RefundForm({
   );
   const splitCategoriesValid =
     splits.every((split) => split.categoryId !== '') &&
-    new Set(splits.map((split) => split.categoryId)).size === splits.length;
+    new Set(splits.map((split) => split.categoryId)).size === splits.length &&
+    splits.every(
+      (split) =>
+        split.categoryType === undefined ||
+        split.categoryType === null ||
+        split.categoryType === 'EXPENSE',
+    );
   // The displayed, unedited proposal was computed by the server for the full
   // refundable amount: it stops summing to a smaller, hand-typed amount, and
   // recomputing the allocation here would duplicate server-side rounding
@@ -168,6 +174,7 @@ export function RefundForm({
         ) : null}
         <SplitEditor
           assetCode={proposal.refundable.assetCode}
+          expectedCategoryType="EXPENSE"
           onChange={(rows) => {
             setEditedSplits(true);
             setSplits(rows);

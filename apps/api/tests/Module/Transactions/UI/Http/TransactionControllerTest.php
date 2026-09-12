@@ -750,7 +750,7 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame(['value' => '6.28', 'assetCode' => 'EUR'], $amountsByCategory[self::OWN_PLAIN_EXPENSE]);
         self::assertSame(['value' => '2.40', 'assetCode' => 'EUR'], $amountsByCategory[self::OWN_EXTRA_EXPENSE]);
         $netGroceries = $this->connection->fetchOne(
-            "SELECT COALESCE(sum(s.amount_value), 0)::text FROM transaction_splits s JOIN transaction_transactions t ON t.id = s.transaction_id AND t.workspace_id = s.workspace_id WHERE s.workspace_id = :workspace AND s.category_id = :category AND t.state = 'BOOKED'",
+            "SELECT COALESCE(sum(s.amount_value), 0)::text FROM transaction_splits s JOIN transaction_transactions t ON t.id = s.transaction_id AND t.workspace_id = s.workspace_id WHERE s.workspace_id = :workspace AND s.category_id = :category AND t.state = 'BOOKED' AND t.booked_on BETWEEN '2026-03-01' AND '2026-03-31'",
             ['workspace' => WorkspaceFixture::OWN_WORKSPACE, 'category' => self::OWN_EXPENSE],
         );
         self::assertIsString($netGroceries);
