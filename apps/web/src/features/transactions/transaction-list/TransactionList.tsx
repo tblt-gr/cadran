@@ -2,7 +2,7 @@ import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { formatCalendarDay } from '@/lib/decimal';
+import { compareDecimals, formatCalendarDay } from '@/lib/decimal';
 import { RefundBadge } from '@/features/transactions/refund-editor/refund-badge/RefundBadge';
 import { TransactionAmount } from './transaction-amount/TransactionAmount';
 import { TransactionCategories } from './transaction-categories/TransactionCategories';
@@ -55,9 +55,14 @@ export function TransactionList({
               const terminal = voided || transaction.state === 'REJECTED';
               const transferLinked = transaction.transferId !== null;
               const linked = transferLinked || transaction.nature === 'REFUND';
+              const originalMagnitude = transaction.amount.value.replace(/^-/, '');
+              const alreadySettled =
+                transaction.refundedAmount !== null &&
+                compareDecimals(transaction.refundedAmount.value, originalMagnitude) >= 0;
               const refundable =
                 transaction.state === 'BOOKED' &&
                 !transferLinked &&
+                !alreadySettled &&
                 (transaction.nature === 'EXPENSE' || transaction.nature === 'FEE');
 
               return (

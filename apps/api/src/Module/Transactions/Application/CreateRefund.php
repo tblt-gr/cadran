@@ -12,6 +12,7 @@ use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\UuidGenerator;
@@ -67,16 +68,20 @@ final readonly class CreateRefund
                 throw new TransactionNotFound();
             }
             $this->assertOriginal($original, $bookedOn);
-            $refunded = $this->refunds->refundedAmount($context->workspace, $original->id);
-            $remaining = ExactDecimal::subtract(ExactDecimal::absolute($original->amount->value), $refunded);
-            if (0 === $remaining->compareTo(DecimalValue::zero())) {
-                throw new RefundConflict('already_settled', $remaining);
-            }
-            if ($magnitude->value->compareTo($remaining) > 0) {
-                throw new RefundConflict('exceeds_refundable', $remaining);
-            }
+            // Checked before the cap: comparing magnitudes across two assets
+            // would otherwise let a foreign-currency amount masquerade as an
+            // over- or under-cap request instead of the asset mismatch it is.
             if ($magnitude->asset->toString() !== $original->amount->asset->toString()) {
                 throw new InvalidRefundRule('asset_mismatch');
+            }
+            $refunded = $this->refunds->refundedAmount($context->workspace, $original->id);
+            $remaining = ExactDecimal::subtract(ExactDecimal::absolute($original->amount->value), $refunded);
+            $remainingAmount = new AssetAmount($remaining, $original->amount->asset);
+            if (0 === $remaining->compareTo(DecimalValue::zero())) {
+                throw new RefundConflict('already_settled', $remainingAmount);
+            }
+            if ($magnitude->value->compareTo($remaining) > 0) {
+                throw new RefundConflict('exceeds_refundable', $remainingAmount);
             }
             $amount = $magnitude;
             // Checked ahead of accountForNew(): that call's own asset invariant

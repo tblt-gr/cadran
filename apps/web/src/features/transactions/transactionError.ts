@@ -10,11 +10,14 @@ export type TransactionErrorKind = 'conflict' | 'invalid' | 'network' | 'stale' 
 export class TransactionRequestError extends Error {
   readonly status: number;
   readonly kind: TransactionErrorKind;
+  /** The server's own translated explanation, when the response carried one. */
+  readonly detail: string | undefined;
 
-  constructor(status: number, problemType: string | undefined) {
+  constructor(status: number, problem: Problem | undefined) {
     super(`Transaction request failed with status ${status}.`);
     this.status = status;
-    this.kind = classify(status, problemType);
+    this.kind = classify(status, problem?.type);
+    this.detail = problem?.detail;
   }
 }
 
@@ -38,7 +41,7 @@ export function transactionRequestError(result: {
 }): TransactionRequestError {
   const problem = result.error as Problem | undefined;
 
-  return new TransactionRequestError(result.response?.status ?? 0, problem?.type);
+  return new TransactionRequestError(result.response?.status ?? 0, problem);
 }
 
 export function transactionErrorKind(
@@ -50,4 +53,9 @@ export function transactionErrorKind(
   }
 
   return isError ? 'network' : null;
+}
+
+/** The server's own explanation, when the error carried one — e.g. a refund's exact remaining balance. */
+export function transactionErrorDetail(error: unknown): string | null {
+  return error instanceof TransactionRequestError ? (error.detail ?? null) : null;
 }

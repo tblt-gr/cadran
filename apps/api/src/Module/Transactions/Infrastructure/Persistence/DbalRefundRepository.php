@@ -10,6 +10,7 @@ use App\Module\Foundation\Domain\RoundingMode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRefund;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
@@ -53,31 +54,75 @@ final readonly class DbalRefundRepository implements RefundRepository
         return array_map(fn (array $row): TransactionRefund => self::hydrate($workspace, $row), $rows);
     }
 
+    /** A refund settled or rejected no longer occupies the original's cap. */
+    private const string LIVE_STATE_FILTER = "t.state NOT IN ('VOIDED', 'REJECTED')";
+
     public function hasLiveRefund(WorkspaceScope $workspace, string $originalTransactionId): bool
     {
         return (bool) $this->connection->fetchOne(
             'SELECT EXISTS(SELECT 1 FROM transaction_refunds r JOIN transaction_transactions t '
             .'ON t.workspace_id = r.workspace_id AND t.id = r.refund_transaction_id '
-            ."WHERE r.workspace_id = :workspace_id AND t.workspace_id = :workspace_id AND r.original_transaction_id = :original_transaction_id AND t.state <> 'VOIDED')",
+            .'WHERE r.workspace_id = :workspace_id AND t.workspace_id = :workspace_id '
+            .'AND r.original_transaction_id = :original_transaction_id AND '.self::LIVE_STATE_FILTER.')',
             ['workspace_id' => $workspace->id, 'original_transaction_id' => $originalTransactionId],
         );
     }
 
     public function refundedAmount(WorkspaceScope $workspace, string $originalTransactionId): DecimalValue
     {
-        $row = $this->connection->fetchAssociative(
-            'SELECT COALESCE(sum(t.amount_value), 0) AS value, COALESCE(max(t.amount_scale), 0) AS scale FROM transaction_refunds r JOIN transaction_transactions t '
-            .'ON t.workspace_id = r.workspace_id AND t.id = r.refund_transaction_id '
-            ."WHERE r.workspace_id = :workspace_id AND t.workspace_id = :workspace_id AND r.original_transaction_id = :original_transaction_id AND t.state <> 'VOIDED'",
-            ['workspace_id' => $workspace->id, 'original_transaction_id' => $originalTransactionId],
+        return $this->liveRefundedAmounts($workspace, [$originalTransactionId])[$originalTransactionId] ?? DecimalValue::zero();
+    }
+
+    public function originalsByRefundTransactionId(WorkspaceScope $workspace, array $refundTransactionIds): array
+    {
+        if ([] === $refundTransactionIds) {
+            return [];
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT r.refund_transaction_id, o.id AS original_id, o.raw_label AS original_label '
+            .'FROM transaction_refunds r JOIN transaction_transactions o '
+            .'ON o.workspace_id = r.workspace_id AND o.id = r.original_transaction_id '
+            .'WHERE r.workspace_id = :workspace_id AND o.workspace_id = :workspace_id '
+            .'AND r.refund_transaction_id IN (:refund_transaction_ids)',
+            ['workspace_id' => $workspace->id, 'refund_transaction_ids' => $refundTransactionIds],
+            ['refund_transaction_ids' => ArrayParameterType::STRING],
         );
 
-        if (false === $row) {
-            throw new \UnexpectedValueException('Refund total query unexpectedly returned no row.');
+        $byRefundId = [];
+        foreach ($rows as $row) {
+            $byRefundId[self::scalar($row['refund_transaction_id'] ?? null)] = [
+                'originalId' => self::scalar($row['original_id'] ?? null),
+                'originalLabel' => self::scalar($row['original_label'] ?? null),
+            ];
         }
-        $value = DecimalValue::fromString(self::scalar($row['value'] ?? null));
 
-        return ExactDecimal::round($value, (int) self::scalar($row['scale'] ?? null), RoundingMode::DOWN);
+        return $byRefundId;
+    }
+
+    public function liveRefundedAmounts(WorkspaceScope $workspace, array $originalTransactionIds): array
+    {
+        if ([] === $originalTransactionIds) {
+            return [];
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT r.original_transaction_id, sum(t.amount_value) AS value, max(t.amount_scale) AS scale '
+            .'FROM transaction_refunds r JOIN transaction_transactions t '
+            .'ON t.workspace_id = r.workspace_id AND t.id = r.refund_transaction_id '
+            .'WHERE r.workspace_id = :workspace_id AND t.workspace_id = :workspace_id '
+            .'AND r.original_transaction_id IN (:original_transaction_ids) AND '.self::LIVE_STATE_FILTER.' '
+            .'GROUP BY r.original_transaction_id',
+            ['workspace_id' => $workspace->id, 'original_transaction_ids' => $originalTransactionIds],
+            ['original_transaction_ids' => ArrayParameterType::STRING],
+        );
+
+        $byOriginalId = [];
+        foreach ($rows as $row) {
+            $value = DecimalValue::fromString(self::scalar($row['value'] ?? null));
+            $byOriginalId[self::scalar($row['original_transaction_id'] ?? null)] =
+                ExactDecimal::round($value, (int) self::scalar($row['scale'] ?? null), RoundingMode::DOWN);
+        }
+
+        return $byOriginalId;
     }
 
     /** @param array<string, mixed> $row */

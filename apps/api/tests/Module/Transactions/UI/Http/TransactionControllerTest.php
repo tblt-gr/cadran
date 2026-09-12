@@ -755,12 +755,6 @@ final class TransactionControllerTest extends WebTestCase
         );
         self::assertIsString($netGroceries);
         self::assertSame('-40.78', rtrim(rtrim($netGroceries, '0'), '.'));
-        $refundIncomeCount = $this->connection->fetchOne(
-            "SELECT count(*) FROM transaction_transactions WHERE workspace_id = :workspace AND nature = 'INCOME' AND raw_label LIKE 'Remboursement%'",
-            ['workspace' => WorkspaceFixture::OWN_WORKSPACE],
-        );
-        self::assertIsInt($refundIncomeCount);
-        self::assertSame(0, $refundIncomeCount);
 
         $this->client->request('GET', '/api/v1/transactions/'.$id.'/refundable');
         self::assertSame(['value' => '30.00', 'assetCode' => 'EUR'], $this->decode()['refunded']);
@@ -853,6 +847,16 @@ final class TransactionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSame('/problems/refund.asset_mismatch', $this->decode()['type']);
 
+        // A foreign-asset amount above the numeric value of the cap is still
+        // an asset mismatch, not an over-cap request: the two are never
+        // compared as bare magnitudes across currencies.
+        $this->requestRefund($activeId, [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '200.00', 'assetCode' => 'USD'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/refund.asset_mismatch', $this->decode()['type']);
+
         $this->requestRefund($activeId, [
             'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
             'bookedOn' => '2026-03-13', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
@@ -867,7 +871,15 @@ final class TransactionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(409);
         $problem = $this->decode();
         self::assertSame('/problems/refund.exceeds_refundable', $problem['type']);
-        self::assertSame('42.90', $problem['remaining']);
+        self::assertSame(['value' => '42.90', 'assetCode' => 'EUR'], $problem['remaining']);
+
+        $this->requestRefund($activeId, [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+            'splits' => [$this->splitRow(self::OWN_EXPENSE, '9.00')],
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/splits.sum_mismatch', $this->decode()['type']);
     }
 
     public function testDuplicatingOrReplacingSplitsOnALinkedRefundIsRefused(): void

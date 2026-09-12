@@ -1036,4 +1036,25 @@ describe('TransactionsPage', () => {
       true,
     );
   });
+
+  it('disables refunding an expense already refunded for its full amount', async () => {
+    const settled: Transaction = {
+      ...transaction,
+      refundedAmount: { value: '42.90', assetCode: 'EUR' },
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [settled], nextCursor: null }));
+    renderPage();
+
+    expect(await screen.findByText('Remboursé : 42,90 €')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    expect(
+      (screen.getByRole('button', { name: /^Créer un remboursement/ }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
 });

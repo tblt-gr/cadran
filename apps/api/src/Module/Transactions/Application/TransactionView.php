@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Transactions\Domain\Transaction;
 
 final readonly class TransactionView
@@ -57,8 +58,9 @@ final readonly class TransactionView
         Transaction $transaction,
         array $categoryIdentities,
         ?string $transferId,
-        ?Transaction $refundOriginal,
-        ?\App\Module\Foundation\Domain\DecimalValue $refundedAmount,
+        ?string $refundOriginalId,
+        ?string $refundOriginalLabel,
+        ?DecimalValue $refundedAmount,
     ): self {
         return new self(
             id: $transaction->id,
@@ -102,8 +104,8 @@ final readonly class TransactionView
             updatedAt: $transaction->updatedAt->format(DATE_ATOM),
             voidedAt: $transaction->voidedAt?->format(DATE_ATOM),
             transferId: $transferId,
-            refundOriginalId: $refundOriginal?->id,
-            refundOriginalLabel: $refundOriginal?->rawLabel,
+            refundOriginalId: $refundOriginalId,
+            refundOriginalLabel: $refundOriginalLabel,
             refundedAmount: null === $refundedAmount ? null : [
                 'value' => $refundedAmount->toString(), 'assetCode' => $transaction->amount->asset->toString(),
             ],

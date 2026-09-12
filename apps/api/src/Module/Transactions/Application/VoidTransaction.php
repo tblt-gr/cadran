@@ -42,13 +42,8 @@ final readonly class VoidTransaction
             if (null !== $transfer) {
                 throw new TransactionBelongsToTransfer($transfer->id);
             }
-            if ([] !== $this->refunds->findByOriginalTransactionId($context->workspace, $id)) {
-                foreach ($this->refunds->findByOriginalTransactionId($context->workspace, $id) as $linkedRefund) {
-                    $refund = $this->transactions->find($context->workspace, $linkedRefund->refundTransactionId);
-                    if (null !== $refund && !$refund->state->isTerminal()) {
-                        throw new TransactionHasRefunds('A transaction with live refunds cannot be voided.');
-                    }
-                }
+            if ($this->refunds->hasLiveRefund($context->workspace, $id)) {
+                throw new TransactionHasRefunds('A transaction with live refunds cannot be voided.');
             }
             if ($version !== $current->version) {
                 throw new StaleTransactionVersion('The transaction changed concurrently.');

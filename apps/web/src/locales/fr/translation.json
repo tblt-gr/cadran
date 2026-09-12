@@ -1568,6 +1568,7 @@
       "remaining": "Montant encore remboursable",
       "amountTooHigh": "Le montant ne peut pas dépasser le solde remboursable affiché.",
       "allocation": "Répartition proposée",
+      "allocationOutOfDate": "La répartition affichée correspond au solde intégral : ajustez-la à la main pour ce montant réduit.",
       "save": "Créer le remboursement",
       "saving": "Création…"
     },

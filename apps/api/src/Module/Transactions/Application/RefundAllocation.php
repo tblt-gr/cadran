@@ -24,7 +24,11 @@ final class RefundAllocation
             return [];
         }
         $scale = max($displayPrecision, $refund->value->scale());
-        $wideScale = max($scale, ...array_map(static fn ($split): int => $split->amount->value->scale(), $original->splits));
+        $wideScale = max(
+            $scale,
+            $original->amount->value->scale(),
+            ...array_map(static fn ($split): int => $split->amount->value->scale(), $original->splits),
+        );
         $total = self::units(ExactDecimal::absolute($original->amount->value), $wideScale);
         $refundUnits = self::units($refund->value, $scale);
         /** @var list<RefundAllocationRow> $rows */
@@ -53,6 +57,9 @@ final class RefundAllocation
     {
         $literal = ltrim($value->toString(), '-');
         [$integer, $fraction] = array_pad(explode('.', $literal, 2), 2, '');
+        if (strlen($fraction) > $scale) {
+            throw new \LogicException('A refund allocation amount exceeds the working scale.');
+        }
 
         return BigInteger::of($integer.str_pad($fraction, $scale, '0'));
     }
@@ -66,17 +73,5 @@ final class RefundAllocation
         $literal = str_pad($literal, $scale + 1, '0', STR_PAD_LEFT);
 
         return substr($literal, 0, -$scale).'.'.substr($literal, -$scale);
-    }
-}
-
-/** @internal Mutable only while largest remainders receive their remaining units. */
-final class RefundAllocationRow
-{
-    public function __construct(
-        public int $index,
-        public string $categoryId,
-        public BigInteger $units,
-        public BigInteger $remainder,
-    ) {
     }
 }

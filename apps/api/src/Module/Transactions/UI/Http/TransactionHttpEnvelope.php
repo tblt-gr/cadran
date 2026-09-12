@@ -110,9 +110,12 @@ final readonly class TransactionHttpEnvelope
         return ApiProblem::response(
             Response::HTTP_CONFLICT,
             $this->translator->trans($key.'.title'),
-            $this->translator->trans($key.'.detail', ['%remaining%' => $exception->remaining->toString()]),
+            $this->translator->trans($key.'.detail', ['%remaining%' => $exception->remaining->value->toString()]),
             '/problems/refund.'.$exception->ruleCode,
-            extensions: ['remaining' => $exception->remaining->toString()],
+            extensions: ['remaining' => [
+                'value' => $exception->remaining->value->toString(),
+                'assetCode' => $exception->remaining->asset->toString(),
+            ]],
         );
     }
 

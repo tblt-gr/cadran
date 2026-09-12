@@ -287,6 +287,9 @@ export function TransactionsPage() {
           close={() => setRefundTarget(null)}
           onSaved={async () => {
             await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            await queryClient.invalidateQueries({
+              queryKey: ['transaction-refundable', refundTarget.id],
+            });
           }}
           transaction={refundTarget}
         />

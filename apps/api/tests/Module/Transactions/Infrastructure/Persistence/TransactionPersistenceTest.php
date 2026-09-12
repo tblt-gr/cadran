@@ -262,6 +262,46 @@ final class TransactionPersistenceTest extends KernelTestCase
         }
     }
 
+    /**
+     * {@see \App\Module\Transactions\Application\CreateRefund} locks the
+     * original with this exact call, before reading the already-refunded
+     * total, so a second refund on the same original cannot observe the cap
+     * as it stood before the first one committed. This proves the lock a
+     * concurrent refund writer would collide with, the same way
+     * {@see testFindForUpdateLockSerializesAConcurrentSplitReplace} proves it
+     * for a split replacement.
+     */
+    public function testFindForUpdateLockSerializesAConcurrentRefundOnTheSameOriginal(): void
+    {
+        $this->repository->add($this->transaction(self::OWN_TRANSACTION, WorkspaceFixture::own(), self::OWN_ACCOUNT, '-42.90'));
+        $second = DriverManager::getConnection($this->connection->getParams());
+
+        try {
+            $this->connection->beginTransaction();
+            self::assertNotNull($this->repository->findForUpdate(WorkspaceFixture::own(), self::OWN_TRANSACTION));
+            $second->beginTransaction();
+            $second->executeStatement("SET LOCAL lock_timeout = '100ms'");
+
+            try {
+                $second->executeStatement(
+                    'SELECT * FROM transaction_transactions WHERE workspace_id = ? AND id = ? FOR UPDATE',
+                    [WorkspaceFixture::OWN_WORKSPACE, self::OWN_TRANSACTION],
+                );
+                self::fail('A second refund on the same original should wait for the first one\'s row lock.');
+            } catch (DbalException $exception) {
+                self::assertStringContainsString('lock timeout', $exception->getMessage());
+            }
+        } finally {
+            if ($second->isTransactionActive()) {
+                $second->rollBack();
+            }
+            if ($this->connection->isTransactionActive()) {
+                $this->connection->rollBack();
+            }
+            $second->close();
+        }
+    }
+
     private function seedAccount(string $id, string $workspace, string $label): void
     {
         $this->connection->insert('account_financial_accounts', [

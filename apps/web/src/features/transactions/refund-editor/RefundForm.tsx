@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   compareDecimals,
+  formatAmount,
   isCanonicalUnsignedDecimal,
   isZeroDecimal,
   sumDecimals,
@@ -18,6 +19,7 @@ interface RefundFormProps {
   pending: boolean;
   proposal: RefundableTransaction;
   submitError: TransactionErrorKind | null;
+  submitErrorDetail: string | null;
 }
 
 export function RefundForm({
@@ -26,8 +28,9 @@ export function RefundForm({
   pending,
   proposal,
   submitError,
+  submitErrorDetail,
 }: RefundFormProps) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const eligibleAccounts = accounts.filter(
     (account) => account.assetCode === proposal.refundable.assetCode,
   );
@@ -49,22 +52,28 @@ export function RefundForm({
     })),
   );
   const amountCanonical = isCanonicalUnsignedDecimal(amount);
-  const amountInvalid =
-    !amountCanonical ||
-    (amountCanonical &&
-      (isZeroDecimal(amount) || compareDecimals(amount, proposal.refundable.value) > 0));
+  const amountTooHigh =
+    amountCanonical &&
+    !isZeroDecimal(amount) &&
+    compareDecimals(amount, proposal.refundable.value) > 0;
+  const amountInvalid = !amountCanonical || isZeroDecimal(amount) || amountTooHigh;
   const splitAmountsValid = splits.every(
     (split) => isCanonicalUnsignedDecimal(split.amount) && !isZeroDecimal(split.amount),
   );
   const splitCategoriesValid =
     splits.every((split) => split.categoryId !== '') &&
     new Set(splits.map((split) => split.categoryId)).size === splits.length;
-  const splitsValid =
-    !editedSplits ||
-    (splitAmountsValid &&
+  // The displayed, unedited proposal was computed by the server for the full
+  // refundable amount: it stops summing to a smaller, hand-typed amount, and
+  // recomputing the allocation here would duplicate server-side rounding
+  // logic. So an unedited proposal is only valid while it still matches.
+  const proposalMatchesAmount = compareDecimals(amount, proposal.refundable.value) === 0;
+  const splitsValid = editedSplits
+    ? splitAmountsValid &&
       splitCategoriesValid &&
       (proposal.proposedSplits.length === 0 || splits.length > 0) &&
-      compareDecimals(sumDecimals(splits.map((split) => split.amount)), amount) === 0);
+      compareDecimals(sumDecimals(splits.map((split) => split.amount)), amount) === 0
+    : proposal.proposedSplits.length === 0 || proposalMatchesAmount;
   const valid =
     accountId !== '' && bookedOn !== '' && rawLabel.trim() !== '' && !amountInvalid && splitsValid;
 
@@ -96,13 +105,13 @@ export function RefundForm({
     <form className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
-          {t(`transactions.errors.${submitError}`)}
+          {submitErrorDetail ?? t(`transactions.errors.${submitError}`)}
         </p>
       ) : null}
       <p className={styles.remaining}>
         <span>{t('transactions.refund.remaining')}</span>
         <strong>
-          {proposal.refundable.value} {proposal.refundable.assetCode}
+          {formatAmount(proposal.refundable.value, proposal.refundable.assetCode, i18n.language)}
         </strong>
       </p>
       <label>
@@ -118,13 +127,18 @@ export function RefundForm({
       <label>
         <span>{t('transactions.fields.amount')}</span>
         <input
+          aria-describedby={amountTooHigh ? 'refund-amount-error' : undefined}
           aria-invalid={amountInvalid || undefined}
           autoComplete="off"
           inputMode="decimal"
           onChange={(event) => setAmount(event.target.value)}
           value={amount}
         />
-        {amountInvalid ? <small>{t('transactions.refund.amountTooHigh')}</small> : null}
+        {amountTooHigh ? (
+          <small id="refund-amount-error" role="alert">
+            {t('transactions.refund.amountTooHigh')}
+          </small>
+        ) : null}
       </label>
       <label>
         <span>{t('transactions.fields.bookedOn')}</span>
@@ -149,6 +163,9 @@ export function RefundForm({
       </label>
       <div>
         <p>{t('transactions.refund.allocation')}</p>
+        {!editedSplits && !proposalMatchesAmount && proposal.proposedSplits.length > 0 ? (
+          <p role="alert">{t('transactions.refund.allocationOutOfDate')}</p>
+        ) : null}
         <SplitEditor
           assetCode={proposal.refundable.assetCode}
           onChange={(rows) => {

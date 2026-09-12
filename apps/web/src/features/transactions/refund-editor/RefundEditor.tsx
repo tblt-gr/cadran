@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import {
+  transactionErrorDetail,
   transactionErrorKind,
   transactionRequestError,
 } from '@/features/transactions/transactionError';
@@ -63,11 +64,16 @@ export function RefundEditor({ accounts, close, onSaved, transaction }: RefundEd
       {refundable.isError ? <p role="alert">{t('transactions.refund.error')}</p> : null}
       {refundable.data ? (
         <RefundForm
+          // Remounts when a fresher proposal lands, so the form never seeds
+          // its amount and splits from a balance a just-created refund has
+          // already consumed.
+          key={refundable.dataUpdatedAt}
           accounts={accounts}
           onSubmit={(body) => save.mutate(body)}
           pending={save.isPending}
           proposal={refundable.data}
           submitError={transactionErrorKind(save.error, save.isError)}
+          submitErrorDetail={transactionErrorDetail(save.error)}
         />
       ) : null}
     </Modal>

@@ -2671,9 +2671,9 @@ paths:
       operationId: createTransactionRefund
       summary: Create a linked refund of an expense or fee
       description: >-
-        The amount is a positive magnitude. The server writes a negative REFUND
-        movement, under a lock on the original transaction, so concurrent
-        requests cannot exceed its remaining refundable balance.
+        The amount is a positive magnitude. The server writes a positive
+        (credited) REFUND movement, under a lock on the original transaction,
+        so concurrent requests cannot exceed its remaining refundable balance.
       tags: [Transactions]
       security:
         - sessionCookie: []
@@ -2698,7 +2698,16 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/TransactionMutationForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '409':
+          description: >-
+            The original is already fully refunded or the requested amount
+            exceeds what remains refundable.
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/RefundConflictProblem'
         '413': { $ref: '#/components/responses/TransactionPayloadTooLarge' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
@@ -6784,6 +6793,34 @@ components:
               maxItems: 20
               items: { $ref: '#/components/schemas/TransactionSplitInput' }
             - type: 'null'
+    RefundConflictProblem:
+      description: >-
+        Raised by the refund creation endpoint when the original is already
+        fully refunded (`type: /problems/refund.already_settled`) or the
+        requested amount exceeds what remains
+        (`type: /problems/refund.exceeds_refundable`).
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - remaining
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          const: 409
+        detail:
+          type: string
+        remaining:
+          description: What remains refundable on the original, before this request.
+          $ref: '#/components/schemas/DecimalAmount'
     TransactionSplit:
       type: object
       additionalProperties: false

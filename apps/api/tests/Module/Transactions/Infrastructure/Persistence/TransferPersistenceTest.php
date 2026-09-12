@@ -265,7 +265,7 @@ final class TransferPersistenceTest extends KernelTestCase
         $transfers = new DbalTransferRepository($this->connection);
 
         return new PresentTransfer($transactions, new PresentTransaction(
-            new DbalCategoryRepository($this->connection), $transfers, new DbalRefundRepository($this->connection), $transactions,
+            new DbalCategoryRepository($this->connection), $transfers, new DbalRefundRepository($this->connection),
         ));
     }
 
