@@ -2424,6 +2424,7 @@ paths:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -2432,7 +2433,10 @@ paths:
               $ref: '#/components/schemas/CreateTransactionRequest'
       responses:
         '201':
-          description: The transaction was created.
+          description: The transaction was created, or the stored response was replayed.
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
           content:
             application/json:
               schema:
@@ -2446,7 +2450,13 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: A linked account or category changed concurrently.
+          description: >-
+            A linked account or category changed concurrently, the same key was
+            reused with a different request (`type: /problems/idempotency.key_reused`),
+            or its first request is still in flight (`type: /problems/idempotency.in_flight`).
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfterOneSecond'
           content:
             application/problem+json:
               schema:
@@ -2461,7 +2471,8 @@ paths:
             splits allocation does not sum to the amount
             (`type: /problems/splits.sum_mismatch`), carries more than twenty
             rows (`type: /problems/splits.too_many`) or repeats a category
-            (`type: /problems/splits.duplicate_category`).
+            (`type: /problems/splits.duplicate_category`), or an Idempotency-Key
+            is invalid or required by an IMPORT or PROVIDER source.
           content:
             application/problem+json:
               schema:
@@ -2679,6 +2690,7 @@ paths:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
         - name: id
           in: path
           required: true
@@ -2690,7 +2702,10 @@ paths:
             schema: { $ref: '#/components/schemas/CreateRefundRequest' }
       responses:
         '201':
-          description: The created, linked REFUND movement.
+          description: The created, linked REFUND movement, or its stored response replay.
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Transaction' }
@@ -2701,7 +2716,12 @@ paths:
         '409':
           description: >-
             The original is already fully refunded or the requested amount
-            exceeds what remains refundable.
+            exceeds what remains refundable; key reuse with a different request
+            uses `/problems/idempotency.key_reused`, and an in-flight request
+            uses `/problems/idempotency.in_flight`.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfterOneSecond'
           content:
             application/problem+json:
               schema:
@@ -2710,7 +2730,11 @@ paths:
                   - $ref: '#/components/schemas/RefundConflictProblem'
         '413': { $ref: '#/components/responses/TransactionPayloadTooLarge' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '422':
+          description: The refund input or Idempotency-Key is invalid.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/transactions/{id}/void:
     post:
@@ -2791,6 +2815,7 @@ paths:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
         - name: id
           in: path
           required: true
@@ -2799,7 +2824,10 @@ paths:
             format: uuid
       responses:
         '201':
-          description: The duplicated transaction.
+          description: The duplicated transaction, or its stored response replay.
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
           content:
             application/json:
               schema:
@@ -2811,13 +2839,18 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: A linked account or category changed concurrently.
+          description: >-
+            A linked account or category changed concurrently, the key was
+            reused with another request, or the first request is in flight.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfterOneSecond'
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
         '422':
-          description: A transfer leg or refund cannot be duplicated.
+          description: A transfer leg or refund cannot be duplicated, or the Idempotency-Key is invalid.
           content:
             application/problem+json:
               schema:
@@ -2842,6 +2875,7 @@ paths:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -2850,7 +2884,10 @@ paths:
               $ref: '#/components/schemas/CreateTransferRequest'
       responses:
         '201':
-          description: The transfer with both legs and the optional fee.
+          description: The transfer with both legs and the optional fee, or its stored response replay.
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
           content:
             application/json:
               schema:
@@ -2864,7 +2901,12 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: A source or target account changed concurrently.
+          description: >-
+            A source or target account changed concurrently, the key was reused
+            with another request, or the first request is in flight.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfterOneSecond'
           content:
             application/problem+json:
               schema:
@@ -2879,7 +2921,7 @@ paths:
             The source and target account must differ
             (`type: /problems/transfer.same_account`), and a same-asset pair
             with an explicit targetAmount must net exactly to zero
-            (`type: /problems/transfer.amount_mismatch`).
+            (`type: /problems/transfer.amount_mismatch`), or the Idempotency-Key is invalid.
           content:
             application/problem+json:
               schema:
@@ -3249,6 +3291,17 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+  headers:
+    IdempotencyReplayed:
+      description: Present with the literal value `true` when the response is a completed idempotent replay.
+      schema:
+        type: string
+        const: 'true'
+    RetryAfterOneSecond:
+      description: Present only for a retryable `/problems/idempotency.in_flight` response.
+      schema:
+        type: string
+        const: '1'
   parameters:
     CsrfToken:
       name: X-CSRF-TOKEN
@@ -3259,6 +3312,19 @@ components:
         prior safe response. Rejected with 403 if missing, altered, or expired.
       schema:
         type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >-
+        Retries the same money-movement creation safely. Required when a
+        transaction source is IMPORT or PROVIDER. A replayed successful
+        response adds `Idempotency-Replayed: true`.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 255
+        pattern: '^[A-Za-z0-9_.:-]+$'
     BusinessDate:
       name: asOf
       in: query
@@ -7004,6 +7070,10 @@ components:
               items:
                 $ref: '#/components/schemas/TransactionSplitInput'
             - type: 'null'
+        source:
+          description: IMPORT and PROVIDER requests require an Idempotency-Key header.
+          type: string
+          enum: [MANUAL, IMPORT, PROVIDER]
     UpdateTransactionRequest:
       type: object
       additionalProperties: false

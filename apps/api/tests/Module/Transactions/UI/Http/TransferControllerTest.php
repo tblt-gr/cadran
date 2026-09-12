@@ -160,6 +160,21 @@ final class TransferControllerTest extends WebTestCase
         self::assertSame('1.0805', $this->decode()['exchangeRate']);
     }
 
+    public function testCreatingTheSameTransferWithAnIdempotencyKeyReplaysBothLegs(): void
+    {
+        $key = 'transfer-create-replay-key-0001';
+        $this->requestCreate($this->payload(), $key);
+        self::assertResponseStatusCodeSame(201);
+        $first = $this->decode();
+
+        $this->requestCreate($this->payload(), $key);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertEquals($first, $this->decode());
+        self::assertSame(2, $this->ownTransactionCount());
+        self::assertSame(1, $this->ownTransferCount());
+    }
+
     public function testAFeeProducesItsOwnFeeTransactionOnTheSourceAccount(): void
     {
         $created = $this->createTransfer(overrides: [
@@ -399,9 +414,13 @@ final class TransferControllerTest extends WebTestCase
     }
 
     /** @param array<string, mixed> $body */
-    private function requestCreate(array $body): void
+    private function requestCreate(array $body, ?string $idempotencyKey = null): void
     {
-        $this->client->request('POST', '/api/v1/transfers', server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
+        $headers = self::jsonHeaders();
+        if (null !== $idempotencyKey) {
+            $headers['HTTP_IDEMPOTENCY_KEY'] = $idempotencyKey;
+        }
+        $this->client->request('POST', '/api/v1/transfers', server: $headers, content: json_encode($body, JSON_THROW_ON_ERROR));
     }
 
     /** @param array<string, mixed> $body */

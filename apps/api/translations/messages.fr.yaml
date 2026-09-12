@@ -219,6 +219,18 @@ api:
     invalid_transaction:
       title: 'Transaction invalide'
       detail: "Vérifiez le compte, le montant, la nature, les dates, le libellé d'origine et la catégorie."
+    idempotency_invalid:
+      title: 'Clé d’idempotence invalide'
+      detail: 'La clé doit contenir de 16 à 255 caractères alphanumériques, points, tirets bas, deux-points ou tirets.'
+    idempotency_required:
+      title: 'Clé d’idempotence requise'
+      detail: 'Les transactions importées ou fournies par un connecteur nécessitent une clé d’idempotence.'
+    idempotency_key_reused:
+      title: 'Clé d’idempotence réutilisée'
+      detail: 'Cette clé a déjà été utilisée pour une requête différente.'
+    idempotency_in_flight:
+      title: 'Requête déjà en cours'
+      detail: 'La requête portant cette clé est encore en cours de traitement. Réessayez dans un instant.'
     invalid_splits_too_many:
       title: 'Trop de répartitions'
       detail: 'Une transaction accepte au plus 20 répartitions.'

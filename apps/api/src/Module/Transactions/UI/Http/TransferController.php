@@ -7,6 +7,10 @@ namespace App\Module\Transactions\UI\Http;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Transactions\Application\CreateTransfer;
 use App\Module\Transactions\Application\CreateTransferInput;
+use App\Module\Transactions\Application\IdempotencyConflict;
+use App\Module\Transactions\Application\IdempotentExecution;
+use App\Module\Transactions\Application\IdempotentResponse;
+use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\InvalidTransferInput;
 use App\Module\Transactions\Application\InvalidTransferRule;
 use App\Module\Transactions\Application\ReadTransfer;
@@ -30,8 +34,10 @@ final readonly class TransferController
         'sourceAccountId', 'targetAccountId', 'state', 'bookedOn', 'valueOn', 'label', 'note', 'fee', 'version',
     ];
 
-    public function __construct(private TransactionHttpEnvelope $envelope)
-    {
+    public function __construct(
+        private TransactionHttpEnvelope $envelope,
+        private IdempotentExecution $idempotentExecution,
+    ) {
     }
 
     #[Route('/api/v1/transfers', name: 'api_v1_transfers_create', methods: ['POST'])]
@@ -44,7 +50,7 @@ final readonly class TransferController
 
         try {
             $payload = TransferPayload::of($body, self::CREATE_FIELDS);
-            $transfer = $createTransfer(new CreateTransferInput(
+            $input = new CreateTransferInput(
                 sourceAccountId: $payload->identifier('sourceAccountId'),
                 targetAccountId: $payload->identifier('targetAccountId'),
                 sourceAmount: $payload->amount('sourceAmount'),
@@ -55,7 +61,18 @@ final readonly class TransferController
                 label: $payload->string('label'),
                 note: $payload->nullableString('note'),
                 fee: $payload->nullableAmount('fee'),
-            ));
+            );
+            $result = $this->idempotentExecution->execute(
+                'transfer.create',
+                $this->envelope->idempotency($request, false),
+                function () use ($createTransfer, $input): IdempotentResponse {
+                    $transfer = $createTransfer($input);
+
+                    return new IdempotentResponse(TransferRepresentation::one($transfer), Response::HTTP_CREATED, $transfer->id);
+                },
+            );
+        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
+            return $this->envelope->idempotencyProblem($exception);
         } catch (InvalidTransferRule $exception) {
             return $this->envelope->invalidTransferRuleProblem($exception);
         } catch (InvalidTransferInput|\UnexpectedValueException) {
@@ -68,7 +85,7 @@ final readonly class TransferController
             return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transfer_forbidden');
         }
 
-        return $this->envelope->json(TransferRepresentation::one($transfer), Response::HTTP_CREATED);
+        return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
     }
 
     #[Route('/api/v1/transfers/{id}', name: 'api_v1_transfers_read', methods: ['GET'])]

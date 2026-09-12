@@ -30,6 +30,7 @@ final readonly class CreateTransactionInput
         public ?string $bankReference,
         public ?string $categoryId,
         public ?array $splits,
+        public string $source = 'MANUAL',
     ) {
     }
 }

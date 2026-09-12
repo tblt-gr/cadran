@@ -10,6 +10,10 @@ use App\Module\Transactions\Application\CreateRefundInput;
 use App\Module\Transactions\Application\CreateTransaction;
 use App\Module\Transactions\Application\CreateTransactionInput;
 use App\Module\Transactions\Application\DuplicateTransaction;
+use App\Module\Transactions\Application\IdempotencyConflict;
+use App\Module\Transactions\Application\IdempotentExecution;
+use App\Module\Transactions\Application\IdempotentResponse;
+use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\InvalidRefundRule;
 use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
@@ -28,6 +32,7 @@ use App\Module\Transactions\Application\TransactionNotFound;
 use App\Module\Transactions\Application\UpdateTransaction;
 use App\Module\Transactions\Application\UpdateTransactionInput;
 use App\Module\Transactions\Application\VoidTransaction;
+use App\Module\Transactions\Domain\TransactionSource;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -36,14 +41,19 @@ final readonly class TransactionController
 {
     private const array CREATE_FIELDS = [
         'accountId', 'amount', 'nature', 'state', 'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel',
-        'counterparty', 'note', 'paymentMethod', 'mcc', 'maskedCard', 'bankReference', 'categoryId', 'splits',
+        'counterparty', 'note', 'paymentMethod', 'mcc', 'maskedCard', 'bankReference', 'categoryId', 'splits', 'source',
     ];
-    private const array UPDATE_FIELDS = [...self::CREATE_FIELDS, 'version'];
+    private const array UPDATE_FIELDS = [
+        'accountId', 'amount', 'nature', 'state', 'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel',
+        'counterparty', 'note', 'paymentMethod', 'mcc', 'maskedCard', 'bankReference', 'categoryId', 'splits', 'version',
+    ];
     private const array REFUND_FIELDS = ['accountId', 'amount', 'bookedOn', 'rawLabel', 'counterparty', 'note', 'splits'];
     private const array LIST_QUERY_FIELDS = ['accountId', 'includeVoided', 'pageSize', 'cursor', 'categorization'];
 
-    public function __construct(private TransactionHttpEnvelope $envelope)
-    {
+    public function __construct(
+        private TransactionHttpEnvelope $envelope,
+        private IdempotentExecution $idempotentExecution,
+    ) {
     }
 
     #[Route('/api/v1/transactions', name: 'api_v1_transactions_list', methods: ['GET'])]
@@ -94,7 +104,20 @@ final readonly class TransactionController
         }
 
         try {
-            $transaction = $createTransaction(self::createInput(TransactionPayload::of($body, self::CREATE_FIELDS)));
+            $body += ['source' => TransactionSource::MANUAL->value];
+            $payload = TransactionPayload::of($body, self::CREATE_FIELDS);
+            $source = $payload->string('source');
+            $result = $this->idempotentExecution->execute(
+                'transaction.create',
+                $this->envelope->idempotency($request, in_array($source, [TransactionSource::IMPORT->value, TransactionSource::PROVIDER->value], true)),
+                function () use ($createTransaction, $payload): IdempotentResponse {
+                    $transaction = $createTransaction(self::createInput($payload));
+
+                    return new IdempotentResponse(TransactionRepresentation::one($transaction), Response::HTTP_CREATED, $transaction->id);
+                },
+            );
+        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
+            return $this->envelope->idempotencyProblem($exception);
         } catch (InvalidSplitsInput $exception) {
             return $this->envelope->invalidSplitsProblem($exception);
         } catch (InvalidTransactionInput|\UnexpectedValueException) {
@@ -107,7 +130,7 @@ final readonly class TransactionController
             return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
         }
 
-        return $this->envelope->json(TransactionRepresentation::one($transaction), Response::HTTP_CREATED);
+        return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
     }
 
     #[Route('/api/v1/transactions/{id}', name: 'api_v1_transactions_read', methods: ['GET'])]
@@ -160,11 +183,22 @@ final readonly class TransactionController
         try {
             $body += ['splits' => null];
             $payload = TransactionPayload::of($body, self::REFUND_FIELDS);
-            $refund = $createRefund($id, new CreateRefundInput(
+            $input = new CreateRefundInput(
                 $payload->identifier('accountId'), $payload->amount('amount'), $payload->string('bookedOn'),
                 $payload->string('rawLabel'), $payload->nullableString('counterparty'), $payload->nullableString('note'),
                 $payload->nullableSplitRows('splits'),
-            ));
+            );
+            $result = $this->idempotentExecution->execute(
+                'refund.create',
+                $this->envelope->idempotency($request, false),
+                function () use ($createRefund, $id, $input): IdempotentResponse {
+                    $refund = $createRefund($id, $input);
+
+                    return new IdempotentResponse(TransactionRepresentation::one($refund), Response::HTTP_CREATED, $refund->id);
+                },
+            );
+        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
+            return $this->envelope->idempotencyProblem($exception);
         } catch (InvalidSplitsInput $exception) {
             return $this->envelope->invalidSplitsProblem($exception);
         } catch (InvalidRefundRule $exception) {
@@ -181,7 +215,7 @@ final readonly class TransactionController
             return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
         }
 
-        return $this->envelope->json(TransactionRepresentation::one($refund), Response::HTTP_CREATED);
+        return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
     }
 
     #[Route('/api/v1/transactions/{id}', name: 'api_v1_transactions_update', methods: ['PUT'])]
@@ -311,14 +345,36 @@ final readonly class TransactionController
     }
 
     #[Route('/api/v1/transactions/{id}/duplicate', name: 'api_v1_transactions_duplicate', methods: ['POST'])]
-    public function duplicate(string $id, DuplicateTransaction $duplicateTransaction): Response
+    public function duplicate(string $id, Request $request, DuplicateTransaction $duplicateTransaction): Response
     {
         if (!$this->envelope->isIdentifier($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         }
 
+        $hasBody = '' !== $request->getContent();
+        $body = [];
+        if ($hasBody) {
+            $body = $this->envelope->body($request);
+            if ($body instanceof Response) {
+                return $body;
+            }
+        }
         try {
-            $transaction = $duplicateTransaction($id);
+            $result = $this->idempotentExecution->execute(
+                'transaction.duplicate',
+                $this->envelope->idempotency($request, false, true),
+                function () use ($duplicateTransaction, $id, $body, $hasBody, $request): IdempotentResponse {
+                    if ($hasBody && !$this->envelope->hasJsonObjectBody($request)) {
+                        throw new InvalidTransactionInput();
+                    }
+                    TransactionPayload::of($body, []);
+                    $transaction = $duplicateTransaction($id);
+
+                    return new IdempotentResponse(TransactionRepresentation::one($transaction), Response::HTTP_CREATED, $transaction->id);
+                },
+            );
+        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
+            return $this->envelope->idempotencyProblem($exception);
         } catch (InvalidSplitsInput $exception) {
             return $this->envelope->invalidSplitsProblem($exception);
         } catch (InvalidTransactionInput) {
@@ -336,7 +392,7 @@ final readonly class TransactionController
             return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
         }
 
-        return $this->envelope->json(TransactionRepresentation::one($transaction), Response::HTTP_CREATED);
+        return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
     }
 
     private static function createInput(TransactionPayload $payload): CreateTransactionInput
@@ -358,6 +414,7 @@ final readonly class TransactionController
             bankReference: $payload->nullableString('bankReference'),
             categoryId: $payload->nullableIdentifier('categoryId'),
             splits: $payload->nullableSplitRows('splits'),
+            source: $payload->string('source'),
         );
     }
 
