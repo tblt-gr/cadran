@@ -328,6 +328,16 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
         $this->inner->add($transaction);
     }
 
+    public function listForCategorization(
+        \App\Module\Foundation\Domain\WorkspaceScope $workspace,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        int $limit,
+        bool $lock,
+    ): array {
+        return $this->inner->listForCategorization($workspace, $from, $to, $limit, $lock);
+    }
+
     public function update(Transaction $transaction, int $expectedVersion): bool
     {
         return $this->inner->update($transaction, $expectedVersion);

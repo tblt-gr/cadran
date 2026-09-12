@@ -10,6 +10,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Transactions\Domain\CategorizationOrigin;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionPosition;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -80,6 +81,26 @@ final readonly class DbalTransactionRepository implements CategoryClassification
             'SELECT count(*) FROM transaction_splits WHERE workspace_id = :workspace_id AND category_id = :category_id',
             ['workspace_id' => $workspace->id, 'category_id' => $categoryId],
         ));
+    }
+
+    public function listForCategorization(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit, bool $lock): array
+    {
+        $sql = 'SELECT '.self::COLUMNS.' FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '
+            ."AND t.booked_on BETWEEN :from_date AND :to_date AND t.state NOT IN ('VOIDED', 'REJECTED') "
+            ."AND t.nature IN ('INCOME', 'EXPENSE', 'FEE', 'ADJUSTMENT') "
+            .'AND NOT EXISTS (SELECT 1 FROM transaction_transfers x WHERE x.workspace_id = :workspace_id AND (x.source_transaction_id = t.id OR x.target_transaction_id = t.id OR x.fee_transaction_id = t.id)) '
+            ."AND NOT EXISTS (SELECT 1 FROM transaction_refunds r JOIN transaction_transactions rt ON rt.workspace_id = :workspace_id AND rt.id = r.refund_transaction_id WHERE r.workspace_id = :workspace_id AND r.original_transaction_id = t.id AND rt.state NOT IN ('VOIDED', 'REJECTED')) "
+            .'ORDER BY t.id LIMIT :limit';
+        if ($lock) {
+            $sql .= ' FOR UPDATE OF t';
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            $sql,
+            ['workspace_id' => $workspace->id, 'from_date' => $from->format('Y-m-d'), 'to_date' => $to->format('Y-m-d'), 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return $this->hydrateMany($workspace, $rows);
     }
 
     public function add(Transaction $transaction): void
@@ -160,7 +181,7 @@ final readonly class DbalTransactionRepository implements CategoryClassification
             return [];
         }
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT id, workspace_id, transaction_id, category_id, amount_value, amount_scale, asset_code, analytic_axes, note, created_at, position'
+            'SELECT id, workspace_id, transaction_id, category_id, amount_value, amount_scale, asset_code, analytic_axes, note, created_at, position, categorization_origin, categorization_rule_id'
             .' FROM transaction_splits WHERE workspace_id = :workspace_id AND transaction_id IN (:transaction_ids) ORDER BY transaction_id, position',
             ['workspace_id' => $workspace->id, 'transaction_ids' => $transactionIds],
             ['transaction_ids' => ArrayParameterType::STRING],
@@ -188,6 +209,8 @@ final readonly class DbalTransactionRepository implements CategoryClassification
                 note: null === ($row['note'] ?? null) ? null : TransactionRow::text($row['note']),
                 createdAt: new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)),
                 position: (int) TransactionRow::text($row['position'] ?? null),
+                origin: CategorizationOrigin::from(TransactionRow::text($row['categorization_origin'] ?? null)),
+                ruleId: null === ($row['categorization_rule_id'] ?? null) ? null : TransactionRow::text($row['categorization_rule_id']),
             );
         }
 
@@ -222,6 +245,8 @@ final readonly class DbalTransactionRepository implements CategoryClassification
                 'note' => $split->note,
                 'created_at' => $split->createdAt->format('Y-m-d H:i:s.uP'),
                 'position' => $split->position,
+                'categorization_origin' => $split->origin->value,
+                'categorization_rule_id' => $split->ruleId,
             ]);
         }
     }

@@ -74,6 +74,12 @@ export const navigationItems: NavigationItem[] = [
     match: (path) => path === '/categories',
   },
   {
+    href: '/categorization-rules',
+    icon: 'rules',
+    labelKey: 'navigation.categorizationRules',
+    match: (path) => path === '/categorization-rules',
+  },
+  {
     href: '/catalog',
     icon: 'catalog',
     labelKey: 'navigation.catalog',

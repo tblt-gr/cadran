@@ -1,0 +1,21 @@
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.dialog p {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  line-height: var(--line-height-body);
+}
+.alert {
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-negative);
+  border-radius: var(--radius-control);
+  color: var(--negative);
+  background: var(--negative-soft);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}

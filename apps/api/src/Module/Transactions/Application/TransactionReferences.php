@@ -104,6 +104,8 @@ final readonly class TransactionReferences
             analyticAxes: $keepsExistingCategory ? $existing->analyticAxes : $category->defaultAnalyticAxes,
             note: $keepsExistingCategory ? $existing->note : null,
             createdAt: $existing->createdAt ?? $now,
+            origin: $keepsExistingCategory ? $existing->origin : \App\Module\Transactions\Domain\CategorizationOrigin::MANUAL,
+            ruleId: $keepsExistingCategory ? $existing->ruleId : null,
         );
     }
 
@@ -218,6 +220,8 @@ final readonly class TransactionReferences
             note: $input->note,
             createdAt: $existing->createdAt ?? $now,
             position: $position,
+            origin: null !== $existing ? $existing->origin : \App\Module\Transactions\Domain\CategorizationOrigin::MANUAL,
+            ruleId: $existing?->ruleId,
         );
     }
 

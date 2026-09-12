@@ -70,6 +70,8 @@ const transaction: Transaction = {
       amount: { value: '-12.50', assetCode: 'EUR' },
       analyticAxes: [],
       note: null,
+      categorizationOrigin: 'MANUAL',
+      categorizationRuleId: null,
     },
   ],
   version: 1,

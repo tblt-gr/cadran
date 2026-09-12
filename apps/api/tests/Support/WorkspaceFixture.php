@@ -122,8 +122,10 @@ final readonly class WorkspaceFixture
         $this->connection->executeStatement('DELETE FROM transaction_transfers');
         $this->connection->executeStatement('DELETE FROM transaction_refunds');
         $this->connection->executeStatement('DELETE FROM transaction_idempotency_keys');
+        $this->connection->executeStatement('DELETE FROM transaction_categorization_previews');
         $this->connection->executeStatement('DELETE FROM transaction_splits');
         $this->connection->executeStatement('DELETE FROM transaction_transactions');
+        $this->connection->executeStatement('DELETE FROM transaction_categorization_rules');
         // Snapshots restrict account deletion: the trail of observed balances
         // must be cleared first. Rule overrides and their rate brackets follow
         // the account through ON DELETE CASCADE.

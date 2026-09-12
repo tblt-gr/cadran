@@ -782,6 +782,8 @@ describe('TransactionsPage', () => {
           amount: transaction.amount,
           analyticAxes: [],
           note: null,
+          categorizationOrigin: 'MANUAL',
+          categorizationRuleId: null,
         },
       ],
     } satisfies Transaction;
