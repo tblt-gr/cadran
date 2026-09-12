@@ -171,7 +171,7 @@ export function TransferForm({ accounts, onSubmit, pending, submitError }: Trans
         </label>
 
         <div>
-          <label>
+          <label className={formStyles.checkboxLabel}>
             <input
               checked={values.hasFee}
               onChange={(event) => set('hasFee', event.target.checked)}
