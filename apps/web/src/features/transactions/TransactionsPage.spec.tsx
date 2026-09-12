@@ -8,6 +8,7 @@ import { TransactionsPage } from './TransactionsPage';
 const api = vi.hoisted(() => ({
   createCategory: vi.fn(),
   createTransaction: vi.fn(),
+  createTransfer: vi.fn(),
   duplicateTransaction: vi.fn(),
   listAccounts: vi.fn(),
   listCategories: vi.fn(),
@@ -60,6 +61,7 @@ const transaction: Transaction = {
   createdAt: '2026-03-14T09:12:04+01:00',
   updatedAt: '2026-03-14T09:12:04+01:00',
   voidedAt: null,
+  transferId: null,
 };
 
 function success<T>(data: T, status = 200) {
@@ -918,5 +920,117 @@ describe('TransactionsPage', () => {
     );
 
     await waitFor(() => expect(api.updateTransaction).toHaveBeenCalledOnce());
+  });
+
+  it('creates a same-asset transfer and shows a second amount field only for a cross-asset one', async () => {
+    const savingsAccount = {
+      ...account,
+      id: '00000000-0000-7000-8000-0000000000d2',
+      label: 'Épargne',
+    } as Account;
+    const chfAccount = {
+      ...account,
+      id: '00000000-0000-7000-8000-0000000000d3',
+      label: 'Compte suisse',
+      assetCode: 'CHF',
+    } as Account;
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account, savingsAccount, chfAccount], page: 1, perPage: 100, total: 3 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.createTransfer.mockImplementation(({ body }) =>
+      success(
+        {
+          id: '00000000-0000-7000-8000-0000000000e1',
+          source: {
+            ...transaction,
+            accountId: body.sourceAccountId,
+            amount: { value: '-500.00', assetCode: 'EUR' },
+          },
+          target: {
+            ...transaction,
+            accountId: body.targetAccountId,
+            amount: { value: '500.00', assetCode: 'EUR' },
+          },
+          fee: null,
+          exchangeRate: null,
+          version: 1,
+          createdAt: '2026-03-14T09:12:04+01:00',
+          updatedAt: '2026-03-14T09:12:04+01:00',
+          voidedAt: null,
+        },
+        201,
+      ),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
+    const dialog = screen.getByRole('dialog', { name: 'Nouveau virement' });
+    expect(within(dialog).queryByLabelText('Montant reçu')).toBeNull();
+
+    fireEvent.change(within(dialog).getByLabelText('Compte source'), {
+      target: { value: account.id },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Compte de destination'), {
+      target: { value: savingsAccount.id },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Montant (EUR)'), {
+      target: { value: '500.00' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Libellé'), {
+      target: { value: 'Virement épargne' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
+
+    await waitFor(() => expect(api.createTransfer).toHaveBeenCalledOnce());
+    expect(api.createTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          sourceAccountId: account.id,
+          targetAccountId: savingsAccount.id,
+          sourceAmount: { value: '500.00', assetCode: 'EUR' },
+          targetAmount: null,
+          fee: null,
+        }),
+      }),
+    );
+    expect(await screen.findByText('Le virement a été enregistré.')).toBeTruthy();
+
+    // Reopening and pairing with the CHF account now asks for the target amount too.
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveau virement' }));
+    const reopened = screen.getByRole('dialog', { name: 'Nouveau virement' });
+    fireEvent.change(within(reopened).getByLabelText('Compte de destination'), {
+      target: { value: chfAccount.id },
+    });
+    expect(within(reopened).getByLabelText('Montant reçu (CHF)')).toBeTruthy();
+  });
+
+  it('marks a transfer leg in the list and disables editing, duplicating and voiding it directly', async () => {
+    const transferLeg: Transaction = {
+      ...transaction,
+      nature: 'TRANSFER',
+      transferId: '00000000-0000-7000-8000-0000000000e1',
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transferLeg], nextCursor: null }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Virement')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    expect((screen.getByRole('button', { name: /^Modifier/ }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    expect((screen.getByRole('button', { name: /^Dupliquer/ }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    expect((screen.getByRole('button', { name: /^Annuler/ }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 });

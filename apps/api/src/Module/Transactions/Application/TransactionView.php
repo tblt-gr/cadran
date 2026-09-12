@@ -35,6 +35,7 @@ final readonly class TransactionView
         public string $createdAt,
         public string $updatedAt,
         public ?string $voidedAt,
+        public ?string $transferId,
     ) {
     }
 
@@ -42,10 +43,13 @@ final readonly class TransactionView
      * The split carries the current display identity of its category so a
      * transaction row draws the same marker as the categories screen. It is a
      * read-only projection: nothing about it is stored on the split.
+     * `transferId` is a read-only projection too, resolved from the transfer
+     * table rather than stored on the transaction, so the list can mark a
+     * leg and link it to its transfer without a client-side heuristic.
      *
      * @param array<string, array{label: string, icon: ?string, color: ?string}> $categoryIdentities
      */
-    public static function fromTransaction(Transaction $transaction, array $categoryIdentities): self
+    public static function fromTransaction(Transaction $transaction, array $categoryIdentities, ?string $transferId): self
     {
         return new self(
             id: $transaction->id,
@@ -88,6 +92,7 @@ final readonly class TransactionView
             createdAt: $transaction->createdAt->format(DATE_ATOM),
             updatedAt: $transaction->updatedAt->format(DATE_ATOM),
             voidedAt: $transaction->voidedAt?->format(DATE_ATOM),
+            transferId: $transferId,
         );
     }
 }

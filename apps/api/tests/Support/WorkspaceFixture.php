@@ -118,6 +118,8 @@ final readonly class WorkspaceFixture
         $this->connection->executeStatement('TRUNCATE TABLE audit_events');
         // Transactions restrict account and category deletion. Splits follow a
         // deleted transaction, but clearing both keeps reset order explicit.
+        // Transfers restrict their own legs, so they clear before either.
+        $this->connection->executeStatement('DELETE FROM transaction_transfers');
         $this->connection->executeStatement('DELETE FROM transaction_splits');
         $this->connection->executeStatement('DELETE FROM transaction_transactions');
         // Snapshots restrict account deletion: the trail of observed balances

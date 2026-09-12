@@ -1,11 +1,13 @@
 import {
   createTransaction,
+  createTransfer,
   duplicateTransaction,
   listAccounts,
   listTransactions,
   updateTransaction,
   voidTransaction,
   type CreateTransactionRequest,
+  type CreateTransferRequest,
   type Transaction,
   type UpdateTransactionRequest,
 } from '@cadran/api-client';
@@ -26,10 +28,12 @@ import {
   transactionRequestError,
 } from './transactionError';
 import { listReferencedAccounts, mergeAccountOptions } from './transactionAccounts';
+import { TransferEditor } from './transfer-editor/TransferEditor';
 import { VoidTransactionDialog } from './void-transaction-dialog/VoidTransactionDialog';
 import styles from './TransactionsPage.module.css';
 
 type Editor = Transaction | 'create' | null;
+type Saved = 'duplicated' | 'saved' | 'transferSaved' | 'voided' | null;
 
 export function TransactionsPage() {
   const { t } = useTranslation();
@@ -40,7 +44,8 @@ export function TransactionsPage() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
-  const [saved, setSaved] = useState<'saved' | 'voided' | 'duplicated' | null>(null);
+  const [transferEditorOpen, setTransferEditorOpen] = useState(false);
+  const [saved, setSaved] = useState<Saved>(null);
   const duplicatingIdsRef = useRef(new Set<string>());
   const [duplicatingIds, setDuplicatingIds] = useState<ReadonlySet<string>>(new Set());
 
@@ -61,6 +66,17 @@ export function TransactionsPage() {
   function closeEditor() {
     setEditor(null);
     save.reset();
+  }
+
+  function openTransferEditor() {
+    setSaved(null);
+    transferSave.reset();
+    setTransferEditorOpen(true);
+  }
+
+  function closeTransferEditor() {
+    setTransferEditorOpen(false);
+    transferSave.reset();
   }
 
   const accounts = useQuery({
@@ -139,6 +155,21 @@ export function TransactionsPage() {
     onError: refreshOnStaleTransaction,
   });
 
+  const transferSave = useMutation({
+    mutationFn: async (body: CreateTransferRequest) => {
+      const result = await withCsrfRetry(() => createTransfer({ ...authApiOptions(), body }));
+      if (!result.response?.ok || !result.data) {
+        throw transactionRequestError(result);
+      }
+      return result.data;
+    },
+    onSuccess: async () => {
+      setTransferEditorOpen(false);
+      setSaved('transferSaved');
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+  });
+
   const voidMutation = useMutation({
     mutationFn: async (transaction: Transaction) => {
       const result = await withCsrfRetry(() =>
@@ -208,10 +239,25 @@ export function TransactionsPage() {
           <h2 id="transactions-intro-title">{t('transactions.title')}</h2>
           <span>{t('transactions.description')}</span>
         </div>
-        <button className="primary-action" onClick={() => openEditor('create')} type="button">
-          {t('transactions.add')}
-        </button>
+        <div className={styles.actions}>
+          <button className="secondary-action" onClick={openTransferEditor} type="button">
+            {t('transactions.addTransfer')}
+          </button>
+          <button className="primary-action" onClick={() => openEditor('create')} type="button">
+            {t('transactions.add')}
+          </button>
+        </div>
       </section>
+
+      {transferEditorOpen ? (
+        <TransferEditor
+          accounts={activeAccountOptions}
+          close={closeTransferEditor}
+          onSubmit={(body) => transferSave.mutate(body)}
+          pending={transferSave.isPending}
+          submitError={transactionErrorKind(transferSave.error, transferSave.isError)}
+        />
+      ) : null}
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`transactions.toasts.${saved}`)}</Toast>

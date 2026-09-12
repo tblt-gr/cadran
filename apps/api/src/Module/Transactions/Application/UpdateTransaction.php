@@ -13,6 +13,7 @@ use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\TransactionRepository;
 use App\Module\Transactions\Domain\TransactionSplit;
+use App\Module\Transactions\Domain\TransferRepository;
 use Symfony\Component\Clock\ClockInterface;
 
 final readonly class UpdateTransaction
@@ -20,6 +21,7 @@ final readonly class UpdateTransaction
     public function __construct(
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
+        private TransferRepository $transfers,
         private TransactionInputParser $parser,
         private TransactionSplitInputParser $splitParser,
         private TransactionReferences $references,
@@ -33,6 +35,13 @@ final readonly class UpdateTransaction
     public function __invoke(string $id, UpdateTransactionInput $input): TransactionView
     {
         $context = $this->caller->resolveContext();
+        // Checked before parsing: a transfer leg's own nature (TRANSFER) would
+        // otherwise always fail standalone parsing first, masking the more
+        // specific "use the transfer" refusal behind a generic input error.
+        $transfer = $this->transfers->findByLegTransactionId($context->workspace, $id);
+        if (null !== $transfer) {
+            throw new TransactionBelongsToTransfer($transfer->id);
+        }
         $draft = $this->parser->parse(
             $input->amount, $input->nature, $input->state, $input->bookedOn, $input->valueOn,
             $input->authorizedOn, $input->rawLabel, $input->counterparty, $input->note,

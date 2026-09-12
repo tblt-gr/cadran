@@ -36,6 +36,7 @@ final readonly class TransactionRepresentation
             'createdAt' => $transaction->createdAt,
             'updatedAt' => $transaction->updatedAt,
             'voidedAt' => $transaction->voidedAt,
+            'transferId' => $transaction->transferId,
         ];
     }
 

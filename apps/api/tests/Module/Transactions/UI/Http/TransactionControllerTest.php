@@ -79,7 +79,9 @@ final class TransactionControllerTest extends WebTestCase
             'id', 'accountId', 'amount', 'originalAmount', 'exchangeRate', 'nature', 'state', 'source',
             'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel', 'counterparty', 'note', 'paymentMethod',
             'mcc', 'maskedCard', 'bankReference', 'splits', 'version', 'createdAt', 'updatedAt', 'voidedAt',
+            'transferId',
         ], array_keys($created));
+        self::assertNull($created['transferId']);
         self::assertSame(['value' => '-42.90', 'assetCode' => 'EUR'], $created['amount']);
         self::assertNull($created['originalAmount']);
         self::assertSame('EXPENSE', $created['nature']);

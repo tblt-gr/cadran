@@ -15,6 +15,7 @@ use App\Module\Transactions\Application\ReadTransaction;
 use App\Module\Transactions\Application\ReplaceTransactionSplits;
 use App\Module\Transactions\Application\ReplaceTransactionSplitsInput;
 use App\Module\Transactions\Application\StaleTransactionVersion;
+use App\Module\Transactions\Application\TransactionBelongsToTransfer;
 use App\Module\Transactions\Application\TransactionConflict;
 use App\Module\Transactions\Application\TransactionNotFound;
 use App\Module\Transactions\Application\UpdateTransaction;
@@ -137,6 +138,11 @@ final readonly class TransactionController
             return $this->envelope->invalidSplitsProblem($exception);
         } catch (InvalidTransactionInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
+        } catch (TransactionBelongsToTransfer $exception) {
+            return $this->envelope->problemWithExtensions(
+                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_transfer',
+                ['transferId' => $exception->transferId], '/problems/transaction-belongs-to-transfer',
+            );
         } catch (TransactionNotFound) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         } catch (StaleTransactionVersion) {
@@ -172,6 +178,11 @@ final readonly class TransactionController
             return $this->envelope->invalidSplitsProblem($exception);
         } catch (InvalidTransactionInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
+        } catch (TransactionBelongsToTransfer $exception) {
+            return $this->envelope->problemWithExtensions(
+                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_transfer',
+                ['transferId' => $exception->transferId], '/problems/transaction-belongs-to-transfer',
+            );
         } catch (TransactionNotFound) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         } catch (StaleTransactionVersion) {
@@ -201,6 +212,11 @@ final readonly class TransactionController
             $transaction = $voidTransaction($id, $payload->integer('version'));
         } catch (InvalidTransactionInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
+        } catch (TransactionBelongsToTransfer $exception) {
+            return $this->envelope->problemWithExtensions(
+                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_transfer',
+                ['transferId' => $exception->transferId], '/problems/transaction-belongs-to-transfer',
+            );
         } catch (TransactionNotFound) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         } catch (StaleTransactionVersion) {

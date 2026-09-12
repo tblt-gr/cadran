@@ -6,11 +6,14 @@ namespace App\Module\Transactions\Application;
 
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Transactions\Domain\Transaction;
+use App\Module\Transactions\Domain\TransferRepository;
 
 final readonly class PresentTransaction
 {
-    public function __construct(private CategoryRepository $categories)
-    {
+    public function __construct(
+        private CategoryRepository $categories,
+        private TransferRepository $transfers,
+    ) {
     }
 
     public function one(Transaction $transaction): TransactionView
@@ -41,9 +44,13 @@ final readonly class PresentTransaction
         }
 
         $identities = $this->categories->identitiesByIds($workspace, array_values(array_unique($categoryIds)));
+        $transferIds = array_map(static fn (Transaction $transaction): string => $transaction->id, $transactions);
+        $markers = $this->transfers->markersForLegs($workspace, $transferIds);
 
         return array_map(
-            static fn (Transaction $transaction): TransactionView => TransactionView::fromTransaction($transaction, $identities),
+            static fn (Transaction $transaction): TransactionView => TransactionView::fromTransaction(
+                $transaction, $identities, $markers[$transaction->id] ?? null,
+            ),
             $transactions,
         );
     }

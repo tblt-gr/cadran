@@ -11,6 +11,7 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\TransactionRepository;
+use App\Module\Transactions\Domain\TransferRepository;
 use Symfony\Component\Clock\ClockInterface;
 
 final readonly class VoidTransaction
@@ -18,6 +19,7 @@ final readonly class VoidTransaction
     public function __construct(
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
+        private TransferRepository $transfers,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private PresentTransaction $presentTransaction,
@@ -33,6 +35,10 @@ final readonly class VoidTransaction
             $current = $this->transactions->findForUpdate($context->workspace, $id);
             if (null === $current) {
                 throw new TransactionNotFound();
+            }
+            $transfer = $this->transfers->findByLegTransactionId($context->workspace, $id);
+            if (null !== $transfer) {
+                throw new TransactionBelongsToTransfer($transfer->id);
             }
             if ($version !== $current->version) {
                 throw new StaleTransactionVersion('The transaction changed concurrently.');
