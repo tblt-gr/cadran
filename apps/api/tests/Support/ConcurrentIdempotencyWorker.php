@@ -18,16 +18,16 @@ use App\Tests\Support\WorkspaceFixture;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
-require dirname(__DIR__).'/bootstrap.php';
-
 $_SERVER['APP_ENV'] = 'test';
 $_SERVER['APP_DEBUG'] = '1';
 $_SERVER['APP_SECRET'] = 'test-only-secret';
 
+require dirname(__DIR__).'/bootstrap.php';
+
 [$script, $case, $key, $originalId, $barrier, $worker] = $argv;
 $kernel = new Kernel('test', true);
 $kernel->boot();
-$container = $kernel->getContainer();
+$container = $kernel->getContainer()->get('test.service_container');
 $tokens = $container->get(TokenStorageInterface::class);
 $tokens->setToken(new UsernamePasswordToken(new SecurityUser(WorkspaceFixture::OWNER_EMAIL, 'irrelevant-hash', false), 'main'));
 $execution = $container->get(IdempotentExecution::class);
