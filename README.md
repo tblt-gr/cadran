@@ -201,6 +201,14 @@ prompts for every value; it is a one-time action and a second run is rejected.
 make setup
 ```
 
+Expired transaction idempotency keys are retained for seven days. Run the following command from
+the application container on a schedule; it removes records in repeatable batches of 1,000 and
+reports the number removed:
+
+```bash
+docker compose exec app php apps/api/bin/console cadran:transactions:purge-idempotency-keys
+```
+
 Documentation and contract checks also run without Docker:
 
 ```bash

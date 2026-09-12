@@ -172,6 +172,178 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame(2, (int) $scale);
     }
 
+    public function testThePersistenceRoundTripPreservesTwentyFourSubmittedDecimalsWithoutDatabaseRounding(): void
+    {
+        $asset = 'TST24';
+        $account = '00000000-0000-7000-8000-0000000000d7';
+        $literal = '-0.000000000000000000000001';
+        try {
+            $money = $this->createTransaction(overrides: [
+                'amount' => ['value' => '-230.5688', 'assetCode' => 'EUR'],
+            ]);
+            $moneyId = self::stringValue($money, 'id');
+            self::assertSame('-230.568800000000000000000000', $this->connection->fetchOne(
+                'SELECT amount_value::text FROM transaction_transactions WHERE workspace_id = ? AND id = ?',
+                [WorkspaceFixture::OWN_WORKSPACE, $moneyId],
+            ));
+            $moneyScale = $this->connection->fetchOne(
+                'SELECT amount_scale FROM transaction_transactions WHERE workspace_id = ? AND id = ?',
+                [WorkspaceFixture::OWN_WORKSPACE, $moneyId],
+            );
+            self::assertTrue(is_int($moneyScale) || is_string($moneyScale));
+            self::assertSame(4, (int) $moneyScale);
+            self::assertSame(['value' => '-230.5688', 'assetCode' => 'EUR'], $this->decodeFromRow($moneyId)['amount']);
+
+            $this->connection->insert('reference_assets', [
+                'code' => $asset, 'kind' => 'CRYPTO', 'display_name' => 'Test precision asset',
+                'storage_precision' => 24, 'display_precision' => 8, 'rounding_mode' => 'HALF_UP',
+            ]);
+            $this->seedAccount($account, WorkspaceFixture::OWN_WORKSPACE, 'Compte précision', $asset);
+            $created = $this->createTransaction([
+                'accountId' => $account,
+                'amount' => ['value' => $literal, 'assetCode' => $asset],
+                'categoryId' => null,
+            ]);
+            $id = self::stringValue($created, 'id');
+            self::assertSame($literal, $this->connection->fetchOne(
+                'SELECT amount_value::text FROM transaction_transactions WHERE workspace_id = ? AND id = ?',
+                [WorkspaceFixture::OWN_WORKSPACE, $id],
+            ));
+            $scale = $this->connection->fetchOne(
+                'SELECT amount_scale FROM transaction_transactions WHERE workspace_id = ? AND id = ?',
+                [WorkspaceFixture::OWN_WORKSPACE, $id],
+            );
+            self::assertTrue(is_int($scale) || is_string($scale));
+            self::assertSame(24, (int) $scale);
+            self::assertSame(['value' => $literal, 'assetCode' => $asset], $this->decodeFromRow($id)['amount']);
+
+            $this->requestCreate($this->payload([
+                'accountId' => $account,
+                'amount' => ['value' => '-0.0000000000000000000000001', 'assetCode' => $asset],
+                'categoryId' => null,
+            ]));
+            self::assertResponseStatusCodeSame(422);
+        } finally {
+            $this->connection->delete('transaction_transactions', ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => $account]);
+            $this->connection->delete('account_financial_accounts', ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $account]);
+            $this->connection->delete('reference_assets', ['code' => $asset]);
+        }
+    }
+
+    public function testCreatingTheSameMovementWithTheSameIdempotencyKeyReplaysItsFirstResponse(): void
+    {
+        $body = $this->payload();
+        $key = 'transaction-create-replay-0001';
+
+        $this->requestCreate($body, $key);
+        self::assertResponseStatusCodeSame(201);
+        $first = $this->decode();
+
+        $this->requestCreate($body, $key);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertEquals($first, $this->decode());
+        self::assertSame(1, $this->ownTransactionCount());
+    }
+
+    public function testAnIdempotencyKeyCannotBeReusedForADifferentCreationAndIsRequiredForImportedSources(): void
+    {
+        $key = 'transaction-create-reused-0001';
+        $this->requestCreate($this->payload(), $key);
+        self::assertResponseStatusCodeSame(201);
+
+        $this->requestCreate($this->payload(['rawLabel' => 'A different movement']), $key);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/idempotency.key_reused', $this->decode()['type']);
+        self::assertSame(1, $this->ownTransactionCount());
+
+        $this->requestCreate($this->payload(['source' => 'IMPORT']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/idempotency.required', $this->decode()['type']);
+        self::assertSame(1, $this->ownTransactionCount());
+    }
+
+    public function testIdempotencyCanonicalizesObjectKeysAndWhitespaceButPreservesValuesAndJsonShape(): void
+    {
+        $key = 'transaction-canonical-body-01';
+        $body = $this->payload();
+        $this->requestRawCreate(json_encode($body, JSON_THROW_ON_ERROR), $key);
+        self::assertResponseStatusCodeSame(201);
+
+        $this->requestRawCreate(" \n".json_encode(array_reverse($body, true), JSON_THROW_ON_ERROR)."\t", $key);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
+
+        $differentScale = $body;
+        $differentScale['amount'] = ['value' => '-42.9', 'assetCode' => 'EUR'];
+        $this->requestRawCreate(json_encode($differentScale, JSON_THROW_ON_ERROR), $key);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/idempotency.key_reused', $this->decode()['type']);
+
+        $original = $this->createTransaction();
+        $duplicateKey = 'duplicate-json-shape-key-01';
+        $this->requestRawDuplicate(self::stringValue($original, 'id'), '{}', $duplicateKey);
+        self::assertResponseStatusCodeSame(201);
+        $this->requestRawDuplicate(self::stringValue($original, 'id'), '[]', $duplicateKey);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/idempotency.key_reused', $this->decode()['type']);
+    }
+
+    public function testDuplicateAcceptsItsDocumentedBodylessRequest(): void
+    {
+        $original = $this->createTransaction();
+        $this->requestRawDuplicate(self::stringValue($original, 'id'), '');
+
+        self::assertResponseStatusCodeSame(201);
+    }
+
+    public function testIdempotencyKeysAreScopedToTheCreationUseCaseForDuplicatesAndRefunds(): void
+    {
+        $original = $this->createTransaction();
+        $originalId = self::stringValue($original, 'id');
+        $key = 'shared-key-across-use-cases-01';
+
+        $this->requestDuplicate($originalId, $key);
+        self::assertResponseStatusCodeSame(201);
+        $duplicate = $this->decode();
+        $this->requestDuplicate($originalId, $key);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertEquals($duplicate, $this->decode());
+
+        $refundBody = [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '1.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ];
+        $this->requestRefund($originalId, $refundBody, $key);
+        self::assertResponseStatusCodeSame(201);
+        $refund = $this->decode();
+        $this->requestRefund($originalId, $refundBody, $key);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertEquals($refund, $this->decode());
+        self::assertSame(3, $this->ownTransactionCount());
+    }
+
+    public function testAnExpiredIdempotencyKeyIsTreatedAsANewCreation(): void
+    {
+        $key = 'transaction-create-expired-key01';
+        $this->requestCreate($this->payload(), $key);
+        self::assertResponseStatusCodeSame(201);
+        $this->connection->executeStatement(
+            'UPDATE transaction_idempotency_keys SET expires_at = :expires_at WHERE workspace_id = :workspace_id AND use_case = :use_case AND idempotency_key = :idempotency_key',
+            [
+                'expires_at' => '2000-01-01 00:00:00+00', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+                'use_case' => 'transaction.create', 'idempotency_key' => $key,
+            ],
+        );
+
+        $this->requestCreate($this->payload(), $key);
+        self::assertResponseStatusCodeSame(201);
+        self::assertFalse($this->client->getResponse()->headers->has('Idempotency-Replayed'));
+        self::assertSame(2, $this->ownTransactionCount());
+    }
+
     public function testInvalidAmountsDatesAndCategoriesAreRejectedWithoutAWrite(): void
     {
         $this->requestCreate($this->payload(overrides: [
@@ -915,9 +1087,18 @@ final class TransactionControllerTest extends WebTestCase
     }
 
     /** @param array<string, mixed> $body */
-    private function requestCreate(array $body): void
+    private function requestCreate(array $body, ?string $idempotencyKey = null): void
     {
-        $this->client->request('POST', '/api/v1/transactions', server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
+        $this->requestRawCreate(json_encode($body, JSON_THROW_ON_ERROR), $idempotencyKey);
+    }
+
+    private function requestRawCreate(string $content, ?string $idempotencyKey = null): void
+    {
+        $headers = self::jsonHeaders();
+        if (null !== $idempotencyKey) {
+            $headers['HTTP_IDEMPOTENCY_KEY'] = $idempotencyKey;
+        }
+        $this->client->request('POST', '/api/v1/transactions', server: $headers, content: $content);
     }
 
     /** @param array<string, mixed> $transaction */
@@ -947,16 +1128,29 @@ final class TransactionControllerTest extends WebTestCase
         );
     }
 
-    private function requestDuplicate(string $id): void
+    private function requestDuplicate(string $id, ?string $idempotencyKey = null): void
     {
-        $this->client->request('POST', '/api/v1/transactions/'.$id.'/duplicate', server: self::jsonHeaders(), content: '{}');
+        $this->requestRawDuplicate($id, '{}', $idempotencyKey);
+    }
+
+    private function requestRawDuplicate(string $id, string $content, ?string $idempotencyKey = null): void
+    {
+        $headers = self::jsonHeaders();
+        if (null !== $idempotencyKey) {
+            $headers['HTTP_IDEMPOTENCY_KEY'] = $idempotencyKey;
+        }
+        $this->client->request('POST', '/api/v1/transactions/'.$id.'/duplicate', server: $headers, content: $content);
     }
 
     /** @param array<string, mixed> $body */
-    private function requestRefund(string $id, array $body): void
+    private function requestRefund(string $id, array $body, ?string $idempotencyKey = null): void
     {
+        $headers = self::jsonHeaders();
+        if (null !== $idempotencyKey) {
+            $headers['HTTP_IDEMPOTENCY_KEY'] = $idempotencyKey;
+        }
         $this->client->request(
-            'POST', '/api/v1/transactions/'.$id.'/refunds', server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR),
+            'POST', '/api/v1/transactions/'.$id.'/refunds', server: $headers, content: json_encode($body, JSON_THROW_ON_ERROR),
         );
     }
 

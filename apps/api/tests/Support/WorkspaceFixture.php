@@ -121,6 +121,7 @@ final readonly class WorkspaceFixture
         // Transfers restrict their own legs, so they clear before either.
         $this->connection->executeStatement('DELETE FROM transaction_transfers');
         $this->connection->executeStatement('DELETE FROM transaction_refunds');
+        $this->connection->executeStatement('DELETE FROM transaction_idempotency_keys');
         $this->connection->executeStatement('DELETE FROM transaction_splits');
         $this->connection->executeStatement('DELETE FROM transaction_transactions');
         // Snapshots restrict account deletion: the trail of observed balances

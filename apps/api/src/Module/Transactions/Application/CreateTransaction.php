@@ -38,6 +38,10 @@ final readonly class CreateTransaction
     public function __invoke(CreateTransactionInput $input): TransactionView
     {
         $context = $this->caller->resolveContext();
+        $source = TransactionSource::tryFrom($input->source);
+        if (null === $source) {
+            throw new InvalidTransactionInput('The transaction source is invalid.');
+        }
         $draft = $this->parser->parse(
             $input->amount, $input->nature, $input->state, $input->bookedOn, $input->valueOn,
             $input->authorizedOn, $input->rawLabel, $input->counterparty, $input->note,
@@ -47,7 +51,7 @@ final readonly class CreateTransaction
             throw new InvalidTransactionInput('A new transaction must be pending or booked.');
         }
 
-        return $this->transactionBoundary->transactional(function () use ($context, $draft, $input): TransactionView {
+        return $this->transactionBoundary->transactional(function () use ($context, $draft, $input, $source): TransactionView {
             $now = $this->clock->now();
             $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
             $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
@@ -60,7 +64,7 @@ final readonly class CreateTransaction
                 $transaction = new Transaction(
                     id: $id, workspace: $context->workspace, accountId: $input->accountId, amount: $draft->amount,
                     originalAmount: null, exchangeRate: null, state: $draft->state, nature: $draft->nature,
-                    source: TransactionSource::MANUAL, sourceRef: null, bookedOn: $draft->bookedOn,
+                    source: $source, sourceRef: null, bookedOn: $draft->bookedOn,
                     valueOn: $draft->valueOn, authorizedOn: $draft->authorizedOn, rawLabel: $draft->rawLabel,
                     counterparty: $draft->counterparty, note: $draft->note, paymentMethod: $draft->paymentMethod,
                     mcc: $draft->mcc, maskedCard: $draft->maskedCard, bankReference: $draft->bankReference,
