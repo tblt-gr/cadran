@@ -44,6 +44,7 @@ FROM dunglas/frankenphp:1.12.7-php8.5-bookworm AS runtime
 # base image. Keep the list explicit so unrelated runtime packages do not move.
 RUN apt-get update \
     && apt-get install --no-install-recommends --yes --only-upgrade \
+        libpcre2-8-0 \
         libssh2-1 \
         linux-libc-dev \
     && rm -rf /var/lib/apt/lists/* \
