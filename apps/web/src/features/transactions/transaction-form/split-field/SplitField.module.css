@@ -1,0 +1,15 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+  gap: var(--spacing-3);
+}
+
+/* The host form lays its labels out as columns; this one is a single line. */
+.field .toggle {
+  flex-direction: row;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-2);
+}

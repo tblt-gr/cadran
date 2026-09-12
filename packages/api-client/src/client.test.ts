@@ -217,6 +217,7 @@ describe('generated Cadran client', () => {
       maskedCard: null,
       bankReference: null,
       categoryId: null,
+      splits: null,
     };
     const request = vi.fn<typeof fetch>(async (_input, _init) =>
       Promise.resolve(

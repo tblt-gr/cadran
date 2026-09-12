@@ -21,7 +21,7 @@ final readonly class ListTransactions
     ) {
     }
 
-    public function __invoke(?string $accountId, bool $includeVoided, ?int $pageSize, ?string $cursor): TransactionPage
+    public function __invoke(?string $accountId, bool $includeVoided, ?int $pageSize, ?string $cursor, bool $uncategorized = false): TransactionPage
     {
         $workspace = $this->caller->resolve();
         $limit = $pageSize ?? self::DEFAULT_PAGE_SIZE;
@@ -32,7 +32,7 @@ final readonly class ListTransactions
             throw new TransactionNotFound();
         }
         $after = null === $cursor ? null : TransactionCursor::decode($cursor);
-        $found = $this->transactions->list($workspace, $accountId, $includeVoided, $limit + 1, $after?->position());
+        $found = $this->transactions->list($workspace, $accountId, $includeVoided, $limit + 1, $after?->position(), $uncategorized);
         if (count($found) <= $limit) {
             return new TransactionPage($this->presentTransaction->many($found), null);
         }

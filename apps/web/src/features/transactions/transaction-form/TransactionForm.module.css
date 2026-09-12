@@ -53,6 +53,30 @@
   grid-column: 1 / -1;
 }
 
+/* Stands in the category slot while a split, edited in the advanced section,
+   carries the categories. */
+.splitNotice {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-1-5);
+}
+
+.splitNotice p {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+/* The advanced section closes the form, set apart from the essential fields. */
+.fields > details {
+  grid-column: 1 / -1;
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
+}
+
 .alert {
   margin: var(--spacing-none);
   padding: var(--spacing-3) var(--spacing-4);

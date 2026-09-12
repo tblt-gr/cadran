@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import styles from './TransactionsState.module.css';
 
-export type TransactionsStateKind = 'loading' | 'error' | 'unauthorized' | 'empty';
+export type TransactionsStateKind = 'loading' | 'error' | 'unauthorized' | 'empty' | 'queueEmpty';
 
 interface TransactionsStateProps {
   kind: TransactionsStateKind;
@@ -28,6 +28,15 @@ export function TransactionsState({ kind, onCreate, onRetry }: TransactionsState
         <button className="primary-action" onClick={onCreate} type="button">
           {t('transactions.addFirst')}
         </button>
+      </section>
+    );
+  }
+
+  if (kind === 'queueEmpty') {
+    return (
+      <section className={`card ${styles.state}`}>
+        <h2>{t('transactions.queue.emptyTitle')}</h2>
+        <p>{t('transactions.queue.emptyDescription')}</p>
       </section>
     );
   }

@@ -42,6 +42,61 @@ const transaction = {
 } as Transaction;
 
 describe('transactionFormValues', () => {
+  it('refuses a single category whose type contradicts the amount sign', () => {
+    const values = {
+      ...initialTransactionValues(undefined, [account], '2026-09-08'),
+      amountValue: '-12.00',
+      rawLabel: 'VIREMENT',
+      categoryId: 'category-income',
+      categoryType: 'INCOME' as const,
+    };
+
+    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toEqual({
+      categoryId: true,
+    });
+    expect(
+      validateTransactionValues(
+        { ...values, amountValue: '12.00', nature: 'INCOME' },
+        [account],
+        undefined,
+        '2026-09-08',
+      ),
+    ).toEqual({});
+    // An unknown type contradicts nothing: the server keeps the last word.
+    expect(
+      validateTransactionValues(
+        { ...values, categoryType: null },
+        [account],
+        undefined,
+        '2026-09-08',
+      ),
+    ).toEqual({});
+  });
+
+  it('reads the type of a saved category from the sign it was accepted with', () => {
+    const categorised = {
+      ...transaction,
+      splits: [
+        {
+          id: 'split-1',
+          categoryId: 'category-1',
+          categoryLabel: 'Boulangerie',
+          categoryIcon: null,
+          categoryColor: null,
+          amount: transaction.amount,
+          analyticAxes: ['ESSENTIAL'],
+          note: null,
+        },
+      ],
+    } as Transaction;
+
+    const values = initialTransactionValues(categorised, [account], '2026-09-08');
+
+    expect(values.categoryType).toBe('EXPENSE');
+    expect(values.splits[0]?.categoryType).toBe('EXPENSE');
+    expect(initialTransactionValues(transaction, [account]).categoryType).toBeNull();
+  });
+
   it('uses the selected nature to load categories before an amount is entered', () => {
     expect(categoryTypeForAmount('', 'EXPENSE')).toBe('EXPENSE');
     expect(categoryTypeForAmount('', 'FEE')).toBe('EXPENSE');

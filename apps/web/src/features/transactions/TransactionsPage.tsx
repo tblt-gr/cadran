@@ -16,6 +16,7 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
+import { CategorizationTabs, type Categorization } from './categorization-tabs/CategorizationTabs';
 import { TransactionEditor } from './transaction-editor/TransactionEditor';
 import { TransactionList } from './transaction-list/TransactionList';
 import { TransactionsState } from './transactions-state/TransactionsState';
@@ -35,6 +36,7 @@ export function TransactionsPage() {
   const queryClient = useQueryClient();
   const [accountId, setAccountId] = useState('');
   const [includeVoided, setIncludeVoided] = useState(false);
+  const [categorization, setCategorization] = useState<Categorization>('ALL');
   const [cursor, setCursor] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
@@ -45,6 +47,7 @@ export function TransactionsPage() {
   const filters = {
     accountId: accountId === '' ? undefined : accountId,
     includeVoided,
+    categorization: categorization === 'NONE' ? ('NONE' as const) : undefined,
     cursor: cursor ?? undefined,
     pageSize: 50,
   };
@@ -248,6 +251,14 @@ export function TransactionsPage() {
         </Modal>
       ) : null}
 
+      <CategorizationTabs
+        onChange={(next) => {
+          setCategorization(next);
+          setCursor(null);
+        }}
+        value={categorization}
+      />
+
       <div className={styles.toolbar}>
         <label>
           <span className="sr-only">{t('transactions.fields.account')}</span>
@@ -269,6 +280,7 @@ export function TransactionsPage() {
         <label>
           <input
             checked={includeVoided}
+            disabled={categorization === 'NONE'}
             onChange={(event) => {
               setIncludeVoided(event.target.checked);
               setCursor(null);
@@ -293,7 +305,7 @@ export function TransactionsPage() {
         />
       ) : items.length === 0 ? (
         <TransactionsState
-          kind="empty"
+          kind={categorization === 'NONE' ? 'queueEmpty' : 'empty'}
           onCreate={() => openEditor('create')}
           onRetry={() => void transactions.refetch()}
         />

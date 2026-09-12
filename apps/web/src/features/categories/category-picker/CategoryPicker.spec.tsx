@@ -1,6 +1,6 @@
 import type { Category } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { CategoryPicker } from './CategoryPicker';
@@ -119,7 +119,7 @@ describe('CategoryPicker', () => {
     expect(combobox.getAttribute('aria-activedescendant')).toBeTruthy();
     fireEvent.keyDown(combobox, { key: 'Enter' });
 
-    expect(onChange).toHaveBeenLastCalledWith(candidate.id);
+    expect(onChange).toHaveBeenLastCalledWith(candidate.id, candidate);
     // The chosen label replaces the query, and the list closes.
     expect((combobox as HTMLInputElement).value).toBe('Sorties');
     expect(combobox.getAttribute('aria-expanded')).toBe('false');
@@ -201,6 +201,68 @@ describe('CategoryPicker', () => {
     fireEvent.mouseDown(screen.getByRole('option', { name: 'Créer une catégorie' }));
 
     expect(onCreateRequest).toHaveBeenCalledWith('');
+  });
+
+  it('groups both types when none is imposed, the preferred one first', async () => {
+    const income: Category = {
+      ...candidate,
+      id: '00000000-0000-7000-8000-0000000000c3',
+      type: 'INCOME',
+      label: 'Salaire',
+    };
+    api.listCategories.mockImplementation(() =>
+      success({ items: [candidate, income], page: 1, perPage: 50, total: 2 }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CategoryPicker label="Catégorie" onChange={vi.fn()} preferredType="INCOME" value="" />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Catégorie' }));
+
+    const listbox = await screen.findByRole('listbox');
+    const groups = within(listbox).getAllByRole('group');
+    expect(groups.map((group) => within(group).getAllByRole('option')[0]?.textContent)).toEqual([
+      'Salaire',
+      'Sorties',
+    ]);
+    expect(within(listbox).getByRole('group', { name: 'Revenus' })).toBe(groups[0]);
+    expect(api.listCategories).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ type: undefined }) }),
+    );
+  });
+
+  it('marks the selection inside the field and carries the host message', () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CategoryPicker
+          error="Catégorie refusée."
+          label="Catégorie"
+          onChange={vi.fn()}
+          selectedColor="#486DF0"
+          selectedIcon="utensils"
+          selectedLabel="Restaurants"
+          value="00000000-0000-7000-8000-0000000000c1"
+        />
+      </QueryClientProvider>,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Catégorie' });
+    // The swatch shares the control with the text instead of adding a line under it,
+    // so a selection never changes the height of the field.
+    const control = combobox.parentElement as HTMLElement;
+    expect(control.querySelector('[data-icon="utensils"]')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+    expect(control.nextElementSibling?.textContent).toBe('Catégorie refusée.');
+    expect(combobox.getAttribute('aria-invalid')).toBe('true');
+    expect(combobox.getAttribute('aria-describedby')).toBe(control.nextElementSibling?.id);
   });
 
   it('offers no creation without a host to handle it', async () => {

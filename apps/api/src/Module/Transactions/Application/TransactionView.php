@@ -8,7 +8,7 @@ use App\Module\Transactions\Domain\Transaction;
 
 final readonly class TransactionView
 {
-    /** @param list<array{id: string, categoryId: string, categoryLabel: string, categoryIcon: ?string, categoryColor: ?string, amount: array{value: string, assetCode: string}, note: ?string}> $splits */
+    /** @param list<array{id: string, categoryId: string, categoryLabel: string, categoryIcon: ?string, categoryColor: ?string, amount: array{value: string, assetCode: string}, analyticAxes: list<string>, note: ?string}> $splits */
     public function __construct(
         public string $id,
         public string $accountId,
@@ -80,6 +80,7 @@ final readonly class TransactionView
                     'categoryIcon' => $identity['icon'],
                     'categoryColor' => $identity['color'],
                     'amount' => ['value' => $split->amount->value->toString(), 'assetCode' => $split->amount->asset->toString()],
+                    'analyticAxes' => array_map(static fn ($axis): string => $axis->value, $split->analyticAxes),
                     'note' => $split->note,
                 ];
             }, $transaction->splits),

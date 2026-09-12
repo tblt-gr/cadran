@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Transactions\Application\InvalidSplitsInput;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -55,6 +56,23 @@ final readonly class TransactionHttpEnvelope
             $this->translator->trans($translationKey.'.title'),
             $this->translator->trans($translationKey.'.detail'),
             $type,
+        );
+    }
+
+    /**
+     * The rule code both selects the translated title and detail — one entry
+     * per rule, `api.problem.invalid_splits_<rule>` — and names the RFC 9457
+     * problem type, so a new split rule needs no controller change.
+     */
+    public function invalidSplitsProblem(InvalidSplitsInput $exception): JsonResponse
+    {
+        $key = 'api.problem.invalid_splits_'.str_replace('.', '_', $exception->ruleCode);
+
+        return ApiProblem::response(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            $this->translator->trans($key.'.title'),
+            $this->translator->trans($key.'.detail', $exception->parameters),
+            '/problems/'.$exception->ruleCode,
         );
     }
 }

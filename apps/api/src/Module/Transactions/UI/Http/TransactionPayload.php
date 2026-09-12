@@ -90,6 +90,73 @@ final readonly class TransactionPayload
     public function amount(string $field): array
     {
         $value = $this->fields[$field] ?? null;
+
+        return self::amountShape($value, $field);
+    }
+
+    /**
+     * A split row list. `null` means "use the categoryId shorthand instead";
+     * an empty list is a valid, deliberate allocation clear.
+     *
+     * @return ?list<array{categoryId: string, amount: array{value: string, assetCode: string}, analyticAxes: ?list<string>, note: ?string}>
+     */
+    public function nullableSplitRows(string $field): ?array
+    {
+        $value = $this->fields[$field] ?? null;
+
+        return null === $value ? null : $this->splitRows($field);
+    }
+
+    /** @return list<array{categoryId: string, amount: array{value: string, assetCode: string}, analyticAxes: ?list<string>, note: ?string}> */
+    public function splitRows(string $field): array
+    {
+        $value = $this->fields[$field] ?? null;
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new \UnexpectedValueException(sprintf('%s must be a list.', $field));
+        }
+
+        return array_map(static fn (mixed $row): array => self::splitRow($row, $field), $value);
+    }
+
+    /** @return array{categoryId: string, amount: array{value: string, assetCode: string}, analyticAxes: ?list<string>, note: ?string} */
+    private static function splitRow(mixed $row, string $field): array
+    {
+        if (!is_array($row) || array_is_list($row)) {
+            throw new \UnexpectedValueException(sprintf('An item of %s must be an object.', $field));
+        }
+        $submitted = array_keys($row);
+        sort($submitted);
+        if (['amount', 'analyticAxes', 'categoryId', 'note'] !== $submitted) {
+            throw new \UnexpectedValueException(sprintf('An item of %s carries exactly its declared fields.', $field));
+        }
+
+        $categoryId = $row['categoryId'];
+        if (!is_string($categoryId) || 1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $categoryId)) {
+            throw new \UnexpectedValueException('A split categoryId must be a canonical UUID.');
+        }
+        $rawAxes = $row['analyticAxes'];
+        if (null !== $rawAxes
+            && (!is_array($rawAxes) || !array_is_list($rawAxes) || array_any($rawAxes, static fn (mixed $axis): bool => !is_string($axis)))) {
+            throw new \UnexpectedValueException('A split analyticAxes must be a list of strings or null.');
+        }
+        /** @var ?list<string> $axes */
+        $axes = $rawAxes;
+        $note = $row['note'];
+        if (null !== $note && !is_string($note)) {
+            throw new \UnexpectedValueException('A split note must be a string or null.');
+        }
+
+        return [
+            'categoryId' => $categoryId,
+            'amount' => self::amountShape($row['amount'], 'amount'),
+            'analyticAxes' => $axes,
+            'note' => $note,
+        ];
+    }
+
+    /** @return array{value: string, assetCode: string} */
+    private static function amountShape(mixed $value, string $field): array
+    {
         if (!is_array($value) || array_is_list($value)) {
             throw new \UnexpectedValueException(sprintf('%s must be an object.', $field));
         }

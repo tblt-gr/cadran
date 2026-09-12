@@ -6,6 +6,7 @@ namespace App\Module\Transactions\Domain;
 
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 final readonly class Transaction
@@ -14,6 +15,7 @@ final readonly class Transaction
     public const int MAX_COUNTERPARTY_LENGTH = 80;
     public const int MAX_NOTE_LENGTH = 500;
     public const int MAX_BANK_REFERENCE_LENGTH = 64;
+    public const int MAX_SPLITS = 20;
 
     /** @param list<TransactionSplit> $splits */
     public function __construct(
@@ -77,16 +79,7 @@ final readonly class Transaction
         } elseif (null !== $exchangeRate) {
             throw new InvalidTransaction('An exchange rate requires an original amount.');
         }
-        if (count($splits) > 1) {
-            throw new InvalidTransaction('A transaction carries at most one split in this release.');
-        }
-        foreach ($splits as $split) {
-            if ($split->workspace->id !== $workspace->id || $split->transactionId !== $id
-                || $split->amount->asset->toString() !== $amount->asset->toString()
-                || 0 !== $split->amount->value->compareTo($amount->value)) {
-                throw new InvalidTransaction('A transaction split must allocate the full transaction amount in its workspace and asset.');
-            }
-        }
+        self::assertSplits($id, $workspace, $amount, $splits);
         if ($version < 1 || $updatedAt < $createdAt) {
             throw new InvalidTransaction('A transaction version and timestamps must be ordered.');
         }
@@ -146,6 +139,43 @@ final readonly class Transaction
             $this->maskedCard, $this->bankReference, $this->splits, $this->version + 1, $this->createdAt, $voidedAt,
             $voidedAt, $lastEditorId,
         );
+    }
+
+    /**
+     * The set of splits, if any, must together allocate the transaction exactly:
+     * same workspace, asset and sign on every row, no category repeated, at most
+     * {@see MAX_SPLITS} rows, and either no split at all or a sum matching the
+     * transaction amount to the last digit. There is no partial allocation.
+     *
+     * @param list<TransactionSplit> $splits
+     */
+    private static function assertSplits(string $id, WorkspaceScope $workspace, AssetAmount $amount, array $splits): void
+    {
+        if (count($splits) > self::MAX_SPLITS) {
+            throw new InvalidTransaction(sprintf('A transaction carries at most %d splits.', self::MAX_SPLITS));
+        }
+
+        $seenCategories = [];
+        foreach ($splits as $split) {
+            if ($split->workspace->id !== $workspace->id || $split->transactionId !== $id
+                || $split->amount->asset->toString() !== $amount->asset->toString()
+                || $split->amount->value->isNegative() !== $amount->value->isNegative()) {
+                throw new InvalidTransaction('A transaction split must share the workspace, asset and sign of its transaction.');
+            }
+            if (isset($seenCategories[$split->categoryId])) {
+                throw new InvalidTransaction('A transaction split cannot repeat a category.');
+            }
+            $seenCategories[$split->categoryId] = true;
+        }
+
+        if ([] === $splits) {
+            return;
+        }
+
+        $sum = ExactDecimal::sum(...array_map(static fn (TransactionSplit $split): DecimalValue => $split->amount->value, $splits));
+        if (0 !== $sum->compareTo($amount->value)) {
+            throw new InvalidTransaction('A transaction split allocation must sum exactly to its amount.');
+        }
     }
 
     private static function assertSign(AssetAmount $amount, TransactionNature $nature): void

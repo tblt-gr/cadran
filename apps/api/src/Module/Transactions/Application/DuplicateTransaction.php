@@ -16,6 +16,7 @@ use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionRepository;
 use App\Module\Transactions\Domain\TransactionSource;
+use App\Module\Transactions\Domain\TransactionSplit;
 use App\Module\Transactions\Domain\TransactionState;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -54,10 +55,22 @@ final readonly class DuplicateTransaction
             );
             $this->references->accountForNew($context->workspace, $source->accountId, $draft, $today, $now);
             $newId = $this->uuidGenerator->generate();
-            $split = $this->references->split(
-                $context->workspace, $newId, $source->splits[0]->categoryId ?? null, $draft, $now,
-            );
+
             try {
+                // Archived categories stay allowed here: the source transaction was
+                // valid when it was assigned, and this builds a brand-new split row
+                // (its own fresh identity) rather than editing the source in place.
+                $splits = [] === $source->splits
+                    ? []
+                    : $this->references->splits(
+                        $context->workspace, $newId, array_map(
+                            static fn (TransactionSplit $split): TransactionSplitInput => new TransactionSplitInput(
+                                $split->categoryId, $split->amount, $split->analyticAxes, $split->note,
+                            ),
+                            $source->splits,
+                        ),
+                        $source->amount, $now, allowArchivedCategories: true,
+                    );
                 $duplicate = new Transaction(
                     id: $newId, workspace: $context->workspace, accountId: $source->accountId,
                     amount: $source->amount, originalAmount: null, exchangeRate: null,
@@ -65,7 +78,7 @@ final readonly class DuplicateTransaction
                     sourceRef: null, bookedOn: $today, valueOn: null, authorizedOn: null,
                     rawLabel: $source->rawLabel, counterparty: $source->counterparty, note: $source->note,
                     paymentMethod: $source->paymentMethod, mcc: null, maskedCard: null, bankReference: null,
-                    splits: null === $split ? [] : [$split], version: 1, createdAt: $now, updatedAt: $now,
+                    splits: $splits, version: 1, createdAt: $now, updatedAt: $now,
                     voidedAt: null, lastEditorId: $context->actorId,
                 );
             } catch (InvalidTransaction $exception) {

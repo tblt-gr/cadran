@@ -1,10 +1,14 @@
 import type {
   Account,
+  CategoryType,
   CreateTransactionRequest,
   Transaction,
   UpdateTransactionRequest,
 } from '@cadran/api-client';
+import { categoryContradictsAmount } from '@/features/transactions/categorySign';
 import { compareDecimals, isCanonicalDecimal, isZeroDecimal } from '@/lib/decimal';
+import { remainingAmount } from '@/features/transactions/split-editor/splitAllocation';
+import type { SplitRowValues } from '@/features/transactions/split-editor/SplitRow';
 
 export type TransactionFormValues = {
   accountId: string;
@@ -13,6 +17,8 @@ export type TransactionFormValues = {
   bankReference: string;
   bookedOn: string;
   categoryId: string;
+  /** Type of the selected category, `null` when none is selected or it is not known. */
+  categoryType: CategoryType | null;
   counterparty: string;
   maskedCard: string;
   mcc: string;
@@ -20,6 +26,9 @@ export type TransactionFormValues = {
   note: string;
   paymentMethod: NonNullable<CreateTransactionRequest['paymentMethod']> | '';
   rawLabel: string;
+  /** Whether the draft categorises through `splits` rather than the single `categoryId`. */
+  splitMode: boolean;
+  splits: SplitRowValues[];
   state: CreateTransactionRequest['state'] | 'REJECTED';
   valueOn: string;
 };
@@ -42,6 +51,11 @@ export function initialTransactionValues(
   accounts: Account[],
   today = todayInParis(),
 ): TransactionFormValues {
+  // A saved split was accepted only with a category matching the transaction sign,
+  // and a used category can no longer change type: the sign tells its type.
+  const savedCategoryType =
+    transaction === undefined ? null : categoryTypeForAmount(transaction.amount.value);
+
   return {
     accountId: transaction?.accountId ?? accounts[0]?.id ?? '',
     amountValue: transaction?.amount.value ?? '',
@@ -49,6 +63,7 @@ export function initialTransactionValues(
     bankReference: transaction?.bankReference ?? '',
     bookedOn: transaction?.bookedOn ?? today,
     categoryId: transaction?.splits[0]?.categoryId ?? '',
+    categoryType: transaction?.splits[0] ? savedCategoryType : null,
     counterparty: transaction?.counterparty ?? '',
     maskedCard: transaction?.maskedCard ?? '',
     mcc: transaction?.mcc ?? '',
@@ -56,6 +71,18 @@ export function initialTransactionValues(
     note: transaction?.note ?? '',
     paymentMethod: transaction?.paymentMethod ?? '',
     rawLabel: transaction?.rawLabel ?? '',
+    splitMode: (transaction?.splits.length ?? 0) > 1,
+    splits: (transaction?.splits ?? []).map((split) => ({
+      amount: split.amount.value,
+      analyticAxes: split.analyticAxes,
+      categoryColor: split.categoryColor,
+      categoryIcon: split.categoryIcon,
+      categoryId: split.categoryId,
+      categoryLabel: split.categoryLabel,
+      categoryType: savedCategoryType,
+      key: split.id,
+      note: split.note ?? '',
+    })),
     state:
       transaction?.state === 'PENDING' || transaction?.state === 'REJECTED'
         ? transaction.state
@@ -134,7 +161,50 @@ export function validateTransactionValues(
     errors.maskedCard = true;
   }
 
+  if (
+    !values.splitMode &&
+    values.categoryId !== '' &&
+    exactAmount &&
+    categoryContradictsAmount(values.categoryType, amount)
+  ) {
+    errors.categoryId = true;
+  }
+
+  if (values.splitMode && values.splits.length > 0 && !splitsAreBalanced(values)) {
+    errors.splits = true;
+  }
+
   return errors;
+}
+
+function splitsAreBalanced(values: TransactionFormValues): boolean {
+  if (!isCanonicalDecimal(values.amountValue)) {
+    return false;
+  }
+
+  const totalNegative = compareDecimals(values.amountValue, '0') < 0;
+  const categoryIds = values.splits.map((row) => row.categoryId);
+  const hasDuplicateCategory = categoryIds.some(
+    (id, index) => id !== '' && categoryIds.indexOf(id) !== index,
+  );
+  const hasIncompleteRow = values.splits.some(
+    (row) =>
+      row.categoryId === '' ||
+      categoryContradictsAmount(row.categoryType ?? null, values.amountValue) ||
+      !isCanonicalDecimal(row.amount) ||
+      isZeroDecimal(row.amount) ||
+      compareDecimals(row.amount, '0') < 0 !== totalNegative,
+  );
+  if (hasDuplicateCategory || hasIncompleteRow) {
+    return false;
+  }
+
+  const remaining = remainingAmount(
+    values.amountValue,
+    values.splits.map((row) => row.amount),
+  );
+
+  return isZeroDecimal(remaining);
 }
 
 export function transactionRequest(
@@ -158,7 +228,15 @@ export function transactionRequest(
     mcc: optional(values.mcc),
     maskedCard: optional(values.maskedCard),
     bankReference: optional(values.bankReference),
-    categoryId: values.categoryId || null,
+    categoryId: values.splitMode ? null : values.categoryId || null,
+    splits: values.splitMode
+      ? values.splits.map((row) => ({
+          categoryId: row.categoryId,
+          amount: { value: row.amount, assetCode },
+          analyticAxes: row.analyticAxes,
+          note: optional(row.note),
+        }))
+      : null,
   };
 
   if (transaction !== undefined) {

@@ -12,10 +12,15 @@
   border-radius: var(--radius-control);
   background: var(--bg-surface-2);
   box-shadow: var(--shadow-sheet);
+}
+
+.list ul {
+  padding: var(--spacing-none);
+  margin: var(--spacing-none);
   list-style: none;
 }
 
-.list li {
+.option {
   padding: var(--spacing-2) var(--spacing-3);
   border-radius: var(--radius-control);
   color: var(--text-primary);
@@ -23,12 +28,23 @@
   cursor: pointer;
 }
 
-.list li[aria-selected='true'] {
+.option[aria-selected='true'] {
   color: var(--gold-300);
 }
 
 .list .active {
   background: var(--bg-surface-hover);
+}
+
+/* Both types share one list, so each keeps a heading: an income category
+   picked for an expense is refused when the transaction is saved. */
+.group {
+  padding: var(--spacing-2) var(--spacing-3) var(--spacing-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
 }
 
 /* The creation entry is an action, not a category: set apart from the results

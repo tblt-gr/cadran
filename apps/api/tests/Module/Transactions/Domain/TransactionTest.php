@@ -11,6 +11,7 @@ use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionSource;
+use App\Module\Transactions\Domain\TransactionSplit;
 use App\Module\Transactions\Domain\TransactionState;
 use App\Tests\Support\WorkspaceFixture;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -102,6 +103,85 @@ final class TransactionTest extends TestCase
 
         $this->expectException(InvalidTransaction::class);
         $voided->void(new \DateTimeImmutable('2026-03-17T10:00:00+00:00'), WorkspaceFixture::OWNER_ID);
+    }
+
+    public function testSplitsSummingExactlyToTheAmountAreAccepted(): void
+    {
+        $transaction = $this->transactionWithSplits('-87.40', TransactionNature::EXPENSE, [
+            $this->split('00000000-0000-7000-8000-0000000000e1', '00000000-0000-7000-8000-0000000000c1', '-62.10'),
+            $this->split('00000000-0000-7000-8000-0000000000e2', '00000000-0000-7000-8000-0000000000c2', '-18.30'),
+            $this->split('00000000-0000-7000-8000-0000000000e3', '00000000-0000-7000-8000-0000000000c3', '-7.00'),
+        ]);
+
+        self::assertCount(3, $transaction->splits);
+    }
+
+    public function testASplitSetOffByOneSmallestUnitIsRefused(): void
+    {
+        $this->expectException(InvalidTransaction::class);
+        $this->transactionWithSplits('-87.40', TransactionNature::EXPENSE, [
+            $this->split('00000000-0000-7000-8000-0000000000e1', '00000000-0000-7000-8000-0000000000c1', '-62.10'),
+            $this->split('00000000-0000-7000-8000-0000000000e2', '00000000-0000-7000-8000-0000000000c2', '-18.29'),
+        ]);
+    }
+
+    public function testASplitOfTheOppositeSignIsRefused(): void
+    {
+        $this->expectException(InvalidTransaction::class);
+        $this->transactionWithSplits('-87.40', TransactionNature::EXPENSE, [
+            $this->split('00000000-0000-7000-8000-0000000000e1', '00000000-0000-7000-8000-0000000000c1', '-100.00'),
+            $this->split('00000000-0000-7000-8000-0000000000e2', '00000000-0000-7000-8000-0000000000c2', '12.60'),
+        ]);
+    }
+
+    public function testTheSameCategoryTwiceIsRefused(): void
+    {
+        $this->expectException(InvalidTransaction::class);
+        $this->transactionWithSplits('-87.40', TransactionNature::EXPENSE, [
+            $this->split('00000000-0000-7000-8000-0000000000e1', '00000000-0000-7000-8000-0000000000c1', '-60.00'),
+            $this->split('00000000-0000-7000-8000-0000000000e2', '00000000-0000-7000-8000-0000000000c1', '-27.40'),
+        ]);
+    }
+
+    public function testMoreThanTwentySplitsAreRefused(): void
+    {
+        $splits = [];
+        for ($i = 0; $i < 21; ++$i) {
+            $splits[] = $this->split(
+                sprintf('00000000-0000-7000-8000-0000000001%02d', $i),
+                sprintf('00000000-0000-7000-8000-0000000002%02d', $i),
+                '-1.00',
+            );
+        }
+
+        $this->expectException(InvalidTransaction::class);
+        $this->transactionWithSplits('-21.00', TransactionNature::EXPENSE, $splits);
+    }
+
+    /** @param list<TransactionSplit> $splits */
+    private function transactionWithSplits(string $amount, TransactionNature $nature, array $splits): Transaction
+    {
+        $now = new \DateTimeImmutable('2026-03-14T09:12:04+00:00');
+
+        return new Transaction(
+            id: '00000000-0000-7000-8000-0000000000f1', workspace: WorkspaceFixture::own(),
+            accountId: '00000000-0000-7000-8000-0000000000d1', amount: $this->amount($amount),
+            originalAmount: null, exchangeRate: null, state: TransactionState::BOOKED, nature: $nature,
+            source: TransactionSource::MANUAL, sourceRef: null, bookedOn: new \DateTimeImmutable('2026-03-14'),
+            valueOn: null, authorizedOn: null, rawLabel: 'CB CARREFOUR 1234', counterparty: null,
+            note: null, paymentMethod: null, mcc: null, maskedCard: null, bankReference: null,
+            splits: $splits, version: 1, createdAt: $now, updatedAt: $now, voidedAt: null,
+            lastEditorId: WorkspaceFixture::OWNER_ID,
+        );
+    }
+
+    private function split(string $id, string $categoryId, string $amount): TransactionSplit
+    {
+        return new TransactionSplit(
+            id: $id, workspace: WorkspaceFixture::own(), transactionId: '00000000-0000-7000-8000-0000000000f1',
+            categoryId: $categoryId, amount: $this->amount($amount), analyticAxes: [], note: null,
+            createdAt: new \DateTimeImmutable('2026-03-14T09:12:04+00:00'),
+        );
     }
 
     private function transaction(

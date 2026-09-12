@@ -1,0 +1,11 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.tab[aria-pressed='true'] {
+  border-color: var(--gold-300);
+  color: var(--gold-300);
+  font-weight: var(--font-weight-bold);
+}
