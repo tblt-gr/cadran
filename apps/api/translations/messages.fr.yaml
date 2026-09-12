@@ -246,6 +246,30 @@ api:
     transaction_belongs_to_transfer:
       title: 'Mouvement lié à un virement'
       detail: "Cette transaction appartient à un virement : modifiez ou annulez le virement plutôt qu'une de ses jambes."
+    transaction_belongs_to_refund:
+      title: 'Remboursement lié'
+      detail: 'Ce remboursement est lié à sa dépense d’origine : annulez-le puis créez-en un nouveau pour le corriger.'
+    transaction_has_refunds:
+      title: 'Transaction remboursée'
+      detail: 'Une dépense ayant des remboursements actifs ne peut pas être annulée.'
+    invalid_refund_original_not_refundable:
+      title: 'Dépense non remboursable'
+      detail: 'Une dépense annulée ou rejetée ne peut pas recevoir de remboursement.'
+    invalid_refund_original_nature:
+      title: 'Nature non remboursable'
+      detail: 'Seules une dépense ou des frais peuvent recevoir un remboursement.'
+    invalid_refund_asset_mismatch:
+      title: 'Actif différent'
+      detail: 'Le compte de remboursement doit utiliser le même actif que la dépense d’origine.'
+    invalid_refund_date_before_original:
+      title: 'Date de remboursement invalide'
+      detail: 'Le remboursement ne peut pas être antérieur à la dépense d’origine.'
+    refund_exceeds_refundable:
+      title: 'Remboursement trop élevé'
+      detail: 'Le montant dépasse le solde remboursable restant (%remaining%).'
+    refund_already_settled:
+      title: 'Dépense déjà intégralement remboursée'
+      detail: 'Aucun montant remboursable ne reste sur cette dépense.'
     invalid_transfer:
       title: 'Virement invalide'
       detail: "Vérifiez les comptes, les montants, la date, l'état, le libellé et les frais du virement."

@@ -62,6 +62,9 @@ const transaction: Transaction = {
   updatedAt: '2026-03-14T09:12:04+01:00',
   voidedAt: null,
   transferId: null,
+  refundOriginalId: null,
+  refundOriginalLabel: null,
+  refundedAmount: null,
 };
 
 function success<T>(data: T, status = 200) {
@@ -1032,5 +1035,26 @@ describe('TransactionsPage', () => {
     expect((screen.getByRole('button', { name: /^Annuler/ }) as HTMLButtonElement).disabled).toBe(
       true,
     );
+  });
+
+  it('disables refunding an expense already refunded for its full amount', async () => {
+    const settled: Transaction = {
+      ...transaction,
+      refundedAmount: { value: '42.90', assetCode: 'EUR' },
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [settled], nextCursor: null }));
+    renderPage();
+
+    expect(await screen.findByText('Remboursé : 42,90 €')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    expect(
+      (screen.getByRole('button', { name: /^Créer un remboursement/ }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 });

@@ -22,6 +22,7 @@ use App\Module\Transactions\Application\TransferLegFactory;
 use App\Module\Transactions\Application\TransferReferences;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionRepository;
+use App\Module\Transactions\Infrastructure\Persistence\DbalRefundRepository;
 use App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository;
 use App\Module\Transactions\Infrastructure\Persistence\DbalTransferRepository;
 use App\Tests\Module\Accounts\Application\Double\SequenceUuidGenerator;
@@ -263,7 +264,9 @@ final class TransferPersistenceTest extends KernelTestCase
         $transactions = new DbalTransactionRepository($this->connection);
         $transfers = new DbalTransferRepository($this->connection);
 
-        return new PresentTransfer($transactions, new PresentTransaction(new DbalCategoryRepository($this->connection), $transfers));
+        return new PresentTransfer($transactions, new PresentTransaction(
+            new DbalCategoryRepository($this->connection), $transfers, new DbalRefundRepository($this->connection),
+        ));
     }
 
     private function input(): CreateTransferInput

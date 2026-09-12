@@ -181,7 +181,7 @@ final readonly class Transaction
     private static function assertSign(AssetAmount $amount, TransactionNature $nature): void
     {
         $negative = $amount->value->isNegative();
-        if ((TransactionNature::INCOME === $nature && $negative)
+        if ((in_array($nature, [TransactionNature::INCOME, TransactionNature::REFUND], true) && $negative)
             || (in_array($nature, [TransactionNature::EXPENSE, TransactionNature::FEE], true) && !$negative)) {
             throw new InvalidTransaction('The transaction sign contradicts its nature.');
         }

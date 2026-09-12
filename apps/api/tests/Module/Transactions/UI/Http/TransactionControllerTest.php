@@ -22,6 +22,8 @@ final class TransactionControllerTest extends WebTestCase
     private const string OWN_INCOME = '00000000-0000-7000-8000-0000000000c2';
     private const string OWN_PLAIN_EXPENSE = '00000000-0000-7000-8000-0000000000c4';
     private const string OWN_EXPENSE_WITH_DEFAULT_AXES = '00000000-0000-7000-8000-0000000000c5';
+    private const string OWN_EXTRA_EXPENSE = '00000000-0000-7000-8000-0000000000c6';
+    private const string OWN_USD_ACCOUNT = '00000000-0000-7000-8000-0000000000d3';
     private const string OTHER_CATEGORY = '00000000-0000-7000-8000-0000000000c3';
     private const string FOREIGN_TRANSACTION = '00000000-0000-7000-8000-0000000000f9';
     private const string UNKNOWN_TRANSACTION = '00000000-0000-7000-8000-0000000000f8';
@@ -55,6 +57,7 @@ final class TransactionControllerTest extends WebTestCase
             self::OWN_EXPENSE_WITH_DEFAULT_AXES, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Loyer',
             defaultAnalyticAxes: ['ESSENTIAL'],
         );
+        $this->seedCategory(self::OWN_EXTRA_EXPENSE, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Extras');
         $this->seedCategory(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, 'EXPENSE', 'Privé voisin');
 
         $this->client->request('GET', '/api/v1/session');
@@ -79,7 +82,7 @@ final class TransactionControllerTest extends WebTestCase
             'id', 'accountId', 'amount', 'originalAmount', 'exchangeRate', 'nature', 'state', 'source',
             'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel', 'counterparty', 'note', 'paymentMethod',
             'mcc', 'maskedCard', 'bankReference', 'splits', 'version', 'createdAt', 'updatedAt', 'voidedAt',
-            'transferId',
+            'transferId', 'refundOriginalId', 'refundOriginalLabel', 'refundedAmount',
         ], array_keys($created));
         self::assertNull($created['transferId']);
         self::assertSame(['value' => '-42.90', 'assetCode' => 'EUR'], $created['amount']);
@@ -369,6 +372,13 @@ final class TransactionControllerTest extends WebTestCase
         $foreign = (string) $this->client->getResponse()->getContent();
         self::assertStringNotContainsString('Secret neighbour label', $foreign);
 
+        $this->client->request('GET', '/api/v1/transactions/'.self::FOREIGN_TRANSACTION.'/refundable');
+        self::assertResponseStatusCodeSame(404);
+        $foreignRefundable = (string) $this->client->getResponse()->getContent();
+        $this->client->request('GET', '/api/v1/transactions/'.self::UNKNOWN_TRANSACTION.'/refundable');
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame($foreignRefundable, (string) $this->client->getResponse()->getContent());
+
         $this->client->request('GET', '/api/v1/transactions/'.self::UNKNOWN_TRANSACTION);
         self::assertResponseStatusCodeSame(404);
         self::assertSame($foreign, (string) $this->client->getResponse()->getContent());
@@ -378,7 +388,7 @@ final class TransactionControllerTest extends WebTestCase
     {
         $this->seedForeignTransaction();
 
-        foreach (['update', 'void', 'duplicate', 'replaceSplits'] as $operation) {
+        foreach (['update', 'void', 'duplicate', 'replaceSplits', 'refund'] as $operation) {
             $this->requestMutation($operation, self::FOREIGN_TRANSACTION);
             self::assertResponseStatusCodeSame(404);
             $foreign = (string) $this->client->getResponse()->getContent();
@@ -698,6 +708,199 @@ final class TransactionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function testRefundsAreCappedLinkedAndAllocatedWithExactLargestRemainders(): void
+    {
+        $original = $this->createTransaction(overrides: [
+            'amount' => ['value' => '-87.40', 'assetCode' => 'EUR'],
+            'categoryId' => null,
+            'splits' => [
+                $this->splitRow(self::OWN_EXPENSE, '-62.10'),
+                $this->splitRow(self::OWN_PLAIN_EXPENSE, '-18.30'),
+                $this->splitRow(self::OWN_EXTRA_EXPENSE, '-7.00'),
+            ],
+        ]);
+        $id = self::stringValue($original, 'id');
+        $this->client->request('GET', '/api/v1/transactions/'.$id.'/refundable');
+        self::assertResponseIsSuccessful();
+        $proposal = $this->decode();
+        self::assertSame(['value' => '87.40', 'assetCode' => 'EUR'], $proposal['refundable']);
+
+        $this->requestRefund($id, [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '30.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14',
+            'rawLabel' => 'Remboursement partiel',
+            'counterparty' => 'Carrefour',
+            'note' => null,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $refund = $this->decode();
+        self::assertSame('REFUND', $refund['nature']);
+        self::assertSame(['value' => '30.00', 'assetCode' => 'EUR'], $refund['amount']);
+        self::assertSame($id, $refund['refundOriginalId']);
+        self::assertSame('CB CARREFOUR 1234', $refund['refundOriginalLabel']);
+        self::assertIsList($refund['splits']);
+        $amountsByCategory = [];
+        foreach ($refund['splits'] as $split) {
+            self::assertIsArray($split);
+            self::assertIsString($split['categoryId'] ?? null);
+            $amountsByCategory[$split['categoryId']] = $split['amount'] ?? null;
+        }
+        self::assertSame(['value' => '21.32', 'assetCode' => 'EUR'], $amountsByCategory[self::OWN_EXPENSE]);
+        self::assertSame(['value' => '6.28', 'assetCode' => 'EUR'], $amountsByCategory[self::OWN_PLAIN_EXPENSE]);
+        self::assertSame(['value' => '2.40', 'assetCode' => 'EUR'], $amountsByCategory[self::OWN_EXTRA_EXPENSE]);
+        $netGroceries = $this->connection->fetchOne(
+            "SELECT COALESCE(sum(s.amount_value), 0)::text FROM transaction_splits s JOIN transaction_transactions t ON t.id = s.transaction_id AND t.workspace_id = s.workspace_id WHERE s.workspace_id = :workspace AND s.category_id = :category AND t.state = 'BOOKED' AND t.booked_on BETWEEN '2026-03-01' AND '2026-03-31'",
+            ['workspace' => WorkspaceFixture::OWN_WORKSPACE, 'category' => self::OWN_EXPENSE],
+        );
+        self::assertIsString($netGroceries);
+        self::assertSame('-40.78', rtrim(rtrim($netGroceries, '0'), '.'));
+
+        $this->client->request('GET', '/api/v1/transactions/'.$id.'/refundable');
+        self::assertSame(['value' => '30.00', 'assetCode' => 'EUR'], $this->decode()['refunded']);
+        $this->requestUpdate($id, $original);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/transaction.has_refunds', $this->decode()['type']);
+        $this->requestReplaceSplits($id, 1, [
+            $this->splitRow(self::OWN_EXPENSE, '-87.40'),
+        ]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/transaction.has_refunds', $this->decode()['type']);
+
+        $this->requestRefund($id, [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '57.40', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14',
+            'rawLabel' => 'Remboursement final',
+            'counterparty' => null,
+            'note' => null,
+            'splits' => null,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $finalRefund = $this->decode();
+        $this->requestVoid(self::stringValue($finalRefund, 'id'), 1);
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/api/v1/transactions/'.$id.'/refundable');
+        self::assertSame(['value' => '57.40', 'assetCode' => 'EUR'], $this->decode()['refundable']);
+        $this->requestRefund($id, [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '57.40', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14',
+            'rawLabel' => 'Remboursement final remplace',
+            'counterparty' => null,
+            'note' => null,
+            'splits' => null,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $this->requestRefund($id, [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '0.01', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14',
+            'rawLabel' => 'Trop',
+            'counterparty' => null,
+            'note' => null,
+            'splits' => null,
+        ]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/refund.already_settled', $this->decode()['type']);
+
+        $this->requestVoid($id, 1);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/transaction.has_refunds', $this->decode()['type']);
+        $this->requestUpdate(self::stringValue($refund, 'id'), $refund);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/transaction.belongs_to_refund', $this->decode()['type']);
+    }
+
+    public function testRefundRejectsAnIneligibleOriginalAnAssetMismatchAnEarlierDateAndAnOverAmount(): void
+    {
+        $income = $this->createTransaction(overrides: [
+            'amount' => ['value' => '1500.00', 'assetCode' => 'EUR'],
+            'nature' => 'INCOME',
+            'categoryId' => self::OWN_INCOME,
+        ]);
+        $this->requestRefund(self::stringValue($income, 'id'), [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/refund.original_nature', $this->decode()['type']);
+
+        $voided = $this->createTransaction();
+        $voidedId = self::stringValue($voided, 'id');
+        $this->requestVoid($voidedId, 1);
+        self::assertResponseIsSuccessful();
+        $this->requestRefund($voidedId, [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/refund.original_not_refundable', $this->decode()['type']);
+
+        $this->seedAccount(self::OWN_USD_ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Compte USD', 'USD');
+        $active = $this->createTransaction();
+        $activeId = self::stringValue($active, 'id');
+        $this->requestRefund($activeId, [
+            'accountId' => self::OWN_USD_ACCOUNT, 'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/refund.asset_mismatch', $this->decode()['type']);
+
+        // A foreign-asset amount above the numeric value of the cap is still
+        // an asset mismatch, not an over-cap request: the two are never
+        // compared as bare magnitudes across currencies.
+        $this->requestRefund($activeId, [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '200.00', 'assetCode' => 'USD'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/refund.asset_mismatch', $this->decode()['type']);
+
+        $this->requestRefund($activeId, [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-13', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/refund.date_before_original', $this->decode()['type']);
+
+        $this->requestRefund($activeId, [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '50.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ]);
+        self::assertResponseStatusCodeSame(409);
+        $problem = $this->decode();
+        self::assertSame('/problems/refund.exceeds_refundable', $problem['type']);
+        self::assertSame(['value' => '42.90', 'assetCode' => 'EUR'], $problem['remaining']);
+
+        $this->requestRefund($activeId, [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+            'splits' => [$this->splitRow(self::OWN_EXPENSE, '9.00')],
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/splits.sum_mismatch', $this->decode()['type']);
+    }
+
+    public function testDuplicatingOrReplacingSplitsOnALinkedRefundIsRefused(): void
+    {
+        $original = $this->createTransaction();
+        $this->requestRefund(self::stringValue($original, 'id'), [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $refundId = self::stringValue($this->decode(), 'id');
+
+        $this->requestDuplicate($refundId);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/transaction.belongs_to_refund', $this->decode()['type']);
+
+        $this->requestReplaceSplits($refundId, 1, [$this->splitRow(self::OWN_EXPENSE, '10.00')]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/transaction.belongs_to_refund', $this->decode()['type']);
+    }
+
     /**
      * @param array<string, mixed> $overrides
      *
@@ -749,6 +952,14 @@ final class TransactionControllerTest extends WebTestCase
         $this->client->request('POST', '/api/v1/transactions/'.$id.'/duplicate', server: self::jsonHeaders(), content: '{}');
     }
 
+    /** @param array<string, mixed> $body */
+    private function requestRefund(string $id, array $body): void
+    {
+        $this->client->request(
+            'POST', '/api/v1/transactions/'.$id.'/refunds', server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR),
+        );
+    }
+
     /** @param list<array<string, mixed>> $splits */
     private function requestReplaceSplits(string $id, int $version, array $splits): void
     {
@@ -787,6 +998,10 @@ final class TransactionControllerTest extends WebTestCase
             'void' => $this->requestVoid($id, 1),
             'duplicate' => $this->requestDuplicate($id),
             'replaceSplits' => $this->requestReplaceSplits($id, 1, []),
+            'refund' => $this->requestRefund($id, [
+                'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '1.00', 'assetCode' => 'EUR'],
+                'bookedOn' => '2026-03-14', 'rawLabel' => 'No access', 'counterparty' => null, 'note' => null,
+            ]),
             default => throw new \UnexpectedValueException('Unknown transaction mutation.'),
         };
     }
@@ -881,13 +1096,13 @@ final class TransactionControllerTest extends WebTestCase
         return $this->decode();
     }
 
-    private function seedAccount(string $id, string $workspace, string $label): void
+    private function seedAccount(string $id, string $workspace, string $label, string $assetCode = 'EUR'): void
     {
         $this->connection->insert('account_financial_accounts', [
             'id' => $id,
             'workspace_id' => $workspace,
             'label' => $label,
-            'asset_code' => 'EUR',
+            'asset_code' => $assetCode,
             'kind' => 'CURRENT',
             'masked_identifier' => null,
             'valuation_mode' => 'TRANSACTIONS',

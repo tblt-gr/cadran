@@ -10,6 +10,7 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Domain\InvalidTransaction;
+use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
 use App\Module\Transactions\Domain\TransferRepository;
 use Symfony\Component\Clock\ClockInterface;
@@ -19,6 +20,7 @@ final readonly class VoidTransaction
     public function __construct(
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
+        private RefundRepository $refunds,
         private TransferRepository $transfers,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
@@ -39,6 +41,9 @@ final readonly class VoidTransaction
             $transfer = $this->transfers->findByLegTransactionId($context->workspace, $id);
             if (null !== $transfer) {
                 throw new TransactionBelongsToTransfer($transfer->id);
+            }
+            if ($this->refunds->hasLiveRefund($context->workspace, $id)) {
+                throw new TransactionHasRefunds('A transaction with live refunds cannot be voided.');
             }
             if ($version !== $current->version) {
                 throw new StaleTransactionVersion('The transaction changed concurrently.');

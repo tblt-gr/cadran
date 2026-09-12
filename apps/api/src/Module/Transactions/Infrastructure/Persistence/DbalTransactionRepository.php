@@ -160,8 +160,8 @@ final readonly class DbalTransactionRepository implements CategoryClassification
             return [];
         }
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT id, workspace_id, transaction_id, category_id, amount_value, amount_scale, asset_code, analytic_axes, note, created_at'
-            .' FROM transaction_splits WHERE workspace_id = :workspace_id AND transaction_id IN (:transaction_ids) ORDER BY id',
+            'SELECT id, workspace_id, transaction_id, category_id, amount_value, amount_scale, asset_code, analytic_axes, note, created_at, position'
+            .' FROM transaction_splits WHERE workspace_id = :workspace_id AND transaction_id IN (:transaction_ids) ORDER BY transaction_id, position',
             ['workspace_id' => $workspace->id, 'transaction_ids' => $transactionIds],
             ['transaction_ids' => ArrayParameterType::STRING],
         );
@@ -187,6 +187,7 @@ final readonly class DbalTransactionRepository implements CategoryClassification
                 ),
                 note: null === ($row['note'] ?? null) ? null : TransactionRow::text($row['note']),
                 createdAt: new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)),
+                position: (int) TransactionRow::text($row['position'] ?? null),
             );
         }
 
@@ -220,6 +221,7 @@ final readonly class DbalTransactionRepository implements CategoryClassification
                 ),
                 'note' => $split->note,
                 'created_at' => $split->createdAt->format('Y-m-d H:i:s.uP'),
+                'position' => $split->position,
             ]);
         }
     }

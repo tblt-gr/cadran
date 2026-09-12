@@ -2643,6 +2643,75 @@ paths:
                   - $ref: '#/components/schemas/TransactionBelongsToTransferProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/transactions/{id}/refundable:
+    get:
+      operationId: getTransactionRefundable
+      summary: Read the remaining refundable amount and proposed category allocation
+      tags: [Transactions]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The refundable balance of an expense or fee.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundableTransaction' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/transactions/{id}/refunds:
+    post:
+      operationId: createTransactionRefund
+      summary: Create a linked refund of an expense or fee
+      description: >-
+        The amount is a positive magnitude. The server writes a positive
+        (credited) REFUND movement, under a lock on the original transaction,
+        so concurrent requests cannot exceed its remaining refundable balance.
+      tags: [Transactions]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRefundRequest' }
+      responses:
+        '201':
+          description: The created, linked REFUND movement.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transaction' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/TransactionMutationForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: >-
+            The original is already fully refunded or the requested amount
+            exceeds what remains refundable.
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/RefundConflictProblem'
+        '413': { $ref: '#/components/responses/TransactionPayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/transactions/{id}/void:
     post:
       operationId: voidTransaction
@@ -6559,6 +6628,9 @@ components:
         - updatedAt
         - voidedAt
         - transferId
+        - refundOriginalId
+        - refundOriginalLabel
+        - refundedAmount
       properties:
         id:
           type: string
@@ -6664,6 +6736,91 @@ components:
             - type: string
               format: uuid
             - type: 'null'
+        refundOriginalId:
+          description: Read-only original transaction when this row is a linked refund.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        refundOriginalLabel:
+          description: Read-only original label when this row is a linked refund.
+          oneOf:
+            - type: string
+            - type: 'null'
+        refundedAmount:
+          description: Read-only sum of live linked refunds when this row is an original.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+    RefundableTransaction:
+      type: object
+      additionalProperties: false
+      required: [originalId, originalAmount, refunded, refundable, proposedSplits]
+      properties:
+        originalId: { type: string, format: uuid }
+        originalAmount: { $ref: '#/components/schemas/DecimalAmount' }
+        refunded: { $ref: '#/components/schemas/DecimalAmount' }
+        refundable: { $ref: '#/components/schemas/DecimalAmount' }
+        proposedSplits:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required: [categoryId, amount]
+            properties:
+              categoryId: { type: string, format: uuid }
+              amount: { $ref: '#/components/schemas/DecimalAmount' }
+    CreateRefundRequest:
+      type: object
+      additionalProperties: false
+      required: [accountId, amount, bookedOn, rawLabel, counterparty, note]
+      properties:
+        accountId: { type: string, format: uuid }
+        amount:
+          description: Positive magnitude; the stored REFUND transaction reduces the linked expense.
+          $ref: '#/components/schemas/DecimalAmount'
+        bookedOn: { type: string, format: date }
+        rawLabel: { type: string, minLength: 1, maxLength: 140 }
+        counterparty:
+          oneOf: [{ type: string, minLength: 1, maxLength: 80 }, { type: 'null' }]
+        note:
+          oneOf: [{ type: string, minLength: 1, maxLength: 500 }, { type: 'null' }]
+        splits:
+          description: Null accepts the exact server proposal; a list overrides it but must sum exactly.
+          oneOf:
+            - type: array
+              maxItems: 20
+              items: { $ref: '#/components/schemas/TransactionSplitInput' }
+            - type: 'null'
+    RefundConflictProblem:
+      description: >-
+        Raised by the refund creation endpoint when the original is already
+        fully refunded (`type: /problems/refund.already_settled`) or the
+        requested amount exceeds what remains
+        (`type: /problems/refund.exceeds_refundable`).
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - remaining
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          const: 409
+        detail:
+          type: string
+        remaining:
+          description: What remains refundable on the original, before this request.
+          $ref: '#/components/schemas/DecimalAmount'
     TransactionSplit:
       type: object
       additionalProperties: false

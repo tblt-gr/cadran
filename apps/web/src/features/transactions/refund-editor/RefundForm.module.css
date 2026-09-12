@@ -1,0 +1,56 @@
+.form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1-5);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.form input,
+.form select {
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+.form small,
+.alert {
+  color: var(--negative);
+}
+.remaining,
+.form > div,
+.actions,
+.alert {
+  grid-column: 1 / -1;
+}
+.remaining {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--spacing-none);
+  padding: var(--spacing-3);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+}
+.alert {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3);
+  border: var(--border-line-subtle);
+  border-color: var(--negative);
+  border-radius: var(--radius-control);
+  background: var(--negative-soft);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+@media (max-width: 42rem) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+}

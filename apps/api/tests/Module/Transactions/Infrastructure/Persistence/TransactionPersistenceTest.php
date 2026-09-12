@@ -173,12 +173,12 @@ final class TransactionPersistenceTest extends KernelTestCase
                 new TransactionSplit(
                     '00000000-0000-7000-8000-0000000000e1', $transaction->workspace, $transaction->id,
                     self::OWN_CATEGORY, new AssetAmount(DecimalValue::fromString('-62.10'), AssetCode::fromString('EUR')),
-                    [AnalyticAxis::ESSENTIAL], 'Courses', $transaction->createdAt,
+                    [AnalyticAxis::ESSENTIAL], 'Courses', $transaction->createdAt, 0,
                 ),
                 new TransactionSplit(
                     '00000000-0000-7000-8000-0000000000e2', $transaction->workspace, $transaction->id,
                     self::OWN_SECOND_CATEGORY, new AssetAmount(DecimalValue::fromString('-25.30'), AssetCode::fromString('EUR')),
-                    [], null, $transaction->createdAt,
+                    [], null, $transaction->createdAt, 1,
                 ),
             ],
             version: 1, createdAt: $transaction->createdAt, updatedAt: $transaction->updatedAt, voidedAt: null,
@@ -248,6 +248,46 @@ final class TransactionPersistenceTest extends KernelTestCase
                     [WorkspaceFixture::OWN_WORKSPACE, self::OWN_TRANSACTION],
                 );
                 self::fail('The concurrent writer should wait for the row lock held by findForUpdate().');
+            } catch (DbalException $exception) {
+                self::assertStringContainsString('lock timeout', $exception->getMessage());
+            }
+        } finally {
+            if ($second->isTransactionActive()) {
+                $second->rollBack();
+            }
+            if ($this->connection->isTransactionActive()) {
+                $this->connection->rollBack();
+            }
+            $second->close();
+        }
+    }
+
+    /**
+     * {@see \App\Module\Transactions\Application\CreateRefund} locks the
+     * original with this exact call, before reading the already-refunded
+     * total, so a second refund on the same original cannot observe the cap
+     * as it stood before the first one committed. This proves the lock a
+     * concurrent refund writer would collide with, the same way
+     * {@see testFindForUpdateLockSerializesAConcurrentSplitReplace} proves it
+     * for a split replacement.
+     */
+    public function testFindForUpdateLockSerializesAConcurrentRefundOnTheSameOriginal(): void
+    {
+        $this->repository->add($this->transaction(self::OWN_TRANSACTION, WorkspaceFixture::own(), self::OWN_ACCOUNT, '-42.90'));
+        $second = DriverManager::getConnection($this->connection->getParams());
+
+        try {
+            $this->connection->beginTransaction();
+            self::assertNotNull($this->repository->findForUpdate(WorkspaceFixture::own(), self::OWN_TRANSACTION));
+            $second->beginTransaction();
+            $second->executeStatement("SET LOCAL lock_timeout = '100ms'");
+
+            try {
+                $second->executeStatement(
+                    'SELECT * FROM transaction_transactions WHERE workspace_id = ? AND id = ? FOR UPDATE',
+                    [WorkspaceFixture::OWN_WORKSPACE, self::OWN_TRANSACTION],
+                );
+                self::fail('A second refund on the same original should wait for the first one\'s row lock.');
             } catch (DbalException $exception) {
                 self::assertStringContainsString('lock timeout', $exception->getMessage());
             }

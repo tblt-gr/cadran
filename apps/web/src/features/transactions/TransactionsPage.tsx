@@ -29,6 +29,7 @@ import {
 } from './transactionError';
 import { listReferencedAccounts, mergeAccountOptions } from './transactionAccounts';
 import { TransferEditor } from './transfer-editor/TransferEditor';
+import { RefundEditor } from './refund-editor/RefundEditor';
 import { VoidTransactionDialog } from './void-transaction-dialog/VoidTransactionDialog';
 import styles from './TransactionsPage.module.css';
 
@@ -45,6 +46,7 @@ export function TransactionsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [transferEditorOpen, setTransferEditorOpen] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<Transaction | null>(null);
   const [saved, setSaved] = useState<Saved>(null);
   const duplicatingIdsRef = useRef(new Set<string>());
   const [duplicatingIds, setDuplicatingIds] = useState<ReadonlySet<string>>(new Set());
@@ -279,6 +281,20 @@ export function TransactionsPage() {
         />
       ) : null}
 
+      {refundTarget ? (
+        <RefundEditor
+          accounts={activeAccountOptions}
+          close={() => setRefundTarget(null)}
+          onSaved={async () => {
+            await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            await queryClient.invalidateQueries({
+              queryKey: ['transaction-refundable', refundTarget.id],
+            });
+          }}
+          transaction={refundTarget}
+        />
+      ) : null}
+
       {voiding ? (
         <Modal
           close={() => {
@@ -362,6 +378,7 @@ export function TransactionsPage() {
             duplicatingIds={duplicatingIds}
             onDuplicate={duplicateOnce}
             onEdit={(transaction) => openEditor(transaction)}
+            onRefund={setRefundTarget}
             onVoid={(transaction) => setVoidingId(transaction.id)}
             transactions={items}
           />

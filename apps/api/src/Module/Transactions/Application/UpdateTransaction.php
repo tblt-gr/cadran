@@ -11,6 +11,7 @@ use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Domain\InvalidTransaction;
+use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
 use App\Module\Transactions\Domain\TransactionSplit;
 use App\Module\Transactions\Domain\TransferRepository;
@@ -21,6 +22,7 @@ final readonly class UpdateTransaction
     public function __construct(
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
+        private RefundRepository $refunds,
         private TransferRepository $transfers,
         private TransactionInputParser $parser,
         private TransactionSplitInputParser $splitParser,
@@ -42,6 +44,10 @@ final readonly class UpdateTransaction
         if (null !== $transfer) {
             throw new TransactionBelongsToTransfer($transfer->id);
         }
+        $refund = $this->refunds->findByRefundTransactionId($context->workspace, $id);
+        if (null !== $refund) {
+            throw new TransactionBelongsToRefund($refund->originalTransactionId);
+        }
         $draft = $this->parser->parse(
             $input->amount, $input->nature, $input->state, $input->bookedOn, $input->valueOn,
             $input->authorizedOn, $input->rawLabel, $input->counterparty, $input->note,
@@ -54,6 +60,9 @@ final readonly class UpdateTransaction
             $current = $this->transactions->findForUpdate($context->workspace, $id);
             if (null === $current) {
                 throw new TransactionNotFound();
+            }
+            if ($this->refunds->hasLiveRefund($context->workspace, $id)) {
+                throw new TransactionHasRefunds('An original with live refunds cannot be edited.');
             }
             if ($input->version !== $current->version) {
                 throw new StaleTransactionVersion('The transaction changed concurrently.');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Transactions\Domain\Transaction;
 
 final readonly class TransactionView
@@ -36,6 +37,10 @@ final readonly class TransactionView
         public string $updatedAt,
         public ?string $voidedAt,
         public ?string $transferId,
+        public ?string $refundOriginalId,
+        public ?string $refundOriginalLabel,
+        /** @var array{value: string, assetCode: string}|null */
+        public ?array $refundedAmount,
     ) {
     }
 
@@ -49,8 +54,14 @@ final readonly class TransactionView
      *
      * @param array<string, array{label: string, icon: ?string, color: ?string}> $categoryIdentities
      */
-    public static function fromTransaction(Transaction $transaction, array $categoryIdentities, ?string $transferId): self
-    {
+    public static function fromTransaction(
+        Transaction $transaction,
+        array $categoryIdentities,
+        ?string $transferId,
+        ?string $refundOriginalId,
+        ?string $refundOriginalLabel,
+        ?DecimalValue $refundedAmount,
+    ): self {
         return new self(
             id: $transaction->id,
             accountId: $transaction->accountId,
@@ -93,6 +104,11 @@ final readonly class TransactionView
             updatedAt: $transaction->updatedAt->format(DATE_ATOM),
             voidedAt: $transaction->voidedAt?->format(DATE_ATOM),
             transferId: $transferId,
+            refundOriginalId: $refundOriginalId,
+            refundOriginalLabel: $refundOriginalLabel,
+            refundedAmount: null === $refundedAmount ? null : [
+                'value' => $refundedAmount->toString(), 'assetCode' => $transaction->amount->asset->toString(),
+            ],
         );
     }
 }

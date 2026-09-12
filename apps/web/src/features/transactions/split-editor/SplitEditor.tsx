@@ -16,6 +16,8 @@ import styles from './SplitEditor.module.css';
 
 interface SplitEditorProps {
   assetCode: string;
+  /** Overrides sign-derived categorisation for movements such as a positive refund of an expense. */
+  expectedCategoryType?: CategoryType;
   /** Category type the transaction sign expects, offered first in each row. */
   preferredType: CategoryType;
   onChange: (rows: SplitRowValues[]) => void;
@@ -31,6 +33,7 @@ interface SplitEditorProps {
  */
 export function SplitEditor({
   assetCode,
+  expectedCategoryType,
   preferredType,
   onChange,
   rows,
@@ -60,7 +63,9 @@ export function SplitEditor({
   const mismatchedType = (row: SplitRowValues): CategoryType | null =>
     row.categoryType &&
     exactTotal !== null &&
-    categoryContradictsAmount(row.categoryType, exactTotal)
+    (expectedCategoryType === undefined
+      ? categoryContradictsAmount(row.categoryType, exactTotal)
+      : row.categoryType !== expectedCategoryType)
       ? row.categoryType
       : null;
   // A row missing its category blocks submission exactly as much as a bad

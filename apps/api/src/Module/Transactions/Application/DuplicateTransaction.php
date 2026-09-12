@@ -12,6 +12,7 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Transactions\Domain\InvalidTransaction;
+use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -25,6 +26,7 @@ final readonly class DuplicateTransaction
     public function __construct(
         private CallerWorkspaceContext $caller,
         private TransactionRepository $transactions,
+        private RefundRepository $refunds,
         private TransactionReferences $references,
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
@@ -42,6 +44,10 @@ final readonly class DuplicateTransaction
             $source = $this->transactions->findForUpdate($context->workspace, $id);
             if (null === $source) {
                 throw new TransactionNotFound();
+            }
+            $refund = $this->refunds->findByRefundTransactionId($context->workspace, $id);
+            if (null !== $refund) {
+                throw new TransactionBelongsToRefund($refund->originalTransactionId);
             }
             if (in_array($source->nature, [TransactionNature::TRANSFER, TransactionNature::REFUND], true)) {
                 throw new InvalidTransactionInput('A transfer leg or refund cannot be duplicated.');
