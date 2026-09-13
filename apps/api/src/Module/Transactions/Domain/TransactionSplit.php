@@ -22,10 +22,18 @@ final readonly class TransactionSplit
         public ?string $note,
         public \DateTimeImmutable $createdAt,
         public int $position = 0,
+        public CategorizationOrigin $origin = CategorizationOrigin::MANUAL,
+        public ?string $ruleId = null,
     ) {
         self::identifier($id);
         self::identifier($transactionId);
         self::identifier($categoryId);
+        if ((CategorizationOrigin::RULE === $origin) !== (null !== $ruleId)) {
+            throw new InvalidTransaction('Only a split written by a rule records that rule.');
+        }
+        if (null !== $ruleId) {
+            self::identifier($ruleId);
+        }
         self::optionalText($note, 140, 'split note');
         if (0 === $amount->value->compareTo(DecimalValue::zero())) {
             throw new InvalidTransaction('A split amount cannot be zero.');
@@ -34,6 +42,14 @@ final readonly class TransactionSplit
         if ($position < 0 || $position >= Transaction::MAX_SPLITS) {
             throw new InvalidTransaction('A transaction split position must be within the allocation bounds.');
         }
+    }
+
+    public function withProvenance(CategorizationOrigin $origin, ?string $ruleId): self
+    {
+        return new self(
+            $this->id, $this->workspace, $this->transactionId, $this->categoryId, $this->amount,
+            $this->analyticAxes, $this->note, $this->createdAt, $this->position, $origin, $ruleId,
+        );
     }
 
     private static function identifier(string $id): void

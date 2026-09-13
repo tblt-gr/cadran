@@ -112,6 +112,7 @@
     "accountDetail": "Détail du compte",
     "allYearsReport": "Rapport pluriannuel",
     "lifeInsurance": "Assurance-vie",
+    "categorizationRules": "Règles de catégorisation",
     "notFound": "Page introuvable"
   },
   "states": {
@@ -650,6 +651,7 @@
     "title": "Catégories et axes analytiques",
     "description": "Structurez les revenus et dépenses sans doubler les totaux, puis ajoutez des axes transversaux.",
     "add": "Nouvelle catégorie",
+    "manageRules": "Gérer les règles",
     "addFirst": "Créer la première catégorie",
     "includeArchived": "Afficher les catégories archivées",
     "loading": "Chargement des catégories…",
@@ -1636,6 +1638,238 @@
       },
       "save": "Créer le virement",
       "saving": "Enregistrement…"
+    }
+  },
+  "categorizationRules": {
+    "eyebrow": "Automatisation contrôlée",
+    "title": "Règles de catégorisation",
+    "description": "Préparez des règles ordonnées qui catégorisent les mouvements éligibles sans remplacer une décision manuelle.",
+    "backToCategories": "Retour aux catégories",
+    "add": "Nouvelle règle",
+    "addFirst": "Créer la première règle",
+    "loading": "Chargement des règles…",
+    "toasts": {
+      "saved": "La règle a été enregistrée.",
+      "applied": "La prévisualisation a été appliquée."
+    },
+    "empty": {
+      "title": "Aucune règle",
+      "description": "Créez une règle pour catégoriser les mouvements récurrents sans modifier votre historique à l’aveugle."
+    },
+    "error": {
+      "title": "Règles indisponibles",
+      "description": "Impossible de charger les règles de catégorisation."
+    },
+    "unauthorized": {
+      "title": "Session expirée",
+      "description": "Reconnectez-vous pour accéder aux règles de cet espace."
+    },
+    "references": {
+      "loading": "Chargement des comptes disponibles pour la portée de la règle…",
+      "error": {
+        "title": "Comptes indisponibles",
+        "description": "Les comptes doivent être chargés avant de créer ou modifier une règle. Réessayez."
+      },
+      "unauthorized": {
+        "title": "Session expirée",
+        "description": "Reconnectez-vous avant de créer ou modifier une règle."
+      }
+    },
+    "pagination": {
+      "label": "Pagination des règles de catégorisation",
+      "previous": "Page précédente",
+      "next": "Page suivante",
+      "position": "Page {{page}} sur {{total}}"
+    },
+    "errors": {
+      "executionLimit": "Les règles actives ou la période choisie dépassent la limite d’exécution sûre (200 règles actives ou le budget de temps alloué). Réduisez le nombre de règles actives ou raccourcissez la période, puis réessayez.",
+      "invalid": "La règle ou la période demandée est invalide. Vérifiez les références et le motif régulier.",
+      "network": "L’opération a échoué. Réessayez.",
+      "stale": "Les données ont changé depuis la prévisualisation. Prévisualisez à nouveau avant d’appliquer.",
+      "unauthorized": "Votre session a expiré ou n’autorise pas cette opération."
+    },
+    "fields": {
+      "label": "Libellé",
+      "priority": "Priorité",
+      "accountScope": "Comptes concernés",
+      "accountScopeHint": "Sans sélection, la règle s’applique à tous les comptes éligibles.",
+      "targetCategory": "Catégorie cible",
+      "counterparty": "Tiers à compléter",
+      "effectiveFrom": "Effective à partir du",
+      "effectiveTo": "Effective jusqu’au",
+      "axes": "Axes analytiques",
+      "advanced": "Facultatif",
+      "priorityHint": "De 1 à 999. En cas de conflit, la plus petite valeur l’emporte.",
+      "counterpartyHint": "Renseigné sur le mouvement seulement si son tiers est vide.",
+      "effectiveFromHint": "Les mouvements datés avant ce jour ne sont pas concernés.",
+      "effectiveToHint": "Laisser vide pour une règle sans date de fin.",
+      "priorityValue": "Priorité {{value}}",
+      "accountScopeClear": "Tous les comptes",
+      "accountScopeUnavailable": "Compte clôturé ou archivé"
+    },
+    "validation": {
+      "label": "Le libellé doit contenir entre 1 et 80 caractères.",
+      "priority": "La priorité est un entier compris entre 1 et 999.",
+      "conditions": "Ajoutez au moins une condition complète.",
+      "textValue": "Saisissez un texte de 1 à 120 caractères.",
+      "amount": "Renseignez au moins une borne en décimal exact, un minimum inférieur ou égal au maximum et un code actif.",
+      "category": "Choisissez une catégorie active de cet espace.",
+      "period": "La période est obligatoire et sa fin ne peut pas précéder son début.",
+      "previewPeriod": "Choisissez une période historique valide."
+    },
+    "form": {
+      "createEyebrow": "Création",
+      "createTitle": "Nouvelle règle",
+      "editEyebrow": "Modification",
+      "editTitle": "Modifier la règle",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "conditions": {
+      "textTitle": "Comparer un texte",
+      "textHint": "Les comparaisons de texte ne tiennent pas compte de la casse. Un motif régulier reste borné et est contrôlé côté serveur.",
+      "combinator": "Combiner les conditions texte",
+      "combinators": {
+        "AND": "Toutes",
+        "OR": "Au moins une"
+      },
+      "combinatorHints": {
+        "AND": "ET : toutes les conditions texte doivent correspondre.",
+        "OR": "OU : au moins une condition texte doit correspondre."
+      },
+      "source": "Source de la condition texte {{row}}",
+      "sources": {
+        "RAW_LABEL": "Libellé d’origine",
+        "NORMALIZED_LABEL": "Libellé normalisé",
+        "COUNTERPARTY": "Tiers"
+      },
+      "operator": "Comparaison de la condition texte {{row}}",
+      "value": "Valeur de la condition texte {{row}}",
+      "add": "Ajouter une condition texte",
+      "remove": "Supprimer la condition texte {{row}}",
+      "limit": "Vous pouvez ajouter jusqu’à 20 conditions texte.",
+      "amountTitle": "Comparer un montant exact",
+      "amountHint": "Saisissez des décimaux sous forme de texte, avec leur signe et sans arrondi.",
+      "minimum": "Minimum",
+      "maximum": "Maximum",
+      "assetCode": "Code actif",
+      "otherTitle": "Autres critères",
+      "mcc": "Code MCC",
+      "direction": "Sens",
+      "anyDirection": "Tous les sens",
+      "title": "Conditions",
+      "hint": "Ajoutez au moins une condition. Chaque famille utilisée doit correspondre.",
+      "operatorGroups": {
+        "include": "Inclure",
+        "exclude": "Exclure"
+      },
+      "valuePlaceholder": "Texte recherché",
+      "regexPlaceholder": "^CB CARREFOUR",
+      "textCount_one": "{{count}} condition",
+      "textCount_other": "{{count}} conditions",
+      "unused": "Non utilisé",
+      "amountEnabled": "Filtrer sur un montant",
+      "amountMin": "≥ {{value}} {{asset}}",
+      "amountMax": "≤ {{value}} {{asset}}",
+      "amountUnbounded": "Sans borne",
+      "mccHint": "Code commerçant à 4 chiffres, par exemple 5411.",
+      "mccValue": "MCC {{value}}"
+    },
+    "operators": {
+      "EQUALS": "Est égal à",
+      "CONTAINS": "Contient",
+      "REGEX": "Motif régulier"
+    },
+    "directions": {
+      "IN": "Entrée",
+      "OUT": "Sortie"
+    },
+    "status": {
+      "active": "Active",
+      "archived": "Archivée"
+    },
+    "reasons": {
+      "USER": "Désactivée",
+      "PATTERN_BUDGET_EXCEEDED": "Désactivée : motif trop coûteux",
+      "CATEGORY_ARCHIVED": "Désactivée : catégorie archivée"
+    },
+    "list": {
+      "caption": "Règles de catégorisation dans leur ordre de résolution",
+      "priority": "Priorité",
+      "label": "Règle",
+      "period": "Période",
+      "scope": "Portée",
+      "applied": "Applications",
+      "status": "État",
+      "actions": "Actions",
+      "allAccounts": "Tous les comptes",
+      "accountCount_one": "{{count}} compte",
+      "accountCount_other": "{{count}} comptes",
+      "since": "Depuis le {{from}}",
+      "fromTo": "Du {{from}} au {{to}}",
+      "edit": "Modifier",
+      "preview": "Prévisualiser",
+      "archive": "Archiver",
+      "deactivate": "Désactiver",
+      "activate": "Activer",
+      "editFor": "Modifier la règle « {{label}} »",
+      "previewFor": "Prévisualiser la règle « {{label}} »",
+      "archiveFor": "Archiver la règle « {{label}} »",
+      "deactivateFor": "Désactiver la règle « {{label}} »",
+      "activateFor": "Activer la règle « {{label}} »",
+      "openActions": "Actions de la règle « {{label}} »"
+    },
+    "archive": {
+      "eyebrow": "Archivage",
+      "title": "Archiver la règle",
+      "description": "La règle « {{label}} » ne pourra plus être modifiée ni appliquée.",
+      "consequences": "Rien n’est supprimé : elle reste traçable dans l’historique des catégorisations qu’elle a créées.",
+      "confirm": "Archiver",
+      "archiving": "Archivage…"
+    },
+    "lifecycle": {
+      "eyebrow": "Cycle de vie",
+      "saving": "Enregistrement…",
+      "activate": {
+        "title": "Activer la règle",
+        "description": "La règle « {{label}} » sera de nouveau considérée pour les mouvements éligibles.",
+        "confirm": "Activer"
+      },
+      "deactivate": {
+        "title": "Désactiver la règle",
+        "description": "La règle « {{label}} » ne catégorisera plus de nouveau mouvement.",
+        "confirm": "Désactiver"
+      }
+    },
+    "preview": {
+      "eyebrow": "Prévisualisation",
+      "title": "Prévisualiser une application",
+      "action": "Prévisualiser l’historique",
+      "loading": "Prévisualisation…",
+      "allRules": "toutes les règles",
+      "introduction": "Cette prévisualisation évalue {{label}} sur la période choisie.",
+      "noChangeYet": "Aucune transaction n’a encore été modifiée. Vérifiez ce résultat avant de l’appliquer.",
+      "from": "Du",
+      "to": "Au",
+      "matched": "Correspondances",
+      "wouldChange": "À modifier",
+      "skippedManual": "Manuelles préservées",
+      "conflicts": "Conflits",
+      "conflictDetails": "Conflits détectés",
+      "conflictTransaction": "Transaction :",
+      "conflictRules": "Règles :",
+      "conflictsTruncated": "20 exemples maximum sont affichés sur {{count}} conflits.",
+      "zeroMatch": "Aucun mouvement ne correspond à cette prévisualisation.",
+      "noCategory": "Sans catégorie",
+      "deactivated": "Une règle a été désactivée pour protéger l’exécution de son motif.",
+      "apply": "Appliquer cette prévisualisation",
+      "applying": "Application…",
+      "applied": "{{count}} mouvement a été catégorisé."
+    },
+    "negatedOperators": {
+      "EQUALS": "N’est pas égal à",
+      "CONTAINS": "Ne contient pas",
+      "REGEX": "Ne correspond pas au motif"
     }
   }
 }

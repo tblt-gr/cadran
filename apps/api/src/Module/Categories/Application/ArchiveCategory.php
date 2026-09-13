@@ -28,6 +28,7 @@ final readonly class ArchiveCategory
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
+        private CategoryArchivalSideEffect $archivalSideEffect,
     ) {
     }
 
@@ -36,6 +37,7 @@ final readonly class ArchiveCategory
         $context = $this->caller->resolveContext();
 
         return $this->transactionBoundary->transactional(function () use ($id, $expectedVersion, $context): CategoryView {
+            $this->archivalSideEffect->lockWorkspace($context->workspace);
             $impact = ($this->assessImpact)(
                 $context->workspace,
                 CategoryLifecycleOperation::ARCHIVE,
@@ -53,7 +55,8 @@ final readonly class ArchiveCategory
             }
 
             try {
-                $archived = $current->archive($this->clock->now());
+                $now = $this->clock->now();
+                $archived = $current->archive($now);
             } catch (InvalidCategory $exception) {
                 throw new InvalidCategoryInput($exception->getMessage(), previous: $exception);
             }
@@ -61,6 +64,8 @@ final readonly class ArchiveCategory
             if (!$this->categories->update($archived, $current->version)) {
                 throw new CategoryConflict('The category was changed by another request.');
             }
+
+            $this->archivalSideEffect->apply($context->workspace, $archived->id, $context->actorId, $now);
 
             ($this->recordAuditEvent)(new AuditEventRecord(
                 workspace: $context->workspace,

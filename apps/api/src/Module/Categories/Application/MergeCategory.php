@@ -38,6 +38,7 @@ final readonly class MergeCategory
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
+        private CategoryArchivalSideEffect $archivalSideEffect,
     ) {
     }
 
@@ -47,6 +48,7 @@ final readonly class MergeCategory
         $targetId = CategoryInputParser::optionalIdentifier($targetId);
 
         return $this->transactionBoundary->transactional(function () use ($id, $targetId, $expectedVersion, $context): CategoryView {
+            $this->archivalSideEffect->lockWorkspace($context->workspace);
             $impact = ($this->assessImpact)(
                 $context->workspace,
                 CategoryLifecycleOperation::MERGE,
@@ -104,6 +106,8 @@ final readonly class MergeCategory
             foreach ($impact->incomingRedirections as $incoming) {
                 $this->replacements->repoint($incoming->repointTo($target->id));
             }
+
+            $this->archivalSideEffect->apply($context->workspace, $archived->id, $context->actorId, $now);
 
             ($this->recordAuditEvent)(new AuditEventRecord(
                 workspace: $context->workspace,

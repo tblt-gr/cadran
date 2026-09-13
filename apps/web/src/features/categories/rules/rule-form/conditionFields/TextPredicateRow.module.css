@@ -1,0 +1,43 @@
+.row {
+  display: grid;
+  grid-template-areas: 'source operator value remove';
+  grid-template-columns: minmax(0, 9.5rem) minmax(0, 11rem) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--spacing-2);
+}
+
+.source {
+  grid-area: source;
+}
+
+.operator {
+  grid-area: operator;
+}
+
+.value {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  grid-area: value;
+  gap: var(--spacing-1);
+}
+
+.remove {
+  grid-area: remove;
+}
+
+.remove:hover:not(:disabled) {
+  border-color: var(--negative);
+  color: var(--negative);
+}
+
+@media (max-width: 42rem) {
+  .row {
+    grid-template-areas:
+      'source operator remove'
+      'value value value';
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    padding-bottom: var(--spacing-3);
+    border-bottom: var(--border-line-subtle);
+  }
+}

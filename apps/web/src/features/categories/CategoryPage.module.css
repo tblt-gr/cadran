@@ -5,6 +5,7 @@
 }
 
 .intro,
+.introActions,
 .toolbar,
 .pagination {
   display: flex;
@@ -69,12 +70,18 @@
 }
 
 @media (max-width: 42rem) {
-  .intro {
+  .intro,
+  .introActions {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .intro button {
+  .introActions {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .introActions > * {
     width: 100%;
   }
 

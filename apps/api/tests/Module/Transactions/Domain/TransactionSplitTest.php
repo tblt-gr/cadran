@@ -8,6 +8,7 @@ use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Transactions\Domain\CategorizationOrigin;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\TransactionSplit;
 use App\Tests\Support\WorkspaceFixture;
@@ -18,6 +19,7 @@ final class TransactionSplitTest extends TestCase
     private const string SPLIT_ID = '00000000-0000-7000-8000-0000000000e1';
     private const string TRANSACTION_ID = '00000000-0000-7000-8000-0000000000f1';
     private const string CATEGORY_ID = '00000000-0000-7000-8000-0000000000c1';
+    private const string RULE_ID = '00000000-0000-7000-8000-0000000000b9';
 
     public function testAZeroAmountIsRefused(): void
     {
@@ -46,9 +48,42 @@ final class TransactionSplitTest extends TestCase
         self::assertSame('Courses', $split->note);
     }
 
-    /** @param list<AnalyticAxis> $axes */
-    private function split(string $amount, array $axes = [], ?string $note = null): TransactionSplit
+    public function testASplitIsManualByDefault(): void
     {
+        $split = $this->split('-10.00');
+
+        self::assertSame(CategorizationOrigin::MANUAL, $split->origin);
+        self::assertNull($split->ruleId);
+    }
+
+    public function testARuleSplitRecordsTheRuleThatWroteIt(): void
+    {
+        $split = $this->split('-10.00', origin: CategorizationOrigin::RULE, ruleId: self::RULE_ID);
+
+        self::assertSame(CategorizationOrigin::RULE, $split->origin);
+        self::assertSame(self::RULE_ID, $split->ruleId);
+    }
+
+    public function testARuleSplitWithoutItsRuleIsRefused(): void
+    {
+        $this->expectException(InvalidTransaction::class);
+        $this->split('-10.00', origin: CategorizationOrigin::RULE);
+    }
+
+    public function testAManualSplitCannotNameARule(): void
+    {
+        $this->expectException(InvalidTransaction::class);
+        $this->split('-10.00', ruleId: self::RULE_ID);
+    }
+
+    /** @param list<AnalyticAxis> $axes */
+    private function split(
+        string $amount,
+        array $axes = [],
+        ?string $note = null,
+        CategorizationOrigin $origin = CategorizationOrigin::MANUAL,
+        ?string $ruleId = null,
+    ): TransactionSplit {
         return new TransactionSplit(
             id: self::SPLIT_ID,
             workspace: WorkspaceFixture::own(),
@@ -58,6 +93,8 @@ final class TransactionSplitTest extends TestCase
             analyticAxes: $axes,
             note: $note,
             createdAt: new \DateTimeImmutable('2026-03-14T09:12:04+00:00'),
+            origin: $origin,
+            ruleId: $ruleId,
         );
     }
 }

@@ -71,7 +71,7 @@ export const navigationItems: NavigationItem[] = [
     href: '/categories',
     icon: 'categories',
     labelKey: 'navigation.categories',
-    match: (path) => path === '/categories',
+    match: (path) => path === '/categories' || path === '/categories/rules',
   },
   {
     href: '/catalog',
@@ -94,6 +94,7 @@ export const navigationItems: NavigationItem[] = [
 ];
 
 export function getRouteTitleKey(pathname: string): ParseKeys {
+  if (pathname === '/categories/rules') return 'routes.categorizationRules';
   if (/^\/accounts\/[^/]+$/.test(pathname)) return 'routes.accountDetail';
   if (/^\/life-insurance\/[^/]+$/.test(pathname)) return 'routes.lifeInsurance';
   if (pathname === '/reports/all-years') return 'routes.allYearsReport';

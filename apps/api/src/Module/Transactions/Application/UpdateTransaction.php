@@ -10,6 +10,7 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -31,6 +32,7 @@ final readonly class UpdateTransaction
         private RecordAuditEvent $recordAuditEvent,
         private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
+        private CategorizationWriteLock $categorizationWriteLock,
     ) {
     }
 
@@ -55,6 +57,7 @@ final readonly class UpdateTransaction
         );
 
         return $this->transactionBoundary->transactional(function () use ($context, $draft, $input, $id): TransactionView {
+            $this->categorizationWriteLock->acquire($context->workspace);
             // This lock precedes the in-use-case exact-sum check below, so no
             // concurrent split rewrite can invalidate what this edit verified.
             $current = $this->transactions->findForUpdate($context->workspace, $id);

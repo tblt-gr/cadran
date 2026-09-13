@@ -2340,6 +2340,226 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/categorization-rules:
+    get:
+      operationId: listCategorizationRules
+      summary: List categorization rules in resolution order
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: includeArchived, in: query, schema: { type: boolean, default: false } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - {
+            name: perPage,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 50 },
+          }
+      responses:
+        '200':
+          {
+            description: 'Rules ordered by priority, creation time and identifier.',
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/CategorizationRulePage' } },
+              },
+          }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    post:
+      operationId: createCategorizationRule
+      summary: Create an active categorization rule
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/CreateCategorizationRuleRequest' } },
+            },
+        }
+      responses:
+        '201':
+          {
+            description: The created rule.,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/CategorizationRule' } } },
+          }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          {
+            description: 'The rule, a reference, or a regular expression is invalid.',
+            content:
+              { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } },
+          }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/categorization-rules/{id}:
+    put:
+      operationId: updateCategorizationRule
+      summary: Edit or activate/deactivate a rule optimistically
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/UpdateCategorizationRuleRequest' } },
+            },
+        }
+      responses:
+        '200':
+          {
+            description: The updated rule.,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/CategorizationRule' } } },
+          }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          {
+            description: The version is stale or the rule is archived.,
+            content:
+              { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } },
+          }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          {
+            description: The rule or a reference is invalid.,
+            content:
+              { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } },
+          }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/categorization-rules/{id}/archive:
+    post:
+      operationId: archiveCategorizationRule
+      summary: Archive a categorization rule optimistically
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/VersionRequest' } } },
+        }
+      responses:
+        '200':
+          {
+            description: The archived rule.,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/CategorizationRule' } } },
+          }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          {
+            description: The submitted version is stale.,
+            content:
+              { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } },
+          }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          {
+            description: The archive request is invalid.,
+            content:
+              { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } },
+          }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/categorization-rules/preview:
+    post:
+      operationId: previewCategorizationRules
+      summary: Preview a bounded historical run without changing transactions
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/CategorizationPreviewRequest' } },
+            },
+        }
+      responses:
+        '200':
+          {
+            description: A one-shot preview and its SHA-256 apply token.,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/CategorizationPreview' } },
+              },
+          }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          {
+            description: 'Invalid request, more than 5000 eligible transactions, or a categorization execution bound exceeded.',
+            content:
+              { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } },
+          }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/categorization-rules/apply:
+    post:
+      operationId: applyCategorizationRules
+      summary: Apply an unchanged, unexpired preview once
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/CategorizationApplyRequest' } },
+            },
+        }
+      responses:
+        '200':
+          {
+            description: The applied run report.,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/CategorizationApplyReport' } },
+              },
+          }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          {
+            description: 'The preview is missing, expired, consumed or stale.',
+            content:
+              { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } },
+          }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          {
+            description: The token request is malformed.,
+            content:
+              { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } },
+          }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/transactions:
     get:
       operationId: listTransactions
@@ -6887,6 +7107,267 @@ components:
         remaining:
           description: What remains refundable on the original, before this request.
           $ref: '#/components/schemas/DecimalAmount'
+    RuleTextPredicate:
+      type: object
+      additionalProperties: false
+      required: [source, operator, value, negated]
+      properties:
+        source: { type: string, enum: [RAW_LABEL, NORMALIZED_LABEL, COUNTERPARTY] }
+        operator: { type: string, enum: [EQUALS, CONTAINS, REGEX] }
+        value: { type: string, minLength: 1, maxLength: 120 }
+        negated:
+          type: boolean
+          description: Inverts this predicate result before the group combinator is applied.
+    RuleTextConditionGroup:
+      description: >-
+        Repeated text predicates combined globally. AND requires every predicate result; OR requires
+        at least one. A positive counterparty predicate is false when the counterparty is absent,
+        before optional predicate negation.
+      type: object
+      additionalProperties: false
+      required: [combinator, predicates]
+      properties:
+        combinator: { type: string, enum: [AND, OR] }
+        predicates:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: '#/components/schemas/RuleTextPredicate' }
+    RuleAmountCondition:
+      type: object
+      additionalProperties: false
+      required: [min, max, assetCode]
+      properties:
+        min:
+          oneOf:
+            - { type: string, pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$' }
+            - { type: 'null' }
+        max:
+          oneOf:
+            - { type: string, pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$' }
+            - { type: 'null' }
+        assetCode: { type: string, pattern: '^[A-Z][A-Z0-9]{1,11}$' }
+    CategorizationRuleConditions:
+      description: MCC, amount and direction each combine conjunctively with the complete text group.
+      type: object
+      additionalProperties: false
+      properties:
+        text: { oneOf: [{ $ref: '#/components/schemas/RuleTextConditionGroup' }, { type: 'null' }] }
+        mcc: { oneOf: [{ type: string, pattern: '^[0-9]{4}$' }, { type: 'null' }] }
+        amount: { oneOf: [{ $ref: '#/components/schemas/RuleAmountCondition' }, { type: 'null' }] }
+        direction: { oneOf: [{ type: string, enum: [IN, OUT] }, { type: 'null' }] }
+      minProperties: 1
+    CreateCategorizationRuleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          label,
+          priority,
+          accountScope,
+          conditions,
+          targetCategoryId,
+          targetAxes,
+          targetCounterparty,
+          effectiveFrom,
+          effectiveTo,
+        ]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 80 }
+        priority: { type: integer, minimum: 1, maximum: 999 }
+        accountScope:
+          { type: array, maxItems: 20, uniqueItems: true, items: { type: string, format: uuid } }
+        conditions: { $ref: '#/components/schemas/CategorizationRuleConditions' }
+        targetCategoryId: { type: string, format: uuid }
+        targetAxes: { $ref: '#/components/schemas/AnalyticAxes' }
+        targetCounterparty:
+          { oneOf: [{ type: string, minLength: 1, maxLength: 80 }, { type: 'null' }] }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { oneOf: [{ type: string, format: date }, { type: 'null' }] }
+    UpdateCategorizationRuleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          label,
+          priority,
+          accountScope,
+          conditions,
+          targetCategoryId,
+          targetAxes,
+          targetCounterparty,
+          effectiveFrom,
+          effectiveTo,
+          active,
+          version,
+        ]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 80 }
+        priority: { type: integer, minimum: 1, maximum: 999 }
+        accountScope:
+          { type: array, maxItems: 20, uniqueItems: true, items: { type: string, format: uuid } }
+        conditions: { $ref: '#/components/schemas/CategorizationRuleConditions' }
+        targetCategoryId: { type: string, format: uuid }
+        targetAxes: { $ref: '#/components/schemas/AnalyticAxes' }
+        targetCounterparty:
+          { oneOf: [{ type: string, minLength: 1, maxLength: 80 }, { type: 'null' }] }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { oneOf: [{ type: string, format: date }, { type: 'null' }] }
+        active: { type: boolean }
+        version: { type: integer, minimum: 1 }
+    VersionRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version: { type: integer, minimum: 1 }
+    CategorizationRule:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          label,
+          priority,
+          accountScope,
+          conditions,
+          targetCategoryId,
+          targetCategoryLabel,
+          targetAxes,
+          targetCounterparty,
+          effectiveFrom,
+          effectiveTo,
+          active,
+          deactivatedReason,
+          appliedCount,
+          version,
+          createdAt,
+          updatedAt,
+          archivedAt,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 80 }
+        priority: { type: integer, minimum: 1, maximum: 999 }
+        accountScope: { type: array, items: { type: string, format: uuid } }
+        conditions: { $ref: '#/components/schemas/CategorizationRuleConditions' }
+        targetCategoryId: { type: string, format: uuid }
+        targetCategoryLabel: { type: string }
+        targetAxes: { $ref: '#/components/schemas/AnalyticAxes' }
+        targetCounterparty: { oneOf: [{ type: string }, { type: 'null' }] }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { oneOf: [{ type: string, format: date }, { type: 'null' }] }
+        active: { type: boolean }
+        deactivatedReason:
+          {
+            oneOf:
+              [
+                { type: string, enum: [USER, PATTERN_BUDGET_EXCEEDED, CATEGORY_ARCHIVED] },
+                { type: 'null' },
+              ],
+          }
+        appliedCount: { type: integer, minimum: 0 }
+        version: { type: integer, minimum: 1 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        archivedAt: { oneOf: [{ type: string, format: date-time }, { type: 'null' }] }
+    CategorizationRulePage:
+      type: object
+      additionalProperties: false
+      required: [items, page, perPage, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/CategorizationRule' } }
+        page: { type: integer, minimum: 1 }
+        perPage: { type: integer, minimum: 1 }
+        total: { type: integer, minimum: 0 }
+    CategorizationPreviewRequest:
+      type: object
+      additionalProperties: false
+      required: [ruleId, from, to]
+      properties:
+        ruleId: { oneOf: [{ type: string, format: uuid }, { type: 'null' }] }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+    CategorizationConflict:
+      type: object
+      additionalProperties: false
+      required: [transactionId, ruleIds]
+      properties:
+        transactionId: { type: string, format: uuid }
+        ruleIds: { type: array, minItems: 2, items: { type: string, format: uuid } }
+    CategorizationSample:
+      type: object
+      additionalProperties: false
+      required: [transactionId, bookedOn, currentCategoryId, targetCategoryId]
+      properties:
+        transactionId: { type: string, format: uuid }
+        bookedOn: { type: string, format: date }
+        currentCategoryId: { oneOf: [{ type: string, format: uuid }, { type: 'null' }] }
+        targetCategoryId: { type: string, format: uuid }
+    CategorizationSkipped:
+      type: object
+      additionalProperties: false
+      required: [transactionId, bookedOn, reason]
+      properties:
+        transactionId: { type: string, format: uuid }
+        bookedOn: { type: string, format: date }
+        reason: { type: string, const: MANUAL_CATEGORIZATION }
+    CategorizationPreview:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          previewToken,
+          matched,
+          wouldChange,
+          skippedManual,
+          conflictCount,
+          conflicts,
+          conflictsTruncated,
+          samples,
+          skipped,
+          deactivatedRuleIds,
+        ]
+      properties:
+        previewToken: { type: string, pattern: '^[0-9a-f]{64}$' }
+        matched: { type: integer, minimum: 0 }
+        wouldChange: { type: integer, minimum: 0 }
+        skippedManual: { type: integer, minimum: 0 }
+        conflictCount: { type: integer, minimum: 0, maximum: 5000 }
+        conflicts:
+          {
+            type: array,
+            maxItems: 20,
+            items: { $ref: '#/components/schemas/CategorizationConflict' },
+          }
+        conflictsTruncated: { type: boolean }
+        samples:
+          {
+            type: array,
+            maxItems: 20,
+            items: { $ref: '#/components/schemas/CategorizationSample' },
+          }
+        skipped:
+          {
+            type: array,
+            maxItems: 20,
+            items: { $ref: '#/components/schemas/CategorizationSkipped' },
+          }
+        deactivatedRuleIds: { type: array, items: { type: string, format: uuid } }
+    CategorizationApplyRequest:
+      type: object
+      additionalProperties: false
+      required: [previewToken]
+      properties:
+        previewToken: { type: string, pattern: '^[0-9a-f]{64}$' }
+    CategorizationApplyReport:
+      type: object
+      additionalProperties: false
+      required: [changed, skippedManual, deactivatedRuleIds]
+      properties:
+        changed: { type: integer, minimum: 0 }
+        skippedManual: { type: integer, minimum: 0 }
+        deactivatedRuleIds: { type: array, items: { type: string, format: uuid } }
     TransactionSplit:
       type: object
       additionalProperties: false
@@ -6899,6 +7380,8 @@ components:
         - amount
         - analyticAxes
         - note
+        - categorizationOrigin
+        - categorizationRuleId
       properties:
         id:
           type: string
@@ -6933,6 +7416,14 @@ components:
             - type: string
               minLength: 1
               maxLength: 140
+            - type: 'null'
+        categorizationOrigin:
+          type: string
+          enum: [MANUAL, RULE]
+        categorizationRuleId:
+          oneOf:
+            - type: string
+              format: uuid
             - type: 'null'
     TransactionNature:
       type: string

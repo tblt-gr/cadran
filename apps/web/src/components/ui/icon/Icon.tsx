@@ -5,6 +5,7 @@ type IconName =
   | 'add'
   | 'alert'
   | 'archive'
+  | 'arrow-left'
   | 'arrow-down'
   | 'arrow-up'
   | 'balance'
@@ -15,6 +16,7 @@ type IconName =
   | 'chevron-right'
   | 'close'
   | 'copy'
+  | 'delete'
   | 'edit'
   | 'goals'
   | 'home'
@@ -85,12 +87,16 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="m15 5-7 7 7 7" />;
     case 'chevron-right':
       return <path d="m9 5 7 7-7 7" />;
+    case 'arrow-left':
+      return <path d="M19 12H5m6-6-6 6 6 6" />;
     case 'arrow-up':
       return <path d="m7 14 5-5 5 5M12 9v10" />;
     case 'arrow-down':
       return <path d="m7 10 5 5 5-5M12 5v10" />;
     case 'alert':
       return <path d="M12 3 2.8 20h18.4ZM12 9v5m0 3h.01" />;
+    case 'delete':
+      return <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5m4-5v5" />;
     case 'edit':
       return <path d="M4 20h4L20 8l-4-4L4 16v4Zm10-14 4 4" />;
     case 'archive':

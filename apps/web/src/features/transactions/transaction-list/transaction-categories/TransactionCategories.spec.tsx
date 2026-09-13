@@ -14,6 +14,8 @@ function split(label: string, value: string, index: number): TransactionSplit {
     amount: { value, assetCode: 'EUR' },
     analyticAxes: [],
     note: null,
+    categorizationOrigin: 'MANUAL',
+    categorizationRuleId: null,
   };
 }
 

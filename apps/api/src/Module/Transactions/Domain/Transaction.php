@@ -141,6 +141,22 @@ final readonly class Transaction
         );
     }
 
+    public function categorize(TransactionSplit $split, ?string $counterparty, \DateTimeImmutable $updatedAt, bool $incrementVersion = true): self
+    {
+        if ($this->state->isTerminal() || count($this->splits) > 1
+            || (isset($this->splits[0]) && CategorizationOrigin::MANUAL === $this->splits[0]->origin)) {
+            throw new InvalidTransaction('Automatic categorization only targets an uncategorized live transaction.');
+        }
+
+        return new self(
+            $this->id, $this->workspace, $this->accountId, $this->amount, $this->originalAmount, $this->exchangeRate,
+            $this->state, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
+            $this->authorizedOn, $this->rawLabel, $this->counterparty ?? $counterparty, $this->note, $this->paymentMethod,
+            $this->mcc, $this->maskedCard, $this->bankReference, [$split], $this->version + ($incrementVersion ? 1 : 0), $this->createdAt,
+            $updatedAt, $this->voidedAt, $this->lastEditorId,
+        );
+    }
+
     /**
      * The set of splits, if any, must together allocate the transaction exactly:
      * same workspace, asset and sign on every row, no category repeated, at most

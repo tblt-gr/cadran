@@ -1,0 +1,121 @@
+/* Carries its own control styling, like the category picker, so it renders
+   the same wherever it is mounted. */
+.field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-1-5);
+}
+
+.control {
+  position: relative;
+}
+
+.trigger {
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  font-size: var(--font-size-body);
+  text-align: left;
+  cursor: pointer;
+  gap: var(--spacing-2);
+}
+
+.trigger > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  display: inline-flex;
+  color: var(--text-secondary);
+  transform: rotate(90deg);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.trigger[aria-expanded='true'] .chevron {
+  transform: rotate(-90deg);
+}
+
+.panel {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--spacing-1));
+  right: 0;
+  left: 0;
+  display: flex;
+  max-height: 16rem;
+  flex-direction: column;
+  overflow: auto;
+  padding: var(--spacing-1);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface-2);
+  box-shadow: var(--shadow-sheet);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: var(--spacing-none) var(--spacing-2);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  cursor: pointer;
+  gap: var(--spacing-2);
+}
+
+.option:hover {
+  background: var(--bg-surface-hover);
+}
+
+.option input {
+  width: 1rem;
+  height: 1rem;
+  margin: var(--spacing-none);
+  accent-color: var(--gold-300);
+}
+
+.clear {
+  min-height: var(--control-height);
+  margin-top: var(--spacing-1);
+  padding: var(--spacing-none) var(--spacing-2);
+  border: var(--border-none);
+  border-top: var(--border-line-subtle);
+  color: var(--text-secondary);
+  background: var(--color-transparent);
+  font-size: var(--font-size-label);
+  text-align: left;
+  cursor: pointer;
+}
+
+.clear:hover {
+  color: var(--text-primary);
+}
+
+.hint {
+  color: var(--text-secondary);
+  line-height: var(--line-height-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition-duration: var(--duration-reduced-motion);
+  }
+}
