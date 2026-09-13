@@ -119,6 +119,11 @@ final readonly class WorkspaceFixture
         // Transactions restrict account and category deletion. Splits follow a
         // deleted transaction, but clearing both keeps reset order explicit.
         // Transfers restrict their own legs, so they clear before either.
+        // Occurrences restrict the transaction they matched, so the forecast
+        // clears before the movements it points at.
+        $this->connection->executeStatement('DELETE FROM transaction_recurrence_occurrences');
+        $this->connection->executeStatement('DELETE FROM transaction_recurrences');
+        $this->connection->executeStatement('DELETE FROM transaction_recurrence_dismissals');
         $this->connection->executeStatement('DELETE FROM transaction_transfers');
         $this->connection->executeStatement('DELETE FROM transaction_refunds');
         $this->connection->executeStatement('DELETE FROM transaction_idempotency_keys');
