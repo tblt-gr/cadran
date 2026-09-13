@@ -25,12 +25,13 @@ final readonly class RestoreRecurrenceCandidate
     {
         $context = $this->caller->resolveContext();
         $this->boundary->transactional(function () use ($context, $fingerprint): void {
-            if (!$this->dismissals->restore($context->workspace, $fingerprint)) {
+            $id = $this->dismissals->findId($context->workspace, $fingerprint);
+            if (null === $id || !$this->dismissals->restore($context->workspace, $fingerprint)) {
                 throw new RecurrenceNotFound();
             }
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, RecurrenceAuditEvents::CANDIDATE_RESTORED,
-                RecurrenceAuditEvents::CANDIDATE_ENTITY, $fingerprint,
+                RecurrenceAuditEvents::CANDIDATE_ENTITY, $id,
                 AuditDiff::change(['dismissed' => true], ['dismissed' => false]),
             ));
         });

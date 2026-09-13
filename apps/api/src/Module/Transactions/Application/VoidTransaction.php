@@ -10,6 +10,7 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
+use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -28,6 +29,7 @@ final readonly class VoidTransaction
         private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
         private CategorizationWriteLock $categorizationWriteLock,
+        private MatchTransactionToOccurrence $matchRecurrence,
     ) {
     }
 
@@ -67,6 +69,7 @@ final readonly class VoidTransaction
                 TransactionAuditEvents::ENTITY, $voided->id,
                 AuditDiff::change(TransactionAuditFingerprint::of($current), TransactionAuditFingerprint::of($voided)),
             ));
+            ($this->matchRecurrence)($voided);
 
             return $this->presentTransaction->one($voided);
         });

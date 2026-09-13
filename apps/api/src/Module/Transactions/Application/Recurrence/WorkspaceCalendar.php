@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Recurrence;
 
+use App\Module\Foundation\Application\CallerWorkspaceContext;
+use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -16,16 +18,19 @@ use Symfony\Component\Clock\ClockInterface;
  */
 final readonly class WorkspaceCalendar
 {
-    public const string TIMEZONE = 'Europe/Paris';
-
-    public function __construct(private ClockInterface $clock)
+    public function __construct(
+        private ClockInterface $clock,
+        private CallerWorkspaceContext $caller,
+        private WorkspaceTimezoneReader $timezones,
+    )
     {
     }
 
     public function today(): \DateTimeImmutable
     {
+        $workspace = $this->caller->resolveContext()->workspace;
         return new \DateTimeImmutable(
-            $this->clock->now()->setTimezone(new \DateTimeZone(self::TIMEZONE))->format('Y-m-d'),
+            $this->clock->now()->setTimezone(new \DateTimeZone($this->timezones->timezone($workspace)))->format('Y-m-d'),
             new \DateTimeZone('UTC'),
         );
     }

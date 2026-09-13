@@ -28,14 +28,12 @@ final readonly class DbalRecurrenceDismissalRepository implements RecurrenceDism
 
     public function dismiss(WorkspaceScope $workspace, string $id, string $fingerprint, \DateTimeImmutable $dismissedAt): void
     {
-        $this->connection->executeStatement(
-            'INSERT INTO '.self::TABLE.' (id, workspace_id, candidate_fingerprint, dismissed_at) '
-            .'VALUES (:id, :workspace_id, :fingerprint, :dismissed_at) ON CONFLICT (workspace_id, candidate_fingerprint) DO NOTHING',
-            [
-                'id' => $id, 'workspace_id' => $workspace->id, 'fingerprint' => $fingerprint,
-                'dismissed_at' => $dismissedAt->format('Y-m-d H:i:s.uP'),
-            ],
-        );
+        $this->connection->insert(self::TABLE, [
+            'id' => $id,
+            'workspace_id' => $workspace->id,
+            'candidate_fingerprint' => $fingerprint,
+            'dismissed_at' => $dismissedAt->format('Y-m-d H:i:s.uP'),
+        ]);
     }
 
     public function restore(WorkspaceScope $workspace, string $fingerprint): bool
@@ -44,5 +42,15 @@ final readonly class DbalRecurrenceDismissalRepository implements RecurrenceDism
             'workspace_id' => $workspace->id,
             'candidate_fingerprint' => $fingerprint,
         ]);
+    }
+
+    public function findId(WorkspaceScope $workspace, string $fingerprint): ?string
+    {
+        $id = $this->connection->fetchOne(
+            'SELECT id FROM transaction_recurrence_dismissals WHERE workspace_id = :workspace_id AND candidate_fingerprint = :fingerprint',
+            ['workspace_id' => $workspace->id, 'fingerprint' => $fingerprint],
+        );
+
+        return false === $id ? null : TransactionRow::text($id);
     }
 }

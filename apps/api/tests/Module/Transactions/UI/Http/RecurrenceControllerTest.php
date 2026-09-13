@@ -74,6 +74,10 @@ final class RecurrenceControllerTest extends WebTestCase
         $this->client->getKernel()->boot();
         $this->client->disableReboot();
         self::getContainer()->set(ClockInterface::class, $this->clock);
+        $this->client->request('GET', '/api/v1/session');
+        $csrf = $this->client->getCookieJar()->get(SignedCsrfToken::COOKIE_NAME);
+        self::assertNotNull($csrf);
+        $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', $csrf->getValue());
     }
 
     protected function tearDown(): void
@@ -196,6 +200,7 @@ final class RecurrenceControllerTest extends WebTestCase
         self::assertSame('2026-03-20', $matched['expectedOn']);
 
         $this->clock->modify('2026-04-25T09:12:04+00:00');
+        $this->renewCsrf();
         $this->requestUpdate($id, [...$this->updatePayload(), 'expectedAmount' => '-17.99', 'version' => 1]);
 
         self::assertResponseIsSuccessful();
@@ -285,6 +290,37 @@ final class RecurrenceControllerTest extends WebTestCase
         self::assertSame('EXPECTED', $this->occurrences($id)[0]['status']);
     }
 
+    public function testEditingAMatchedMovementReleasesItWhenItNoLongerQualifies(): void
+    {
+        $recurrence = $this->createRecurrence(['dayOfPeriod' => 20, 'firstExpectedOn' => '2026-03-20']);
+        $transaction = $this->createTransaction('2026-03-19', '-14.99');
+        self::assertNotNull($this->firstMatched($recurrence['id']));
+
+        $this->client->request('PUT', '/api/v1/transactions/'.$transaction['id'], server: self::jsonHeaders(), content: json_encode([
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '-16.00', 'assetCode' => 'EUR'],
+            'nature' => 'EXPENSE',
+            'state' => 'BOOKED',
+            'bookedOn' => '2026-03-19',
+            'valueOn' => null,
+            'authorizedOn' => null,
+            'rawLabel' => 'CB NETFLIX',
+            'counterparty' => 'Netflix',
+            'note' => null,
+            'paymentMethod' => null,
+            'mcc' => null,
+            'maskedCard' => null,
+            'bankReference' => null,
+            'categoryId' => null,
+            'splits' => null,
+            'version' => $transaction['version'],
+        ], JSON_THROW_ON_ERROR));
+
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->firstMatched($recurrence['id']));
+        self::assertSame('2026-03-20', $this->readRecurrence($recurrence['id'])['nextExpectedOn']);
+    }
+
     public function testAPassedInstalmentReadsAsLateWithoutTheStoredStatusChanging(): void
     {
         $recurrence = $this->createRecurrence(['dayOfPeriod' => 20, 'firstExpectedOn' => '2026-03-20']);
@@ -295,6 +331,19 @@ final class RecurrenceControllerTest extends WebTestCase
 
         self::assertSame('LATE', $this->occurrences($id, '2026-01-01', '2027-06-30')[0]['status']);
         self::assertSame(['EXPECTED'], array_values(array_unique($this->storedStatuses($id))));
+    }
+
+    public function testLateUsesTheWorkspaceTimezoneAtReadTime(): void
+    {
+        $recurrence = $this->createRecurrence(['dayOfPeriod' => 20, 'firstExpectedOn' => '2026-03-20']);
+        $this->clock->modify('2026-03-21T05:30:00+00:00');
+        $this->connection->update('identity_workspaces', ['timezone' => 'America/Los_Angeles'], ['id' => WorkspaceFixture::OWN_WORKSPACE]);
+
+        self::assertSame('EXPECTED', $this->occurrences($recurrence['id'])[0]['status']);
+
+        $this->connection->update('identity_workspaces', ['timezone' => 'Europe/Paris'], ['id' => WorkspaceFixture::OWN_WORKSPACE]);
+        self::assertSame('LATE', $this->occurrences($recurrence['id'])[0]['status']);
+        self::assertSame(['EXPECTED'], array_values(array_unique($this->storedStatuses($recurrence['id']))));
     }
 
     public function testTheHorizonRefreshIsExplicitAndIdempotent(): void
@@ -308,15 +357,16 @@ final class RecurrenceControllerTest extends WebTestCase
         self::assertSame(['recurrencesExamined' => 1, 'occurrencesGenerated' => 0, 'horizonEndsOn' => '2027-03-14'], $this->decode());
 
         $this->clock->modify('2026-04-21T09:12:04+00:00');
+        $this->renewCsrf();
         $this->requestRefreshHorizon();
         self::assertResponseIsSuccessful();
-        self::assertSame(1, $this->decode()['occurrencesGenerated']);
-        self::assertCount(13, $this->occurrences($id, '2026-01-01', '2028-01-01'));
+        self::assertSame(2, $this->decode()['occurrencesGenerated']);
+        self::assertCount(14, $this->occurrences($id, '2026-01-01', '2028-01-01'));
 
         $this->requestRefreshHorizon();
         self::assertResponseIsSuccessful();
         self::assertSame(0, $this->decode()['occurrencesGenerated']);
-        self::assertCount(13, $this->occurrences($id, '2026-01-01', '2028-01-01'));
+        self::assertCount(14, $this->occurrences($id, '2026-01-01', '2028-01-01'));
     }
 
     public function testListingNeverExtendsTheHorizon(): void
@@ -523,9 +573,16 @@ final class RecurrenceControllerTest extends WebTestCase
     /** @return array<string, mixed> */
     private function createTransaction(string $bookedOn, string $amount, string $account = self::OWN_ACCOUNT): array
     {
+        if ($this->clock->now()->format('Y-m-d') < $bookedOn) {
+            $this->clock->modify($bookedOn.'T12:00:00+00:00');
+            $this->renewCsrf();
+        }
         $this->client->request('POST', '/api/v1/transactions', server: self::jsonHeaders(), content: json_encode([
-            'accountId' => $account, 'amount' => $amount, 'assetCode' => 'EUR', 'nature' => 'EXPENSE',
-            'state' => 'BOOKED', 'bookedOn' => $bookedOn, 'rawLabel' => 'CB NETFLIX', 'source' => 'MANUAL',
+            'accountId' => $account, 'amount' => ['value' => $amount, 'assetCode' => 'EUR'], 'nature' => 'EXPENSE',
+            'state' => 'BOOKED', 'bookedOn' => $bookedOn, 'valueOn' => null, 'authorizedOn' => null,
+            'rawLabel' => 'CB NETFLIX', 'counterparty' => 'Netflix', 'note' => null, 'paymentMethod' => null,
+            'mcc' => null, 'maskedCard' => null, 'bankReference' => null, 'categoryId' => null, 'splits' => null,
+            'source' => 'MANUAL',
         ], JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(201);
 
@@ -623,6 +680,14 @@ final class RecurrenceControllerTest extends WebTestCase
             'password' => WorkspaceFixture::OWNER_PASSWORD,
         ], JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(204);
+    }
+
+    private function renewCsrf(): void
+    {
+        $this->client->request('GET', '/api/v1/session');
+        $csrf = $this->client->getCookieJar()->get(SignedCsrfToken::COOKIE_NAME);
+        self::assertNotNull($csrf);
+        $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', $csrf->getValue());
     }
 
     /** @return array<string, mixed> */

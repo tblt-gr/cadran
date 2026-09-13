@@ -167,6 +167,9 @@ final class RecurrenceDetector
 
         $lower = $values[$middle - 1];
         $upper = $values[$middle];
+        if (0 === $lower->compareTo($upper)) {
+            return $lower;
+        }
 
         return ExactDecimal::divide(
             ExactDecimal::add($lower, $upper),

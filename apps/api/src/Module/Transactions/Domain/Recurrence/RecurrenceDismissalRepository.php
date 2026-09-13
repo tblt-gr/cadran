@@ -18,6 +18,8 @@ interface RecurrenceDismissalRepository
 
     public function dismiss(WorkspaceScope $workspace, string $id, string $fingerprint, \DateTimeImmutable $dismissedAt): void;
 
+    public function findId(WorkspaceScope $workspace, string $fingerprint): ?string;
+
     /** Returns false when nothing was dismissed under that fingerprint. */
     public function restore(WorkspaceScope $workspace, string $fingerprint): bool;
 }
