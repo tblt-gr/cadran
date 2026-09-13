@@ -124,8 +124,8 @@ final readonly class CategorizationRuleController
             return $this->envelope->json($archive($id, $payload->integer('version')));
         } catch (CategorizationRuleNotFound) {
             return $this->problem(404, '/problems/rules.not_found');
-        } catch (StaleCategorizationRule) {
-            return $this->problem(409, '/problems/stale-version');
+        } catch (StaleCategorizationRule $exception) {
+            return 'archived' === $exception->getMessage() ? $this->problem(409, '/problems/rules.archived') : $this->problem(409, '/problems/stale-version');
         } catch (\UnexpectedValueException) {
             return $this->problem(422, '/problems/rules.invalid');
         } catch (WorkspaceAccessDenied) {

@@ -89,6 +89,10 @@ final readonly class DbalTransactionRepository implements CategoryClassification
             ."AND t.booked_on BETWEEN :from_date AND :to_date AND t.state NOT IN ('VOIDED', 'REJECTED') "
             ."AND t.nature IN ('INCOME', 'EXPENSE', 'FEE', 'ADJUSTMENT') "
             .'AND NOT EXISTS (SELECT 1 FROM transaction_transfers x WHERE x.workspace_id = :workspace_id AND (x.source_transaction_id = t.id OR x.target_transaction_id = t.id OR x.fee_transaction_id = t.id)) '
+            // A refund copies its original's splits when it is recorded, so recategorising a
+            // refunded original would make the refund reduce another category than the expense.
+            .'AND NOT EXISTS (SELECT 1 FROM transaction_refunds r JOIN transaction_transactions rt ON rt.workspace_id = r.workspace_id AND rt.id = r.refund_transaction_id '
+            ."WHERE r.workspace_id = :workspace_id AND rt.workspace_id = :workspace_id AND r.original_transaction_id = t.id AND rt.state NOT IN ('VOIDED', 'REJECTED')) "
             .'ORDER BY t.id LIMIT :limit';
         if ($lock) {
             $sql .= ' FOR UPDATE OF t';

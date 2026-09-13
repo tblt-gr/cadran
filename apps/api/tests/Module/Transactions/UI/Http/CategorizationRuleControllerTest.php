@@ -239,6 +239,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
         yield 'scope beyond twenty accounts' => [['accountScope' => array_map(static fn (int $i): string => sprintf('00000000-0000-7000-8000-%012d', $i), range(1, 21))]];
         yield 'unknown field' => [['colour' => 'red']];
         yield 'unknown axis' => [['targetAxes' => ['LUXURY']]];
+        yield 'non-identifier scope account' => [['accountScope' => ['abc']]];
     }
 
     /** @param array<string, mixed> $overrides */
@@ -547,7 +548,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
         self::assertSame('Carrefour', $this->counterparty(self::TX_CARREFOUR));
     }
 
-    public function testPartiallyAndFullyRefundedOriginalExpensesRemainEligibleButRefundMovementsDoNot(): void
+    public function testRefundedOriginalsAndRefundMovementsAreNotEligible(): void
     {
         $partial = '00000000-0000-7000-8000-000000000121';
         $full = '00000000-0000-7000-8000-000000000122';
@@ -564,8 +565,34 @@ final class CategorizationRuleControllerTest extends WebTestCase
         $this->requestPreview(null, '2026-01-01', '2026-03-31');
         $preview = $this->decode();
 
-        self::assertSame(2, $preview['matched']);
-        self::assertSame([$partial, $full], array_column($this->samples($preview), 'transactionId'));
+        self::assertSame(0, $preview['matched']);
+        self::assertSame([], $this->samples($preview));
+    }
+
+    public function testARuleScopedToAnAccountClosedSinceStaysEditableButCannotAddAClosedOne(): void
+    {
+        $id = self::text($this->createRule(['accountScope' => [self::OWN_ACCOUNT]]), 'id');
+        $this->connection->update('account_financial_accounts', ['closed_on' => '2026-03-01'], ['id' => self::OWN_ACCOUNT]);
+
+        $this->requestUpdate($id, [...$this->rulePayload(['accountScope' => [self::OWN_ACCOUNT]]), 'active' => false, 'version' => $this->ruleVersion($id)]);
+        self::assertResponseStatusCodeSame(200);
+
+        $this->connection->update('account_financial_accounts', ['closed_on' => '2026-03-01'], ['id' => self::OWN_SECOND_ACCOUNT]);
+        $this->requestUpdate($id, [...$this->rulePayload(['accountScope' => [self::OWN_ACCOUNT, self::OWN_SECOND_ACCOUNT]]), 'active' => false, 'version' => $this->ruleVersion($id)]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/rules.invalid_reference', $this->decode()['type']);
+    }
+
+    public function testArchivingAnAlreadyArchivedRuleIsAConflict(): void
+    {
+        $id = self::text($this->createRule(), 'id');
+        $this->requestArchive($id, $this->ruleVersion($id));
+        self::assertResponseStatusCodeSame(200);
+
+        $this->requestArchive($id, $this->ruleVersion($id));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/rules.archived', $this->decode()['type']);
     }
 
     public function testAnExplicitSplitEditClaimsManualAuthorityAndLaterRuleReplayPreservesIt(): void

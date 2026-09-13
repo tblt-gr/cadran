@@ -27,6 +27,8 @@ final class RuleMatchingRun
     private array $spent = [];
     /** @var array<string, true> */
     private array $tripped = [];
+    /** @var array<string, string> */
+    private array $compiled = [];
     private int $evaluations = 0;
     private readonly int $startedAt;
 
@@ -73,11 +75,14 @@ final class RuleMatchingRun
 
     private function evaluate(string $ruleId, string $pattern, string $text): bool
     {
+        // Compilation walks the pattern in PHP: it is done once per pattern and
+        // kept out of the timed section, so the budget measures matching only.
+        $compiled = $this->compiled[$pattern] ??= RegexSafetyPolicy::compile($pattern);
         $previousLimit = ini_get('pcre.backtrack_limit');
         ini_set('pcre.backtrack_limit', (string) self::BACKTRACK_LIMIT);
         $startedAt = $this->clock->nanoseconds();
         try {
-            $result = @preg_match(RegexSafetyPolicy::compile($pattern), $text);
+            $result = @preg_match($compiled, $text);
         } finally {
             ini_restore('pcre.backtrack_limit');
             if (false !== $previousLimit) {

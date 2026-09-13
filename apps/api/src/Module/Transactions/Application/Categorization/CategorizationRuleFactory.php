@@ -35,7 +35,7 @@ final readonly class CategorizationRuleFactory
 
     public function revise(CategorizationRule $current, CategorizationRuleInput $input, \DateTimeImmutable $now): CategorizationRule
     {
-        [$conditions, $axes, $from, $to] = $this->parse($current->workspace, $input);
+        [$conditions, $axes, $from, $to] = $this->parse($current->workspace, $input, $current->accountScope);
 
         try {
             return $current->revise(
@@ -47,8 +47,16 @@ final readonly class CategorizationRuleFactory
         }
     }
 
-    /** @return array{RuleConditions, list<AnalyticAxis>, \DateTimeImmutable, ?\DateTimeImmutable} */
-    private function parse(WorkspaceScope $workspace, CategorizationRuleInput $input): array
+    /**
+     * An account closed or archived after the rule was saved must not lock the
+     * rule out of every later edit, deactivation included: only accounts newly
+     * added to the scope are checked.
+     *
+     * @param list<string> $keptAccountIds
+     *
+     * @return array{RuleConditions, list<AnalyticAxis>, \DateTimeImmutable, ?\DateTimeImmutable}
+     */
+    private function parse(WorkspaceScope $workspace, CategorizationRuleInput $input, array $keptAccountIds = []): array
     {
         if (count($input->accountScope) !== count(array_unique($input->accountScope))) {
             throw new InvalidCategorizationReference();
@@ -57,7 +65,7 @@ final readonly class CategorizationRuleFactory
         if (null === $category || null !== $category->archivedAt) {
             throw new InvalidCategorizationReference();
         }
-        foreach ($input->accountScope as $accountId) {
+        foreach (array_diff($input->accountScope, $keptAccountIds) as $accountId) {
             $account = $this->accounts->findForUpdate($workspace, $accountId);
             if (null === $account || null !== $account->archivedAt || $account->isClosed()) {
                 throw new InvalidCategorizationReference();

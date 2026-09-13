@@ -33,6 +33,9 @@ export function AccountScopeSelect({
   const hintId = useId();
 
   const selectedAccounts = accounts.filter((account) => selected.includes(account.id));
+  // A scoped account closed or archived since is no longer offered, but stays
+  // listed so it can be taken out of the scope.
+  const unavailable = selected.filter((id) => !accounts.some((account) => account.id === id));
   const summary =
     selected.length === 0
       ? t('categorizationRules.list.allAccounts')
@@ -97,6 +100,12 @@ export function AccountScopeSelect({
               <span>
                 {account.label} · {account.assetCode}
               </span>
+            </label>
+          ))}
+          {unavailable.map((id) => (
+            <label className={styles.option} key={id}>
+              <input checked onChange={() => onToggle(id)} type="checkbox" />
+              <span>{t('categorizationRules.fields.accountScopeUnavailable')}</span>
             </label>
           ))}
           {selected.length > 0 ? (

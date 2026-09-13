@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasCondition, isDecimal, validateRuleForm } from './ruleFormValidation';
+import { compareDecimals, hasCondition, isDecimal, validateRuleForm } from './ruleFormValidation';
 
 function emptyConditions() {
   return {
@@ -53,6 +53,19 @@ describe('isDecimal', () => {
   });
   it('rejects a non-numeric string', () => {
     expect(isDecimal('abc')).toBe(false);
+  });
+});
+
+describe('compareDecimals', () => {
+  it.each([
+    ['-250.00', '-5.00', -1],
+    ['10', '9.99', 1],
+    ['1.50', '1.5', 0],
+    ['-0.00', '0', 0],
+    ['-1', '0.5', -1],
+    ['123456789012345678901234.000000000000000000000001', '123456789012345678901234', 1],
+  ] as const)('compares %s with %s', (left, right, expected) => {
+    expect(compareDecimals(left, right)).toBe(expected);
   });
 });
 
@@ -124,6 +137,20 @@ describe('validateRuleForm', () => {
       },
     });
     expect(result.amountInvalid).toBe(true);
+  });
+
+  it('flags an amount condition without any bound or with a minimum above its maximum', () => {
+    const amountInvalid = (min: string | null, max: string | null) =>
+      validateRuleForm({
+        ...valid,
+        conditions: { ...valid.conditions, amount: { assetCode: 'EUR', max, min } },
+      }).amountInvalid;
+
+    expect(amountInvalid(null, null)).toBe(true);
+    expect(amountInvalid('-5.00', '-250.00')).toBe(true);
+    expect(amountInvalid('-250.00', '-5.00')).toBe(false);
+    expect(amountInvalid('1.50', '1.5')).toBe(false);
+    expect(amountInvalid(null, '-5.00')).toBe(false);
   });
 
   it('flags an end date before the start date as invalid', () => {

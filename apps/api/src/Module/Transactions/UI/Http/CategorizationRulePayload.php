@@ -8,6 +8,8 @@ use App\Module\Transactions\Application\Categorization\CategorizationRuleInput;
 
 final readonly class CategorizationRulePayload
 {
+    private const string IDENTIFIER = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
+
     /** @param array<string, mixed> $fields */
     private function __construct(private array $fields)
     {
@@ -42,7 +44,7 @@ final readonly class CategorizationRulePayload
     public function input(bool $updating): CategorizationRuleInput
     {
         return new CategorizationRuleInput(
-            $this->string('label'), $this->integer('priority'), $this->strings('accountScope'),
+            $this->string('label'), $this->integer('priority'), $this->identifiers('accountScope'),
             $this->object('conditions'), $this->identifier('targetCategoryId'), $this->strings('targetAxes'),
             $this->nullableString('targetCounterparty'), $this->string('effectiveFrom'), $this->nullableString('effectiveTo'),
             $updating ? $this->boolean('active') : true, $updating ? $this->integer('version') : null,
@@ -120,10 +122,27 @@ final readonly class CategorizationRulePayload
     private function identifier(string $key): string
     {
         $value = $this->string($key);
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+        if (1 !== preg_match(self::IDENTIFIER, $value)) {
             throw new \UnexpectedValueException();
         }
 
         return $value;
+    }
+
+    /**
+     * Checked here because a malformed identifier would otherwise reach the
+     * database as a failed uuid cast instead of an unprocessable payload.
+     *
+     * @return list<string>
+     */
+    private function identifiers(string $key): array
+    {
+        return array_map(static function (string $item): string {
+            if (1 !== preg_match(self::IDENTIFIER, $item)) {
+                throw new \UnexpectedValueException();
+            }
+
+            return $item;
+        }, $this->strings($key));
     }
 }

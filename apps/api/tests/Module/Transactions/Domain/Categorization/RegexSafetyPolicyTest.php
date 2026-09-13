@@ -25,6 +25,7 @@ final class RegexSafetyPolicyTest extends TestCase
         yield 'nested quantifier' => ['(a+)+$', RegexSafetyPolicy::NESTED_QUANTIFIER];
         yield 'nested quantifier two levels deep' => ['((a)*b)+', RegexSafetyPolicy::NESTED_QUANTIFIER];
         yield 'nested counted quantifier' => ['(a{2,})*', RegexSafetyPolicy::NESTED_QUANTIFIER];
+        yield 'nested quantifier under an open lower count' => ['(a+){,50}', RegexSafetyPolicy::NESTED_QUANTIFIER];
         yield 'nested quantifier behind a non-capturing group' => ['(?:\s*x)+', RegexSafetyPolicy::NESTED_QUANTIFIER];
         yield 'atomic group' => ['(?>a+)b', RegexSafetyPolicy::POSSESSIVE];
         yield 'possessive star' => ['a*+b', RegexSafetyPolicy::POSSESSIVE];
@@ -54,6 +55,7 @@ final class RegexSafetyPolicyTest extends TestCase
         yield 'alternation' => ['carrefour|auchan'];
         yield 'leading case modifier' => ['(?i)^amazon'];
         yield 'counted digits' => ['\d{4}'];
+        yield 'count with an open lower bound' => ['\d{,4}'];
         yield 'quantified group without inner quantifier' => ['(?:ab)+'];
         yield 'quantifier after a capture' => ['[a-z]+\s(\d+)'];
         yield 'slash inside the pattern' => ['a/b'];

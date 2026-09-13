@@ -146,7 +146,8 @@ final readonly class RegexSafetyPolicy
             }
 
             $quantifierLength = in_array($character, ['*', '+', '?'], true) ? 1 : 0;
-            if ('{' === $character && 1 === preg_match('/\G\{[0-9]+(?:,[0-9]*)?\}/', $pattern, $match, 0, $i)) {
+            // PCRE2 10.43 and later also read `{,n}` as a counted quantifier.
+            if ('{' === $character && 1 === preg_match('/\G\{(?:[0-9]+(?:,[0-9]*)?|,[0-9]+)\}/', $pattern, $match, 0, $i)) {
                 $quantifierLength = strlen($match[0]);
             }
             if ($quantifierLength > 0) {

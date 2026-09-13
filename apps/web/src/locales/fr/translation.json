@@ -1704,14 +1704,15 @@
       "effectiveFromHint": "Les mouvements datés avant ce jour ne sont pas concernés.",
       "effectiveToHint": "Laisser vide pour une règle sans date de fin.",
       "priorityValue": "Priorité {{value}}",
-      "accountScopeClear": "Tous les comptes"
+      "accountScopeClear": "Tous les comptes",
+      "accountScopeUnavailable": "Compte clôturé ou archivé"
     },
     "validation": {
       "label": "Le libellé doit contenir entre 1 et 80 caractères.",
       "priority": "La priorité est un entier compris entre 1 et 999.",
       "conditions": "Ajoutez au moins une condition complète.",
       "textValue": "Saisissez un texte de 1 à 120 caractères.",
-      "amount": "Les bornes doivent être des décimaux canoniques et l’actif est obligatoire.",
+      "amount": "Renseignez au moins une borne en décimal exact, un minimum inférieur ou égal au maximum et un code actif.",
       "category": "Choisissez une catégorie active de cet espace.",
       "period": "La période est obligatoire et sa fin ne peut pas précéder son début.",
       "previewPeriod": "Choisissez une période historique valide."

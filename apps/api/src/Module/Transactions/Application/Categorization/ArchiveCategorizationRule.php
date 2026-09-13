@@ -29,6 +29,9 @@ final readonly class ArchiveCategorizationRule
             if ($version !== $current->version) {
                 throw new StaleCategorizationRule();
             }
+            if (null !== $current->archivedAt) {
+                throw new StaleCategorizationRule('archived');
+            }
             $archived = $current->archive($this->clock->now());
             if (!$this->rules->update($archived, $current->version)) {
                 throw new StaleCategorizationRule();

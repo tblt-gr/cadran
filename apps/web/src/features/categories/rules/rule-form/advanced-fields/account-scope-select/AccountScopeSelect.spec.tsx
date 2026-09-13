@@ -74,4 +74,22 @@ describe('AccountScopeSelect', () => {
     expect(documentEscape).not.toHaveBeenCalled();
     document.removeEventListener('keydown', documentEscape);
   });
+
+  it('keeps a scoped account that is no longer offered so it can be removed', () => {
+    const onToggle = vi.fn();
+    render(
+      <AccountScopeSelect
+        accounts={accounts}
+        onClear={vi.fn()}
+        onToggle={onToggle}
+        selected={['closed-account']}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Comptes concernés 1 compte/ }));
+    const unavailable = screen.getByRole('checkbox', { name: 'Compte clôturé ou archivé' });
+    expect((unavailable as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(unavailable);
+    expect(onToggle).toHaveBeenCalledWith('closed-account');
+  });
 });
