@@ -83,6 +83,14 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
         return jsonResponse({ items: [], page: 1, perPage: 50, total: 0 });
       }
 
+      if (url.includes('/api/v1/categories')) {
+        return jsonResponse({ items: [], page: 1, perPage: 50, total: 0 });
+      }
+
+      if (url.includes('/api/v1/categorization-rules')) {
+        return jsonResponse({ items: [], page: 1, perPage: 100, total: 0 });
+      }
+
       if (url.includes('/api/v1/net-worth/history')) {
         return jsonResponse({ asOf: '2026-09-05', granularity: 'MONTH', points: [] });
       }
@@ -153,6 +161,36 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Transactions' })).toBeTruthy();
     expect(window.location.pathname).toBe('/transactions');
     await waitFor(() => expect(document.title).toBe('Transactions · Cadran Budget'));
+  });
+
+  it('keeps categorization rules under Categories and navigates between both screens', async () => {
+    mockApi();
+    window.history.replaceState({}, '', '/categories');
+
+    renderApp();
+
+    const categoryLinks = await screen.findAllByRole('link', { name: 'Catégories' });
+    expect(categoryLinks.some((link) => link.getAttribute('aria-current') === 'page')).toBe(true);
+    expect(screen.queryByRole('link', { name: 'Règles de catégorisation' })).toBeNull();
+
+    const manageRules = screen.getByRole('link', { name: 'Gérer les règles' });
+    fireEvent.click(manageRules, { ctrlKey: true });
+    expect(window.location.pathname).toBe('/categories');
+
+    fireEvent.click(manageRules);
+
+    expect(window.location.pathname).toBe('/categories/rules');
+    expect(await screen.findAllByRole('heading', { name: 'Règles de catégorisation' })).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Retour aux catégories' })).toBeTruthy();
+
+    const backToCategories = screen.getByRole('link', { name: 'Retour aux catégories' });
+    fireEvent.click(backToCategories, { metaKey: true });
+    expect(window.location.pathname).toBe('/categories/rules');
+
+    fireEvent.click(backToCategories);
+
+    expect(window.location.pathname).toBe('/categories');
+    expect(await screen.findByRole('heading', { name: 'Catégories et axes analytiques' })).toBeTruthy();
   });
 
   it('shows a recoverable error inside the shell for a foundation network failure', async () => {

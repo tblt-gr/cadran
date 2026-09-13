@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { categorizationRuleErrorKind } from './categorizationRuleError';
 import { RuleAccountsNotice } from './rule-accounts/RuleAccountsNotice';
 import { RuleEditor } from './rule-editor/RuleEditor';
@@ -39,6 +40,13 @@ export function CategorizationRulesPage() {
           <span>{t('categorizationRules.description')}</span>
         </div>
         <div className={styles.introActions}>
+          <a
+            className="secondary-action"
+            href="/categories"
+            onClick={(event) => handleClientNavigation(event, '/categories')}
+          >
+            {t('categorizationRules.backToCategories')}
+          </a>
           <button
             className="secondary-action"
             onClick={() => previewWorkflow.open(null)}

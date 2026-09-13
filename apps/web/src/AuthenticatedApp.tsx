@@ -64,7 +64,7 @@ export function AuthenticatedApp() {
     content = <AccountGroupsPage />;
   } else if (path === '/categories') {
     content = <CategoryPage />;
-  } else if (path === '/categorization-rules') {
+  } else if (path === '/categories/rules') {
     content = <CategorizationRulesPage />;
   } else if (path === '/catalog') {
     content = <ProductCatalogPage />;
@@ -102,7 +102,7 @@ export function AuthenticatedApp() {
         path !== '/accounts' &&
         path !== '/account-groups' &&
         path !== '/categories' &&
-        path !== '/categorization-rules' &&
+        path !== '/categories/rules' &&
         path !== '/catalog' &&
         path !== '/product-models' &&
         path !== '/transactions' &&
