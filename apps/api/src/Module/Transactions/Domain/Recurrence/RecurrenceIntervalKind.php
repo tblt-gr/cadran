@@ -47,6 +47,17 @@ enum RecurrenceIntervalKind: string
         };
     }
 
+    /** How many months separate two instalments; meaningless for a weekly rhythm, which steps in days. */
+    public function monthStep(): int
+    {
+        return match ($this) {
+            self::WEEKLY => 0,
+            self::MONTHLY => 1,
+            self::QUARTERLY => 3,
+            self::YEARLY => 12,
+        };
+    }
+
     /** `day_of_period` is an ISO weekday for a weekly rhythm, a day of month otherwise. */
     public function accepts(int $dayOfPeriod): bool
     {
