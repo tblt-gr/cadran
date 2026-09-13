@@ -1663,7 +1663,25 @@
       "title": "Session expirée",
       "description": "Reconnectez-vous pour accéder aux règles de cet espace."
     },
+    "references": {
+      "loading": "Chargement des comptes disponibles pour la portée de la règle…",
+      "error": {
+        "title": "Comptes indisponibles",
+        "description": "Les comptes doivent être chargés avant de créer ou modifier une règle. Réessayez."
+      },
+      "unauthorized": {
+        "title": "Session expirée",
+        "description": "Reconnectez-vous avant de créer ou modifier une règle."
+      }
+    },
+    "pagination": {
+      "label": "Pagination des règles de catégorisation",
+      "previous": "Page précédente",
+      "next": "Page suivante",
+      "position": "Page {{page}} sur {{total}}"
+    },
     "errors": {
+      "executionLimit": "Les règles actives ou la période choisie dépassent la limite d’exécution sûre (200 règles actives ou le budget de temps alloué). Réduisez le nombre de règles actives ou raccourcissez la période, puis réessayez.",
       "invalid": "La règle ou la période demandée est invalide. Vérifiez les références et le motif régulier.",
       "network": "L’opération a échoué. Réessayez.",
       "stale": "Les données ont changé depuis la prévisualisation. Prévisualisez à nouveau avant d’appliquer.",
@@ -1784,6 +1802,10 @@
       "wouldChange": "À modifier",
       "skippedManual": "Manuelles préservées",
       "conflicts": "Conflits",
+      "conflictDetails": "Conflits détectés",
+      "conflictTransaction": "Transaction :",
+      "conflictRules": "Règles :",
+      "conflictsTruncated": "20 exemples maximum sont affichés sur {{count}} conflits.",
       "zeroMatch": "Aucun mouvement ne correspond à cette prévisualisation.",
       "noCategory": "Sans catégorie",
       "deactivated": "Une règle a été désactivée pour protéger l’exécution de son motif.",

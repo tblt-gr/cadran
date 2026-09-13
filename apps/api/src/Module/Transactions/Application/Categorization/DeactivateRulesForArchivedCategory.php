@@ -16,8 +16,13 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(CategoryArchivalSideEffect::class)]
 final readonly class DeactivateRulesForArchivedCategory implements CategoryArchivalSideEffect
 {
-    public function __construct(private CategorizationRuleRepository $rules, private RecordAuditEvent $audit)
+    public function __construct(private CategorizationRuleRepository $rules, private CategorizationWriteLock $writeLock, private RecordAuditEvent $audit)
     {
+    }
+
+    public function lockWorkspace(WorkspaceScope $workspace): void
+    {
+        $this->writeLock->acquire($workspace);
     }
 
     public function apply(WorkspaceScope $workspace, string $categoryId, ?string $actorId, \DateTimeImmutable $at): void

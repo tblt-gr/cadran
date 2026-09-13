@@ -1,6 +1,6 @@
 import type { CategorizationRule } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import type { CategorizationRuleErrorKind } from '../categorizationRuleError';
+import type { CategorizationRuleErrorKind } from '@/features/categorization-rules/categorizationRuleError';
 import styles from './RuleArchiveDialog.module.css';
 
 interface RuleActivationDialogProps {

@@ -17,8 +17,8 @@ interface CategorizationRuleRepository
 
     public function count(WorkspaceScope $workspace, bool $includeArchived): int;
 
-    /** @return list<CategorizationRule> every active, non-archived rule, in resolution order */
-    public function activeInOrder(WorkspaceScope $workspace): array;
+    /** @return list<CategorizationRule> active, non-archived rules, in resolution order and bounded by the caller */
+    public function activeInOrder(WorkspaceScope $workspace, int $limit): array;
 
     /** @return list<CategorizationRule> the active rules targeting a category, locked */
     public function activeTargetingForUpdate(WorkspaceScope $workspace, string $categoryId): array;

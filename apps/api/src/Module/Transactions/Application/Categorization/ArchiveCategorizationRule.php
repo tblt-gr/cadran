@@ -14,7 +14,7 @@ use Symfony\Component\Clock\ClockInterface;
 
 final readonly class ArchiveCategorizationRule
 {
-    public function __construct(private CallerWorkspaceContext $caller, private CategorizationRuleRepository $rules, private TransactionBoundary $boundary, private RecordAuditEvent $audit, private PresentCategorizationRule $presenter, private ClockInterface $clock)
+    public function __construct(private CallerWorkspaceContext $caller, private CategorizationRuleRepository $rules, private TransactionBoundary $boundary, private CategorizationWriteLock $writeLock, private RecordAuditEvent $audit, private PresentCategorizationRule $presenter, private ClockInterface $clock)
     {
     }
 
@@ -24,6 +24,7 @@ final readonly class ArchiveCategorizationRule
         $context = $this->caller->resolveContext();
 
         return $this->boundary->transactional(function () use ($context, $id, $version): array {
+            $this->writeLock->acquire($context->workspace);
             $current = $this->rules->findForUpdate($context->workspace, $id) ?? throw new CategorizationRuleNotFound();
             if ($version !== $current->version) {
                 throw new StaleCategorizationRule();

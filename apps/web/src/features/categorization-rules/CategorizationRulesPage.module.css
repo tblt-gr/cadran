@@ -12,9 +12,7 @@
 }
 .intro p,
 .intro h2,
-.intro span,
-.state h2,
-.state p {
+.intro span {
   margin: var(--spacing-none);
 }
 .intro p {
@@ -28,20 +26,10 @@
   margin-top: var(--spacing-1);
   font-size: var(--font-size-kpi);
 }
-.intro span,
-.state p {
+.intro span {
   color: var(--text-secondary);
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
-}
-.state {
-  display: flex;
-  min-height: 14rem;
-  align-items: flex-start;
-  justify-content: center;
-  flex-direction: column;
-  padding: var(--spacing-8);
-  gap: var(--spacing-3);
 }
 @media (max-width: 42rem) {
   .intro,
@@ -51,8 +39,5 @@
   }
   .introActions button {
     width: 100%;
-  }
-  .state {
-    padding: var(--spacing-6);
   }
 }

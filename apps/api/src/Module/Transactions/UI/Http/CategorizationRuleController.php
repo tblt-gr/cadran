@@ -7,6 +7,7 @@ namespace App\Module\Transactions\UI\Http;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Transactions\Application\Categorization\ApplyCategorizationRules;
 use App\Module\Transactions\Application\Categorization\ArchiveCategorizationRule;
+use App\Module\Transactions\Application\Categorization\CategorizationExecutionLimitExceeded;
 use App\Module\Transactions\Application\Categorization\CategorizationRangeTooLarge;
 use App\Module\Transactions\Application\Categorization\CategorizationRuleNotFound;
 use App\Module\Transactions\Application\Categorization\CreateCategorizationRule;
@@ -65,6 +66,8 @@ final readonly class CategorizationRuleController
             return $this->problem(422, '/problems/rules.unsafe_pattern', ['reason' => $exception->reason, 'field' => $exception->field]);
         } catch (InvalidCategorizationReference) {
             return $this->problem(422, '/problems/rules.invalid_reference');
+        } catch (CategorizationExecutionLimitExceeded) {
+            return $this->problem(422, '/problems/rules.execution_limit');
         } catch (InvalidCategorizationRuleInput|\UnexpectedValueException) {
             return $this->problem(422, '/problems/rules.invalid');
         } catch (WorkspaceAccessDenied) {
@@ -94,6 +97,8 @@ final readonly class CategorizationRuleController
             return $this->problem(404, '/problems/rules.not_found');
         } catch (StaleCategorizationRule $exception) {
             return 'archived' === $exception->getMessage() ? $this->problem(409, '/problems/rules.archived') : $this->problem(409, '/problems/stale-version');
+        } catch (CategorizationExecutionLimitExceeded) {
+            return $this->problem(422, '/problems/rules.execution_limit');
         } catch (InvalidCategorizationRuleInput|\UnexpectedValueException) {
             return $this->problem(422, '/problems/rules.invalid');
         } catch (WorkspaceAccessDenied) {
@@ -147,6 +152,8 @@ final readonly class CategorizationRuleController
             return $this->problem(404, '/problems/rules.not_found');
         } catch (CategorizationRangeTooLarge) {
             return $this->problem(422, '/problems/rules.range_too_large');
+        } catch (CategorizationExecutionLimitExceeded) {
+            return $this->problem(422, '/problems/rules.execution_limit');
         } catch (InvalidCategorizationRuleInput|\UnexpectedValueException) {
             return $this->problem(422, '/problems/rules.invalid');
         } catch (WorkspaceAccessDenied) {
@@ -171,6 +178,8 @@ final readonly class CategorizationRuleController
             return $this->envelope->json($apply($token));
         } catch (PreviewStale) {
             return $this->problem(409, '/problems/rules.preview_stale');
+        } catch (CategorizationExecutionLimitExceeded) {
+            return $this->problem(422, '/problems/rules.execution_limit');
         } catch (\UnexpectedValueException) {
             return $this->problem(422, '/problems/rules.invalid');
         } catch (WorkspaceAccessDenied) {

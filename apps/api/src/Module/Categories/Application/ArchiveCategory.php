@@ -37,6 +37,7 @@ final readonly class ArchiveCategory
         $context = $this->caller->resolveContext();
 
         return $this->transactionBoundary->transactional(function () use ($id, $expectedVersion, $context): CategoryView {
+            $this->archivalSideEffect->lockWorkspace($context->workspace);
             $impact = ($this->assessImpact)(
                 $context->workspace,
                 CategoryLifecycleOperation::ARCHIVE,

@@ -1,0 +1,32 @@
+.referencesState {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  color: var(--text-secondary);
+  background: var(--bg-surface-1);
+  gap: var(--spacing-4);
+}
+.referencesState p {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+.referencesState h3 {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+.referencesError {
+  border-color: var(--negative);
+  color: var(--negative);
+  background: var(--negative-soft);
+}
+@media (max-width: 42rem) {
+  .referencesState {
+    flex-direction: column;
+  }
+}

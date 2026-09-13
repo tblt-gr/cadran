@@ -9,6 +9,7 @@ use App\Module\Categories\Domain\CategoryType;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Transactions\Application\Categorization\CategorizationExecutionLimitExceeded;
 use App\Module\Transactions\Application\Categorization\CategorizationResolver;
 use App\Module\Transactions\Application\Categorization\RuleMatchingRun;
 use App\Module\Transactions\Domain\Categorization\CategorizationRule;
@@ -113,7 +114,7 @@ final class CategorizationResolverTest extends TestCase
         $resolution = $this->resolver->resolve([$first, $second], $this->categories(), $this->subject(), new RuleMatchingRun($timer), firstMatchOnly: true);
 
         self::assertSame(self::RULE_A, $resolution->winner?->id);
-        self::assertSame(0, $timer->readings);
+        self::assertSame(2, $timer->readings, 'Only the run guard and the winning non-regex rule are timed.');
     }
 
     public function testABacktrackExplosionTripsTheRuleForTheRestOfTheRun(): void
@@ -153,6 +154,73 @@ final class CategorizationResolverTest extends TestCase
         $resolution = $this->resolver->resolve([$exploding, $fallback], $this->categories(), $this->subject(rawLabel: str_repeat('a', 40).'!'), $run, firstMatchOnly: true);
 
         self::assertSame(self::RULE_B, $resolution->winner?->id);
+    }
+
+    public function testTheRunStopsAtItsGlobalEvaluationLimit(): void
+    {
+        $run = new RuleMatchingRun(new SteppingElapsedTime(1), maxEvaluations: 1);
+        $rule = $this->rule(self::RULE_A, 1);
+
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $run, firstMatchOnly: false);
+
+        $this->expectException(CategorizationExecutionLimitExceeded::class);
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $run, firstMatchOnly: false);
+    }
+
+    public function testDroppingRulesFromAResolutionPromotesTheNextMatchingRule(): void
+    {
+        $a = $this->rule(self::RULE_A, 1);
+        $b = $this->rule(self::RULE_B, 2);
+        $c = $this->rule(self::RULE_C, 3);
+        $resolution = $this->resolver->resolve([$a, $b, $c], $this->categories(), $this->subject(), $this->matchingRun(), firstMatchOnly: false);
+
+        $withoutWinner = $resolution->withoutRules([self::RULE_A], [self::RULE_B => $b, self::RULE_C => $c]);
+        $withoutAll = $resolution->withoutRules([self::RULE_A, self::RULE_B, self::RULE_C], []);
+        $untouched = $resolution->withoutRules([self::RULE_B], [self::RULE_A => $a, self::RULE_C => $c]);
+
+        self::assertSame($b, $withoutWinner->winner);
+        self::assertSame([self::RULE_B, self::RULE_C], $withoutWinner->matchingRuleIds);
+        self::assertNull($withoutAll->winner);
+        self::assertSame([], $withoutAll->matchingRuleIds);
+        self::assertSame($a, $untouched->winner);
+        self::assertSame([self::RULE_A, self::RULE_C], $untouched->matchingRuleIds);
+    }
+
+    public function testASecondPassGetsAFreshEvaluationCapInsteadOfInheritingTheFirstPassCount(): void
+    {
+        $firstPass = new RuleMatchingRun(new SteppingElapsedTime(1), maxEvaluations: 2);
+        $rule = $this->rule(self::RULE_A, 1);
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $firstPass, firstMatchOnly: false);
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $firstPass, firstMatchOnly: false);
+
+        $secondPass = $firstPass->nextPass();
+        $resolution = $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $secondPass, firstMatchOnly: false);
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $secondPass, firstMatchOnly: false);
+
+        self::assertSame(self::RULE_A, $resolution->winner?->id);
+        $this->expectException(CategorizationExecutionLimitExceeded::class);
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $secondPass, firstMatchOnly: false);
+    }
+
+    public function testTheRuntimeLimitStaysCumulativeAcrossPasses(): void
+    {
+        // Construction reads 0, then each evaluation reads 10 ms later: the second pass starts at 20 ms.
+        $firstPass = new RuleMatchingRun(new SteppingElapsedTime(10_000_000), maxRunNanoseconds: 25_000_000);
+        $rule = $this->rule(self::RULE_A, 1);
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $firstPass, firstMatchOnly: false);
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $firstPass, firstMatchOnly: false);
+
+        $this->expectException(CategorizationExecutionLimitExceeded::class);
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $firstPass->nextPass(), firstMatchOnly: false);
+    }
+
+    public function testTheRunStopsAtItsGlobalRuntimeLimitWithoutChangingThePerRuleBudget(): void
+    {
+        $run = new RuleMatchingRun(new SteppingElapsedTime(30_000_000), maxRunNanoseconds: 20_000_000);
+        $rule = $this->rule(self::RULE_A, 1);
+
+        $this->expectException(CategorizationExecutionLimitExceeded::class);
+        $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $run, firstMatchOnly: false);
     }
 
     private function matchingRun(): RuleMatchingRun

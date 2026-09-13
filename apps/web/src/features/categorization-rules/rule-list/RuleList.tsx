@@ -4,6 +4,8 @@ import { RuleRow } from './RuleRow';
 import styles from './RuleList.module.css';
 
 interface RuleListProps {
+  busy?: boolean;
+  canEdit: boolean;
   onArchive: (rule: CategorizationRule) => void;
   onEdit: (rule: CategorizationRule) => void;
   onPreview: (rule: CategorizationRule) => void;
@@ -11,10 +13,18 @@ interface RuleListProps {
   rules: CategorizationRule[];
 }
 
-export function RuleList({ onArchive, onEdit, onPreview, onToggle, rules }: RuleListProps) {
+export function RuleList({
+  busy = false,
+  canEdit,
+  onArchive,
+  onEdit,
+  onPreview,
+  onToggle,
+  rules,
+}: RuleListProps) {
   const { t } = useTranslation();
   return (
-    <div className={`card ${styles.panel}`}>
+    <div aria-busy={busy || undefined} className={`card ${styles.panel}`}>
       <div className={styles.scroll}>
         <table>
           <caption className="sr-only">{t('categorizationRules.list.caption')}</caption>
@@ -34,6 +44,7 @@ export function RuleList({ onArchive, onEdit, onPreview, onToggle, rules }: Rule
           <tbody>
             {rules.map((rule) => (
               <RuleRow
+                canEdit={canEdit}
                 key={rule.id}
                 onArchive={onArchive}
                 onEdit={onEdit}

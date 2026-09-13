@@ -1,8 +1,10 @@
 import type { Problem } from '@cadran/api-client';
 
-export type CategorizationRuleErrorKind = 'invalid' | 'network' | 'stale' | 'unauthorized';
+export type CategorizationRuleErrorKind =
+  'executionLimit' | 'invalid' | 'network' | 'stale' | 'unauthorized';
 
 const PREVIEW_STALE = '/problems/rules.preview_stale';
+const EXECUTION_LIMIT = '/problems/rules.execution_limit';
 
 export class CategorizationRuleRequestError extends Error {
   readonly kind: CategorizationRuleErrorKind;
@@ -12,11 +14,13 @@ export class CategorizationRuleRequestError extends Error {
     this.kind =
       problem?.type === PREVIEW_STALE || status === 409
         ? 'stale'
-        : status === 401 || status === 403
-          ? 'unauthorized'
-          : status === 400 || status === 404 || status === 422
-            ? 'invalid'
-            : 'network';
+        : problem?.type === EXECUTION_LIMIT
+          ? 'executionLimit'
+          : status === 401 || status === 403
+            ? 'unauthorized'
+            : status === 400 || status === 404 || status === 422
+              ? 'invalid'
+              : 'network';
   }
 }
 

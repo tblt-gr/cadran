@@ -13,6 +13,10 @@ use App\Module\Transactions\Domain\Categorization\RegexSafetyPolicy;
  * under a PCRE backtrack limit and is timed against a cumulated per-rule
  * budget; a rule that trips either bound stops matching for the rest of the
  * run and is reported, so the caller can deactivate it instead of retrying.
+ *
+ * The evaluation cap bounds one resolution pass; a pass started with nextPass()
+ * gets a fresh count, while the run-wide runtime limit and the per-rule budgets
+ * remain cumulative from the first pass.
  */
 final class RuleMatchingRun
 {
@@ -23,13 +27,23 @@ final class RuleMatchingRun
     private array $spent = [];
     /** @var array<string, true> */
     private array $tripped = [];
+    private int $evaluations = 0;
+    private readonly int $startedAt;
 
-    public function __construct(private readonly ElapsedTime $clock)
-    {
+    public function __construct(
+        private readonly ElapsedTime $clock,
+        private readonly int $maxEvaluations = CategorizationExecutionLimits::MAX_RULE_EVALUATIONS,
+        private readonly int $maxRunNanoseconds = CategorizationExecutionLimits::MAX_RUN_NANOSECONDS,
+    ) {
+        $this->startedAt = $this->clock->nanoseconds();
     }
 
     public function matches(CategorizationRule $rule, CategorizationSubject $subject): bool
     {
+        ++$this->evaluations;
+        if ($this->evaluations > $this->maxEvaluations || $this->clock->nanoseconds() - $this->startedAt > $this->maxRunNanoseconds) {
+            throw new CategorizationExecutionLimitExceeded($this->trippedRuleIds());
+        }
         if (isset($this->tripped[$rule->id])) {
             return false;
         }
@@ -41,6 +55,14 @@ final class RuleMatchingRun
 
             return false;
         }
+    }
+
+    public function nextPass(): self
+    {
+        $next = clone $this;
+        $next->evaluations = 0;
+
+        return $next;
     }
 
     /** @return list<string> */

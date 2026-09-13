@@ -45,11 +45,11 @@ final readonly class DbalCategorizationPreviewRepository implements Categorizati
         );
     }
 
-    public function markConsumed(WorkspaceScope $workspace, string $id, \DateTimeImmutable $consumedAt): void
+    public function markTokenConsumed(WorkspaceScope $workspace, string $token, \DateTimeImmutable $consumedAt): void
     {
         $this->connection->executeStatement(
-            'UPDATE transaction_categorization_previews SET consumed_at = :consumed_at WHERE workspace_id = :workspace_id AND id = :id AND consumed_at IS NULL',
-            ['consumed_at' => $consumedAt->format('Y-m-d H:i:s.uP'), 'workspace_id' => $workspace->id, 'id' => $id],
+            'UPDATE transaction_categorization_previews SET consumed_at = :consumed_at WHERE workspace_id = :workspace_id AND preview_token = :token AND consumed_at IS NULL',
+            ['consumed_at' => $consumedAt->format('Y-m-d H:i:s.uP'), 'workspace_id' => $workspace->id, 'token' => $token],
         );
     }
 

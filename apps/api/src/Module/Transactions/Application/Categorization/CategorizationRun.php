@@ -15,7 +15,7 @@ final readonly class CategorizationRun
      * @param array<string, RuleResolution> $resolutions
      * @param list<string>                  $deactivatedRuleIds
      */
-    public function __construct(public string $workspaceId, public array $rules, public array $transactions, public array $resolutions, public array $deactivatedRuleIds)
+    public function __construct(public string $workspaceId, public array $rules, public array $transactions, public array $resolutions, public array $deactivatedRuleIds, public bool $executionLimitExceeded = false)
     {
     }
 

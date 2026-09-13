@@ -2,7 +2,7 @@ import type { CategorizationApplyReport, CategorizationPreview } from '@cadran/a
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { todayInBrowser } from '@/lib/businessDay';
-import type { CategorizationRuleErrorKind } from '../categorizationRuleError';
+import type { CategorizationRuleErrorKind } from '@/features/categorization-rules/categorizationRuleError';
 import styles from './RulePreviewDialog.module.css';
 
 interface RulePreviewDialogProps {
@@ -14,6 +14,7 @@ interface RulePreviewDialogProps {
   previewError: CategorizationRuleErrorKind | null;
   previewPending: boolean;
   ruleLabel?: string;
+  ruleLabelById?: Record<string, string>;
 }
 
 export function RulePreviewDialog({
@@ -25,6 +26,7 @@ export function RulePreviewDialog({
   previewError,
   previewPending,
   ruleLabel,
+  ruleLabelById = {},
 }: RulePreviewDialogProps) {
   const { t } = useTranslation();
   const today = todayInBrowser();
@@ -115,12 +117,12 @@ export function RulePreviewDialog({
             </div>
             <div>
               <dt>{t('categorizationRules.preview.conflicts')}</dt>
-              <dd>{preview.conflicts.length}</dd>
+              <dd>{preview.conflictCount}</dd>
             </div>
           </dl>
-          {preview.samples.length === 0 ? (
+          {preview.matched === 0 ? (
             <p>{t('categorizationRules.preview.zeroMatch')}</p>
-          ) : (
+          ) : preview.samples.length > 0 ? (
             <ul className={styles.samples}>
               {preview.samples.map((sample) => (
                 <li key={sample.transactionId}>
@@ -130,7 +132,31 @@ export function RulePreviewDialog({
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
+          {preview.conflicts.length > 0 ? (
+            <section aria-labelledby="categorization-conflicts-title" className={styles.conflicts}>
+              <h3 id="categorization-conflicts-title">
+                {t('categorizationRules.preview.conflictDetails')}
+              </h3>
+              <ul>
+                {preview.conflicts.map((conflict) => (
+                  <li key={conflict.transactionId}>
+                    <span>{t('categorizationRules.preview.conflictTransaction')}</span>{' '}
+                    <code>{conflict.transactionId}</code>{' '}
+                    <span>{t('categorizationRules.preview.conflictRules')}</span>{' '}
+                    {conflict.ruleIds.map((id) => ruleLabelById[id] ?? id).join(', ')}
+                  </li>
+                ))}
+              </ul>
+              {preview.conflictsTruncated ? (
+                <p>
+                  {t('categorizationRules.preview.conflictsTruncated', {
+                    count: preview.conflictCount,
+                  })}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
           {preview.deactivatedRuleIds.length > 0 ? (
             <p className={styles.alert} role="alert">
               {t('categorizationRules.preview.deactivated')}

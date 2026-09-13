@@ -1,6 +1,6 @@
 import type { CategorizationRuleConditions, RuleTextCondition } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import styles from '../RuleForm.module.css';
+import styles from '@/features/categorization-rules/rule-form/RuleForm.module.css';
 
 type TextField = 'counterparty' | 'normalizedLabel' | 'rawLabel';
 

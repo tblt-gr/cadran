@@ -14,7 +14,7 @@ use Symfony\Component\Clock\ClockInterface;
 
 final readonly class UpdateCategorizationRule
 {
-    public function __construct(private CallerWorkspaceContext $caller, private CategorizationRuleRepository $rules, private CategorizationRuleFactory $factory, private TransactionBoundary $boundary, private RecordAuditEvent $audit, private PresentCategorizationRule $presenter, private ClockInterface $clock)
+    public function __construct(private CallerWorkspaceContext $caller, private CategorizationRuleRepository $rules, private CategorizationRuleFactory $factory, private TransactionBoundary $boundary, private CategorizationWriteLock $writeLock, private RecordAuditEvent $audit, private PresentCategorizationRule $presenter, private ClockInterface $clock)
     {
     }
 
@@ -24,6 +24,7 @@ final readonly class UpdateCategorizationRule
         $context = $this->caller->resolveContext();
 
         return $this->boundary->transactional(function () use ($context, $id, $input): array {
+            $this->writeLock->acquire($context->workspace);
             $current = $this->rules->findForUpdate($context->workspace, $id) ?? throw new CategorizationRuleNotFound();
             if ($input->version !== $current->version) {
                 throw new StaleCategorizationRule();
@@ -32,6 +33,10 @@ final readonly class UpdateCategorizationRule
                 throw new StaleCategorizationRule('archived');
             }
             $updated = $this->factory->revise($current, $input, $this->clock->now());
+            if (!$current->active && $updated->active
+                && count($this->rules->activeInOrder($context->workspace, CategorizationExecutionLimits::MAX_ACTIVE_RULES)) >= CategorizationExecutionLimits::MAX_ACTIVE_RULES) {
+                throw new CategorizationExecutionLimitExceeded();
+            }
             if (!$this->rules->update($updated, $current->version)) {
                 throw new StaleCategorizationRule();
             }

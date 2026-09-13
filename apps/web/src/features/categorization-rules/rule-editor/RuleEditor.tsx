@@ -6,8 +6,8 @@ import type {
 } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
-import type { CategorizationRuleErrorKind } from '../categorizationRuleError';
-import { RuleForm } from '../rule-form/RuleForm';
+import type { CategorizationRuleErrorKind } from '@/features/categorization-rules/categorizationRuleError';
+import { RuleForm } from '@/features/categorization-rules/rule-form/RuleForm';
 
 interface RuleEditorProps {
   accounts: Account[];
@@ -42,7 +42,6 @@ export function RuleEditor({
     >
       <RuleForm
         accounts={accounts}
-        onCancel={close}
         onSubmit={onSubmit}
         pending={pending}
         rule={rule}

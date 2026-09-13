@@ -6,6 +6,10 @@ namespace App\Tests\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Module\Transactions\Application\Categorization\CategorizationExecutionBudget;
+use App\Module\Transactions\Infrastructure\Clock\HrtimeElapsedTime;
+use App\Module\Transactions\Infrastructure\Persistence\DbalCategorizationWriteLock;
+use App\Tests\Module\Transactions\Application\Double\SteppingElapsedTime;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -279,8 +283,9 @@ final class CategorizationRuleControllerTest extends WebTestCase
         $this->requestPreview(null, '2026-01-01', '2026-03-31');
         self::assertResponseIsSuccessful();
         $preview = $this->decode();
+        self::assertSame(self::text($preview, 'previewToken'), $this->preview(null), 'Identical state has the same deterministic token.');
         self::assertSame(
-            ['previewToken', 'matched', 'wouldChange', 'skippedManual', 'conflicts', 'samples', 'skipped', 'deactivatedRuleIds'],
+            ['previewToken', 'matched', 'wouldChange', 'skippedManual', 'conflictCount', 'conflicts', 'conflictsTruncated', 'samples', 'skipped', 'deactivatedRuleIds'],
             array_keys($preview),
         );
         self::assertMatchesRegularExpression('/^[0-9a-f]{64}$/D', self::text($preview, 'previewToken'));
@@ -289,7 +294,9 @@ final class CategorizationRuleControllerTest extends WebTestCase
         self::assertSame(3, $preview['matched']);
         self::assertSame(2, $preview['wouldChange']);
         self::assertSame(1, $preview['skippedManual']);
+        self::assertSame(0, $preview['conflictCount']);
         self::assertSame([], $preview['conflicts']);
+        self::assertFalse($preview['conflictsTruncated']);
         self::assertSame([['transactionId' => self::TX_MANUAL, 'bookedOn' => '2026-02-05', 'reason' => 'MANUAL_CATEGORIZATION']], $preview['skipped']);
         self::assertSame([
             ['transactionId' => self::TX_CARREFOUR, 'bookedOn' => '2026-02-03', 'currentCategoryId' => null, 'targetCategoryId' => self::OWN_EXPENSE],
@@ -342,13 +349,45 @@ final class CategorizationRuleControllerTest extends WebTestCase
 
         $this->requestPreview(null, '2026-01-01', '2026-03-31');
         $preview = $this->decode();
-        self::assertSame([['transactionId' => self::TX_CARREFOUR, 'ruleIds' => [$winning['id'], $losing['id']]]], $preview['conflicts']);
+        self::assertSame([
+            ['transactionId' => self::TX_CARREFOUR, 'ruleIds' => [$winning['id'], $losing['id']]],
+            ['transactionId' => self::TX_MANUAL, 'ruleIds' => [$winning['id'], $losing['id']]],
+            ['transactionId' => self::TX_IMPORTED, 'ruleIds' => [$winning['id'], $losing['id']]],
+        ], $preview['conflicts'], 'Conflicts include imported as well as manually entered sources.');
+        self::assertSame(3, $preview['conflictCount']);
+        self::assertFalse($preview['conflictsTruncated']);
         self::assertSame(self::OWN_EXPENSE, $this->samples($preview)[0]['targetCategoryId']);
 
         $this->requestPreview(self::text($losing, 'id'), '2026-01-01', '2026-03-31');
         $single = $this->decode();
         self::assertSame(3, $single['matched']);
         self::assertSame(0, $single['wouldChange'], 'A lower-priority rule never displaces the winning rule.');
+    }
+
+    public function testConflictOutputIsBoundedIndependentlyOfTheEligibleSourceCount(): void
+    {
+        $this->connection->executeStatement(
+            "INSERT INTO transaction_transactions (id, workspace_id, account_id, asset_code, amount_value, amount_scale, state, nature, source, source_ref, booked_on, raw_label, version, created_at, updated_at)
+             SELECT gen_random_uuid(), :workspace, :account, 'EUR', -10.00, 2, 'BOOKED', 'EXPENSE', CASE WHEN g % 2 = 0 THEN 'IMPORT' ELSE 'MANUAL' END, CASE WHEN g % 2 = 0 THEN 'import-' || g ELSE NULL END, DATE '2026-02-01', 'CONFLICT ' || g, 1, now(), now()
+             FROM generate_series(1, 25) AS g",
+            ['workspace' => WorkspaceFixture::OWN_WORKSPACE, 'account' => self::OWN_ACCOUNT],
+        );
+        $this->createRule(['label' => 'Winner', 'priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'conflict']]]);
+        $this->createRule(['label' => 'Loser', 'priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'conflict']]]);
+
+        $this->requestPreview(null, '2026-01-01', '2026-03-31');
+        $preview = $this->decode();
+        $conflicts = $this->conflicts($preview);
+
+        self::assertSame(25, $preview['matched']);
+        self::assertSame(25, $preview['conflictCount']);
+        self::assertCount(20, $conflicts);
+        self::assertTrue($preview['conflictsTruncated']);
+        self::assertContains('IMPORT', $this->connection->fetchFirstColumn(
+            'SELECT DISTINCT source FROM transaction_transactions WHERE id IN (?)',
+            [array_column($conflicts, 'transactionId')],
+            [\Doctrine\DBAL\ArrayParameterType::STRING],
+        ));
     }
 
     public function testAManualEditAfterThePreviewMakesTheApplyStale(): void
@@ -370,6 +409,52 @@ final class CategorizationRuleControllerTest extends WebTestCase
         self::assertSame([], $this->splitRows(self::TX_IMPORTED), 'A stale run writes nothing.');
     }
 
+    public function testApplyManualEditsAndOutsideToInsideMovesContendForTheWorkspaceSerializationLock(): void
+    {
+        $this->seedHistory();
+        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $token = $this->preview(null);
+
+        self::assertSame('blocked', $this->runWhileWorkspaceIsLocked('apply', $token));
+        self::assertSame([], $this->splitRows(self::TX_CARREFOUR));
+        self::assertSame('blocked', $this->runWhileWorkspaceIsLocked('manual', self::TX_CARREFOUR));
+        self::assertSame([], $this->splitRows(self::TX_CARREFOUR));
+        self::assertSame('blocked', $this->runWhileWorkspaceIsLocked('move', self::TX_LATER));
+        self::assertSame('2026-05-01', self::text(['date' => $this->connection->fetchOne('SELECT booked_on FROM transaction_transactions WHERE id = ?', [self::TX_LATER])], 'date'));
+        self::assertSame('blocked', $this->runWhileWorkspaceIsLocked('rule', self::text($rule, 'id')));
+        self::assertSame(1, $this->ruleVersion(self::text($rule, 'id')));
+    }
+
+    public function testTheSerializationLockDoesNotBlockInsertsReferencingTheWorkspace(): void
+    {
+        // Every foreign-key insert takes KEY SHARE on the workspace row; an exclusive row lock
+        // would make it wait on the categorisation lock and open deadlock cycles.
+        self::assertSame('completed', $this->runWhileWorkspaceIsLocked('reference', '00000000-0000-7000-8000-0000000000c6'));
+        self::assertSame(1, (int) self::text(['n' => $this->connection->fetchOne('SELECT count(*) FROM category_categories WHERE id = ?', ['00000000-0000-7000-8000-0000000000c6'])], 'n'));
+    }
+
+    public function testMovingAnOutsideTransactionIntoThePreviewRangeMakesApplyStale(): void
+    {
+        $this->seedHistory();
+        $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $token = $this->preview(null);
+
+        $this->requestTransactionUpdate(self::TX_LATER, [...$this->transactionPayload([
+            'amount' => ['value' => '-5.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-02-15',
+            'rawLabel' => 'CB CARREFOUR LATER',
+            'counterparty' => null,
+            'paymentMethod' => null,
+        ]), 'version' => 1]);
+        self::assertResponseIsSuccessful();
+
+        $this->requestApply($token);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/rules.preview_stale', $this->decode()['type']);
+        self::assertSame([], $this->splitRows(self::TX_CARREFOUR));
+        self::assertSame([], $this->splitRows(self::TX_LATER));
+    }
+
     public function testARuleEditOrAnExpiryAfterThePreviewMakesTheApplyStale(): void
     {
         $this->seedHistory();
@@ -385,6 +470,249 @@ final class CategorizationRuleControllerTest extends WebTestCase
         $this->requestApply($fresh);
         self::assertResponseStatusCodeSame(409);
         self::assertSame([], $this->splitRows(self::TX_CARREFOUR));
+    }
+
+    public function testARuleRevisionThatFillsAnEmptyCounterpartyIsARealChange(): void
+    {
+        $this->seedHistory();
+        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $this->requestApply($this->preview(null));
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->counterparty(self::TX_CARREFOUR));
+
+        $this->requestUpdate(self::text($rule, 'id'), [
+            ...$this->rulePayload([
+                'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']],
+                'targetCounterparty' => 'Carrefour',
+            ]),
+            'active' => true,
+            'version' => 1,
+        ]);
+        self::assertResponseIsSuccessful();
+
+        $this->requestPreview(null, '2026-01-01', '2026-03-31');
+        $preview = $this->decode();
+        self::assertSame(1, $preview['wouldChange']);
+        $this->requestApply(self::text($preview, 'previewToken'));
+        self::assertResponseIsSuccessful();
+        self::assertSame(['changed' => 1, 'skippedManual' => 1, 'deactivatedRuleIds' => []], $this->decode());
+        self::assertSame('Carrefour', $this->counterparty(self::TX_CARREFOUR));
+    }
+
+    public function testPartiallyAndFullyRefundedOriginalExpensesRemainEligibleButRefundMovementsDoNot(): void
+    {
+        $partial = '00000000-0000-7000-8000-000000000121';
+        $full = '00000000-0000-7000-8000-000000000122';
+        $partialRefund = '00000000-0000-7000-8000-000000000123';
+        $fullRefund = '00000000-0000-7000-8000-000000000124';
+        $this->seedTransaction($partial, '2026-02-10', '-10.00', 'CB REFUNDED ORIGINAL');
+        $this->seedTransaction($full, '2026-02-11', '-10.00', 'CB REFUNDED ORIGINAL');
+        $this->seedTransaction($partialRefund, '2026-02-12', '4.00', 'REFUND SHOULD NOT MATCH', nature: 'REFUND');
+        $this->seedTransaction($fullRefund, '2026-02-13', '10.00', 'REFUND SHOULD NOT MATCH', nature: 'REFUND');
+        $this->seedRefund($partial, $partialRefund, '4.00');
+        $this->seedRefund($full, $fullRefund, '10.00');
+        $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'refunded']]]);
+
+        $this->requestPreview(null, '2026-01-01', '2026-03-31');
+        $preview = $this->decode();
+
+        self::assertSame(2, $preview['matched']);
+        self::assertSame([$partial, $full], array_column($this->samples($preview), 'transactionId'));
+    }
+
+    public function testAnExplicitSplitEditClaimsManualAuthorityAndLaterRuleReplayPreservesIt(): void
+    {
+        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $created = $this->createTransaction([]);
+        $id = self::text($created, 'id');
+        self::assertSame('RULE', $this->firstSplit($created)['categorizationOrigin']);
+
+        $this->client->request('PUT', '/api/v1/transactions/'.$id.'/splits', server: self::jsonHeaders(), content: json_encode([
+            'version' => 1,
+            'splits' => [[
+                'categoryId' => self::OWN_EXPENSE,
+                'amount' => ['value' => '-42.90', 'assetCode' => 'EUR'],
+                'analyticAxes' => ['DISCRETIONARY'],
+                'note' => null,
+            ]],
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseIsSuccessful();
+        $edited = $this->firstSplit($this->decode());
+        self::assertSame('MANUAL', $edited['categorizationOrigin']);
+        self::assertNull($edited['categorizationRuleId']);
+
+        $this->requestApply($this->preview(self::text($rule, 'id')));
+        self::assertResponseIsSuccessful();
+        self::assertSame(['changed' => 0, 'skippedManual' => 1, 'deactivatedRuleIds' => []], $this->decode());
+        self::assertSame('MANUAL', $this->splitRows($id)[0]['categorization_origin']);
+    }
+
+    public function testTheActiveRuleSetIsBoundedWithAStableUnprocessableResponse(): void
+    {
+        $this->createRule();
+        $this->connection->executeStatement(
+            "INSERT INTO transaction_categorization_rules (id, workspace_id, label, priority, account_scope, conditions, target_category_id, target_axes, target_counterparty, effective_from, effective_to, active, deactivated_reason, applied_count, version, created_at, updated_at, archived_at)
+             SELECT gen_random_uuid(), workspace_id, label || g, priority, account_scope, conditions, target_category_id, target_axes, target_counterparty, effective_from, effective_to, active, deactivated_reason, applied_count, version, created_at + g * interval '1 microsecond', updated_at + g * interval '1 microsecond', archived_at
+             FROM transaction_categorization_rules CROSS JOIN generate_series(1, 199) AS g WHERE workspace_id = :workspace LIMIT 199",
+            ['workspace' => WorkspaceFixture::OWN_WORKSPACE],
+        );
+
+        $this->requestCreate($this->rulePayload(['label' => 'Rule 201']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/rules.execution_limit', $this->decode()['type']);
+        self::assertSame(200, $this->ruleCount());
+
+        $this->connection->executeStatement(
+            "INSERT INTO transaction_categorization_rules (id, workspace_id, label, priority, account_scope, conditions, target_category_id, target_axes, target_counterparty, effective_from, effective_to, active, deactivated_reason, applied_count, version, created_at, updated_at, archived_at)
+             SELECT gen_random_uuid(), workspace_id, 'Out-of-band rule', priority, account_scope, conditions, target_category_id, target_axes, target_counterparty, effective_from, effective_to, active, deactivated_reason, applied_count, version, created_at, updated_at, archived_at
+             FROM transaction_categorization_rules WHERE workspace_id = :workspace LIMIT 1",
+            ['workspace' => WorkspaceFixture::OWN_WORKSPACE],
+        );
+        $this->requestPreview(null, '2026-01-01', '2026-03-31');
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/rules.execution_limit', $this->decode()['type']);
+    }
+
+    public function testPreviewCommitsRegexDeactivationBeforeReturningTheGlobalLimit(): void
+    {
+        $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
+        $tripped = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
+        $fallback = $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        $this->setExecutionBudget(1);
+
+        $this->requestPreview(null, '2026-01-01', '2026-03-31');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/rules.execution_limit', $this->decode()['type']);
+        self::assertSame([false, 'PATTERN_BUDGET_EXCEEDED'], $this->ruleState(self::text($tripped, 'id')));
+        self::assertSame([true, null], $this->ruleState(self::text($fallback, 'id')));
+        self::assertSame(1, $this->deactivationAuditCount(self::text($tripped, 'id')));
+        self::assertSame(0, (int) self::text(['n' => $this->connection->fetchOne('SELECT count(*) FROM transaction_categorization_previews')], 'n'));
+    }
+
+    public function testApplyCommitsRegexDeactivationBeforeReturningTheGlobalLimit(): void
+    {
+        $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
+        $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        $this->setExecutionBudget(1);
+        $token = $this->preview(null);
+        $tripped = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
+
+        $this->requestApply($token);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/rules.execution_limit', $this->decode()['type']);
+        self::assertSame([false, 'PATTERN_BUDGET_EXCEEDED'], $this->ruleState(self::text($tripped, 'id')));
+        self::assertSame(1, $this->deactivationAuditCount(self::text($tripped, 'id')));
+        self::assertSame([], $this->splitRows(self::TX_CARREFOUR));
+    }
+
+    public function testApplyCommitsARegexDeactivationThatMakesThePreviewStale(): void
+    {
+        $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', 'CB CARREFOUR 1234');
+        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'carrefour']]]);
+        $token = $this->preview(null);
+        // Every timed evaluation now costs 60 ms, beyond the 50 ms per-rule budget, only during apply.
+        $this->overrideService(HrtimeElapsedTime::class, new SteppingElapsedTime(60_000_000));
+
+        $this->requestApply($token);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/rules.preview_stale', $this->decode()['type']);
+        self::assertSame([false, 'PATTERN_BUDGET_EXCEEDED'], $this->ruleState(self::text($rule, 'id')));
+        self::assertSame(1, $this->deactivationAuditCount(self::text($rule, 'id')));
+        self::assertSame([], $this->splitRows(self::TX_CARREFOUR));
+    }
+
+    public function testASecondResolutionPassIsNotRefusedForEvaluationsSpentInTheFirst(): void
+    {
+        $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
+        $tripped = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
+        $fallback = $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        // The first pass spends both evaluations; the second pass needs one more.
+        $this->setExecutionBudget(2);
+
+        $this->requestPreview(null, '2026-01-01', '2026-03-31');
+
+        self::assertResponseIsSuccessful();
+        $preview = $this->decode();
+        self::assertSame([self::text($tripped, 'id')], $preview['deactivatedRuleIds']);
+        self::assertSame(1, $preview['matched']);
+        self::assertSame([true, null], $this->ruleState(self::text($fallback, 'id')));
+    }
+
+    public function testARuleTrippingOnlyInTheSecondPassIsDeactivatedAndLeftOutOfTheToken(): void
+    {
+        $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
+        $first = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
+        $second = $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        // Each evaluation costs 30 ms: the fallback stays within its 50 ms budget in the first pass
+        // and crosses it only when re-evaluated in the second.
+        $this->overrideService(HrtimeElapsedTime::class, new SteppingElapsedTime(30_000_000));
+
+        $this->requestPreview(null, '2026-01-01', '2026-03-31');
+
+        self::assertResponseIsSuccessful();
+        $preview = $this->decode();
+        $firstId = self::text($first, 'id');
+        $secondId = self::text($second, 'id');
+        self::assertSame([$firstId, $secondId], $preview['deactivatedRuleIds']);
+        self::assertSame(0, $preview['matched']);
+        foreach ([$firstId, $secondId] as $ruleId) {
+            self::assertSame([false, 'PATTERN_BUDGET_EXCEEDED'], $this->ruleState($ruleId));
+            self::assertSame(1, $this->deactivationAuditCount($ruleId));
+        }
+
+        $this->requestApply(self::text($preview, 'previewToken'));
+        self::assertResponseIsSuccessful('The preview token excludes every deactivated rule, as the apply run does.');
+        self::assertSame([], $this->splitRows(self::TX_CARREFOUR));
+    }
+
+    public function testARuleTrippingMidwayThroughTheSecondPassNeverWinsTheTransactionsItMatchedBefore(): void
+    {
+        // Candidates are evaluated in identifier order.
+        foreach ([self::TX_CARREFOUR, self::TX_MANUAL, self::TX_AUCHAN] as $id) {
+            $this->seedTransaction($id, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
+        }
+        $first = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
+        $second = $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        $fallback = $this->createRule(['priority' => 3, 'targetCategoryId' => self::OWN_OTHER_EXPENSE, 'targetAxes' => [], 'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'a']]]);
+        // 9 ms per pattern evaluation: the second rule spends 27 ms in the first pass, then crosses
+        // its 50 ms budget on the third candidate of the second pass, after winning the first two.
+        $this->overrideService(HrtimeElapsedTime::class, new SteppingElapsedTime(9_000_000));
+
+        $this->requestPreview(null, '2026-01-01', '2026-03-31');
+
+        self::assertResponseIsSuccessful();
+        $preview = $this->decode();
+        self::assertSame([self::text($first, 'id'), self::text($second, 'id')], $preview['deactivatedRuleIds']);
+        self::assertSame(3, $preview['matched']);
+        $samples = $this->samples($preview);
+        self::assertSame([self::TX_CARREFOUR, self::TX_MANUAL, self::TX_AUCHAN], array_column($samples, 'transactionId'));
+        self::assertSame(array_fill(0, 3, self::OWN_OTHER_EXPENSE), array_column($samples, 'targetCategoryId'));
+        self::assertSame([false, 'PATTERN_BUDGET_EXCEEDED'], $this->ruleState(self::text($second, 'id')));
+        self::assertSame(1, $this->deactivationAuditCount(self::text($second, 'id')));
+
+        $this->requestApply(self::text($preview, 'previewToken'));
+
+        self::assertResponseIsSuccessful();
+        foreach ([self::TX_CARREFOUR, self::TX_MANUAL, self::TX_AUCHAN] as $id) {
+            self::assertSame([['category_id' => self::OWN_OTHER_EXPENSE, 'categorization_origin' => 'RULE', 'categorization_rule_id' => self::text($fallback, 'id'), 'analytic_axes' => '[]']], $this->splitRows($id));
+        }
+    }
+
+    public function testCreationCommitsRegexDeactivationAndStaysUncategorizedAtTheGlobalLimit(): void
+    {
+        $tripped = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
+        $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        $this->setExecutionBudget(1);
+
+        $created = $this->createTransaction(['rawLabel' => str_repeat('a', 40).'!', 'counterparty' => null]);
+
+        self::assertSame([], $created['splits']);
+        self::assertSame([false, 'PATTERN_BUDGET_EXCEEDED'], $this->ruleState(self::text($tripped, 'id')));
+        self::assertSame(1, $this->deactivationAuditCount(self::text($tripped, 'id')));
     }
 
     public function testAPreviewBeyondFiveThousandMovementsIsRefused(): void
@@ -608,6 +936,47 @@ final class CategorizationRuleControllerTest extends WebTestCase
         $this->client->request('POST', '/api/v1/categorization-rules/apply', server: self::jsonHeaders(), content: json_encode(['previewToken' => $token], JSON_THROW_ON_ERROR));
     }
 
+    private function runWhileWorkspaceIsLocked(string $case, string $argument): string
+    {
+        $barrier = sys_get_temp_dir().'/cadran-categorization-'.bin2hex(random_bytes(8));
+        $process = null;
+        $pipes = [];
+        try {
+            $this->connection->beginTransaction();
+            new DbalCategorizationWriteLock($this->connection)->acquire(WorkspaceFixture::own());
+            $process = proc_open(
+                [PHP_BINARY, 'tests/Support/ConcurrentCategorizationWorker.php', $case, $argument, $barrier],
+                [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, dirname(__DIR__, 5), null,
+            );
+            self::assertIsResource($process);
+            $deadline = microtime(true) + 10;
+            while (!file_exists($barrier.'.ready') && microtime(true) < $deadline) {
+                usleep(1_000);
+            }
+            self::assertFileExists($barrier.'.ready');
+            file_put_contents($barrier.'.release', '');
+            $stdout = stream_get_contents($pipes[1]);
+            $stderr = stream_get_contents($pipes[2]);
+            self::assertSame(0, proc_close($process), $stderr);
+            $process = null;
+            /** @var array{result: string} $response */
+            $response = json_decode($stdout, true, 512, JSON_THROW_ON_ERROR);
+
+            return $response['result'];
+        } finally {
+            if (is_resource($process)) {
+                proc_terminate($process);
+                proc_close($process);
+            }
+            if ($this->connection->isTransactionActive()) {
+                $this->connection->rollBack();
+            }
+            foreach (glob($barrier.'.*') ?: [] as $file) {
+                unlink($file);
+            }
+        }
+    }
+
     /**
      * @param array<string, mixed> $overrides
      *
@@ -715,6 +1084,18 @@ final class CategorizationRuleControllerTest extends WebTestCase
             'asset_code' => 'EUR',
             'created_at' => '2026-03-14 09:12:04+00',
         ]);
+    }
+
+    private function seedRefund(string $originalId, string $refundId, string $amount): void
+    {
+        $this->connection->insert('transaction_refunds', [
+            'id' => '00000000-0000-7000-8000-0000000003'.substr($refundId, -2),
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+            'refund_transaction_id' => $refundId,
+            'original_transaction_id' => $originalId,
+            'created_at' => '2026-03-14 09:12:04+00',
+        ]);
+        $this->seedSplit($refundId, self::OWN_EXPENSE, $amount);
     }
 
     /** @return list<array<string, mixed>> */
@@ -863,6 +1244,48 @@ final class CategorizationRuleControllerTest extends WebTestCase
         }
 
         return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $preview
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function conflicts(array $preview): array
+    {
+        $conflicts = $preview['conflicts'] ?? null;
+        self::assertIsList($conflicts);
+
+        $result = [];
+        foreach ($conflicts as $conflict) {
+            self::assertIsArray($conflict);
+            $result[] = self::associative($conflict);
+        }
+
+        return $result;
+    }
+
+    private function setExecutionBudget(int $maxEvaluations): void
+    {
+        $this->overrideService(CategorizationExecutionBudget::class, new CategorizationExecutionBudget(maxRuleEvaluations: $maxEvaluations));
+    }
+
+    private function overrideService(string $id, object $service): void
+    {
+        // The browser reboots the kernel before each request, which would discard the override,
+        // and a container that already served a request refuses to replace initialized services.
+        $this->client->getKernel()->shutdown();
+        $this->client->getKernel()->boot();
+        $this->client->disableReboot();
+        self::getContainer()->set($id, $service);
+    }
+
+    private function deactivationAuditCount(string $ruleId): int
+    {
+        return (int) self::text(['count' => $this->connection->fetchOne(
+            "SELECT count(*) FROM audit_events WHERE workspace_id = ? AND event_type = 'categorization_rule.deactivated' AND entity_id = ?",
+            [WorkspaceFixture::OWN_WORKSPACE, $ruleId],
+        )], 'count');
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Transactions\Application\Categorization\AutoCategorizeTransaction;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -34,6 +35,7 @@ final readonly class CreateTransaction
         private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
         private AutoCategorizeTransaction $autoCategorize,
+        private CategorizationWriteLock $categorizationWriteLock,
     ) {
     }
 
@@ -54,6 +56,7 @@ final readonly class CreateTransaction
         }
 
         return $this->transactionBoundary->transactional(function () use ($context, $draft, $input, $source): TransactionView {
+            $this->categorizationWriteLock->acquire($context->workspace);
             $now = $this->clock->now();
             $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
             $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);

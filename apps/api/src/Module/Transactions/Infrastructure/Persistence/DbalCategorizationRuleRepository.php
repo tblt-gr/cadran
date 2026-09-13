@@ -53,11 +53,12 @@ final readonly class DbalCategorizationRuleRepository implements CategorizationR
         ));
     }
 
-    public function activeInOrder(WorkspaceScope $workspace): array
+    public function activeInOrder(WorkspaceScope $workspace, int $limit): array
     {
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT '.self::COLUMNS.' FROM transaction_categorization_rules WHERE workspace_id = :workspace_id AND active = TRUE AND archived_at IS NULL ORDER BY priority, created_at, id',
-            ['workspace_id' => $workspace->id],
+            'SELECT '.self::COLUMNS.' FROM transaction_categorization_rules WHERE workspace_id = :workspace_id AND active = TRUE AND archived_at IS NULL ORDER BY priority, created_at, id LIMIT :limit',
+            ['workspace_id' => $workspace->id, 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
         );
 
         return array_map(fn (array $row): CategorizationRule => $this->hydrate($workspace, $row), $rows);

@@ -9,10 +9,11 @@ import type {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
-import type { CategorizationRuleErrorKind } from '../categorizationRuleError';
+import type { CategorizationRuleErrorKind } from '@/features/categorization-rules/categorizationRuleError';
 import { AmountConditionFields } from './conditionFields/AmountConditionFields';
 import { OtherConditionFields } from './conditionFields/OtherConditionFields';
 import { TextConditionFields } from './conditionFields/TextConditionFields';
+import { validateRuleForm } from './ruleFormValidation';
 import styles from './RuleForm.module.css';
 
 type RulePayload = CreateCategorizationRuleRequest | UpdateCategorizationRuleRequest;
@@ -29,7 +30,6 @@ const AXES: Axis[] = [
 
 interface RuleFormProps {
   accounts: Account[];
-  onCancel: () => void;
   onSubmit: (body: RulePayload) => void;
   pending: boolean;
   rule?: CategorizationRule;
@@ -47,30 +47,7 @@ function emptyConditions(): CategorizationRuleConditions {
   };
 }
 
-function hasCondition(conditions: CategorizationRuleConditions): boolean {
-  return Boolean(
-    conditions.rawLabel?.value ||
-    conditions.normalizedLabel?.value ||
-    conditions.counterparty?.value ||
-    conditions.mcc ||
-    conditions.direction ||
-    conditions.amount?.min ||
-    conditions.amount?.max,
-  );
-}
-
-function decimal(value: string | null): boolean {
-  return value === null || /^-?(0|[1-9]\d*)(\.\d+)?$/.test(value);
-}
-
-export function RuleForm({
-  accounts,
-  onCancel: _onCancel,
-  onSubmit,
-  pending,
-  rule,
-  submitError,
-}: RuleFormProps) {
+export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: RuleFormProps) {
   const { t } = useTranslation();
   const [label, setLabel] = useState(rule?.label ?? '');
   const [priority, setPriority] = useState(String(rule?.priority ?? 100));
@@ -86,19 +63,24 @@ export function RuleForm({
   const [effectiveTo, setEffectiveTo] = useState(rule?.effectiveTo ?? '');
   const [showErrors, setShowErrors] = useState(false);
 
-  const cleanLabel = label.trim();
-  const parsedPriority = Number.parseInt(priority, 10);
-  const labelInvalid = cleanLabel.length < 1 || [...cleanLabel].length > 80;
-  const priorityInvalid = !/^\d{1,3}$/.test(priority) || parsedPriority < 1 || parsedPriority > 999;
-  const conditionsInvalid = !hasCondition(conditions);
-  const amountInvalid =
-    conditions.amount !== null &&
-    conditions.amount !== undefined &&
-    (!decimal(conditions.amount.min) ||
-      !decimal(conditions.amount.max) ||
-      conditions.amount.assetCode === '');
-  const periodInvalid = effectiveFrom === '' || (effectiveTo !== '' && effectiveTo < effectiveFrom);
-  const targetInvalid = targetCategoryId === '';
+  const {
+    amountInvalid,
+    cleanLabel,
+    conditionsInvalid,
+    isValid,
+    labelInvalid,
+    parsedPriority,
+    periodInvalid,
+    priorityInvalid,
+    targetInvalid,
+  } = validateRuleForm({
+    conditions,
+    effectiveFrom,
+    effectiveTo,
+    label,
+    priority,
+    targetCategoryId,
+  });
 
   function toggleAccount(id: string) {
     setAccountScope((current) =>
@@ -114,14 +96,7 @@ export function RuleForm({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (
-      labelInvalid ||
-      priorityInvalid ||
-      targetInvalid ||
-      conditionsInvalid ||
-      amountInvalid ||
-      periodInvalid
-    ) {
+    if (!isValid) {
       setShowErrors(true);
       return;
     }

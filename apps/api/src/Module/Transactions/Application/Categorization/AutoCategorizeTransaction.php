@@ -19,6 +19,9 @@ final readonly class AutoCategorizeTransaction
     public function __invoke(Transaction $transaction, ?string $actorId, \DateTimeImmutable $now): Transaction
     {
         $run = ($this->buildRun)($transaction->workspace, [$transaction], $actorId, $now);
+        if ($run->executionLimitExceeded) {
+            return $transaction;
+        }
         $winner = $run->resolutions[$transaction->id]->winner;
         if (null === $winner) {
             return $transaction;

@@ -1,198 +1,35 @@
-import {
-  applyCategorizationRules,
-  archiveCategorizationRule,
-  createCategorizationRule,
-  listAccounts,
-  listCategorizationRules,
-  previewCategorizationRules,
-  updateCategorizationRule,
-  type CategorizationRule,
-  type CreateCategorizationRuleRequest,
-  type UpdateCategorizationRuleRequest,
-} from '@cadran/api-client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
-import { authApiOptions } from '@/features/auth/apiOptions';
-import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
-import {
-  CategorizationRuleRequestError,
-  categorizationRuleErrorKind,
-  categorizationRuleRequestError,
-} from './categorizationRuleError';
+import { categorizationRuleErrorKind } from './categorizationRuleError';
+import { RuleAccountsNotice } from './rule-accounts/RuleAccountsNotice';
 import { RuleEditor } from './rule-editor/RuleEditor';
+import { useRuleEditor } from './rule-editor/useRuleEditor';
 import { RuleActivationDialog } from './rule-lifecycle/RuleActivationDialog';
 import { RuleArchiveDialog } from './rule-lifecycle/RuleArchiveDialog';
-import { RuleList } from './rule-list/RuleList';
+import { useRuleActivation } from './rule-lifecycle/useRuleActivation';
+import { useRuleArchive } from './rule-lifecycle/useRuleArchive';
+import { RulesSection } from './rule-list/RulesSection';
 import { RulePreviewDialog } from './rule-preview/RulePreviewDialog';
+import { useRulePreview } from './rule-preview/useRulePreview';
+import { useCategorizationRules } from './useCategorizationRules';
+import { useRuleAccounts } from './useRuleAccounts';
 import styles from './CategorizationRulesPage.module.css';
-
-type Editor = CategorizationRule | 'create' | null;
 
 export function CategorizationRulesPage() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const [editor, setEditor] = useState<Editor>(null);
-  const [archiveTarget, setArchiveTarget] = useState<CategorizationRule | null>(null);
-  const [activationTarget, setActivationTarget] = useState<CategorizationRule | null>(null);
-  const [previewTarget, setPreviewTarget] = useState<CategorizationRule | null | undefined>(
-    undefined,
-  );
-  const [previewStale, setPreviewStale] = useState(false);
   const [saved, setSaved] = useState<'applied' | 'saved' | null>(null);
 
-  const accounts = useQuery({
-    queryKey: ['accounts', 'rule-scope'],
-    queryFn: async ({ signal }) => {
-      const result = await listAccounts({
-        ...authApiOptions(),
-        query: { includeArchived: false, includeClosed: false, page: 1, perPage: 100 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) throw categorizationRuleRequestError(result);
-      return result.data;
-    },
-    retry: false,
-  });
-  const rules = useQuery({
-    queryKey: ['categorization-rules'],
-    queryFn: async ({ signal }) => {
-      const result = await listCategorizationRules({
-        ...authApiOptions(),
-        query: { includeArchived: false, page: 1, perPage: 100 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) throw categorizationRuleRequestError(result);
-      return result.data;
-    },
-    retry: false,
-  });
+  const accounts = useRuleAccounts();
+  const rules = useCategorizationRules();
+  const editorWorkflow = useRuleEditor(accounts.available, () => setSaved('saved'));
+  const archiveWorkflow = useRuleArchive(() => setSaved('saved'));
+  const activationWorkflow = useRuleActivation(() => setSaved('saved'));
+  const previewWorkflow = useRulePreview(() => setSaved('applied'));
 
-  async function refresh() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['categorization-rules'] }),
-      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
-    ]);
-  }
+  const ruleLabelById = Object.fromEntries(rules.list.map((item) => [item.id, item.label]));
 
-  const save = useMutation({
-    mutationFn: async (body: CreateCategorizationRuleRequest | UpdateCategorizationRuleRequest) => {
-      const result =
-        editor && editor !== 'create'
-          ? await withCsrfRetry(() =>
-              updateCategorizationRule({
-                ...authApiOptions(),
-                path: { id: editor.id },
-                body: body as UpdateCategorizationRuleRequest,
-              }),
-            )
-          : await withCsrfRetry(() =>
-              createCategorizationRule({
-                ...authApiOptions(),
-                body: body as CreateCategorizationRuleRequest,
-              }),
-            );
-      if (!result.response?.ok || !result.data) throw categorizationRuleRequestError(result);
-      return result.data;
-    },
-    onError: async (error) => {
-      if (error instanceof CategorizationRuleRequestError && error.kind === 'stale')
-        await refresh();
-    },
-    onSuccess: async () => {
-      setEditor(null);
-      setSaved('saved');
-      await refresh();
-    },
-  });
-  const archive = useMutation({
-    mutationFn: async (rule: CategorizationRule) => {
-      const result = await withCsrfRetry(() =>
-        archiveCategorizationRule({
-          ...authApiOptions(),
-          path: { id: rule.id },
-          body: { version: rule.version },
-        }),
-      );
-      if (!result.response?.ok || !result.data) throw categorizationRuleRequestError(result);
-      return result.data;
-    },
-    onError: async () => refresh(),
-    onSuccess: async () => {
-      setArchiveTarget(null);
-      setSaved('saved');
-      await refresh();
-    },
-  });
-  const activation = useMutation({
-    mutationFn: async (rule: CategorizationRule) => {
-      const { id, ...body } = rule;
-      const result = await withCsrfRetry(() =>
-        updateCategorizationRule({
-          ...authApiOptions(),
-          path: { id },
-          body: {
-            accountScope: body.accountScope,
-            active: !rule.active,
-            conditions: body.conditions,
-            effectiveFrom: body.effectiveFrom,
-            effectiveTo: body.effectiveTo,
-            label: body.label,
-            priority: body.priority,
-            targetAxes: body.targetAxes,
-            targetCategoryId: body.targetCategoryId,
-            targetCounterparty: body.targetCounterparty,
-            version: body.version,
-          },
-        }),
-      );
-      if (!result.response?.ok || !result.data) throw categorizationRuleRequestError(result);
-      return result.data;
-    },
-    onError: async () => refresh(),
-    onSuccess: async () => {
-      setActivationTarget(null);
-      setSaved('saved');
-      await refresh();
-    },
-  });
-  const preview = useMutation({
-    mutationFn: async ({ from, to }: { from: string; to: string }) => {
-      const result = await withCsrfRetry(() =>
-        previewCategorizationRules({
-          ...authApiOptions(),
-          body: { from, ruleId: previewTarget?.id ?? null, to },
-        }),
-      );
-      if (!result.response?.ok || !result.data) throw categorizationRuleRequestError(result);
-      return result.data;
-    },
-    onSuccess: () => setPreviewStale(false),
-  });
-  const apply = useMutation({
-    mutationFn: async (previewToken: string) => {
-      const result = await withCsrfRetry(() =>
-        applyCategorizationRules({ ...authApiOptions(), body: { previewToken } }),
-      );
-      if (!result.response?.ok || !result.data) throw categorizationRuleRequestError(result);
-      return result.data;
-    },
-    onError: (error) => {
-      if (error instanceof CategorizationRuleRequestError && error.kind === 'stale') {
-        setPreviewStale(true);
-      }
-    },
-    onSuccess: async () => {
-      setSaved('applied');
-      await refresh();
-    },
-  });
-
-  const unauthorized =
-    rules.error instanceof CategorizationRuleRequestError && rules.error.kind === 'unauthorized';
-  const list = rules.data?.items ?? [];
   return (
     <div className={styles.page}>
       <section aria-labelledby="rules-intro-title" className={styles.intro}>
@@ -204,28 +41,29 @@ export function CategorizationRulesPage() {
         <div className={styles.introActions}>
           <button
             className="secondary-action"
-            onClick={() => {
-              preview.reset();
-              apply.reset();
-              setPreviewStale(false);
-              setPreviewTarget(null);
-            }}
+            onClick={() => previewWorkflow.open(null)}
             type="button"
           >
             {t('categorizationRules.preview.action')}
           </button>
           <button
             className="primary-action"
-            onClick={() => {
-              save.reset();
-              setEditor('create');
-            }}
+            disabled={!accounts.available}
+            onClick={() => editorWorkflow.open('create')}
             type="button"
           >
             {t('categorizationRules.add')}
           </button>
         </div>
       </section>
+
+      <RuleAccountsNotice
+        isError={accounts.query.isError}
+        isPending={accounts.query.isPending}
+        onRetry={() => void accounts.query.refetch()}
+        unauthorized={accounts.unauthorized}
+      />
+
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>
           {t(
@@ -235,142 +73,97 @@ export function CategorizationRulesPage() {
           )}
         </Toast>
       ) : null}
-      {editor ? (
+
+      {editorWorkflow.target && accounts.available ? (
         <RuleEditor
-          accounts={accounts.data?.items ?? []}
-          close={() => {
-            setEditor(null);
-            save.reset();
-          }}
-          onSubmit={(body) => save.mutate(body)}
-          pending={save.isPending}
-          rule={editor === 'create' ? undefined : editor}
-          submitError={categorizationRuleErrorKind(save.error, save.isError)}
+          accounts={accounts.query.data ?? []}
+          close={editorWorkflow.close}
+          onSubmit={(body) => editorWorkflow.save.mutate(body)}
+          pending={editorWorkflow.save.isPending}
+          rule={editorWorkflow.target === 'create' ? undefined : editorWorkflow.target}
+          submitError={categorizationRuleErrorKind(
+            editorWorkflow.save.error,
+            editorWorkflow.save.isError,
+          )}
         />
       ) : null}
-      {archiveTarget ? (
+
+      {archiveWorkflow.target ? (
         <Modal
-          close={() => {
-            setArchiveTarget(null);
-            archive.reset();
-          }}
+          close={archiveWorkflow.close}
           eyebrow={t('categorizationRules.archive.eyebrow')}
           title={t('categorizationRules.archive.title')}
         >
           <RuleArchiveDialog
-            onCancel={() => setArchiveTarget(null)}
-            onConfirm={() => archive.mutate(archiveTarget)}
-            pending={archive.isPending}
-            rule={archiveTarget}
-            submitError={categorizationRuleErrorKind(archive.error, archive.isError)}
+            onCancel={archiveWorkflow.close}
+            onConfirm={() => archiveWorkflow.archive.mutate(archiveWorkflow.target!)}
+            pending={archiveWorkflow.archive.isPending}
+            rule={archiveWorkflow.target}
+            submitError={categorizationRuleErrorKind(
+              archiveWorkflow.archive.error,
+              archiveWorkflow.archive.isError,
+            )}
           />
         </Modal>
       ) : null}
-      {activationTarget ? (
+
+      {activationWorkflow.target ? (
         <Modal
-          close={() => {
-            setActivationTarget(null);
-            activation.reset();
-          }}
+          close={activationWorkflow.close}
           eyebrow={t('categorizationRules.lifecycle.eyebrow')}
           title={t(
-            activationTarget.active
+            activationWorkflow.target.active
               ? 'categorizationRules.lifecycle.deactivate.title'
               : 'categorizationRules.lifecycle.activate.title',
           )}
         >
           <RuleActivationDialog
-            onConfirm={() => activation.mutate(activationTarget)}
-            pending={activation.isPending}
-            rule={activationTarget}
-            submitError={categorizationRuleErrorKind(activation.error, activation.isError)}
+            onConfirm={() => activationWorkflow.activation.mutate(activationWorkflow.target!)}
+            pending={activationWorkflow.activation.isPending}
+            rule={activationWorkflow.target}
+            submitError={categorizationRuleErrorKind(
+              activationWorkflow.activation.error,
+              activationWorkflow.activation.isError,
+            )}
           />
         </Modal>
       ) : null}
-      {previewTarget !== undefined ? (
+
+      {previewWorkflow.target !== undefined ? (
         <Modal
-          close={() => {
-            setPreviewTarget(undefined);
-            preview.reset();
-            apply.reset();
-            setPreviewStale(false);
-          }}
+          close={previewWorkflow.close}
           eyebrow={t('categorizationRules.preview.eyebrow')}
           title={t('categorizationRules.preview.title')}
         >
           <RulePreviewDialog
-            applyError={categorizationRuleErrorKind(apply.error, apply.isError)}
-            applyPending={apply.isPending}
-            onApply={apply.mutateAsync}
-            onPreview={(from, to) => {
-              apply.reset();
-              setPreviewStale(false);
-              preview.mutate({ from, to });
-            }}
-            preview={previewStale ? null : (preview.data ?? null)}
-            previewError={categorizationRuleErrorKind(preview.error, preview.isError)}
-            previewPending={preview.isPending}
-            ruleLabel={previewTarget?.label}
+            applyError={categorizationRuleErrorKind(
+              previewWorkflow.apply.error,
+              previewWorkflow.apply.isError,
+            )}
+            applyPending={previewWorkflow.apply.isPending}
+            onApply={previewWorkflow.apply.mutateAsync}
+            onPreview={previewWorkflow.requestPreview}
+            preview={previewWorkflow.stale ? null : (previewWorkflow.preview.data ?? null)}
+            previewError={categorizationRuleErrorKind(
+              previewWorkflow.preview.error,
+              previewWorkflow.preview.isError,
+            )}
+            previewPending={previewWorkflow.preview.isPending}
+            ruleLabel={previewWorkflow.target?.label}
+            ruleLabelById={ruleLabelById}
           />
         </Modal>
       ) : null}
-      {rules.isPending ? (
-        <section className={`card ${styles.state}`} aria-busy="true" role="status">
-          <h2>{t('categorizationRules.loading')}</h2>
-        </section>
-      ) : rules.isError ? (
-        <section className={`card ${styles.state}`} role="alert">
-          <h2>
-            {t(
-              unauthorized
-                ? 'categorizationRules.unauthorized.title'
-                : 'categorizationRules.error.title',
-            )}
-          </h2>
-          <p>
-            {t(
-              unauthorized
-                ? 'categorizationRules.unauthorized.description'
-                : 'categorizationRules.error.description',
-            )}
-          </p>
-          {!unauthorized ? (
-            <button className="secondary-action" onClick={() => void rules.refetch()} type="button">
-              {t('foundation.retry')}
-            </button>
-          ) : null}
-        </section>
-      ) : list.length === 0 ? (
-        <section className={`card ${styles.state}`}>
-          <h2>{t('categorizationRules.empty.title')}</h2>
-          <p>{t('categorizationRules.empty.description')}</p>
-          <button className="primary-action" onClick={() => setEditor('create')} type="button">
-            {t('categorizationRules.addFirst')}
-          </button>
-        </section>
-      ) : (
-        <RuleList
-          onArchive={(rule) => {
-            archive.reset();
-            setArchiveTarget(rule);
-          }}
-          onEdit={(rule) => {
-            save.reset();
-            setEditor(rule);
-          }}
-          onPreview={(rule) => {
-            preview.reset();
-            apply.reset();
-            setPreviewStale(false);
-            setPreviewTarget(rule);
-          }}
-          onToggle={(rule) => {
-            activation.reset();
-            setActivationTarget(rule);
-          }}
-          rules={list}
-        />
-      )}
+
+      <RulesSection
+        canEdit={accounts.available}
+        onAddFirst={() => editorWorkflow.open('create')}
+        onArchive={archiveWorkflow.open}
+        onEdit={editorWorkflow.open}
+        onPreview={previewWorkflow.open}
+        onToggle={activationWorkflow.open}
+        rules={rules}
+      />
     </div>
   );
 }

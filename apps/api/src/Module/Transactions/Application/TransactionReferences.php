@@ -220,8 +220,8 @@ final readonly class TransactionReferences
             note: $input->note,
             createdAt: $existing->createdAt ?? $now,
             position: $position,
-            origin: null !== $existing ? $existing->origin : \App\Module\Transactions\Domain\CategorizationOrigin::MANUAL,
-            ruleId: $existing?->ruleId,
+            origin: \App\Module\Transactions\Domain\CategorizationOrigin::MANUAL,
+            ruleId: null,
         );
     }
 

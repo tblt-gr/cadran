@@ -4,6 +4,7 @@ import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 
 interface RuleRowProps {
+  canEdit: boolean;
   onArchive: (rule: CategorizationRule) => void;
   onEdit: (rule: CategorizationRule) => void;
   onToggle: (rule: CategorizationRule) => void;
@@ -11,7 +12,7 @@ interface RuleRowProps {
   rule: CategorizationRule;
 }
 
-export function RuleRow({ onArchive, onEdit, onPreview, onToggle, rule }: RuleRowProps) {
+export function RuleRow({ canEdit, onArchive, onEdit, onPreview, onToggle, rule }: RuleRowProps) {
   const { t } = useTranslation();
   const archived = rule.archivedAt !== null;
   const inactive = !rule.active;
@@ -43,7 +44,7 @@ export function RuleRow({ onArchive, onEdit, onPreview, onToggle, rule }: RuleRo
         <ActionMenu
           items={[
             {
-              disabled: archived,
+              disabled: archived || !canEdit,
               icon: 'edit',
               id: 'edit',
               label: t('categorizationRules.list.editFor', { label: rule.label }),

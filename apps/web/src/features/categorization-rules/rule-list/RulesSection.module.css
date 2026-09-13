@@ -1,0 +1,23 @@
+.state h2,
+.state p {
+  margin: var(--spacing-none);
+}
+.state p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+.state {
+  display: flex;
+  min-height: 14rem;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  padding: var(--spacing-8);
+  gap: var(--spacing-3);
+}
+@media (max-width: 42rem) {
+  .state {
+    padding: var(--spacing-6);
+  }
+}

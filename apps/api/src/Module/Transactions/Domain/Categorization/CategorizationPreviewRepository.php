@@ -13,7 +13,8 @@ interface CategorizationPreviewRepository
     /** The newest unconsumed, unexpired preview carrying this token, locked so a replay waits and then finds it consumed. */
     public function findLiveForUpdate(WorkspaceScope $workspace, string $token, \DateTimeImmutable $now): ?CategorizationPreview;
 
-    public function markConsumed(WorkspaceScope $workspace, string $id, \DateTimeImmutable $consumedAt): void;
+    /** Consumes every live row with the same deterministic token, making duplicate previews one-shot as a group. */
+    public function markTokenConsumed(WorkspaceScope $workspace, string $token, \DateTimeImmutable $consumedAt): void;
 
     public function purgeExpired(WorkspaceScope $workspace, \DateTimeImmutable $now): void;
 }

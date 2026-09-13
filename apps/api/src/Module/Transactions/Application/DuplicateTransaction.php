@@ -11,6 +11,7 @@ use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Domain\UuidGenerator;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\Transaction;
@@ -33,6 +34,7 @@ final readonly class DuplicateTransaction
         private RecordAuditEvent $recordAuditEvent,
         private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
+        private CategorizationWriteLock $categorizationWriteLock,
     ) {
     }
 
@@ -41,6 +43,7 @@ final readonly class DuplicateTransaction
         $context = $this->caller->resolveContext();
 
         return $this->transactionBoundary->transactional(function () use ($context, $id): TransactionView {
+            $this->categorizationWriteLock->acquire($context->workspace);
             $source = $this->transactions->findForUpdate($context->workspace, $id);
             if (null === $source) {
                 throw new TransactionNotFound();

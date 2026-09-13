@@ -9,6 +9,7 @@ use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -26,6 +27,7 @@ final readonly class VoidTransaction
         private RecordAuditEvent $recordAuditEvent,
         private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
+        private CategorizationWriteLock $categorizationWriteLock,
     ) {
     }
 
@@ -34,6 +36,7 @@ final readonly class VoidTransaction
         $context = $this->caller->resolveContext();
 
         return $this->transactionBoundary->transactional(function () use ($context, $id, $version): TransactionView {
+            $this->categorizationWriteLock->acquire($context->workspace);
             $current = $this->transactions->findForUpdate($context->workspace, $id);
             if (null === $current) {
                 throw new TransactionNotFound();

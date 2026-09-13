@@ -67,6 +67,38 @@
   color: var(--text-secondary);
   gap: var(--spacing-2);
 }
+.conflicts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.conflicts h3,
+.conflicts p,
+.conflicts ul {
+  margin: var(--spacing-none);
+}
+.conflicts h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+.conflicts ul {
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--spacing-6);
+  color: var(--text-secondary);
+  gap: var(--spacing-2);
+}
+.conflicts code {
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+}
+.conflicts p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}
 .dialog > p.alert {
   padding: var(--spacing-3) var(--spacing-4);
   border: var(--border-line-negative);

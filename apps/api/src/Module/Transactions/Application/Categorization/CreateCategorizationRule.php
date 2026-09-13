@@ -15,7 +15,7 @@ use Symfony\Component\Clock\ClockInterface;
 
 final readonly class CreateCategorizationRule
 {
-    public function __construct(private CallerWorkspaceContext $caller, private CategorizationRuleRepository $rules, private CategorizationRuleFactory $factory, private UuidGenerator $ids, private TransactionBoundary $boundary, private RecordAuditEvent $audit, private PresentCategorizationRule $presenter, private ClockInterface $clock)
+    public function __construct(private CallerWorkspaceContext $caller, private CategorizationRuleRepository $rules, private CategorizationRuleFactory $factory, private UuidGenerator $ids, private TransactionBoundary $boundary, private CategorizationWriteLock $writeLock, private RecordAuditEvent $audit, private PresentCategorizationRule $presenter, private ClockInterface $clock)
     {
     }
 
@@ -25,6 +25,10 @@ final readonly class CreateCategorizationRule
         $context = $this->caller->resolveContext();
 
         return $this->boundary->transactional(function () use ($context, $input): array {
+            $this->writeLock->acquire($context->workspace);
+            if (count($this->rules->activeInOrder($context->workspace, CategorizationExecutionLimits::MAX_ACTIVE_RULES)) >= CategorizationExecutionLimits::MAX_ACTIVE_RULES) {
+                throw new CategorizationExecutionLimitExceeded();
+            }
             $rule = $this->factory->create($this->ids->generate(), $context->workspace, $input, $this->clock->now());
             $this->rules->add($rule);
             ($this->audit)(new AuditEventRecord($context->workspace, $context->actorId, 'categorization_rule.created', 'categorization_rule', $rule->id, AuditDiff::creation(['active' => true, 'priority' => $rule->priority])));
