@@ -1697,7 +1697,14 @@
       "counterparty": "Tiers à compléter",
       "effectiveFrom": "Effective à partir du",
       "effectiveTo": "Effective jusqu’au",
-      "axes": "Axes analytiques"
+      "axes": "Axes analytiques",
+      "advanced": "Facultatif",
+      "priorityHint": "De 1 à 999. En cas de conflit, la plus petite valeur l’emporte.",
+      "counterpartyHint": "Renseigné sur le mouvement seulement si son tiers est vide.",
+      "effectiveFromHint": "Les mouvements datés avant ce jour ne sont pas concernés.",
+      "effectiveToHint": "Laisser vide pour une règle sans date de fin.",
+      "priorityValue": "Priorité {{value}}",
+      "accountScopeClear": "Tous les comptes"
     },
     "validation": {
       "label": "Le libellé doit contenir entre 1 et 80 caractères.",
@@ -1721,7 +1728,10 @@
       "textTitle": "Comparer un texte",
       "textHint": "Les comparaisons de texte ne tiennent pas compte de la casse. Un motif régulier reste borné et est contrôlé côté serveur.",
       "combinator": "Combiner les conditions texte",
-      "combinators": { "AND": "ET", "OR": "OU" },
+      "combinators": {
+        "AND": "Toutes",
+        "OR": "Au moins une"
+      },
       "combinatorHints": {
         "AND": "ET : toutes les conditions texte doivent correspondre.",
         "OR": "OU : au moins une condition texte doit correspondre."
@@ -1734,11 +1744,9 @@
       },
       "operator": "Comparaison de la condition texte {{row}}",
       "value": "Valeur de la condition texte {{row}}",
-      "negated": "Exclure la condition texte {{row}}",
       "add": "Ajouter une condition texte",
       "remove": "Supprimer la condition texte {{row}}",
       "limit": "Vous pouvez ajouter jusqu’à 20 conditions texte.",
-      "enabled": "Utiliser",
       "amountTitle": "Comparer un montant exact",
       "amountHint": "Saisissez des décimaux sous forme de texte, avec leur signe et sans arrondi.",
       "minimum": "Minimum",
@@ -1747,11 +1755,38 @@
       "otherTitle": "Autres critères",
       "mcc": "Code MCC",
       "direction": "Sens",
-      "anyDirection": "Tous les sens"
+      "anyDirection": "Tous les sens",
+      "title": "Conditions",
+      "hint": "Ajoutez au moins une condition. Chaque famille utilisée doit correspondre.",
+      "operatorGroups": {
+        "include": "Inclure",
+        "exclude": "Exclure"
+      },
+      "valuePlaceholder": "Texte recherché",
+      "regexPlaceholder": "^CB CARREFOUR",
+      "textCount_one": "{{count}} condition",
+      "textCount_other": "{{count}} conditions",
+      "unused": "Non utilisé",
+      "amountEnabled": "Filtrer sur un montant",
+      "amountMin": "≥ {{value}} {{asset}}",
+      "amountMax": "≤ {{value}} {{asset}}",
+      "amountUnbounded": "Sans borne",
+      "mccHint": "Code commerçant à 4 chiffres, par exemple 5411.",
+      "mccValue": "MCC {{value}}"
     },
-    "operators": { "EQUALS": "Est égal à", "CONTAINS": "Contient", "REGEX": "Motif régulier" },
-    "directions": { "IN": "Entrée", "OUT": "Sortie" },
-    "status": { "active": "Active", "archived": "Archivée" },
+    "operators": {
+      "EQUALS": "Est égal à",
+      "CONTAINS": "Contient",
+      "REGEX": "Motif régulier"
+    },
+    "directions": {
+      "IN": "Entrée",
+      "OUT": "Sortie"
+    },
+    "status": {
+      "active": "Active",
+      "archived": "Archivée"
+    },
     "reasons": {
       "USER": "Désactivée",
       "PATTERN_BUDGET_EXCEEDED": "Désactivée : motif trop coûteux",
@@ -1829,6 +1864,11 @@
       "apply": "Appliquer cette prévisualisation",
       "applying": "Application…",
       "applied": "{{count}} mouvement a été catégorisé."
+    },
+    "negatedOperators": {
+      "EQUALS": "N’est pas égal à",
+      "CONTAINS": "Ne contient pas",
+      "REGEX": "Ne correspond pas au motif"
     }
   }
 }

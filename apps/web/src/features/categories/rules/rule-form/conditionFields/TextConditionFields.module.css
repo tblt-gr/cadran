@@ -1,0 +1,47 @@
+.segmented {
+  display: inline-flex;
+  width: fit-content;
+  padding: var(--spacing-0-5);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-2);
+  gap: var(--spacing-0-5);
+}
+
+.segmented label {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-1-5) var(--spacing-4);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.segmented label:hover {
+  color: var(--text-primary);
+}
+
+.segmented label:has(input:checked) {
+  color: var(--gold-300);
+  background: var(--gold-soft);
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+  gap: var(--spacing-2);
+}
+
+.add {
+  align-self: flex-start;
+}

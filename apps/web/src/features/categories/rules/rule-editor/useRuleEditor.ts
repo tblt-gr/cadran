@@ -12,8 +12,8 @@ import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import {
   CategorizationRuleRequestError,
   categorizationRuleRequestError,
-} from '@/features/categorization-rules/categorizationRuleError';
-import { useRefreshCategorizationData } from '@/features/categorization-rules/refreshCategorizationData';
+} from '@/features/categories/rules/categorizationRuleError';
+import { useRefreshCategorizationData } from '@/features/categories/rules/refreshCategorizationData';
 
 type RuleEditorTarget = CategorizationRule | 'create' | null;
 

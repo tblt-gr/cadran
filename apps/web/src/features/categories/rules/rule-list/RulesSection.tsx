@@ -1,7 +1,7 @@
 import type { CategorizationRule } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { CategorizationRuleRequestError } from '@/features/categorization-rules/categorizationRuleError';
-import type { useCategorizationRules } from '@/features/categorization-rules/useCategorizationRules';
+import { CategorizationRuleRequestError } from '@/features/categories/rules/categorizationRuleError';
+import type { useCategorizationRules } from '@/features/categories/rules/useCategorizationRules';
 import { RuleList } from './RuleList';
 import { RulePagination } from './RulePagination';
 import styles from './RulesSection.module.css';

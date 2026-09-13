@@ -2,7 +2,7 @@ import type { CategorizationApplyReport, CategorizationPreview } from '@cadran/a
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { todayInBrowser } from '@/lib/businessDay';
-import type { CategorizationRuleErrorKind } from '@/features/categorization-rules/categorizationRuleError';
+import type { CategorizationRuleErrorKind } from '@/features/categories/rules/categorizationRuleError';
 import styles from './RulePreviewDialog.module.css';
 
 interface RulePreviewDialogProps {

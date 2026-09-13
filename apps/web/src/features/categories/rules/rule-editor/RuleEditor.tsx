@@ -6,8 +6,8 @@ import type {
 } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
-import type { CategorizationRuleErrorKind } from '@/features/categorization-rules/categorizationRuleError';
-import { RuleForm } from '@/features/categorization-rules/rule-form/RuleForm';
+import type { CategorizationRuleErrorKind } from '@/features/categories/rules/categorizationRuleError';
+import { RuleForm } from '@/features/categories/rules/rule-form/RuleForm';
 
 interface RuleEditorProps {
   accounts: Account[];

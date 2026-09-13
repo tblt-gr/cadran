@@ -12,7 +12,7 @@ import { ProductCatalogPage } from '@/features/catalog/ProductCatalogPage';
 import { ProductModelsPage } from '@/features/product-models/ProductModelsPage';
 import { AccountGroupsPage } from '@/features/account-groups/AccountGroupsPage';
 import { CategoryPage } from '@/features/categories/CategoryPage';
-import { CategorizationRulesPage } from '@/features/categorization-rules/CategorizationRulesPage';
+import { CategorizationRulesPage } from '@/features/categories/rules/CategorizationRulesPage';
 import { TransactionsPage } from '@/features/transactions/TransactionsPage';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';

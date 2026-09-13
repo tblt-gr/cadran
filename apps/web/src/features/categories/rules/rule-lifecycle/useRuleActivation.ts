@@ -3,8 +3,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
-import { categorizationRuleRequestError } from '@/features/categorization-rules/categorizationRuleError';
-import { useRefreshCategorizationData } from '@/features/categorization-rules/refreshCategorizationData';
+import { categorizationRuleRequestError } from '@/features/categories/rules/categorizationRuleError';
+import { useRefreshCategorizationData } from '@/features/categories/rules/refreshCategorizationData';
 
 /**
  * Toggling one categorization rule's active state. The rule's other fields

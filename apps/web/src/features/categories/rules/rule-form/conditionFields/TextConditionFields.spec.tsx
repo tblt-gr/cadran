@@ -39,14 +39,7 @@ describe('TextConditionFields', () => {
       },
     };
     rerender(<TextConditionFields conditions={conditions} onChange={onChange} />);
-
-    fireEvent.change(screen.getByRole('combobox', { name: 'Combiner les conditions texte' }), {
-      target: { value: 'OR' },
-    });
-    expect(onChange).toHaveBeenLastCalledWith({
-      ...conditions,
-      text: { ...conditions.text!, combinator: 'OR' },
-    });
+    expect(screen.queryByRole('radio', { name: 'Au moins une' })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter une condition texte' }));
     const withRepeatedSource = {
@@ -67,35 +60,46 @@ describe('TextConditionFields', () => {
     expect(onChange).toHaveBeenLastCalledWith(withRepeatedSource);
     rerender(<TextConditionFields conditions={withRepeatedSource} onChange={onChange} />);
 
+    fireEvent.click(screen.getByRole('radio', { name: 'Au moins une' }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...withRepeatedSource,
+      text: { ...withRepeatedSource.text, combinator: 'OR' },
+    });
+
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer la condition texte 2' }));
     expect(onChange).toHaveBeenLastCalledWith(conditions);
   });
 
-  it('exposes source, comparison, value and negation controls for every row', () => {
-    render(
-      <TextConditionFields
-        conditions={{
-          ...emptyConditions,
-          text: {
-            combinator: 'AND',
-            predicates: [
-              { source: 'COUNTERPARTY', operator: 'EQUALS', value: 'Carrefour', negated: true },
-            ],
-          },
-        }}
-        onChange={vi.fn()}
-      />,
-    );
+  it('folds the negation into the comparison of every row', () => {
+    const onChange = vi.fn();
+    const conditions: CategorizationRuleConditions = {
+      ...emptyConditions,
+      text: {
+        combinator: 'AND',
+        predicates: [
+          { source: 'COUNTERPARTY', operator: 'EQUALS', value: 'Carrefour', negated: true },
+        ],
+      },
+    };
+    render(<TextConditionFields conditions={conditions} onChange={onChange} />);
 
     expect(screen.getByRole('combobox', { name: 'Source de la condition texte 1' })).toBeTruthy();
-    expect(
-      screen.getByRole('combobox', { name: 'Comparaison de la condition texte 1' }),
-    ).toBeTruthy();
+    const comparison = screen.getByRole('combobox', {
+      name: 'Comparaison de la condition texte 1',
+    }) as HTMLSelectElement;
+    expect(comparison.value).toBe('NOT_EQUALS');
     expect(screen.getByRole('textbox', { name: 'Valeur de la condition texte 1' })).toBeTruthy();
-    expect(
-      (screen.getByRole('checkbox', { name: 'Exclure la condition texte 1' }) as HTMLInputElement)
-        .checked,
-    ).toBe(true);
+
+    fireEvent.change(comparison, { target: { value: 'CONTAINS' } });
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...conditions,
+      text: {
+        combinator: 'AND',
+        predicates: [
+          { source: 'COUNTERPARTY', operator: 'CONTAINS', value: 'Carrefour', negated: false },
+        ],
+      },
+    });
   });
 
   it('caps the editor at the 20 predicates accepted by the API', () => {

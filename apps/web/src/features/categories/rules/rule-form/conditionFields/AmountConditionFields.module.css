@@ -1,0 +1,11 @@
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 7rem);
+  gap: var(--spacing-4);
+}
+
+@media (max-width: 42rem) {
+  .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

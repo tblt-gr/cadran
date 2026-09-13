@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -36,17 +37,20 @@ export function CategorizationRulesPage() {
       <section aria-labelledby="rules-intro-title" className={styles.intro}>
         <div>
           <p>{t('categorizationRules.eyebrow')}</p>
-          <h2 id="rules-intro-title">{t('categorizationRules.title')}</h2>
+          <div className={styles.titleRow}>
+            <a
+              aria-label={t('categorizationRules.backToCategories')}
+              className={`icon-button ${styles.back}`}
+              href="/categories"
+              onClick={(event) => handleClientNavigation(event, '/categories')}
+            >
+              <Icon name="arrow-left" size={18} />
+            </a>
+            <h2 id="rules-intro-title">{t('categorizationRules.title')}</h2>
+          </div>
           <span>{t('categorizationRules.description')}</span>
         </div>
         <div className={styles.introActions}>
-          <a
-            className="secondary-action"
-            href="/categories"
-            onClick={(event) => handleClientNavigation(event, '/categories')}
-          >
-            {t('categorizationRules.backToCategories')}
-          </a>
           <button
             className="secondary-action"
             onClick={() => previewWorkflow.open(null)}
