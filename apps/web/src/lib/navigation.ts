@@ -25,6 +25,12 @@ export const navigationItems: NavigationItem[] = [
     mobile: true,
   },
   {
+    href: '/recurrences',
+    icon: 'transactions',
+    labelKey: 'navigation.recurrences',
+    match: (path) => path === '/recurrences',
+  },
+  {
     href: '/months/2026-03',
     icon: 'budget',
     labelKey: 'navigation.budget',
