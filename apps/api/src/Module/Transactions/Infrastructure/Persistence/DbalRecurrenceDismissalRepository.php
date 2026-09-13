@@ -36,6 +36,21 @@ final readonly class DbalRecurrenceDismissalRepository implements RecurrenceDism
         ]);
     }
 
+    public function dismissIfAbsent(WorkspaceScope $workspace, string $id, string $fingerprint, \DateTimeImmutable $dismissedAt): bool
+    {
+        return 1 === $this->connection->executeStatement(
+            'INSERT INTO '.self::TABLE.' (id, workspace_id, candidate_fingerprint, dismissed_at) '
+            .'VALUES (:id, :workspace_id, :fingerprint, :dismissed_at) '
+            .'ON CONFLICT (workspace_id, candidate_fingerprint) DO NOTHING',
+            [
+                'id' => $id,
+                'workspace_id' => $workspace->id,
+                'fingerprint' => $fingerprint,
+                'dismissed_at' => $dismissedAt->format('Y-m-d H:i:s.uP'),
+            ],
+        );
+    }
+
     public function restore(WorkspaceScope $workspace, string $fingerprint): bool
     {
         return 1 === $this->connection->delete(self::TABLE, [

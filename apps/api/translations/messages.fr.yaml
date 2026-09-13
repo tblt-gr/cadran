@@ -219,6 +219,24 @@ api:
     invalid_transaction:
       title: 'Transaction invalide'
       detail: "Vérifiez le compte, le montant, la nature, les dates, le libellé d'origine et la catégorie."
+    invalid_recurrence_query:
+      title: 'Requête de récurrences invalide'
+      detail: 'Vérifiez la pagination et la période demandée.'
+    invalid_recurrence:
+      title: 'Récurrence invalide'
+      detail: 'Vérifiez le compte, le libellé, les montants exacts, le rythme et le jour attendu.'
+    recurrence_not_found:
+      title: 'Récurrence introuvable'
+      detail: "Aucune récurrence ou proposition masquée ne porte cet identifiant dans cet espace."
+    recurrence_forbidden:
+      title: 'Récurrences inaccessibles'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
+    recurrence_archived:
+      title: 'Récurrence archivée'
+      detail: 'Une récurrence archivée est en lecture seule.'
+    recurrence_stale_version:
+      title: 'Récurrence modifiée entre-temps'
+      detail: 'Rechargez la récurrence puis réappliquez la modification.'
     idempotency_invalid:
       title: 'Clé d’idempotence invalide'
       detail: 'La clé doit contenir de 16 à 255 caractères alphanumériques, points, tirets bas, deux-points ou tirets.'

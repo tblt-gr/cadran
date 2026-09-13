@@ -18,6 +18,9 @@ interface RecurrenceDismissalRepository
 
     public function dismiss(WorkspaceScope $workspace, string $id, string $fingerprint, \DateTimeImmutable $dismissedAt): void;
 
+    /** Idempotent, concurrency-safe dismissal used by the public mutation. */
+    public function dismissIfAbsent(WorkspaceScope $workspace, string $id, string $fingerprint, \DateTimeImmutable $dismissedAt): bool;
+
     public function findId(WorkspaceScope $workspace, string $fingerprint): ?string;
 
     /** Returns false when nothing was dismissed under that fingerprint. */

@@ -208,8 +208,11 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrences/{id}/occurrences', name: 'api_v1_recurrences_occurrences', methods: ['GET'])]
     public function occurrences(string $id, Request $request, ListRecurrenceOccurrences $list): Response
     {
-        if (!$this->envelope->isIdentifier($id) || [] !== array_diff(array_keys($request->query->all()), ['from', 'to'])) {
+        if (!$this->envelope->isIdentifier($id)) {
             return $this->problem(404, '/problems/recurrences.not_found');
+        }
+        if ([] !== array_diff(array_keys($request->query->all()), ['from', 'to'])) {
+            return $this->problem(400, '/problems/recurrences.invalid_query');
         }
         try {
             $from = $request->query->has('from') ? self::day($request->query->getString('from')) : null;
@@ -230,7 +233,16 @@ final readonly class RecurrenceController
 
     private function problem(int $status, string $type): Response
     {
-        return $this->envelope->problem($status, 'api.problem.invalid_transaction', $type);
+        $translation = match ($type) {
+            '/problems/recurrences.invalid_query' => 'api.problem.invalid_recurrence_query',
+            '/problems/recurrences.not_found' => 'api.problem.recurrence_not_found',
+            '/problems/recurrences.forbidden' => 'api.problem.recurrence_forbidden',
+            '/problems/recurrences.archived' => 'api.problem.recurrence_archived',
+            '/problems/stale-version' => 'api.problem.recurrence_stale_version',
+            default => 'api.problem.invalid_recurrence',
+        };
+
+        return $this->envelope->problem($status, $translation, $type);
     }
 
     private static function fingerprint(string $value): void

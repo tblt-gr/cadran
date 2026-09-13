@@ -293,6 +293,17 @@ final class RecurrencePersistenceTest extends KernelTestCase
         $this->dismissals->dismiss(WorkspaceFixture::own(), $this->id(12), self::FINGERPRINT, $this->moment());
     }
 
+    public function testThePublicDismissalWriteIsIdempotent(): void
+    {
+        self::assertTrue($this->dismissals->dismissIfAbsent(
+            WorkspaceFixture::own(), $this->id(11), self::FINGERPRINT, $this->moment(),
+        ));
+        self::assertFalse($this->dismissals->dismissIfAbsent(
+            WorkspaceFixture::own(), $this->id(12), self::FINGERPRINT, $this->moment(),
+        ));
+        self::assertSame($this->id(11), $this->dismissals->findId(WorkspaceFixture::own(), self::FINGERPRINT));
+    }
+
     private function recurrence(
         string $id = self::OWN_RECURRENCE,
         ?WorkspaceScope $workspace = null,

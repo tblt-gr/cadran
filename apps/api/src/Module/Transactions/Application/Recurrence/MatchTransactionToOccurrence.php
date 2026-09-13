@@ -27,13 +27,6 @@ final readonly class MatchTransactionToOccurrence
         $existing = $this->occurrences->findByMatchedTransaction($transaction->workspace, $transaction->id);
         if (null !== $existing) {
             $recurrence = $this->recurrences->find($transaction->workspace, $existing->recurrenceId);
-            $stillFits = null !== $recurrence && null === $recurrence->archivedAt
-                && $recurrence->accountId === $transaction->accountId
-                && $this->eligible($transaction)
-                && OccurrenceMatcher::fits($existing, $transaction->amount, $transaction->bookedOn);
-            if ($stillFits) {
-                return;
-            }
             $this->occurrences->release($transaction->workspace, $existing->id);
             if (null !== $recurrence) {
                 $affected[$recurrence->id] = $recurrence;

@@ -28,11 +28,10 @@ final readonly class DismissRecurrenceCandidate
     {
         $context = $this->caller->resolveContext();
         $this->boundary->transactional(function () use ($context, $fingerprint): void {
-            if (null !== $this->dismissals->findId($context->workspace, $fingerprint)) {
+            $id = $this->ids->generate();
+            if (!$this->dismissals->dismissIfAbsent($context->workspace, $id, $fingerprint, $this->calendar->now())) {
                 return;
             }
-            $id = $this->ids->generate();
-            $this->dismissals->dismiss($context->workspace, $id, $fingerprint, $this->calendar->now());
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, RecurrenceAuditEvents::CANDIDATE_DISMISSED,
                 RecurrenceAuditEvents::CANDIDATE_ENTITY, $id, AuditDiff::creation(['dismissed' => true]),
