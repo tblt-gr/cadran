@@ -22,13 +22,13 @@ final readonly class WorkspaceCalendar
         private ClockInterface $clock,
         private CallerWorkspaceContext $caller,
         private WorkspaceTimezoneReader $timezones,
-    )
-    {
+    ) {
     }
 
     public function today(): \DateTimeImmutable
     {
         $workspace = $this->caller->resolveContext()->workspace;
+
         return new \DateTimeImmutable(
             $this->clock->now()->setTimezone(new \DateTimeZone($this->timezones->timezone($workspace)))->format('Y-m-d'),
             new \DateTimeZone('UTC'),

@@ -137,5 +137,4 @@ final readonly class DbalTransactionRecurrenceOccurrenceRepository implements Tr
             ? null
             : new \DateTimeImmutable(TransactionRow::text($value), new \DateTimeZone('UTC'));
     }
-
 }

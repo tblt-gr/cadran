@@ -20,7 +20,6 @@ final class RecurrenceControllerTest extends WebTestCase
     private const string OWN_ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OWN_SECOND_ACCOUNT = '00000000-0000-7000-8000-0000000000d3';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
-    private const string UNKNOWN_ID = '00000000-0000-7000-8000-0000000000f8';
     private const string TODAY = '2026-03-14T09:12:04+00:00';
     private const array RECURRENCE_KEYS = [
         'id', 'accountId', 'label', 'counterparty', 'expectedAmount', 'amountTolerance',
@@ -451,13 +450,43 @@ final class RecurrenceControllerTest extends WebTestCase
         self::assertSame(1, $this->recurrenceCount());
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $overrides
+     *
+     * @return array{
+     *     id: string,
+     *     version: int,
+     *     label: mixed,
+     *     expectedAmount: mixed,
+     *     amountTolerance: mixed,
+     *     dayOfPeriod: mixed,
+     *     nextExpectedOn: mixed,
+     *     archivedAt: mixed,
+     *     ...
+     * }
+     */
     private function createRecurrence(array $overrides = []): array
     {
         $this->requestCreate([...$this->recurrencePayload(), ...$overrides]);
         self::assertResponseStatusCodeSame(201);
 
-        return $this->decode();
+        $record = self::versionedRecord($this->decode());
+        self::assertArrayHasKey('label', $record);
+        self::assertArrayHasKey('expectedAmount', $record);
+        self::assertArrayHasKey('amountTolerance', $record);
+        self::assertArrayHasKey('dayOfPeriod', $record);
+        self::assertArrayHasKey('nextExpectedOn', $record);
+        self::assertArrayHasKey('archivedAt', $record);
+
+        return [
+            ...$record,
+            'label' => $record['label'],
+            'expectedAmount' => $record['expectedAmount'],
+            'amountTolerance' => $record['amountTolerance'],
+            'dayOfPeriod' => $record['dayOfPeriod'],
+            'nextExpectedOn' => $record['nextExpectedOn'],
+            'archivedAt' => $record['archivedAt'],
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -570,7 +599,7 @@ final class RecurrenceControllerTest extends WebTestCase
         return null;
     }
 
-    /** @return array<string, mixed> */
+    /** @return array{id: string, version: int, ...} */
     private function createTransaction(string $bookedOn, string $amount, string $account = self::OWN_ACCOUNT): array
     {
         if ($this->clock->now()->format('Y-m-d') < $bookedOn) {
@@ -586,7 +615,7 @@ final class RecurrenceControllerTest extends WebTestCase
         ], JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(201);
 
-        return $this->decode();
+        return self::versionedRecord($this->decode());
     }
 
     private function fingerprint(): string
@@ -635,7 +664,11 @@ final class RecurrenceControllerTest extends WebTestCase
     private function storedStatuses(string $recurrenceId): array
     {
         return array_map(
-            static fn (mixed $value): string => (string) $value,
+            static function (mixed $value): string {
+                self::assertIsString($value);
+
+                return $value;
+            },
             $this->connection->fetchFirstColumn(
                 'SELECT status FROM transaction_recurrence_occurrences WHERE workspace_id = ? AND recurrence_id = ? ORDER BY expected_on',
                 [WorkspaceFixture::OWN_WORKSPACE, $recurrenceId],
@@ -645,18 +678,18 @@ final class RecurrenceControllerTest extends WebTestCase
 
     private function recurrenceCount(): int
     {
-        return (int) $this->connection->fetchOne(
+        return self::integerResult($this->connection->fetchOne(
             'SELECT count(*) FROM transaction_recurrences WHERE workspace_id = ?',
             [WorkspaceFixture::OWN_WORKSPACE],
-        );
+        ));
     }
 
     private function occurrenceCount(): int
     {
-        return (int) $this->connection->fetchOne(
+        return self::integerResult($this->connection->fetchOne(
             'SELECT count(*) FROM transaction_recurrence_occurrences WHERE workspace_id = ?',
             [WorkspaceFixture::OWN_WORKSPACE],
-        );
+        ));
     }
 
     private function seedAccount(string $id, string $workspace): void
@@ -696,8 +729,13 @@ final class RecurrenceControllerTest extends WebTestCase
         $decoded = json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($decoded);
 
-        /** @var array<string, mixed> $decoded */
-        return $decoded;
+        $object = [];
+        foreach ($decoded as $key => $value) {
+            self::assertIsString($key);
+            $object[$key] = $value;
+        }
+
+        return $object;
     }
 
     /**
@@ -710,8 +748,40 @@ final class RecurrenceControllerTest extends WebTestCase
         $items = $page['items'] ?? null;
         self::assertIsArray($items);
 
-        /** @var list<array<string, mixed>> $items */
-        return array_values($items);
+        return array_values(array_map(self::object(...), $items));
+    }
+
+    /** @return array<string, mixed> */
+    private static function object(mixed $value): array
+    {
+        self::assertIsArray($value);
+        $object = [];
+        foreach ($value as $key => $item) {
+            self::assertIsString($key);
+            $object[$key] = $item;
+        }
+
+        return $object;
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     *
+     * @return array{id: string, version: int, ...}
+     */
+    private static function versionedRecord(array $record): array
+    {
+        self::assertIsString($record['id'] ?? null);
+        self::assertIsInt($record['version'] ?? null);
+
+        return $record;
+    }
+
+    private static function integerResult(mixed $value): int
+    {
+        self::assertTrue(is_int($value) || is_string($value));
+
+        return (int) $value;
     }
 
     /** @return array<string, string> */

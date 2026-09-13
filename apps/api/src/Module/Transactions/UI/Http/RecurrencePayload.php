@@ -12,21 +12,30 @@ final readonly class RecurrencePayload
     {
     }
 
-    /** @param array<mixed> $body @param list<string> $expectedFields */
+    /**
+     * @param array<mixed> $body
+     * @param list<string> $expectedFields
+     */
     public static function of(array $body, array $expectedFields): self
     {
         if ([] !== $expectedFields && array_is_list($body)) {
             throw new \UnexpectedValueException('A recurrence body must be an object.');
         }
-        $submitted = array_keys($body);
+        $fields = [];
+        foreach ($body as $key => $value) {
+            if (!is_string($key)) {
+                throw new \UnexpectedValueException('A recurrence field name must be a string.');
+            }
+            $fields[$key] = $value;
+        }
+        $submitted = array_keys($fields);
         sort($submitted);
         sort($expectedFields);
-        if ($submitted !== $expectedFields || array_any($submitted, static fn (mixed $key): bool => !is_string($key))) {
+        if ($submitted !== $expectedFields) {
             throw new \UnexpectedValueException('A recurrence body carries exactly its declared fields.');
         }
 
-        /** @var array<string, mixed> $body */
-        return new self($body);
+        return new self($fields);
     }
 
     public function string(string $field): string

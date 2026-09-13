@@ -87,7 +87,7 @@ final readonly class RecurrenceSchedule
     {
         $limit = self::midnight($horizon);
         $dates = [];
-        for ($index = 0; ; ++$index) {
+        for ($index = 0;; ++$index) {
             $date = $this->on($index);
             if ($date > $limit) {
                 return $dates;
