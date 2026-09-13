@@ -98,7 +98,7 @@ final class CategorizationResolverTest extends TestCase
     #[DataProvider('ineligibleMovements')]
     public function testAnIneligibleMovementNeverResolves(TransactionNature $nature, TransactionState $state, string $amount): void
     {
-        $rule = $this->rule(self::RULE_A, 1, conditions: ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]);
+        $rule = $this->rule(self::RULE_A, 1, conditions: self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour'));
 
         $resolution = $this->resolver->resolve([$rule], $this->categories(), $this->subject(amount: $amount, nature: $nature, state: $state), $this->matchingRun(), firstMatchOnly: false);
 
@@ -108,8 +108,8 @@ final class CategorizationResolverTest extends TestCase
     public function testFirstMatchOnlyStopsBeforeEvaluatingLaterPatterns(): void
     {
         $timer = new SteppingElapsedTime(1);
-        $first = $this->rule(self::RULE_A, 1, conditions: ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]);
-        $second = $this->rule(self::RULE_B, 2, conditions: ['rawLabel' => ['operator' => 'REGEX', 'value' => 'carrefour']]);
+        $first = $this->rule(self::RULE_A, 1, conditions: self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour'));
+        $second = $this->rule(self::RULE_B, 2, conditions: self::textConditions('RAW_LABEL', 'REGEX', 'carrefour'));
 
         $resolution = $this->resolver->resolve([$first, $second], $this->categories(), $this->subject(), new RuleMatchingRun($timer), firstMatchOnly: true);
 
@@ -121,7 +121,7 @@ final class CategorizationResolverTest extends TestCase
     {
         $limitBefore = ini_get('pcre.backtrack_limit');
         $run = $this->matchingRun();
-        $rule = $this->rule(self::RULE_A, 1, conditions: ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]);
+        $rule = $this->rule(self::RULE_A, 1, conditions: self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$'));
 
         $exploding = $this->resolver->resolve([$rule], $this->categories(), $this->subject(rawLabel: str_repeat('a', 40).'!'), $run, firstMatchOnly: false);
         $harmless = $this->resolver->resolve([$rule], $this->categories(), $this->subject(rawLabel: 'aaa'), $run, firstMatchOnly: false);
@@ -135,7 +135,7 @@ final class CategorizationResolverTest extends TestCase
     public function testCumulatedMatchingTimeBeyondFiftyMillisecondsTripsTheRule(): void
     {
         $run = new RuleMatchingRun(new SteppingElapsedTime(30_000_000));
-        $rule = $this->rule(self::RULE_A, 1, conditions: ['rawLabel' => ['operator' => 'REGEX', 'value' => 'carrefour']]);
+        $rule = $this->rule(self::RULE_A, 1, conditions: self::textConditions('RAW_LABEL', 'REGEX', 'carrefour'));
 
         $first = $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $run, firstMatchOnly: false);
         $second = $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $run, firstMatchOnly: false);
@@ -145,11 +145,26 @@ final class CategorizationResolverTest extends TestCase
         self::assertSame([self::RULE_A], $run->trippedRuleIds());
     }
 
+    public function testRepeatedRegexPredicatesShareTheRuleBudgetAndNegationDoesNotHideTheTrip(): void
+    {
+        $run = new RuleMatchingRun(new SteppingElapsedTime(30_000_000));
+        $conditions = ['text' => ['combinator' => 'AND', 'predicates' => [
+            ['source' => 'RAW_LABEL', 'operator' => 'REGEX', 'value' => 'carrefour', 'negated' => false],
+            ['source' => 'NORMALIZED_LABEL', 'operator' => 'REGEX', 'value' => 'never', 'negated' => true],
+        ]]];
+        $rule = $this->rule(self::RULE_A, 1, conditions: $conditions);
+
+        $resolution = $this->resolver->resolve([$rule], $this->categories(), $this->subject(), $run, firstMatchOnly: false);
+
+        self::assertNull($resolution->winner);
+        self::assertSame([self::RULE_A], $run->trippedRuleIds());
+    }
+
     public function testAnotherRuleKeepsItsOwnBudgetWhenOneTrips(): void
     {
         $run = $this->matchingRun();
-        $exploding = $this->rule(self::RULE_A, 1, conditions: ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]);
-        $fallback = $this->rule(self::RULE_B, 2, conditions: ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'aaaa']]);
+        $exploding = $this->rule(self::RULE_A, 1, conditions: self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$'));
+        $fallback = $this->rule(self::RULE_B, 2, conditions: self::textConditions('RAW_LABEL', 'CONTAINS', 'aaaa'));
 
         $resolution = $this->resolver->resolve([$exploding, $fallback], $this->categories(), $this->subject(rawLabel: str_repeat('a', 40).'!'), $run, firstMatchOnly: true);
 
@@ -252,9 +267,10 @@ final class CategorizationResolverTest extends TestCase
         string $target = self::EXPENSE,
         string $createdAt = '2026-03-01T00:00:00+00:00',
         string $effectiveFrom = '2026-01-01',
-        array $conditions = ['counterparty' => ['operator' => 'EQUALS', 'value' => 'carrefour']],
+        ?array $conditions = null,
     ): CategorizationRule {
         $created = new \DateTimeImmutable($createdAt);
+        $conditions ??= self::textConditions('COUNTERPARTY', 'EQUALS', 'carrefour');
 
         return new CategorizationRule(
             id: $id, workspace: WorkspaceFixture::own(), label: 'Règle', priority: $priority, accountScope: [],
@@ -263,6 +279,14 @@ final class CategorizationResolverTest extends TestCase
             active: true, deactivatedReason: null, appliedCount: 0, version: 1, createdAt: $created,
             updatedAt: $created, archivedAt: null,
         );
+    }
+
+    /** @return array{text: array{combinator: string, predicates: list<array{source: string, operator: string, value: string, negated: bool}>}} */
+    private static function textConditions(string $source, string $operator, string $value, bool $negated = false): array
+    {
+        return ['text' => ['combinator' => 'AND', 'predicates' => [[
+            'source' => $source, 'operator' => $operator, 'value' => $value, 'negated' => $negated,
+        ]]]];
     }
 
     private function subject(

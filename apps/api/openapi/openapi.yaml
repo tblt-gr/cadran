@@ -7107,13 +7107,32 @@ components:
         remaining:
           description: What remains refundable on the original, before this request.
           $ref: '#/components/schemas/DecimalAmount'
-    RuleTextCondition:
+    RuleTextPredicate:
       type: object
       additionalProperties: false
-      required: [operator, value]
+      required: [source, operator, value, negated]
       properties:
+        source: { type: string, enum: [RAW_LABEL, NORMALIZED_LABEL, COUNTERPARTY] }
         operator: { type: string, enum: [EQUALS, CONTAINS, REGEX] }
         value: { type: string, minLength: 1, maxLength: 120 }
+        negated:
+          type: boolean
+          description: Inverts this predicate result before the group combinator is applied.
+    RuleTextConditionGroup:
+      description: >-
+        Repeated text predicates combined globally. AND requires every predicate result; OR requires
+        at least one. A positive counterparty predicate is false when the counterparty is absent,
+        before optional predicate negation.
+      type: object
+      additionalProperties: false
+      required: [combinator, predicates]
+      properties:
+        combinator: { type: string, enum: [AND, OR] }
+        predicates:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: '#/components/schemas/RuleTextPredicate' }
     RuleAmountCondition:
       type: object
       additionalProperties: false
@@ -7129,14 +7148,11 @@ components:
             - { type: 'null' }
         assetCode: { type: string, pattern: '^[A-Z][A-Z0-9]{1,11}$' }
     CategorizationRuleConditions:
+      description: MCC, amount and direction each combine conjunctively with the complete text group.
       type: object
       additionalProperties: false
       properties:
-        rawLabel: { oneOf: [{ $ref: '#/components/schemas/RuleTextCondition' }, { type: 'null' }] }
-        normalizedLabel:
-          { oneOf: [{ $ref: '#/components/schemas/RuleTextCondition' }, { type: 'null' }] }
-        counterparty:
-          { oneOf: [{ $ref: '#/components/schemas/RuleTextCondition' }, { type: 'null' }] }
+        text: { oneOf: [{ $ref: '#/components/schemas/RuleTextConditionGroup' }, { type: 'null' }] }
         mcc: { oneOf: [{ type: string, pattern: '^[0-9]{4}$' }, { type: 'null' }] }
         amount: { oneOf: [{ $ref: '#/components/schemas/RuleAmountCondition' }, { type: 'null' }] }
         direction: { oneOf: [{ type: string, enum: [IN, OUT] }, { type: 'null' }] }

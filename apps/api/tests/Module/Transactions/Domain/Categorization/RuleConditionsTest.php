@@ -24,9 +24,13 @@ final class RuleConditionsTest extends TestCase
     public function testTheDocumentRoundTripsWithEveryMember(): void
     {
         $document = [
-            'rawLabel' => ['operator' => 'CONTAINS', 'value' => 'CARREFOUR'],
-            'normalizedLabel' => null,
-            'counterparty' => ['operator' => 'EQUALS', 'value' => 'Carrefour'],
+            'text' => [
+                'combinator' => 'AND',
+                'predicates' => [
+                    ['source' => 'RAW_LABEL', 'operator' => 'CONTAINS', 'value' => 'CARREFOUR', 'negated' => false],
+                    ['source' => 'COUNTERPARTY', 'operator' => 'EQUALS', 'value' => 'Carrefour', 'negated' => true],
+                ],
+            ],
             'mcc' => '5411',
             'amount' => ['min' => '-250.00', 'max' => '-5.00', 'assetCode' => 'EUR'],
             'direction' => 'OUT',
@@ -38,7 +42,7 @@ final class RuleConditionsTest extends TestCase
     public function testAMissingMemberReadsAsAbsent(): void
     {
         self::assertSame(
-            ['rawLabel' => null, 'normalizedLabel' => null, 'counterparty' => null, 'mcc' => null, 'amount' => null, 'direction' => 'IN'],
+            ['text' => null, 'mcc' => null, 'amount' => null, 'direction' => 'IN'],
             RuleConditions::fromDocument(['direction' => 'IN'])->toDocument(),
         );
     }
@@ -47,12 +51,20 @@ final class RuleConditionsTest extends TestCase
     public static function malformedDocuments(): iterable
     {
         yield 'no member at all' => [[]];
-        yield 'only null members' => [['rawLabel' => null, 'mcc' => null]];
+        yield 'only null members' => [['text' => null, 'mcc' => null]];
         yield 'unknown member' => [['colour' => 'red']];
-        yield 'unknown operator' => [['rawLabel' => ['operator' => 'STARTS_WITH', 'value' => 'a']]];
-        yield 'extra key in a text condition' => [['rawLabel' => ['operator' => 'EQUALS', 'value' => 'a', 'flags' => 'i']]];
-        yield 'blank text value' => [['rawLabel' => ['operator' => 'EQUALS', 'value' => '   ']]];
-        yield 'text value beyond 120 characters' => [['rawLabel' => ['operator' => 'CONTAINS', 'value' => str_repeat('a', 121)]]];
+        yield 'text group is a list' => [['text' => []]];
+        yield 'text group has an unknown member' => [['text' => ['combinator' => 'AND', 'predicates' => [], 'mode' => 'STRICT']]];
+        yield 'unknown combinator' => [['text' => ['combinator' => 'XOR', 'predicates' => [['source' => 'RAW_LABEL', 'operator' => 'EQUALS', 'value' => 'a', 'negated' => false]]]]];
+        yield 'predicates is not a list' => [['text' => ['combinator' => 'AND', 'predicates' => ['source' => 'RAW_LABEL']]]];
+        yield 'empty predicates' => [['text' => ['combinator' => 'AND', 'predicates' => []]]];
+        yield 'more than twenty predicates' => [['text' => ['combinator' => 'AND', 'predicates' => array_fill(0, 21, ['source' => 'RAW_LABEL', 'operator' => 'EQUALS', 'value' => 'a', 'negated' => false])]]];
+        yield 'unknown source' => [['text' => ['combinator' => 'AND', 'predicates' => [['source' => 'NOTE', 'operator' => 'EQUALS', 'value' => 'a', 'negated' => false]]]]];
+        yield 'unknown operator' => [['text' => ['combinator' => 'AND', 'predicates' => [['source' => 'RAW_LABEL', 'operator' => 'STARTS_WITH', 'value' => 'a', 'negated' => false]]]]];
+        yield 'extra key in a text predicate' => [['text' => ['combinator' => 'AND', 'predicates' => [['source' => 'RAW_LABEL', 'operator' => 'EQUALS', 'value' => 'a', 'negated' => false, 'flags' => 'i']]]]];
+        yield 'negated is not boolean' => [['text' => ['combinator' => 'AND', 'predicates' => [['source' => 'RAW_LABEL', 'operator' => 'EQUALS', 'value' => 'a', 'negated' => 'false']]]]];
+        yield 'blank text value' => [['text' => ['combinator' => 'AND', 'predicates' => [['source' => 'RAW_LABEL', 'operator' => 'EQUALS', 'value' => '   ', 'negated' => false]]]]];
+        yield 'text value beyond 120 characters' => [['text' => ['combinator' => 'AND', 'predicates' => [['source' => 'RAW_LABEL', 'operator' => 'CONTAINS', 'value' => str_repeat('a', 121), 'negated' => false]]]]];
         yield 'mcc not four digits' => [['mcc' => '541']];
         yield 'unknown direction' => [['direction' => 'SIDEWAYS']];
         yield 'amount without bound' => [['amount' => ['min' => null, 'max' => null, 'assetCode' => 'EUR']]];
@@ -74,11 +86,13 @@ final class RuleConditionsTest extends TestCase
     public function testAnUnsafeRegularExpressionIsRefusedWithItsReason(): void
     {
         try {
-            RuleConditions::fromDocument(['rawLabel' => ['operator' => 'REGEX', 'value' => '(a+)+$']]);
+            RuleConditions::fromDocument($this->textGroup([
+                ['source' => 'NORMALIZED_LABEL', 'operator' => 'REGEX', 'value' => '(a+)+$', 'negated' => false],
+            ]));
             self::fail('An unsafe pattern must be refused.');
         } catch (UnsafeRulePattern $exception) {
             self::assertSame(RegexSafetyPolicy::NESTED_QUANTIFIER, $exception->reason);
-            self::assertSame('rawLabel', $exception->field);
+            self::assertSame('NORMALIZED_LABEL', $exception->field);
         }
     }
 
@@ -129,24 +143,38 @@ final class RuleConditionsTest extends TestCase
     {
         $subject = $this->subject(rawLabel: 'CB CARREFOUR 1234', counterparty: 'Carrefour');
 
-        self::assertTrue(RuleConditions::fromDocument(['rawLabel' => ['operator' => 'CONTAINS', 'value' => ' carrefour ']])->matches($subject, self::regex(...)));
-        self::assertTrue(RuleConditions::fromDocument(['counterparty' => ['operator' => 'EQUALS', 'value' => 'CARREFOUR']])->matches($subject, self::regex(...)));
-        self::assertFalse(RuleConditions::fromDocument(['counterparty' => ['operator' => 'EQUALS', 'value' => 'Carrefour Market']])->matches($subject, self::regex(...)));
-        self::assertTrue(RuleConditions::fromDocument(['normalizedLabel' => ['operator' => 'EQUALS', 'value' => 'cb carrefour 1234']])->matches($subject, self::regex(...)));
-        self::assertTrue(RuleConditions::fromDocument(['rawLabel' => ['operator' => 'REGEX', 'value' => '^cb\s+carrefour']])->matches($subject, self::regex(...)));
+        self::assertTrue(RuleConditions::fromDocument($this->textGroup([['source' => 'RAW_LABEL', 'operator' => 'CONTAINS', 'value' => ' carrefour ', 'negated' => false]]))->matches($subject, self::regex(...)));
+        self::assertTrue(RuleConditions::fromDocument($this->textGroup([['source' => 'COUNTERPARTY', 'operator' => 'EQUALS', 'value' => 'CARREFOUR', 'negated' => false]]))->matches($subject, self::regex(...)));
+        self::assertFalse(RuleConditions::fromDocument($this->textGroup([['source' => 'COUNTERPARTY', 'operator' => 'EQUALS', 'value' => 'Carrefour Market', 'negated' => false]]))->matches($subject, self::regex(...)));
+        self::assertTrue(RuleConditions::fromDocument($this->textGroup([['source' => 'NORMALIZED_LABEL', 'operator' => 'EQUALS', 'value' => 'cb carrefour 1234', 'negated' => false]]))->matches($subject, self::regex(...)));
+        self::assertTrue(RuleConditions::fromDocument($this->textGroup([['source' => 'RAW_LABEL', 'operator' => 'REGEX', 'value' => '^cb\s+carrefour', 'negated' => false]]))->matches($subject, self::regex(...)));
     }
 
-    public function testATextConditionOnAnAbsentCounterpartyDoesNotMatch(): void
+    public function testNegationInvertsAFalsePredicateIncludingAnAbsentCounterparty(): void
     {
-        $conditions = RuleConditions::fromDocument(['counterparty' => ['operator' => 'CONTAINS', 'value' => 'a']]);
+        $positive = RuleConditions::fromDocument($this->textGroup([['source' => 'COUNTERPARTY', 'operator' => 'CONTAINS', 'value' => 'a', 'negated' => false]]));
+        $negated = RuleConditions::fromDocument($this->textGroup([['source' => 'COUNTERPARTY', 'operator' => 'CONTAINS', 'value' => 'a', 'negated' => true]]));
 
-        self::assertFalse($conditions->matches($this->subject(counterparty: null), self::regex(...)));
+        self::assertFalse($positive->matches($this->subject(counterparty: null), self::regex(...)));
+        self::assertTrue($negated->matches($this->subject(counterparty: null), self::regex(...)));
+    }
+
+    public function testRepeatedSourcesSupportAndOrAndPerPredicateNegation(): void
+    {
+        $predicates = [
+            ['source' => 'COUNTERPARTY', 'operator' => 'CONTAINS', 'value' => 'Carrefour', 'negated' => false],
+            ['source' => 'COUNTERPARTY', 'operator' => 'CONTAINS', 'value' => 'Market', 'negated' => true],
+        ];
+
+        self::assertTrue(RuleConditions::fromDocument($this->textGroup($predicates))->matches($this->subject(counterparty: 'Carrefour City'), self::regex(...)));
+        self::assertFalse(RuleConditions::fromDocument($this->textGroup($predicates))->matches($this->subject(counterparty: 'Carrefour Market'), self::regex(...)));
+        self::assertTrue(RuleConditions::fromDocument($this->textGroup($predicates, 'OR'))->matches($this->subject(counterparty: 'Other Shop'), self::regex(...)));
     }
 
     public function testEveryPresentMemberMustMatch(): void
     {
         $conditions = RuleConditions::fromDocument([
-            'rawLabel' => ['operator' => 'CONTAINS', 'value' => 'CARREFOUR'],
+            ...$this->textGroup([['source' => 'RAW_LABEL', 'operator' => 'CONTAINS', 'value' => 'CARREFOUR', 'negated' => false]]),
             'mcc' => '5411',
             'direction' => 'OUT',
         ]);
@@ -168,7 +196,7 @@ final class RuleConditionsTest extends TestCase
     public function testTheRegularExpressionIsEvaluatedThroughTheInjectedMatcher(): void
     {
         $seen = [];
-        $conditions = RuleConditions::fromDocument(['rawLabel' => ['operator' => 'REGEX', 'value' => 'carrefour']]);
+        $conditions = RuleConditions::fromDocument($this->textGroup([['source' => 'RAW_LABEL', 'operator' => 'REGEX', 'value' => 'carrefour', 'negated' => false]]));
         $conditions->matches($this->subject(), static function (string $pattern, string $subject) use (&$seen): bool {
             $seen[] = [$pattern, $subject];
 
@@ -176,6 +204,32 @@ final class RuleConditionsTest extends TestCase
         });
 
         self::assertSame([['carrefour', 'CB CARREFOUR 1234']], $seen);
+    }
+
+    public function testAndShortCircuitsBeforeALaterRegexButOrPropagatesARegexBudgetException(): void
+    {
+        $predicates = [
+            ['source' => 'RAW_LABEL', 'operator' => 'EQUALS', 'value' => 'never', 'negated' => false],
+            ['source' => 'RAW_LABEL', 'operator' => 'REGEX', 'value' => 'carrefour', 'negated' => true],
+        ];
+        $regex = static function (): never {
+            throw new \RuntimeException('budget');
+        };
+
+        self::assertFalse(RuleConditions::fromDocument($this->textGroup($predicates))->matches($this->subject(), $regex));
+
+        $this->expectExceptionMessage('budget');
+        RuleConditions::fromDocument($this->textGroup($predicates, 'OR'))->matches($this->subject(), $regex);
+    }
+
+    /**
+     * @param list<array{source: string, operator: string, value: string, negated: bool}> $predicates
+     *
+     * @return array{text: array{combinator: string, predicates: list<array{source: string, operator: string, value: string, negated: bool}>}}
+     */
+    private function textGroup(array $predicates, string $combinator = 'AND'): array
+    {
+        return ['text' => ['combinator' => $combinator, 'predicates' => $predicates]];
     }
 
     private static function regex(string $pattern, string $subject): bool

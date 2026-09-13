@@ -100,8 +100,10 @@ final class CategorizationRuleControllerTest extends WebTestCase
         self::assertSame('Courses', $first['targetCategoryLabel']);
         self::assertSame(['ESSENTIAL'], $first['targetAxes']);
         self::assertSame([
-            'rawLabel' => ['operator' => 'CONTAINS', 'value' => 'CARREFOUR'],
-            'normalizedLabel' => null, 'counterparty' => null, 'mcc' => null,
+            'text' => ['combinator' => 'AND', 'predicates' => [[
+                'source' => 'RAW_LABEL', 'operator' => 'CONTAINS', 'value' => 'CARREFOUR', 'negated' => false,
+            ]]],
+            'mcc' => null,
             'amount' => ['min' => '-250.00', 'max' => '-5.00', 'assetCode' => 'EUR'],
             'direction' => 'OUT',
         ], $first['conditions']);
@@ -179,13 +181,13 @@ final class CategorizationRuleControllerTest extends WebTestCase
     #[DataProvider('unsafePatterns')]
     public function testAnUnsafePatternIsRefusedWithAnExplanation(string $pattern, string $reason): void
     {
-        $this->requestCreate($this->rulePayload(['conditions' => ['counterparty' => ['operator' => 'REGEX', 'value' => $pattern]]]));
+        $this->requestCreate($this->rulePayload(['conditions' => self::textConditions('COUNTERPARTY', 'REGEX', $pattern)]));
 
         self::assertResponseStatusCodeSame(422);
         $problem = $this->decode();
         self::assertSame('/problems/rules.unsafe_pattern', $problem['type']);
         self::assertSame($reason, $problem['reason']);
-        self::assertSame('counterparty', $problem['field']);
+        self::assertSame('COUNTERPARTY', $problem['field']);
         self::assertNotSame('', $problem['detail']);
         self::assertSame(0, $this->ruleCount());
     }
@@ -225,7 +227,12 @@ final class CategorizationRuleControllerTest extends WebTestCase
         yield 'priority above 999' => [['priority' => 1000]];
         yield 'blank label' => [['label' => '']];
         yield 'no condition' => [['conditions' => []]];
-        yield 'text value beyond 120 characters' => [['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => str_repeat('a', 121)]]]];
+        yield 'text value beyond 120 characters' => [['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', str_repeat('a', 121))]];
+        yield 'legacy singleton text member' => [['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'a']]]];
+        yield 'unknown text combinator' => [['conditions' => ['text' => ['combinator' => 'XOR', 'predicates' => []]]]];
+        yield 'more than twenty text predicates' => [['conditions' => ['text' => ['combinator' => 'AND', 'predicates' => array_fill(0, 21, [
+            'source' => 'RAW_LABEL', 'operator' => 'EQUALS', 'value' => 'a', 'negated' => false,
+        ])]]]];
         yield 'native number amount' => [['conditions' => ['amount' => ['min' => -5, 'max' => null, 'assetCode' => 'EUR']]]];
         yield 'period ending before it starts' => [['effectiveTo' => '2025-12-31']];
         yield 'malformed date' => [['effectiveFrom' => '01/01/2026']];
@@ -244,10 +251,51 @@ final class CategorizationRuleControllerTest extends WebTestCase
         self::assertSame(0, $this->ruleCount());
     }
 
+    public function testRepeatedTextSourcesAndOrNegationRoundTripThroughTheApi(): void
+    {
+        $conditions = [
+            'text' => [
+                'combinator' => 'OR',
+                'predicates' => [
+                    ['source' => 'COUNTERPARTY', 'operator' => 'EQUALS', 'value' => 'Carrefour', 'negated' => false],
+                    ['source' => 'COUNTERPARTY', 'operator' => 'EQUALS', 'value' => 'Auchan', 'negated' => true],
+                ],
+            ],
+            'mcc' => '5411',
+        ];
+
+        $rule = $this->createRule(['conditions' => $conditions]);
+
+        self::assertSame([
+            ...$conditions,
+            'amount' => null,
+            'direction' => null,
+        ], $rule['conditions']);
+    }
+
+    public function testTwentyTextPredicatesFitThePersistenceBoundary(): void
+    {
+        $predicates = array_fill(0, 20, [
+            'source' => 'NORMALIZED_LABEL',
+            'operator' => 'CONTAINS',
+            'value' => 'a',
+            'negated' => false,
+        ]);
+
+        $rule = $this->createRule(['conditions' => [
+            'text' => ['combinator' => 'AND', 'predicates' => $predicates],
+            'direction' => 'OUT',
+        ]]);
+
+        self::assertIsArray($rule['conditions']);
+        self::assertIsArray($rule['conditions']['text']);
+        self::assertSame($predicates, $rule['conditions']['text']['predicates']);
+    }
+
     public function testAnotherWorkspaceCannotSeeEditArchivePreviewOrApplyARule(): void
     {
         $this->seedHistory();
-        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'CARREFOUR']]]);
+        $rule = $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'CARREFOUR')]);
         $id = self::text($rule, 'id');
         $token = $this->preview(null);
 
@@ -275,7 +323,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
     {
         $this->seedHistory();
         $rule = $this->createRule([
-            'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']],
+            'conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour'),
             'targetCounterparty' => 'Carrefour',
         ]);
         $ruleId = self::text($rule, 'id');
@@ -344,8 +392,8 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testTheLowestPriorityWinsAndTheLosingRuleIsReportedAsAConflict(): void
     {
         $this->seedHistory();
-        $losing = $this->createRule(['priority' => 20, 'targetCategoryId' => self::OWN_OTHER_EXPENSE, 'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
-        $winning = $this->createRule(['priority' => 10, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^cb carrefour']]]);
+        $losing = $this->createRule(['priority' => 20, 'targetCategoryId' => self::OWN_OTHER_EXPENSE, 'conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour')]);
+        $winning = $this->createRule(['priority' => 10, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', '^cb carrefour')]);
 
         $this->requestPreview(null, '2026-01-01', '2026-03-31');
         $preview = $this->decode();
@@ -372,8 +420,8 @@ final class CategorizationRuleControllerTest extends WebTestCase
              FROM generate_series(1, 25) AS g",
             ['workspace' => WorkspaceFixture::OWN_WORKSPACE, 'account' => self::OWN_ACCOUNT],
         );
-        $this->createRule(['label' => 'Winner', 'priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'conflict']]]);
-        $this->createRule(['label' => 'Loser', 'priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'conflict']]]);
+        $this->createRule(['label' => 'Winner', 'priority' => 1, 'conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'conflict')]);
+        $this->createRule(['label' => 'Loser', 'priority' => 2, 'conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'conflict')]);
 
         $this->requestPreview(null, '2026-01-01', '2026-03-31');
         $preview = $this->decode();
@@ -393,7 +441,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testAManualEditAfterThePreviewMakesTheApplyStale(): void
     {
         $this->seedHistory();
-        $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour')]);
         $token = $this->preview(null);
 
         $this->client->request('PUT', '/api/v1/transactions/'.self::TX_CARREFOUR.'/splits', server: self::jsonHeaders(), content: json_encode([
@@ -412,7 +460,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testApplyManualEditsAndOutsideToInsideMovesContendForTheWorkspaceSerializationLock(): void
     {
         $this->seedHistory();
-        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $rule = $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour')]);
         $token = $this->preview(null);
 
         self::assertSame('blocked', $this->runWhileWorkspaceIsLocked('apply', $token));
@@ -436,7 +484,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testMovingAnOutsideTransactionIntoThePreviewRangeMakesApplyStale(): void
     {
         $this->seedHistory();
-        $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour')]);
         $token = $this->preview(null);
 
         $this->requestTransactionUpdate(self::TX_LATER, [...$this->transactionPayload([
@@ -458,9 +506,9 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testARuleEditOrAnExpiryAfterThePreviewMakesTheApplyStale(): void
     {
         $this->seedHistory();
-        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $rule = $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour')]);
         $token = $this->preview(null);
-        $this->requestUpdate(self::text($rule, 'id'), [...$this->rulePayload(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']], 'priority' => 5]), 'active' => true, 'version' => 1]);
+        $this->requestUpdate(self::text($rule, 'id'), [...$this->rulePayload(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour'), 'priority' => 5]), 'active' => true, 'version' => 1]);
         self::assertResponseIsSuccessful();
         $this->requestApply($token);
         self::assertResponseStatusCodeSame(409);
@@ -475,14 +523,14 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testARuleRevisionThatFillsAnEmptyCounterpartyIsARealChange(): void
     {
         $this->seedHistory();
-        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $rule = $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour')]);
         $this->requestApply($this->preview(null));
         self::assertResponseIsSuccessful();
         self::assertNull($this->counterparty(self::TX_CARREFOUR));
 
         $this->requestUpdate(self::text($rule, 'id'), [
             ...$this->rulePayload([
-                'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']],
+                'conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour'),
                 'targetCounterparty' => 'Carrefour',
             ]),
             'active' => true,
@@ -511,7 +559,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
         $this->seedTransaction($fullRefund, '2026-02-13', '10.00', 'REFUND SHOULD NOT MATCH', nature: 'REFUND');
         $this->seedRefund($partial, $partialRefund, '4.00');
         $this->seedRefund($full, $fullRefund, '10.00');
-        $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'refunded']]]);
+        $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'refunded')]);
 
         $this->requestPreview(null, '2026-01-01', '2026-03-31');
         $preview = $this->decode();
@@ -522,7 +570,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
 
     public function testAnExplicitSplitEditClaimsManualAuthorityAndLaterRuleReplayPreservesIt(): void
     {
-        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $rule = $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour')]);
         $created = $this->createTransaction([]);
         $id = self::text($created, 'id');
         self::assertSame('RULE', $this->firstSplit($created)['categorizationOrigin']);
@@ -577,8 +625,8 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testPreviewCommitsRegexDeactivationBeforeReturningTheGlobalLimit(): void
     {
         $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
-        $tripped = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
-        $fallback = $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        $tripped = $this->createRule(['priority' => 1, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$')]);
+        $fallback = $this->createRule(['priority' => 2, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', 'a')]);
         $this->setExecutionBudget(1);
 
         $this->requestPreview(null, '2026-01-01', '2026-03-31');
@@ -594,10 +642,10 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testApplyCommitsRegexDeactivationBeforeReturningTheGlobalLimit(): void
     {
         $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
-        $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        $this->createRule(['priority' => 2, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', 'a')]);
         $this->setExecutionBudget(1);
         $token = $this->preview(null);
-        $tripped = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
+        $tripped = $this->createRule(['priority' => 1, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$')]);
 
         $this->requestApply($token);
 
@@ -611,7 +659,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testApplyCommitsARegexDeactivationThatMakesThePreviewStale(): void
     {
         $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', 'CB CARREFOUR 1234');
-        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'carrefour']]]);
+        $rule = $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'REGEX', 'carrefour')]);
         $token = $this->preview(null);
         // Every timed evaluation now costs 60 ms, beyond the 50 ms per-rule budget, only during apply.
         $this->overrideService(HrtimeElapsedTime::class, new SteppingElapsedTime(60_000_000));
@@ -628,8 +676,8 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testASecondResolutionPassIsNotRefusedForEvaluationsSpentInTheFirst(): void
     {
         $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
-        $tripped = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
-        $fallback = $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        $tripped = $this->createRule(['priority' => 1, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$')]);
+        $fallback = $this->createRule(['priority' => 2, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', 'a')]);
         // The first pass spends both evaluations; the second pass needs one more.
         $this->setExecutionBudget(2);
 
@@ -645,8 +693,8 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testARuleTrippingOnlyInTheSecondPassIsDeactivatedAndLeftOutOfTheToken(): void
     {
         $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
-        $first = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
-        $second = $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        $first = $this->createRule(['priority' => 1, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$')]);
+        $second = $this->createRule(['priority' => 2, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', 'a')]);
         // Each evaluation costs 30 ms: the fallback stays within its 50 ms budget in the first pass
         // and crosses it only when re-evaluated in the second.
         $this->overrideService(HrtimeElapsedTime::class, new SteppingElapsedTime(30_000_000));
@@ -675,9 +723,9 @@ final class CategorizationRuleControllerTest extends WebTestCase
         foreach ([self::TX_CARREFOUR, self::TX_MANUAL, self::TX_AUCHAN] as $id) {
             $this->seedTransaction($id, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
         }
-        $first = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
-        $second = $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
-        $fallback = $this->createRule(['priority' => 3, 'targetCategoryId' => self::OWN_OTHER_EXPENSE, 'targetAxes' => [], 'conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'a']]]);
+        $first = $this->createRule(['priority' => 1, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$')]);
+        $second = $this->createRule(['priority' => 2, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', 'a')]);
+        $fallback = $this->createRule(['priority' => 3, 'targetCategoryId' => self::OWN_OTHER_EXPENSE, 'targetAxes' => [], 'conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'a')]);
         // 9 ms per pattern evaluation: the second rule spends 27 ms in the first pass, then crosses
         // its 50 ms budget on the third candidate of the second pass, after winning the first two.
         $this->overrideService(HrtimeElapsedTime::class, new SteppingElapsedTime(9_000_000));
@@ -704,8 +752,8 @@ final class CategorizationRuleControllerTest extends WebTestCase
 
     public function testCreationCommitsRegexDeactivationAndStaysUncategorizedAtTheGlobalLimit(): void
     {
-        $tripped = $this->createRule(['priority' => 1, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
-        $this->createRule(['priority' => 2, 'conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => 'a']]]);
+        $tripped = $this->createRule(['priority' => 1, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$')]);
+        $this->createRule(['priority' => 2, 'conditions' => self::textConditions('RAW_LABEL', 'REGEX', 'a')]);
         $this->setExecutionBudget(1);
 
         $created = $this->createTransaction(['rawLabel' => str_repeat('a', 40).'!', 'counterparty' => null]);
@@ -723,7 +771,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
              FROM generate_series(1, 5001) AS g",
             ['workspace' => WorkspaceFixture::OWN_WORKSPACE, 'account' => self::OWN_ACCOUNT],
         );
-        $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'bulk']]]);
+        $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'bulk')]);
 
         $this->requestPreview(null, '2026-01-01', '2026-03-31');
 
@@ -753,7 +801,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testCreationAppliesTheWinningRuleOnlyWithoutAnExplicitCategoryInPeriodAndScope(): void
     {
         $rule = $this->createRule([
-            'conditions' => ['counterparty' => ['operator' => 'EQUALS', 'value' => 'carrefour']],
+            'conditions' => self::textConditions('COUNTERPARTY', 'EQUALS', 'carrefour'),
             'accountScope' => [self::OWN_ACCOUNT],
             'targetCounterparty' => 'Ignored because present',
         ]);
@@ -780,7 +828,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
 
     public function testCreationFillsOnlyAnEmptyCounterparty(): void
     {
-        $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']], 'targetCounterparty' => 'Carrefour']);
+        $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour'), 'targetCounterparty' => 'Carrefour']);
 
         self::assertSame('Carrefour', $this->createTransaction(['counterparty' => null])['counterparty']);
         self::assertSame('Carrefour Market', $this->createTransaction(['counterparty' => 'Carrefour Market'])['counterparty']);
@@ -788,7 +836,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
 
     public function testAnEditKeepsRuleProvenanceUntilTheCategorisationChanges(): void
     {
-        $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'carrefour']]]);
+        $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour')]);
         $created = $this->createTransaction([]);
         $id = self::text($created, 'id');
 
@@ -830,7 +878,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
     public function testARuleExceedingItsBacktrackBudgetIsDeactivatedAndReported(): void
     {
         $this->seedTransaction(self::TX_CARREFOUR, '2026-02-03', '-42.90', str_repeat('a', 40).'!');
-        $rule = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
+        $rule = $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$')]);
         $ruleId = self::text($rule, 'id');
 
         $this->requestPreview(null, '2026-01-01', '2026-03-31');
@@ -845,7 +893,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
             [WorkspaceFixture::OWN_WORKSPACE, $ruleId],
         )], 'n'));
 
-        $second = $this->createRule(['conditions' => ['rawLabel' => ['operator' => 'REGEX', 'value' => '^(a|a)*$']]]);
+        $second = $this->createRule(['conditions' => self::textConditions('RAW_LABEL', 'REGEX', '^(a|a)*$')]);
         self::assertSame([], $this->createTransaction(['rawLabel' => str_repeat('a', 40).'!'])['splits']);
         self::assertSame([false, 'PATTERN_BUDGET_EXCEEDED'], $this->ruleState(self::text($second, 'id')));
     }
@@ -883,7 +931,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
             'priority' => 10,
             'accountScope' => [],
             'conditions' => [
-                'rawLabel' => ['operator' => 'CONTAINS', 'value' => 'CARREFOUR'],
+                ...self::textConditions('RAW_LABEL', 'CONTAINS', 'CARREFOUR'),
                 'amount' => ['min' => '-250.00', 'max' => '-5.00', 'assetCode' => 'EUR'],
                 'direction' => 'OUT',
             ],
@@ -894,6 +942,14 @@ final class CategorizationRuleControllerTest extends WebTestCase
             'effectiveTo' => null,
             ...$overrides,
         ];
+    }
+
+    /** @return array{text: array{combinator: string, predicates: list<array{source: string, operator: string, value: string, negated: bool}>}} */
+    private static function textConditions(string $source, string $operator, string $value, bool $negated = false): array
+    {
+        return ['text' => ['combinator' => 'AND', 'predicates' => [[
+            'source' => $source, 'operator' => $operator, 'value' => $value, 'negated' => $negated,
+        ]]]];
     }
 
     /**

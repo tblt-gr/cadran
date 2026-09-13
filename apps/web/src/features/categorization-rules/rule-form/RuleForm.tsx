@@ -39,11 +39,9 @@ interface RuleFormProps {
 function emptyConditions(): CategorizationRuleConditions {
   return {
     amount: null,
-    counterparty: null,
     direction: null,
     mcc: null,
-    normalizedLabel: null,
-    rawLabel: null,
+    text: null,
   };
 }
 
@@ -73,6 +71,7 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
     periodInvalid,
     priorityInvalid,
     targetInvalid,
+    textInvalid,
   } = validateRuleForm({
     conditions,
     effectiveFrom,
@@ -168,7 +167,12 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
         ))}
       </fieldset>
 
-      <TextConditionFields conditions={conditions} onChange={setConditions} />
+      <TextConditionFields
+        conditions={conditions}
+        invalid={textInvalid}
+        onChange={setConditions}
+        showErrors={showErrors}
+      />
       <AmountConditionFields conditions={conditions} onChange={setConditions} />
       <OtherConditionFields conditions={conditions} onChange={setConditions} />
       {showErrors && (conditionsInvalid || amountInvalid) ? (

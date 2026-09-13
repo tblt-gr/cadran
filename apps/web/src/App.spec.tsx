@@ -180,7 +180,9 @@ describe('App', () => {
     fireEvent.click(manageRules);
 
     expect(window.location.pathname).toBe('/categories/rules');
-    expect(await screen.findAllByRole('heading', { name: 'Règles de catégorisation' })).toHaveLength(2);
+    expect(
+      await screen.findAllByRole('heading', { name: 'Règles de catégorisation' }),
+    ).toHaveLength(2);
     expect(screen.getByRole('link', { name: 'Retour aux catégories' })).toBeTruthy();
 
     const backToCategories = screen.getByRole('link', { name: 'Retour aux catégories' });
@@ -190,7 +192,9 @@ describe('App', () => {
     fireEvent.click(backToCategories);
 
     expect(window.location.pathname).toBe('/categories');
-    expect(await screen.findByRole('heading', { name: 'Catégories et axes analytiques' })).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { name: 'Catégories et axes analytiques' }),
+    ).toBeTruthy();
   });
 
   it('shows a recoverable error inside the shell for a foundation network failure', async () => {

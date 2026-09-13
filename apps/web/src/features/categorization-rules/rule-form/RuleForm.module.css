@@ -17,7 +17,8 @@
 
 .fields label,
 .amountFields label,
-.conditionRow label {
+.textConditionRow label,
+.combinator {
   display: flex;
   flex-direction: column;
   color: var(--text-secondary);
@@ -28,8 +29,9 @@
 .fields input,
 .fields select,
 .amountFields input,
-.conditionRow input,
-.conditionRow select {
+.textConditionRow input,
+.textConditionRow select,
+.combinator select {
   min-height: var(--control-height);
   padding: var(--spacing-2) var(--spacing-3);
   border: var(--border-line-strong);
@@ -80,11 +82,52 @@
   gap: var(--spacing-2);
 }
 
-.conditionRow {
+.textConditionRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto;
   align-items: end;
   gap: var(--spacing-3);
+}
+
+.combinator small,
+.textConditionRow small,
+.limit {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}
+
+.textConditionRow input[aria-invalid='true'] {
+  border-color: var(--negative);
+}
+
+.addCondition,
+.removeCondition {
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-button);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  font-size: var(--font-size-body);
+}
+
+.addCondition {
+  justify-self: start;
+}
+
+.removeCondition {
+  color: var(--negative);
+}
+
+.limit,
+.textValidation {
+  margin: var(--spacing-none);
+}
+
+.textValidation {
+  color: var(--negative);
+  font-size: var(--font-size-label);
 }
 
 .conditionToggle {
@@ -109,7 +152,7 @@
 @media (max-width: 42rem) {
   .fields,
   .amountFields,
-  .conditionRow {
+  .textConditionRow {
     grid-template-columns: 1fr;
   }
 }

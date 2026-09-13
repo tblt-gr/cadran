@@ -19,14 +19,13 @@ export interface RuleFormValidation {
   periodInvalid: boolean;
   priorityInvalid: boolean;
   targetInvalid: boolean;
+  textInvalid: boolean;
 }
 
 /** A rule with no condition at all would match every transaction, which is never intended. */
 export function hasCondition(conditions: CategorizationRuleConditions): boolean {
   return Boolean(
-    conditions.rawLabel?.value ||
-    conditions.normalizedLabel?.value ||
-    conditions.counterparty?.value ||
+    conditions.text?.predicates.some((predicate) => predicate.value.trim() !== '') ||
     conditions.mcc ||
     conditions.direction ||
     conditions.amount?.min ||
@@ -57,6 +56,13 @@ export function validateRuleForm({
   const labelInvalid = cleanLabel.length < 1 || [...cleanLabel].length > 80;
   const priorityInvalid = !/^\d{1,3}$/.test(priority) || parsedPriority < 1 || parsedPriority > 999;
   const conditionsInvalid = !hasCondition(conditions);
+  const textInvalid = Boolean(
+    conditions.text &&
+    (conditions.text.predicates.length > 20 ||
+      conditions.text.predicates.some(
+        (predicate) => predicate.value.trim() === '' || predicate.value.length > 120,
+      )),
+  );
   const amountInvalid =
     conditions.amount !== null &&
     conditions.amount !== undefined &&
@@ -75,6 +81,7 @@ export function validateRuleForm({
       priorityInvalid ||
       targetInvalid ||
       conditionsInvalid ||
+      textInvalid ||
       amountInvalid ||
       periodInvalid
     ),
@@ -83,5 +90,6 @@ export function validateRuleForm({
     periodInvalid,
     priorityInvalid,
     targetInvalid,
+    textInvalid,
   };
 }

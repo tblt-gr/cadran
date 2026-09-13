@@ -45,7 +45,7 @@ final class Version20260918120000 extends AbstractMigration
                 CONSTRAINT transaction_categorization_rules_priority_valid CHECK (priority BETWEEN 1 AND 999),
                 CONSTRAINT transaction_categorization_rules_label_present CHECK (btrim(label) = label AND label <> ''),
                 CONSTRAINT transaction_categorization_rules_period_ordered CHECK (effective_to IS NULL OR effective_to >= effective_from),
-                CONSTRAINT transaction_categorization_rules_conditions_shape CHECK (jsonb_typeof(conditions) = 'object' AND length(conditions::text) <= 4096),
+                CONSTRAINT transaction_categorization_rules_conditions_shape CHECK (jsonb_typeof(conditions) = 'object' AND length(conditions::text) <= 8192),
                 CONSTRAINT transaction_categorization_rules_scope_shape CHECK (jsonb_typeof(account_scope) = 'array' AND jsonb_array_length(account_scope) <= 20),
                 CONSTRAINT transaction_categorization_rules_axes_valid CHECK (jsonb_typeof(target_axes) = 'array' AND target_axes <@ '["DISCRETIONARY", "ESSENTIAL", "FIXED", "PERSONAL", "PROFESSIONAL", "VARIABLE"]'::JSONB),
                 CONSTRAINT transaction_categorization_rules_deactivation_reason_valid CHECK (deactivated_reason IS NULL OR deactivated_reason IN ('USER', 'PATTERN_BUDGET_EXCEEDED', 'CATEGORY_ARCHIVED')),

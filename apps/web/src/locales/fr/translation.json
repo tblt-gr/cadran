@@ -1703,6 +1703,7 @@
       "label": "Le libellé doit contenir entre 1 et 80 caractères.",
       "priority": "La priorité est un entier compris entre 1 et 999.",
       "conditions": "Ajoutez au moins une condition complète.",
+      "textValue": "Saisissez un texte de 1 à 120 caractères.",
       "amount": "Les bornes doivent être des décimaux canoniques et l’actif est obligatoire.",
       "category": "Choisissez une catégorie active de cet espace.",
       "period": "La période est obligatoire et sa fin ne peut pas précéder son début.",
@@ -1719,9 +1720,24 @@
     "conditions": {
       "textTitle": "Comparer un texte",
       "textHint": "Les comparaisons de texte ne tiennent pas compte de la casse. Un motif régulier reste borné et est contrôlé côté serveur.",
-      "rawLabel": "Libellé d’origine",
-      "normalizedLabel": "Libellé normalisé",
-      "counterparty": "Tiers",
+      "combinator": "Combiner les conditions texte",
+      "combinators": { "AND": "ET", "OR": "OU" },
+      "combinatorHints": {
+        "AND": "ET : toutes les conditions texte doivent correspondre.",
+        "OR": "OU : au moins une condition texte doit correspondre."
+      },
+      "source": "Source de la condition texte {{row}}",
+      "sources": {
+        "RAW_LABEL": "Libellé d’origine",
+        "NORMALIZED_LABEL": "Libellé normalisé",
+        "COUNTERPARTY": "Tiers"
+      },
+      "operator": "Comparaison de la condition texte {{row}}",
+      "value": "Valeur de la condition texte {{row}}",
+      "negated": "Exclure la condition texte {{row}}",
+      "add": "Ajouter une condition texte",
+      "remove": "Supprimer la condition texte {{row}}",
+      "limit": "Vous pouvez ajouter jusqu’à 20 conditions texte.",
       "enabled": "Utiliser",
       "amountTitle": "Comparer un montant exact",
       "amountHint": "Saisissez des décimaux sous forme de texte, avec leur signe et sans arrondi.",

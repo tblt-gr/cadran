@@ -4,11 +4,9 @@ import { hasCondition, isDecimal, validateRuleForm } from './ruleFormValidation'
 function emptyConditions() {
   return {
     amount: null,
-    counterparty: null,
     direction: null,
     mcc: null,
-    normalizedLabel: null,
-    rawLabel: null,
+    text: null,
   } as const;
 }
 
@@ -18,6 +16,31 @@ describe('hasCondition', () => {
   });
   it('is true when at least one condition carries a value', () => {
     expect(hasCondition({ ...emptyConditions(), mcc: '5411' })).toBe(true);
+  });
+
+  it('is true for a completed text predicate and false for an empty one', () => {
+    expect(
+      hasCondition({
+        ...emptyConditions(),
+        text: {
+          combinator: 'AND',
+          predicates: [
+            { source: 'COUNTERPARTY', operator: 'CONTAINS', value: 'Carrefour', negated: false },
+          ],
+        },
+      }),
+    ).toBe(true);
+    expect(
+      hasCondition({
+        ...emptyConditions(),
+        text: {
+          combinator: 'AND',
+          predicates: [
+            { source: 'COUNTERPARTY', operator: 'CONTAINS', value: '   ', negated: false },
+          ],
+        },
+      }),
+    ).toBe(false);
   });
 });
 
@@ -62,6 +85,34 @@ describe('validateRuleForm', () => {
     expect(validateRuleForm({ ...valid, conditions: emptyConditions() }).conditionsInvalid).toBe(
       true,
     );
+  });
+
+  it('flags an incomplete or overlong text predicate', () => {
+    const incomplete = validateRuleForm({
+      ...valid,
+      conditions: {
+        ...emptyConditions(),
+        text: {
+          combinator: 'OR',
+          predicates: [{ source: 'RAW_LABEL', operator: 'CONTAINS', value: '', negated: false }],
+        },
+      },
+    });
+    const overlong = validateRuleForm({
+      ...valid,
+      conditions: {
+        ...emptyConditions(),
+        text: {
+          combinator: 'AND',
+          predicates: [
+            { source: 'RAW_LABEL', operator: 'CONTAINS', value: 'a'.repeat(121), negated: false },
+          ],
+        },
+      },
+    });
+
+    expect(incomplete.textInvalid).toBe(true);
+    expect(overlong.textInvalid).toBe(true);
   });
 
   it('flags a non-numeric amount bound as invalid', () => {

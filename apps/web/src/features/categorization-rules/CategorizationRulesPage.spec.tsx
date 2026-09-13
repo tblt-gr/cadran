@@ -24,7 +24,14 @@ const rule: CategorizationRule = {
   label: '<img src=x onerror=alert(1)>',
   priority: 1,
   accountScope: [],
-  conditions: { rawLabel: { operator: 'CONTAINS', value: 'CARREFOUR' } },
+  conditions: {
+    text: {
+      combinator: 'AND',
+      predicates: [
+        { source: 'RAW_LABEL', operator: 'CONTAINS', value: 'CARREFOUR', negated: false },
+      ],
+    },
+  },
   targetCategoryId: '00000000-0000-7000-8000-000000000002',
   targetCategoryLabel: 'Courses',
   targetAxes: [],

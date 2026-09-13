@@ -157,7 +157,7 @@ final class CategorizationRuleTest extends TestCase
             label: $values['label'],
             priority: $values['priority'],
             accountScope: $values['accountScope'],
-            conditions: RuleConditions::fromDocument(['rawLabel' => ['operator' => 'CONTAINS', 'value' => 'CARREFOUR']]),
+            conditions: RuleConditions::fromDocument(self::textConditions('RAW_LABEL', 'CONTAINS', 'CARREFOUR')),
             targetCategoryId: self::CATEGORY,
             targetAxes: $values['targetAxes'],
             targetCounterparty: $values['targetCounterparty'],
@@ -181,6 +181,14 @@ final class CategorizationRuleTest extends TestCase
             targetCounterparty: $rule->targetCounterparty, effectiveFrom: $rule->effectiveFrom,
             effectiveTo: $rule->effectiveTo, active: $active, updatedAt: $now,
         );
+    }
+
+    /** @return array{text: array{combinator: string, predicates: list<array{source: string, operator: string, value: string, negated: bool}>}} */
+    private static function textConditions(string $source, string $operator, string $value): array
+    {
+        return ['text' => ['combinator' => 'AND', 'predicates' => [[
+            'source' => $source, 'operator' => $operator, 'value' => $value, 'negated' => false,
+        ]]]];
     }
 
     private function subject(string $bookedOn, string $accountId = self::ACCOUNT): CategorizationSubject
