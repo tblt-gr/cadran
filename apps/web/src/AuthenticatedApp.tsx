@@ -14,6 +14,7 @@ import { AccountGroupsPage } from '@/features/account-groups/AccountGroupsPage';
 import { CategoryPage } from '@/features/categories/CategoryPage';
 import { CategorizationRulesPage } from '@/features/categories/rules/CategorizationRulesPage';
 import { TransactionsPage } from '@/features/transactions/TransactionsPage';
+import { RecurrencesPage } from '@/features/recurrences/RecurrencesPage';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
@@ -72,6 +73,8 @@ export function AuthenticatedApp() {
     content = <ProductModelsPage />;
   } else if (path === '/transactions') {
     content = <TransactionsPage />;
+  } else if (path === '/transactions/recurrences') {
+    content = <RecurrencesPage />;
   } else if (path === '/settings/profile') {
     content = <ProfileSettingsPage />;
   } else if (path !== '/') {
@@ -106,6 +109,7 @@ export function AuthenticatedApp() {
         path !== '/catalog' &&
         path !== '/product-models' &&
         path !== '/transactions' &&
+        path !== '/transactions/recurrences' &&
         path !== '/settings/profile'
       }
     >

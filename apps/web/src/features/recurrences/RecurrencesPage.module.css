@@ -1,0 +1,132 @@
+.page,
+.section,
+.candidates,
+.schedules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.intro,
+.sectionHeading,
+.undo,
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.intro,
+.sectionHeading,
+.undo {
+  justify-content: space-between;
+}
+
+.intro p,
+.intro h2,
+.intro span,
+.titleRow h2,
+.sectionHeading p,
+.sectionHeading h3,
+.empty h4,
+.empty p {
+  margin: var(--spacing-none);
+}
+
+.intro p,
+.sectionHeading p {
+  color: var(--gold-300);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.intro h2 {
+  margin-top: var(--spacing-1);
+  font-size: var(--font-size-kpi);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  margin-top: var(--spacing-1);
+  gap: var(--spacing-3);
+}
+
+.titleRow h2 {
+  margin-top: var(--spacing-none);
+}
+
+.back {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.intro span,
+.empty p,
+.state p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.sectionHeading h3 {
+  margin-top: var(--spacing-1);
+  font-size: var(--font-size-card-title);
+}
+
+.notice,
+.undo {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.partial {
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-full);
+  color: var(--warning);
+  background: var(--warning-soft);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.candidates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.empty,
+.state {
+  display: flex;
+  min-height: var(--spacing-12);
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  padding: var(--spacing-6);
+  gap: var(--spacing-3);
+}
+
+@media (max-width: 42rem) {
+  .intro,
+  .sectionHeading,
+  .undo,
+  .titleRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .intro > button,
+  .undo > button {
+    width: 100%;
+  }
+
+  .candidates {
+    grid-template-columns: 1fr;
+  }
+}

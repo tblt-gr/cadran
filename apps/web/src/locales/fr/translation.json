@@ -113,6 +113,7 @@
     "allYearsReport": "Rapport pluriannuel",
     "lifeInsurance": "Assurance-vie",
     "categorizationRules": "Règles de catégorisation",
+    "recurrences": "Récurrences",
     "notFound": "Page introuvable"
   },
   "states": {
@@ -1434,6 +1435,7 @@
     "add": "Nouvelle transaction",
     "addFirst": "Enregistrer la première transaction",
     "addTransfer": "Nouveau virement",
+    "manageRecurrences": "Gérer les récurrences",
     "includeVoided": "Afficher les transactions annulées",
     "loading": "Chargement des transactions…",
     "toasts": {
@@ -1639,6 +1641,113 @@
       "save": "Créer le virement",
       "saving": "Enregistrement…"
     }
+  },
+  "recurrences": {
+    "eyebrow": "Suivi prévisionnel",
+    "title": "Récurrences",
+    "backToTransactions": "Retour aux transactions",
+    "description": "Confirmez les mouvements réguliers puis surveillez leurs échéances, sans les ajouter aux écritures.",
+    "add": "Nouvelle récurrence",
+    "forecastNotice": "Une échéance attendue est une prévision : elle n’est comptée dans aucun total enregistré.",
+    "loading": "Chargement des récurrences…",
+    "undo": "Annuler le masquage",
+    "dismissalNotice": "Cette proposition est masquée. Vous pouvez annuler ce choix explicitement.",
+    "toasts": {
+      "saved": "La récurrence a été enregistrée.",
+      "dismissed": "La proposition a été masquée.",
+      "restored": "La proposition est de nouveau visible.",
+      "archived": "La récurrence a été archivée.",
+      "unarchived": "La récurrence a été restaurée."
+    },
+    "fields": {
+      "label": "Libellé",
+      "account": "Compte",
+      "counterparty": "Tiers",
+      "amount": "Montant attendu",
+      "tolerance": "Tolérance",
+      "interval": "Rythme",
+      "day": "Jour de période",
+      "firstExpectedOn": "Première échéance"
+    },
+    "intervals": {
+      "WEEKLY": "Chaque semaine",
+      "MONTHLY": "Chaque mois",
+      "QUARTERLY": "Chaque trimestre",
+      "YEARLY": "Chaque année"
+    },
+    "validation": {
+      "label": "Le libellé est obligatoire et ne peut pas dépasser 80 caractères.",
+      "account": "Choisissez un compte actif.",
+      "amount": "Saisissez un montant exact non nul.",
+      "tolerance": "Saisissez une tolérance exacte positive ou nulle.",
+      "day": "Indiquez un jour valide pour ce rythme.",
+      "date": "Indiquez une date au format attendu."
+    },
+    "form": {
+      "createEyebrow": "Confirmation",
+      "createTitle": "Nouvelle récurrence",
+      "editEyebrow": "Modification",
+      "editTitle": "Modifier la récurrence",
+      "forecast": "Cette planification crée uniquement des échéances prévisionnelles ; aucune transaction n’est créée.",
+      "selectAccount": "Choisir un compte",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "errors": { "save": "L’enregistrement a échoué. Rechargez les données puis réessayez." },
+    "error": {
+      "title": "Récurrences indisponibles",
+      "description": "Les propositions ou les échéances n’ont pas pu être chargées."
+    },
+    "candidates": {
+      "eyebrow": "À confirmer",
+      "title": "Mouvements réguliers détectés",
+      "partial": "Analyse partielle",
+      "observations_one": "{{count}} observation",
+      "observations_other": "{{count}} observations",
+      "period": "Période observée",
+      "confirm": "Confirmer",
+      "dismiss": "Masquer",
+      "emptyTitle": "Aucune proposition à confirmer",
+      "emptyDescription": "L’analyse n’a trouvé aucun mouvement suffisamment régulier. Elle n’a créé ni transaction ni échéance."
+    },
+    "confidence": {
+      "HIGH": "Confiance élevée",
+      "MEDIUM": "Confiance moyenne",
+      "LOW": "Confiance limitée",
+      "notDeterminable": "Confiance non déterminable",
+      "reason": "La régularité ne permet pas de qualifier la confiance."
+    },
+    "confirmed": {
+      "eyebrow": "Échéanciers confirmés",
+      "title": "Récurrences suivies",
+      "emptyTitle": "Aucune récurrence confirmée",
+      "emptyDescription": "Confirmez une proposition ou créez un échéancier manuel pour suivre ses échéances.",
+      "next": "Prochaine échéance : {{date}}",
+      "occurrences": "Voir les échéances",
+      "edit": "Modifier",
+      "archive": "Archiver",
+      "archived": "Récurrences archivées",
+      "showArchived": "Voir les récurrences archivées",
+      "hideArchived": "Masquer les récurrences archivées",
+      "emptyArchivedTitle": "Aucune récurrence archivée",
+      "emptyArchivedDescription": "Les récurrences archivées restent ici et peuvent être restaurées.",
+      "restore": "Restaurer"
+    },
+    "occurrences": {
+      "eyebrow": "Échéances prévisionnelles",
+      "title": "Échéances de {{label}}",
+      "loading": "Chargement des échéances…",
+      "error": "Les échéances n’ont pas pu être chargées.",
+      "empty": "Aucune échéance prévisionnelle dans cette fenêtre.",
+      "readOnly": "Lecture seule : les retards sont calculés à l’affichage.",
+      "caption": "Échéances de {{label}}",
+      "date": "Date attendue",
+      "status": "État",
+      "match": "Transaction",
+      "matched": "Reçue",
+      "unmatched": "Sans transaction"
+    },
+    "statuses": { "EXPECTED": "Attendue", "RECEIVED": "Reçue", "LATE": "En retard" }
   },
   "categorizationRules": {
     "eyebrow": "Automatisation contrôlée",

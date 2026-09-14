@@ -13,6 +13,7 @@ use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Transactions\Application\Categorization\AutoCategorizeTransaction;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
+use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -36,6 +37,7 @@ final readonly class CreateTransaction
         private ClockInterface $clock,
         private AutoCategorizeTransaction $autoCategorize,
         private CategorizationWriteLock $categorizationWriteLock,
+        private MatchTransactionToOccurrence $matchRecurrence,
     ) {
     }
 
@@ -88,6 +90,7 @@ final readonly class CreateTransaction
                 TransactionAuditEvents::ENTITY, $transaction->id,
                 AuditDiff::creation(TransactionAuditFingerprint::of($transaction)),
             ));
+            ($this->matchRecurrence)($transaction);
 
             return $this->presentTransaction->one($transaction);
         });

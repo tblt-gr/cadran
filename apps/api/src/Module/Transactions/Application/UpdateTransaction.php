@@ -11,6 +11,7 @@ use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
+use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -33,6 +34,7 @@ final readonly class UpdateTransaction
         private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
         private CategorizationWriteLock $categorizationWriteLock,
+        private MatchTransactionToOccurrence $matchRecurrence,
     ) {
     }
 
@@ -118,6 +120,7 @@ final readonly class UpdateTransaction
                 TransactionAuditEvents::ENTITY, $updated->id,
                 AuditDiff::change(TransactionAuditFingerprint::of($current), TransactionAuditFingerprint::of($updated)),
             ));
+            ($this->matchRecurrence)($updated);
 
             return $this->presentTransaction->one($updated);
         });

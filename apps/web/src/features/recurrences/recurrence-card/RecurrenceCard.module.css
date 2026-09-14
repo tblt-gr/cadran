@@ -1,0 +1,43 @@
+.schedule {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: var(--spacing-6);
+}
+.schedule h4 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+.schedule p {
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+.schedule small {
+  display: block;
+  margin-top: var(--spacing-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+.scheduleActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+}
+@media (max-width: 42rem) {
+  .schedule {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .scheduleActions {
+    width: 100%;
+    flex-direction: column;
+  }
+  .scheduleActions button {
+    width: 100%;
+  }
+}

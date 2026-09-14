@@ -1,0 +1,67 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-6);
+  gap: var(--spacing-4);
+}
+.heading,
+.actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+.heading h3,
+.heading p,
+.reason {
+  margin: var(--spacing-none);
+}
+.heading h3 {
+  font-size: var(--font-size-card-title);
+}
+.heading p,
+.reason,
+.details dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}
+.details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: var(--spacing-none);
+  gap: var(--spacing-3);
+}
+.details div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.details dd {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-body);
+  font-variant-numeric: tabular-nums;
+}
+.reason {
+  padding: var(--spacing-3);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+}
+.actions {
+  align-items: center;
+  justify-content: flex-end;
+}
+@media (max-width: 42rem) {
+  .heading,
+  .actions {
+    flex-direction: column;
+  }
+  .actions button {
+    width: 100%;
+  }
+  .details {
+    grid-template-columns: 1fr;
+  }
+}

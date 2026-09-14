@@ -18,6 +18,7 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { CategorizationTabs, type Categorization } from './categorization-tabs/CategorizationTabs';
 import { TransactionEditor } from './transaction-editor/TransactionEditor';
 import { TransactionList } from './transaction-list/TransactionList';
@@ -242,6 +243,13 @@ export function TransactionsPage() {
           <span>{t('transactions.description')}</span>
         </div>
         <div className={styles.actions}>
+          <a
+            className="secondary-action"
+            href="/transactions/recurrences"
+            onClick={(event) => handleClientNavigation(event, '/transactions/recurrences')}
+          >
+            {t('transactions.manageRecurrences')}
+          </a>
           <button className="secondary-action" onClick={openTransferEditor} type="button">
             {t('transactions.addTransfer')}
           </button>

@@ -2340,6 +2340,239 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/recurrence-candidates:
+    get:
+      operationId: detectRecurrenceCandidates
+      summary: Detect recurring transaction candidates in a bounded history window
+      description: >-
+        Read-only detection over the latest 24 months and at most 5000 eligible movements.
+        Reaching the row cap returns `partial: true`; this operation never writes a recurrence,
+        occurrence, dismissal or transaction.
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Qualitative recurring candidates not dismissed by the workspace.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecurrenceCandidatePage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrence-candidates/dismiss:
+    post:
+      operationId: dismissRecurrenceCandidate
+      summary: Dismiss a detected recurrence candidate
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DismissRecurrenceCandidateRequest' }
+      responses:
+        '204': { description: Candidate dismissed. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrence-candidates/dismissals/{fingerprint}:
+    delete:
+      operationId: restoreRecurrenceCandidate
+      summary: Undo a recurrence candidate dismissal
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+        - name: fingerprint
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{64}$' }
+      responses:
+        '204': { description: Candidate dismissal removed. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrences:
+    get:
+      operationId: listRecurrences
+      summary: List confirmed recurrences without extending their horizon
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: includeArchived, in: query, schema: { type: boolean, default: false } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - {
+            name: perPage,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 50 },
+          }
+      responses:
+        '200':
+          description: Confirmed recurrences in schedule order.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecurrencePage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    post:
+      operationId: confirmRecurrence
+      summary: Confirm a candidate or manually create a recurrence
+      description: Creates a forecast schedule and snapshots expected occurrences through the twelve-month horizon.
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRecurrenceRequest' }
+      responses:
+        '201':
+          description: The confirmed recurrence.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Recurrence' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrences/refresh-horizon:
+    post:
+      operationId: refreshRecurrenceHorizon
+      summary: Explicitly extend active recurrence schedules to twelve months
+      description: Idempotent; listing recurrences and occurrences never performs this mutation.
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmptyRequest' }
+      responses:
+        '200':
+          description: Horizon refresh report.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecurrenceHorizonReport' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrences/{id}:
+    put:
+      operationId: updateRecurrence
+      summary: Edit a recurrence forward only with optimistic concurrency
+      description: Past and matched snapshots remain immutable; only unmatched occurrences from today are regenerated.
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRecurrenceRequest' }
+      responses:
+        '200':
+          description: The updated recurrence.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Recurrence' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrences/{id}/archive:
+    post:
+      operationId: archiveRecurrence
+      summary: Archive a recurrence optimistically
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: The archived recurrence.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Recurrence' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrences/{id}/restore:
+    post:
+      operationId: restoreRecurrence
+      summary: Restore an archived recurrence optimistically
+      description: Restores schedule matching without changing historic occurrence snapshots.
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: The restored recurrence.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Recurrence' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrences/{id}/occurrences:
+    get:
+      operationId: listRecurrenceOccurrences
+      summary: List stored occurrence snapshots with their effective read-time status
+      description: >-
+        LATE is computed in the workspace timezone and is never persisted by this GET.
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Stored occurrence snapshots in expected-date order.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecurrenceOccurrencePage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/categorization-rules:
     get:
       operationId: listCategorizationRules
@@ -6870,6 +7103,199 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/NetWorthPoint'
+    RecurrenceIntervalKind:
+      type: string
+      enum: [WEEKLY, MONTHLY, QUARTERLY, YEARLY]
+    RecurrenceAmountLiteral:
+      type: string
+      pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+      description: Exact canonical decimal transported as text; never a binary floating-point number.
+    RecurrenceCandidate:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          fingerprint,
+          accountId,
+          counterparty,
+          intervalKind,
+          medianAmount,
+          tolerance,
+          occurrenceCount,
+          firstSeenOn,
+          lastSeenOn,
+          confidence,
+          confidenceReason,
+        ]
+      properties:
+        fingerprint: { type: string, pattern: '^[0-9a-f]{64}$' }
+        accountId: { type: string, format: uuid }
+        counterparty: { type: string, minLength: 1, maxLength: 140 }
+        intervalKind: { $ref: '#/components/schemas/RecurrenceIntervalKind' }
+        medianAmount: { $ref: '#/components/schemas/DecimalAmount' }
+        tolerance: { $ref: '#/components/schemas/DecimalAmount' }
+        occurrenceCount: { type: integer, minimum: 3 }
+        firstSeenOn: { type: string, format: date }
+        lastSeenOn: { type: string, format: date }
+        confidence:
+          oneOf:
+            - { type: string, enum: [HIGH, MEDIUM, LOW] }
+            - { type: 'null' }
+        confidenceReason:
+          description: Present when qualitative confidence cannot be determined; never replaced with zero.
+          oneOf:
+            - { type: string, enum: [UNCLASSIFIED_GAP_SPREAD] }
+            - { type: 'null' }
+    RecurrenceCandidatePage:
+      type: object
+      additionalProperties: false
+      required: [items, partial]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/RecurrenceCandidate' } }
+        partial:
+          type: boolean
+          description: True when the detection stopped at its 5000-row bound.
+    DismissRecurrenceCandidateRequest:
+      type: object
+      additionalProperties: false
+      required: [fingerprint]
+      properties:
+        fingerprint: { type: string, pattern: '^[0-9a-f]{64}$' }
+    CreateRecurrenceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          accountId,
+          label,
+          counterparty,
+          expectedAmount,
+          amountTolerance,
+          intervalKind,
+          dayOfPeriod,
+          firstExpectedOn,
+        ]
+      properties:
+        accountId: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 80 }
+        counterparty:
+          oneOf: [{ type: string, minLength: 1, maxLength: 80 }, { type: 'null' }]
+        expectedAmount: { $ref: '#/components/schemas/RecurrenceAmountLiteral' }
+        amountTolerance:
+          allOf: [{ $ref: '#/components/schemas/RecurrenceAmountLiteral' }]
+          description: Exact non-negative tolerance in the account asset.
+        intervalKind: { $ref: '#/components/schemas/RecurrenceIntervalKind' }
+        dayOfPeriod: { type: integer, minimum: 1, maximum: 31 }
+        firstExpectedOn: { type: string, format: date }
+    UpdateRecurrenceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [label, counterparty, expectedAmount, amountTolerance, intervalKind, dayOfPeriod, version]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 80 }
+        counterparty:
+          oneOf: [{ type: string, minLength: 1, maxLength: 80 }, { type: 'null' }]
+        expectedAmount: { $ref: '#/components/schemas/RecurrenceAmountLiteral' }
+        amountTolerance:
+          allOf: [{ $ref: '#/components/schemas/RecurrenceAmountLiteral' }]
+          description: Exact non-negative tolerance in the recurrence asset.
+        intervalKind: { $ref: '#/components/schemas/RecurrenceIntervalKind' }
+        dayOfPeriod: { type: integer, minimum: 1, maximum: 31 }
+        version: { type: integer, minimum: 1 }
+    Recurrence:
+      description: A forecast schedule. Its expected occurrences are not booked transactions or included in totals.
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          accountId,
+          label,
+          counterparty,
+          expectedAmount,
+          amountTolerance,
+          intervalKind,
+          dayOfPeriod,
+          nextExpectedOn,
+          confirmedAt,
+          version,
+          createdAt,
+          updatedAt,
+          archivedAt,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        accountId: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 80 }
+        counterparty:
+          oneOf: [{ type: string, minLength: 1, maxLength: 80 }, { type: 'null' }]
+        expectedAmount: { $ref: '#/components/schemas/DecimalAmount' }
+        amountTolerance: { $ref: '#/components/schemas/DecimalAmount' }
+        intervalKind: { $ref: '#/components/schemas/RecurrenceIntervalKind' }
+        dayOfPeriod: { type: integer, minimum: 1, maximum: 31 }
+        nextExpectedOn: { type: string, format: date }
+        confirmedAt: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        archivedAt:
+          oneOf: [{ type: string, format: date-time }, { type: 'null' }]
+    RecurrencePage:
+      type: object
+      additionalProperties: false
+      required: [items, page, perPage, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Recurrence' } }
+        page: { type: integer, minimum: 1 }
+        perPage: { type: integer, minimum: 1, maximum: 100 }
+        total: { type: integer, minimum: 0 }
+    RecurrenceOccurrence:
+      description: A forecast snapshot; `LATE` is an effective read-time state and is never stored.
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          recurrenceId,
+          expectedOn,
+          expectedAmount,
+          amountTolerance,
+          status,
+          matchedTransactionId,
+          matchedAt,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        recurrenceId: { type: string, format: uuid }
+        expectedOn: { type: string, format: date }
+        expectedAmount: { $ref: '#/components/schemas/DecimalAmount' }
+        amountTolerance: { $ref: '#/components/schemas/DecimalAmount' }
+        status: { type: string, enum: [EXPECTED, RECEIVED, LATE] }
+        matchedTransactionId:
+          oneOf: [{ type: string, format: uuid }, { type: 'null' }]
+        matchedAt:
+          oneOf: [{ type: string, format: date-time }, { type: 'null' }]
+    RecurrenceOccurrencePage:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          {
+            type: array,
+            maxItems: 1000,
+            items: { $ref: '#/components/schemas/RecurrenceOccurrence' },
+          }
+        total: { type: integer, minimum: 0, maximum: 1000 }
+    RecurrenceHorizonReport:
+      type: object
+      additionalProperties: false
+      required: [recurrencesExamined, occurrencesGenerated, horizonEndsOn]
+      properties:
+        recurrencesExamined: { type: integer, minimum: 0, maximum: 1000 }
+        occurrencesGenerated: { type: integer, minimum: 0 }
+        horizonEndsOn: { type: string, format: date }
     TransactionPage:
       type: object
       additionalProperties: false
