@@ -21,14 +21,8 @@ export const navigationItems: NavigationItem[] = [
     href: '/transactions',
     icon: 'transactions',
     labelKey: 'navigation.transactions',
-    match: (path) => path === '/transactions',
+    match: (path) => path === '/transactions' || path === '/transactions/recurrences',
     mobile: true,
-  },
-  {
-    href: '/recurrences',
-    icon: 'transactions',
-    labelKey: 'navigation.recurrences',
-    match: (path) => path === '/recurrences',
   },
   {
     href: '/months/2026-03',
@@ -101,6 +95,7 @@ export const navigationItems: NavigationItem[] = [
 
 export function getRouteTitleKey(pathname: string): ParseKeys {
   if (pathname === '/categories/rules') return 'routes.categorizationRules';
+  if (pathname === '/transactions/recurrences') return 'routes.recurrences';
   if (/^\/accounts\/[^/]+$/.test(pathname)) return 'routes.accountDetail';
   if (/^\/life-insurance\/[^/]+$/.test(pathname)) return 'routes.lifeInsurance';
   if (pathname === '/reports/all-years') return 'routes.allYearsReport';

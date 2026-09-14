@@ -222,6 +222,9 @@ final class RecurrenceControllerTest extends WebTestCase
         $this->requestUpdate($id, [...$this->updatePayload(), 'version' => 7]);
         self::assertResponseStatusCodeSame(409);
 
+        $this->requestRestore($id, 1);
+        self::assertResponseStatusCodeSame(409);
+
         $this->requestArchive($id, 1);
         self::assertResponseIsSuccessful();
         self::assertNotNull($this->decode()['archivedAt']);
@@ -230,6 +233,25 @@ final class RecurrenceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(409);
         $this->requestArchive($id, 2);
         self::assertResponseStatusCodeSame(409);
+        $this->requestRestore($id, 7);
+        self::assertResponseStatusCodeSame(409);
+    }
+
+    public function testAnArchivedRecurrenceCanBeRestoredWithItsCurrentVersion(): void
+    {
+        $recurrence = $this->createRecurrence();
+        $this->requestArchive($recurrence['id'], $recurrence['version']);
+        self::assertResponseIsSuccessful();
+        $archived = self::versionedRecord($this->decode());
+
+        $this->requestRestore($recurrence['id'], $archived['version']);
+
+        self::assertResponseIsSuccessful();
+        $restored = $this->decode();
+        self::assertNull($restored['archivedAt']);
+        self::assertSame(3, $restored['version']);
+        self::assertSame($recurrence['nextExpectedOn'], $restored['nextExpectedOn']);
+        self::assertSame($restored, $this->readRecurrence($recurrence['id']));
     }
 
     public function testAMovementSettlesTheNearestInstalmentAndAdvancesTheSchedule(): void
@@ -408,6 +430,9 @@ final class RecurrenceControllerTest extends WebTestCase
         $this->requestArchive($id, 1);
         self::assertResponseStatusCodeSame(404);
 
+        $this->requestRestore($id, 1);
+        self::assertResponseStatusCodeSame(404);
+
         $this->requestCreate([...$this->recurrencePayload(), 'accountId' => self::OWN_ACCOUNT]);
         self::assertResponseStatusCodeSame(422);
 
@@ -436,6 +461,9 @@ final class RecurrenceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
 
         $this->requestArchive($recurrence['id'], 1);
+        self::assertResponseStatusCodeSame(403);
+
+        $this->requestRestore($recurrence['id'], 1);
         self::assertResponseStatusCodeSame(403);
 
         $this->requestDismiss(str_repeat('b', 64));
@@ -470,6 +498,7 @@ final class RecurrenceControllerTest extends WebTestCase
         $this->requestCreate([...$this->recurrencePayload(), ...$overrides]);
         self::assertResponseStatusCodeSame(201);
 
+        /** @var array{id: string, version: int, label: mixed, expectedAmount: mixed, amountTolerance: mixed, dayOfPeriod: mixed, nextExpectedOn: mixed, archivedAt: mixed, ...} $record */
         $record = self::versionedRecord($this->decode());
         self::assertArrayHasKey('label', $record);
         self::assertArrayHasKey('expectedAmount', $record);
@@ -533,6 +562,11 @@ final class RecurrenceControllerTest extends WebTestCase
     private function requestArchive(string $id, int $version): void
     {
         $this->client->request('POST', '/api/v1/recurrences/'.$id.'/archive', server: self::jsonHeaders(), content: json_encode(['version' => $version], JSON_THROW_ON_ERROR));
+    }
+
+    private function requestRestore(string $id, int $version): void
+    {
+        $this->client->request('POST', '/api/v1/recurrences/'.$id.'/restore', server: self::jsonHeaders(), content: json_encode(['version' => $version], JSON_THROW_ON_ERROR));
     }
 
     private function requestDismiss(string $fingerprint): void

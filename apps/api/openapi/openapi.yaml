@@ -2405,7 +2405,11 @@ paths:
       parameters:
         - { name: includeArchived, in: query, schema: { type: boolean, default: false } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
-        - { name: perPage, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+        - {
+            name: perPage,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 50 },
+          }
       responses:
         '200':
           description: Confirmed recurrences in schedule order.
@@ -2508,6 +2512,34 @@ paths:
       responses:
         '200':
           description: The archived recurrence.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Recurrence' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrences/{id}/restore:
+    post:
+      operationId: restoreRecurrence
+      summary: Restore an archived recurrence optimistically
+      description: Restores schedule matching without changing historic occurrence snapshots.
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: The restored recurrence.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Recurrence' }
@@ -7082,7 +7114,19 @@ components:
       type: object
       additionalProperties: false
       required:
-        [fingerprint, accountId, counterparty, intervalKind, medianAmount, tolerance, occurrenceCount, firstSeenOn, lastSeenOn, confidence, confidenceReason]
+        [
+          fingerprint,
+          accountId,
+          counterparty,
+          intervalKind,
+          medianAmount,
+          tolerance,
+          occurrenceCount,
+          firstSeenOn,
+          lastSeenOn,
+          confidence,
+          confidenceReason,
+        ]
       properties:
         fingerprint: { type: string, pattern: '^[0-9a-f]{64}$' }
         accountId: { type: string, format: uuid }
@@ -7120,7 +7164,17 @@ components:
     CreateRecurrenceRequest:
       type: object
       additionalProperties: false
-      required: [accountId, label, counterparty, expectedAmount, amountTolerance, intervalKind, dayOfPeriod, firstExpectedOn]
+      required:
+        [
+          accountId,
+          label,
+          counterparty,
+          expectedAmount,
+          amountTolerance,
+          intervalKind,
+          dayOfPeriod,
+          firstExpectedOn,
+        ]
       properties:
         accountId: { type: string, format: uuid }
         label: { type: string, minLength: 1, maxLength: 80 }
@@ -7136,7 +7190,8 @@ components:
     UpdateRecurrenceRequest:
       type: object
       additionalProperties: false
-      required: [label, counterparty, expectedAmount, amountTolerance, intervalKind, dayOfPeriod, version]
+      required:
+        [label, counterparty, expectedAmount, amountTolerance, intervalKind, dayOfPeriod, version]
       properties:
         label: { type: string, minLength: 1, maxLength: 80 }
         counterparty:
@@ -7152,7 +7207,23 @@ components:
       description: A forecast schedule. Its expected occurrences are not booked transactions or included in totals.
       type: object
       additionalProperties: false
-      required: [id, accountId, label, counterparty, expectedAmount, amountTolerance, intervalKind, dayOfPeriod, nextExpectedOn, confirmedAt, version, createdAt, updatedAt, archivedAt]
+      required:
+        [
+          id,
+          accountId,
+          label,
+          counterparty,
+          expectedAmount,
+          amountTolerance,
+          intervalKind,
+          dayOfPeriod,
+          nextExpectedOn,
+          confirmedAt,
+          version,
+          createdAt,
+          updatedAt,
+          archivedAt,
+        ]
       properties:
         id: { type: string, format: uuid }
         accountId: { type: string, format: uuid }
@@ -7183,7 +7254,17 @@ components:
       description: A forecast snapshot; `LATE` is an effective read-time state and is never stored.
       type: object
       additionalProperties: false
-      required: [id, recurrenceId, expectedOn, expectedAmount, amountTolerance, status, matchedTransactionId, matchedAt]
+      required:
+        [
+          id,
+          recurrenceId,
+          expectedOn,
+          expectedAmount,
+          amountTolerance,
+          status,
+          matchedTransactionId,
+          matchedAt,
+        ]
       properties:
         id: { type: string, format: uuid }
         recurrenceId: { type: string, format: uuid }
@@ -7200,7 +7281,12 @@ components:
       additionalProperties: false
       required: [items, total]
       properties:
-        items: { type: array, maxItems: 1000, items: { $ref: '#/components/schemas/RecurrenceOccurrence' } }
+        items:
+          {
+            type: array,
+            maxItems: 1000,
+            items: { $ref: '#/components/schemas/RecurrenceOccurrence' },
+          }
         total: { type: integer, minimum: 0, maximum: 1000 }
     RecurrenceHorizonReport:
       type: object

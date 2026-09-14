@@ -227,7 +227,7 @@ api:
       detail: 'Vérifiez le compte, le libellé, les montants exacts, le rythme et le jour attendu.'
     recurrence_not_found:
       title: 'Récurrence introuvable'
-      detail: "Aucune récurrence ou proposition masquée ne porte cet identifiant dans cet espace."
+      detail: 'Aucune récurrence ou proposition masquée ne porte cet identifiant dans cet espace.'
     recurrence_forbidden:
       title: 'Récurrences inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."

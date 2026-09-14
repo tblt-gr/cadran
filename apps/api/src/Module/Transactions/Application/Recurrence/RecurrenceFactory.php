@@ -83,6 +83,18 @@ final readonly class RecurrenceFactory
         );
     }
 
+    public static function restore(TransactionRecurrence $current, \DateTimeImmutable $now): TransactionRecurrence
+    {
+        return self::build(
+            id: $current->id, workspace: $current->workspace, accountId: $current->accountId, label: $current->label,
+            counterparty: $current->counterparty, expectedAmount: $current->expectedAmount,
+            amountTolerance: $current->amountTolerance, intervalKind: $current->intervalKind,
+            dayOfPeriod: $current->dayOfPeriod, nextExpectedOn: $current->nextExpectedOn,
+            confirmedAt: $current->confirmedAt, version: $current->version + 1, createdAt: $current->createdAt,
+            updatedAt: $now, archivedAt: null,
+        );
+    }
+
     public static function schedule(RecurrenceIntervalKind $interval, int $dayOfPeriod, \DateTimeImmutable $from): RecurrenceSchedule
     {
         try {

@@ -73,7 +73,7 @@ export function AuthenticatedApp() {
     content = <ProductModelsPage />;
   } else if (path === '/transactions') {
     content = <TransactionsPage />;
-  } else if (path === '/recurrences') {
+  } else if (path === '/transactions/recurrences') {
     content = <RecurrencesPage />;
   } else if (path === '/settings/profile') {
     content = <ProfileSettingsPage />;
@@ -109,7 +109,7 @@ export function AuthenticatedApp() {
         path !== '/catalog' &&
         path !== '/product-models' &&
         path !== '/transactions' &&
-        path !== '/recurrences' &&
+        path !== '/transactions/recurrences' &&
         path !== '/settings/profile'
       }
     >

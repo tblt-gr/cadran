@@ -18,6 +18,7 @@ use App\Module\Transactions\Application\Recurrence\RecurrenceEditInput;
 use App\Module\Transactions\Application\Recurrence\RecurrenceInput;
 use App\Module\Transactions\Application\Recurrence\RecurrenceNotFound;
 use App\Module\Transactions\Application\Recurrence\RefreshOccurrenceHorizon;
+use App\Module\Transactions\Application\Recurrence\RestoreRecurrence;
 use App\Module\Transactions\Application\Recurrence\RestoreRecurrenceCandidate;
 use App\Module\Transactions\Application\Recurrence\StaleRecurrence;
 use Symfony\Component\HttpFoundation\Request;
@@ -198,6 +199,31 @@ final readonly class RecurrenceController
             return $this->problem(404, '/problems/recurrences.not_found');
         } catch (StaleRecurrence $exception) {
             return $this->problem(409, StaleRecurrence::ARCHIVED === $exception->getMessage() ? '/problems/recurrences.archived' : '/problems/stale-version');
+        } catch (InvalidRecurrenceInput|\UnexpectedValueException) {
+            return $this->problem(422, '/problems/recurrences.invalid');
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(403, '/problems/recurrences.forbidden');
+        }
+    }
+
+    #[Route('/api/v1/recurrences/{id}/restore', name: 'api_v1_recurrences_restore', methods: ['POST'])]
+    public function restoreRecurrence(string $id, Request $request, RestoreRecurrence $restore): Response
+    {
+        if (!$this->envelope->isIdentifier($id)) {
+            return $this->problem(404, '/problems/recurrences.not_found');
+        }
+        $body = $this->envelope->body($request);
+        if ($body instanceof Response) {
+            return $body;
+        }
+        try {
+            $version = RecurrencePayload::of($body, ['version'])->integer('version');
+
+            return $this->envelope->json($restore($id, $version));
+        } catch (RecurrenceNotFound) {
+            return $this->problem(404, '/problems/recurrences.not_found');
+        } catch (StaleRecurrence $exception) {
+            return $this->problem(409, StaleRecurrence::NOT_ARCHIVED === $exception->getMessage() ? '/problems/recurrences.not_archived' : '/problems/stale-version');
         } catch (InvalidRecurrenceInput|\UnexpectedValueException) {
             return $this->problem(422, '/problems/recurrences.invalid');
         } catch (WorkspaceAccessDenied) {
