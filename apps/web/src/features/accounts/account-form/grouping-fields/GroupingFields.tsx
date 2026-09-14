@@ -2,7 +2,7 @@ import { listAccountGroups, type NetWorthShare } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
+import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import styles from './GroupingFields.module.css';
 

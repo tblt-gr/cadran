@@ -5,8 +5,8 @@ import type {
 } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { GroupErrorKind } from '@/features/account-groups/groupError';
-import { ParentGroupField } from '@/features/account-groups/parent-group-field/ParentGroupField';
+import type { GroupErrorKind } from '@/features/accounts/groups/groupError';
+import { ParentGroupField } from '@/features/accounts/groups/parent-group-field/ParentGroupField';
 import styles from './GroupForm.module.css';
 
 interface GroupFormProps {

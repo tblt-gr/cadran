@@ -2,7 +2,7 @@ import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
+import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';

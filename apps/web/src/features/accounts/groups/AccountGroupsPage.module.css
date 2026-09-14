@@ -39,6 +39,12 @@
   line-height: var(--line-height-body);
 }
 
+.introActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
 .allocation {
   padding: var(--spacing-6);
 }
@@ -78,7 +84,13 @@
     flex-direction: column;
   }
 
-  .intro button {
+  .introActions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .introActions > * {
     width: 100%;
   }
 }

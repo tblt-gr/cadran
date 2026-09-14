@@ -62,12 +62,6 @@ export const navigationItems: NavigationItem[] = [
     match: (path) => /^\/reports\/annual\/\d{4}$/.test(path) || path === '/reports/all-years',
   },
   {
-    href: '/account-groups',
-    icon: 'categories',
-    labelKey: 'navigation.accountGroups',
-    match: (path) => path === '/account-groups',
-  },
-  {
     href: '/categories',
     icon: 'categories',
     labelKey: 'navigation.categories',
@@ -96,7 +90,8 @@ export const navigationItems: NavigationItem[] = [
 export function getRouteTitleKey(pathname: string): ParseKeys {
   if (pathname === '/categories/rules') return 'routes.categorizationRules';
   if (pathname === '/transactions/recurrences') return 'routes.recurrences';
-  if (/^\/accounts\/[^/]+$/.test(pathname)) return 'routes.accountDetail';
+  if (pathname === '/accounts/groups') return 'navigation.accountGroups';
+  if (/^\/accounts\/(?!groups$)[^/]+$/.test(pathname)) return 'routes.accountDetail';
   if (/^\/life-insurance\/[^/]+$/.test(pathname)) return 'routes.lifeInsurance';
   if (pathname === '/reports/all-years') return 'routes.allYearsReport';
 
