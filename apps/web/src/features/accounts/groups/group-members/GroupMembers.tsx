@@ -1,7 +1,7 @@
 import type { Account, NetWorthShare, Product, ProductModel } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
-import { ShareCell } from '@/features/account-groups/share-cell/ShareCell';
+import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { AllocationBar } from '@/features/dashboard/allocation-panel/AllocationBar';
 import { formatAmount } from '@/lib/decimal';
 import { ceilingFillPercent, depositCeilingOf } from '@/lib/depositCeiling';

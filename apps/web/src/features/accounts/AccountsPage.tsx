@@ -20,6 +20,7 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import {
   accountErrorKind,
   accountRequestError,
@@ -287,9 +288,18 @@ export function AccountsPage() {
           <h2 id="account-intro-title">{t('accounts.title')}</h2>
           <span>{t('accounts.description')}</span>
         </div>
-        <button className="primary-action" onClick={() => openEditor('create')} type="button">
-          {t('accounts.add')}
-        </button>
+        <div className={styles.introActions}>
+          <a
+            className="secondary-action"
+            href="/accounts/groups"
+            onClick={(event) => handleClientNavigation(event, '/accounts/groups')}
+          >
+            {t('accounts.manageGroups')}
+          </a>
+          <button className="primary-action" onClick={() => openEditor('create')} type="button">
+            {t('accounts.add')}
+          </button>
+        </div>
       </section>
 
       {saved ? (

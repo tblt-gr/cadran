@@ -10,7 +10,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { useDashboardHeader } from '@/features/dashboard/net-worth/useDashboardHeader';
 import { ProductCatalogPage } from '@/features/catalog/ProductCatalogPage';
 import { ProductModelsPage } from '@/features/product-models/ProductModelsPage';
-import { AccountGroupsPage } from '@/features/account-groups/AccountGroupsPage';
+import { AccountGroupsPage } from '@/features/accounts/groups/AccountGroupsPage';
 import { CategoryPage } from '@/features/categories/CategoryPage';
 import { CategorizationRulesPage } from '@/features/categories/rules/CategorizationRulesPage';
 import { TransactionsPage } from '@/features/transactions/TransactionsPage';
@@ -61,7 +61,7 @@ export function AuthenticatedApp() {
   let content;
   if (path === '/accounts') {
     content = <AccountsPage />;
-  } else if (path === '/account-groups') {
+  } else if (path === '/accounts/groups') {
     content = <AccountGroupsPage />;
   } else if (path === '/categories') {
     content = <CategoryPage />;
@@ -103,7 +103,7 @@ export function AuthenticatedApp() {
       setPath={setPath}
       showGlobalActions={
         path !== '/accounts' &&
-        path !== '/account-groups' &&
+        path !== '/accounts/groups' &&
         path !== '/categories' &&
         path !== '/categories/rules' &&
         path !== '/catalog' &&

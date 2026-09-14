@@ -1,6 +1,6 @@
 import type { AccountGroup } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import type { GroupErrorKind } from '@/features/account-groups/groupError';
+import type { GroupErrorKind } from '@/features/accounts/groups/groupError';
 import styles from './ArchiveGroupDialog.module.css';
 
 interface ArchiveGroupDialogProps {

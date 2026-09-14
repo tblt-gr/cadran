@@ -15,9 +15,10 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
-import { ArchiveGroupDialog } from '@/features/account-groups/archive-group-dialog/ArchiveGroupDialog';
-import { GroupForm } from '@/features/account-groups/group-form/GroupForm';
-import { GroupList } from '@/features/account-groups/group-list/GroupList';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { ArchiveGroupDialog } from '@/features/accounts/groups/archive-group-dialog/ArchiveGroupDialog';
+import { GroupForm } from '@/features/accounts/groups/group-form/GroupForm';
+import { GroupList } from '@/features/accounts/groups/group-list/GroupList';
 import {
   AllocationCharts,
   type ChartView,
@@ -27,8 +28,8 @@ import {
   groupErrorKind,
   GroupRequestError,
   groupRequestError,
-} from '@/features/account-groups/groupError';
-import { GroupsState } from '@/features/account-groups/groups-state/GroupsState';
+} from '@/features/accounts/groups/groupError';
+import { GroupsState } from '@/features/accounts/groups/groups-state/GroupsState';
 import { useNetWorth } from '@/features/dashboard/net-worth/useNetWorth';
 import styles from './AccountGroupsPage.module.css';
 
@@ -173,9 +174,18 @@ export function AccountGroupsPage() {
           <h2 id="account-groups-intro-title">{t('accountGroups.title')}</h2>
           <span>{t('accountGroups.description')}</span>
         </div>
-        <button className="primary-action" onClick={() => openEditor('create')} type="button">
-          {t('accountGroups.add')}
-        </button>
+        <div className={styles.introActions}>
+          <a
+            className="secondary-action"
+            href="/accounts"
+            onClick={(event) => handleClientNavigation(event, '/accounts')}
+          >
+            {t('accountGroups.backToAccounts')}
+          </a>
+          <button className="primary-action" onClick={() => openEditor('create')} type="button">
+            {t('accountGroups.add')}
+          </button>
+        </div>
       </section>
 
       {saved ? (

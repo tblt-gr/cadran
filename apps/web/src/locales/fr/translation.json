@@ -151,6 +151,7 @@
     "description": "Décrivez chaque compte : devise, nature, dates de vie et portée patrimoniale. Un solde observé à une date reste exact ; une absence reste non calculable.",
     "add": "Nouveau compte",
     "addFirst": "Créer le premier compte",
+    "manageGroups": "Gérer les groupes",
     "includeClosed": "Afficher les comptes clôturés",
     "includeArchived": "Afficher les comptes archivés",
     "loading": "Chargement des comptes…",
@@ -547,6 +548,7 @@
     "description": "Classez les comptes dans une arborescence exclusive. Les étiquettes n’entrent pas dans le dénominateur d’un groupe.",
     "add": "Nouveau groupe",
     "addFirst": "Créer le premier groupe",
+    "backToAccounts": "Retour aux comptes",
     "includeArchived": "Afficher les groupes archivés",
     "loading": "Chargement des groupes…",
     "toasts": {
