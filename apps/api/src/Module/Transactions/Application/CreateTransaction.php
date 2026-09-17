@@ -7,13 +7,13 @@ namespace App\Module\Transactions\Application;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Transactions\Application\Categorization\AutoCategorizeTransaction;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
+use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -38,6 +38,7 @@ final readonly class CreateTransaction
         private AutoCategorizeTransaction $autoCategorize,
         private CategorizationWriteLock $categorizationWriteLock,
         private MatchTransactionToOccurrence $matchRecurrence,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
@@ -60,7 +61,7 @@ final readonly class CreateTransaction
         return $this->transactionBoundary->transactional(function () use ($context, $draft, $input, $source): TransactionView {
             $this->categorizationWriteLock->acquire($context->workspace);
             $now = $this->clock->now();
-            $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
+            $today = $this->calendar->today();
             $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
             $id = $this->uuidGenerator->generate();
 

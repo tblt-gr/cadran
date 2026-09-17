@@ -7,19 +7,17 @@ import type {
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
-import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { ActiveFilterChips } from './active-filter-chips/ActiveFilterChips';
 import { AccountMultiSelect } from './account-multi-select/AccountMultiSelect';
 import { AmountRangeFilter } from './amount-range-filter/AmountRangeFilter';
-import {
-  hasAppliedAmountBounds,
-  type PeriodPreset,
-  type TransactionAxis,
-  type TransactionFilterState,
-} from './filterState';
+import { CategoryFilterField } from './category-filter-field/CategoryFilterField';
+import { CheckboxFilterGroup } from './checkbox-filter-group/CheckboxFilterGroup';
+import type { TransactionAxis, TransactionFilterState } from './filterState';
+import { PeriodFilter } from './period-filter/PeriodFilter';
+import { useFilterChips } from './useFilterChips';
 import styles from './TransactionFilters.module.css';
 
-const PERIOD_PRESETS: PeriodPreset[] = ['all', 'thisMonth', 'lastMonth', 'thisYear', 'custom'];
 const STATES: TransactionState[] = ['PENDING', 'BOOKED', 'VOIDED', 'REJECTED'];
 const NATURES: TransactionNature[] = [
   'INCOME',
@@ -46,18 +44,6 @@ interface TransactionFiltersProps {
   onReset: () => void;
   /** Changes when the filters are replaced from outside the bar, discarding typed drafts. */
   revision: number;
-}
-
-interface Chip {
-  key: string;
-  label: string;
-  onClear: () => void;
-}
-
-function toggle<T>(values: T[], value: T): T[] {
-  return values.includes(value)
-    ? values.filter((candidate) => candidate !== value)
-    : [...values, value];
 }
 
 /**
@@ -106,118 +92,18 @@ export function TransactionFilters({
     onChange({ ...filters, [key]: value });
   }
 
-  const chips: Chip[] = [];
-  if (filters.period !== 'all') {
-    chips.push({
-      key: 'period',
-      label: t(`transactions.filters.period.${filters.period}`),
-      onClear: () => set('period', 'all'),
-    });
-  }
-  for (const id of filters.accountId) {
-    const account = accounts.find((candidate) => candidate.id === id);
-    chips.push({
-      key: `account-${id}`,
-      label: account?.label ?? id,
-      onClear: () =>
-        set(
-          'accountId',
-          filters.accountId.filter((candidate) => candidate !== id),
-        ),
-    });
-  }
-  for (const value of filters.state) {
-    chips.push({
-      key: `state-${value}`,
-      label: t(`transactions.states.${value}`),
-      onClear: () =>
-        set(
-          'state',
-          filters.state.filter((candidate) => candidate !== value),
-        ),
-    });
-  }
-  for (const value of filters.nature) {
-    chips.push({
-      key: `nature-${value}`,
-      label: t(`transactions.natures.${value}`),
-      onClear: () =>
-        set(
-          'nature',
-          filters.nature.filter((candidate) => candidate !== value),
-        ),
-    });
-  }
-  for (const id of filters.categoryId) {
-    const label = categoryLabels[id] ?? id;
-    chips.push({
-      key: `category-${id}`,
-      label,
-      onClear: () =>
-        set(
-          'categoryId',
-          filters.categoryId.filter((candidate) => candidate !== id),
-        ),
-    });
-  }
-  for (const value of filters.axis) {
-    chips.push({
-      key: `axis-${value}`,
-      label: t(`categories.axes.${value}`),
-      onClear: () =>
-        set(
-          'axis',
-          filters.axis.filter((candidate) => candidate !== value),
-        ),
-    });
-  }
-  for (const value of filters.source) {
-    chips.push({
-      key: `source-${value}`,
-      label: t(`transactions.sources.${value}`),
-      onClear: () =>
-        set(
-          'source',
-          filters.source.filter((candidate) => candidate !== value),
-        ),
-    });
-  }
-  if (hasAppliedAmountBounds(filters)) {
-    chips.push({
-      key: 'amount',
-      label: t('transactions.filters.amountChip', {
-        min: filters.minAmount || '…',
-        max: filters.maxAmount || '…',
-      }),
-      onClear: () => onChange({ ...filters, minAmount: '', maxAmount: '', assetCode: '' }),
-    });
-  }
-  if (queue) {
-    chips.push({
-      key: 'categorization',
-      label: t('transactions.filters.categorizationQueue'),
-      onClear: () => set('categorization', 'ANY'),
-    });
-  }
-  if (filters.q) {
-    chips.push({
-      key: 'q',
-      label: t('transactions.filters.searchChip', { query: filters.q }),
-      onClear: () => {
-        setRawQuery('');
-        set('q', '');
-      },
-    });
-  }
-  if (filters.includeVoided && !queue) {
-    chips.push({
-      key: 'includeVoided',
-      label: t('transactions.includeVoided'),
-      onClear: () => set('includeVoided', false),
-    });
-  }
-
-  const hasActiveFilters = chips.length > 0;
+  const chips = useFilterChips({
+    accounts,
+    categoryLabels,
+    filters,
+    onChange,
+    onClearQuery: () => {
+      setRawQuery('');
+      set('q', '');
+    },
+    queue,
+    t,
+  });
   const advancedCount = chips.filter((chip) => chip.key !== 'q').length;
 
   return (
@@ -254,45 +140,12 @@ export function TransactionFilters({
       </div>
 
       <div className={styles.panel} data-open={open} id={panelId}>
-        <fieldset className={styles.field}>
-          <legend>{t('transactions.filters.periodLabel')}</legend>
-          <div className={styles.periodChoices}>
-            {PERIOD_PRESETS.filter((preset) => preset !== 'all').map((preset) => (
-              <label className={styles.radio} key={preset}>
-                <input
-                  checked={filters.period === preset}
-                  name="period"
-                  onChange={() => set('period', preset)}
-                  type="radio"
-                  value={preset}
-                />
-                <span>{t(`transactions.filters.period.${preset}`)}</span>
-              </label>
-            ))}
-          </div>
-          {filters.period === 'custom' ? (
-            <div className={styles.customPeriod}>
-              <label>
-                <span>{t('transactions.filters.from')}</span>
-                <input
-                  className={styles.control}
-                  onChange={(event) => set('from', event.target.value)}
-                  type="date"
-                  value={filters.from}
-                />
-              </label>
-              <label>
-                <span>{t('transactions.filters.to')}</span>
-                <input
-                  className={styles.control}
-                  onChange={(event) => set('to', event.target.value)}
-                  type="date"
-                  value={filters.to}
-                />
-              </label>
-            </div>
-          ) : null}
-        </fieldset>
+        <PeriodFilter
+          from={filters.from}
+          onChange={(period, from, to) => onChange({ ...filters, period, from, to })}
+          period={filters.period}
+          to={filters.to}
+        />
 
         <AccountMultiSelect
           accounts={accounts}
@@ -301,74 +154,41 @@ export function TransactionFilters({
           value={filters.accountId}
         />
 
-        <fieldset className={styles.field}>
-          <legend>{t('transactions.fields.state')}</legend>
-          {STATES.map((value) => (
-            <label className={styles.checkbox} key={value}>
-              <input
-                checked={filters.state.includes(value)}
-                onChange={() => set('state', toggle(filters.state, value))}
-                type="checkbox"
-              />
-              <span>{t(`transactions.states.${value}`)}</span>
-            </label>
-          ))}
-        </fieldset>
+        <CheckboxFilterGroup
+          labelFor={(value) => t(`transactions.states.${value}`)}
+          legend={t('transactions.fields.state')}
+          onChange={(next) => set('state', next)}
+          options={STATES}
+          value={filters.state}
+        />
 
-        <fieldset className={styles.field}>
-          <legend>{t('transactions.fields.nature')}</legend>
-          {NATURES.map((value) => (
-            <label className={styles.checkbox} key={value}>
-              <input
-                checked={filters.nature.includes(value)}
-                onChange={() => set('nature', toggle(filters.nature, value))}
-                type="checkbox"
-              />
-              <span>{t(`transactions.natures.${value}`)}</span>
-            </label>
-          ))}
-        </fieldset>
+        <CheckboxFilterGroup
+          labelFor={(value) => t(`transactions.natures.${value}`)}
+          legend={t('transactions.fields.nature')}
+          onChange={(next) => set('nature', next)}
+          options={NATURES}
+          value={filters.nature}
+        />
 
-        <div className={styles.field}>
-          <CategoryPicker
-            label={t('transactions.filters.categoryLabel')}
-            onChange={(categoryId, pickedCategory) => {
-              if (categoryId && !filters.categoryId.includes(categoryId)) {
-                set('categoryId', [...filters.categoryId, categoryId]);
-                if (pickedCategory) {
-                  setCategoryLabels((current) => ({
-                    ...current,
-                    [categoryId]: pickedCategory.label,
-                  }));
-                }
-              }
-            }}
-            placeholder={t('transactions.filters.addCategory')}
-            value=""
-          />
-          <label className={styles.checkbox}>
-            <input
-              checked={filters.includeDescendants}
-              onChange={(event) => set('includeDescendants', event.target.checked)}
-              type="checkbox"
-            />
-            <span>{t('transactions.filters.includeDescendants')}</span>
-          </label>
-        </div>
+        <CategoryFilterField
+          categoryIds={filters.categoryId}
+          includeDescendants={filters.includeDescendants}
+          onAddCategory={(categoryId, category) => {
+            set('categoryId', [...filters.categoryId, categoryId]);
+            if (category) {
+              setCategoryLabels((current) => ({ ...current, [categoryId]: category.label }));
+            }
+          }}
+          onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
+        />
 
-        <fieldset className={styles.field}>
-          <legend>{t('transactions.filters.axisLabel')}</legend>
-          {AXES.map((value) => (
-            <label className={styles.checkbox} key={value}>
-              <input
-                checked={filters.axis.includes(value)}
-                onChange={() => set('axis', toggle(filters.axis, value))}
-                type="checkbox"
-              />
-              <span>{t(`categories.axes.${value}`)}</span>
-            </label>
-          ))}
-        </fieldset>
+        <CheckboxFilterGroup
+          labelFor={(value) => t(`categories.axes.${value}`)}
+          legend={t('transactions.filters.axisLabel')}
+          onChange={(next) => set('axis', next)}
+          options={AXES}
+          value={filters.axis}
+        />
 
         <AmountRangeFilter
           assetCode={filters.assetCode}
@@ -379,19 +199,13 @@ export function TransactionFilters({
           revision={revision}
         />
 
-        <fieldset className={styles.field}>
-          <legend>{t('transactions.filters.sourceLabel')}</legend>
-          {SOURCES.map((value) => (
-            <label className={styles.checkbox} key={value}>
-              <input
-                checked={filters.source.includes(value)}
-                onChange={() => set('source', toggle(filters.source, value))}
-                type="checkbox"
-              />
-              <span>{t(`transactions.sources.${value}`)}</span>
-            </label>
-          ))}
-        </fieldset>
+        <CheckboxFilterGroup
+          labelFor={(value) => t(`transactions.sources.${value}`)}
+          legend={t('transactions.filters.sourceLabel')}
+          onChange={(next) => set('source', next)}
+          options={SOURCES}
+          value={filters.source}
+        />
 
         <label className={styles.checkbox}>
           <input
@@ -404,26 +218,7 @@ export function TransactionFilters({
         </label>
       </div>
 
-      {hasActiveFilters ? (
-        <div
-          aria-label={t('transactions.filters.activeLabel')}
-          className={styles.chips}
-          role="group"
-        >
-          {chips.map((chip) => (
-            <button className={styles.chip} key={chip.key} onClick={chip.onClear} type="button">
-              {chip.label}
-              <span aria-hidden="true"> ×</span>
-              <span className="sr-only">
-                {t('transactions.filters.clearChip', { label: chip.label })}
-              </span>
-            </button>
-          ))}
-          <button className="secondary-action" onClick={onReset} type="button">
-            {t('transactions.filters.reset')}
-          </button>
-        </div>
-      ) : null}
+      <ActiveFilterChips chips={chips} onReset={onReset} />
     </div>
   );
 }

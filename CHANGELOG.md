@@ -8,6 +8,40 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ### Added
 
+- Exact decimal value objects and serialization: `ExactDecimal::sum()`, `negate()` and
+  `absolute()` keep every submitted decimal place, a shared parser turns an amount fragment into
+  an `AssetAmount` and rejects a malformed, imprecise or unknown-asset figure before any write,
+  and the browser adds, subtracts, sums, negates and compares signed canonical decimals exactly
+  with the same reference cases and property tests as the backend.
+- Atomic internal transfers: one request books both legs in a single PostgreSQL transaction, an
+  exact zero-sum pair for a same-asset transfer and two exact amounts with one derived rate for a
+  cross-asset transfer, an explicit fee transaction, and editing or voiding always moves the pair
+  together; transfers never appear as income or expense.
+- Partial and full refunds linked to their original expense: the refundable amount is the
+  original minus its non-voided refunds, checked under a row lock so two concurrent refunds
+  cannot both pass, with a default largest-remainder allocation across the original's categories
+  and a two-way link shown on both the refund and the original.
+- Idempotent, precision-safe transaction creation: a repeated `Idempotency-Key` with the same body
+  replays the first response instead of writing again, a reused key with a different body is
+  refused, keys are scoped to the workspace and to the use case, an imported or provider-sourced
+  creation requires a key, and a stored key expires after seven days and is purged by a console
+  command.
+- Search and filter transactions with bounded, keyset-paginated results: period, accounts,
+  states, natures, categories with descendants, analytic axes, a signed amount range, source,
+  categorization state and free text combine as a conjunction, repeated values of one filter
+  combine as a disjunction, and the transactions screen reflects the filters in the URL with its
+  own empty, impossible-combination and stale-page states.
+- Safe automatic categorization rules: a rule matches on the raw label, the normalized label, the
+  counterparty, the merchant category code, a signed amount range and a direction, with
+  `EQUALS`, `CONTAINS` and `REGEX` conditions validated against a write-time safety policy and
+  bounded at execution by a backtrack limit and a per-rule time budget; applying a rule to
+  history always goes through a preview that writes nothing, and a manually categorized split is
+  never overwritten.
+- Recurring transaction detection: a bounded scan of the workspace history proposes candidates
+  grouped by account and counterparty with a qualitative, nullable confidence, confirming one
+  creates an editable recurrence and its forward occurrences, and a real movement is matched to
+  its expected occurrence — becoming `RECEIVED` or read back as `LATE` from the calendar — when
+  created, edited or voided.
 - Split a transaction across zero to twenty categories, each with its own exact amount, optional
   analytic axes and note, summing exactly to the transaction amount or left empty. The transaction
   modal offers a split editor with a live remaining amount, "assign the remainder to this row" and

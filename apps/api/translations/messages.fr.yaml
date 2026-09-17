@@ -258,9 +258,15 @@ api:
     invalid_splits_duplicate_category:
       title: 'Catégorie en double'
       detail: "Une catégorie ne peut apparaître qu'une seule fois dans la répartition d'une transaction."
-    invalid_splits_sum_mismatch:
+    invalid_splits_sum_missing:
       title: 'Répartition incomplète'
       detail: 'Il manque %amount% à la répartition pour atteindre exactement le montant de la transaction.'
+    invalid_splits_sum_exceeds:
+      title: 'Répartition excédentaire'
+      detail: 'La répartition dépasse de %amount% le montant de la transaction.'
+    invalid_splits_required:
+      title: 'Répartition requise'
+      detail: 'Cette transaction est déjà catégorisée : indiquez la répartition à conserver ou à modifier, une liste vide ne suffit pas.'
     transaction_payload_too_large:
       title: 'Corps de transaction trop volumineux'
       detail: 'Le corps JSON dépasse la taille maximale autorisée.'

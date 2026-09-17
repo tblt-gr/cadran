@@ -17,6 +17,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Reference\Application\AssetCatalog;
+use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\Transaction;
@@ -44,6 +45,7 @@ final readonly class CreateRefund
         private RecordAuditEvent $recordAuditEvent,
         private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
@@ -98,13 +100,16 @@ final readonly class CreateRefund
             $draft = new TransactionDraft($amount, TransactionNature::REFUND, TransactionState::BOOKED, $bookedOn, null, null,
                 $input->rawLabel, $input->counterparty, $input->note, null, null, null, null);
             $now = $this->clock->now();
-            $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
+            $today = $this->calendar->today();
             $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
             $id = $this->uuidGenerator->generate();
             $asset = $this->assets->findByCode($amount->asset) ?? throw new \UnexpectedValueException('Transaction asset is missing.');
             $proposal = $this->allocation->propose($original, $magnitude, $asset->precision->display);
             if ([] !== $original->splits && [] === $input->splits) {
-                throw new InvalidSplitsInput(InvalidSplitsInput::SUM_MISMATCH, ['%amount%' => $amount->value->toString()]);
+                // The original is categorised, so an explicit empty array is a deliberate
+                // refusal to allocate, not an "unset" default — the caller must state a
+                // split set, even to keep the proposal above unchanged.
+                throw new InvalidSplitsInput(InvalidSplitsInput::REQUIRED);
             }
             try {
                 $splitInputs = null === $input->splits

@@ -3040,8 +3040,9 @@ paths:
         '422':
           description: >-
             The amount, dates, nature, category or bounds are invalid, or the
-            splits allocation does not sum to the amount
-            (`type: /problems/splits.sum_mismatch`), carries more than twenty
+            splits allocation leaves a remainder unallocated
+            (`type: /problems/splits.sum_missing`), exceeds the amount
+            (`type: /problems/splits.sum_exceeds`), carries more than twenty
             rows (`type: /problems/splits.too_many`) or repeats a category
             (`type: /problems/splits.duplicate_category`), or an Idempotency-Key
             is invalid or required by an IMPORT or PROVIDER source.
@@ -3139,8 +3140,9 @@ paths:
             The edit is invalid, tried to change an immutable field, targets
             a transfer leg or its fee
             (`type: /problems/transaction-belongs-to-transfer`), or the
-            splits allocation does not sum to the amount
-            (`type: /problems/splits.sum_mismatch`), carries more than twenty
+            splits allocation leaves a remainder unallocated
+            (`type: /problems/splits.sum_missing`), exceeds the amount
+            (`type: /problems/splits.sum_exceeds`), carries more than twenty
             rows (`type: /problems/splits.too_many`) or repeats a category
             (`type: /problems/splits.duplicate_category`).
           content:
@@ -3211,8 +3213,9 @@ paths:
           description: >-
             The transaction is a transfer leg or its fee
             (`type: /problems/transaction-belongs-to-transfer`), or the
-            allocation does not sum to the amount
-            (`type: /problems/splits.sum_mismatch`), carries more than twenty
+            allocation leaves a remainder unallocated
+            (`type: /problems/splits.sum_missing`), exceeds the amount
+            (`type: /problems/splits.sum_exceeds`), carries more than twenty
             rows (`type: /problems/splits.too_many`), repeats a category
             (`type: /problems/splits.duplicate_category`), or a split is
             zero, of the opposite sign, of another asset, or its category is
@@ -3303,7 +3306,13 @@ paths:
         '413': { $ref: '#/components/responses/TransactionPayloadTooLarge' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422':
-          description: The refund input or Idempotency-Key is invalid.
+          description: >-
+            The refund input or Idempotency-Key is invalid, or the submitted
+            splits leave a remainder unallocated
+            (`type: /problems/splits.sum_missing`), exceed the amount
+            (`type: /problems/splits.sum_exceeds`), or explicitly empty an
+            allocation the categorised original requires
+            (`type: /problems/splits.required`).
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }

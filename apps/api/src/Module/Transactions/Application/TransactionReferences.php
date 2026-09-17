@@ -170,8 +170,17 @@ final readonly class TransactionReferences
         if ([] !== $splits) {
             $sum = ExactDecimal::sum(...array_map(static fn (TransactionSplit $split): DecimalValue => $split->amount->value, $splits));
             if (0 !== $sum->compareTo($transactionAmount->value)) {
-                $missing = ExactDecimal::subtract($transactionAmount->value, $sum);
-                throw new InvalidSplitsInput(InvalidSplitsInput::SUM_MISMATCH, ['%amount%' => $missing->toString()]);
+                // Every split shares the transaction's sign, so the two magnitudes alone say
+                // which side is off: a smaller sum leaves an unallocated remainder, a larger
+                // one has spent more than the transaction carries. Either way the reported
+                // figure is unsigned — the rule code already states the direction.
+                $amountMagnitude = ExactDecimal::absolute($transactionAmount->value);
+                $sumMagnitude = ExactDecimal::absolute($sum);
+                $difference = ExactDecimal::absolute(ExactDecimal::subtract($amountMagnitude, $sumMagnitude));
+                $ruleCode = $sumMagnitude->compareTo($amountMagnitude) > 0
+                    ? InvalidSplitsInput::SUM_EXCEEDS
+                    : InvalidSplitsInput::SUM_MISSING;
+                throw new InvalidSplitsInput($ruleCode, ['%amount%' => $difference->toString()]);
             }
         }
 

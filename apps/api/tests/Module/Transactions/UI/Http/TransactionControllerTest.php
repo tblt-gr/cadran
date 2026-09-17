@@ -979,7 +979,22 @@ final class TransactionControllerTest extends WebTestCase
         ]);
         self::assertResponseStatusCodeSame(422);
         $problem = $this->decode();
-        self::assertSame('/problems/splits.sum_mismatch', $problem['type']);
+        self::assertSame('/problems/splits.sum_missing', $problem['type']);
+        self::assertSame('Il manque 0.01 à la répartition pour atteindre exactement le montant de la transaction.', $problem['detail']);
+    }
+
+    public function testASplitAllocationOverByOneCentIsRefusedWithTheExcessAmount(): void
+    {
+        $created = $this->createTransaction(overrides: ['amount' => ['value' => '-87.40', 'assetCode' => 'EUR']]);
+
+        $this->requestReplaceSplits(self::stringValue($created, 'id'), 1, [
+            $this->splitRow(self::OWN_EXPENSE, '-62.10'),
+            $this->splitRow(self::OWN_PLAIN_EXPENSE, '-25.31'),
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        $problem = $this->decode();
+        self::assertSame('/problems/splits.sum_exceeds', $problem['type']);
+        self::assertSame('La répartition dépasse de 0.01 le montant de la transaction.', $problem['detail']);
     }
 
     public function testMoreThanTwentySplitsAreRefused(): void
@@ -1085,7 +1100,7 @@ final class TransactionControllerTest extends WebTestCase
             'version' => 1,
         ]);
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('/problems/splits.sum_mismatch', $this->decode()['type']);
+        self::assertSame('/problems/splits.sum_missing', $this->decode()['type']);
 
         // ...and using the categoryId shorthand on a multi-split transaction is refused too.
         $this->requestRawUpdate($id, [
@@ -1262,6 +1277,36 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame('/problems/transaction.belongs_to_refund', $this->decode()['type']);
     }
 
+    public function testAnExplicitEmptySplitsArrayIsRefusedOnARefundOfACategorisedOriginal(): void
+    {
+        $original = $this->createTransaction(overrides: [
+            'amount' => ['value' => '-87.40', 'assetCode' => 'EUR'],
+            'categoryId' => null,
+            'splits' => [
+                $this->splitRow(self::OWN_EXPENSE, '-62.10'),
+                $this->splitRow(self::OWN_PLAIN_EXPENSE, '-25.30'),
+            ],
+        ]);
+        $id = self::stringValue($original, 'id');
+
+        $this->requestRefund($id, [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14',
+            'rawLabel' => 'Remboursement',
+            'counterparty' => null,
+            'note' => null,
+            'splits' => [],
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/splits.required', $this->decode()['type']);
+        self::assertSame(0, $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM transaction_refunds WHERE original_transaction_id = :id',
+            ['id' => $id],
+        ));
+    }
+
     public function testRefundRejectsAnIneligibleOriginalAnAssetMismatchAnEarlierDateAndAnOverAmount(): void
     {
         $income = $this->createTransaction(overrides: [
@@ -1329,7 +1374,7 @@ final class TransactionControllerTest extends WebTestCase
             'splits' => [$this->splitRow(self::OWN_EXPENSE, '9.00')],
         ]);
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('/problems/splits.sum_mismatch', $this->decode()['type']);
+        self::assertSame('/problems/splits.sum_missing', $this->decode()['type']);
     }
 
     public function testDuplicatingOrReplacingSplitsOnALinkedRefundIsRefused(): void
