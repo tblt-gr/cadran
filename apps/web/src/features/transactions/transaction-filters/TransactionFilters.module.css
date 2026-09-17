@@ -1,0 +1,83 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.toggle {
+  display: none;
+  align-self: flex-start;
+}
+
+.panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1-5);
+  min-width: 0;
+}
+
+.periodChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.radio,
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.customPeriod {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  border: var(--border-line-transparent);
+  border-radius: var(--radius-full);
+  padding-block: var(--spacing-0-5);
+  padding-inline: var(--spacing-3);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 360px) {
+  .toggle {
+    display: inline-flex;
+  }
+
+  .panel {
+    display: none;
+    flex-direction: column;
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: 20;
+    padding: var(--spacing-4);
+    background: var(--bg-surface-1);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .panel[data-open='true'] {
+    display: flex;
+  }
+}

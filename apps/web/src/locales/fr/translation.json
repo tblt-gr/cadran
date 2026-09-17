@@ -1501,6 +1501,7 @@
     "errors": {
       "conflict": "Cette transaction ne peut plus être modifiée. Rechargez la liste.",
       "stale": "Cette transaction a été modifiée ailleurs entre-temps. La liste vient d’être rechargée : rouvrez-la puis réappliquez votre modification.",
+      "staleCursor": "La liste a changé pendant le chargement de cette page. Rechargez depuis le début pour continuer sans risquer un doublon ou un mouvement manquant.",
       "invalid": "La transaction est invalide. Vérifiez le compte, le montant, la date et la catégorie.",
       "unauthorized": "Votre session a expiré. Reconnectez-vous.",
       "network": "L’enregistrement a échoué. Réessayez."
@@ -1516,6 +1517,15 @@
     "unauthorized": {
       "title": "Session expirée",
       "description": "Reconnectez-vous pour consulter les mouvements de cet espace."
+    },
+    "impossible": {
+      "title": "Cette combinaison de filtres ne peut rien trouver",
+      "description": "Par exemple, la file « à catégoriser » ne porte aucune catégorie ni axe analytique, ou la période choisie se termine avant son début. Ajustez ou réinitialisez les filtres."
+    },
+    "sources": {
+      "MANUAL": "Saisie manuelle",
+      "IMPORT": "Import",
+      "PROVIDER": "Fournisseur connecté"
     },
     "list": {
       "caption": "Transactions de l’espace de travail",
@@ -1582,7 +1592,38 @@
       "allAccounts": "Tous les comptes",
       "categorizationLabel": "Filtrer par catégorisation",
       "categorizationAll": "Toutes",
-      "categorizationQueue": "À catégoriser"
+      "categorizationQueue": "À catégoriser",
+      "toggle": "Filtres",
+      "periodLabel": "Période",
+      "period": {
+        "all": "Toutes les dates",
+        "thisMonth": "Ce mois-ci",
+        "lastMonth": "Le mois dernier",
+        "thisYear": "Cette année",
+        "custom": "Personnalisée"
+      },
+      "from": "Du",
+      "to": "Au",
+      "accountLabel": "Filtrer par compte",
+      "categoryLabel": "Filtrer par catégorie",
+      "addCategory": "Ajouter une catégorie au filtre",
+      "includeDescendants": "Inclure les sous-catégories",
+      "axisLabel": "Axes analytiques",
+      "amountLabel": "Montant",
+      "amountHint": "Le montant est signé : une sortie d’argent est négative. Pour ne garder que les dépenses de plus de 200 €, indiquez -200.00 comme borne haute (une virgule tapée est convertie automatiquement).",
+      "minAmount": "Borne basse",
+      "maxAmount": "Borne haute",
+      "assetCode": "Actif des bornes",
+      "assetCodePlaceholder": "Choisir un actif",
+      "amountInvalid": "Saisissez un montant décimal signé, par exemple -200.00.",
+      "amountAssetMissing": "Choisissez l’actif des bornes pour appliquer le filtre de montant.",
+      "amountChip": "Montant entre {{min}} et {{max}}",
+      "sourceLabel": "Origine",
+      "search": "Recherche libre",
+      "searchChip": "Recherche « {{query}} »",
+      "activeLabel": "Filtres actifs",
+      "clearChip": "Retirer le filtre {{label}}",
+      "reset": "Réinitialiser les filtres"
     },
     "queue": {
       "emptyTitle": "Rien à catégoriser",
@@ -1612,7 +1653,13 @@
       "inAdvanced": "Répartie entre plusieurs catégories : voir la répartition en bas des champs avancés."
     },
     "pagination": {
-      "next": "Mouvements plus anciens"
+      "next": "Mouvements plus anciens",
+      "loadingMore": "Chargement…",
+      "endOfList": "La liste n’a pas d’autre mouvement à charger pour ces filtres.",
+      "stale": "La liste a changé pendant le chargement de cette page. Rechargez depuis le début pour continuer sans risquer un doublon ou un mouvement manquant.",
+      "reload": "Recharger depuis le début",
+      "loadedCount_one": "{{count}} mouvement chargé (chargement n°{{sequence}}).",
+      "loadedCount_other": "{{count}} mouvements chargés (chargement n°{{sequence}})."
     },
     "transfer": {
       "eyebrow": "Virement",

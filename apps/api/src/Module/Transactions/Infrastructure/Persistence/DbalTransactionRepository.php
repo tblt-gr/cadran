@@ -12,9 +12,14 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\CategorizationOrigin;
 use App\Module\Transactions\Domain\Transaction;
+use App\Module\Transactions\Domain\TransactionFilters;
+use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionPosition;
 use App\Module\Transactions\Domain\TransactionRepository;
+use App\Module\Transactions\Domain\TransactionSource;
 use App\Module\Transactions\Domain\TransactionSplit;
+use App\Module\Transactions\Domain\TransactionState;
+use App\Module\Transactions\Domain\TransactionWatermark;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -39,40 +44,120 @@ final readonly class DbalTransactionRepository implements CategoryClassification
         return $this->one($workspace, $id, true);
     }
 
-    public function list(
+    public function search(
         WorkspaceScope $workspace,
-        ?string $accountId,
-        bool $includeVoided,
+        TransactionFilters $filters,
         int $limit,
         ?TransactionPosition $after,
-        bool $uncategorized = false,
     ): array {
-        $sql = 'SELECT '.self::COLUMNS.' FROM transaction_transactions WHERE workspace_id = :workspace_id';
+        // The three EXISTS fragments below carry their own bound :workspace_id
+        // predicate rather than comparing s.workspace_id to t.workspace_id: an
+        // EXISTS subquery must never let the outer, already-scoped table vouch
+        // for the inner one. They live in this single unconditional
+        // concatenation — rather than each behind its own `if ($sql .= ...)` —
+        // so the static workspace-scope guard (scripts/check-workspace-scope.php)
+        // can resolve the full query text; a scoped table named only inside a
+        // conditionally-appended statement is invisible to its analysis.
+        $sql = 'SELECT '.self::COLUMNS.' FROM transaction_transactions t WHERE t.workspace_id = :workspace_id'
+            .($filters->categorizationNone
+                ? ' AND NOT EXISTS (SELECT 1 FROM transaction_splits s WHERE s.workspace_id = :workspace_id AND s.transaction_id = t.id)'
+                : '')
+            .([] !== $filters->categoryIds
+                ? ' AND EXISTS (SELECT 1 FROM transaction_splits s WHERE s.workspace_id = :workspace_id AND s.transaction_id = t.id AND s.category_id IN (:category_ids))'
+                : '')
+            .([] !== $filters->axes
+                ? ' AND EXISTS (SELECT 1 FROM transaction_splits s, jsonb_array_elements_text(s.analytic_axes) elem(value) WHERE s.workspace_id = :workspace_id AND s.transaction_id = t.id AND elem.value IN (:axes))'
+                : '');
         $parameters = ['workspace_id' => $workspace->id, 'limit' => $limit];
         $types = ['limit' => ParameterType::INTEGER];
-        if ($uncategorized || !$includeVoided) {
-            $sql .= " AND state <> 'VOIDED'";
+
+        // The default (no explicit state filter) state scope is a business
+        // decision the caller has already resolved into a concrete, non-empty
+        // list before reaching this repository: PENDING and BOOKED, plus
+        // VOIDED only when includeVoided is set. An empty list here means no
+        // restriction at all, so a caller can name every state explicitly.
+        if ([] !== $filters->states) {
+            $sql .= ' AND t.state IN (:states)';
+            $parameters['states'] = array_map(static fn (TransactionState $state): string => $state->value, $filters->states);
+            $types['states'] = ArrayParameterType::STRING;
         }
-        if ($uncategorized) {
-            $sql .= ' AND NOT EXISTS ('
-                .'SELECT 1 FROM transaction_splits s '
-                .'WHERE s.workspace_id = transaction_transactions.workspace_id '
-                .'AND s.transaction_id = transaction_transactions.id'
-                .')';
+        if (null !== $filters->from) {
+            $sql .= ' AND t.booked_on >= :from_date';
+            $parameters['from_date'] = $filters->from->format('Y-m-d');
         }
-        if (null !== $accountId) {
-            $sql .= ' AND account_id = :account_id';
-            $parameters['account_id'] = $accountId;
+        if (null !== $filters->to) {
+            $sql .= ' AND t.booked_on <= :to_date';
+            $parameters['to_date'] = $filters->to->format('Y-m-d');
+        }
+        if ([] !== $filters->accountIds) {
+            $sql .= ' AND t.account_id IN (:account_ids)';
+            $parameters['account_ids'] = $filters->accountIds;
+            $types['account_ids'] = ArrayParameterType::STRING;
+        }
+        if ([] !== $filters->natures) {
+            $sql .= ' AND t.nature IN (:natures)';
+            $parameters['natures'] = array_map(static fn (TransactionNature $nature): string => $nature->value, $filters->natures);
+            $types['natures'] = ArrayParameterType::STRING;
+        }
+        if ([] !== $filters->sources) {
+            $sql .= ' AND t.source IN (:sources)';
+            $parameters['sources'] = array_map(static fn (TransactionSource $source): string => $source->value, $filters->sources);
+            $types['sources'] = ArrayParameterType::STRING;
+        }
+        if ([] !== $filters->categoryIds) {
+            $parameters['category_ids'] = $filters->categoryIds;
+            $types['category_ids'] = ArrayParameterType::STRING;
+        }
+        if ([] !== $filters->axes) {
+            $parameters['axes'] = array_map(static fn (AnalyticAxis $axis): string => $axis->value, $filters->axes);
+            $types['axes'] = ArrayParameterType::STRING;
+        }
+        if (null !== $filters->minAmount || null !== $filters->maxAmount) {
+            $sql .= ' AND t.asset_code = :amount_asset_code';
+            $parameters['amount_asset_code'] = $filters->assetCode?->toString();
+        }
+        if (null !== $filters->minAmount) {
+            $sql .= ' AND t.amount_value >= :min_amount';
+            $parameters['min_amount'] = $filters->minAmount->toString();
+        }
+        if (null !== $filters->maxAmount) {
+            $sql .= ' AND t.amount_value <= :max_amount';
+            $parameters['max_amount'] = $filters->maxAmount->toString();
+        }
+        if (null !== $filters->q) {
+            // Simultaneous strtr: the backslash the escape introduces is never
+            // re-escaped by the % or _ replacement that follows it.
+            // normalized_label is a generated column equal to
+            // lower(btrim(raw_label)): any row lower(raw_label) would match is
+            // already matched by normalized_label, so there is no separate
+            // raw_label branch (and no index needed for one).
+            $escaped = strtr(mb_strtolower($filters->q, 'UTF-8'), ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']);
+            $sql .= ' AND (t.normalized_label LIKE :pattern ESCAPE \'\\\' '
+                .'OR lower(t.counterparty) LIKE :pattern ESCAPE \'\\\')';
+            $parameters['pattern'] = '%'.$escaped.'%';
         }
         if (null !== $after) {
-            $sql .= ' AND (booked_on, id) < (:booked_on, :cursor_id)';
+            $sql .= ' AND (t.booked_on, t.id) < (:booked_on, :cursor_id)';
             $parameters['booked_on'] = $after->bookedOn->format('Y-m-d');
             $parameters['cursor_id'] = $after->id;
         }
-        $sql .= ' ORDER BY booked_on DESC, id DESC LIMIT :limit';
+        $sql .= ' ORDER BY t.booked_on DESC, t.id DESC LIMIT :limit';
         $rows = $this->connection->fetchAllAssociative($sql, $parameters, $types);
 
         return $this->hydrateMany($workspace, $rows);
+    }
+
+    public function watermark(WorkspaceScope $workspace): ?TransactionWatermark
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT updated_at, id FROM transaction_transactions WHERE workspace_id = :workspace_id ORDER BY updated_at DESC, id DESC LIMIT 1',
+            ['workspace_id' => $workspace->id],
+        );
+
+        return false === $row ? null : new TransactionWatermark(
+            new \DateTimeImmutable(TransactionRow::text($row['updated_at'] ?? null)),
+            TransactionRow::text($row['id'] ?? null),
+        );
     }
 
     public function countForCategory(WorkspaceScope $workspace, string $categoryId): int

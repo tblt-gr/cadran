@@ -721,6 +721,16 @@ function analyseMethodBody(array $tokens, int $from, int $to, array $constants, 
             $createsWorkspaceScope = true;
         }
 
+        // A statement that itself executes a recognised query (a
+        // SQL_FIRST_CALLS fetch) assigns its *result rows*, not SQL text, to
+        // whatever variable receives it. That variable must not inherit the
+        // query's resolved literal text below: doing so would make a later,
+        // unrelated call that merely forwards the fetched rows (e.g. a
+        // hydration helper) look like it re-embeds the raw query — flagging
+        // it as an unrecognised, unscoped access to the very table the
+        // original query already proved was correctly bound.
+        $statementIsQueryResult = false;
+
         foreach (objectCalls($tokens, $statement) as $call) {
             $arguments = array_map(
                 static fn (array $range): string => resolvedText($tokens, $range, $constants, $class, $variables),
@@ -740,6 +750,7 @@ function analyseMethodBody(array $tokens, int $from, int $to, array $constants, 
             }
 
             if (in_array($call['name'], SQL_FIRST_CALLS, true)) {
+                $statementIsQueryResult = true;
                 $statements[] = [
                     'kind' => 'sql',
                     'table' => '',
@@ -762,7 +773,7 @@ function analyseMethodBody(array $tokens, int $from, int $to, array $constants, 
         // variable it is assigned from stay in the right order.
         $assignment = assignedVariable($tokens, $statement);
         if (null !== $assignment) {
-            $text = resolvedText($tokens, $statement, $constants, $class, $variables);
+            $text = $statementIsQueryResult ? '' : resolvedText($tokens, $statement, $constants, $class, $variables);
             $variables[$assignment['name']] = $assignment['appends']
                 ? ($variables[$assignment['name']] ?? '').$text
                 : $text;

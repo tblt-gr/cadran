@@ -658,6 +658,208 @@ final class TransactionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    public function testResponseEnvelopeExposesHasMoreAndPageSizeAlongsideItemsAndCursor(): void
+    {
+        $this->createTransaction(overrides: ['bookedOn' => '2026-03-10']);
+        $this->createTransaction(overrides: ['bookedOn' => '2026-03-14']);
+
+        $this->client->request('GET', '/api/v1/transactions?pageSize=1');
+        self::assertResponseIsSuccessful();
+        $page = $this->decode();
+        self::assertTrue($page['hasMore']);
+        self::assertSame(1, $page['pageSize']);
+        self::assertIsString($page['nextCursor']);
+
+        $this->client->request('GET', '/api/v1/transactions?pageSize=50');
+        $lastPage = $this->decode();
+        self::assertFalse($lastPage['hasMore']);
+        self::assertNull($lastPage['nextCursor']);
+    }
+
+    public function testRepeatedStatesCombineAsADisjunctionWhileDistinctFiltersCombineAsAConjunction(): void
+    {
+        $booked = $this->createTransaction(overrides: ['state' => 'BOOKED', 'nature' => 'EXPENSE']);
+        $pending = $this->createTransaction(overrides: ['state' => 'PENDING', 'nature' => 'EXPENSE']);
+
+        $this->client->request('GET', '/api/v1/transactions?state[]=BOOKED&state[]=PENDING');
+        self::assertEqualsCanonicalizing(
+            [$booked['id'], $pending['id']],
+            array_column($this->items(), 'id'),
+        );
+
+        $this->client->request('GET', '/api/v1/transactions?state[]=BOOKED&nature[]=INCOME');
+        self::assertSame([], $this->items());
+    }
+
+    public function testTheDefaultStateScopeExcludesRejectedAndIncludeVoidedAddsOnlyVoided(): void
+    {
+        $pending = $this->createTransaction(overrides: ['state' => 'PENDING']);
+        $rejected = $this->createTransaction();
+        $this->connection->update(
+            'transaction_transactions',
+            ['state' => 'REJECTED'],
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $rejected['id']],
+        );
+        $this->requestVoid(self::stringValue($pending, 'id'), 1);
+        self::assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/api/v1/transactions');
+        self::assertSame([], $this->items());
+
+        $this->client->request('GET', '/api/v1/transactions?includeVoided=true');
+        self::assertSame([self::stringValue($pending, 'id')], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions?state[]=REJECTED');
+        self::assertSame([$rejected['id']], array_column($this->items(), 'id'));
+    }
+
+    public function testCategoryAndAxisFiltersMatchThroughTheTransactionSplits(): void
+    {
+        $withAxis = $this->createTransaction(overrides: ['categoryId' => self::OWN_EXPENSE_WITH_DEFAULT_AXES]);
+        $this->createTransaction(overrides: ['categoryId' => self::OWN_PLAIN_EXPENSE]);
+
+        $this->client->request('GET', '/api/v1/transactions?categoryId[]='.self::OWN_EXPENSE_WITH_DEFAULT_AXES);
+        self::assertSame([$withAxis['id']], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions?axis[]=ESSENTIAL');
+        self::assertSame([$withAxis['id']], array_column($this->items(), 'id'));
+    }
+
+    public function testRepeatedAccountIdFilterWithoutBracketsIsHonouredAsADisjunction(): void
+    {
+        $this->seedAccount(self::OWN_USD_ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Compte USD', 'USD');
+        $first = $this->createTransaction(overrides: ['accountId' => self::OWN_ACCOUNT]);
+        $second = $this->createTransaction(overrides: ['accountId' => self::OWN_USD_ACCOUNT, 'amount' => ['value' => '-10.00', 'assetCode' => 'USD']]);
+
+        $this->client->request(
+            'GET',
+            '/api/v1/transactions?accountId='.self::OWN_ACCOUNT.'&accountId='.self::OWN_USD_ACCOUNT,
+        );
+        self::assertResponseIsSuccessful();
+        self::assertEqualsCanonicalizing(
+            [$first['id'], $second['id']],
+            array_column($this->items(), 'id'),
+        );
+    }
+
+    public function testAmountRangeFilterIsSignedAndScopedToItsAssetCode(): void
+    {
+        $bigExpense = $this->createTransaction(overrides: ['amount' => ['value' => '-250.00', 'assetCode' => 'EUR']]);
+        $this->createTransaction(overrides: ['amount' => ['value' => '-50.00', 'assetCode' => 'EUR']]);
+
+        $this->client->request('GET', '/api/v1/transactions?maxAmount=-200.00&assetCode=EUR');
+        self::assertSame([$bigExpense['id']], array_column($this->items(), 'id'));
+    }
+
+    public function testMalformedOrOutOfBoundQueryShapesAreRejectedWithoutRunningAQuery(): void
+    {
+        $cases = [
+            '?pageSize=0',
+            '?pageSize=101',
+            '?state[]=UNKNOWN',
+            '?nature[]=UNKNOWN',
+            '?axis[]=UNKNOWN',
+            '?source[]=UNKNOWN',
+            '?from=2026-13-40',
+            '?from=2026-03-20&to=2026-03-01',
+            '?minAmount=200.00',
+            '?minAmount=1e3&assetCode=EUR',
+            '?q='.str_repeat('a', 81),
+            '?accountId[]='.implode('&accountId[]=', array_fill(0, 21, self::OWN_ACCOUNT)),
+            '?state[]='.implode('&state[]=', array_fill(0, 21, 'BOOKED')),
+            '?nature[]='.implode('&nature[]=', array_fill(0, 21, 'EXPENSE')),
+            '?axis[]='.implode('&axis[]=', array_fill(0, 21, 'ESSENTIAL')),
+            '?source[]='.implode('&source[]=', array_fill(0, 21, 'MANUAL')),
+            '?categorization=OTHER',
+            '?unknownFilter=1',
+        ];
+        foreach ($cases as $query) {
+            $this->client->request('GET', '/api/v1/transactions'.$query);
+            self::assertResponseStatusCodeSame(400, 'Query '.$query.' should be refused.');
+        }
+    }
+
+    public function testNoFilterValueOfAnotherWorkspaceCanSurfaceARowOrLeakItsExistence(): void
+    {
+        $this->createTransaction();
+
+        $this->client->request('GET', '/api/v1/transactions?accountId[]='.self::OTHER_ACCOUNT);
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->items());
+
+        $this->client->request('GET', '/api/v1/transactions?categoryId[]='.self::OTHER_CATEGORY);
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->items());
+    }
+
+    public function testAConcurrentChangeStalesAnOutstandingCursorInsteadOfServingAnInconsistentPage(): void
+    {
+        $first = $this->createTransaction(overrides: ['bookedOn' => '2026-03-10']);
+        $this->createTransaction(overrides: ['bookedOn' => '2026-03-14']);
+
+        $this->client->request('GET', '/api/v1/transactions?pageSize=1');
+        $cursor = $this->decode()['nextCursor'];
+        self::assertIsString($cursor);
+
+        $this->requestVoid(self::stringValue($first, 'id'), 1);
+        self::assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/api/v1/transactions?pageSize=1&cursor='.rawurlencode($cursor));
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/transactions.cursor_stale', $this->decode()['type']);
+    }
+
+    /**
+     * A cursor is plain, unsigned, workspace-agnostic data: its watermark
+     * proves only that the caller's own workspace has not changed, and its
+     * position is just a (booked_on, id) pair with no workspace of its own.
+     * A caller who combines their own genuine, fresh watermark with a
+     * position copied from another workspace's row must still never see a
+     * foreign row: workspace isolation comes from the query's own
+     * workspace_id predicate, never from anything the cursor carries.
+     */
+    public function testAForgedCursorCombiningAnotherWorkspacesPositionWithOwnWatermarkNeverSurfacesAForeignRow(): void
+    {
+        $foreign = $this->createTransaction(overrides: ['bookedOn' => '2026-01-01']);
+
+        $this->client->request('DELETE', '/api/v1/session');
+        $this->resetLoginThrottling();
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+
+        $this->requestCreate($this->payload(overrides: [
+            'accountId' => self::OTHER_ACCOUNT, 'categoryId' => self::OTHER_CATEGORY, 'bookedOn' => '2026-06-01',
+        ]));
+        self::assertResponseStatusCodeSame(201);
+        $this->requestCreate($this->payload(overrides: [
+            'accountId' => self::OTHER_ACCOUNT, 'categoryId' => self::OTHER_CATEGORY, 'bookedOn' => '2026-07-01',
+        ]));
+        self::assertResponseStatusCodeSame(201);
+
+        $this->client->request('GET', '/api/v1/transactions?pageSize=1');
+        $nextCursor = $this->decode()['nextCursor'];
+        self::assertIsString($nextCursor);
+        $genuineCursor = \App\Module\Transactions\Application\TransactionCursor::decode($nextCursor);
+
+        $forged = new \App\Module\Transactions\Application\TransactionCursor(
+            new \DateTimeImmutable(self::stringValue($foreign, 'bookedOn')),
+            self::stringValue($foreign, 'id'),
+            $genuineCursor->watermark,
+        );
+
+        $this->client->request('GET', '/api/v1/transactions?pageSize=1&cursor='.rawurlencode($forged->encode()));
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->items());
+    }
+
+    public function testFreeTextSearchIsCaseInsensitiveAndTreatsWildcardCharactersAsLiteral(): void
+    {
+        $literal = $this->createTransaction(overrides: ['rawLabel' => 'CB 50% CARREFOUR_PARIS']);
+        $this->createTransaction(overrides: ['rawLabel' => 'CB AUCHAN PARIS']);
+
+        $this->client->request('GET', '/api/v1/transactions?q='.rawurlencode('50% carrefour_'));
+        self::assertSame([$literal['id']], array_column($this->items(), 'id'));
+    }
+
     public function testMutationsRequireCsrfAndWriteARedactedAuditEvent(): void
     {
         $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', '');
@@ -748,6 +950,22 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame([], $this->decode()['splits']);
 
         $this->client->request('GET', '/api/v1/transactions?categorization=NONE');
+        self::assertSame([$id], array_column($this->items(), 'id'));
+    }
+
+    public function testTheCategorizationQueueNeverListsAVoidedMovement(): void
+    {
+        $id = self::stringValue($this->createTransaction(), 'id');
+        $this->requestVoid($id, 1);
+        self::assertResponseIsSuccessful();
+
+        foreach (['includeVoided=true', 'state=VOIDED', 'state=VOIDED&state=BOOKED'] as $filter) {
+            $this->client->request('GET', '/api/v1/transactions?categorization=NONE&'.$filter);
+            self::assertResponseIsSuccessful();
+            self::assertSame([], $this->items(), $filter);
+        }
+
+        $this->client->request('GET', '/api/v1/transactions?state=VOIDED');
         self::assertSame([$id], array_column($this->items(), 'id'));
     }
 

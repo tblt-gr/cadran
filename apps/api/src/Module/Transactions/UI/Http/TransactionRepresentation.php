@@ -49,6 +49,8 @@ final readonly class TransactionRepresentation
         return [
             'items' => array_map(self::one(...), $page->items),
             'nextCursor' => $page->nextCursor,
+            'hasMore' => $page->hasMore,
+            'pageSize' => $page->pageSize,
         ];
     }
 }

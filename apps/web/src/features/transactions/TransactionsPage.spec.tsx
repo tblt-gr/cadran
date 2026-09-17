@@ -126,7 +126,10 @@ describe('TransactionsPage', () => {
     fireEvent.keyDown(screen.getByRole('combobox', { name: 'Catégorie' }), { key: 'Escape' });
     fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'INCOME' } });
     fireEvent.focus(screen.getByRole('combobox', { name: 'Catégorie' }));
-    const listbox = await screen.findByRole('listbox');
+    // Scoped to the dialog: the filter bar's native multi-select for accounts also carries
+    // the implicit "listbox" role, so an unscoped query would match both.
+    const dialog = screen.getByRole('dialog', { name: 'Nouvelle transaction' });
+    const listbox = await within(dialog).findByRole('listbox');
     expect(
       within(listbox)
         .getAllByRole('group')
@@ -592,7 +595,9 @@ describe('TransactionsPage', () => {
 
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(document.querySelector('img')).toBeNull();
-    expect(screen.getByText('Annulée')).toBeTruthy();
+    // Scoped to the table: the new filter bar also offers a "Voided" state checkbox with the
+    // same label, so an unscoped query would match both.
+    expect(within(screen.getByRole('table')).getByText('Annulée')).toBeTruthy();
     expect(screen.getByLabelText(/Sortie de/)).toBeTruthy();
   });
 
@@ -1058,5 +1063,147 @@ describe('TransactionsPage', () => {
       (screen.getByRole('button', { name: /^Créer un remboursement/ }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it('keeps the URL in sync with a filter change wired through the page', async () => {
+    window.history.replaceState({}, '', '/transactions');
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    renderPage();
+
+    await screen.findByRole('heading', { name: 'Aucune transaction' });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
+
+    await waitFor(() =>
+      expect(new URLSearchParams(window.location.search).getAll('state')).toEqual(['BOOKED']),
+    );
+    await waitFor(() =>
+      expect(api.listTransactions).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ state: ['BOOKED'] }),
+        }),
+      ),
+    );
+
+    window.history.replaceState({}, '', '/transactions');
+  });
+
+  it('keeps the loaded rows and offers a reload when a page request finds the cursor stale', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    api.listTransactions
+      .mockImplementationOnce(() => success({ items: [transaction], nextCursor: 'cursor-1' }))
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          data: undefined,
+          error: { type: '/problems/transactions.cursor_stale', title: 'Stale', status: 409 },
+          response: new Response(null, { status: 409 }),
+        }),
+      );
+    renderPage();
+
+    expect(await screen.findByText('CB CARREFOUR 1234')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Mouvements plus anciens' }));
+
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      expect.stringContaining('La liste a changé pendant le chargement de cette page'),
+    );
+    // The rows already loaded stay on screen instead of being blanked out.
+    expect(screen.getByText('CB CARREFOUR 1234')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Recharger depuis le début' }));
+    await waitFor(() => expect(api.listTransactions).toHaveBeenCalledTimes(3));
+  });
+
+  it('reloads from the first page after saving an edit made on a later page', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    const edited = { ...transaction, rawLabel: 'CARREFOUR MARKET', version: 2 };
+    let saved = false;
+    api.listTransactions.mockImplementation(({ query }: { query: { cursor?: string } }) => {
+      if (query.cursor) {
+        return saved
+          ? Promise.resolve({
+              data: undefined,
+              error: { type: '/problems/transactions.cursor_stale', title: 'Stale', status: 409 },
+              response: new Response(null, { status: 409 }),
+            })
+          : success({ items: [transaction], nextCursor: null });
+      }
+      return success({ items: [saved ? edited : transaction], nextCursor: 'cursor-1' });
+    });
+    api.updateTransaction.mockImplementation(() => {
+      saved = true;
+      return success(edited);
+    });
+    renderPage();
+
+    await screen.findByText('CB CARREFOUR 1234');
+    fireEvent.click(screen.getByRole('button', { name: 'Mouvements plus anciens' }));
+    await waitFor(() =>
+      expect(api.listTransactions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ cursor: 'cursor-1' }) }),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Mouvements plus anciens' })).toBeNull(),
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
+    const dialog = screen.getByRole('dialog', { name: 'Modifier la transaction' });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Libellé' }), {
+      target: { value: 'CARREFOUR MARKET' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+
+    expect(await screen.findByText('CARREFOUR MARKET')).toBeTruthy();
+    expect(api.listTransactions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ cursor: undefined }) }),
+    );
+    expect(screen.queryByText(/La liste a changé pendant le chargement/)).toBeNull();
+  });
+
+  it('changes the announced row count between two pages that load the same count', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 50, total: 0 }),
+    );
+    const secondPageTransaction: Transaction = {
+      ...transaction,
+      id: '00000000-0000-7000-8000-0000000000f2',
+      rawLabel: 'CB FNAC 5678',
+      counterparty: 'Fnac',
+    };
+    api.listTransactions
+      .mockImplementationOnce(() => success({ items: [transaction], nextCursor: 'cursor-1' }))
+      .mockImplementationOnce(() => success({ items: [secondPageTransaction], nextCursor: null }));
+    renderPage();
+
+    await screen.findByText('CB CARREFOUR 1234');
+    const firstAnnouncement = screen.getByRole('status').textContent;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mouvements plus anciens' }));
+
+    await screen.findByText('CB FNAC 5678');
+    await waitFor(() => expect(screen.getByRole('status').textContent).not.toBe(firstAnnouncement));
   });
 });

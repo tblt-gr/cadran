@@ -308,15 +308,18 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
         return $this->inner->findForUpdate($workspace, $id);
     }
 
-    public function list(
+    public function search(
         \App\Module\Foundation\Domain\WorkspaceScope $workspace,
-        ?string $accountId,
-        bool $includeVoided,
+        \App\Module\Transactions\Domain\TransactionFilters $filters,
         int $limit,
         ?\App\Module\Transactions\Domain\TransactionPosition $after,
-        bool $uncategorized = false,
     ): array {
-        return $this->inner->list($workspace, $accountId, $includeVoided, $limit, $after, $uncategorized);
+        return $this->inner->search($workspace, $filters, $limit, $after);
+    }
+
+    public function watermark(\App\Module\Foundation\Domain\WorkspaceScope $workspace): ?\App\Module\Transactions\Domain\TransactionWatermark
+    {
+        return $this->inner->watermark($workspace);
     }
 
     public function add(Transaction $transaction): void

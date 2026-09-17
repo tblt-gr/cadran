@@ -7,7 +7,11 @@ namespace App\Module\Transactions\Application;
 final readonly class TransactionPage
 {
     /** @param list<TransactionView> $items */
-    public function __construct(public array $items, public ?string $nextCursor)
-    {
+    public function __construct(
+        public array $items,
+        public ?string $nextCursor,
+        public bool $hasMore,
+        public int $pageSize,
+    ) {
     }
 }

@@ -1,15 +1,22 @@
 import { useTranslation } from 'react-i18next';
 import styles from './TransactionsState.module.css';
 
-export type TransactionsStateKind = 'loading' | 'error' | 'unauthorized' | 'empty' | 'queueEmpty';
+export type TransactionsStateKind =
+  'loading' | 'error' | 'unauthorized' | 'empty' | 'queueEmpty' | 'impossible';
 
 interface TransactionsStateProps {
   kind: TransactionsStateKind;
   onCreate: () => void;
+  onResetFilters?: () => void;
   onRetry: () => void;
 }
 
-export function TransactionsState({ kind, onCreate, onRetry }: TransactionsStateProps) {
+export function TransactionsState({
+  kind,
+  onCreate,
+  onResetFilters,
+  onRetry,
+}: TransactionsStateProps) {
   const { t } = useTranslation();
 
   if (kind === 'loading') {
@@ -37,6 +44,20 @@ export function TransactionsState({ kind, onCreate, onRetry }: TransactionsState
       <section className={`card ${styles.state}`}>
         <h2>{t('transactions.queue.emptyTitle')}</h2>
         <p>{t('transactions.queue.emptyDescription')}</p>
+      </section>
+    );
+  }
+
+  if (kind === 'impossible') {
+    return (
+      <section className={`card ${styles.state}`}>
+        <h2>{t('transactions.impossible.title')}</h2>
+        <p>{t('transactions.impossible.description')}</p>
+        {onResetFilters ? (
+          <button className="secondary-action" onClick={onResetFilters} type="button">
+            {t('transactions.filters.reset')}
+          </button>
+        ) : null}
       </section>
     );
   }
