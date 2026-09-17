@@ -1,12 +1,25 @@
 .range {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1-5);
   min-width: 0;
+  margin: var(--spacing-none);
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  gap: var(--spacing-2);
+}
+
+.range legend {
+  padding-inline: var(--spacing-1);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
 }
 
 .hint {
   color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
   margin: var(--spacing-none);
 }
 
@@ -16,7 +29,28 @@
   gap: var(--spacing-1);
 }
 
+.bound span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.bound input,
+.bound select {
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.bound input[aria-invalid='true'],
+.bound select[aria-invalid='true'] {
+  border-color: var(--negative);
+}
+
 .error {
   color: var(--negative);
+  font-size: var(--font-size-sm);
   line-height: var(--line-height-body);
 }

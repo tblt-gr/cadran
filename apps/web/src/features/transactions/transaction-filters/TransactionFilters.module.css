@@ -2,24 +2,124 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface-1);
+}
+
+.searchRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.search {
+  display: flex;
+  flex: 1 1 16rem;
+  align-items: center;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding-inline: var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: var(--bg-surface-2);
+  gap: var(--spacing-2);
+}
+
+.search:focus-within {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+}
+
+.search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: var(--border-none);
+  color: var(--text-primary);
+  background: var(--color-transparent);
+  font: inherit;
+}
+
+.search input:focus {
+  outline: none;
+}
+
+.search input::-webkit-search-cancel-button {
+  appearance: none;
 }
 
 .toggle {
-  display: none;
-  align-self: flex-start;
+  position: relative;
+  flex: 0 0 auto;
+  gap: var(--spacing-2);
+  white-space: nowrap;
+}
+
+.toggle[data-active='true'] {
+  color: var(--gold-200);
+  border-color: var(--gold-500);
+}
+
+.badge {
+  display: inline-grid;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding-inline: var(--spacing-1);
+  border-radius: var(--radius-full);
+  color: var(--text-on-primary);
+  background: var(--gold-300);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  place-items: center;
 }
 
 .panel {
-  display: flex;
-  flex-wrap: wrap;
+  display: none;
   gap: var(--spacing-4);
+}
+
+.panel[data-open='true'] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13.75rem, 1fr));
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1-5);
   min-width: 0;
+  gap: var(--spacing-1-5);
+}
+
+.field > legend,
+.field > span:first-child {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+fieldset.field {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+}
+
+fieldset.field > legend {
+  padding-inline: var(--spacing-1);
+}
+
+.control {
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
 }
 
 .periodChoices {
@@ -32,13 +132,33 @@
 .checkbox {
   display: inline-flex;
   align-items: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
   gap: var(--spacing-1);
+}
+
+.radio:hover,
+.checkbox:hover {
+  color: var(--text-primary);
+}
+
+.radio input,
+.checkbox input {
+  accent-color: var(--gold-300);
 }
 
 .customPeriod {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-2);
+}
+
+.customPeriod label {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-1);
 }
 
 .chips {
@@ -52,32 +172,16 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-1);
-  border: var(--border-line-transparent);
-  border-radius: var(--radius-full);
   padding-block: var(--spacing-0-5);
   padding-inline: var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
+  background: var(--bg-surface-2);
+  font-size: var(--font-size-label);
 }
 
-@media (max-width: 360px) {
-  .toggle {
-    display: inline-flex;
-  }
-
-  .panel {
-    display: none;
-    flex-direction: column;
-    position: fixed;
-    inset-inline: 0;
-    inset-block-end: 0;
-    z-index: 20;
-    padding: var(--spacing-4);
-    background: var(--bg-surface-1);
-    max-height: 80vh;
-    overflow-y: auto;
-  }
-
-  .panel[data-open='true'] {
-    display: flex;
-  }
+.chip:hover {
+  color: var(--text-primary);
+  border-color: var(--gold-500);
 }

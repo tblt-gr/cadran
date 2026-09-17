@@ -6,8 +6,10 @@ import type {
 } from '@cadran/api-client';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { AccountMultiSelect } from './account-multi-select/AccountMultiSelect';
 import { AmountRangeFilter } from './amount-range-filter/AmountRangeFilter';
 import {
   hasAppliedAmountBounds,
@@ -59,10 +61,10 @@ function toggle<T>(values: T[], value: T): T[] {
 }
 
 /**
- * The transaction filter bar: period, accounts, states, natures, categories, analytic axes,
- * a signed amount range, source, categorisation and free text — each combinable, reflected as
- * a chip the user can clear on its own. Collapses into a toggled sheet at 360px; above that
- * width the panel stays open and the toggle is hidden by `TransactionFilters.module.css`.
+ * The transaction filter bar: free text search stays visible; period, accounts, states,
+ * natures, categories, analytic axes, a signed amount range, source and categorisation sit
+ * behind a toggled panel. Every applied filter, search included, reflects as a chip the user
+ * can clear on its own.
  */
 export function TransactionFilters({
   accounts,
@@ -216,18 +218,40 @@ export function TransactionFilters({
   }
 
   const hasActiveFilters = chips.length > 0;
+  const advancedCount = chips.filter((chip) => chip.key !== 'q').length;
 
   return (
     <div className={styles.bar}>
-      <button
-        aria-controls={panelId}
-        aria-expanded={open}
-        className={`secondary-action ${styles.toggle}`}
-        onClick={() => setOpen((current) => !current)}
-        type="button"
-      >
-        {t('transactions.filters.toggle')}
-      </button>
+      <div className={styles.searchRow}>
+        <label className={styles.search}>
+          <Icon name="search" size={16} />
+          <span className="sr-only">{t('transactions.filters.search')}</span>
+          <input
+            maxLength={80}
+            onChange={(event) => setRawQuery(event.target.value)}
+            placeholder={t('transactions.filters.search')}
+            type="search"
+            value={rawQuery}
+          />
+        </label>
+
+        <button
+          aria-controls={panelId}
+          aria-expanded={open}
+          className={`secondary-action ${styles.toggle}`}
+          data-active={advancedCount > 0}
+          onClick={() => setOpen((current) => !current)}
+          type="button"
+        >
+          <Icon name="rules" size={14} />
+          {t('transactions.filters.toggle')}
+          {advancedCount > 0 ? (
+            <span aria-hidden="true" className={styles.badge}>
+              {advancedCount}
+            </span>
+          ) : null}
+        </button>
+      </div>
 
       <div className={styles.panel} data-open={open} id={panelId}>
         <fieldset className={styles.field}>
@@ -251,6 +275,7 @@ export function TransactionFilters({
               <label>
                 <span>{t('transactions.filters.from')}</span>
                 <input
+                  className={styles.control}
                   onChange={(event) => set('from', event.target.value)}
                   type="date"
                   value={filters.from}
@@ -259,6 +284,7 @@ export function TransactionFilters({
               <label>
                 <span>{t('transactions.filters.to')}</span>
                 <input
+                  className={styles.control}
                   onChange={(event) => set('to', event.target.value)}
                   type="date"
                   value={filters.to}
@@ -268,25 +294,12 @@ export function TransactionFilters({
           ) : null}
         </fieldset>
 
-        <label className={styles.field}>
-          <span>{t('transactions.filters.accountLabel')}</span>
-          <select
-            multiple
-            onChange={(event) =>
-              set(
-                'accountId',
-                Array.from(event.target.selectedOptions, (option) => option.value),
-              )
-            }
-            value={filters.accountId}
-          >
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <AccountMultiSelect
+          accounts={accounts}
+          label={t('transactions.filters.accountLabel')}
+          onChange={(next) => set('accountId', next)}
+          value={filters.accountId}
+        />
 
         <fieldset className={styles.field}>
           <legend>{t('transactions.fields.state')}</legend>
@@ -379,16 +392,6 @@ export function TransactionFilters({
             </label>
           ))}
         </fieldset>
-
-        <label className={styles.field}>
-          <span>{t('transactions.filters.search')}</span>
-          <input
-            maxLength={80}
-            onChange={(event) => setRawQuery(event.target.value)}
-            type="search"
-            value={rawQuery}
-          />
-        </label>
 
         <label className={styles.checkbox}>
           <input
