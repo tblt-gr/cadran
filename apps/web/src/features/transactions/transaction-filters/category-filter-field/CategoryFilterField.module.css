@@ -1,0 +1,22 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: var(--spacing-1-5);
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  gap: var(--spacing-1);
+}
+
+.checkbox:hover {
+  color: var(--text-primary);
+}
+
+.checkbox input {
+  accent-color: var(--gold-300);
+}

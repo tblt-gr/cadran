@@ -1744,7 +1744,14 @@
       "save": "Enregistrer",
       "saving": "Enregistrement…"
     },
-    "errors": { "save": "L’enregistrement a échoué. Rechargez les données puis réessayez." },
+    "errors": {
+      "archived": "Cette récurrence est archivée. Restaurez-la avant de la modifier.",
+      "forbidden": "Vous n’avez pas accès à cette récurrence.",
+      "invalid": "La récurrence n’a pas pu être enregistrée : vérifiez les champs saisis.",
+      "network": "L’enregistrement a échoué. Rechargez les données puis réessayez.",
+      "notFound": "Cette récurrence n’existe plus.",
+      "stale": "La récurrence a été modifiée par une autre requête. Rechargez-la puis réessayez."
+    },
     "error": {
       "title": "Récurrences indisponibles",
       "description": "Les propositions ou les échéances n’ont pas pu être chargées."

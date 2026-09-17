@@ -12,11 +12,13 @@ use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceContext;
 use App\Module\Identity\Infrastructure\Persistence\DbalTransactionManager;
+use App\Module\Identity\Infrastructure\Workspace\DbalWorkspaceTimezoneReader;
 use App\Module\Reference\Infrastructure\Persistence\DbalAssetCatalog;
 use App\Module\Transactions\Application\CreateTransfer;
 use App\Module\Transactions\Application\CreateTransferInput;
 use App\Module\Transactions\Application\PresentTransaction;
 use App\Module\Transactions\Application\PresentTransfer;
+use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Application\TransferInputParser;
 use App\Module\Transactions\Application\TransferLegFactory;
 use App\Module\Transactions\Application\TransferReferences;
@@ -69,8 +71,10 @@ final class TransferPersistenceTest extends KernelTestCase
 
     public function testAFailureWritingTheTargetLegRollsBackTheSourceLegAndTheTransferRow(): void
     {
+        $caller = $this->callerContext();
+        $clock = new MockClock('2026-03-14T10:00:00+00:00');
         $create = new CreateTransfer(
-            caller: $this->callerContext(),
+            caller: $caller,
             transactions: new FailOnSecondAddTransactionRepository(new DbalTransactionRepository($this->connection)),
             transfers: new DbalTransferRepository($this->connection),
             references: $this->references(),
@@ -80,7 +84,8 @@ final class TransferPersistenceTest extends KernelTestCase
             transactionBoundary: new DbalTransactionManager($this->connection),
             recordAuditEvent: $this->recordAuditEvent(),
             presentTransfer: $this->presentTransfer(),
-            clock: new MockClock('2026-03-14T10:00:00+00:00'),
+            clock: $clock,
+            calendar: new WorkspaceCalendar($clock, $caller, new DbalWorkspaceTimezoneReader($this->connection)),
         );
 
         try {

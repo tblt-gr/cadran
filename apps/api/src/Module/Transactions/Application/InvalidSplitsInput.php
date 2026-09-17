@@ -20,7 +20,9 @@ final class InvalidSplitsInput extends \RuntimeException
 {
     public const string TOO_MANY = 'splits.too_many';
     public const string DUPLICATE_CATEGORY = 'splits.duplicate_category';
-    public const string SUM_MISMATCH = 'splits.sum_mismatch';
+    public const string SUM_MISSING = 'splits.sum_missing';
+    public const string SUM_EXCEEDS = 'splits.sum_exceeds';
+    public const string REQUIRED = 'splits.required';
 
     /** @param array<string, string> $parameters translator placeholders for the problem detail */
     public function __construct(

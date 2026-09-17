@@ -1,6 +1,6 @@
 import { listCategorizationRules } from '@cadran/api-client';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { categorizationRuleRequestError } from './categorizationRuleError';
 
@@ -33,9 +33,11 @@ export function useCategorizationRules() {
   const list = query.data?.items ?? [];
   const totalPages = Math.max(1, Math.ceil((query.data?.total ?? 0) / PAGE_SIZE));
 
-  useEffect(() => {
-    if (query.data && page > totalPages) setPage(totalPages);
-  }, [page, query.data, totalPages]);
+  // Adjusted during render rather than in an effect: this only fires while the current
+  // page is out of range, so it settles after one extra render and needs no dependency array.
+  if (query.data && page > totalPages) {
+    setPage(totalPages);
+  }
 
   return { goToPage: setPage, list, page, query, totalPages };
 }

@@ -7,11 +7,12 @@ namespace App\Module\Transactions\Application;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
+use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
+use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\Transaction;
@@ -35,6 +36,8 @@ final readonly class DuplicateTransaction
         private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
         private CategorizationWriteLock $categorizationWriteLock,
+        private MatchTransactionToOccurrence $matchRecurrence,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
@@ -56,7 +59,7 @@ final readonly class DuplicateTransaction
                 throw new InvalidTransactionInput('A transfer leg or refund cannot be duplicated.');
             }
             $now = $this->clock->now();
-            $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
+            $today = $this->calendar->today();
             $draft = new TransactionDraft(
                 $source->amount, $source->nature, TransactionState::BOOKED, $today, null, null,
                 $source->rawLabel, $source->counterparty, $source->note, $source->paymentMethod,
@@ -99,6 +102,7 @@ final readonly class DuplicateTransaction
                 TransactionAuditEvents::ENTITY, $duplicate->id,
                 AuditDiff::creation(TransactionAuditFingerprint::of($duplicate)),
             ));
+            ($this->matchRecurrence)($duplicate);
 
             return $this->presentTransaction->one($duplicate);
         });

@@ -175,10 +175,15 @@ final readonly class TransactionHttpEnvelope
      * The rule code both selects the translated title and detail — one entry
      * per rule, `api.problem.invalid_splits_<rule>` — and names the RFC 9457
      * problem type, so a new split rule needs no controller change.
+     *
+     * Every rule code carries the fixed `splits.` prefix (never a second dot),
+     * so it is stripped rather than replaced: replacing it would double up
+     * with the `invalid_splits_` translation prefix and silently miss every
+     * catalogue entry, which the `type` field alone was not enough to catch.
      */
     public function invalidSplitsProblem(InvalidSplitsInput $exception): JsonResponse
     {
-        $key = 'api.problem.invalid_splits_'.str_replace('.', '_', $exception->ruleCode);
+        $key = 'api.problem.invalid_splits_'.substr($exception->ruleCode, strlen('splits.'));
 
         return ApiProblem::response(
             Response::HTTP_UNPROCESSABLE_ENTITY,

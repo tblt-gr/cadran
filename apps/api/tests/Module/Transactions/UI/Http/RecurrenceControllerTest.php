@@ -214,6 +214,27 @@ final class RecurrenceControllerTest extends WebTestCase
         self::assertSame('2026-04-20', $updated['nextExpectedOn']);
     }
 
+    public function testDuplicatingATransactionMatchesItToAnExpectedOccurrence(): void
+    {
+        $recurrence = $this->createRecurrence(['dayOfPeriod' => 20, 'firstExpectedOn' => '2026-03-20']);
+        $id = $recurrence['id'];
+        // Booked well outside the match window: this original never settles the
+        // occurrence on its own, so a later match can only come from its duplicate.
+        $original = $this->createTransaction('2026-01-05', '-14.99');
+
+        $this->clock->modify('2026-03-20T09:12:04+00:00');
+        $this->renewCsrf();
+        $this->requestDuplicate($original['id']);
+        self::assertResponseStatusCodeSame(201);
+        $duplicate = $this->decode();
+        self::assertSame('2026-03-20', $duplicate['bookedOn']);
+
+        $matched = $this->matchedOccurrence($id);
+        self::assertSame('2026-03-20', $matched['expectedOn']);
+        self::assertSame($duplicate['id'], $matched['matchedTransactionId']);
+        self::assertSame('RECEIVED', $matched['status']);
+    }
+
     public function testAStaleVersionOrAnArchivedRecurrenceIsAConflict(): void
     {
         $recurrence = $this->createRecurrence();
@@ -562,6 +583,11 @@ final class RecurrenceControllerTest extends WebTestCase
     private function requestArchive(string $id, int $version): void
     {
         $this->client->request('POST', '/api/v1/recurrences/'.$id.'/archive', server: self::jsonHeaders(), content: json_encode(['version' => $version], JSON_THROW_ON_ERROR));
+    }
+
+    private function requestDuplicate(string $id): void
+    {
+        $this->client->request('POST', '/api/v1/transactions/'.$id.'/duplicate', server: self::jsonHeaders(), content: '{}');
     }
 
     private function requestRestore(string $id, int $version): void

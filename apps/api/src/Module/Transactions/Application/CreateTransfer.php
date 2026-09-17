@@ -7,10 +7,10 @@ namespace App\Module\Transactions\Application;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Domain\UuidGenerator;
+use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\InvalidTransfer;
 use App\Module\Transactions\Domain\Transaction;
@@ -35,6 +35,7 @@ final readonly class CreateTransfer
         private RecordAuditEvent $recordAuditEvent,
         private PresentTransfer $presentTransfer,
         private ClockInterface $clock,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
@@ -49,7 +50,7 @@ final readonly class CreateTransfer
             $valueOn = $draft->valueOn;
             $label = $draft->label;
             $now = $this->clock->now();
-            $today = BusinessDay::fromIsoDate($now->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d'))->date;
+            $today = $this->calendar->today();
 
             [$sourceAccount, $targetAccount] = $this->references->lockForCreation(
                 $context->workspace, $input->sourceAccountId, $input->targetAccountId, $bookedOn, $today, $now,
