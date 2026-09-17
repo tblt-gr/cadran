@@ -52,4 +52,32 @@ final readonly class ScopedJoinedReadModel
             ['workspace' => $workspaceId],
         );
     }
+
+    /**
+     * A fetched row set forwarded to a hydration helper through `$this->` must
+     * not be mistaken for a further, unscoped occurrence of the table the
+     * query already proved was correctly bound: the helper receives result
+     * rows, not SQL text.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findEventsThenHydrate(string $workspaceId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT a.id FROM audit_events a WHERE a.workspace_id = :workspace',
+            ['workspace' => $workspaceId],
+        );
+
+        return $this->hydrate($rows);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function hydrate(array $rows): array
+    {
+        return $rows;
+    }
 }

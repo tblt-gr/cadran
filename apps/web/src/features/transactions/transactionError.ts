@@ -1,6 +1,7 @@
 import type { Problem } from '@cadran/api-client';
 
-export type TransactionErrorKind = 'conflict' | 'invalid' | 'network' | 'stale' | 'unauthorized';
+export type TransactionErrorKind =
+  'conflict' | 'invalid' | 'network' | 'stale' | 'staleCursor' | 'unauthorized';
 
 /**
  * A refused transaction request, classified by its RFC 9457 problem type
@@ -27,6 +28,9 @@ function classify(status: number, problemType: string | undefined): TransactionE
   }
   if (problemType === '/problems/transaction-conflict') {
     return 'conflict';
+  }
+  if (problemType === '/problems/transactions.cursor_stale') {
+    return 'staleCursor';
   }
   if (status === 401 || status === 403) {
     return 'unauthorized';

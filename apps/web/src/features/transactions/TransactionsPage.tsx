@@ -11,7 +11,7 @@ import {
   type Transaction,
   type UpdateTransactionRequest,
 } from '@cadran/api-client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
@@ -21,7 +21,14 @@ import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { CategorizationTabs, type Categorization } from './categorization-tabs/CategorizationTabs';
 import { TransactionEditor } from './transaction-editor/TransactionEditor';
+import { TransactionFilters } from './transaction-filters/TransactionFilters';
+import {
+  isImpossibleCombination,
+  toListTransactionsQuery,
+} from './transaction-filters/filterState';
+import { useTransactionFilters } from './transaction-filters/useTransactionFilters';
 import { TransactionList } from './transaction-list/TransactionList';
+import { TransactionListFooter } from './transaction-list/TransactionListFooter';
 import { TransactionsState } from './transactions-state/TransactionsState';
 import {
   TransactionRequestError,
@@ -40,10 +47,18 @@ type Saved = 'duplicated' | 'saved' | 'transferSaved' | 'voided' | null;
 export function TransactionsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [accountId, setAccountId] = useState('');
-  const [includeVoided, setIncludeVoided] = useState(false);
-  const [categorization, setCategorization] = useState<Categorization>('ALL');
+  const {
+    filters: searchFilters,
+    reset: resetFilters,
+    revision: filtersRevision,
+    setFilters,
+  } = useTransactionFilters();
   const [cursor, setCursor] = useState<string | null>(null);
+  // Paging replaces rather than appends rows, so two consecutive loads can carry the same
+  // row count and produce an identical announced string. This monotonic counter changes on
+  // every filter change and every page navigation, so the announcement always changes with
+  // it and a screen reader re-reads it even when the count happens to stay the same.
+  const [loadSequence, setLoadSequence] = useState(1);
   const [editor, setEditor] = useState<Editor>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [transferEditorOpen, setTransferEditorOpen] = useState(false);
@@ -52,10 +67,23 @@ export function TransactionsPage() {
   const duplicatingIdsRef = useRef(new Set<string>());
   const [duplicatingIds, setDuplicatingIds] = useState<ReadonlySet<string>>(new Set());
 
+  const categorization: Categorization = searchFilters.categorization === 'NONE' ? 'NONE' : 'ALL';
+
+  function updateFilters(next: typeof searchFilters) {
+    setCursor(null);
+    setFilters(next);
+    setLoadSequence((current) => current + 1);
+  }
+
+  function resetAllFilters() {
+    setCursor(null);
+    resetFilters();
+    setLoadSequence((current) => current + 1);
+  }
+
+  const impossible = isImpossibleCombination(searchFilters);
   const filters = {
-    accountId: accountId === '' ? undefined : accountId,
-    includeVoided,
-    categorization: categorization === 'NONE' ? ('NONE' as const) : undefined,
+    ...toListTransactionsQuery(searchFilters, new Date()),
     cursor: cursor ?? undefined,
     pageSize: 50,
   };
@@ -111,9 +139,21 @@ export function TransactionsPage() {
       }
       return result.data;
     },
+    enabled: !impossible,
+    placeholderData: keepPreviousData,
     retry: false,
   });
-  const items = transactions.data?.items ?? [];
+  const staleCursorError =
+    transactions.error instanceof TransactionRequestError &&
+    transactions.error.kind === 'staleCursor';
+  // The keyset cursor was invalidated by a concurrent change: the rows already on screen are
+  // kept, with the footer offering to reload from the first page, instead of blanking the list.
+  const lastGoodPage = useRef(transactions.data ?? null);
+  if (transactions.data) {
+    lastGoodPage.current = transactions.data;
+  }
+  const displayedPage = transactions.data ?? (staleCursorError ? lastGoodPage.current : null);
+  const items = displayedPage?.items ?? [];
   const referencedAccountIds = [...new Set(items.map((transaction) => transaction.accountId))];
   const referencedAccounts = useQuery({
     queryKey: ['transaction-accounts', referencedAccountIds],
@@ -125,9 +165,32 @@ export function TransactionsPage() {
   const accountOptions = mergeAccountOptions(activeAccountOptions, referencedAccounts.data ?? []);
   const voiding = items.find((transaction) => transaction.id === voidingId) ?? null;
 
+  /**
+   * Reloads the list from its first page after a write. Any write moves the workspace watermark,
+   * so refetching a later page with its old cursor would only answer `cursor_stale` and leave
+   * the pre-write rows on screen. Only first-page queries are refetched now; a later page being
+   * displayed is marked stale and replaced by the first page once the cursor is cleared.
+   */
+  async function reloadAfterWrite() {
+    if (cursor !== null) {
+      setCursor(null);
+      setLoadSequence((current) => current + 1);
+    }
+    await queryClient.invalidateQueries({ queryKey: ['transactions'], refetchType: 'none' });
+    await queryClient.refetchQueries(
+      {
+        predicate: (query) =>
+          query.queryKey[0] === 'transactions' &&
+          !(query.queryKey[1] as { cursor?: string } | undefined)?.cursor,
+        type: 'active',
+      },
+      { cancelRefetch: false },
+    );
+  }
+
   async function refreshOnStaleTransaction(error: unknown) {
     if (error instanceof TransactionRequestError && error.kind === 'stale') {
-      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await reloadAfterWrite();
     }
   }
 
@@ -153,7 +216,7 @@ export function TransactionsPage() {
     onSuccess: async () => {
       setEditor(null);
       setSaved('saved');
-      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await reloadAfterWrite();
     },
     onError: refreshOnStaleTransaction,
   });
@@ -169,7 +232,7 @@ export function TransactionsPage() {
     onSuccess: async () => {
       setTransferEditorOpen(false);
       setSaved('transferSaved');
-      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await reloadAfterWrite();
     },
   });
 
@@ -191,7 +254,7 @@ export function TransactionsPage() {
     onSuccess: async () => {
       setVoidingId(null);
       setSaved('voided');
-      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await reloadAfterWrite();
     },
   });
 
@@ -210,7 +273,7 @@ export function TransactionsPage() {
     },
     onSuccess: async () => {
       setSaved('duplicated');
-      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await reloadAfterWrite();
     },
     onSettled: (_data, _error, transaction) => {
       duplicatingIdsRef.current.delete(transaction.id);
@@ -294,7 +357,7 @@ export function TransactionsPage() {
           accounts={activeAccountOptions}
           close={() => setRefundTarget(null)}
           onSaved={async () => {
-            await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            await reloadAfterWrite();
             await queryClient.invalidateQueries({
               queryKey: ['transaction-refundable', refundTarget.id],
             });
@@ -322,52 +385,43 @@ export function TransactionsPage() {
       ) : null}
 
       <CategorizationTabs
-        onChange={(next) => {
-          setCategorization(next);
-          setCursor(null);
-        }}
+        onChange={(next) =>
+          updateFilters({ ...searchFilters, categorization: next === 'NONE' ? 'NONE' : 'ANY' })
+        }
         value={categorization}
       />
 
-      <div className={styles.toolbar}>
-        <label>
-          <span className="sr-only">{t('transactions.fields.account')}</span>
-          <select
-            onChange={(event) => {
-              setAccountId(event.target.value);
-              setCursor(null);
-            }}
-            value={accountId}
-          >
-            <option value="">{t('transactions.filters.allAccounts')}</option>
-            {accountOptions.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <input
-            checked={includeVoided}
-            disabled={categorization === 'NONE'}
-            onChange={(event) => {
-              setIncludeVoided(event.target.checked);
-              setCursor(null);
-            }}
-            type="checkbox"
-          />
-          <span>{t('transactions.includeVoided')}</span>
-        </label>
-      </div>
+      <TransactionFilters
+        accounts={accountOptions}
+        filters={searchFilters}
+        onChange={updateFilters}
+        onReset={resetAllFilters}
+        revision={filtersRevision}
+      />
 
-      {transactions.isPending ? (
+      <p aria-live="polite" className="sr-only" role="status">
+        {impossible || transactions.isPending || (transactions.isError && !staleCursorError)
+          ? ''
+          : t('transactions.pagination.loadedCount', {
+              count: items.length,
+              sequence: loadSequence,
+            })}
+      </p>
+
+      {impossible ? (
+        <TransactionsState
+          kind="impossible"
+          onCreate={() => openEditor('create')}
+          onResetFilters={resetAllFilters}
+          onRetry={() => void transactions.refetch()}
+        />
+      ) : transactions.isPending ? (
         <TransactionsState
           kind="loading"
           onCreate={() => openEditor('create')}
           onRetry={() => void transactions.refetch()}
         />
-      ) : transactions.isError ? (
+      ) : transactions.isError && !staleCursorError ? (
         <TransactionsState
           kind={unauthorized ? 'unauthorized' : 'error'}
           onCreate={() => openEditor('create')}
@@ -390,17 +444,19 @@ export function TransactionsPage() {
             onVoid={(transaction) => setVoidingId(transaction.id)}
             transactions={items}
           />
-          {transactions.data?.nextCursor ? (
-            <div className={styles.pagination}>
-              <button
-                className="secondary-action"
-                onClick={() => setCursor(transactions.data.nextCursor)}
-                type="button"
-              >
-                {t('transactions.pagination.next')}
-              </button>
-            </div>
-          ) : null}
+          <TransactionListFooter
+            hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
+            loadingMore={transactions.isFetching && !transactions.isPending}
+            onLoadMore={() => {
+              setCursor(displayedPage?.nextCursor ?? null);
+              setLoadSequence((current) => current + 1);
+            }}
+            onReloadFromFirstPage={() => {
+              setCursor(null);
+              setLoadSequence((current) => current + 1);
+            }}
+            stale={staleCursorError}
+          />
         </>
       )}
     </div>

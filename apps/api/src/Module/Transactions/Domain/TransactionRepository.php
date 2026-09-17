@@ -13,20 +13,25 @@ interface TransactionRepository
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Transaction;
 
     /**
-     * $uncategorized restricts the page to the non-voided transactions carrying
-     * no split at all — the "to categorise" queue — and takes precedence over
-     * $includeVoided, since a voided movement never belongs in that queue.
+     * The full filter surface of TX-009: every filter combines as a
+     * conjunction, and repeated values of a multi-valued filter combine as a
+     * disjunction. Ordering is always `booked_on DESC, id DESC`.
      *
      * @return list<Transaction>
      */
-    public function list(
+    public function search(
         WorkspaceScope $workspace,
-        ?string $accountId,
-        bool $includeVoided,
+        TransactionFilters $filters,
         int $limit,
         ?TransactionPosition $after,
-        bool $uncategorized = false,
     ): array;
+
+    /**
+     * The latest (updated_at, id) pair written in the workspace, or null when
+     * it holds no transaction at all. Used to detect a background change
+     * between two pages of the same keyset query.
+     */
+    public function watermark(WorkspaceScope $workspace): ?TransactionWatermark;
 
     /**
      * The movements a categorisation run may touch within a booked period, in

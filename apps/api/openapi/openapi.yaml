@@ -2796,23 +2796,132 @@ paths:
   /api/v1/transactions:
     get:
       operationId: listTransactions
-      summary: List the calling workspace transactions
+      summary: Search the calling workspace transactions
       description: >-
         Requires an authenticated session. Newest booked day first, then
-        identifier. Voided rows are omitted unless explicitly requested.
-        This release accepts only account, voided-inclusion, categorization,
-        page size and cursor filters.
+        identifier, stable across pages. Every filter combines as a
+        conjunction; repeated members of a multi-valued filter combine as a
+        disjunction. Voided and rejected rows are omitted unless explicitly
+        requested. A filter value naming an account, category or cursor from
+        another workspace never surfaces a row or its existence: it answers
+        an empty page, not 404. A later page whose watermark no longer
+        matches the workspace answers 409 rather than serving a
+        possibly-inconsistent page.
       tags:
         - Transactions
       security:
         - sessionCookie: []
       parameters:
+        - name: from
+          in: query
+          required: false
+          description: Inclusive booked_on lower bound.
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: Inclusive booked_on upper bound.
+          schema:
+            type: string
+            format: date
         - name: accountId
           in: query
           required: false
+          description: Repeatable. Any of the accounts. At most 20 values.
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              type: string
+              format: uuid
+        - name: state
+          in: query
+          required: false
+          description: >-
+            Repeatable. When present, replaces the default state scope
+            entirely (PENDING and BOOKED, plus VOIDED only when
+            includeVoided is set).
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionState'
+        - name: nature
+          in: query
+          required: false
+          description: Repeatable. Any of the natures.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionNature'
+        - name: categoryId
+          in: query
+          required: false
+          description: Repeatable. The transaction has a split on any of them. At most 20 values.
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              type: string
+              format: uuid
+        - name: includeDescendants
+          in: query
+          required: false
+          description: Extends categoryId to the category subtrees.
+          schema:
+            type: boolean
+            default: false
+        - name: axis
+          in: query
+          required: false
+          description: Repeatable. The transaction has a split carrying any of them.
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - DISCRETIONARY
+                - ESSENTIAL
+                - FIXED
+                - PERSONAL
+                - PROFESSIONAL
+                - VARIABLE
+        - name: minAmount
+          in: query
+          required: false
+          description: Signed lower bound on the amount, in assetCode. Requires assetCode.
           schema:
             type: string
-            format: uuid
+        - name: maxAmount
+          in: query
+          required: false
+          description: Signed upper bound on the amount, in assetCode. Requires assetCode.
+          schema:
+            type: string
+        - name: assetCode
+          in: query
+          required: false
+          description: The asset minAmount and maxAmount are expressed in.
+          schema:
+            type: string
+        - name: source
+          in: query
+          required: false
+          description: Repeatable. Any of the sources.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionSource'
+        - name: q
+          in: query
+          required: false
+          description: >-
+            Free text matched against the normalized label, the raw label and
+            the counterparty, case-insensitively.
+          schema:
+            type: string
+            maxLength: 80
         - name: includeVoided
           in: query
           required: false
@@ -2823,13 +2932,14 @@ paths:
           in: query
           required: false
           description: >-
-            `NONE` restricts the page to the non-voided transactions carrying
-            no split at all — the "to categorise" queue — and takes precedence
-            over includeVoided.
+            `NONE` restricts the page to the transactions carrying no split at
+            all — the "to categorise" queue.
           schema:
             type: string
             enum:
+              - ANY
               - NONE
+            default: ANY
         - name: pageSize
           in: query
           required: false
@@ -2841,11 +2951,13 @@ paths:
         - name: cursor
           in: query
           required: false
-          description: Opaque cursor encoding the last returned booked day and identifier.
+          description: >-
+            Opaque cursor encoding the last returned booked day and
+            identifier, and a workspace change watermark.
           schema:
             type: string
             minLength: 1
-            maxLength: 128
+            maxLength: 200
       responses:
         '200':
           description: One cursor page of transactions from the calling workspace.
@@ -2859,8 +2971,15 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/WorkspaceForbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The cursor names a workspace watermark that no longer matches
+            (`type: /problems/transactions.cursor_stale`); reload from the
+            first page.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
@@ -7302,6 +7421,8 @@ components:
       required:
         - items
         - nextCursor
+        - hasMore
+        - pageSize
       properties:
         items:
           type: array
@@ -7312,6 +7433,12 @@ components:
           oneOf:
             - type: string
             - type: 'null'
+        hasMore:
+          type: boolean
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
     Transaction:
       type: object
       additionalProperties: false

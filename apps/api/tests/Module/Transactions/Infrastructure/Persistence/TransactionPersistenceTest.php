@@ -9,6 +9,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Transactions\Domain\Transaction;
+use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionRepository;
 use App\Module\Transactions\Domain\TransactionSource;
@@ -72,7 +73,7 @@ final class TransactionPersistenceTest extends KernelTestCase
         self::assertCount(1, $stored->splits);
         self::assertNull($this->repository->find(WorkspaceFixture::own(), self::OTHER_TRANSACTION));
         self::assertSame([self::OWN_TRANSACTION], array_column(
-            $this->repository->list(WorkspaceFixture::own(), null, false, 100, null),
+            $this->repository->search(WorkspaceFixture::own(), $this->notVoidedFilters(), 100, null),
             'id',
         ));
     }
@@ -84,12 +85,18 @@ final class TransactionPersistenceTest extends KernelTestCase
         $voided = $transaction->void(new \DateTimeImmutable('2026-03-15T10:00:00+00:00'), WorkspaceFixture::OWNER_ID);
 
         self::assertTrue($this->repository->update($voided, 1));
-        self::assertSame([], $this->repository->list(WorkspaceFixture::own(), null, false, 100, null));
+        self::assertSame([], $this->repository->search(WorkspaceFixture::own(), $this->notVoidedFilters(), 100, null));
         self::assertSame([self::OWN_TRANSACTION], array_column(
-            $this->repository->list(WorkspaceFixture::own(), null, true, 100, null),
+            $this->repository->search(WorkspaceFixture::own(), new TransactionFilters(), 100, null),
             'id',
         ));
         self::assertFalse($this->repository->update($voided, 1));
+    }
+
+    /** Mirrors the default (non-voided) state scope the old list() applied implicitly. */
+    private function notVoidedFilters(): TransactionFilters
+    {
+        return new TransactionFilters(states: [TransactionState::PENDING, TransactionState::BOOKED, TransactionState::REJECTED]);
     }
 
     public function testTheCompositeAccountForeignKeyRejectsAnotherWorkspaceAccount(): void

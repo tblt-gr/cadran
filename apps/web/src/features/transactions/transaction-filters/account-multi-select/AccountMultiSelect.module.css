@@ -1,0 +1,103 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: var(--spacing-1-5);
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1-5);
+}
+
+.labelRow label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.count {
+  display: inline-grid;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding-inline: var(--spacing-1);
+  border-radius: var(--radius-full);
+  color: var(--text-on-primary);
+  background: var(--gold-300);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  place-items: center;
+}
+
+.control {
+  position: relative;
+}
+
+.control input[type='text'] {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.list {
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  right: 0;
+  left: 0;
+  max-height: 14rem;
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+  padding: var(--spacing-1);
+  overflow-y: auto;
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface-2);
+  box-shadow: var(--shadow-sheet);
+  list-style: none;
+}
+
+.list li {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  cursor: pointer;
+  gap: var(--spacing-2);
+}
+
+.list li.active {
+  background: var(--bg-surface-hover);
+}
+
+.list li[aria-selected='true'] {
+  color: var(--gold-300);
+}
+
+.checkbox {
+  accent-color: var(--gold-300);
+  pointer-events: none;
+}
+
+.empty {
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  right: 0;
+  left: 0;
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  background: var(--bg-surface-2);
+  font-size: var(--font-size-label);
+  box-shadow: var(--shadow-sheet);
+}
