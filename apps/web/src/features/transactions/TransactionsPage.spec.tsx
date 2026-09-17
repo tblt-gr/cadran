@@ -920,6 +920,7 @@ describe('TransactionsPage', () => {
     renderPage();
 
     expect(await screen.findByRole('cell', { name: 'Ancien compte' })).toBeTruthy();
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Filtrer par compte' }));
     expect(screen.getByRole('option', { name: 'Ancien compte' })).toBeTruthy();
     fireEvent.click(
       screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
