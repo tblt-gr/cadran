@@ -105,8 +105,10 @@ export function ReconciliationPanel({ account, onReconciled }: ReconciliationPan
 
       return result.data;
     },
-    onError: () =>
-      queryClient.invalidateQueries({ queryKey: ['account-reconciliation', account.id] }),
+    onError: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['account-reconciliation', account.id] });
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -123,6 +125,7 @@ export function ReconciliationPanel({ account, onReconciled }: ReconciliationPan
       <label className={styles.period}>
         <span>{t('accounts.reconciliation.periodStart')}</span>
         <input
+          aria-describedby="reconciliation-period-hint"
           aria-invalid={startValid ? undefined : true}
           max={closing ?? undefined}
           min={account.openedOn}
@@ -131,6 +134,9 @@ export function ReconciliationPanel({ account, onReconciled }: ReconciliationPan
           value={periodStart}
         />
       </label>
+      <p className={styles.state} id="reconciliation-period-hint">
+        {t('accounts.reconciliation.periodStartHint')}
+      </p>
 
       {!startValid ? (
         <p className={styles.alert} role="alert">

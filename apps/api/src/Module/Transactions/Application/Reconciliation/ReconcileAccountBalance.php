@@ -88,8 +88,9 @@ final readonly class ReconcileAccountBalance
             }
             $pendingCount = $this->transactions->countPendingInPeriod($workspace, $account->id, $figures->windowStart, $snapshot->asOf);
 
+            $adjustmentId = null;
             if (ReconciliationResolution::ADJUST === $resolution) {
-                ($this->createTransaction)(new CreateTransactionInput(
+                $adjustmentId = ($this->createTransaction)(new CreateTransactionInput(
                     accountId: $account->id,
                     amount: ['value' => $comparison->discrepancy->toString(), 'assetCode' => $comparison->asset->toString()],
                     nature: TransactionNature::ADJUSTMENT->value,
@@ -101,7 +102,7 @@ final readonly class ReconcileAccountBalance
                     categoryId: null, splits: null,
                     source: TransactionSource::MANUAL->value,
                     automation: false,
-                ));
+                ))->id;
             }
 
             $reconciled = $snapshot->markReconciled();
@@ -119,7 +120,7 @@ final readonly class ReconcileAccountBalance
                 entityId: $snapshot->id,
                 diff: AuditDiff::change(
                     AccountReconciliationAuditFingerprint::before($snapshot),
-                    AccountReconciliationAuditFingerprint::after($reconciled, $resolution, $figures->windowStart, $pendingCount, $comparison->isBalanced()),
+                    AccountReconciliationAuditFingerprint::after($reconciled, $resolution, $figures->windowStart, $pendingCount, $comparison->isBalanced(), $adjustmentId),
                 ),
             ));
 

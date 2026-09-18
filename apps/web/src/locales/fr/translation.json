@@ -310,6 +310,7 @@
       "eyebrow": "Rapprochement",
       "title": "Rapprocher « {{label}} »",
       "periodStart": "Début de la période",
+      "periodStartHint": "Choisissez le lendemain d’un solde connu : sans solde d’ouverture la veille, l’écart n’est pas calculable.",
       "loading": "Calcul de l’écart…",
       "missing": "Non calculable",
       "noSnapshot": "Aucun solde observé à rapprocher pour ce compte.",
@@ -363,7 +364,7 @@
       "retry": "Réessayer",
       "errors": {
         "stale": "Ce solde a été modifié ailleurs entre-temps. Les chiffres viennent d’être rechargés : vérifiez-les puis recommencez.",
-        "conflict": "Ce solde est déjà rapproché ou le compte est archivé.",
+        "conflict": "Ce solde est déjà rapproché, le compte est archivé ou ses règles refusent la régularisation. Les chiffres viennent d’être rechargés ; vous pouvez aussi accepter l’écart.",
         "invalid": "La période ou la résolution est invalide. Vérifiez la date de début.",
         "forbidden": "Vous n’avez pas le droit de rapprocher ce compte.",
         "network": "Le rapprochement a échoué. Réessayez."

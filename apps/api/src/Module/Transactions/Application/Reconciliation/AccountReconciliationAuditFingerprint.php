@@ -30,6 +30,7 @@ final readonly class AccountReconciliationAuditFingerprint
         \DateTimeImmutable $periodStart,
         int $pendingCount,
         bool $discrepancyWasZero,
+        ?string $adjustmentId = null,
     ): array {
         return [
             ...self::before($snapshot),
@@ -38,6 +39,7 @@ final readonly class AccountReconciliationAuditFingerprint
             'pendingCount' => $pendingCount,
             'discrepancyWasZero' => $discrepancyWasZero,
             'adjusted' => ReconciliationResolution::ADJUST === $mode,
+            'adjustmentTransactionId' => $adjustmentId,
         ];
     }
 }

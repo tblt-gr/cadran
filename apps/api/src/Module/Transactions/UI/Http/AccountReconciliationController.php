@@ -98,8 +98,10 @@ final readonly class AccountReconciliationController
             return $this->notFound();
         } catch (StaleAccountReconciliation) {
             return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.account_reconciliation_stale', TransactionHttpEnvelope::TYPE_STALE_VERSION);
-        } catch (AccountReconciliationConflict|TransactionConflict) {
+        } catch (AccountReconciliationConflict) {
             return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.account_reconciliation_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
+        } catch (TransactionConflict) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.account_reconciliation_adjustment_refused', TransactionHttpEnvelope::TYPE_CONFLICT);
         } catch (WorkspaceAccessDenied) {
             return $this->forbidden();
         }

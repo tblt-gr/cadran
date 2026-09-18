@@ -294,6 +294,9 @@ api:
     account_reconciliation_conflict:
       title: 'Rapprochement déjà effectué'
       detail: "Ce relevé de solde est déjà rapproché ou son compte n'accepte plus de modification."
+    account_reconciliation_adjustment_refused:
+      title: 'Régularisation refusée'
+      detail: "Les règles du compte refusent le mouvement de régularisation. Acceptez l'écart tel quel si vous souhaitez tout de même rapprocher ce solde."
     account_reconciliation_forbidden:
       title: 'Rapprochement inaccessible'
       detail: "Cette session n'est rattachée à aucun espace de travail."

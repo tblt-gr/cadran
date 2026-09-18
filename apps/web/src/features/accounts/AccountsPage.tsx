@@ -278,6 +278,10 @@ export function AccountsPage() {
   const unauthorized =
     accounts.error instanceof AccountRequestError && accounts.error.status === 401;
   const items = accounts.data?.items ?? [];
+  // The modal must read the live row: a stale version would fail every retry.
+  const reconcilingLive = reconciling
+    ? (items.find((item) => item.id === reconciling.id) ?? reconciling)
+    : null;
   const totalPages = Math.max(1, Math.ceil((accounts.data?.total ?? 0) / PAGE_SIZE));
 
   // The result set can shrink under the current page (a concurrent archive, a refetch on focus).
@@ -417,10 +421,10 @@ export function AccountsPage() {
         <Modal
           close={() => setReconciling(null)}
           eyebrow={t('accounts.reconciliation.eyebrow')}
-          title={t('accounts.reconciliation.title', { label: reconciling.label })}
+          title={t('accounts.reconciliation.title', { label: reconcilingLive?.label })}
         >
           <ReconciliationPanel
-            account={reconciling}
+            account={reconcilingLive ?? reconciling}
             key={reconciling.id}
             onReconciled={() => {
               setReconciling(null);
