@@ -22,6 +22,7 @@ use App\Module\Transactions\Application\ListTransactions;
 use App\Module\Transactions\Application\ListTransactionsQuery;
 use App\Module\Transactions\Application\ReadRefundable;
 use App\Module\Transactions\Application\ReadTransaction;
+use App\Module\Transactions\Application\Reconciliation\ReconcileTransaction;
 use App\Module\Transactions\Application\RefundConflict;
 use App\Module\Transactions\Application\ReplaceTransactionSplits;
 use App\Module\Transactions\Application\ReplaceTransactionSplitsInput;
@@ -47,6 +48,7 @@ final readonly class TransactionController
     private const array CREATE_FIELDS = [
         'accountId', 'amount', 'nature', 'state', 'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel',
         'counterparty', 'note', 'paymentMethod', 'mcc', 'maskedCard', 'bankReference', 'categoryId', 'splits', 'source',
+        'sourceRef', 'reconcile',
     ];
     private const array UPDATE_FIELDS = [
         'accountId', 'amount', 'nature', 'state', 'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel',
@@ -214,7 +216,9 @@ final readonly class TransactionController
         }
 
         try {
-            $body += ['source' => TransactionSource::MANUAL->value];
+            // Optional on the wire, always present here: the exact-field check
+            // below refuses anything it was not told to expect.
+            $body += ['source' => TransactionSource::MANUAL->value, 'sourceRef' => null, 'reconcile' => false];
             $payload = TransactionPayload::of($body, self::CREATE_FIELDS);
             $source = $payload->string('source');
             $result = $this->idempotentExecution->execute(
@@ -454,6 +458,39 @@ final readonly class TransactionController
         return $this->envelope->json(TransactionRepresentation::one($transaction));
     }
 
+    #[Route('/api/v1/transactions/{id}/reconcile', name: 'api_v1_transactions_reconcile', methods: ['POST'])]
+    public function reconcile(string $id, Request $request, ReconcileTransaction $reconcileTransaction): Response
+    {
+        if (!$this->envelope->isIdentifier($id)) {
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
+        }
+        $body = $this->envelope->body($request);
+        if ($body instanceof Response) {
+            return $body;
+        }
+
+        try {
+            $payload = TransactionPayload::of($body, ['version', 'matchedTransactionId']);
+            $transaction = $reconcileTransaction(
+                $id,
+                $payload->integer('version'),
+                $payload->nullableIdentifier('matchedTransactionId'),
+            );
+        } catch (InvalidTransactionInput|\UnexpectedValueException) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
+        } catch (TransactionNotFound) {
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
+        } catch (StaleTransactionVersion) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_stale_version', TransactionHttpEnvelope::TYPE_STALE_VERSION);
+        } catch (TransactionConflict) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
+        } catch (WorkspaceAccessDenied) {
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        }
+
+        return $this->envelope->json(TransactionRepresentation::one($transaction));
+    }
+
     #[Route('/api/v1/transactions/{id}/duplicate', name: 'api_v1_transactions_duplicate', methods: ['POST'])]
     public function duplicate(string $id, Request $request, DuplicateTransaction $duplicateTransaction): Response
     {
@@ -525,6 +562,8 @@ final readonly class TransactionController
             categoryId: $payload->nullableIdentifier('categoryId'),
             splits: $payload->nullableSplitRows('splits'),
             source: $payload->string('source'),
+            sourceRef: $payload->nullableString('sourceRef'),
+            reconcile: $payload->boolean('reconcile'),
         );
     }
 

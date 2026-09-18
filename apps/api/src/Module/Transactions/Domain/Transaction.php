@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Transactions\Domain\Reconciliation\ReviewReason;
 
 final readonly class Transaction
 {
@@ -45,6 +46,7 @@ final readonly class Transaction
         public \DateTimeImmutable $updatedAt,
         public ?\DateTimeImmutable $voidedAt,
         public ?string $lastEditorId,
+        public ?ReviewReason $reviewReason = null,
     ) {
         self::identifier($id, 'transaction');
         self::identifier($accountId, 'account');
@@ -62,6 +64,11 @@ final readonly class Transaction
         self::optionalText($sourceRef, 128, 'source reference');
         self::digits($mcc, 'merchant category code');
         self::digits($maskedCard, 'masked card');
+        if (null !== $reviewReason && TransactionState::PENDING !== $state) {
+            // A review reason is the reason a movement is *not* booked yet. On
+            // any other state it would advertise a decision already taken.
+            throw new InvalidTransaction('Only a pending transaction awaits reconciliation review.');
+        }
         if ((TransactionState::VOIDED === $state) !== (null !== $voidedAt)) {
             throw new InvalidTransaction('Only a voided transaction carries a voiding timestamp.');
         }
@@ -117,12 +124,87 @@ final readonly class Transaction
             && !(TransactionState::PENDING === $this->state && in_array($state, [TransactionState::BOOKED, TransactionState::REJECTED], true))) {
             throw new InvalidTransaction('The requested transaction state transition is not supported.');
         }
+        if (null !== $this->reviewReason && $state !== $this->state) {
+            // A movement held for review leaves that state through its own
+            // resolution ({@see resolveReview}), never through a plain edit:
+            // the candidate rows it points at would otherwise be stranded.
+            throw new InvalidTransaction('A transaction under reconciliation review must be resolved, not edited into another state.');
+        }
 
         return new self(
             $this->id, $this->workspace, $this->accountId, $amount, $this->originalAmount, $this->exchangeRate,
             $state, $nature, $this->source, $this->sourceRef, $bookedOn, $valueOn, $authorizedOn, $rawLabel,
             $counterparty, $note, $paymentMethod, $mcc, $maskedCard, $bankReference, $splits, $this->version + 1,
-            $this->createdAt, $updatedAt, null, $lastEditorId,
+            $this->createdAt, $updatedAt, null, $lastEditorId, $this->reviewReason,
+        );
+    }
+
+    /**
+     * Drops the review flag, which is what lets the reconciliation use case
+     * then edit the movement into BOOKED. Deliberately the only way out of
+     * review: no version is spent here, the edit that follows counts.
+     */
+    public function resolveReview(): self
+    {
+        if (null === $this->reviewReason) {
+            return $this;
+        }
+
+        return new self(
+            $this->id, $this->workspace, $this->accountId, $this->amount, $this->originalAmount, $this->exchangeRate,
+            $this->state, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
+            $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
+            $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
+            $this->voidedAt, $this->lastEditorId, null,
+        );
+    }
+
+    /**
+     * Takes the stable identifier of the incoming movement this row settles,
+     * so the next delivery of the same movement is recognised outright.
+     *
+     * A row already carrying a different identifier refuses instead: one row
+     * holds one identifier, so settling would have to drop one of the two, and
+     * the dropped one would stop being recognisable on its own next delivery —
+     * a silent path back to counting one movement twice. Such a pair is a real
+     * question about two announcements, and it goes to a human.
+     */
+    public function adoptSourceRef(?string $sourceRef): self
+    {
+        if (null === $sourceRef || $sourceRef === $this->sourceRef) {
+            return $this;
+        }
+        if (null !== $this->sourceRef) {
+            throw new InvalidTransaction('A transaction already carries another external identifier.');
+        }
+
+        return new self(
+            $this->id, $this->workspace, $this->accountId, $this->amount, $this->originalAmount, $this->exchangeRate,
+            $this->state, $this->nature, $this->source, $sourceRef, $this->bookedOn, $this->valueOn,
+            $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
+            $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
+            $this->voidedAt, $this->lastEditorId, $this->reviewReason,
+        );
+    }
+
+    /**
+     * Gives up the stable identifier, for a reviewed movement whose settlement
+     * hands it to the row it turned out to be. The identifier is unique per
+     * account even across voided rows, so leaving it here would both hide the
+     * settled row from the next delivery and block it from taking it.
+     */
+    public function releaseSourceRef(): self
+    {
+        if (null === $this->sourceRef) {
+            return $this;
+        }
+
+        return new self(
+            $this->id, $this->workspace, $this->accountId, $this->amount, $this->originalAmount, $this->exchangeRate,
+            $this->state, $this->nature, $this->source, null, $this->bookedOn, $this->valueOn,
+            $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
+            $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
+            $this->voidedAt, $this->lastEditorId, $this->reviewReason,
         );
     }
 
@@ -153,7 +235,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty ?? $counterparty, $this->note, $this->paymentMethod,
             $this->mcc, $this->maskedCard, $this->bankReference, [$split], $this->version + ($incrementVersion ? 1 : 0), $this->createdAt,
-            $updatedAt, $this->voidedAt, $this->lastEditorId,
+            $updatedAt, $this->voidedAt, $this->lastEditorId, $this->reviewReason,
         );
     }
 

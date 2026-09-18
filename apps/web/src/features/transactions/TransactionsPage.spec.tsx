@@ -46,6 +46,7 @@ const transaction: Transaction = {
   nature: 'EXPENSE',
   state: 'BOOKED',
   source: 'MANUAL',
+  sourceRef: null,
   bookedOn: '2026-03-14',
   valueOn: null,
   authorizedOn: null,
@@ -65,6 +66,9 @@ const transaction: Transaction = {
   refundOriginalId: null,
   refundOriginalLabel: null,
   refundedAmount: null,
+  reviewReason: null,
+  reconciliationCandidateIds: [],
+  reconciledIntoId: null,
 };
 
 function success<T>(data: T, status = 200) {

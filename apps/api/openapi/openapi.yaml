@@ -3382,6 +3382,75 @@ paths:
                   - $ref: '#/components/schemas/TransactionBelongsToTransferProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/transactions/{id}/reconcile:
+    post:
+      operationId: reconcileTransaction
+      summary: Resolve a movement held for reconciliation review
+      description: >-
+        Applies the human decision on a pending movement carrying a
+        `reviewReason`. A named match is any pending transaction of the same
+        account: `reconciliationCandidateIds` is what the matching rule
+        suggests, not a limit on what the reviewer may choose. The named row is
+        booked carrying the reviewed movement's amount, date and external
+        identifier — a row already carrying a different identifier is refused
+        rather than losing one of the two — and the reviewed row is voided with
+        a durable link back to it. A null match books the reviewed row itself and clears its
+        `reviewReason`. Every row the resolution names is locked, so two
+        reviewers cannot resolve the same ambiguity into two contradictory
+        outcomes.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconcileTransactionRequest'
+      responses:
+        '200':
+          description: >-
+            The booked transaction: the settled candidate, or the reviewed
+            movement itself when no match was named.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The submitted version is stale (`type: /problems/stale-version`),
+            the transaction is not held for review, or the named match is not a
+            pending row of the same account
+            (`type: /problems/transaction-conflict`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/duplicate:
     post:
       operationId: duplicateTransaction
@@ -7460,6 +7529,7 @@ components:
         - nature
         - state
         - source
+        - sourceRef
         - bookedOn
         - valueOn
         - authorizedOn
@@ -7479,6 +7549,9 @@ components:
         - refundOriginalId
         - refundOriginalLabel
         - refundedAmount
+        - reviewReason
+        - reconciliationCandidateIds
+        - reconciledIntoId
       properties:
         id:
           type: string
@@ -7504,6 +7577,15 @@ components:
           $ref: '#/components/schemas/TransactionState'
         source:
           $ref: '#/components/schemas/TransactionSource'
+        sourceRef:
+          description: >-
+            The provider's own identifier for this movement, when it announced
+            one. Unique per account where present.
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 128
+            - type: 'null'
         bookedOn:
           type: string
           format: date
@@ -7600,6 +7682,39 @@ components:
           oneOf:
             - $ref: '#/components/schemas/DecimalAmount'
             - type: 'null'
+        reviewReason:
+          description: >-
+            Read-only. Why this pending movement waits for a human before it
+            can be booked. A row carrying one is excluded from every aggregate
+            until `POST /transactions/{id}/reconcile` resolves it.
+          oneOf:
+            - $ref: '#/components/schemas/TransactionReviewReason'
+            - type: 'null'
+        reconciliationCandidateIds:
+          description: >-
+            Read-only. The pending rows the matching rule could not choose
+            between, as a suggestion for the reviewer; the resolution accepts
+            any pending row of the account. No score is attached: the rule is
+            deterministic, and a tie is resolved by a human, not by a
+            threshold. Empty when nothing was close enough to suggest.
+          type: array
+          maxItems: 200
+          items:
+            type: string
+            format: uuid
+        reconciledIntoId:
+          description: >-
+            Read-only. Set on a voided reviewed movement: the transaction a
+            human confirmed it settles.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+    TransactionReviewReason:
+      type: string
+      enum:
+        - AMBIGUOUS_MATCH
+        - NO_MATCH
     RefundableTransaction:
       type: object
       additionalProperties: false
@@ -8127,6 +8242,43 @@ components:
           description: IMPORT and PROVIDER requests require an Idempotency-Key header.
           type: string
           enum: [MANUAL, IMPORT, PROVIDER]
+        sourceRef:
+          description: >-
+            The provider's own identifier for this movement. Optional; unique
+            per account where present, and matched before any fuzzy rule.
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 128
+            - type: 'null'
+        reconcile:
+          description: >-
+            Optional, false by default. True submits this body as an incoming
+            booked movement to reconcile against the account's pending rows
+            instead of a new entry: it settles the single row it matches, or
+            is created PENDING with a `reviewReason` when the match is absent
+            or ambiguous. It never creates a booked duplicate.
+          type: boolean
+    ReconcileTransactionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+        - matchedTransactionId
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        matchedTransactionId:
+          description: >-
+            The pending transaction this reviewed movement settles: one of its
+            recorded candidates, or any other pending row of the same account
+            the reviewer judges to be the same movement. Null means the
+            movement is genuinely new and books on its own.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
     UpdateTransactionRequest:
       type: object
       additionalProperties: false

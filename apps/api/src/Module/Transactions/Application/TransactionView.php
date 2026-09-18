@@ -21,6 +21,7 @@ final readonly class TransactionView
         public string $nature,
         public string $state,
         public string $source,
+        public ?string $sourceRef,
         public string $bookedOn,
         public ?string $valueOn,
         public ?string $authorizedOn,
@@ -41,6 +42,10 @@ final readonly class TransactionView
         public ?string $refundOriginalLabel,
         /** @var array{value: string, assetCode: string}|null */
         public ?array $refundedAmount,
+        public ?string $reviewReason,
+        /** @var list<string> */
+        public array $reconciliationCandidateIds,
+        public ?string $reconciledIntoId,
     ) {
     }
 
@@ -53,6 +58,7 @@ final readonly class TransactionView
      * leg and link it to its transfer without a client-side heuristic.
      *
      * @param array<string, array{label: string, icon: ?string, color: ?string}> $categoryIdentities
+     * @param list<string>                                                       $reconciliationCandidateIds
      */
     public static function fromTransaction(
         Transaction $transaction,
@@ -61,6 +67,8 @@ final readonly class TransactionView
         ?string $refundOriginalId,
         ?string $refundOriginalLabel,
         ?DecimalValue $refundedAmount,
+        array $reconciliationCandidateIds,
+        ?string $reconciledIntoId,
     ): self {
         return new self(
             id: $transaction->id,
@@ -74,6 +82,7 @@ final readonly class TransactionView
             nature: $transaction->nature->value,
             state: $transaction->state->value,
             source: $transaction->source->value,
+            sourceRef: $transaction->sourceRef,
             bookedOn: $transaction->bookedOn->format('Y-m-d'),
             valueOn: $transaction->valueOn?->format('Y-m-d'),
             authorizedOn: $transaction->authorizedOn?->format('Y-m-d'),
@@ -111,6 +120,9 @@ final readonly class TransactionView
             refundedAmount: null === $refundedAmount ? null : [
                 'value' => $refundedAmount->toString(), 'assetCode' => $transaction->amount->asset->toString(),
             ],
+            reviewReason: $transaction->reviewReason?->value,
+            reconciliationCandidateIds: $reconciliationCandidateIds,
+            reconciledIntoId: $reconciledIntoId,
         );
     }
 }

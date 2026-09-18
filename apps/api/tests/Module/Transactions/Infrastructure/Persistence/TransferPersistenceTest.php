@@ -271,6 +271,7 @@ final class TransferPersistenceTest extends KernelTestCase
 
         return new PresentTransfer($transactions, new PresentTransaction(
             new DbalCategoryRepository($this->connection), $transfers, new DbalRefundRepository($this->connection),
+            new \App\Module\Transactions\Infrastructure\Persistence\DbalReconciliationRepository($this->connection),
         ));
     }
 
@@ -325,6 +326,23 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
     public function watermark(\App\Module\Foundation\Domain\WorkspaceScope $workspace): ?\App\Module\Transactions\Domain\TransactionWatermark
     {
         return $this->inner->watermark($workspace);
+    }
+
+    public function findBySourceRef(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
+    {
+        return $this->inner->findBySourceRef($workspace, $accountId, $sourceRef, $lock);
+    }
+
+    public function listPendingByAccount(
+        \App\Module\Foundation\Domain\WorkspaceScope $workspace,
+        string $accountId,
+        \App\Module\Foundation\Domain\AssetAmount $amount,
+        \DateTimeImmutable $bookedOn,
+        int $windowDays,
+        int $limit,
+        bool $lock,
+    ): array {
+        return $this->inner->listPendingByAccount($workspace, $accountId, $amount, $bookedOn, $windowDays, $limit, $lock);
     }
 
     public function add(Transaction $transaction): void

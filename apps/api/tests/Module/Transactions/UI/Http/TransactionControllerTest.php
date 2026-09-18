@@ -80,9 +80,10 @@ final class TransactionControllerTest extends WebTestCase
         $created = $this->createTransaction();
         self::assertSame([
             'id', 'accountId', 'amount', 'originalAmount', 'exchangeRate', 'nature', 'state', 'source',
-            'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel', 'counterparty', 'note', 'paymentMethod',
+            'sourceRef', 'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel', 'counterparty', 'note', 'paymentMethod',
             'mcc', 'maskedCard', 'bankReference', 'splits', 'version', 'createdAt', 'updatedAt', 'voidedAt',
-            'transferId', 'refundOriginalId', 'refundOriginalLabel', 'refundedAmount',
+            'transferId', 'refundOriginalId', 'refundOriginalLabel', 'refundedAmount', 'reviewReason',
+            'reconciliationCandidateIds', 'reconciledIntoId',
         ], array_keys($created));
         self::assertNull($created['transferId']);
         self::assertSame(['value' => '-42.90', 'assetCode' => 'EUR'], $created['amount']);

@@ -31,6 +31,14 @@ final readonly class CreateTransactionInput
         public ?string $categoryId,
         public ?array $splits,
         public string $source = 'MANUAL',
+        /** The provider's own identifier for this movement, when it has one. */
+        public ?string $sourceRef = null,
+        /**
+         * Whether this body is an incoming booked movement to reconcile
+         * against the account's pending rows rather than a new entry. Opt-in:
+         * an ordinary entry must never be downgraded to a review.
+         */
+        public bool $reconcile = false,
     ) {
     }
 }
