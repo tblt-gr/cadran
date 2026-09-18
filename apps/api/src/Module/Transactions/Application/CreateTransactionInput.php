@@ -39,6 +39,12 @@ final readonly class CreateTransactionInput
          * an ordinary entry must never be downgraded to a review.
          */
         public bool $reconcile = false,
+        /**
+         * False for a row the system writes on the owner's behalf (a balance
+         * adjustment): no user rule may categorise it and no recurrence may
+         * claim it.
+         */
+        public bool $automation = true,
     ) {
     }
 }

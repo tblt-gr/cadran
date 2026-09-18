@@ -328,6 +328,21 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
         return $this->inner->watermark($workspace);
     }
 
+    public function sumBookedMovements(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        return $this->inner->sumBookedMovements($workspace, $accountId, $from, $to);
+    }
+
+    public function listPendingInPeriod(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array
+    {
+        return $this->inner->listPendingInPeriod($workspace, $accountId, $from, $to, $limit);
+    }
+
+    public function countPendingInPeriod(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to): int
+    {
+        return $this->inner->countPendingInPeriod($workspace, $accountId, $from, $to);
+    }
+
     public function findBySourceRef(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
     {
         return $this->inner->findBySourceRef($workspace, $accountId, $sourceRef, $lock);

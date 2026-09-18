@@ -38,6 +38,7 @@ import { WithdrawOverrideDialog } from './account-rules/withdraw-override-dialog
 import { AccountWizard } from './account-wizard/AccountWizard';
 import { AccountsState } from './accounts-state/AccountsState';
 import { ArchiveAccountDialog } from './archive-account-dialog/ArchiveAccountDialog';
+import { ReconciliationPanel } from './reconciliation-panel/ReconciliationPanel';
 import { RecordBalanceForm } from './record-balance-form/RecordBalanceForm';
 import styles from './AccountsPage.module.css';
 
@@ -60,8 +61,9 @@ export function AccountsPage() {
   const [overriding, setOverriding] = useState<OverrideDraft | null>(null);
   const [withdrawing, setWithdrawing] = useState<AccountRuleClaim | null>(null);
   const [recording, setRecording] = useState<Account | null>(null);
+  const [reconciling, setReconciling] = useState<Account | null>(null);
   const [saved, setSaved] = useState<
-    'saved' | 'archived' | 'claimed' | 'withdrawn' | 'recorded' | null
+    'saved' | 'archived' | 'claimed' | 'withdrawn' | 'recorded' | 'reconciled' | null
   >(null);
 
   const accounts = useQuery({
@@ -256,6 +258,11 @@ export function AccountsPage() {
     setRecording(account);
   }
 
+  function openReconciling(account: Account) {
+    setSaved(null);
+    setReconciling(account);
+  }
+
   function openEditor(target: Exclude<Editor, null>) {
     setSaved(null);
     save.reset();
@@ -271,6 +278,10 @@ export function AccountsPage() {
   const unauthorized =
     accounts.error instanceof AccountRequestError && accounts.error.status === 401;
   const items = accounts.data?.items ?? [];
+  // The modal must read the live row: a stale version would fail every retry.
+  const reconcilingLive = reconciling
+    ? (items.find((item) => item.id === reconciling.id) ?? reconciling)
+    : null;
   const totalPages = Math.max(1, Math.ceil((accounts.data?.total ?? 0) / PAGE_SIZE));
 
   // The result set can shrink under the current page (a concurrent archive, a refetch on focus).
@@ -406,6 +417,23 @@ export function AccountsPage() {
         </Modal>
       ) : null}
 
+      {reconciling ? (
+        <Modal
+          close={() => setReconciling(null)}
+          eyebrow={t('accounts.reconciliation.eyebrow')}
+          title={t('accounts.reconciliation.title', { label: reconcilingLive?.label })}
+        >
+          <ReconciliationPanel
+            account={reconcilingLive ?? reconciling}
+            key={reconciling.id}
+            onReconciled={() => {
+              setReconciling(null);
+              setSaved('reconciled');
+            }}
+          />
+        </Modal>
+      ) : null}
+
       {archiving ? (
         <Modal
           close={closeArchive}
@@ -454,6 +482,7 @@ export function AccountsPage() {
           accounts={items}
           onArchive={openArchive}
           onEdit={openEditor}
+          onReconcile={openReconciling}
           onRecordBalance={openRecording}
           onRules={setInspecting}
         />

@@ -157,6 +157,32 @@ final class AccountBalanceSnapshotPersistenceTest extends KernelTestCase
         self::assertSame('230.5688', $previous->amount->value->toString());
     }
 
+    public function testASnapshotIsFoundByIdentifierWithinItsAccountAndWorkspaceOnly(): void
+    {
+        $this->snapshots->add($this->snapshot(self::FIRST, '230.5688'));
+
+        $own = $this->snapshots->find(WorkspaceFixture::own(), self::ACCOUNT, self::FIRST);
+        self::assertNotNull($own);
+        self::assertSame('230.5688', $own->amount->value->toString());
+        self::assertNull($this->snapshots->find(WorkspaceFixture::other(), self::ACCOUNT, self::FIRST));
+        self::assertNull($this->snapshots->find(WorkspaceFixture::own(), self::FOREIGN_ACCOUNT, self::FIRST));
+        self::assertNull($this->snapshots->find(WorkspaceFixture::own(), self::ACCOUNT, self::SECOND));
+    }
+
+    public function testAReconciledStatusIsStoredOnlyAgainstTheExpectedVersion(): void
+    {
+        $snapshot = $this->snapshot(self::FIRST, '230.5688');
+        $this->snapshots->add($snapshot);
+
+        self::assertFalse($this->snapshots->update($snapshot->markReconciled(), 7));
+        self::assertTrue($this->snapshots->update($snapshot->markReconciled(), 1));
+
+        $read = $this->snapshots->find(WorkspaceFixture::own(), self::ACCOUNT, self::FIRST);
+        self::assertNotNull($read);
+        self::assertSame(ReconciliationStatus::RECONCILED, $read->reconciliationStatus);
+        self::assertSame(2, $read->version);
+    }
+
     public function testASnapshotOfAnotherWorkspaceIsInvisible(): void
     {
         $this->snapshots->add($this->snapshot(self::FIRST, '230.5688'));

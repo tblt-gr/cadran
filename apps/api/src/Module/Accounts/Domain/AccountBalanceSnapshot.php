@@ -92,6 +92,37 @@ final readonly class AccountBalanceSnapshot
     }
 
     /**
+     * The figure is compared to the movements and accepted, as it stands or
+     * after an explicit resolution. Only an active, still unreconciled row can
+     * take the step, so a second reconciliation never passes silently.
+     */
+    public function markReconciled(): self
+    {
+        if (!$this->isActive()) {
+            throw new InvalidAccountBalanceSnapshot('A superseded snapshot cannot be reconciled.');
+        }
+
+        if (ReconciliationStatus::RECONCILED === $this->reconciliationStatus) {
+            throw new InvalidAccountBalanceSnapshot('A snapshot is already reconciled.');
+        }
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            accountId: $this->accountId,
+            asOf: $this->asOf,
+            amount: $this->amount,
+            source: $this->source,
+            reconciliationStatus: ReconciliationStatus::RECONCILED,
+            comment: $this->comment,
+            version: $this->version + 1,
+            recordedAt: $this->recordedAt,
+            recordedBy: $this->recordedBy,
+            supersededAt: $this->supersededAt,
+        );
+    }
+
+    /**
      * Two active snapshots of the same account, day and source cannot both
      * answer. A different source on the same day is a second claim, not a
      * collision; a superseded row has already left the floor.

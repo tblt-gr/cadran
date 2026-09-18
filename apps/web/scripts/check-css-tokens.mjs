@@ -87,6 +87,15 @@ for (const filePath of await collectCssFiles(stylesRoot)) {
   }
 }
 
+const primitivesSource = await readFile(path.join(stylesRoot, 'styles', 'primitives.css'), 'utf8');
+
+// A bare <input> must never fall back to the browser default look.
+if (!/:where\(\s*input:not\([^)]*\)[\s\S]*?textarea\s*\)\s*\{[^}]*border:/.test(primitivesSource)) {
+  errors.push(
+    'src/styles/primitives.css: the zero-specificity base style for input, select and textarea is missing',
+  );
+}
+
 if (errors.length > 0) {
   console.error(
     ['CSS token validation failed:', ...errors.map((error) => `- ${error}`)].join('\n'),
