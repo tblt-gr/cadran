@@ -295,6 +295,18 @@ final class ReconcileAccountBalanceTest extends KernelTestCase
         }
     }
 
+    public function testAnAdjustAuditEventReferencesTheAdjustmentTransaction(): void
+    {
+        $this->workedExample('1165.00');
+        $this->reconcile('ADJUST');
+
+        $adjustmentId = $this->connection->fetchOne("SELECT id FROM transaction_transactions WHERE nature = 'ADJUSTMENT'");
+        $after = $this->connection->fetchOne("SELECT after_json::text FROM audit_events WHERE event_type = 'account.reconciled'");
+        self::assertIsString($adjustmentId);
+        self::assertIsString($after);
+        self::assertStringContainsString('"adjustmentTransactionId": "'.$adjustmentId.'"', $after);
+    }
+
     public function testTheAuditTrailCarriesStructuralFactsOnly(): void
     {
         $this->workedExample('1165.00');

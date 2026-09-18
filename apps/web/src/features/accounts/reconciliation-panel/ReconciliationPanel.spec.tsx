@@ -172,6 +172,25 @@ describe('ReconciliationPanel', () => {
     expect((await screen.findByRole('alert')).textContent).toMatch(/modifié/);
   });
 
+  it('sends a stable idempotency key so a retry replays the first result', async () => {
+    api.resolveAccountReconciliation.mockResolvedValue(failure(409, '/problems/stale-version'));
+    mount();
+    await screen.findByTestId('discrepancy');
+
+    fireEvent.click(screen.getByRole('radio', { name: /Ajuster/ }));
+    const submit = screen.getByRole('button', { name: /Rapprocher/ });
+    fireEvent.click(submit);
+    await screen.findByRole('alert');
+    fireEvent.click(submit);
+    await waitFor(() => expect(api.resolveAccountReconciliation).toHaveBeenCalledTimes(2));
+
+    const keys = api.resolveAccountReconciliation.mock.calls.map(
+      (call) => call[0].headers['Idempotency-Key'],
+    );
+    expect(keys[0]).toBe(`reconcile:${account.valuation.snapshotId}:3:2026-09-01:ADJUST`);
+    expect(keys[1]).toBe(keys[0]);
+  });
+
   it('reports a forbidden read', async () => {
     api.readAccountReconciliation.mockResolvedValue(failure(403, 'about:blank'));
     mount();

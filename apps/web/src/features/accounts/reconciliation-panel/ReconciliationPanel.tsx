@@ -90,6 +90,11 @@ export function ReconciliationPanel({ account, onReconciled }: ReconciliationPan
       const result = await withCsrfRetry(() =>
         resolveAccountReconciliation({
           ...authApiOptions(),
+          headers: {
+            ...authApiOptions().headers,
+            // Stable per attempt: a retry after a lost response replays the first result.
+            'Idempotency-Key': `reconcile:${snapshotId}:${snapshotVersion}:${periodStart}:${resolution}`,
+          },
           path: { accountId: account.id },
           body: {
             snapshotId: snapshotId ?? '',
