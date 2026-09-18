@@ -76,6 +76,12 @@ final readonly class UpdateTransaction
             if ($current->state->isTerminal()) {
                 throw new TransactionConflict('A terminal transaction cannot be edited.');
             }
+            if (null !== $current->reviewReason && $draft->state !== $current->state) {
+                // The row points at the candidates a human is choosing between.
+                // Booking it here would strand them and skip that decision, so
+                // the state change belongs to /reconcile, not to a plain edit.
+                throw new TransactionConflict('A transaction under reconciliation review changes state only through its resolution.');
+            }
             if ($input->accountId !== $current->accountId) {
                 throw new InvalidTransactionInput('The account is immutable.');
             }
@@ -119,7 +125,7 @@ final readonly class UpdateTransaction
             ($this->recordAuditEvent)(new AuditEventRecord(
                 $context->workspace, $context->actorId, TransactionAuditEvents::UPDATED,
                 TransactionAuditEvents::ENTITY, $updated->id,
-                AuditDiff::change(TransactionAuditFingerprint::of($current), TransactionAuditFingerprint::of($updated)),
+                AuditDiff::change(TransactionAuditFingerprint::of($current), TransactionAuditFingerprint::changed($current, $updated)),
             ));
             ($this->matchRecurrence)($updated);
 

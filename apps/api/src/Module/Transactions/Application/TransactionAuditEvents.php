@@ -11,4 +11,5 @@ final readonly class TransactionAuditEvents
     public const string UPDATED = 'transaction.updated';
     public const string VOIDED = 'transaction.voided';
     public const string DUPLICATED = 'transaction.duplicated';
+    public const string RECONCILED = 'transaction.reconciled';
 }

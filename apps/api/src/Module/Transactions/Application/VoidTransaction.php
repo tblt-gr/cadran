@@ -12,6 +12,7 @@ use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
 use App\Module\Transactions\Domain\InvalidTransaction;
+use App\Module\Transactions\Domain\Reconciliation\ReconciliationRepository;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
 use App\Module\Transactions\Domain\TransferRepository;
@@ -30,6 +31,7 @@ final readonly class VoidTransaction
         private ClockInterface $clock,
         private CategorizationWriteLock $categorizationWriteLock,
         private MatchTransactionToOccurrence $matchRecurrence,
+        private ReconciliationRepository $reconciliations,
     ) {
     }
 
@@ -57,7 +59,10 @@ final readonly class VoidTransaction
                 throw new TransactionConflict('A terminal transaction cannot be voided.');
             }
             try {
-                $voided = $current->void($this->clock->now(), $context->actorId);
+                // The external identifier is unique per account whatever the
+                // state: a voided row keeping it would refuse every later
+                // delivery of that movement, with no live row to explain why.
+                $voided = $current->releaseSourceRef()->void($this->clock->now(), $context->actorId);
             } catch (InvalidTransaction $exception) {
                 throw new TransactionConflict('The transaction cannot be voided.', previous: $exception);
             }
@@ -69,6 +74,11 @@ final readonly class VoidTransaction
                 TransactionAuditEvents::ENTITY, $voided->id,
                 AuditDiff::change(TransactionAuditFingerprint::of($current), TransactionAuditFingerprint::of($voided)),
             ));
+            if (null !== $current->reviewReason) {
+                // The review dies with the row: its candidates are a question
+                // nobody will answer now, and they must not outlive it.
+                $this->reconciliations->clearCandidates($context->workspace, $voided->id);
+            }
             ($this->matchRecurrence)($voided);
 
             return $this->presentTransaction->one($voided);

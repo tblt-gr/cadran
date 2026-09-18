@@ -11,6 +11,7 @@ use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\CategorizationOrigin;
+use App\Module\Transactions\Domain\DuplicateSourceReference;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionNature;
@@ -22,13 +23,14 @@ use App\Module\Transactions\Domain\TransactionState;
 use App\Module\Transactions\Domain\TransactionWatermark;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
 #[AsAlias(TransactionRepository::class)]
 final readonly class DbalTransactionRepository implements CategoryClassificationCounter, TransactionRepository
 {
-    private const string COLUMNS = 'id, workspace_id, account_id, asset_code, amount_value, amount_scale, original_amount_value, original_amount_scale, original_asset_code, exchange_rate, state, nature, source, source_ref, booked_on, value_on, authorized_on, raw_label, counterparty, note, payment_method, mcc, masked_card, bank_reference, version, created_at, updated_at, voided_at, last_editor_id';
+    private const string COLUMNS = 'id, workspace_id, account_id, asset_code, amount_value, amount_scale, original_amount_value, original_amount_scale, original_asset_code, exchange_rate, state, nature, source, source_ref, booked_on, value_on, authorized_on, raw_label, counterparty, note, payment_method, mcc, masked_card, bank_reference, version, created_at, updated_at, voided_at, last_editor_id, review_reason';
 
     public function __construct(private Connection $connection)
     {
@@ -191,7 +193,74 @@ final readonly class DbalTransactionRepository implements CategoryClassification
         return $this->hydrateMany($workspace, $rows);
     }
 
+    public function listPendingByAccount(
+        WorkspaceScope $workspace,
+        string $accountId,
+        AssetAmount $amount,
+        \DateTimeImmutable $bookedOn,
+        int $windowDays,
+        int $limit,
+        bool $lock,
+    ): array {
+        // Every eligibility filter — state, review, exact amount, the booked
+        // window, and the transfer/refund exclusions below — sits ahead of
+        // ORDER BY and LIMIT, so a row inside the window is scanned however
+        // large the account's unrelated pending backlog is.
+        $sql = 'SELECT '.self::COLUMNS.' FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '
+            ."AND t.account_id = :account_id AND t.state = 'PENDING' AND t.review_reason IS NULL "
+            .'AND t.asset_code = :asset_code AND t.amount_value = :amount_value '
+            .'AND t.booked_on BETWEEN :from_date AND :to_date '
+            .'AND NOT EXISTS (SELECT 1 FROM transaction_transfers x WHERE x.workspace_id = :workspace_id '
+            .'AND (x.source_transaction_id = t.id OR x.target_transaction_id = t.id OR x.fee_transaction_id = t.id)) '
+            .'AND NOT EXISTS (SELECT 1 FROM transaction_refunds r WHERE r.workspace_id = :workspace_id AND r.refund_transaction_id = t.id) '
+            .'AND NOT EXISTS (SELECT 1 FROM transaction_refunds r JOIN transaction_transactions rt '
+            .'ON rt.workspace_id = r.workspace_id AND rt.id = r.refund_transaction_id '
+            ."WHERE r.workspace_id = :workspace_id AND rt.workspace_id = :workspace_id AND r.original_transaction_id = t.id AND rt.state NOT IN ('VOIDED', 'REJECTED')) "
+            .'ORDER BY abs(t.booked_on - :booked_on_date), t.id LIMIT :limit';
+        if ($lock) {
+            $sql .= ' FOR UPDATE OF t';
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            $sql,
+            [
+                'workspace_id' => $workspace->id,
+                'account_id' => $accountId,
+                'asset_code' => $amount->asset->toString(),
+                'amount_value' => $amount->value->toString(),
+                'from_date' => $bookedOn->modify(sprintf('-%d days', $windowDays))->format('Y-m-d'),
+                'to_date' => $bookedOn->modify(sprintf('+%d days', $windowDays))->format('Y-m-d'),
+                'booked_on_date' => $bookedOn->format('Y-m-d'),
+                'limit' => $limit,
+            ],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return $this->hydrateMany($workspace, $rows);
+    }
+
+    public function findBySourceRef(WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
+    {
+        $sql = 'SELECT '.self::COLUMNS.' FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '
+            ."AND t.account_id = :account_id AND t.source_ref = :source_ref AND t.state <> 'VOIDED'";
+        if ($lock) {
+            $sql .= ' FOR UPDATE OF t';
+        }
+        $row = $this->connection->fetchAssociative(
+            $sql,
+            ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'source_ref' => $sourceRef],
+        );
+
+        return false === $row ? null : TransactionRow::hydrate(
+            $row, $workspace, $this->splits($workspace, [TransactionRow::text($row['id'] ?? null)])[TransactionRow::text($row['id'] ?? null)] ?? [],
+        );
+    }
+
     public function add(Transaction $transaction): void
+    {
+        self::rejectDuplicateSourceReference(fn () => $this->insert($transaction));
+    }
+
+    private function insert(Transaction $transaction): void
     {
         $this->connection->insert('transaction_transactions', [
             'id' => $transaction->id,
@@ -213,10 +282,41 @@ final readonly class DbalTransactionRepository implements CategoryClassification
 
     public function update(Transaction $transaction, int $expectedVersion): bool
     {
+        return self::rejectDuplicateSourceReference(fn (): bool => $this->write($transaction, $expectedVersion));
+    }
+
+    /**
+     * The partial unique index on (workspace, account, source_ref) is the last
+     * line of defence against two rows claiming one provider movement. It is
+     * reached by a concurrent writer that passed the in-transaction lookup, so
+     * it surfaces as a refusal the caller can act on, never as a crash.
+     *
+     * @template T
+     *
+     * @param \Closure(): T $write
+     *
+     * @return T
+     */
+    private static function rejectDuplicateSourceReference(\Closure $write): mixed
+    {
+        try {
+            return $write();
+        } catch (UniqueConstraintViolationException $exception) {
+            if (!str_contains($exception->getMessage(), 'transaction_transactions_source_ref_unique')) {
+                throw $exception;
+            }
+
+            throw new DuplicateSourceReference('This external identifier is already recorded on the account.', previous: $exception);
+        }
+    }
+
+    private function write(Transaction $transaction, int $expectedVersion): bool
+    {
         $written = 1 === (int) $this->connection->update(
             'transaction_transactions',
             [
                 'raw_label' => $transaction->rawLabel,
+                'source_ref' => $transaction->sourceRef,
                 ...TransactionRow::mutableColumns($transaction),
             ],
             ['workspace_id' => $transaction->workspace->id, 'id' => $transaction->id, 'version' => $expectedVersion],

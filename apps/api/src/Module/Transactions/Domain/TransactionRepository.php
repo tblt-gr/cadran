@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Domain;
 
+use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 interface TransactionRepository
@@ -49,8 +50,44 @@ interface TransactionRepository
         bool $lock,
     ): array;
 
+    /**
+     * The pending rows of one account eligible to settle an incoming movement
+     * of exactly this amount, booked within $windowDays of $bookedOn: still
+     * pending, not already waiting for a human, not a transfer leg, not a
+     * refund and not an original that still carries a live refund. Every
+     * filter is applied before $limit truncates the scan, so a row inside the
+     * window is never lost behind an unrelated backlog on the same account.
+     * Ordered by closeness to $bookedOn, then id, for a deterministic tie
+     * break. $lock takes the row locks in that same order, so two reviewers
+     * resolving the same ambiguity serialise instead of producing two
+     * contradictory outcomes.
+     *
+     * @return list<Transaction>
+     */
+    public function listPendingByAccount(
+        WorkspaceScope $workspace,
+        string $accountId,
+        AssetAmount $amount,
+        \DateTimeImmutable $bookedOn,
+        int $windowDays,
+        int $limit,
+        bool $lock,
+    ): array;
+
+    /**
+     * The live row of one account already claiming this external identifier,
+     * whatever its state. A settled or reviewed movement must be recognised
+     * before a redelivery tries to create a second row for the same money.
+     */
+    public function findBySourceRef(WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction;
+
+    /** @throws DuplicateSourceReference when the external identifier is already claimed */
     public function add(Transaction $transaction): void;
 
-    /** Returns false when the expected version is stale. */
+    /**
+     * Returns false when the expected version is stale.
+     *
+     * @throws DuplicateSourceReference when the external identifier is already claimed
+     */
     public function update(Transaction $transaction, int $expectedVersion): bool;
 }

@@ -9,6 +9,7 @@ use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\PaymentMethod;
+use App\Module\Transactions\Domain\Reconciliation\ReviewReason;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionSource;
@@ -66,6 +67,7 @@ final readonly class TransactionRow
             updatedAt: new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
             voidedAt: self::instant($row['voided_at'] ?? null),
             lastEditorId: self::nullableText($row['last_editor_id'] ?? null),
+            reviewReason: null === ($row['review_reason'] ?? null) ? null : ReviewReason::from(self::text($row['review_reason'])),
         );
     }
 
@@ -90,6 +92,7 @@ final readonly class TransactionRow
             'updated_at' => $transaction->updatedAt->format('Y-m-d H:i:s.uP'),
             'voided_at' => $transaction->voidedAt?->format('Y-m-d H:i:s.uP'),
             'last_editor_id' => $transaction->lastEditorId,
+            'review_reason' => $transaction->reviewReason?->value,
         ];
     }
 

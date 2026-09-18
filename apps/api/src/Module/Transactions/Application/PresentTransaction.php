@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Application;
 
 use App\Module\Categories\Domain\CategoryRepository;
+use App\Module\Transactions\Domain\Reconciliation\ReconciliationRepository;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransferRepository;
@@ -15,6 +16,7 @@ final readonly class PresentTransaction
         private CategoryRepository $categories,
         private TransferRepository $transfers,
         private RefundRepository $refunds,
+        private ReconciliationRepository $reconciliations,
     ) {
     }
 
@@ -50,6 +52,8 @@ final readonly class PresentTransaction
         $markers = $this->transfers->markersForLegs($workspace, $ids);
         $refundOriginals = $this->refunds->originalsByRefundTransactionId($workspace, $ids);
         $refundedAmounts = $this->refunds->liveRefundedAmounts($workspace, $ids);
+        $candidateIds = $this->reconciliations->candidateIdsByTransactionIds($workspace, $ids);
+        $reconciledInto = $this->reconciliations->matchedIdsByReviewedTransactionIds($workspace, $ids);
 
         return array_map(
             static fn (Transaction $transaction): TransactionView => TransactionView::fromTransaction(
@@ -57,6 +61,8 @@ final readonly class PresentTransaction
                 $refundOriginals[$transaction->id]['originalId'] ?? null,
                 $refundOriginals[$transaction->id]['originalLabel'] ?? null,
                 $refundedAmounts[$transaction->id] ?? null,
+                $candidateIds[$transaction->id] ?? [],
+                $reconciledInto[$transaction->id] ?? null,
             ),
             $transactions,
         );

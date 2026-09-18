@@ -24,6 +24,7 @@ const transaction = {
   nature: 'EXPENSE',
   state: 'BOOKED',
   source: 'MANUAL',
+  sourceRef: null,
   bookedOn: '2026-09-01',
   valueOn: null,
   authorizedOn: null,
@@ -43,6 +44,9 @@ const transaction = {
   refundOriginalId: null,
   refundOriginalLabel: null,
   refundedAmount: null,
+  reviewReason: null,
+  reconciliationCandidateIds: [],
+  reconciledIntoId: null,
 } as Transaction;
 
 describe('transactionFormValues', () => {

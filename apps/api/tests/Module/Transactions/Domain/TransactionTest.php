@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Transactions\Domain\InvalidTransaction;
+use App\Module\Transactions\Domain\Reconciliation\ReviewReason;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionSource;
@@ -105,6 +106,86 @@ final class TransactionTest extends TestCase
         $voided->void(new \DateTimeImmutable('2026-03-17T10:00:00+00:00'), WorkspaceFixture::OWNER_ID);
     }
 
+    public function testAnEditCarriesTheReviewReasonAndRefusesToBookAroundTheResolution(): void
+    {
+        $underReview = $this->transaction('-42.90', TransactionNature::EXPENSE, state: TransactionState::PENDING, reviewReason: ReviewReason::NO_MATCH);
+
+        $enriched = $underReview->edit(
+            amount: $this->amount('-42.90'), nature: TransactionNature::EXPENSE, state: TransactionState::PENDING,
+            bookedOn: new \DateTimeImmutable('2026-03-15'), valueOn: null, authorizedOn: null,
+            rawLabel: 'CB CARREFOUR 1234', counterparty: null, note: 'Vérifié', paymentMethod: null, mcc: null,
+            maskedCard: null, bankReference: null, splits: [],
+            updatedAt: new \DateTimeImmutable('2026-03-16T10:00:00+00:00'),
+            lastEditorId: WorkspaceFixture::OWNER_ID,
+        );
+        self::assertSame(ReviewReason::NO_MATCH, $enriched->reviewReason);
+
+        $this->expectException(InvalidTransaction::class);
+        $underReview->edit(
+            amount: $this->amount('-42.90'), nature: TransactionNature::EXPENSE, state: TransactionState::BOOKED,
+            bookedOn: new \DateTimeImmutable('2026-03-15'), valueOn: null, authorizedOn: null,
+            rawLabel: 'CB CARREFOUR 1234', counterparty: null, note: null, paymentMethod: null, mcc: null,
+            maskedCard: null, bankReference: null, splits: [],
+            updatedAt: new \DateTimeImmutable('2026-03-16T10:00:00+00:00'),
+            lastEditorId: WorkspaceFixture::OWNER_ID,
+        );
+    }
+
+    public function testResolvingAReviewedTransactionClearsItsReviewReason(): void
+    {
+        $underReview = $this->transaction('-42.90', TransactionNature::EXPENSE, state: TransactionState::PENDING, reviewReason: ReviewReason::AMBIGUOUS_MATCH);
+
+        $booked = $underReview->resolveReview()->edit(
+            amount: $this->amount('-42.90'), nature: TransactionNature::EXPENSE, state: TransactionState::BOOKED,
+            bookedOn: new \DateTimeImmutable('2026-03-15'), valueOn: null, authorizedOn: null,
+            rawLabel: 'CB CARREFOUR 1234', counterparty: null, note: null, paymentMethod: null, mcc: null,
+            maskedCard: null, bankReference: null, splits: [],
+            updatedAt: new \DateTimeImmutable('2026-03-16T10:00:00+00:00'),
+            lastEditorId: WorkspaceFixture::OWNER_ID,
+        );
+
+        self::assertSame(ReviewReason::AMBIGUOUS_MATCH, $underReview->reviewReason);
+        self::assertNull($booked->reviewReason);
+        self::assertNull($underReview->void(new \DateTimeImmutable('2026-03-16T10:00:00+00:00'), WorkspaceFixture::OWNER_ID)->reviewReason);
+    }
+
+    public function testAnAdoptedSourceReferenceNeverSilentlyReplacesAnotherOne(): void
+    {
+        $withoutReference = $this->transaction('-42.90', TransactionNature::EXPENSE, state: TransactionState::PENDING);
+
+        $withReference = $withoutReference->adoptSourceRef('PROV-9000');
+        self::assertSame('PROV-9000', $withReference->sourceRef);
+        self::assertNull($withoutReference->adoptSourceRef(null)->sourceRef);
+        // Re-adopting the same identifier is the ordinary redelivery, not a clash.
+        self::assertSame('PROV-9000', $withReference->adoptSourceRef('PROV-9000')->sourceRef);
+        // Adopting one spends no version: the settlement edit that follows counts.
+        self::assertSame($withoutReference->version, $withReference->version);
+
+        // Two differing identifiers are a question for a human: dropping either
+        // would make that announcement unrecognisable on its next delivery.
+        $this->expectException(InvalidTransaction::class);
+        $withReference->adoptSourceRef('PROV-0001');
+    }
+
+    public function testAutomaticCategorizationLeavesATransactionUnderReview(): void
+    {
+        $underReview = $this->transaction('-42.90', TransactionNature::EXPENSE, state: TransactionState::PENDING, reviewReason: ReviewReason::NO_MATCH);
+
+        $categorized = $underReview->categorize(
+            $this->split('00000000-0000-7000-8000-000000000101', '00000000-0000-7000-8000-000000000201', '-42.90'),
+            null,
+            new \DateTimeImmutable('2026-03-16T10:00:00+00:00'),
+        );
+
+        self::assertSame(ReviewReason::NO_MATCH, $categorized->reviewReason);
+    }
+
+    public function testOnlyAPendingTransactionCanCarryAReviewReason(): void
+    {
+        $this->expectException(InvalidTransaction::class);
+        $this->transaction('-42.90', TransactionNature::EXPENSE, reviewReason: ReviewReason::NO_MATCH);
+    }
+
     public function testSplitsSummingExactlyToTheAmountAreAccepted(): void
     {
         $transaction = $this->transactionWithSplits('-87.40', TransactionNature::EXPENSE, [
@@ -188,18 +269,20 @@ final class TransactionTest extends TestCase
         string $amount,
         TransactionNature $nature,
         TransactionSource $source = TransactionSource::MANUAL,
+        TransactionState $state = TransactionState::BOOKED,
+        ?ReviewReason $reviewReason = null,
     ): Transaction {
         $now = new \DateTimeImmutable('2026-03-14T09:12:04+00:00');
 
         return new Transaction(
             id: '00000000-0000-7000-8000-0000000000f1', workspace: WorkspaceFixture::own(),
             accountId: '00000000-0000-7000-8000-0000000000d1', amount: $this->amount($amount),
-            originalAmount: null, exchangeRate: null, state: TransactionState::BOOKED, nature: $nature,
+            originalAmount: null, exchangeRate: null, state: $state, nature: $nature,
             source: $source, sourceRef: null, bookedOn: new \DateTimeImmutable('2026-03-14'),
             valueOn: null, authorizedOn: null, rawLabel: 'CB CARREFOUR 1234', counterparty: null,
             note: null, paymentMethod: null, mcc: null, maskedCard: null, bankReference: null,
             splits: [], version: 1, createdAt: $now, updatedAt: $now, voidedAt: null,
-            lastEditorId: WorkspaceFixture::OWNER_ID,
+            lastEditorId: WorkspaceFixture::OWNER_ID, reviewReason: $reviewReason,
         );
     }
 

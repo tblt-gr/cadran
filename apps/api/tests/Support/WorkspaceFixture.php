@@ -126,6 +126,9 @@ final readonly class WorkspaceFixture
         $this->connection->executeStatement('DELETE FROM transaction_recurrence_dismissals');
         $this->connection->executeStatement('DELETE FROM transaction_transfers');
         $this->connection->executeStatement('DELETE FROM transaction_refunds');
+        // A review points at both the reviewed row and the rows it could settle.
+        $this->connection->executeStatement('DELETE FROM transaction_reconciliations');
+        $this->connection->executeStatement('DELETE FROM transaction_reconciliation_candidates');
         $this->connection->executeStatement('DELETE FROM transaction_idempotency_keys');
         $this->connection->executeStatement('DELETE FROM transaction_categorization_previews');
         $this->connection->executeStatement('DELETE FROM transaction_splits');

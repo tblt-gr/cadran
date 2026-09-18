@@ -21,6 +21,7 @@ final readonly class TransactionRepresentation
             'nature' => $transaction->nature,
             'state' => $transaction->state,
             'source' => $transaction->source,
+            'sourceRef' => $transaction->sourceRef,
             'bookedOn' => $transaction->bookedOn,
             'valueOn' => $transaction->valueOn,
             'authorizedOn' => $transaction->authorizedOn,
@@ -40,6 +41,9 @@ final readonly class TransactionRepresentation
             'refundOriginalId' => $transaction->refundOriginalId,
             'refundOriginalLabel' => $transaction->refundOriginalLabel,
             'refundedAmount' => $transaction->refundedAmount,
+            'reviewReason' => $transaction->reviewReason,
+            'reconciliationCandidateIds' => $transaction->reconciliationCandidateIds,
+            'reconciledIntoId' => $transaction->reconciledIntoId,
         ];
     }
 

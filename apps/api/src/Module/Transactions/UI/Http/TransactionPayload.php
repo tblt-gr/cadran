@@ -76,6 +76,16 @@ final readonly class TransactionPayload
         return $value;
     }
 
+    public function boolean(string $field): bool
+    {
+        $value = $this->fields[$field] ?? null;
+        if (!is_bool($value)) {
+            throw new \UnexpectedValueException(sprintf('%s must be a boolean.', $field));
+        }
+
+        return $value;
+    }
+
     public function integer(string $field): int
     {
         $value = $this->fields[$field] ?? null;
