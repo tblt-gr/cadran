@@ -352,7 +352,11 @@
           "hint": "Enregistre un mouvement de régularisation égal à l’écart."
         },
         "adjustNote": "Une régularisation de {{amount}} sera enregistrée à la date du solde. Ce n’est ni un revenu ni une dépense.",
-        "overrideConfirm": "Je comprends que l’écart reste inexpliqué et que le solde sera marqué rapproché sans aucune écriture."
+        "overrideConfirm": "Je comprends que l’écart reste inexpliqué et que le solde sera marqué rapproché sans aucune écriture.",
+        "errors": {
+          "choose": "Choisissez une résolution avant de rapprocher.",
+          "confirm": "Cochez la confirmation pour accepter l’écart : rien n’est enregistré tant qu’elle n’est pas cochée."
+        }
       },
       "reconcile": "Rapprocher",
       "reconciling": "Rapprochement…",

@@ -115,3 +115,38 @@
   border: var(--border-none);
   white-space: nowrap;
 }
+
+/*
+ * Base look of every text-like control. Zero specificity (`:where`) so a
+ * feature stylesheet can still override it, but a bare `<input>` is never
+ * left to the browser default: that omission is what this rule prevents.
+ */
+:where(
+  input:not(
+    [type='checkbox'],
+    [type='radio'],
+    [type='range'],
+    [type='color'],
+    [type='file'],
+    [type='hidden']
+  ),
+  select,
+  textarea
+) {
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+:where(input, select, textarea)[aria-invalid='true'] {
+  border-color: var(--negative);
+}
+
+:where(input, select, textarea):disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

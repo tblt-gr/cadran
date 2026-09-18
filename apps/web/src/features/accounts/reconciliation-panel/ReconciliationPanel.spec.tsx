@@ -134,7 +134,11 @@ describe('ReconciliationPanel', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: /Accepter l’écart/ }));
     const submit = screen.getByRole('button', { name: /Rapprocher/ }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
+    expect(submit.disabled).toBe(false);
+
+    fireEvent.click(submit);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Cochez la confirmation/);
+    expect(api.resolveAccountReconciliation).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(submit);

@@ -21,6 +21,7 @@ export function ResolutionForm({ pending, reconciliation, onSubmit }: Resolution
   const { i18n, t } = useTranslation();
   const [choice, setChoice] = useState<AccountReconciliationResolution | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [attempted, setAttempted] = useState(false);
   const offered = new Set(reconciliation.availableResolutions);
   const discrepancy = reconciliation.discrepancy;
 
@@ -34,7 +35,9 @@ export function ResolutionForm({ pending, reconciliation, onSubmit }: Resolution
     event.preventDefault();
     if (choice !== null && ready) {
       onSubmit(choice);
+      return;
     }
+    setAttempted(true);
   }
 
   return (
@@ -81,8 +84,18 @@ export function ResolutionForm({ pending, reconciliation, onSubmit }: Resolution
         </label>
       ) : null}
 
+      {attempted && !ready ? (
+        <p className={styles.alert} role="alert">
+          {t(
+            choice === null
+              ? 'accounts.reconciliation.resolution.errors.choose'
+              : 'accounts.reconciliation.resolution.errors.confirm',
+          )}
+        </p>
+      ) : null}
+
       <div className={styles.actions}>
-        <button className="primary-action" disabled={!ready || pending} type="submit">
+        <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'accounts.reconciliation.reconciling' : 'accounts.reconciliation.reconcile')}
         </button>
       </div>
