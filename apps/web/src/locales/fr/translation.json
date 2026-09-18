@@ -160,7 +160,8 @@
       "archived": "Le compte a été archivé.",
       "claimed": "La dérogation a été enregistrée sur ce compte.",
       "withdrawn": "La dérogation a été retirée : le compte suit de nouveau la règle héritée.",
-      "recorded": "Le solde observé a été enregistré."
+      "recorded": "Le solde observé a été enregistré.",
+      "reconciled": "Le solde a été rapproché."
     },
     "fields": {
       "label": "Libellé",
@@ -299,9 +300,70 @@
       "archiveAccount": "Archiver le compte {{label}}",
       "rules": "Règles",
       "rulesOfAccount": "Règles applicables au compte {{label}}",
+      "reconcile": "Rapprocher",
+      "reconcileOfAccount": "Rapprocher le compte {{label}}",
       "recordBalance": "Solde",
       "recordBalanceOfAccount": "Enregistrer un solde sur {{label}}",
       "openActions": "Actions du compte {{label}}"
+    },
+    "reconciliation": {
+      "eyebrow": "Rapprochement",
+      "title": "Rapprocher « {{label}} »",
+      "periodStart": "Début de la période",
+      "loading": "Calcul de l’écart…",
+      "missing": "Non calculable",
+      "noSnapshot": "Aucun solde observé à rapprocher pour ce compte.",
+      "opening": "Solde d’ouverture",
+      "movements": "Mouvements comptabilisés",
+      "closing": "Solde observé",
+      "discrepancy": "Écart",
+      "direction": {
+        "none": "aucun écart",
+        "surplus": "excédent",
+        "shortfall": "manque"
+      },
+      "reasons": {
+        "MISSING_OPENING_BALANCE": "Aucun solde d’ouverture n’est connu la veille du début de période : l’écart ne peut pas être calculé.",
+        "STALE_CLOSING_BALANCE": "Ce solde observé a été remplacé par un plus récent : l’écart ne peut pas être calculé.",
+        "MIXED_ASSETS": "Les soldes et les mouvements ne sont pas libellés dans le même actif : l’écart ne peut pas être calculé."
+      },
+      "pending": {
+        "empty": "Aucune transaction en attente sur la période.",
+        "count_one": "{{count}} transaction en attente, non comptée dans l’écart",
+        "count_other": "{{count}} transactions en attente, non comptées dans l’écart",
+        "truncated": "{{shown}} affichées sur {{count}}.",
+        "caption": "Transactions en attente de la période",
+        "date": "Date",
+        "label": "Libellé",
+        "amount": "Montant"
+      },
+      "resolution": {
+        "legend": "Résolution",
+        "MATCH": {
+          "label": "Correspondance exacte",
+          "hint": "Disponible seulement lorsque l’écart est exactement nul."
+        },
+        "OVERRIDE": {
+          "label": "Accepter l’écart",
+          "hint": "Marque le solde rapproché sans écrire de transaction."
+        },
+        "ADJUST": {
+          "label": "Ajuster par une régularisation",
+          "hint": "Enregistre un mouvement de régularisation égal à l’écart."
+        },
+        "adjustNote": "Une régularisation de {{amount}} sera enregistrée à la date du solde. Ce n’est ni un revenu ni une dépense.",
+        "overrideConfirm": "Je comprends que l’écart reste inexpliqué et que le solde sera marqué rapproché sans aucune écriture."
+      },
+      "reconcile": "Rapprocher",
+      "reconciling": "Rapprochement…",
+      "retry": "Réessayer",
+      "errors": {
+        "stale": "Ce solde a été modifié ailleurs entre-temps. Les chiffres viennent d’être rechargés : vérifiez-les puis recommencez.",
+        "conflict": "Ce solde est déjà rapproché ou le compte est archivé.",
+        "invalid": "La période ou la résolution est invalide. Vérifiez la date de début.",
+        "forbidden": "Vous n’avez pas le droit de rapprocher ce compte.",
+        "network": "Le rapprochement a échoué. Réessayez."
+      }
     },
     "balances": {
       "eyebrow": "Solde observé",

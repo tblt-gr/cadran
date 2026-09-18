@@ -38,6 +38,7 @@ import { WithdrawOverrideDialog } from './account-rules/withdraw-override-dialog
 import { AccountWizard } from './account-wizard/AccountWizard';
 import { AccountsState } from './accounts-state/AccountsState';
 import { ArchiveAccountDialog } from './archive-account-dialog/ArchiveAccountDialog';
+import { ReconciliationPanel } from './reconciliation-panel/ReconciliationPanel';
 import { RecordBalanceForm } from './record-balance-form/RecordBalanceForm';
 import styles from './AccountsPage.module.css';
 
@@ -60,8 +61,9 @@ export function AccountsPage() {
   const [overriding, setOverriding] = useState<OverrideDraft | null>(null);
   const [withdrawing, setWithdrawing] = useState<AccountRuleClaim | null>(null);
   const [recording, setRecording] = useState<Account | null>(null);
+  const [reconciling, setReconciling] = useState<Account | null>(null);
   const [saved, setSaved] = useState<
-    'saved' | 'archived' | 'claimed' | 'withdrawn' | 'recorded' | null
+    'saved' | 'archived' | 'claimed' | 'withdrawn' | 'recorded' | 'reconciled' | null
   >(null);
 
   const accounts = useQuery({
@@ -256,6 +258,11 @@ export function AccountsPage() {
     setRecording(account);
   }
 
+  function openReconciling(account: Account) {
+    setSaved(null);
+    setReconciling(account);
+  }
+
   function openEditor(target: Exclude<Editor, null>) {
     setSaved(null);
     save.reset();
@@ -406,6 +413,23 @@ export function AccountsPage() {
         </Modal>
       ) : null}
 
+      {reconciling ? (
+        <Modal
+          close={() => setReconciling(null)}
+          eyebrow={t('accounts.reconciliation.eyebrow')}
+          title={t('accounts.reconciliation.title', { label: reconciling.label })}
+        >
+          <ReconciliationPanel
+            account={reconciling}
+            key={reconciling.id}
+            onReconciled={() => {
+              setReconciling(null);
+              setSaved('reconciled');
+            }}
+          />
+        </Modal>
+      ) : null}
+
       {archiving ? (
         <Modal
           close={closeArchive}
@@ -454,6 +478,7 @@ export function AccountsPage() {
           accounts={items}
           onArchive={openArchive}
           onEdit={openEditor}
+          onReconcile={openReconciling}
           onRecordBalance={openRecording}
           onRules={setInspecting}
         />

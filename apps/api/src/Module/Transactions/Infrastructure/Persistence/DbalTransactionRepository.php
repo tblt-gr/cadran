@@ -238,6 +238,87 @@ final readonly class DbalTransactionRepository implements CategoryClassification
         return $this->hydrateMany($workspace, $rows);
     }
 
+    public function sumBookedMovements(
+        WorkspaceScope $workspace,
+        string $accountId,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+    ): array {
+        // The sum stays in NUMERIC: no float ever sees the figure.
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT t.asset_code, SUM(t.amount_value)::text AS total FROM transaction_transactions t '
+            .'WHERE t.workspace_id = :workspace_id AND t.account_id = :account_id '
+            ."AND t.state = 'BOOKED' AND t.voided_at IS NULL AND t.booked_on BETWEEN :from_date AND :to_date "
+            .'GROUP BY t.asset_code ORDER BY t.asset_code',
+            [
+                'workspace_id' => $workspace->id,
+                'account_id' => $accountId,
+                'from_date' => $from->format('Y-m-d'),
+                'to_date' => $to->format('Y-m-d'),
+            ],
+        );
+
+        return array_map(
+            static fn (array $row): AssetAmount => new AssetAmount(
+                DecimalValue::fromString(self::canonicalNumeric(TransactionRow::text($row['total'] ?? null))),
+                AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null)),
+            ),
+            $rows,
+        );
+    }
+
+    public function listPendingInPeriod(
+        WorkspaceScope $workspace,
+        string $accountId,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        int $limit,
+    ): array {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.self::COLUMNS.' FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '
+            ."AND t.account_id = :account_id AND t.state = 'PENDING' AND t.booked_on BETWEEN :from_date AND :to_date "
+            .'ORDER BY t.booked_on, t.id LIMIT :limit',
+            [
+                'workspace_id' => $workspace->id,
+                'account_id' => $accountId,
+                'from_date' => $from->format('Y-m-d'),
+                'to_date' => $to->format('Y-m-d'),
+                'limit' => $limit,
+            ],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return $this->hydrateMany($workspace, $rows);
+    }
+
+    public function countPendingInPeriod(
+        WorkspaceScope $workspace,
+        string $accountId,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+    ): int {
+        return (int) TransactionRow::text($this->connection->fetchOne(
+            'SELECT count(*) FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '
+            ."AND t.account_id = :account_id AND t.state = 'PENDING' AND t.booked_on BETWEEN :from_date AND :to_date",
+            [
+                'workspace_id' => $workspace->id,
+                'account_id' => $accountId,
+                'from_date' => $from->format('Y-m-d'),
+                'to_date' => $to->format('Y-m-d'),
+            ],
+        ));
+    }
+
+    private static function canonicalNumeric(string $numeric): string
+    {
+        if (!str_contains($numeric, '.')) {
+            return $numeric;
+        }
+        $trimmed = rtrim(rtrim($numeric, '0'), '.');
+
+        return '-0' === $trimmed ? '0' : $trimmed;
+    }
+
     public function findBySourceRef(WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
     {
         $sql = 'SELECT '.self::COLUMNS.' FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '

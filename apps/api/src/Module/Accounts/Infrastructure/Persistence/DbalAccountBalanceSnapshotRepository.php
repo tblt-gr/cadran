@@ -41,6 +41,16 @@ final readonly class DbalAccountBalanceSnapshotRepository implements AccountBala
         ));
     }
 
+    public function find(WorkspaceScope $workspace, string $accountId, string $id): ?AccountBalanceSnapshot
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT '.self::COLUMNS.' FROM account_balance_snapshots WHERE workspace_id = :workspace_id AND account_id = :account_id AND id = :id',
+            ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'id' => $id],
+        );
+
+        return false === $row ? null : AccountBalanceSnapshotRow::hydrate($row, $workspace);
+    }
+
     public function findActive(
         WorkspaceScope $workspace,
         string $accountId,

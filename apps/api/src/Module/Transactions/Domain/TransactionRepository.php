@@ -75,6 +75,44 @@ interface TransactionRepository
     ): array;
 
     /**
+     * Σ amount of the booked rows of one account whose `booked_on` lies in
+     * [$from, $to] (both inclusive), one entry per asset, exact to the storage
+     * scale. Pending, voided and rejected rows never count; transfer legs and
+     * adjustments do, since they move the account balance. An empty list means
+     * the window holds no booked movement at all.
+     *
+     * @return list<AssetAmount>
+     */
+    public function sumBookedMovements(
+        WorkspaceScope $workspace,
+        string $accountId,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+    ): array;
+
+    /**
+     * The pending rows of one account booked within [$from, $to], oldest first
+     * then by identifier, truncated to $limit. They contribute to no sum: they
+     * are listed so a discrepancy can be attributed to them.
+     *
+     * @return list<Transaction>
+     */
+    public function listPendingInPeriod(
+        WorkspaceScope $workspace,
+        string $accountId,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        int $limit,
+    ): array;
+
+    public function countPendingInPeriod(
+        WorkspaceScope $workspace,
+        string $accountId,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+    ): int;
+
+    /**
      * The live row of one account already claiming this external identifier,
      * whatever its state. A settled or reviewed movement must be recognised
      * before a redelivery tries to create a second row for the same money.

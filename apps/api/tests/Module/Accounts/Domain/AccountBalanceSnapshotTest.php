@@ -119,6 +119,36 @@ final class AccountBalanceSnapshotTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function testMarkingItReconciledKeepsTheFigureAndBumpsTheVersion(): void
+    {
+        $snapshot = $this->snapshot(amount: '1165.00');
+
+        $reconciled = $snapshot->markReconciled();
+
+        self::assertSame(ReconciliationStatus::RECONCILED, $reconciled->reconciliationStatus);
+        self::assertSame(2, $reconciled->version);
+        self::assertSame('1165.00', $reconciled->amount->value->toString());
+        self::assertSame($snapshot->id, $reconciled->id);
+        self::assertSame(ReconciliationStatus::UNRECONCILED, $snapshot->reconciliationStatus);
+    }
+
+    public function testAReconciledSnapshotCannotBeReconciledTwice(): void
+    {
+        $this->expectException(InvalidAccountBalanceSnapshot::class);
+
+        $this->snapshot()->markReconciled()->markReconciled();
+    }
+
+    public function testASupersededSnapshotCannotBeReconciled(): void
+    {
+        $original = $this->snapshot();
+        $replacement = $this->snapshot(id: self::NEXT_ID, amount: '10', recordedAt: '2026-09-03T11:00:00+00:00');
+
+        $this->expectException(InvalidAccountBalanceSnapshot::class);
+
+        $original->supersededBy($replacement)->markReconciled();
+    }
+
     private function snapshot(
         string $id = self::ID,
         string $amount = '230.5688',

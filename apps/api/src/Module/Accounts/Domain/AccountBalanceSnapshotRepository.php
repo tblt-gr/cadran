@@ -10,6 +10,9 @@ interface AccountBalanceSnapshotRepository
 {
     public function findForAccount(WorkspaceScope $workspace, string $accountId): AccountBalanceSnapshots;
 
+    /** One snapshot of this account by identifier, active or superseded. */
+    public function find(WorkspaceScope $workspace, string $accountId, string $id): ?AccountBalanceSnapshot;
+
     public function findActive(
         WorkspaceScope $workspace,
         string $accountId,

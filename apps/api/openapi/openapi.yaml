@@ -3382,6 +3382,122 @@ paths:
                   - $ref: '#/components/schemas/TransactionBelongsToTransferProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/reconciliation:
+    get:
+      operationId: readAccountReconciliation
+      summary: Compare an observed closing balance to the movements of its period
+      description: >-
+        `discrepancy = closing - (opening + sum of booked movements)`, with the
+        period ending on the snapshot day. The opening figure is the latest
+        active snapshot on or before the day preceding `periodStart` (a period
+        of at most 366 days), and movements are summed from the day after that
+        opening snapshot, so nothing booked between the two is dropped. The
+        response `periodStart` is that effective first day. Pending rows of the
+        same window are listed and counted but never summed. When a side is missing the discrepancy is null and
+        `nonCalculableReason` says why; it is never zero by default.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: snapshotId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: periodStart
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: The comparison and the resolutions currently available.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountReconciliation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: resolveAccountReconciliation
+      summary: Reconcile an observed closing balance
+      description: >-
+        `MATCH` requires a discrepancy of exactly zero (compared as decimals, so
+        `1.10` equals `1.1`). `OVERRIDE` accepts a non-zero discrepancy as it
+        stands and writes no transaction. `ADJUST` records one booked
+        `ADJUSTMENT` movement equal to the discrepancy on the snapshot day,
+        which is neither income nor expense, then reconciles. A non-calculable
+        comparison refuses every resolution. The account is locked, so two
+        concurrent requests never both adjust: the loser receives a 409.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveAccountReconciliationRequest'
+      responses:
+        '200':
+          description: The comparison after the resolution, with the snapshot reconciled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountReconciliation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The snapshot version is stale (`type: /problems/stale-version`), the
+            snapshot is already reconciled or the account is archived
+            (`type: /problems/transaction-conflict`), or the idempotency key is
+            reused or in flight.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/reconcile:
     post:
       operationId: reconcileTransaction
@@ -8259,6 +8375,114 @@ components:
             is created PENDING with a `reviewReason` when the match is absent
             or ambiguous. It never creates a booked duplicate.
           type: boolean
+    ResolveAccountReconciliationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - snapshotId
+        - snapshotVersion
+        - periodStart
+        - resolution
+      properties:
+        snapshotId:
+          type: string
+          format: uuid
+        snapshotVersion:
+          type: integer
+          minimum: 1
+        periodStart:
+          type: string
+          format: date
+        resolution:
+          $ref: '#/components/schemas/AccountReconciliationResolution'
+    AccountReconciliationResolution:
+      type: string
+      enum:
+        - MATCH
+        - OVERRIDE
+        - ADJUST
+    AccountReconciliationReason:
+      type: string
+      description: >-
+        Why no discrepancy could be produced. It replaces the figure and never
+        accompanies one.
+      enum:
+        - MISSING_OPENING_BALANCE
+        - STALE_CLOSING_BALANCE
+        - MIXED_ASSETS
+    AccountReconciliation:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - snapshotId
+        - snapshotVersion
+        - reconciliationStatus
+        - periodStart
+        - periodEnd
+        - openingBalance
+        - movementsTotal
+        - closingBalance
+        - discrepancy
+        - nonCalculableReason
+        - pendingCount
+        - pendingTransactions
+        - availableResolutions
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        snapshotId:
+          type: string
+          format: uuid
+        snapshotVersion:
+          type: integer
+        reconciliationStatus:
+          type: string
+          enum:
+            - UNRECONCILED
+            - RECONCILED
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        openingBalance:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        movementsTotal:
+          description: Sum of the booked, live movements of the period; pending rows excluded.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        closingBalance:
+          $ref: '#/components/schemas/DecimalAmount'
+        discrepancy:
+          description: >-
+            closing - (opening + movements). Positive: the account holds more
+            than the movements explain. Null when not calculable.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        nonCalculableReason:
+          oneOf:
+            - $ref: '#/components/schemas/AccountReconciliationReason'
+            - type: 'null'
+        pendingCount:
+          type: integer
+          minimum: 0
+        pendingTransactions:
+          description: The pending rows of the period, at most 100.
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Transaction'
+        availableResolutions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountReconciliationResolution'
     ReconcileTransactionRequest:
       type: object
       additionalProperties: false

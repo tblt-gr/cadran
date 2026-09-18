@@ -30,6 +30,17 @@ final class InMemoryAccountBalanceSnapshotRepository implements AccountBalanceSn
         )));
     }
 
+    public function find(WorkspaceScope $workspace, string $accountId, string $id): ?AccountBalanceSnapshot
+    {
+        foreach ($this->snapshots as $snapshot) {
+            if ($snapshot->workspace->equals($workspace) && $snapshot->accountId === $accountId && $snapshot->id === $id) {
+                return $snapshot;
+            }
+        }
+
+        return null;
+    }
+
     public function findActive(
         WorkspaceScope $workspace,
         string $accountId,

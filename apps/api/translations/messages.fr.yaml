@@ -282,6 +282,21 @@ api:
     transaction_forbidden:
       title: 'Transactions inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    account_reconciliation_invalid:
+      title: 'Rapprochement impossible'
+      detail: "Le rapprochement demandé est invalide ou son écart n'est pas calculable : vérifiez la période, le solde d'ouverture et la résolution choisie."
+    account_reconciliation_not_found:
+      title: 'Solde introuvable'
+      detail: 'Aucun compte ni relevé de solde ne porte ces identifiants dans cet espace de travail.'
+    account_reconciliation_stale:
+      title: 'Solde modifié entre-temps'
+      detail: 'Le relevé de solde a été modifié par une autre requête. Rechargez le rapprochement avant de le confirmer.'
+    account_reconciliation_conflict:
+      title: 'Rapprochement déjà effectué'
+      detail: "Ce relevé de solde est déjà rapproché ou son compte n'accepte plus de modification."
+    account_reconciliation_forbidden:
+      title: 'Rapprochement inaccessible'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
     transaction_belongs_to_transfer:
       title: 'Mouvement lié à un virement'
       detail: "Cette transaction appartient à un virement : modifiez ou annulez le virement plutôt qu'une de ses jambes."

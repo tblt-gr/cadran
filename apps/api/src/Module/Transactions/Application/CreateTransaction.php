@@ -104,7 +104,7 @@ final readonly class CreateTransaction
                     splits: $splits, version: 1, createdAt: $now, updatedAt: $now,
                     voidedAt: null, lastEditorId: $context->actorId, reviewReason: $match?->reviewReason,
                 );
-                if (null === $input->splits && null === $input->categoryId) {
+                if ($input->automation && null === $input->splits && null === $input->categoryId) {
                     $transaction = ($this->autoCategorize)($transaction, $context->actorId, $now);
                 }
             } catch (InvalidTransaction $exception) {
@@ -127,7 +127,9 @@ final readonly class CreateTransaction
                 TransactionAuditEvents::ENTITY, $transaction->id,
                 AuditDiff::creation(TransactionAuditFingerprint::of($transaction)),
             ));
-            ($this->matchRecurrence)($transaction);
+            if ($input->automation) {
+                ($this->matchRecurrence)($transaction);
+            }
 
             return $this->presentTransaction->one($transaction);
         });

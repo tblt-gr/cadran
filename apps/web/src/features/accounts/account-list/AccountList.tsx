@@ -14,6 +14,7 @@ interface AccountListProps {
   accounts: Account[];
   onArchive: (account: Account) => void;
   onEdit: (account: Account) => void;
+  onReconcile: (account: Account) => void;
   onRecordBalance: (account: Account) => void;
   onRules: (account: Account) => void;
 }
@@ -28,6 +29,7 @@ export function AccountList({
   accounts,
   onArchive,
   onEdit,
+  onReconcile,
   onRecordBalance,
   onRules,
 }: AccountListProps) {
@@ -130,6 +132,17 @@ export function AccountList({
                           }),
                           onSelect: () => onRecordBalance(account),
                           text: t('accounts.list.recordBalance'),
+                        },
+                        {
+                          disabled:
+                            !account.editable ||
+                            account.valuation.snapshotId === null ||
+                            account.valuation.reconciliationStatus !== 'UNRECONCILED',
+                          icon: 'balance',
+                          id: 'reconcile',
+                          label: t('accounts.list.reconcileOfAccount', { label: account.label }),
+                          onSelect: () => onReconcile(account),
+                          text: t('accounts.list.reconcile'),
                         },
                         {
                           // Reading the rules changes nothing, so an archived or closed

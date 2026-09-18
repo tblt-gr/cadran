@@ -1,0 +1,31 @@
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  overflow-x: auto;
+}
+
+.empty,
+.count {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-label);
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+}
+
+.table .amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
