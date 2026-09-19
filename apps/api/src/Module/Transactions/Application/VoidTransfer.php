@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -25,6 +26,7 @@ final readonly class VoidTransfer
         private RecordAuditEvent $recordAuditEvent,
         private PresentTransfer $presentTransfer,
         private ClockInterface $clock,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -60,6 +62,7 @@ final readonly class VoidTransfer
                 if (null === $leg) {
                     throw new \UnexpectedValueException('A transfer leg is missing its transaction.');
                 }
+                ($this->assertPeriodOpen)($context->workspace, $leg->bookedOn);
                 try {
                     $voidedLeg = $leg->void($now, $context->actorId);
                 } catch (InvalidTransaction $exception) {

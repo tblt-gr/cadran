@@ -123,6 +123,11 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
                     >
                       {t(`recurrences.statuses.${occurrence.status}`)}
                     </StatusBadge>
+                    {occurrence.periodClosed ? (
+                      <StatusBadge icon="alert" tone="warning">
+                        {t('recurrences.occurrences.periodClosed')}
+                      </StatusBadge>
+                    ) : null}
                   </td>
                   <td data-label={t('recurrences.occurrences.match')}>
                     {occurrence.matchedTransactionId

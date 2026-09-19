@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Categorization;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -18,7 +19,7 @@ use Symfony\Component\Clock\ClockInterface;
 
 final readonly class ApplyCategorizationRules
 {
-    public function __construct(private CallerWorkspaceContext $caller, private CategorizationPreviewRepository $previews, private TransactionRepository $transactions, private \App\Module\Transactions\Domain\Categorization\CategorizationRuleRepository $rules, private BuildCategorizationRun $buildRun, private UuidGenerator $ids, private TransactionBoundary $boundary, private CategorizationWriteLock $writeLock, private RecordAuditEvent $audit, private ClockInterface $clock)
+    public function __construct(private CallerWorkspaceContext $caller, private CategorizationPreviewRepository $previews, private TransactionRepository $transactions, private \App\Module\Transactions\Domain\Categorization\CategorizationRuleRepository $rules, private BuildCategorizationRun $buildRun, private UuidGenerator $ids, private TransactionBoundary $boundary, private CategorizationWriteLock $writeLock, private RecordAuditEvent $audit, private ClockInterface $clock, private AssertPeriodOpen $assertPeriodOpen)
     {
     }
 
@@ -67,6 +68,7 @@ final readonly class ApplyCategorizationRules
                     $splitId = null === $existing ? $this->ids->generate() : $existing->id;
                     $splitCreatedAt = null === $existing ? $now : $existing->createdAt;
                     $split = new TransactionSplit($splitId, $context->workspace, $transaction->id, $winner->targetCategoryId, $transaction->amount, $winner->targetAxes, null, $splitCreatedAt, 0, CategorizationOrigin::RULE, $winner->id);
+                    ($this->assertPeriodOpen)($context->workspace, $transaction->bookedOn);
                     $updated = $transaction->categorize($split, $winner->targetCounterparty, $now);
                     if (!$this->transactions->update($updated, $transaction->version)) {
                         throw new PreviewStale();

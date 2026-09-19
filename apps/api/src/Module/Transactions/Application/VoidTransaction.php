@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -32,6 +33,7 @@ final readonly class VoidTransaction
         private CategorizationWriteLock $categorizationWriteLock,
         private MatchTransactionToOccurrence $matchRecurrence,
         private ReconciliationRepository $reconciliations,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -45,6 +47,7 @@ final readonly class VoidTransaction
             if (null === $current) {
                 throw new TransactionNotFound();
             }
+            ($this->assertPeriodOpen)($context->workspace, $current->bookedOn);
             $transfer = $this->transfers->findByLegTransactionId($context->workspace, $id);
             if (null !== $transfer) {
                 throw new TransactionBelongsToTransfer($transfer->id);

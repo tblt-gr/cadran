@@ -87,7 +87,7 @@ final readonly class AccountReconciliationController
                 static function () use ($reconcileAccountBalance, $accountId, $input): IdempotentResponse {
                     $view = $reconcileAccountBalance($accountId, $input);
 
-                    return new IdempotentResponse(AccountReconciliationRepresentation::one($view), Response::HTTP_OK, $view->snapshotId);
+                    return new IdempotentResponse(AccountReconciliationRepresentation::one($view), Response::HTTP_OK, $view->snapshotId, [$view->periodEnd]);
                 },
             );
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {

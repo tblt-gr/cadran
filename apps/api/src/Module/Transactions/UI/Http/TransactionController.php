@@ -227,7 +227,7 @@ final readonly class TransactionController
                 function () use ($createTransaction, $payload): IdempotentResponse {
                     $transaction = $createTransaction(self::createInput($payload));
 
-                    return new IdempotentResponse(TransactionRepresentation::one($transaction), Response::HTTP_CREATED, $transaction->id);
+                    return new IdempotentResponse(TransactionRepresentation::one($transaction), Response::HTTP_CREATED, $transaction->id, [$transaction->bookedOn]);
                 },
             );
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
@@ -306,9 +306,13 @@ final readonly class TransactionController
                 'refund.create',
                 $this->envelope->idempotency($request, false),
                 function () use ($createRefund, $id, $input): IdempotentResponse {
-                    $refund = $createRefund($id, $input);
+                    $created = $createRefund($id, $input);
+                    $refund = $created->refund;
 
-                    return new IdempotentResponse(TransactionRepresentation::one($refund), Response::HTTP_CREATED, $refund->id);
+                    return new IdempotentResponse(
+                        TransactionRepresentation::one($refund), Response::HTTP_CREATED, $refund->id,
+                        [$refund->bookedOn, $created->originalBookedOn],
+                    );
                 },
             );
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
@@ -517,7 +521,7 @@ final readonly class TransactionController
                     TransactionPayload::of($body, []);
                     $transaction = $duplicateTransaction($id);
 
-                    return new IdempotentResponse(TransactionRepresentation::one($transaction), Response::HTTP_CREATED, $transaction->id);
+                    return new IdempotentResponse(TransactionRepresentation::one($transaction), Response::HTTP_CREATED, $transaction->id, [$transaction->bookedOn]);
                 },
             );
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {

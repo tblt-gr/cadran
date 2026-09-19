@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
-use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\Transaction;
@@ -38,6 +39,7 @@ final readonly class DuplicateTransaction
         private CategorizationWriteLock $categorizationWriteLock,
         private MatchTransactionToOccurrence $matchRecurrence,
         private WorkspaceCalendar $calendar,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -60,6 +62,7 @@ final readonly class DuplicateTransaction
             }
             $now = $this->clock->now();
             $today = $this->calendar->today();
+            ($this->assertPeriodOpen)($context->workspace, $today);
             $draft = new TransactionDraft(
                 $source->amount, $source->nature, TransactionState::BOOKED, $today, null, null,
                 $source->rawLabel, $source->counterparty, $source->note, $source->paymentMethod,

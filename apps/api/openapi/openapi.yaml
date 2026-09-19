@@ -2781,7 +2781,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409':
           {
-            description: 'The preview is missing, expired, consumed or stale.',
+            description: 'The preview is missing, expired, consumed or stale, or a movement it would change sits in a closed period (`type: /problems/period-closed`).',
             content:
               { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } },
           }
@@ -3026,6 +3026,8 @@ paths:
             A linked account or category changed concurrently, the same key was
             reused with a different request (`type: /problems/idempotency.key_reused`),
             or its first request is still in flight (`type: /problems/idempotency.in_flight`).
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           headers:
             Retry-After:
               $ref: '#/components/headers/RetryAfterOneSecond'
@@ -3127,6 +3129,8 @@ paths:
           description: >-
             The submitted version is stale (`type: /problems/stale-version`)
             or the transaction is terminal (`type: /problems/transaction-conflict`).
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           content:
             application/problem+json:
               schema:
@@ -3201,6 +3205,8 @@ paths:
           description: >-
             The submitted version is stale (`type: /problems/stale-version`)
             or the transaction is terminal (`type: /problems/transaction-conflict`).
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           content:
             application/problem+json:
               schema:
@@ -3294,6 +3300,8 @@ paths:
             exceeds what remains refundable; key reuse with a different request
             uses `/problems/idempotency.key_reused`, and an in-flight request
             uses `/problems/idempotency.in_flight`.
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           headers:
             Retry-After:
               $ref: '#/components/headers/RetryAfterOneSecond'
@@ -3362,6 +3370,8 @@ paths:
           description: >-
             The submitted version is stale (`type: /problems/stale-version`)
             or the transaction is already terminal (`type: /problems/transaction-conflict`).
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           content:
             application/problem+json:
               schema:
@@ -3486,6 +3496,8 @@ paths:
             snapshot is already reconciled or the account is archived
             (`type: /problems/transaction-conflict`), or the idempotency key is
             reused or in flight.
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           content:
             application/problem+json:
               schema:
@@ -3555,6 +3567,8 @@ paths:
             the transaction is not held for review, or the named match is not a
             pending row of the same account
             (`type: /problems/transaction-conflict`).
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           content:
             application/problem+json:
               schema:
@@ -3608,6 +3622,8 @@ paths:
           description: >-
             A linked account or category changed concurrently, the key was
             reused with another request, or the first request is in flight.
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           headers:
             Retry-After:
               $ref: '#/components/headers/RetryAfterOneSecond'
@@ -3670,6 +3686,8 @@ paths:
           description: >-
             A source or target account changed concurrently, the key was reused
             with another request, or the first request is in flight.
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           headers:
             Retry-After:
               $ref: '#/components/headers/RetryAfterOneSecond'
@@ -3771,6 +3789,8 @@ paths:
           description: >-
             The submitted version is stale (`type: /problems/stale-version`)
             or the transfer is already voided (`type: /problems/transfer-conflict`).
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           content:
             application/problem+json:
               schema:
@@ -3831,6 +3851,8 @@ paths:
           description: >-
             The submitted version is stale (`type: /problems/stale-version`)
             or the transfer is already voided (`type: /problems/transfer-conflict`).
+            A write that touches a closed period is refused with one stable
+            problem, whichever the use case (`type: /problems/period-closed`).
           content:
             application/problem+json:
               schema:
@@ -3841,6 +3863,206 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/period-closures:
+    get:
+      operationId: listPeriodClosures
+      summary: List the closures of one year, reopened ones included
+      description: >-
+        The history of the workspace's monthly closures, newest month first.
+        A reopened closure stays listed with its reopening date and reason; a
+        month closed again after reopening appears as a second row. Reading is
+        never refused by a closure.
+      tags:
+        - Period closures
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1900
+            maximum: 2999
+      responses:
+        '200':
+          description: The closures of the year.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeriodClosureList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/periods/{period}:
+    get:
+      operationId: readPeriodStatus
+      summary: Read one month, closed or not, with what would block closing it
+      description: >-
+        A closed month returns its active closure. An open month returns the
+        conditions that currently block closing it, each with a count and
+        never an amount or a label. The three conditions are checked across
+        every non-archived account open during the month.
+      tags:
+        - Period closures
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PeriodMonth'
+      responses:
+        '200':
+          description: The state of the month.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeriodStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/periods/{period}/closure:
+    put:
+      operationId: closePeriod
+      summary: Close a month that has ended
+      description: >-
+        Refused with `type: /problems/period-closing-blocked` and the list of
+        failing conditions unless each one is confirmed in `overrides` with its
+        own reason. There is deliberately no flag that waives everything, and
+        only the workspace owner may confirm a condition. The confirmed
+        conditions and reasons are audited; no amount or label is. Once
+        closed, every ordinary write dated in the month is refused with
+        `type: /problems/period-closed`.
+      tags:
+        - Period closures
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/PeriodMonth'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClosePeriodRequest'
+      responses:
+        '201':
+          description: The active closure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeriodClosure'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >-
+            Only the workspace owner may confirm a condition
+            (`type: about:blank`), the CSRF / Origin check failed
+            (`type: /problems/csrf-token`), or the session belongs to no
+            workspace.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: >-
+            A condition blocks the closing and is not confirmed
+            (`type: /problems/period-closing-blocked`, with `blockers`), or the
+            month is already closed (`type: /problems/period-closure-conflict`).
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/PeriodClosingBlockedProblem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The month has not ended, a confirmation names an unknown condition
+            or one that does not block, or a reason is empty or longer than 200
+            characters.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/periods/{period}/reopening:
+    post:
+      operationId: reopenPeriod
+      summary: Reopen a closed month with a reason
+      description: >-
+        Owner only, checked on this request. Requires the current version of
+        the closure and a reason, and writes an audit event in the same
+        PostgreSQL transaction. The closure row is kept, stamped with when and
+        why it was reopened.
+      tags:
+        - Period closures
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/PeriodMonth'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReopenPeriodRequest'
+      responses:
+        '200':
+          description: The reopened closure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeriodClosure'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >-
+            Only the workspace owner may reopen a period, the CSRF / Origin
+            check failed (`type: /problems/csrf-token`), or the session belongs
+            to no workspace.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The submitted version is stale (`type: /problems/stale-version`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: The reason is empty or longer than 200 characters.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
@@ -4069,6 +4291,14 @@ components:
         type: string
         const: '1'
   parameters:
+    PeriodMonth:
+      name: period
+      in: path
+      required: true
+      description: A calendar month written `YYYY-MM`.
+      schema:
+        type: string
+        pattern: '^\d{4}-(0[1-9]|1[0-2])$'
     CsrfToken:
       name: X-CSRF-TOKEN
       in: header
@@ -7577,6 +7807,7 @@ components:
           status,
           matchedTransactionId,
           matchedAt,
+          periodClosed,
         ]
       properties:
         id: { type: string, format: uuid }
@@ -7589,6 +7820,12 @@ components:
           oneOf: [{ type: string, format: uuid }, { type: 'null' }]
         matchedAt:
           oneOf: [{ type: string, format: date-time }, { type: 'null' }]
+        periodClosed:
+          description: >-
+            The instalment falls in a closed month. It stays waiting: a
+            recurrence never books into a closed period, and the movement that
+            would settle it is refused like any other write.
+          type: boolean
     RecurrenceOccurrencePage:
       type: object
       additionalProperties: false
@@ -8930,3 +9167,162 @@ components:
           description: The transfer to use instead.
           type: string
           format: uuid
+    PeriodClosingCondition:
+      type: string
+      enum:
+        - UNRECONCILED_ACCOUNT
+        - UNEXPLAINED_DISCREPANCY
+        - PENDING_TRANSACTIONS
+    PeriodClosingBlocker:
+      description: One failing condition and how many items raise it. Never an amount or a label.
+      type: object
+      additionalProperties: false
+      required:
+        - condition
+        - count
+      properties:
+        condition:
+          $ref: '#/components/schemas/PeriodClosingCondition'
+        count:
+          type: integer
+          minimum: 1
+    PeriodClosure:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - period
+        - closedAt
+        - closedBy
+        - reopenedAt
+        - reopenReason
+        - active
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        period:
+          type: string
+          pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+        closedAt:
+          type: string
+          format: date-time
+        closedBy:
+          type: string
+          format: uuid
+        reopenedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        reopenReason:
+          type:
+            - string
+            - 'null'
+          maxLength: 200
+        active:
+          description: Only the active closure of a month refuses writes.
+          type: boolean
+        version:
+          type: integer
+          minimum: 1
+    PeriodClosureList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeriodClosure'
+    PeriodStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - period
+        - closed
+        - ended
+        - closure
+        - blockers
+      properties:
+        period:
+          type: string
+          pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+        closed:
+          type: boolean
+        ended:
+          description: Whether the month is over in the workspace's own timezone. Only an ended month can be closed.
+          type: boolean
+        closure:
+          oneOf:
+            - $ref: '#/components/schemas/PeriodClosure'
+            - type: 'null'
+        blockers:
+          description: Empty when the month is closed or when nothing blocks it.
+          type: array
+          items:
+            $ref: '#/components/schemas/PeriodClosingBlocker'
+    ClosePeriodRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        overrides:
+          description: >-
+            Each confirmed condition with the reason for waiving it. A
+            condition absent from the month's blockers is refused.
+          type: object
+          additionalProperties: false
+          properties:
+            UNRECONCILED_ACCOUNT:
+              type: string
+              minLength: 1
+              maxLength: 200
+            UNEXPLAINED_DISCREPANCY:
+              type: string
+              minLength: 1
+              maxLength: 200
+            PENDING_TRANSACTIONS:
+              type: string
+              minLength: 1
+              maxLength: 200
+    ReopenPeriodRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+        - reason
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 200
+    PeriodClosingBlockedProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - blockers
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          const: /problems/period-closing-blocked
+        title:
+          type: string
+        status:
+          type: integer
+          const: 409
+        detail:
+          type: string
+        blockers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeriodClosingBlocker'

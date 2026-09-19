@@ -16,6 +16,8 @@ final readonly class IdempotencyKey
         public ?int $responseStatus,
         public ?array $responseBody,
         public bool $claimed,
+        /** @var list<string>|null business days (Y-m-d) the original write touched; null when unknown (key stored before they were recorded) */
+        public ?array $periodDays = [],
     ) {
     }
 

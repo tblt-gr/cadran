@@ -40,7 +40,7 @@ final readonly class DbalIdempotencyKeyRepository implements IdempotencyKeyRepos
         }
 
         $row = $this->connection->fetchAssociative(
-            'SELECT id, request_fingerprint, status, response_status, response_body FROM transaction_idempotency_keys WHERE workspace_id = :workspace_id AND use_case = :use_case AND idempotency_key = :idempotency_key FOR UPDATE',
+            'SELECT id, request_fingerprint, status, response_status, response_body, period_days FROM transaction_idempotency_keys WHERE workspace_id = :workspace_id AND use_case = :use_case AND idempotency_key = :idempotency_key FOR UPDATE',
             $criteria,
         );
         if (false === $row) {
@@ -63,19 +63,29 @@ final readonly class DbalIdempotencyKeyRepository implements IdempotencyKeyRepos
             }
         }
 
+        $days = null;
+        if (null !== ($row['period_days'] ?? null)) {
+            $days = [];
+            $decodedDays = json_decode(self::text($row['period_days']), true, flags: JSON_THROW_ON_ERROR);
+            foreach (is_array($decodedDays) ? $decodedDays : [] as $day) {
+                $days[] = self::text($day);
+            }
+        }
+
         return new IdempotencyKey(
             self::text($row['id'] ?? null), self::text($row['request_fingerprint'] ?? null), self::text($row['status'] ?? null),
-            null === ($row['response_status'] ?? null) ? null : (int) self::text($row['response_status']), $body, false,
+            null === ($row['response_status'] ?? null) ? null : (int) self::text($row['response_status']), $body, false, $days,
         );
     }
 
-    public function complete(WorkspaceScope $workspace, IdempotencyKey $key, int $responseStatus, array $responseBody, ?string $entityId, \DateTimeImmutable $completedAt): void
+    public function complete(WorkspaceScope $workspace, IdempotencyKey $key, int $responseStatus, array $responseBody, ?string $entityId, \DateTimeImmutable $completedAt, array $periodDays = []): void
     {
         $written = $this->connection->update(
             'transaction_idempotency_keys',
             [
                 'status' => 'COMPLETED', 'response_status' => $responseStatus,
                 'response_body' => json_encode($responseBody, JSON_THROW_ON_ERROR), 'entity_id' => $entityId,
+                'period_days' => json_encode($periodDays, JSON_THROW_ON_ERROR),
                 'completed_at' => $completedAt->format('Y-m-d H:i:s.uP'),
             ],
             ['workspace_id' => $workspace->id, 'id' => $key->id, 'status' => 'IN_FLIGHT'],

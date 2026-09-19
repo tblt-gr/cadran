@@ -309,6 +309,19 @@ final readonly class DbalTransactionRepository implements CategoryClassification
         ));
     }
 
+    public function countPendingInWorkspace(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int
+    {
+        return (int) TransactionRow::text($this->connection->fetchOne(
+            'SELECT count(*) FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '
+            ."AND t.state = 'PENDING' AND t.booked_on BETWEEN :from_date AND :to_date",
+            [
+                'workspace_id' => $workspace->id,
+                'from_date' => $from->format('Y-m-d'),
+                'to_date' => $to->format('Y-m-d'),
+            ],
+        ));
+    }
+
     private static function canonicalNumeric(string $numeric): string
     {
         if (!str_contains($numeric, '.')) {

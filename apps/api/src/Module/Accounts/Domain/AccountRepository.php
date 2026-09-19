@@ -42,6 +42,14 @@ interface AccountRepository
      */
     public function listForNetWorth(WorkspaceScope $workspace, int $limit): array;
 
+    /**
+     * Non-archived accounts open at some point of $from..$to, capped at $limit.
+     * An account is open from its opening day to its closing day, inclusive.
+     *
+     * @return list<Account>
+     */
+    public function listOpenDuring(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array;
+
     public function hasActiveLabel(
         WorkspaceScope $workspace,
         string $label,

@@ -92,6 +92,7 @@
   }
 
   .actions button,
+  .actions a,
   .toolbar select {
     width: 100%;
   }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Reconciliation;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -41,6 +42,7 @@ final readonly class SettlePendingTransaction
         private ReconciliationRepository $reconciliations,
         private RecordAuditEvent $recordAuditEvent,
         private MatchTransactionToOccurrence $matchRecurrence,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -55,6 +57,8 @@ final readonly class SettlePendingTransaction
         if (TransactionState::PENDING !== $candidate->state) {
             throw new TransactionConflict('Only a pending transaction can settle an incoming movement.');
         }
+        // The row leaves the period it was booked in and enters the one the movement names.
+        ($this->assertPeriodOpen)($candidate->workspace, $candidate->bookedOn, $bookedOn);
         // The same guards UpdateTransaction enforces on a plain edit: none of
         // these rows may change amount or state outside their own operation,
         // whatever route a settlement is reached through (auto-match, a

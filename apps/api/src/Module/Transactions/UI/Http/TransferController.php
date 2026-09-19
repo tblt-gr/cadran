@@ -68,7 +68,7 @@ final readonly class TransferController
                 function () use ($createTransfer, $input): IdempotentResponse {
                     $transfer = $createTransfer($input);
 
-                    return new IdempotentResponse(TransferRepresentation::one($transfer), Response::HTTP_CREATED, $transfer->id);
+                    return new IdempotentResponse(TransferRepresentation::one($transfer), Response::HTTP_CREATED, $transfer->id, [$transfer->source->bookedOn]);
                 },
             );
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {

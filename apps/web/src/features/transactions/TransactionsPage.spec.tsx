@@ -1,7 +1,7 @@
 import type { Account, Category, Transaction } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { TransactionsPage } from './TransactionsPage';
 
@@ -10,9 +10,11 @@ const api = vi.hoisted(() => ({
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
   duplicateTransaction: vi.fn(),
+  getSession: vi.fn(),
   listAccounts: vi.fn(),
   listCategories: vi.fn(),
   listTransactions: vi.fn(),
+  readPeriodStatus: vi.fn(),
   updateTransaction: vi.fn(),
   voidTransaction: vi.fn(),
 }));
@@ -21,6 +23,23 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
   ...api,
 }));
+
+beforeEach(() => {
+  api.getSession.mockResolvedValue({
+    data: {
+      provisioned: true,
+      authenticated: true,
+      setupRequired: false,
+      user: null,
+      workspace: null,
+    },
+    response: { ok: true, status: 200 },
+  });
+  api.readPeriodStatus.mockResolvedValue({
+    data: { period: '2026-08', closed: false, ended: true, closure: null, blockers: [] },
+    response: { ok: true, status: 200 },
+  });
+});
 
 const account = {
   id: '00000000-0000-7000-8000-0000000000d1',
@@ -91,6 +110,28 @@ describe('TransactionsPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('opens the monthly closure flow before the recurrence action', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    renderPage();
+
+    const closureButton = screen.getByRole('button', { name: 'Clôture du mois' });
+    const recurrencesLink = screen.getByRole('link', { name: 'Gérer les récurrences' });
+    expect(
+      closureButton.compareDocumentPosition(recurrencesLink) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByRole('dialog', { name: 'Clôture du mois' })).toBeNull();
+
+    fireEvent.click(closureButton);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
+    expect(within(dialog).getByLabelText('Mois')).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Fermer' }));
+    await waitFor(() => expect(document.activeElement).toBe(closureButton));
   });
 
   it('offers every category, expenses first, whatever the nature or the sign', async () => {

@@ -6,6 +6,7 @@ namespace App\Tests\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -17,6 +18,8 @@ use Symfony\Component\Clock\MockClock;
 
 final class RecurrenceControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private const string OWN_ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OWN_SECOND_ACCOUNT = '00000000-0000-7000-8000-0000000000d3';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
@@ -28,7 +31,7 @@ final class RecurrenceControllerTest extends WebTestCase
     ];
     private const array OCCURRENCE_KEYS = [
         'id', 'recurrenceId', 'expectedOn', 'expectedAmount', 'amountTolerance', 'status',
-        'matchedTransactionId', 'matchedAt',
+        'matchedTransactionId', 'matchedAt', 'periodClosed',
     ];
     private const array CANDIDATE_KEYS = [
         'fingerprint', 'accountId', 'counterparty', 'intervalKind', 'medianAmount', 'tolerance',
@@ -212,6 +215,33 @@ final class RecurrenceControllerTest extends WebTestCase
         self::assertSame(['value' => '-14.99', 'assetCode' => 'EUR'], $byDate['2026-04-20']['expectedAmount']);
         self::assertSame(['value' => '-17.99', 'assetCode' => 'EUR'], $byDate['2026-05-20']['expectedAmount']);
         self::assertSame('2026-04-20', $updated['nextExpectedOn']);
+    }
+
+    public function testAnOccurrenceOfAClosedMonthIsNeverBookedByARecurrenceAndIsSurfacedAsWaiting(): void
+    {
+        $recurrence = $this->createRecurrence(['dayOfPeriod' => 20, 'firstExpectedOn' => '2026-03-20']);
+        $id = $recurrence['id'];
+        $this->clock->modify('2026-04-05T09:00:00+00:00');
+        $this->renewCsrf();
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        // The real movement that would settle the March instalment is a write like any other.
+        $this->client->request('POST', '/api/v1/transactions', server: self::jsonHeaders(), content: json_encode([
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '-14.99', 'assetCode' => 'EUR'], 'nature' => 'EXPENSE',
+            'state' => 'BOOKED', 'bookedOn' => '2026-03-20', 'valueOn' => null, 'authorizedOn' => null,
+            'rawLabel' => 'CB NETFLIX', 'counterparty' => 'Netflix', 'note' => null, 'paymentMethod' => null,
+            'mcc' => null, 'maskedCard' => null, 'bankReference' => null, 'categoryId' => null, 'splits' => null,
+            'source' => 'MANUAL',
+        ], JSON_THROW_ON_ERROR));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertNull($this->firstMatched($id));
+        $byDate = array_column($this->occurrences($id, '2026-01-01', '2027-06-30'), null, 'expectedOn');
+        self::assertNull($byDate['2026-03-20']['matchedTransactionId']);
+        self::assertSame('LATE', $byDate['2026-03-20']['status']);
+        self::assertTrue($byDate['2026-03-20']['periodClosed']);
+        self::assertFalse($byDate['2026-04-20']['periodClosed']);
     }
 
     public function testDuplicatingATransactionMatchesItToAnExpectedOccurrence(): void

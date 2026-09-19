@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Transactions\Domain\IdempotencyKeyRepository;
@@ -20,6 +21,7 @@ final readonly class IdempotentExecution
         private IdempotencyKeyRepository $keys,
         private TransactionBoundary $transactionBoundary,
         private ClockInterface $clock,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -55,6 +57,17 @@ final readonly class IdempotentExecution
                     throw new \UnexpectedValueException('A completed idempotency key has no response.');
                 }
 
+                // The stored response describes a write that may no longer be
+                // allowed: a closing since then refuses it like any other.
+                if (null === $key->periodDays) {
+                    $this->assertPeriodOpen->assertNoActiveClosure($context->workspace);
+                } else {
+                    ($this->assertPeriodOpen)(
+                        $context->workspace,
+                        ...array_map(static fn (string $day): \DateTimeImmutable => new \DateTimeImmutable($day, new \DateTimeZone('UTC')), $key->periodDays),
+                    );
+                }
+
                 return new IdempotentExecutionResult($key->responseBody, $key->responseStatus, true);
             }
 
@@ -66,6 +79,7 @@ final readonly class IdempotentExecution
                 $response->body,
                 $response->entityId,
                 $this->clock->now(),
+                $response->periodDays,
             );
 
             return new IdempotentExecutionResult($response->body, $response->status, false);

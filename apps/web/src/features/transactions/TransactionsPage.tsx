@@ -1,8 +1,10 @@
 import type { Transaction } from '@cadran/api-client';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
+import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { CategorizationTabs } from './categorization-tabs/CategorizationTabs';
 import { TransactionList } from './transaction-list/TransactionList';
@@ -22,6 +24,8 @@ export function TransactionsPage() {
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [transferEditorOpen, setTransferEditorOpen] = useState(false);
   const [refundTarget, setRefundTarget] = useState<Transaction | null>(null);
+  const [periodClosureOpen, setPeriodClosureOpen] = useState(false);
+  const periodClosureButton = useRef<HTMLButtonElement>(null);
 
   const listing = useTransactionsListing();
   const {
@@ -111,6 +115,15 @@ export function TransactionsPage() {
           <span>{t('transactions.description')}</span>
         </div>
         <div className={styles.actions}>
+          <button
+            className="secondary-action"
+            onClick={() => setPeriodClosureOpen(true)}
+            ref={periodClosureButton}
+            type="button"
+          >
+            <Icon name="calendar" size={18} />
+            {t('closures.title')}
+          </button>
           <a
             className="secondary-action"
             href="/transactions/recurrences"
@@ -154,6 +167,13 @@ export function TransactionsPage() {
         voidMutation={voidMutation}
         voiding={voiding}
       />
+
+      {periodClosureOpen ? (
+        <PeriodClosurePanel
+          close={() => setPeriodClosureOpen(false)}
+          returnFocus={periodClosureButton}
+        />
+      ) : null}
 
       <CategorizationTabs
         onChange={(next) =>

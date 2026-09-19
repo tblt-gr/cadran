@@ -6,6 +6,7 @@ namespace App\Module\Transactions\Application\Recurrence;
 
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceSchedule;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceRepository;
 

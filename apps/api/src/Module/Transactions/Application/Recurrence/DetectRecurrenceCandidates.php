@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Application\Recurrence;
 
 use App\Module\Foundation\Application\CallerWorkspaceContext;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Reference\Application\AssetCatalog;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceDetector;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceDismissalRepository;
