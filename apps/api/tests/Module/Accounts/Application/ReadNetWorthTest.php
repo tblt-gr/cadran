@@ -21,6 +21,7 @@ use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
+use App\Tests\Module\Accounts\Application\Double\FixedWorkspaceTimezoneReader;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountBalanceSnapshotRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountGroupRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
@@ -248,6 +249,7 @@ final class ReadNetWorthTest extends TestCase
             new ResolveNetWorthContributions(
                 new InMemoryAccountRepository(...($accounts ?? $this->accounts($closedOn))),
                 new InMemoryAccountBalanceSnapshotRepository(...($snapshots ?? $this->snapshots())),
+                new FixedWorkspaceTimezoneReader(),
             ),
             new InMemoryAccountGroupRepository(...($groups ?? [
                 AccountGroupFixture::group(id: self::LIQUID, label: 'Liquidités'),

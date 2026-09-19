@@ -10,6 +10,7 @@ use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\PeriodClosingCondition;
 use App\Module\Accounts\Domain\ReconciliationStatus;
+use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -29,6 +30,7 @@ final readonly class AssessPeriodClosing
         private AccountRepository $accounts,
         private AccountBalanceSnapshotRepository $snapshots,
         private PeriodClosingFacts $facts,
+        private WorkspaceTimezoneReader $timezones,
     ) {
     }
 
@@ -37,7 +39,8 @@ final readonly class AssessPeriodClosing
     {
         $first = $month->firstDay();
         $last = $month->lastDay();
-        $accounts = $this->accounts->listOpenDuring($workspace, $first, $last, self::MAX_ACCOUNTS + 1);
+        $workspaceTimezone = new \DateTimeZone($this->timezones->timezone($workspace));
+        $accounts = $this->accounts->listOpenDuring($workspace, $first, $last, $workspaceTimezone, self::MAX_ACCOUNTS + 1);
         if (count($accounts) > self::MAX_ACCOUNTS) {
             throw new InvalidPeriodClosureInput('The workspace holds more accounts than a closing examines at once.');
         }

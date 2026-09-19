@@ -43,6 +43,7 @@ const netWorth: NetWorth = {
   delta: {
     comparedOn: '2026-08-05',
     previousTotal: amount('122940.00'),
+    previousReason: null,
     amount: amount('1740.00'),
     amountReason: null,
     rate: '0.014153651371808036440540',

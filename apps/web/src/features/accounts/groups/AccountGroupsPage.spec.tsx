@@ -123,6 +123,7 @@ function netWorth(overrides: Partial<NetWorth> = {}): NetWorth {
     delta: {
       comparedOn: '2026-08-05',
       previousTotal: amount('80000.00'),
+      previousReason: null,
       amount: amount('4100.00'),
       amountReason: null,
       rate: '0.051250000000000000000000',

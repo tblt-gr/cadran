@@ -70,14 +70,36 @@ final class InMemoryAccountRepository implements AccountRepository
         )), 0, $limit);
     }
 
-    public function listOpenDuring(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array
-    {
+    public function listForNetWorthDuring(
+        WorkspaceScope $workspace,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        \DateTimeZone $workspaceTimezone,
+        int $limit,
+    ): array {
         return array_slice(array_values(array_filter(
             $this->accounts,
             static fn (Account $account): bool => $account->workspace->equals($workspace)
-                && null === $account->archivedAt
+                && $account->includeInNetWorth
                 && $account->openedOn <= $to
-                && (null === $account->closedOn || $account->closedOn >= $from),
+                && (null === $account->closedOn || $account->closedOn >= $from)
+                && (null === $account->archivedAt || $account->archivedAt->setTimezone($workspaceTimezone)->format('Y-m-d') > $from->format('Y-m-d')),
+        )), 0, $limit);
+    }
+
+    public function listOpenDuring(
+        WorkspaceScope $workspace,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        \DateTimeZone $workspaceTimezone,
+        int $limit,
+    ): array {
+        return array_slice(array_values(array_filter(
+            $this->accounts,
+            static fn (Account $account): bool => $account->workspace->equals($workspace)
+                && $account->openedOn <= $to
+                && (null === $account->closedOn || $account->closedOn >= $from)
+                && (null === $account->archivedAt || $account->archivedAt->setTimezone($workspaceTimezone)->format('Y-m-d') > $from->format('Y-m-d')),
         )), 0, $limit);
     }
 

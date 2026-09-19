@@ -102,17 +102,50 @@ final readonly class DbalAccountRepository implements AccountRepository
         return $this->hydrateMany($this->netWorthRows($workspace, $limit), $workspace);
     }
 
-    public function listOpenDuring(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array
-    {
+    public function listForNetWorthDuring(
+        WorkspaceScope $workspace,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        \DateTimeZone $workspaceTimezone,
+        int $limit,
+    ): array {
         $rows = $this->connection->fetchAllAssociative(
             'SELECT '.self::COLUMNS.' FROM account_financial_accounts'
-            .' WHERE workspace_id = :workspace_id AND archived_at IS NULL AND opened_on <= :to_day'
+            .' WHERE workspace_id = :workspace_id AND include_in_net_worth = true AND opened_on <= :to_day'
             .' AND (closed_on IS NULL OR closed_on >= :from_day)'
+            .' AND (archived_at IS NULL OR timezone(:workspace_timezone, archived_at)::date > :from_day)'
+            .' ORDER BY kind, normalized_label, id LIMIT :limit',
+            [
+                'workspace_id' => $workspace->id,
+                'from_day' => $from->format('Y-m-d'),
+                'to_day' => $to->format('Y-m-d'),
+                'workspace_timezone' => $workspaceTimezone->getName(),
+                'limit' => $limit,
+            ],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return $this->hydrateMany($rows, $workspace);
+    }
+
+    public function listOpenDuring(
+        WorkspaceScope $workspace,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        \DateTimeZone $workspaceTimezone,
+        int $limit,
+    ): array {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.self::COLUMNS.' FROM account_financial_accounts'
+            .' WHERE workspace_id = :workspace_id AND opened_on <= :to_day'
+            .' AND (closed_on IS NULL OR closed_on >= :from_day)'
+            .' AND (archived_at IS NULL OR timezone(:workspace_timezone, archived_at)::date > :from_day)'
             .' ORDER BY id LIMIT :limit',
             [
                 'workspace_id' => $workspace->id,
                 'from_day' => $from->format('Y-m-d'),
                 'to_day' => $to->format('Y-m-d'),
+                'workspace_timezone' => $workspaceTimezone->getName(),
                 'limit' => $limit,
             ],
             ['limit' => ParameterType::INTEGER],

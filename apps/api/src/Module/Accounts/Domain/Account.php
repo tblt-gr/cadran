@@ -239,6 +239,16 @@ final readonly class Account
         );
     }
 
+    /** Whether this account still belongs to a historical business-day view. */
+    public function isActiveOn(\DateTimeImmutable $on, \DateTimeZone $workspaceTimezone): bool
+    {
+        $day = $on->format('Y-m-d');
+
+        return $this->openedOn->format('Y-m-d') <= $day
+            && (null === $this->closedOn || $this->closedOn->format('Y-m-d') >= $day)
+            && (null === $this->archivedAt || $this->archivedAt->setTimezone($workspaceTimezone)->format('Y-m-d') > $day);
+    }
+
     public function isClosed(): bool
     {
         return null !== $this->closedOn;
