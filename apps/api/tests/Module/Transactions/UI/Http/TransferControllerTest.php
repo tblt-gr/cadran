@@ -6,6 +6,7 @@ namespace App\Tests\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -15,6 +16,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class TransferControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private const string SOURCE_ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string TARGET_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
     private const string CHF_ACCOUNT = '00000000-0000-7000-8000-0000000000d3';
@@ -398,6 +401,54 @@ final class TransferControllerTest extends WebTestCase
         self::assertSame('2000.000000000000000000000000', $sums['INCOME']);
         self::assertSame('-89.900000000000000000000000', $sums['EXPENSE']);
         self::assertSame('0.000000000000000000000000', $sums['TRANSFER'] ?? null);
+    }
+
+    public function testATransferTouchingAClosedMonthIsRefusedInEveryWriteAndLeavesBothLegsUntouched(): void
+    {
+        $closed = $this->createTransfer(['bookedOn' => '2026-03-14']);
+        $open = $this->createTransfer(['bookedOn' => '2026-05-10']);
+        $closedId = self::stringValue($closed, 'id');
+        $openId = self::stringValue($open, 'id');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+        $legs = $this->countRows('SELECT count(*) FROM transaction_transactions');
+
+        $this->requestCreate($this->payload(['bookedOn' => '2026-03-20']));
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        $this->requestUpdate($closedId, $this->editBody('2026-03-14', 'Edited'));
+        self::assertResponseStatusCodeSame(409);
+        $this->requestUpdate($closedId, $this->editBody('2026-05-14'));
+        self::assertResponseStatusCodeSame(409);
+        $this->requestUpdate($openId, $this->editBody('2026-03-14'));
+        self::assertResponseStatusCodeSame(409);
+        $this->requestVoid($closedId, 1);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+
+        self::assertSame($legs, $this->countRows('SELECT count(*) FROM transaction_transactions'));
+        self::assertSame(0, $this->countRows("SELECT count(*) FROM transaction_transactions WHERE state = 'VOIDED'"));
+        self::assertSame(0, $this->countRows('SELECT count(*) FROM transaction_transactions WHERE version <> 1'));
+
+        // A closed month stays readable.
+        $this->client->request('GET', '/api/v1/transfers/'.$closedId);
+        self::assertResponseIsSuccessful();
+    }
+
+    private function countRows(string $sql): int
+    {
+        $count = $this->connection->fetchOne($sql);
+        self::assertTrue(is_int($count) || is_string($count));
+
+        return (int) $count;
+    }
+
+    /** @return array<string, mixed> */
+    private function editBody(string $bookedOn, string $label = 'Virement épargne'): array
+    {
+        return [
+            'sourceAccountId' => self::SOURCE_ACCOUNT, 'targetAccountId' => self::TARGET_ACCOUNT, 'state' => 'BOOKED',
+            'bookedOn' => $bookedOn, 'valueOn' => null, 'label' => $label, 'note' => null, 'fee' => null, 'version' => 1,
+        ];
     }
 
     /**

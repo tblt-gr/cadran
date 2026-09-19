@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Transactions\Infrastructure\Persistence;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Infrastructure\Persistence\DbalAccountRepository;
+use App\Module\Accounts\Infrastructure\Persistence\DbalPeriodClosureRepository;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Infrastructure\Persistence\DbalAuditEventRepository;
 use App\Module\Categories\Infrastructure\Persistence\DbalCategoryRepository;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Application\WorkspaceContext;
 use App\Module\Identity\Infrastructure\Persistence\DbalTransactionManager;
 use App\Module\Identity\Infrastructure\Workspace\DbalWorkspaceTimezoneReader;
@@ -18,7 +21,6 @@ use App\Module\Transactions\Application\CreateTransfer;
 use App\Module\Transactions\Application\CreateTransferInput;
 use App\Module\Transactions\Application\PresentTransaction;
 use App\Module\Transactions\Application\PresentTransfer;
-use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Application\TransferInputParser;
 use App\Module\Transactions\Application\TransferLegFactory;
 use App\Module\Transactions\Application\TransferReferences;
@@ -86,6 +88,7 @@ final class TransferPersistenceTest extends KernelTestCase
             presentTransfer: $this->presentTransfer(),
             clock: $clock,
             calendar: new WorkspaceCalendar($clock, $caller, new DbalWorkspaceTimezoneReader($this->connection)),
+            assertPeriodOpen: new AssertPeriodOpen(new DbalPeriodClosureRepository($this->connection)),
         );
 
         try {
@@ -341,6 +344,11 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
     public function countPendingInPeriod(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to): int
     {
         return $this->inner->countPendingInPeriod($workspace, $accountId, $from, $to);
+    }
+
+    public function countPendingInWorkspace(\App\Module\Foundation\Domain\WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int
+    {
+        return $this->inner->countPendingInWorkspace($workspace, $from, $to);
     }
 
     public function findBySourceRef(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction

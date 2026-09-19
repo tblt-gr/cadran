@@ -1497,6 +1497,56 @@
       }
     }
   },
+  "closures": {
+    "eyebrow": "Clôture mensuelle",
+    "title": "Clôture du mois",
+    "month": "Mois",
+    "loading": "Chargement de l’état du mois…",
+    "open": "Mois ouvert",
+    "closed": "Mois clôturé",
+    "notEnded": "Ce mois n’est pas terminé.",
+    "blockersCount_one": "{{count}} point bloquant à confirmer pour clôturer.",
+    "blockersCount_other": "{{count}} points bloquants à confirmer pour clôturer.",
+    "ownerOnly": "Seul le propriétaire de l’espace peut clôturer ou rouvrir un mois.",
+    "cancel": "Annuler",
+    "conditions": {
+      "UNRECONCILED_ACCOUNT": {
+        "confirm": "Je confirme clôturer avec {{count}} compte non rapproché.",
+        "reason": "Motif : compte non rapproché"
+      },
+      "UNEXPLAINED_DISCREPANCY": {
+        "confirm": "Je confirme clôturer avec {{count}} écart non expliqué.",
+        "reason": "Motif : écart non expliqué"
+      },
+      "PENDING_TRANSACTIONS": {
+        "confirm": "Je confirme clôturer avec {{count}} transaction en attente.",
+        "reason": "Motif : transactions en attente"
+      }
+    },
+    "close": {
+      "action": "Clôturer le mois",
+      "title": "Clôturer {{month}}",
+      "noBlockers": "Aucun point bloquant.",
+      "blockersIntro": "Chaque point ci-dessous bloque la clôture. Confirmez-le et donnez un motif pour continuer.",
+      "submit": "Confirmer la clôture"
+    },
+    "reopen": {
+      "action": "Rouvrir le mois",
+      "title": "Rouvrir {{month}}",
+      "intro": "Les modifications ordinaires redeviennent possibles. Le motif est conservé dans le journal d’audit.",
+      "reason": "Motif de la réouverture",
+      "submit": "Confirmer la réouverture"
+    },
+    "errors": {
+      "load": "L’état du mois n’a pas pu être chargé.",
+      "blocked": "Un point bloquant n’est pas confirmé. L’état du mois vient d’être rechargé : vérifiez la liste.",
+      "conflict": "Ce mois est déjà clôturé.",
+      "forbidden": "Seul le propriétaire de l’espace peut effectuer cette action.",
+      "invalid": "La demande est invalide : le mois doit être terminé et chaque motif fait 200 caractères au plus.",
+      "network": "L’opération a échoué. Réessayez.",
+      "stale": "Ce mois a été modifié ailleurs entre-temps. L’état vient d’être rechargé : réessayez."
+    }
+  },
   "transactions": {
     "eyebrow": "Mouvements de l’espace",
     "title": "Mouvements enregistrés",
@@ -1569,6 +1619,7 @@
       "conflict": "Cette transaction ne peut plus être modifiée. Rechargez la liste.",
       "stale": "Cette transaction a été modifiée ailleurs entre-temps. La liste vient d’être rechargée : rouvrez-la puis réappliquez votre modification.",
       "staleCursor": "La liste a changé pendant le chargement de cette page. Rechargez depuis le début pour continuer sans risquer un doublon ou un mouvement manquant.",
+      "periodClosed": "Cette période est clôturée : la modification est refusée. Demandez à un propriétaire de rouvrir le mois concerné.",
       "invalid": "La transaction est invalide. Vérifiez le compte, le montant, la date et la catégorie.",
       "unauthorized": "Votre session a expiré. Reconnectez-vous.",
       "network": "L’enregistrement a échoué. Réessayez."
@@ -1870,7 +1921,8 @@
       "status": "État",
       "match": "Transaction",
       "matched": "Reçue",
-      "unmatched": "Sans transaction"
+      "unmatched": "Sans transaction",
+      "periodClosed": "Mois clôturé : l’échéance reste en attente de comptabilisation"
     },
     "statuses": { "EXPECTED": "Attendue", "RECEIVED": "Reçue", "LATE": "En retard" }
   },

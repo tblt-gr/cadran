@@ -19,6 +19,7 @@ final readonly class FixedCallerWorkspace implements CallerWorkspace, CallerWork
     public function __construct(
         private string $workspaceId,
         private string $actorId = '00000000-0000-7000-8000-000000000001',
+        private bool $isOwner = true,
     ) {
     }
 
@@ -29,6 +30,6 @@ final readonly class FixedCallerWorkspace implements CallerWorkspace, CallerWork
 
     public function resolveContext(): WorkspaceContext
     {
-        return new WorkspaceContext($this->resolve(), $this->actorId);
+        return new WorkspaceContext($this->resolve(), $this->actorId, $this->isOwner);
     }
 }

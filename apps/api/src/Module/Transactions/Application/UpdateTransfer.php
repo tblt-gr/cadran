@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Foundation\Domain\WorkspaceScope;
-use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\InvalidTransfer;
 use App\Module\Transactions\Domain\Transaction;
@@ -37,6 +38,7 @@ final readonly class UpdateTransfer
         private PresentTransfer $presentTransfer,
         private ClockInterface $clock,
         private WorkspaceCalendar $calendar,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -73,6 +75,7 @@ final readonly class UpdateTransfer
             $sourceLeg = $legsById[$current->sourceTransactionId];
             $targetLeg = $legsById[$current->targetTransactionId];
             $existingFeeLeg = null === $current->feeTransactionId ? null : $legsById[$current->feeTransactionId];
+            ($this->assertPeriodOpen)($context->workspace, $sourceLeg->bookedOn, $targetLeg->bookedOn, $draft->bookedOn);
 
             if ($input->sourceAccountId !== $sourceLeg->accountId || $input->targetAccountId !== $targetLeg->accountId) {
                 throw new InvalidTransferInput('The transfer accounts are immutable.');

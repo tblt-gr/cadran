@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Module\Transactions\Application\Recurrence;
+namespace App\Module\Foundation\Application;
 
-use App\Module\Foundation\Application\CallerWorkspaceContext;
-use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use Symfony\Component\Clock\ClockInterface;
 
 /**

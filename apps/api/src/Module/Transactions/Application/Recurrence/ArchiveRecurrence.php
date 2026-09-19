@@ -9,6 +9,7 @@ use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceRepository;
 
 /**

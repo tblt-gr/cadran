@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Recurrence;
 
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Transactions\Domain\Recurrence\OccurrenceMatcher;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceOccurrenceRepository;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceRepository;

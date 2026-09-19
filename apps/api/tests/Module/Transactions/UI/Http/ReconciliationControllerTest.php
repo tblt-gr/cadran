@@ -6,6 +6,7 @@ namespace App\Tests\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -20,6 +21,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class ReconciliationControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private const string OWN_ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
     private const string OWN_SECOND_ACCOUNT = '00000000-0000-7000-8000-0000000000d3';
@@ -94,6 +97,52 @@ final class ReconciliationControllerTest extends WebTestCase
         self::assertCount(1, $splits);
         self::assertSame(1, $this->countTransactions());
         self::assertSame(1, $this->countAuditEvents('transaction.reconciled'));
+    }
+
+    public function testAnIncomingMovementCannotSettleAPendingRowOfAClosedMonth(): void
+    {
+        $pending = $this->createPending(['bookedOn' => '2026-04-30']);
+        $this->closeMonthInDatabase($this->connection, 2026, 4);
+
+        // The movement itself lands in an open month; the row it would settle
+        // leaves a closed one, which is as refused as entering it.
+        $this->requestCreate(['reconcile' => true, 'categoryId' => null, 'bookedOn' => '2026-05-02']);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertSame('PENDING', $this->readTransaction(self::stringValue($pending, 'id'))['state']);
+        self::assertSame(1, $this->countTransactions());
+    }
+
+    public function testResolvingAReviewInAClosedMonthIsRefusedAndLeavesTheReviewOpen(): void
+    {
+        $before = $this->createPending(['bookedOn' => '2026-04-11']);
+        $this->createPending(['bookedOn' => '2026-04-17']);
+        $reviewed = $this->createIncoming(['bookedOn' => '2026-04-14']);
+        $this->closeMonthInDatabase($this->connection, 2026, 4);
+
+        $this->reconcileRequest(self::stringValue($reviewed, 'id'), self::intValue($reviewed, 'version'), self::stringValue($before, 'id'));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertSame(0, $this->countBookedTransactions());
+        self::assertSame('AMBIGUOUS_MATCH', $this->readTransaction(self::stringValue($reviewed, 'id'))['reviewReason']);
+    }
+
+    public function testNamingACandidateOfAClosedMonthForAReviewOfAnOpenMonthIsRefused(): void
+    {
+        $inClosedMonth = $this->createPending(['bookedOn' => '2026-04-29']);
+        $this->createPending(['bookedOn' => '2026-05-05']);
+        $reviewed = $this->createIncoming(['bookedOn' => '2026-05-02']);
+        self::assertSame('AMBIGUOUS_MATCH', $reviewed['reviewReason']);
+        $this->closeMonthInDatabase($this->connection, 2026, 4);
+
+        $this->reconcileRequest(self::stringValue($reviewed, 'id'), self::intValue($reviewed, 'version'), self::stringValue($inClosedMonth, 'id'));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertSame('PENDING', $this->readTransaction(self::stringValue($inClosedMonth, 'id'))['state']);
+        self::assertSame('PENDING', $this->readTransaction(self::stringValue($reviewed, 'id'))['state']);
     }
 
     public function testASingleNearbyPendingRowOfTheSameAmountSettlesWithoutAnyIdentifier(): void

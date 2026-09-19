@@ -11,6 +11,7 @@ use App\Module\Foundation\Application\WorkspaceContext;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Identity\Application\AuthenticationUserRepository;
 use App\Module\Identity\Application\WorkspaceMembershipReader;
+use App\Module\Identity\Domain\Membership;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -57,6 +58,6 @@ final readonly class MembershipCallerWorkspace implements CallerWorkspace, Calle
             throw new WorkspaceAccessDenied('The caller belongs to no workspace.');
         }
 
-        return new WorkspaceContext($membership->workspace, $user->id);
+        return new WorkspaceContext($membership->workspace, $user->id, Membership::OWNER === $membership->role);
     }
 }

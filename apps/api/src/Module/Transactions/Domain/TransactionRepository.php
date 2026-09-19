@@ -112,6 +112,9 @@ interface TransactionRepository
         \DateTimeImmutable $to,
     ): int;
 
+    /** PENDING rows of the whole workspace booked between two days, inclusive. */
+    public function countPendingInWorkspace(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int;
+
     /**
      * The live row of one account already claiming this external identifier,
      * whatever its state. A settled or reviewed movement must be recognised

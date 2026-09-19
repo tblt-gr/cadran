@@ -10,6 +10,7 @@ use App\Module\Transactions\Application\Categorization\CategorizationExecutionBu
 use App\Module\Transactions\Infrastructure\Clock\HrtimeElapsedTime;
 use App\Module\Transactions\Infrastructure\Persistence\DbalCategorizationWriteLock;
 use App\Tests\Module\Transactions\Application\Double\SteppingElapsedTime;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -20,6 +21,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class CategorizationRuleControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private const string OWN_ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OWN_SECOND_ACCOUNT = '00000000-0000-7000-8000-0000000000d3';
     private const string OWN_ARCHIVED_ACCOUNT = '00000000-0000-7000-8000-0000000000d4';
@@ -318,6 +321,25 @@ final class CategorizationRuleControllerTest extends WebTestCase
         $this->signIn();
         self::assertSame([], $this->splitRows(self::TX_CARREFOUR));
         self::assertSame(1, $this->ruleVersion($id));
+    }
+
+    public function testApplyingARuleToAClosedMonthIsRefusedAsAWholeAndWritesNothing(): void
+    {
+        $this->seedHistory();
+        $rule = $this->createRule([
+            'conditions' => self::textConditions('RAW_LABEL', 'CONTAINS', 'carrefour'),
+            'targetCounterparty' => 'Carrefour',
+        ]);
+        $token = $this->preview(null);
+        $this->closeMonthInDatabase($this->connection, 2026, 2);
+
+        $this->requestApply($token);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertSame([], $this->splitRows(self::TX_CARREFOUR));
+        self::assertSame(1, $this->transactionVersion(self::TX_CARREFOUR));
+        self::assertSame(0, $this->appliedCount(self::text($rule, 'id')));
     }
 
     public function testPreviewCountsWithoutWritingAndApplyWritesTraceableRuleSplitsOnce(): void

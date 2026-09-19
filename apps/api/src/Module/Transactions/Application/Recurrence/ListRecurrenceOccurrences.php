@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Recurrence;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceOccurrence;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceOccurrenceRepository;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceRepository;
@@ -20,6 +22,7 @@ final readonly class ListRecurrenceOccurrences
         private TransactionRecurrenceRepository $recurrences,
         private TransactionRecurrenceOccurrenceRepository $occurrences,
         private WorkspaceCalendar $calendar,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -36,9 +39,16 @@ final readonly class ListRecurrenceOccurrences
         if ($to < $from || $to > $from->modify(sprintf('+%d months', self::MAX_WINDOW_MONTHS))) {
             throw new InvalidRecurrenceInput('The requested occurrence window is out of bounds.');
         }
+        $listed = $this->occurrences->listForRecurrence($workspace, $id, $from, $to, self::MAX_OCCURRENCES);
+        $closed = $this->assertPeriodOpen->closedMonthKeys(
+            $workspace,
+            array_map(static fn (TransactionRecurrenceOccurrence $occurrence): \DateTimeImmutable => $occurrence->expectedOn, $listed),
+        );
         $items = array_map(
-            static fn (TransactionRecurrenceOccurrence $occurrence): array => OccurrenceView::from($occurrence, $today),
-            $this->occurrences->listForRecurrence($workspace, $id, $from, $to, self::MAX_OCCURRENCES),
+            static fn (TransactionRecurrenceOccurrence $occurrence): array => OccurrenceView::from(
+                $occurrence, $today, isset($closed[$occurrence->expectedOn->format('Y-m')]),
+            ),
+            $listed,
         );
 
         return ['items' => $items, 'total' => count($items)];

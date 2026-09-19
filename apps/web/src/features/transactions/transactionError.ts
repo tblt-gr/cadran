@@ -1,7 +1,7 @@
 import type { Problem } from '@cadran/api-client';
 
 export type TransactionErrorKind =
-  'conflict' | 'invalid' | 'network' | 'stale' | 'staleCursor' | 'unauthorized';
+  'conflict' | 'invalid' | 'network' | 'periodClosed' | 'stale' | 'staleCursor' | 'unauthorized';
 
 /**
  * A refused transaction request, classified by its RFC 9457 problem type
@@ -25,6 +25,9 @@ export class TransactionRequestError extends Error {
 function classify(status: number, problemType: string | undefined): TransactionErrorKind {
   if (problemType === '/problems/stale-version') {
     return 'stale';
+  }
+  if (problemType === '/problems/period-closed') {
+    return 'periodClosed';
   }
   if (problemType === '/problems/transaction-conflict') {
     return 'conflict';

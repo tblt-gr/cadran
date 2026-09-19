@@ -7,6 +7,7 @@ namespace App\Tests\Module\Transactions\UI\Http;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Module\Transactions\UI\Http\TransactionHttpEnvelope;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -16,6 +17,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class TransactionControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private const string OWN_ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
     private const string OWN_EXPENSE = '00000000-0000-7000-8000-0000000000c1';
@@ -1397,6 +1400,140 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame('/problems/transaction.belongs_to_refund', $this->decode()['type']);
     }
 
+    public function testEveryOrdinaryWriteTouchingAClosedMonthIsRefusedWithTheSameProblem(): void
+    {
+        $closedRow = $this->createTransaction(['bookedOn' => '2026-03-14']);
+        $openRow = $this->createTransaction(['bookedOn' => '2026-05-10', 'rawLabel' => 'OPEN MONTH']);
+        $februaryRow = $this->createTransaction(['bookedOn' => '2026-02-10', 'rawLabel' => 'BEFORE THE CLOSED MONTH']);
+        $closedId = self::stringValue($closedRow, 'id');
+        $openId = self::stringValue($openRow, 'id');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+        $rows = $this->ownTransactionCount();
+
+        $refusals = [];
+        $attempts = [
+            'create' => fn () => $this->requestCreate($this->payload(overrides: ['bookedOn' => '2026-03-20'])),
+            'update in place' => fn () => $this->requestUpdate($closedId, [...$closedRow, 'note' => 'edited']),
+            // The write moves a date: leaving a closed month is as refused as entering one.
+            'update leaving' => fn () => $this->requestUpdate($closedId, [...$closedRow, 'bookedOn' => '2026-05-11']),
+            'update entering' => fn () => $this->requestUpdate($openId, [...$openRow, 'bookedOn' => '2026-03-31']),
+            'void' => fn () => $this->requestVoid($closedId, 1),
+            'replace splits' => fn () => $this->requestReplaceSplits($closedId, 1, [$this->splitRow(self::OWN_EXPENSE, '-42.90')]),
+            'refund booked in a closed month' => fn () => $this->requestRefund(self::stringValue($februaryRow, 'id'), [
+                'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '1.00', 'assetCode' => 'EUR'],
+                'bookedOn' => '2026-03-15', 'rawLabel' => 'Refund', 'counterparty' => null, 'note' => null,
+            ]),
+            'refund of a closed month original' => fn () => $this->requestRefund($closedId, [
+                'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '1.00', 'assetCode' => 'EUR'],
+                'bookedOn' => '2026-05-15', 'rawLabel' => 'Refund', 'counterparty' => null, 'note' => null,
+            ]),
+        ];
+        foreach ($attempts as $name => $attempt) {
+            $attempt();
+            self::assertResponseStatusCodeSame(409, $name);
+            $refusals[$name] = $this->decode();
+            self::assertSame('/problems/period-closed', $refusals[$name]['type'], $name);
+        }
+        // One stable, non-enumerating error: identical whatever the caller and whichever side is closed.
+        self::assertCount(1, array_unique(array_map(static fn (array $problem): string => json_encode($problem, JSON_THROW_ON_ERROR), $refusals)));
+        self::assertStringNotContainsString('2026', json_encode($refusals['create'], JSON_THROW_ON_ERROR));
+        self::assertSame($rows, $this->ownTransactionCount());
+        self::assertSame(1, $this->decodeFromRow($closedId)['version']);
+        self::assertSame(1, $this->decodeFromRow($openId)['version']);
+        self::assertSame(0, $this->countRows('SELECT count(*) FROM transaction_refunds'));
+
+        // A closed month stays fully readable.
+        $this->client->request('GET', '/api/v1/transactions');
+        self::assertResponseIsSuccessful();
+        self::assertContains($closedId, array_column($this->items(), 'id'));
+    }
+
+    public function testDuplicatingIntoAClosedCurrentMonthIsRefused(): void
+    {
+        $row = $this->createTransaction(['bookedOn' => '2026-05-10']);
+        $today = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris'));
+        $this->closeMonthInDatabase($this->connection, (int) $today->format('Y'), (int) $today->format('n'));
+        $rows = $this->ownTransactionCount();
+
+        $this->requestDuplicate(self::stringValue($row, 'id'));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertSame($rows, $this->ownTransactionCount());
+    }
+
+    public function testAnIdempotentReplayIsRefusedOnceItsMonthHasClosed(): void
+    {
+        $key = 'closed-month-replay-key-0001';
+        $this->requestCreate($this->payload(overrides: ['bookedOn' => '2026-03-14']), $key);
+        self::assertResponseStatusCodeSame(201);
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $this->requestCreate($this->payload(overrides: ['bookedOn' => '2026-03-14']), $key);
+
+        // Not the stored 201: it would describe a write that is no longer allowed.
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertNull($this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertSame(1, $this->ownTransactionCount());
+    }
+
+    public function testARefundReplayIsRefusedWhenTheOriginalsMonthHasClosed(): void
+    {
+        $original = $this->createTransaction(['bookedOn' => '2026-03-14']);
+        $key = 'refund-replay-closed-key-0001';
+        $body = [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '1.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-05-15', 'rawLabel' => 'Refund', 'counterparty' => null, 'note' => null,
+        ];
+        $this->requestRefund(self::stringValue($original, 'id'), $body, $key);
+        self::assertResponseStatusCodeSame(201);
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $this->requestRefund(self::stringValue($original, 'id'), $body, $key);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertNull($this->client->getResponse()->headers->get('Idempotency-Replayed'));
+    }
+
+    public function testAKeyWithUnknownDaysIsRefusedOnlyWhenTheWorkspaceHasAClosure(): void
+    {
+        $key = 'legacy-key-unknown-days-0001';
+        $this->requestCreate($this->payload(overrides: ['bookedOn' => '2026-05-14']), $key);
+        self::assertResponseStatusCodeSame(201);
+        $this->connection->executeStatement('UPDATE transaction_idempotency_keys SET period_days = NULL');
+
+        $this->requestCreate($this->payload(overrides: ['bookedOn' => '2026-05-14']), $key);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
+
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+        $this->requestCreate($this->payload(overrides: ['bookedOn' => '2026-05-14']), $key);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+    }
+
+    public function testAnIdempotentReplayOfAnOpenMonthIsStillServed(): void
+    {
+        $key = 'open-month-replay-key-00001';
+        $this->requestCreate($this->payload(overrides: ['bookedOn' => '2026-05-14']), $key);
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+        $this->requestCreate($this->payload(overrides: ['bookedOn' => '2026-05-14']), $key);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
+    }
+
+    public function testAClosureOfAnotherWorkspaceDoesNotRefuseThisWorkspace(): void
+    {
+        $this->closeMonthInDatabase($this->connection, 2026, 3, WorkspaceFixture::OTHER_WORKSPACE, WorkspaceFixture::OTHER_OWNER_ID);
+
+        $this->requestCreate($this->payload(overrides: ['bookedOn' => '2026-03-14']));
+
+        self::assertResponseStatusCodeSame(201);
+    }
+
     /**
      * @param array<string, mixed> $overrides
      *
@@ -1664,6 +1801,14 @@ final class TransactionControllerTest extends WebTestCase
             'created_at' => '2026-03-14 09:12:04+00',
             'updated_at' => '2026-03-14 09:12:04+00',
         ]);
+    }
+
+    private function countRows(string $sql): int
+    {
+        $count = $this->connection->fetchOne($sql);
+        self::assertTrue(is_int($count) || is_string($count));
+
+        return (int) $count;
     }
 
     private function ownTransactionCount(): int

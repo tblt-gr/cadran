@@ -348,3 +348,33 @@ api:
     transfer_forbidden:
       title: 'Virements inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    period_closed:
+      title: 'Période clôturée'
+      detail: 'Cette opération touche une période clôturée. Rouvrez la période avant de modifier ses mouvements.'
+    period_closing_blocked:
+      title: 'Clôture bloquée'
+      detail: 'Au moins une condition empêche la clôture. Confirmez explicitement chacune avec un motif pour la lever.'
+    period_closure_conflict:
+      title: 'Clôture impossible'
+      detail: "Cette période est déjà clôturée ou l'état demandé n'est pas compatible avec son état actuel."
+    period_closure_stale_version:
+      title: 'Clôture modifiée entre-temps'
+      detail: 'La clôture a été modifiée par une autre requête. Rechargez la période puis recommencez.'
+    period_closure_not_found:
+      title: 'Période non clôturée'
+      detail: 'Aucune clôture active ne correspond à cette période dans cet espace de travail.'
+    period_closure_forbidden:
+      title: 'Réservé au propriétaire'
+      detail: "Seul le propriétaire de l'espace peut lever une condition de clôture ou rouvrir une période."
+    period_closure_no_workspace:
+      title: 'Périodes inaccessibles'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
+    period_closure_payload_too_large:
+      title: 'Requête trop volumineuse'
+      detail: 'Le corps de la requête dépasse la taille autorisée pour une clôture.'
+    invalid_period_closure:
+      title: 'Clôture invalide'
+      detail: 'Vérifiez la période (une période se clôture une fois terminée), le motif (obligatoire, 200 caractères au plus) et les conditions confirmées, qui doivent être réellement bloquantes.'
+    invalid_period_closure_query:
+      title: 'Requête de clôtures invalide'
+      detail: "L'année doit comporter quatre chiffres."

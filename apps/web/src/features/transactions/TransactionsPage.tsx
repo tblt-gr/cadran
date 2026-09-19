@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Toast } from '@/components/ui/toast/Toast';
+import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { CategorizationTabs } from './categorization-tabs/CategorizationTabs';
 import { TransactionList } from './transaction-list/TransactionList';
@@ -154,6 +155,8 @@ export function TransactionsPage() {
         voidMutation={voidMutation}
         voiding={voiding}
       />
+
+      <PeriodClosurePanel />
 
       <CategorizationTabs
         onChange={(next) =>

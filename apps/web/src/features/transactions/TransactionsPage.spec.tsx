@@ -1,7 +1,7 @@
 import type { Account, Category, Transaction } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { TransactionsPage } from './TransactionsPage';
 
@@ -10,9 +10,11 @@ const api = vi.hoisted(() => ({
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
   duplicateTransaction: vi.fn(),
+  getSession: vi.fn(),
   listAccounts: vi.fn(),
   listCategories: vi.fn(),
   listTransactions: vi.fn(),
+  readPeriodStatus: vi.fn(),
   updateTransaction: vi.fn(),
   voidTransaction: vi.fn(),
 }));
@@ -21,6 +23,23 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
   ...api,
 }));
+
+beforeEach(() => {
+  api.getSession.mockResolvedValue({
+    data: {
+      provisioned: true,
+      authenticated: true,
+      setupRequired: false,
+      user: null,
+      workspace: null,
+    },
+    response: { ok: true, status: 200 },
+  });
+  api.readPeriodStatus.mockResolvedValue({
+    data: { period: '2026-08', closed: false, ended: true, closure: null, blockers: [] },
+    response: { ok: true, status: 200 },
+  });
+});
 
 const account = {
   id: '00000000-0000-7000-8000-0000000000d1',

@@ -17,7 +17,10 @@ interface IdempotencyKeyRepository
         \DateTimeImmutable $expiresAt,
     ): IdempotencyKey;
 
-    /** @param array<string, mixed> $responseBody */
+    /**
+     * @param array<string, mixed> $responseBody
+     * @param list<string>         $periodDays
+     */
     public function complete(
         WorkspaceScope $workspace,
         IdempotencyKey $key,
@@ -25,6 +28,7 @@ interface IdempotencyKeyRepository
         array $responseBody,
         ?string $entityId,
         \DateTimeImmutable $completedAt,
+        array $periodDays = [],
     ): void;
 
     /** Deletes at most $limit expired records and returns the number removed. */

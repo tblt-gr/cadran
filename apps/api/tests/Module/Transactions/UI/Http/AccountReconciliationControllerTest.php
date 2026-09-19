@@ -6,6 +6,7 @@ namespace App\Tests\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -19,6 +20,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class AccountReconciliationControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private const string ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
     private const string OPENING = '00000000-0000-7000-8000-0000000000b1';
@@ -137,6 +140,58 @@ final class AccountReconciliationControllerTest extends WebTestCase
         self::assertSame([], $body['availableResolutions']);
         self::assertSame(1, (int) $this->scalar("SELECT count(*) FROM transaction_transactions WHERE nature = 'ADJUSTMENT' AND state = 'BOOKED'"));
         self::assertSame(1, (int) $this->scalar("SELECT count(*) FROM audit_events WHERE event_type = 'account.reconciled'"));
+    }
+
+    public function testAnAdjustmentIntoAClosedMonthIsRefusedAndTheSnapshotStaysUnreconciled(): void
+    {
+        $this->closeMonthInDatabase($this->connection, 2026, 4);
+        $before = (int) $this->scalar('SELECT count(*) FROM transaction_transactions');
+
+        $body = $this->post(self::ACCOUNT, $this->resolution('ADJUST'));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $body['type']);
+        self::assertSame($before, (int) $this->scalar('SELECT count(*) FROM transaction_transactions'));
+        self::assertSame('UNRECONCILED', $this->snapshotStatus(self::CLOSING));
+        self::assertSame(0, (int) $this->scalar("SELECT count(*) FROM audit_events WHERE event_type = 'account.reconciled'"));
+    }
+
+    public function testOverrideAndMatchIntoAClosedMonthAreRefusedToo(): void
+    {
+        $this->closeMonthInDatabase($this->connection, 2026, 4);
+
+        foreach (['OVERRIDE', 'MATCH'] as $resolution) {
+            $body = $this->post(self::ACCOUNT, $this->resolution($resolution));
+
+            self::assertResponseStatusCodeSame(409, $resolution);
+            self::assertSame('/problems/period-closed', $body['type']);
+        }
+        self::assertSame('UNRECONCILED', $this->snapshotStatus(self::CLOSING));
+        self::assertSame(0, (int) $this->scalar("SELECT count(*) FROM audit_events WHERE event_type IN ('account.reconciled', 'account.reconciliation_overridden')"));
+    }
+
+    public function testAReconciliationReplayIsRefusedOnceItsMonthHasClosed(): void
+    {
+        $key = 'reconcile-closed-replay-0001';
+        $this->post(self::ACCOUNT, $this->resolution('ADJUST'), $key);
+        self::assertResponseStatusCodeSame(200);
+        $this->closeMonthInDatabase($this->connection, 2026, 4);
+
+        $body = $this->post(self::ACCOUNT, $this->resolution('ADJUST'), $key);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $body['type']);
+        self::assertNull($this->client->getResponse()->headers->get('Idempotency-Replayed'));
+    }
+
+    public function testTheViewOfAClosedMonthStaysReadable(): void
+    {
+        $this->closeMonthInDatabase($this->connection, 2026, 4);
+
+        $body = $this->get(self::ACCOUNT, self::CLOSING);
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame(['value' => '-5.25', 'assetCode' => 'EUR'], $body['discrepancy']);
     }
 
     public function testAReplayedKeyReturnsTheStoredResponseWithoutASecondAdjustment(): void

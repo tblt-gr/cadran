@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -12,12 +13,12 @@ use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Reference\Application\AssetCatalog;
-use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\Transaction;
@@ -46,10 +47,11 @@ final readonly class CreateRefund
         private PresentTransaction $presentTransaction,
         private ClockInterface $clock,
         private WorkspaceCalendar $calendar,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
-    public function __invoke(string $originalId, CreateRefundInput $input): TransactionView
+    public function __invoke(string $originalId, CreateRefundInput $input): CreatedRefund
     {
         $context = $this->caller->resolveContext();
         try {
@@ -62,7 +64,7 @@ final readonly class CreateRefund
             throw new InvalidTransactionInput('The refund input is invalid.', previous: $exception);
         }
 
-        return $this->transactionBoundary->transactional(function () use ($context, $originalId, $input, $magnitude, $bookedOn): TransactionView {
+        return $this->transactionBoundary->transactional(function () use ($context, $originalId, $input, $magnitude, $bookedOn): CreatedRefund {
             // This is deliberately the first transaction lock. Every refund
             // writer serialises here before observing and consuming the cap.
             $original = $this->transactions->findForUpdate($context->workspace, $originalId);
@@ -70,6 +72,7 @@ final readonly class CreateRefund
                 throw new TransactionNotFound();
             }
             $this->assertOriginal($original, $bookedOn);
+            ($this->assertPeriodOpen)($context->workspace, $original->bookedOn, $bookedOn);
             // Checked before the cap: comparing magnitudes across two assets
             // would otherwise let a foreign-currency amount masquerade as an
             // over- or under-cap request instead of the asset mismatch it is.
@@ -137,7 +140,7 @@ final readonly class CreateRefund
                 $refund->id, AuditDiff::creation(TransactionAuditFingerprint::of($refund)),
             ));
 
-            return $this->presentTransaction->one($refund);
+            return new CreatedRefund($this->presentTransaction->one($refund), $original->bookedOn->format('Y-m-d'));
         });
     }
 

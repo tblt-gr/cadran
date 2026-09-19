@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Reconciliation;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -56,6 +57,7 @@ final readonly class ReconcileTransaction
         private UuidGenerator $uuidGenerator,
         private CategorizationWriteLock $categorizationWriteLock,
         private MatchTransactionToOccurrence $matchRecurrence,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -70,6 +72,7 @@ final readonly class ReconcileTransaction
             $locked = $this->lock($context->workspace, $id, $candidateIds, $matchedTransactionId);
 
             $reviewed = $locked[$id] ?? throw new TransactionNotFound();
+            ($this->assertPeriodOpen)($context->workspace, $reviewed->bookedOn);
             if ($version !== $reviewed->version) {
                 throw new StaleTransactionVersion('The transaction changed concurrently.');
             }

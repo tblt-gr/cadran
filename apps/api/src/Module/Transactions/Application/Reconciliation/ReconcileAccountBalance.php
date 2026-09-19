@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Reconciliation;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\ReconciliationStatus;
@@ -46,6 +47,7 @@ final readonly class ReconcileAccountBalance
         private CategorizationWriteLock $categorizationWriteLock,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -67,6 +69,8 @@ final readonly class ReconcileAccountBalance
             if (null === $account || null === $snapshot) {
                 throw new AccountReconciliationNotFound('No such snapshot on this account in this workspace.');
             }
+            // Every resolution writes into the snapshot's month, movement or not.
+            ($this->assertPeriodOpen)($workspace, $snapshot->asOf);
             if (ReconciliationStatus::RECONCILED === $snapshot->reconciliationStatus) {
                 throw new AccountReconciliationConflict('This snapshot is already reconciled.');
             }

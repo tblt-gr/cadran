@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
-use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -36,6 +37,7 @@ final readonly class UpdateTransaction
         private CategorizationWriteLock $categorizationWriteLock,
         private MatchTransactionToOccurrence $matchRecurrence,
         private WorkspaceCalendar $calendar,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -67,6 +69,7 @@ final readonly class UpdateTransaction
             if (null === $current) {
                 throw new TransactionNotFound();
             }
+            ($this->assertPeriodOpen)($context->workspace, $current->bookedOn, $draft->bookedOn);
             if ($this->refunds->hasLiveRefund($context->workspace, $id)) {
                 throw new TransactionHasRefunds('An original with live refunds cannot be edited.');
             }

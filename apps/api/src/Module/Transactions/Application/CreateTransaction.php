@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Transactions\Application\Categorization\AutoCategorizeTransaction;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Application\Reconciliation\MatchIncomingMovement;
 use App\Module\Transactions\Application\Reconciliation\SettlePendingTransaction;
 use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
-use App\Module\Transactions\Application\Recurrence\WorkspaceCalendar;
 use App\Module\Transactions\Domain\DuplicateSourceReference;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\Reconciliation\ReconciliationRepository;
@@ -46,6 +47,7 @@ final readonly class CreateTransaction
         private MatchIncomingMovement $matchIncomingMovement,
         private SettlePendingTransaction $settlePending,
         private ReconciliationRepository $reconciliations,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -71,6 +73,7 @@ final readonly class CreateTransaction
         return $this->transactionBoundary->transactional(function () use ($context, $draft, $input, $source): TransactionView {
             $this->categorizationWriteLock->acquire($context->workspace);
             $now = $this->clock->now();
+            ($this->assertPeriodOpen)($context->workspace, $draft->bookedOn);
             $today = $this->calendar->today();
             $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
             $match = $input->reconcile
