@@ -19,6 +19,7 @@ use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
+use App\Tests\Module\Accounts\Application\Double\FixedWorkspaceTimezoneReader;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountBalanceSnapshotRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
 use App\Tests\Module\Accounts\Domain\AccountGroupFixture;
@@ -100,6 +101,7 @@ final class ReadNetWorthHistoryTest extends TestCase
                     $this->snapshot('2026-08-15', '12000.00'),
                     $this->snapshot('2026-09-05', '12500.00'),
                 ),
+                new FixedWorkspaceTimezoneReader(),
             ),
             InMemoryAssetCatalog::withCodes('EUR'),
             new MockClock('2026-09-05 09:00:00', 'UTC'),

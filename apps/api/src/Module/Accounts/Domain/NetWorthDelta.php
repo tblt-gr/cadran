@@ -21,6 +21,7 @@ final readonly class NetWorthDelta
     public function __construct(
         public \DateTimeImmutable $comparedOn,
         public ?DecimalValue $previousTotal,
+        public ?NetWorthReason $previousReason,
         public ?DecimalValue $amount,
         public ?NetWorthReason $amountReason,
         public ?DecimalValue $rate,
@@ -29,6 +30,9 @@ final readonly class NetWorthDelta
         public ?AssetCode $asset,
         public ?AssetCode $previousAsset,
     ) {
+        if ((null === $previousTotal) === (null === $previousReason)) {
+            throw new \InvalidArgumentException('A previous net worth carries either a figure or a reason.');
+        }
         if (null !== $amountReason && null !== $amount) {
             throw new \InvalidArgumentException('A non-calculable delta cannot carry a figure.');
         }
@@ -49,6 +53,7 @@ final readonly class NetWorthDelta
             return new self(
                 comparedOn: $previous->asOf,
                 previousTotal: $previous->total,
+                previousReason: $previous->reason,
                 amount: null,
                 amountReason: $blocking,
                 rate: null,
@@ -72,6 +77,7 @@ final readonly class NetWorthDelta
         return new self(
             comparedOn: $previous->asOf,
             previousTotal: $base,
+            previousReason: null,
             amount: $amount,
             amountReason: null,
             rate: $rate,

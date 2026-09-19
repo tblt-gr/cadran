@@ -26,6 +26,7 @@ final readonly class NetWorthDeltaView
     public function __construct(
         public string $comparedOn,
         public ?NetWorthAmountView $previousTotal,
+        public ?string $previousReason,
         public ?NetWorthAmountView $amount,
         public ?string $amountReason,
         public ?string $rate,
@@ -44,6 +45,7 @@ final readonly class NetWorthDeltaView
                 $delta->previousAsset,
                 $references->for($delta->previousAsset),
             ),
+            previousReason: $delta->previousReason?->value,
             amount: NetWorthAmountView::of($delta->amount, $delta->asset, $references->for($delta->asset)),
             amountReason: $delta->amountReason?->value,
             rate: $delta->rate?->toString(),

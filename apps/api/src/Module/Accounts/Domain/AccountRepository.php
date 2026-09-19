@@ -43,12 +43,33 @@ interface AccountRepository
     public function listForNetWorth(WorkspaceScope $workspace, int $limit): array;
 
     /**
-     * Non-archived accounts open at some point of $from..$to, capped at $limit.
-     * An account is open from its opening day to its closing day, inclusive.
+     * Accounts included in net worth and active on at least one day of the
+     * requested historical interval, capped at $limit.
      *
      * @return list<Account>
      */
-    public function listOpenDuring(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array;
+    public function listForNetWorthDuring(
+        WorkspaceScope $workspace,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        \DateTimeZone $workspaceTimezone,
+        int $limit,
+    ): array;
+
+    /**
+     * Accounts active at some point of $from..$to, capped at $limit. Opening
+     * and closing days are inclusive; the workspace-local day of archival is
+     * excluded.
+     *
+     * @return list<Account>
+     */
+    public function listOpenDuring(
+        WorkspaceScope $workspace,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        \DateTimeZone $workspaceTimezone,
+        int $limit,
+    ): array;
 
     public function hasActiveLabel(
         WorkspaceScope $workspace,

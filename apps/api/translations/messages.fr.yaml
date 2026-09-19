@@ -1,5 +1,14 @@
 api:
   problem:
+    invalid_monthly_projection_query:
+      title: 'Mois de projection invalide'
+      detail: 'Le mois doit être une période valide au format AAAA-MM.'
+    monthly_projection_scope_too_large:
+      title: 'Projection mensuelle trop volumineuse'
+      detail: 'La projection dépasse les limites de lecture autorisées.'
+    monthly_projection_forbidden:
+      title: 'Projection mensuelle inaccessible'
+      detail: 'Vous ne pouvez pas consulter cette projection mensuelle.'
     not_found:
       title: 'Ressource introuvable'
       detail: "La ressource d'API demandée est introuvable."

@@ -67,6 +67,7 @@ final readonly class NetWorthRepresentation
         return [
             'comparedOn' => $delta->comparedOn,
             'previousTotal' => self::amount($delta->previousTotal),
+            'previousReason' => $delta->previousReason,
             'amount' => self::amount($delta->amount),
             'amountReason' => $delta->amountReason,
             'rate' => $delta->rate,

@@ -65,6 +65,7 @@ final class NetWorthDeltaTest extends TestCase
         $delta = NetWorthDelta::between(self::netWorth('124680.00', '2026-09-05'), self::withoutValuation('2026-08-31'));
 
         self::assertNull($delta->amount);
+        self::assertSame(NetWorthReason::MISSING_VALUATION, $delta->previousReason);
         self::assertSame(NetWorthReason::MISSING_VALUATION, $delta->amountReason);
         self::assertSame(NetWorthReason::MISSING_VALUATION, $delta->rateReason);
         self::assertNull($delta->previousTotal);

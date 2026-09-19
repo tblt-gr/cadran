@@ -12,6 +12,7 @@ use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Accounts\Domain\NetWorthContribution;
 use App\Module\Accounts\Domain\ValuationQuality;
+use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -33,6 +34,7 @@ final readonly class ResolveNetWorthContributions
     public function __construct(
         private AccountRepository $accounts,
         private AccountBalanceSnapshotRepository $snapshots,
+        private WorkspaceTimezoneReader $timezones,
     ) {
     }
 
@@ -43,7 +45,19 @@ final readonly class ResolveNetWorthContributions
      */
     public function on(WorkspaceScope $workspace, array $dates): NetWorthContributionSet
     {
-        $accounts = $this->accounts->listForNetWorth($workspace, self::MAX_ACCOUNTS + 1);
+        if ([] === $dates) {
+            throw new \InvalidArgumentException('A net-worth contribution read needs at least one date.');
+        }
+        $orderedDates = $dates;
+        usort($orderedDates, static fn (\DateTimeImmutable $left, \DateTimeImmutable $right): int => $left <=> $right);
+        $workspaceTimezone = new \DateTimeZone($this->timezones->timezone($workspace));
+        $accounts = $this->accounts->listForNetWorthDuring(
+            $workspace,
+            $orderedDates[0],
+            $orderedDates[count($orderedDates) - 1],
+            $workspaceTimezone,
+            self::MAX_ACCOUNTS + 1,
+        );
         if (count($accounts) > self::MAX_ACCOUNTS) {
             throw new NetWorthScopeTooLarge('This workspace holds more accounts than one net-worth aggregate reads.');
         }
@@ -62,6 +76,7 @@ final readonly class ResolveNetWorthContributions
                     $account,
                     $date,
                     $latest[$day][$account->id] ?? null,
+                    $workspaceTimezone,
                 ),
                 $accounts,
             );
@@ -74,12 +89,13 @@ final readonly class ResolveNetWorthContributions
         Account $account,
         \DateTimeImmutable $on,
         ?AccountBalanceSnapshot $snapshot,
+        \DateTimeZone $workspaceTimezone,
     ): NetWorthContribution {
         $valuation = AccountValuation::of(
             new AccountBalanceSnapshots(null === $snapshot ? [] : [$snapshot]),
             $on,
         );
-        $eligible = self::openOn($account, $on);
+        $eligible = $account->isActiveOn($on, $workspaceTimezone);
 
         return new NetWorthContribution(
             accountId: $account->id,
@@ -92,22 +108,5 @@ final readonly class ResolveNetWorthContributions
             valuedOn: ValuationQuality::MISSING === $valuation->quality ? null : $valuation->asOf,
             eligible: $eligible,
         );
-    }
-
-    /**
-     * An account contributes on the days it existed. The closing day itself
-     * still counts: the balance recorded when an account is closed is part of
-     * that day's picture, and dropping it would show a fall that never
-     * happened.
-     */
-    private static function openOn(Account $account, \DateTimeImmutable $on): bool
-    {
-        $day = $on->format('Y-m-d');
-
-        if ($account->openedOn->format('Y-m-d') > $day) {
-            return false;
-        }
-
-        return null === $account->closedOn || $account->closedOn->format('Y-m-d') >= $day;
     }
 }
