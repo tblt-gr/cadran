@@ -112,6 +112,28 @@ describe('TransactionsPage', () => {
     vi.clearAllMocks();
   });
 
+  it('opens the monthly closure flow before the recurrence action', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    renderPage();
+
+    const closureButton = screen.getByRole('button', { name: 'Clôture du mois' });
+    const recurrencesLink = screen.getByRole('link', { name: 'Gérer les récurrences' });
+    expect(
+      closureButton.compareDocumentPosition(recurrencesLink) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByRole('dialog', { name: 'Clôture du mois' })).toBeNull();
+
+    fireEvent.click(closureButton);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
+    expect(within(dialog).getByLabelText('Mois')).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Fermer' }));
+    await waitFor(() => expect(document.activeElement).toBe(closureButton));
+  });
+
   it('offers every category, expenses first, whatever the nature or the sign', async () => {
     const incomeCategory = {
       ...expenseCategory,

@@ -1508,6 +1508,7 @@
     "blockersCount_one": "{{count}} point bloquant à confirmer pour clôturer.",
     "blockersCount_other": "{{count}} points bloquants à confirmer pour clôturer.",
     "ownerOnly": "Seul le propriétaire de l’espace peut clôturer ou rouvrir un mois.",
+    "back": "Retour",
     "cancel": "Annuler",
     "conditions": {
       "UNRECONCILED_ACCOUNT": {

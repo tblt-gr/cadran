@@ -8,12 +8,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--spacing-3);
 }
 
-.heading h3 {
-  margin: var(--spacing-none);
+.action {
+  width: fit-content;
+  align-self: flex-end;
 }
 
 .month {

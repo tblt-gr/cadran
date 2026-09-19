@@ -67,7 +67,7 @@ function renderPanel() {
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <PeriodClosurePanel initialPeriod="2026-08" />
+      <PeriodClosurePanel close={vi.fn()} initialPeriod="2026-08" />
     </QueryClientProvider>,
   );
 }
@@ -97,14 +97,36 @@ describe('PeriodClosurePanel', () => {
     renderPanel();
 
     expect(await screen.findByText('Mois ouvert')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Clôturer le mois' }));
-    const dialog = await screen.findByRole('dialog', { name: /Clôturer/ });
+    const dialog = screen.getByRole('dialog', { name: 'Clôture du mois' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Clôturer le mois' }));
+    expect(screen.getByRole('dialog', { name: /Clôturer août 2026/ })).toBe(dialog);
     expect(within(dialog).getByText('Aucun point bloquant.')).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmer la clôture' }));
 
     await waitFor(() =>
       expect(api.closePeriod).toHaveBeenCalledWith(
         expect.objectContaining({ path: { period: '2026-08' }, body: { overrides: {} } }),
+      ),
+    );
+  });
+
+  it('returns from the confirmation to the month status in the same dialog', async () => {
+    api.readPeriodStatus.mockResolvedValue(ok(status()));
+    renderPanel();
+
+    const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
+    await within(dialog).findByText('Mois ouvert');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Clôturer le mois' }));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Retour' })),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Retour' }));
+
+    expect(screen.getByRole('dialog', { name: 'Clôture du mois' })).toBe(dialog);
+    expect(within(dialog).getByText('Mois ouvert')).toBeTruthy();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        within(dialog).getByRole('button', { name: 'Clôturer le mois' }),
       ),
     );
   });

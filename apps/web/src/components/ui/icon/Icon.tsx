@@ -10,6 +10,7 @@ type IconName =
   | 'arrow-up'
   | 'balance'
   | 'budget'
+  | 'calendar'
   | 'catalog'
   | 'categories'
   | 'chevron-left'
@@ -51,6 +52,8 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="M12 5v14M5 12h14" />;
     case 'budget':
       return <path d="M5 4h14v16H5zM8 8h8M8 12h3m2 0h3M8 16h3m2 0h3" />;
+    case 'calendar':
+      return <path d="M5 5h14v15H5zM8 3v4m8-4v4M5 9h14m-10 4h2m2 0h2m-6 3h2m2 0h2" />;
     case 'catalog':
       return <path d="M5 4h11l3 3v13H5zM8 9h8M8 13h8M8 17h5" />;
     case 'categories':
