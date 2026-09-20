@@ -25,10 +25,10 @@ export const navigationItems: NavigationItem[] = [
     mobile: true,
   },
   {
-    href: '/months/2026-03',
+    href: '/budget',
     icon: 'budget',
     labelKey: 'navigation.budget',
-    match: (path) => /^\/months\/\d{4}-(0[1-9]|1[0-2])$/.test(path),
+    match: (path) => path === '/budget' || /^\/budget\/[^/]+$/.test(path),
   },
   {
     href: '/accounts',
@@ -94,6 +94,7 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
   if (/^\/accounts\/(?!groups$)[^/]+$/.test(pathname)) return 'routes.accountDetail';
   if (/^\/life-insurance\/[^/]+$/.test(pathname)) return 'routes.lifeInsurance';
   if (pathname === '/reports/all-years') return 'routes.allYearsReport';
+  if (/^\/budget\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';
 
   return navigationItems.find((item) => item.match(pathname))?.labelKey ?? 'routes.notFound';
 }

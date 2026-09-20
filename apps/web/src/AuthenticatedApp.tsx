@@ -19,6 +19,7 @@ import { FoundationErrorState } from '@/features/foundation/FoundationErrorState
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { ProfileSettingsPage } from '@/features/settings/ProfileSettingsPage';
+import { BudgetPage } from '@/features/budget/BudgetPage';
 import { getRouteTitleKey } from '@/lib/navigation';
 
 /**
@@ -75,6 +76,10 @@ export function AuthenticatedApp() {
     content = <TransactionsPage />;
   } else if (path === '/transactions/recurrences') {
     content = <RecurrencesPage />;
+  } else if (path === '/budget') {
+    content = <BudgetPage />;
+  } else if (/^\/budget\/[^/]+$/.test(path)) {
+    content = <BudgetPage planId={path.split('/')[2]} />;
   } else if (path === '/settings/profile') {
     content = <ProfileSettingsPage />;
   } else if (path !== '/') {
@@ -110,6 +115,8 @@ export function AuthenticatedApp() {
         path !== '/product-models' &&
         path !== '/transactions' &&
         path !== '/transactions/recurrences' &&
+        path !== '/budget' &&
+        !/^\/budget\/[^/]+$/.test(path) &&
         path !== '/settings/profile'
       }
     >

@@ -111,6 +111,33 @@ api:
     category_operation_refused:
       title: 'Opération de catégorie refusée'
       detail: "L'aperçu d'impact refuse cette opération. Le champ « blockers » en donne toutes les raisons."
+    invalid_budget_query:
+      title: 'Requête de budgets invalide'
+      detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
+    invalid_budget_plan:
+      title: 'Plan budgétaire invalide'
+      detail: 'Vérifiez la période, la devise, la version et l’état du plan budgétaire.'
+    invalid_budget_target:
+      title: 'Objectif budgétaire invalide'
+      detail: 'Vérifiez le périmètre, la valeur exacte et la référence de cet objectif.'
+    budget_payload_too_large:
+      title: 'Corps de budget trop volumineux'
+      detail: 'Le corps JSON dépasse la taille maximale autorisée.'
+    budget_plan_not_found:
+      title: 'Plan budgétaire introuvable'
+      detail: 'Aucun plan budgétaire ne porte cet identifiant dans cet espace de travail.'
+    budget_target_not_found:
+      title: 'Objectif budgétaire introuvable'
+      detail: 'Aucun objectif budgétaire ne porte cet identifiant dans cet espace de travail.'
+    budget_conflict:
+      title: 'Conflit de budget'
+      detail: 'Le plan ou l’objectif a été modifié, ou un plan est déjà actif pour cette période.'
+    budget_scope_too_large:
+      title: 'Périmètre budgétaire trop volumineux'
+      detail: 'Le calcul des revenus de la période dépasse les limites de lecture autorisées.'
+    budget_forbidden:
+      title: 'Budgets inaccessibles'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
     invalid_account_query:
       title: 'Requête de comptes invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'

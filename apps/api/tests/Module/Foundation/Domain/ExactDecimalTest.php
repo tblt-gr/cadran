@@ -94,6 +94,25 @@ final class ExactDecimalTest extends TestCase
         self::assertSame(0, $product->compareTo(DecimalValue::fromString('39015')));
     }
 
+    public function testResponseMultiplicationRoundsMaximumOperandScalesHalfUpToTwentyFourPlaces(): void
+    {
+        $product = ExactDecimal::multiplyForResponse(
+            DecimalValue::fromString('0.000000000000000000000001'),
+            DecimalValue::fromString('0.500000000000000000000000'),
+        );
+
+        self::assertSame('0.000000000000000000000001', $product);
+    }
+
+    public function testResponseMultiplicationDoesNotApplyTheStorageIntegerDigitLimit(): void
+    {
+        $maximum = DecimalValue::fromString('99999999999999999999999999');
+
+        $product = ExactDecimal::multiplyForResponse($maximum, $maximum);
+
+        self::assertSame(str_repeat('9', 25).'8'.str_repeat('0', 25).'1', $product);
+    }
+
     /**
      * @return array{
      *   add: list<array{a: string, b: string, result: string}>,

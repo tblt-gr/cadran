@@ -4,6 +4,18 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - Unreleased
+
+### Added
+
+- Workspace-scoped budget plans and category, group or analytic-axis targets for monthly or
+  annual periods: plans move through draft, active and closed states with audited activation and
+  closure; targets store exact AMOUNT or RATIO values with a single asset code inherited from the
+  plan; overlap between parent and child scopes is detected at read time; ratio targets surface
+  explicit non-calculable reasons (`ZERO_CASH_INCOME`, `MIXED_ASSETS`, `NO_ACCOUNT`) instead of a
+  silent zero; and the Budget screen manages plans and targets through the shared modal without
+  hard-coding a 50/30/20 rule.
+
 ## [0.3.0] - 2026-09-17
 
 ### Added
