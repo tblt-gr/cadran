@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { BudgetPage } from './BudgetPage';
 
@@ -13,6 +13,7 @@ const api = vi.hoisted(() => ({
   updateBudgetTarget: vi.fn(),
   activateBudgetPlan: vi.fn(),
   closeBudgetPlan: vi.fn(),
+  readBudgetComparisons: vi.fn(),
   listCategories: vi.fn(),
 }));
 vi.mock('@cadran/api-client', async (original) => ({
@@ -42,10 +43,20 @@ const target = {
   overlapping: false,
   version: 1,
 };
-function renderPage(planId?: string) {
-  const client = new QueryClient({
+const comparisons = {
+  planId: plan.id,
+  period: plan.period,
+  assetCode: plan.assetCode,
+  status: 'AVAILABLE' as const,
+  reason: null,
+  comparisons: [],
+};
+function renderPage(
+  planId?: string,
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
+  }),
+) {
   return render(
     <QueryClientProvider client={client}>
       <BudgetPage planId={planId} />
@@ -53,6 +64,10 @@ function renderPage(planId?: string) {
   );
 }
 describe('BudgetPage', () => {
+  beforeEach(() => {
+    api.readBudgetComparisons.mockReturnValue(ok(comparisons));
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
@@ -160,6 +175,23 @@ describe('BudgetPage', () => {
     expect(
       screen.getByText('Saisissez le ratio décimal exact : 0.30 correspond à 30 %.'),
     ).toBeTruthy();
+  });
+  it('invalidates the budget comparison after an edited target is saved', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));
+    api.readBudgetPlan.mockReturnValue(ok(detail({ targets: [target] })));
+    api.updateBudgetTarget.mockReturnValue(ok(target));
+    renderPage(plan.id, client);
+
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Modifier' }))[1]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['budget-comparisons', plan.id] }),
+    );
   });
   it.each([
     [401, 'Votre session n’autorise pas cette opération.'],

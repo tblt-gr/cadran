@@ -11,6 +11,7 @@ use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -26,6 +27,8 @@ final readonly class ArchiveAccount
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
         private ResolveAccountValuation $valuations,
+        private AssertPeriodOpen $periods,
+        private WorkspaceTimezoneReader $timezones,
     ) {
     }
 
@@ -46,8 +49,24 @@ final readonly class ArchiveAccount
                 throw new AccountArchived('An archived account is read-only.');
             }
 
+            $archivedAt = $this->clock->now();
+            $archiveBoundary = $archivedAt
+                ->setTimezone(new \DateTimeZone($this->timezones->timezone($context->workspace)))
+                ->setTime(0, 0)
+                ->modify('-1 day');
+            $effectiveClosedOn = null === $current->closedOn || $archiveBoundary < $current->closedOn
+                ? $archiveBoundary
+                : $current->closedOn;
+            $this->periods->assertAccountLifecycleUnchangedForClosures(
+                $context->workspace,
+                $current->openedOn,
+                $current->closedOn,
+                $current->openedOn,
+                $effectiveClosedOn,
+            );
+
             try {
-                $archived = $current->archive($this->clock->now());
+                $archived = $current->archive($archivedAt);
             } catch (InvalidAccount $exception) {
                 throw new InvalidAccountInput($exception->getMessage(), previous: $exception);
             }

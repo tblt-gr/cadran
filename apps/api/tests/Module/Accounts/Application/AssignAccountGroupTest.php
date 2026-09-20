@@ -6,10 +6,12 @@ namespace App\Tests\Module\Accounts\Application;
 
 use App\Module\Accounts\Application\AccountProduct;
 use App\Module\Accounts\Application\AccountProductModel;
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Application\InvalidAccountInput;
 use App\Module\Accounts\Application\ResolveAccountValuation;
 use App\Module\Accounts\Application\UpdateAccount;
 use App\Module\Accounts\Application\UpdateAccountInput;
+use App\Module\Accounts\Domain\PeriodClosureRepository;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
@@ -127,6 +129,7 @@ final class AssignAccountGroupTest extends TestCase
                 InMemoryAssetCatalog::withCodes('EUR'),
                 $clock,
             ),
+            new AssertPeriodOpen($this->createStub(PeriodClosureRepository::class)),
         );
     }
 }

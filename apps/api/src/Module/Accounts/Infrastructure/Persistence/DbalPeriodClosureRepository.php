@@ -70,6 +70,30 @@ final readonly class DbalPeriodClosureRepository implements PeriodClosureReposit
         );
     }
 
+    public function activeBetween(WorkspaceScope $workspace, CalendarMonth $from, ?CalendarMonth $to): array
+    {
+        $parameters = [
+            'workspace_id' => $workspace->id,
+            'from_index' => $from->year * 12 + $from->month,
+        ];
+        $upper = '';
+        if (null !== $to) {
+            $upper = ' AND (year * 12 + month) <= :to_index';
+            $parameters['to_index'] = $to->year * 12 + $to->month;
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT year, month FROM account_period_closures WHERE workspace_id = :workspace_id'
+            .' AND reopened_at IS NULL AND (year * 12 + month) >= :from_index'.$upper
+            .' ORDER BY year, month',
+            $parameters,
+        );
+
+        return array_map(
+            static fn (array $row): CalendarMonth => new CalendarMonth((int) self::scalar($row['year'] ?? null), (int) self::scalar($row['month'] ?? null)),
+            $rows,
+        );
+    }
+
     public function findActive(WorkspaceScope $workspace, CalendarMonth $month): ?PeriodClosure
     {
         $row = $this->connection->fetchAssociative(

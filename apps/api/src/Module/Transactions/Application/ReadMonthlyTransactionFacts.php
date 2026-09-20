@@ -36,7 +36,7 @@ final readonly class ReadMonthlyTransactionFacts
             throw new MonthlyTransactionScopeTooLarge('A monthly projection reads at most 500 transactions.');
         }
 
-        $pendingCount = count(array_filter(
+        $pending = array_values(array_filter(
             $rows,
             static fn (Transaction $transaction): bool => TransactionState::PENDING === $transaction->state,
         ));
@@ -46,17 +46,25 @@ final readonly class ReadMonthlyTransactionFacts
         ));
 
         return new MonthlyTransactionFacts(
-            array_map(static fn (Transaction $transaction): MonthlyTransactionFact => new MonthlyTransactionFact(
-                $transaction->accountId,
-                $transaction->amount->value,
-                $transaction->amount->asset,
-                $transaction->nature->value,
-                array_map(static fn ($split): MonthlyTransactionSplitFact => new MonthlyTransactionSplitFact(
-                    $split->categoryId,
-                    $split->amount->value,
-                ), $transaction->splits),
-            ), $booked),
-            $pendingCount,
+            array_map(self::fact(...), $booked),
+            array_map(self::fact(...), $pending),
+            count($pending),
+        );
+    }
+
+    private static function fact(Transaction $transaction): MonthlyTransactionFact
+    {
+        return new MonthlyTransactionFact(
+            $transaction->id,
+            $transaction->accountId,
+            $transaction->amount->value,
+            $transaction->amount->asset,
+            $transaction->nature->value,
+            array_map(static fn ($split): MonthlyTransactionSplitFact => new MonthlyTransactionSplitFact(
+                $split->categoryId,
+                $split->amount->value,
+                array_map(static fn ($axis): string => $axis->value, $split->analyticAxes),
+            ), $transaction->splits),
         );
     }
 }

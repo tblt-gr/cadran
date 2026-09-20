@@ -1044,6 +1044,33 @@ paths:
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/budget-plans/{id}/comparisons:
+    get:
+      operationId: readBudgetComparisons
+      summary: Compare a monthly budget plan with its scoped actual expenses
+      description: >-
+        Derives each target independently from the built-in monthly reporting
+        policy. The response never publishes a combined total across overlapping
+        targets and remains readable when the plan is closed.
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Exact target-to-actual comparisons, or an explicit no-target state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BudgetComparisons' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/budget-plans/{id}/activate:
     post:
       operationId: activateBudgetPlan
@@ -4629,6 +4656,12 @@ components:
     BudgetValueType:
       type: string
       enum: [AMOUNT, RATIO]
+    BudgetComparisonStatus:
+      type: string
+      enum: [WITHIN_TARGET, ON_TARGET, OVER_TARGET, NON_CALCULABLE]
+    BudgetComparisonReason:
+      type: string
+      enum: [MISSING_TARGET, MIXED_ASSETS, NO_ACCOUNT, ZERO_CASH_INCOME]
     BudgetPeriod:
       type: string
       pattern: '^\d{4}(-(0[1-9]|1[0-2]))?$'
@@ -4737,6 +4770,78 @@ components:
         targets:
           type: array
           items: { $ref: '#/components/schemas/BudgetTargetDetail' }
+    BudgetComparison:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          targetId,
+          scopeType,
+          scopeId,
+          actual,
+          actualReason,
+          target,
+          targetReason,
+          variance,
+          status,
+          includedTransactionIds,
+          pendingCount,
+          overlapping,
+          policy,
+        ]
+      properties:
+        targetId: { type: string, format: uuid }
+        scopeType: { $ref: '#/components/schemas/BudgetScopeType' }
+        scopeId: { type: string, minLength: 1, maxLength: 64 }
+        actual:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        actualReason:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetComparisonReason'
+            - type: 'null'
+        target:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        targetReason:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetComparisonReason'
+            - type: 'null'
+        variance:
+          description: Exact target minus actual amount; positive means budget remains.
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        status: { $ref: '#/components/schemas/BudgetComparisonStatus' }
+        includedTransactionIds:
+          type: array
+          maxItems: 500
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        pendingCount: { type: integer, minimum: 0, maximum: 500 }
+        overlapping: { type: boolean }
+        policy:
+          type: string
+          description: Human-readable built-in metric policy applied to this comparison; not a selectable or persisted identifier.
+    BudgetComparisons:
+      type: object
+      additionalProperties: false
+      required: [planId, period, assetCode, status, reason, comparisons]
+      properties:
+        planId: { type: string, format: uuid }
+        period: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        assetCode: { type: string, minLength: 2, maxLength: 12, pattern: '^[A-Z][A-Z0-9]+$' }
+        status: { type: string, enum: [AVAILABLE, NO_TARGETS] }
+        reason:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetComparisonReason'
+            - type: 'null'
+        comparisons:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/BudgetComparison' }
     CreateBudgetPlanRequest:
       type: object
       additionalProperties: false

@@ -11,6 +11,7 @@ final readonly class MonthlyTransactionFact
 {
     /** @param list<MonthlyTransactionSplitFact> $splits */
     public function __construct(
+        public string $id,
         public string $accountId,
         public DecimalValue $amount,
         public AssetCode $asset,

@@ -135,6 +135,9 @@ api:
     budget_scope_too_large:
       title: 'Périmètre budgétaire trop volumineux'
       detail: 'Le calcul des revenus de la période dépasse les limites de lecture autorisées.'
+    budget_comparison_unavailable:
+      title: 'Comparaison budgétaire indisponible'
+      detail: 'Les comparaisons avec les résultats réels sont disponibles pour les plans mensuels.'
     budget_forbidden:
       title: 'Budgets inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."

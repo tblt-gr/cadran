@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -19,6 +20,7 @@ final readonly class UpdateCategory
         private CallerWorkspaceContext $caller,
         private CategoryRepository $categories,
         private PresentCategory $presentCategory,
+        private AssertPeriodOpen $periods,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
     ) {
@@ -43,6 +45,9 @@ final readonly class UpdateCategory
             // would otherwise blame a label freed by the archive itself.
             if (null !== $current->archivedAt) {
                 throw new InvalidCategoryInput('An archived category is read-only.');
+            }
+            if ($input->budgetIncluded !== $current->budgetIncluded) {
+                $this->periods->assertNoActiveClosure($context->workspace);
             }
 
             $hasChildren = $this->categories->hasChildren($context->workspace, $current->id);

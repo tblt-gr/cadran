@@ -16,6 +16,7 @@ final readonly class MonthlyMovement
         public MonthlyMovementKind $kind,
         public array $splits,
         public bool $savingsDestination,
+        public string $transactionId = '',
     ) {
     }
 }

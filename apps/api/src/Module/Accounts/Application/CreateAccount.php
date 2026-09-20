@@ -32,6 +32,7 @@ final readonly class CreateAccount
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
         private ResolveAccountValuation $valuations,
+        private AssertPeriodOpen $periods,
     ) {
     }
 
@@ -86,6 +87,13 @@ final readonly class CreateAccount
             $openedOn,
             $closedOn,
         ): AccountView {
+            $this->periods->assertAccountLifecycleUnchangedForClosures(
+                $context->workspace,
+                null,
+                null,
+                $openedOn,
+                $closedOn,
+            );
             if ($this->accounts->hasActiveLabel($context->workspace, $label)) {
                 throw new AccountConflict('An active account already uses this label.');
             }

@@ -63,8 +63,13 @@ final readonly class ReadMonthlyProjection
                 $fact->amount,
                 $fact->asset,
                 MonthlyMovementKind::from($fact->nature),
-                array_map(static fn ($split): MonthlySplit => new MonthlySplit($split->categoryId, $split->amount), $fact->splits),
+                array_map(static fn ($split): MonthlySplit => new MonthlySplit(
+                    $split->categoryId,
+                    $split->amount,
+                    $split->analyticAxes,
+                ), $fact->splits),
                 $accountsById[$fact->accountId]->savingsDestination ?? false,
+                $fact->id,
             ),
             $transactionFacts->booked,
         );

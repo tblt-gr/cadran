@@ -77,6 +77,11 @@
   flex-direction: column;
   gap: var(--spacing-4);
 }
+.comparisons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
 .tableWrap {
   overflow-x: auto;
 }

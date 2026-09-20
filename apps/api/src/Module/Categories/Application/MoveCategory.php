@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -27,6 +28,7 @@ final readonly class MoveCategory
         private CallerWorkspaceContext $caller,
         private CategoryRepository $categories,
         private AssessCategoryImpact $assessImpact,
+        private AssertPeriodOpen $periods,
         private PresentCategory $presentCategory,
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
@@ -40,6 +42,7 @@ final readonly class MoveCategory
         $parentId = CategoryInputParser::optionalIdentifier($parentId);
 
         return $this->transactionBoundary->transactional(function () use ($id, $parentId, $expectedVersion, $context): CategoryView {
+            $this->periods->assertNoActiveClosure($context->workspace);
             $impact = ($this->assessImpact)(
                 $context->workspace,
                 CategoryLifecycleOperation::MOVE,

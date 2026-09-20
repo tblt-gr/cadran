@@ -49,7 +49,7 @@ final class MonthlyProjectionCalculator
                 continue;
             }
 
-            if (!in_array($movement->kind, [MonthlyMovementKind::EXPENSE, MonthlyMovementKind::FEE, MonthlyMovementKind::REFUND], true)) {
+            if (!self::contributesToBudgetExpenses($movement->kind)) {
                 continue;
             }
 
@@ -81,6 +81,11 @@ final class MonthlyProjectionCalculator
             MonthlyMetric::value($savings, $asset),
             $rate,
         );
+    }
+
+    public static function contributesToBudgetExpenses(MonthlyMovementKind $kind): bool
+    {
+        return in_array($kind, [MonthlyMovementKind::EXPENSE, MonthlyMovementKind::FEE, MonthlyMovementKind::REFUND], true);
     }
 
     private static function allMissing(MonthlyProjectionReason $reason): MonthlyTransactionMetrics

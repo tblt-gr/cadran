@@ -29,6 +29,14 @@ interface PeriodClosureRepository
 
     public function hasActive(WorkspaceScope $workspace): bool;
 
+    /**
+     * Active closures between the inclusive bounds, oldest first. A null end
+     * leaves the range open for an account with no closing date.
+     *
+     * @return list<CalendarMonth>
+     */
+    public function activeBetween(WorkspaceScope $workspace, CalendarMonth $from, ?CalendarMonth $to): array;
+
     public function findActive(WorkspaceScope $workspace, CalendarMonth $month): ?PeriodClosure;
 
     /**

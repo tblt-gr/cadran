@@ -71,6 +71,49 @@ final class ExactDecimal
         return (string) $product->toScale($scale, BrickRoundingMode::HalfUp);
     }
 
+    /** Multiplies an unbounded calculated response value by a stored decimal. */
+    public static function multiplyCanonicalForResponse(string $left, DecimalValue $right): string
+    {
+        $product = BigDecimal::of($left)->multipliedBy(self::toBig($right));
+        $leftScale = BigDecimal::of($left)->getScale();
+        $scale = max(0, min($leftScale + $right->scale(), DecimalValue::MAX_SCALE));
+
+        return (string) $product->toScale($scale, BrickRoundingMode::HalfUp);
+    }
+
+    /**
+     * Subtracts API-only calculated decimals which may legitimately exceed the
+     * storage integer width after a ratio multiplication. Both inputs are
+     * internal canonical strings, never untrusted request values.
+     */
+    public static function subtractForResponse(string $left, string $right): string
+    {
+        return (string) BigDecimal::of($left)->minus(BigDecimal::of($right));
+    }
+
+    /** Adds API-only calculated decimals without applying the storage width. */
+    public static function addForResponse(string $left, string $right): string
+    {
+        return (string) BigDecimal::of($left)->plus(BigDecimal::of($right));
+    }
+
+    /** Negates an API-only calculated decimal while preserving its scale. */
+    public static function negateForResponse(string $value): string
+    {
+        return (string) BigDecimal::of($value)->negated();
+    }
+
+    /** Orders API-only calculated decimals without converting through a float. */
+    public static function compareForResponse(string $left, string $right): int
+    {
+        return BigDecimal::of($left)->compareTo(BigDecimal::of($right));
+    }
+
+    public static function isZeroForResponse(string $value): bool
+    {
+        return BigDecimal::of($value)->isZero();
+    }
+
     public static function signed(DecimalValue $value, int $sign): DecimalValue
     {
         return $sign < 0 ? self::fromBig(self::toBig($value)->negated()) : $value;

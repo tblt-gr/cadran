@@ -88,6 +88,49 @@ final class PeriodClosurePersistenceTest extends KernelTestCase
         self::assertSame([], $this->closures->closedAmong(WorkspaceFixture::other(), [new CalendarMonth(2026, 3)]));
     }
 
+    public function testAccountLifecycleChangesAreRefusedOnlyWhenTheyChangeAClosedMonthsMembership(): void
+    {
+        $this->closures->add($this->closure('c01', 2026, 3));
+        $guard = new AssertPeriodOpen($this->closures);
+        $workspace = WorkspaceFixture::own();
+
+        $guard->assertAccountLifecycleUnchangedForClosures(
+            $workspace,
+            null,
+            null,
+            new \DateTimeImmutable('2026-04-01'),
+            null,
+        );
+        $guard->assertAccountLifecycleUnchangedForClosures(
+            $workspace,
+            new \DateTimeImmutable('2026-01-01'),
+            null,
+            new \DateTimeImmutable('2026-02-01'),
+            null,
+        );
+
+        /** @var array<string, array{?string, ?string, string, ?string}> $lifecycleChanges */
+        $lifecycleChanges = [
+            'backdated creation' => [null, null, '2026-01-01', null],
+            'opening moved after closure' => ['2026-01-01', null, '2026-04-01', null],
+            'closing moved before closure' => ['2026-01-01', null, '2026-01-01', '2026-02-28'],
+        ];
+        foreach ($lifecycleChanges as $name => [$oldOpened, $oldClosed, $newOpened, $newClosed]) {
+            try {
+                $guard->assertAccountLifecycleUnchangedForClosures(
+                    $workspace,
+                    null === $oldOpened ? null : new \DateTimeImmutable($oldOpened),
+                    null === $oldClosed ? null : new \DateTimeImmutable($oldClosed),
+                    new \DateTimeImmutable($newOpened),
+                    null === $newClosed ? null : new \DateTimeImmutable($newClosed),
+                );
+                self::fail('A lifecycle change affecting a closed month must be refused: '.$name);
+            } catch (PeriodClosed) {
+                self::addToAssertionCount(1);
+            }
+        }
+    }
+
     public function testTheDatabaseKeepsOneActiveClosurePerMonthAndAllowsAReclosureAfterReopening(): void
     {
         $first = $this->closure('c01', 2026, 3);
