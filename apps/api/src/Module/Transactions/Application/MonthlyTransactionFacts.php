@@ -6,8 +6,14 @@ namespace App\Module\Transactions\Application;
 
 final readonly class MonthlyTransactionFacts
 {
-    /** @param list<MonthlyTransactionFact> $booked */
-    public function __construct(public array $booked, public int $pendingCount)
-    {
+    /**
+     * @param list<MonthlyTransactionFact> $booked
+     * @param list<MonthlyTransactionFact> $pending
+     */
+    public function __construct(
+        public array $booked,
+        public array $pending,
+        public int $pendingCount,
+    ) {
     }
 }

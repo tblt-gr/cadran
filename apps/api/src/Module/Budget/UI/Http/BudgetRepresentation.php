@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\UI\Http;
 
+use App\Module\Budget\Application\BudgetComparisonsView;
+use App\Module\Budget\Application\BudgetComparisonView;
 use App\Module\Budget\Application\BudgetPlanDetailView;
 use App\Module\Budget\Application\BudgetPlanPage;
 use App\Module\Budget\Application\BudgetPlanView;
 use App\Module\Budget\Application\BudgetTargetDetailView;
 use App\Module\Budget\Application\BudgetTargetView;
+use App\Module\Reporting\Application\MonthlyBudgetSourceView;
 
 final class BudgetRepresentation
 {
@@ -56,6 +59,19 @@ final class BudgetRepresentation
     }
 
     /** @return array<string, mixed> */
+    public static function comparisons(BudgetComparisonsView $view): array
+    {
+        return [
+            'planId' => $view->planId,
+            'period' => $view->period,
+            'assetCode' => $view->assetCode,
+            'status' => $view->status,
+            'reason' => $view->reason,
+            'comparisons' => array_map(self::comparison(...), $view->comparisons),
+        ];
+    }
+
+    /** @return array<string, mixed> */
     private static function targetDetail(BudgetTargetDetailView $target): array
     {
         return [
@@ -64,6 +80,32 @@ final class BudgetRepresentation
             'storedRatio' => $target->storedRatio, 'resolvedAmount' => $target->resolvedAmount,
             'nonCalculableReason' => $target->nonCalculableReason, 'overlapping' => $target->overlapping,
             'version' => $target->version,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function comparison(BudgetComparisonView $comparison): array
+    {
+        return [
+            'targetId' => $comparison->targetId,
+            'scopeType' => $comparison->scopeType,
+            'scopeId' => $comparison->scopeId,
+            'actual' => $comparison->actual,
+            'actualReason' => $comparison->actualReason,
+            'target' => $comparison->target,
+            'targetReason' => $comparison->targetReason,
+            'variance' => $comparison->variance,
+            'status' => $comparison->status,
+            'includedTransactions' => array_map(static fn (MonthlyBudgetSourceView $source): array => [
+                'id' => $source->id,
+                'bookedOn' => $source->bookedOn,
+                'rawLabel' => $source->rawLabel,
+                'amount' => $source->amount,
+                'assetCode' => $source->assetCode,
+            ], $comparison->includedTransactions),
+            'pendingCount' => $comparison->pendingCount,
+            'overlapping' => $comparison->overlapping,
+            'policy' => $comparison->policy,
         ];
     }
 }

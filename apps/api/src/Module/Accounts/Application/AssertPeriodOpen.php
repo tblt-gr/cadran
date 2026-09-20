@@ -56,6 +56,39 @@ final readonly class AssertPeriodOpen
     }
 
     /**
+     * Refuses only lifecycle edits that change whether an account belongs to
+     * an active closed month. The shared lock keeps the decision atomic with
+     * the account write and a concurrent close/reopen.
+     *
+     * @throws PeriodClosed
+     */
+    public function assertAccountLifecycleUnchangedForClosures(
+        WorkspaceScope $workspace,
+        ?\DateTimeInterface $oldOpenedOn,
+        ?\DateTimeInterface $oldClosedOn,
+        \DateTimeInterface $newOpenedOn,
+        ?\DateTimeInterface $newClosedOn,
+    ): void {
+        $from = null === $oldOpenedOn || $newOpenedOn < $oldOpenedOn ? $newOpenedOn : $oldOpenedOn;
+        $to = null === $oldClosedOn || null === $newClosedOn
+            ? null
+            : ($newClosedOn > $oldClosedOn ? $newClosedOn : $oldClosedOn);
+
+        $this->closures->lockShared($workspace);
+        $closedMonths = $this->closures->activeBetween(
+            $workspace,
+            CalendarMonth::containing($from),
+            null === $to ? null : CalendarMonth::containing($to),
+        );
+        foreach ($closedMonths as $month) {
+            $wasIncluded = null !== $oldOpenedOn && self::overlaps($oldOpenedOn, $oldClosedOn, $month);
+            if ($wasIncluded !== self::overlaps($newOpenedOn, $newClosedOn, $month)) {
+                throw new PeriodClosed();
+            }
+        }
+    }
+
+    /**
      * Reads without locking, for a screen that surfaces what a closure keeps
      * from being written.
      *
@@ -76,5 +109,14 @@ final readonly class AssertPeriodOpen
         }
 
         return $closed;
+    }
+
+    private static function overlaps(\DateTimeInterface $openedOn, ?\DateTimeInterface $closedOn, CalendarMonth $month): bool
+    {
+        $opened = $openedOn->format('Y-m-d');
+        $closed = $closedOn?->format('Y-m-d');
+
+        return $opened <= $month->lastDay()->format('Y-m-d')
+            && (null === $closed || $closed >= $month->firstDay()->format('Y-m-d'));
     }
 }

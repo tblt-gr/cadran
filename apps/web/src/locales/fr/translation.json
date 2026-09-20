@@ -2219,6 +2219,30 @@
       "add": "Ajouter un objectif",
       "empty": "Ajoutez un objectif avant d’activer ce plan."
     },
+    "comparisons": {
+      "title": "Résultats",
+      "description": "Les réalisations et écarts sont calculés par le serveur selon la politique mensuelle applicable.",
+      "loading": "Chargement des résultats budgétaires…",
+      "error": "Impossible de charger les résultats budgétaires.",
+      "empty": "Aucun objectif à comparer pour cette période.",
+      "actual": "Réalisé",
+      "target": "Objectif",
+      "variance": "Écart restant",
+      "pending_one": "{{count}} transaction en attente",
+      "pending_other": "{{count}} transactions en attente",
+      "sources_one": "{{count}} transaction incluse",
+      "sources_other": "{{count}} transactions incluses",
+      "policy": {
+        "summary": "Méthode de calcul appliquée",
+        "description": "Les dépenses, frais et remboursements comptabilisés et non annulés sont inclus dans les catégories du budget. Pour les ventilations, seule la part relevant du périmètre est comptée. Les transactions en attente sont signalées, mais exclues des montants ; les virements et ajustements sont exclus."
+      },
+      "statuses": {
+        "WITHIN_TARGET": "Dans le budget",
+        "ON_TARGET": "Objectif atteint",
+        "OVER_TARGET": "Dépassement",
+        "NON_CALCULABLE": "Non calculable"
+      }
+    },
     "empty": {
       "title": "Aucun plan budgétaire",
       "description": "Créez un plan mensuel ou annuel pour commencer."
@@ -2247,6 +2271,7 @@
       "ratio": "Saisissez le ratio décimal exact : 0.30 correspond à 30 %."
     },
     "reasons": {
+      "MISSING_TARGET": "Objectif manquant",
       "MIXED_ASSETS": "Actifs mélangés",
       "NO_ACCOUNT": "Aucun compte de trésorerie",
       "ZERO_CASH_INCOME": "Revenus de trésorerie nuls"

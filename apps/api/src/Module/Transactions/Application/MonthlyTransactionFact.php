@@ -11,10 +11,13 @@ final readonly class MonthlyTransactionFact
 {
     /** @param list<MonthlyTransactionSplitFact> $splits */
     public function __construct(
+        public string $id,
         public string $accountId,
         public DecimalValue $amount,
         public AssetCode $asset,
         public string $nature,
+        public string $bookedOn,
+        public string $rawLabel,
         public array $splits,
     ) {
     }

@@ -28,6 +28,7 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { BudgetPlanForm } from './budget-plan-form/BudgetPlanForm';
+import { BudgetComparisonsPanel } from './budget-comparisons/BudgetComparisonsPanel';
 import { BudgetTargetForm } from './budget-target-form/BudgetTargetForm';
 import { budgetErrorKind, budgetRequestError, BudgetRequestError } from './budgetError';
 import styles from './BudgetPage.module.css';
@@ -73,6 +74,9 @@ export function BudgetPage({ planId }: { planId?: string }) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['budget-plans'] }),
       queryClient.invalidateQueries({ queryKey: ['budget-plan', planId] }),
+      ...(planId
+        ? [queryClient.invalidateQueries({ queryKey: ['budget-comparisons', planId] })]
+        : []),
     ]);
   };
   const planSave = useMutation({
@@ -471,6 +475,17 @@ function PlanDetail({
           </div>
         )}
       </section>
+      {detail.periodType === 'MONTH' ? (
+        <section className={styles.comparisons} aria-labelledby="budget-comparisons-title">
+          <div className={styles.targetHeading}>
+            <div>
+              <h3 id="budget-comparisons-title">{t('budget.comparisons.title')}</h3>
+              <p>{t('budget.comparisons.description')}</p>
+            </div>
+          </div>
+          <BudgetComparisonsPanel planId={detail.id} />
+        </section>
+      ) : null}
     </>
   );
 }

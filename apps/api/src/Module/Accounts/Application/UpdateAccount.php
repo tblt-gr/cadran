@@ -32,6 +32,7 @@ final readonly class UpdateAccount
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
         private ResolveAccountValuation $valuations,
+        private AssertPeriodOpen $periods,
     ) {
     }
 
@@ -72,6 +73,15 @@ final readonly class UpdateAccount
             // check that would otherwise blame a label the archive itself freed.
             if (null !== $current->archivedAt) {
                 throw new AccountArchived('An archived account is read-only.');
+            }
+            if ($openedOn != $current->openedOn || $closedOn != $current->closedOn) {
+                $this->periods->assertAccountLifecycleUnchangedForClosures(
+                    $context->workspace,
+                    $current->openedOn,
+                    $current->closedOn,
+                    $openedOn,
+                    $closedOn,
+                );
             }
             if ($this->accounts->hasActiveLabel($context->workspace, $label, $current->id)) {
                 throw new AccountConflict('An active account already uses this label.');

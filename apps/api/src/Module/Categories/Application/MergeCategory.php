@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -33,6 +34,7 @@ final readonly class MergeCategory
         private CategoryRepository $categories,
         private CategoryReplacementRepository $replacements,
         private AssessCategoryImpact $assessImpact,
+        private AssertPeriodOpen $periods,
         private PresentCategory $presentCategory,
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
@@ -48,6 +50,7 @@ final readonly class MergeCategory
         $targetId = CategoryInputParser::optionalIdentifier($targetId);
 
         return $this->transactionBoundary->transactional(function () use ($id, $targetId, $expectedVersion, $context): CategoryView {
+            $this->periods->assertNoActiveClosure($context->workspace);
             $this->archivalSideEffect->lockWorkspace($context->workspace);
             $impact = ($this->assessImpact)(
                 $context->workspace,

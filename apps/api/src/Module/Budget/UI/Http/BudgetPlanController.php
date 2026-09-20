@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\UI\Http;
 
+use App\Module\Budget\Application\BudgetComparisonScopeTooLarge;
+use App\Module\Budget\Application\BudgetComparisonUnavailable;
 use App\Module\Budget\Application\BudgetIncomeScopeTooLarge;
 use App\Module\Budget\Application\BudgetPlanConflict;
 use App\Module\Budget\Application\BudgetPlanNotFound;
@@ -11,6 +13,7 @@ use App\Module\Budget\Application\CreateBudgetPlan;
 use App\Module\Budget\Application\CreateBudgetPlanInput;
 use App\Module\Budget\Application\InvalidBudgetPlanInput;
 use App\Module\Budget\Application\ListBudgetPlans;
+use App\Module\Budget\Application\ReadBudgetComparisons;
 use App\Module\Budget\Application\ReadBudgetPlan;
 use App\Module\Budget\Application\UpdateBudgetPlan;
 use App\Module\Budget\Application\UpdateBudgetPlanInput;
@@ -85,6 +88,27 @@ final readonly class BudgetPlanController
         }
 
         return $this->envelope->json(BudgetRepresentation::detail($result));
+    }
+
+    #[Route('/api/v1/budget-plans/{id}/comparisons', name: 'api_v1_budget_plan_comparisons', methods: ['GET'])]
+    public function comparisons(string $id, ReadBudgetComparisons $read): Response
+    {
+        if (!$this->envelope->isIdentifier($id)) {
+            return $this->notFound();
+        }
+        try {
+            $result = $read($id);
+        } catch (BudgetPlanNotFound) {
+            return $this->notFound();
+        } catch (BudgetComparisonUnavailable) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.budget_comparison_unavailable');
+        } catch (BudgetComparisonScopeTooLarge) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.budget_scope_too_large');
+        } catch (WorkspaceAccessDenied) {
+            return $this->forbidden();
+        }
+
+        return $this->envelope->json(BudgetRepresentation::comparisons($result));
     }
 
     #[Route('/api/v1/budget-plans/{id}', name: 'api_v1_budget_plans_update', methods: ['PUT'])]
