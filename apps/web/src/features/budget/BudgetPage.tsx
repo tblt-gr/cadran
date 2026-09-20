@@ -419,7 +419,7 @@ function PlanDetail({
                 {detail.targets.map((target) => (
                   <tr key={target.id}>
                     <td>
-                      {t(`budget.scopeTypes.${target.scopeType}`)} · {target.scopeId}
+                      {t(`budget.scopeTypes.${target.scopeType}`)} · {target.scopeLabel}
                     </td>
                     <td>
                       {target.valueType === 'AMOUNT' && target.storedAmount ? (

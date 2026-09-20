@@ -51,6 +51,7 @@ final class ReadBudgetPlanTest extends TestCase
         $view = ($read)($planId);
 
         self::assertSame('300.00', $view->targets[0]->resolvedAmount);
+        self::assertSame('Groceries', $view->targets[0]->scopeLabel);
         self::assertNull($view->targets[0]->nonCalculableReason);
     }
 
@@ -63,6 +64,7 @@ final class ReadBudgetPlanTest extends TestCase
 
         $ratioTarget = array_values(array_filter($view->targets, static fn ($t) => 'RATIO' === $t->valueType))[0];
         self::assertSame('600.0000', $ratioTarget->resolvedAmount);
+        self::assertSame('Essential', $ratioTarget->scopeLabel);
     }
 
     public function testARatioTargetIsNonCalculableWhenThereIsNoIncome(): void
@@ -110,6 +112,8 @@ final class ReadBudgetPlanTest extends TestCase
 
         self::assertTrue($view->targets[0]->overlapping);
         self::assertTrue($view->targets[1]->overlapping);
+        self::assertSame('Groceries', $view->targets[0]->scopeLabel);
+        self::assertSame('Supermarket', $view->targets[1]->scopeLabel);
         self::assertSame('300.00', $view->targets[0]->resolvedAmount);
         self::assertSame('100.00', $view->targets[1]->resolvedAmount);
     }

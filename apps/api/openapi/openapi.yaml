@@ -4721,6 +4721,7 @@ components:
           id,
           scopeType,
           scopeId,
+          scopeLabel,
           valueType,
           storedAmount,
           storedRatio,
@@ -4733,6 +4734,11 @@ components:
         id: { type: string, format: uuid }
         scopeType: { $ref: '#/components/schemas/BudgetScopeType' }
         scopeId: { type: string, minLength: 1, maxLength: 64 }
+        scopeLabel:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Workspace-scoped category or group label, or a stable human-readable analytic axis label.
         valueType: { $ref: '#/components/schemas/BudgetValueType' }
         storedAmount:
           oneOf:
@@ -4778,6 +4784,7 @@ components:
           targetId,
           scopeType,
           scopeId,
+          scopeLabel,
           actual,
           actualReason,
           target,
@@ -4793,6 +4800,11 @@ components:
         targetId: { type: string, format: uuid }
         scopeType: { $ref: '#/components/schemas/BudgetScopeType' }
         scopeId: { type: string, minLength: 1, maxLength: 64 }
+        scopeLabel:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Workspace-scoped category or group label, or a stable human-readable analytic axis label.
         actual:
           oneOf:
             - $ref: '#/components/schemas/BudgetExactDecimal'

@@ -10,9 +10,10 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
  * Publishes only the category fact another module's scope reference needs:
- * whether it exists in this workspace, whether it is archived, and its
- * ancestor chain — used by Budget to validate a target's scope and to detect
- * parent/child overlaps without reaching into the category tree itself.
+ * whether it exists in this workspace, its display label, whether it is
+ * archived, and its ancestor chain — used by Budget to validate and present a
+ * target's scope and to detect parent/child overlaps without reaching into the
+ * category tree itself.
  */
 final readonly class ReadCategoryReference
 {
@@ -27,7 +28,12 @@ final readonly class ReadCategoryReference
             return null;
         }
 
-        return new CategoryReferenceFact($category->id, null !== $category->archivedAt, $this->ancestorsOf($workspace, $category));
+        return new CategoryReferenceFact(
+            $category->id,
+            $category->label,
+            null !== $category->archivedAt,
+            $this->ancestorsOf($workspace, $category),
+        );
     }
 
     /** @return list<string> */

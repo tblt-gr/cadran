@@ -7,9 +7,11 @@ namespace App\Module\Budget\Application;
 use App\Module\Budget\Domain\BudgetOverlapDetector;
 use App\Module\Budget\Domain\BudgetPlan;
 use App\Module\Budget\Domain\BudgetPlanRepository;
+use App\Module\Budget\Domain\BudgetScopeType;
 use App\Module\Budget\Domain\BudgetTarget;
 use App\Module\Budget\Domain\BudgetTargetRepository;
 use App\Module\Budget\Domain\BudgetValueType;
+use App\Module\Categories\Application\CategoryReferenceFact;
 use App\Module\Categories\Application\ReadCategoryReference;
 use App\Module\Foundation\Application\CallerWorkspace;
 use App\Module\Foundation\Domain\ExactDecimal;
@@ -44,9 +46,20 @@ final readonly class ReadBudgetPlan
         }
 
         $targets = $this->targets->listByPlan($workspace, $plan->id, BudgetOverlapDetector::MAX_TARGETS + 1);
+        /** @var array<string, CategoryReferenceFact|null> $categoryReferences */
+        $categoryReferences = [];
+        foreach ($targets as $target) {
+            if (BudgetScopeType::AXIS !== $target->scopeType && !array_key_exists($target->scopeId, $categoryReferences)) {
+                $categoryReferences[$target->scopeId] = ($this->categoryReference)($workspace, $target->scopeId);
+            }
+        }
         $overlaps = BudgetOverlapDetector::detect(
             $targets,
-            fn (string $categoryId): array => $this->categoryReference->ancestorIdsOf($workspace, $categoryId),
+            static function (string $categoryId) use ($categoryReferences): array {
+                $category = $categoryReferences[$categoryId] ?? null;
+
+                return $category instanceof CategoryReferenceFact ? $category->ancestorIds : [];
+            },
         );
 
         $cashIncome = null;
@@ -55,7 +68,13 @@ final readonly class ReadBudgetPlan
             if (BudgetValueType::RATIO === $target->valueType) {
                 $cashIncome ??= ($this->income)($workspace, $plan->period);
             }
-            $views[] = $this->resolve($target, $plan, $cashIncome, $overlaps[$target->id] ?? false);
+            $views[] = $this->resolve(
+                $target,
+                $plan,
+                $cashIncome,
+                $overlaps[$target->id] ?? false,
+                $categoryReferences[$target->scopeId] ?? null,
+            );
         }
 
         return new BudgetPlanDetailView(
@@ -69,8 +88,13 @@ final readonly class ReadBudgetPlan
         );
     }
 
-    private function resolve(BudgetTarget $target, BudgetPlan $plan, ?MonthlyMetric $cashIncome, bool $overlapping): BudgetTargetDetailView
-    {
+    private function resolve(
+        BudgetTarget $target,
+        BudgetPlan $plan,
+        ?MonthlyMetric $cashIncome,
+        bool $overlapping,
+        ?CategoryReferenceFact $categoryReference,
+    ): BudgetTargetDetailView {
         $resolvedAmount = null;
         $nonCalculableReason = null;
 
@@ -90,6 +114,7 @@ final readonly class ReadBudgetPlan
             id: $target->id,
             scopeType: $target->scopeType->value,
             scopeId: $target->scopeId,
+            scopeLabel: BudgetScopeLabel::resolve($target, $categoryReference),
             valueType: $target->valueType->value,
             storedAmount: $target->amount?->toString(),
             storedRatio: $target->ratio?->toString(),

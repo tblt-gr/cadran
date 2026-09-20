@@ -13,6 +13,7 @@ final readonly class BudgetComparisonView
         public string $targetId,
         public string $scopeType,
         public string $scopeId,
+        public string $scopeLabel,
         public ?string $actual,
         public ?string $actualReason,
         public ?string $target,

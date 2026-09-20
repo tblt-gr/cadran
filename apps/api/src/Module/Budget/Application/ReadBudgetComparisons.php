@@ -12,10 +12,12 @@ use App\Module\Budget\Domain\BudgetOverlapDetector;
 use App\Module\Budget\Domain\BudgetPeriodType;
 use App\Module\Budget\Domain\BudgetPlan;
 use App\Module\Budget\Domain\BudgetPlanRepository;
+use App\Module\Budget\Domain\BudgetScopeType;
 use App\Module\Budget\Domain\BudgetTarget;
 use App\Module\Budget\Domain\BudgetTargetRepository;
 use App\Module\Budget\Domain\BudgetValueType;
 use App\Module\Categories\Application\BudgetCategoryScopeTooLarge;
+use App\Module\Categories\Application\CategoryReferenceFact;
 use App\Module\Categories\Application\ReadCategoryReference;
 use App\Module\Foundation\Application\CallerWorkspace;
 use App\Module\Foundation\Domain\ExactDecimal;
@@ -65,9 +67,20 @@ final readonly class ReadBudgetComparisons
             );
         }
 
+        /** @var array<string, CategoryReferenceFact|null> $categoryReferences */
+        $categoryReferences = [];
+        foreach ($targets as $target) {
+            if (BudgetScopeType::AXIS !== $target->scopeType && !array_key_exists($target->scopeId, $categoryReferences)) {
+                $categoryReferences[$target->scopeId] = ($this->categoryReference)($workspace, $target->scopeId);
+            }
+        }
         $overlaps = BudgetOverlapDetector::detect(
             $targets,
-            fn (string $categoryId): array => $this->categoryReference->ancestorIdsOf($workspace, $categoryId),
+            static function (string $categoryId) use ($categoryReferences): array {
+                $category = $categoryReferences[$categoryId] ?? null;
+
+                return $category instanceof CategoryReferenceFact ? $category->ancestorIds : [];
+            },
         );
         $scopes = array_map(
             static fn (BudgetTarget $target): MonthlyBudgetScope => new MonthlyBudgetScope(
@@ -103,6 +116,7 @@ final readonly class ReadBudgetComparisons
                 $target->id,
                 $target->scopeType->value,
                 $target->scopeId,
+                BudgetScopeLabel::resolve($target, $categoryReferences[$target->scopeId] ?? null),
                 $actualValue,
                 $actualReason?->value,
                 $targetValue,

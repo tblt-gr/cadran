@@ -10,6 +10,7 @@ final readonly class CategoryReferenceFact
     /** @param list<string> $ancestorIds nearest ancestor first */
     public function __construct(
         public string $id,
+        public string $label,
         public bool $archived,
         public array $ancestorIds,
     ) {

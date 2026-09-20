@@ -22,6 +22,7 @@ const result = (overrides: Partial<BudgetComparisons> = {}): BudgetComparisons =
       targetId: '00000000-0000-7000-8000-000000000002',
       scopeType: 'AXIS',
       scopeId: 'ESSENTIAL',
+      scopeLabel: 'Essential',
       actual: '42.50',
       actualReason: null,
       target: '100.00',
@@ -68,6 +69,8 @@ describe('BudgetComparisonsPanel', () => {
     expect(await screen.findByText(/^42,50/)).toBeTruthy();
     expect(screen.getByText(/^57,50/)).toBeTruthy();
     expect(screen.getByText('Dans le budget')).toBeTruthy();
+    expect(screen.getByText(/Axe · Essential/)).toBeTruthy();
+    expect(screen.queryByText('ESSENTIAL')).toBeNull();
     expect(screen.getByText('1 transaction en attente')).toBeTruthy();
     expect(screen.getByText('Méthode de calcul appliquée')).toBeTruthy();
     expect(screen.getByText(/Les dépenses, frais et remboursements/)).toBeTruthy();
@@ -76,6 +79,27 @@ describe('BudgetComparisonsPanel', () => {
     expect(screen.getByText('12 mars 2026')).toBeTruthy();
     expect(screen.getByText(/^-42,50/)).toBeTruthy();
     expect(screen.queryByText('00000000-0000-7000-8000-000000000003')).toBeNull();
+  });
+
+  it('renders a readable category scope label instead of its identifier', async () => {
+    const categoryId = '00000000-0000-7000-8000-000000000004';
+    api.readBudgetComparisons.mockResolvedValue({
+      data: result({
+        comparisons: [
+          {
+            ...result().comparisons[0],
+            scopeType: 'CATEGORY',
+            scopeId: categoryId,
+            scopeLabel: 'Logement',
+          },
+        ],
+      }),
+      response: new Response('{}'),
+    });
+    mount();
+
+    expect(await screen.findByText(/Catégorie · Logement/)).toBeTruthy();
+    expect(screen.queryByText(categoryId)).toBeNull();
   });
 
   it('keeps break opportunities for a maximum exact source amount at 360 px', async () => {
