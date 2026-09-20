@@ -56,6 +56,21 @@ final class ExactDecimal
         return self::fromBig(self::toBig($left)->multipliedBy(self::toBig($right)));
     }
 
+    /**
+     * Multiplies for an API-only calculated decimal. The natural product scale
+     * is preserved through the transport ceiling, then rounded HALF_UP to at
+     * most 24 places. Unlike a stored DecimalValue, the returned canonical
+     * string may carry more than 26 integer digits because it is never written
+     * to NUMERIC(50,24).
+     */
+    public static function multiplyForResponse(DecimalValue $left, DecimalValue $right): string
+    {
+        $product = self::toBig($left)->multipliedBy(self::toBig($right));
+        $scale = max(0, min($left->scale() + $right->scale(), DecimalValue::MAX_SCALE));
+
+        return (string) $product->toScale($scale, BrickRoundingMode::HalfUp);
+    }
+
     public static function signed(DecimalValue $value, int $sign): DecimalValue
     {
         return $sign < 0 ? self::fromBig(self::toBig($value)->negated()) : $value;

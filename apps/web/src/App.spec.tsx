@@ -87,6 +87,10 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
         return jsonResponse({ items: [], page: 1, perPage: 50, total: 0 });
       }
 
+      if (url.includes('/api/v1/budget-plans')) {
+        return jsonResponse({ items: [], page: 1, perPage: 100, total: 0 });
+      }
+
       if (url.includes('/api/v1/categorization-rules')) {
         return jsonResponse({ items: [], page: 1, perPage: 100, total: 0 });
       }
@@ -131,7 +135,7 @@ describe('App', () => {
   it.each([
     ['/', 'Synthèse'],
     ['/transactions', 'Transactions'],
-    ['/months/2026-03', 'Budget'],
+    ['/budget', 'Plans budgétaires'],
     ['/accounts', 'Comptes'],
     ['/accounts/demo', 'Détail du compte'],
     ['/portfolios/demo', 'Investissements'],

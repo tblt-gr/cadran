@@ -942,6 +942,239 @@ paths:
           $ref: '#/components/responses/CategoryOperationRefused'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/budget-plans:
+    get:
+      operationId: listBudgetPlans
+      summary: List the calling workspace budget plans
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 1 }
+        - name: perPage
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: One page of budget plans from the calling workspace.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BudgetPlanPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    post:
+      operationId: createBudgetPlan
+      summary: Create a draft monthly or annual budget plan
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBudgetPlanRequest' }
+      responses:
+        '201':
+          description: The draft plan was created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BudgetPlan' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/budget-plans/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: readBudgetPlan
+      summary: Read a plan with resolved targets and overlap warnings
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The plan, including exact and resolved target values.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BudgetPlanDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    put:
+      operationId: updateBudgetPlan
+      summary: Edit a draft budget plan
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateBudgetPlanRequest' }
+      responses:
+        '200':
+          description: The updated draft plan.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BudgetPlan' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/budget-plans/{id}/activate:
+    post:
+      operationId: activateBudgetPlan
+      summary: Activate a non-empty draft budget plan
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmptyObject' }
+      responses:
+        '200':
+          description: The active plan.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BudgetPlan' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/budget-plans/{id}/close:
+    post:
+      operationId: closeBudgetPlan
+      summary: Close an active budget plan
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmptyObject' }
+      responses:
+        '200':
+          description: The closed plan.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BudgetPlan' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/budget-plans/{planId}/targets:
+    post:
+      operationId: createBudgetTarget
+      summary: Add an exact amount or ratio target to a plan
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: planId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBudgetTargetRequest' }
+      responses:
+        '201':
+          description: The target was created and inherits its plan context.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BudgetTarget' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/budget-targets/{id}:
+    put:
+      operationId: updateBudgetTarget
+      summary: Edit the exact value of a budget target
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateBudgetTargetRequest' }
+      responses:
+        '200':
+          description: The updated target.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BudgetTarget' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/account-groups:
     get:
       operationId: listAccountGroups
@@ -4381,6 +4614,177 @@ components:
         examples:
           - '2026-09-02'
   schemas:
+    EmptyObject:
+      type: object
+      additionalProperties: false
+    BudgetPeriodType:
+      type: string
+      enum: [MONTH, YEAR]
+    BudgetPlanState:
+      type: string
+      enum: [DRAFT, ACTIVE, CLOSED]
+    BudgetScopeType:
+      type: string
+      enum: [CATEGORY, GROUP, AXIS]
+    BudgetValueType:
+      type: string
+      enum: [AMOUNT, RATIO]
+    BudgetPeriod:
+      type: string
+      pattern: '^\d{4}(-(0[1-9]|1[0-2]))?$'
+    BudgetExactDecimal:
+      type: string
+      pattern: '^-?(0|[1-9]\d*)(\.\d{1,24})?$'
+    BudgetPlan:
+      type: object
+      additionalProperties: false
+      required: [id, periodType, period, assetCode, state, version]
+      properties:
+        id: { type: string, format: uuid }
+        periodType: { $ref: '#/components/schemas/BudgetPeriodType' }
+        period: { $ref: '#/components/schemas/BudgetPeriod' }
+        assetCode:
+          type: string
+          minLength: 2
+          maxLength: 12
+          pattern: '^[A-Z][A-Z0-9]+$'
+        state: { $ref: '#/components/schemas/BudgetPlanState' }
+        version: { type: integer, minimum: 1 }
+    BudgetPlanPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, perPage, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/BudgetPlan' }
+        page: { type: integer, minimum: 1 }
+        perPage: { type: integer, minimum: 1, maximum: 100 }
+        total: { type: integer, minimum: 0 }
+    BudgetTarget:
+      type: object
+      additionalProperties: false
+      required: [id, planId, scopeType, scopeId, valueType, amount, ratio, version]
+      properties:
+        id: { type: string, format: uuid }
+        planId: { type: string, format: uuid }
+        scopeType: { $ref: '#/components/schemas/BudgetScopeType' }
+        scopeId: { type: string, minLength: 1, maxLength: 64 }
+        valueType: { $ref: '#/components/schemas/BudgetValueType' }
+        amount:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        ratio:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        version: { type: integer, minimum: 1 }
+    BudgetTargetDetail:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          scopeType,
+          scopeId,
+          valueType,
+          storedAmount,
+          storedRatio,
+          resolvedAmount,
+          nonCalculableReason,
+          overlapping,
+          version,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        scopeType: { $ref: '#/components/schemas/BudgetScopeType' }
+        scopeId: { type: string, minLength: 1, maxLength: 64 }
+        valueType: { $ref: '#/components/schemas/BudgetValueType' }
+        storedAmount:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        storedRatio:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        resolvedAmount:
+          description: >-
+            Response-only calculated decimal string. Ratio products preserve
+            their natural scale up to 24 decimal places and are rounded
+            HALF_UP to 24 places beyond that boundary; the result is never
+            persisted.
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        nonCalculableReason:
+          type: [string, 'null']
+          enum: [MIXED_ASSETS, NO_ACCOUNT, ZERO_CASH_INCOME, null]
+        overlapping: { type: boolean }
+        version: { type: integer, minimum: 1 }
+    BudgetPlanDetail:
+      type: object
+      additionalProperties: false
+      required: [id, periodType, period, assetCode, state, version, targets]
+      properties:
+        id: { type: string, format: uuid }
+        periodType: { $ref: '#/components/schemas/BudgetPeriodType' }
+        period: { $ref: '#/components/schemas/BudgetPeriod' }
+        assetCode: { type: string, minLength: 2, maxLength: 12, pattern: '^[A-Z][A-Z0-9]+$' }
+        state: { $ref: '#/components/schemas/BudgetPlanState' }
+        version: { type: integer, minimum: 1 }
+        targets:
+          type: array
+          items: { $ref: '#/components/schemas/BudgetTargetDetail' }
+    CreateBudgetPlanRequest:
+      type: object
+      additionalProperties: false
+      required: [periodType, period, assetCode]
+      properties:
+        periodType: { $ref: '#/components/schemas/BudgetPeriodType' }
+        period: { $ref: '#/components/schemas/BudgetPeriod' }
+        assetCode: { type: string, minLength: 2, maxLength: 12, pattern: '^[A-Z][A-Z0-9]+$' }
+    UpdateBudgetPlanRequest:
+      type: object
+      additionalProperties: false
+      required: [periodType, period, assetCode, version]
+      properties:
+        periodType: { $ref: '#/components/schemas/BudgetPeriodType' }
+        period: { $ref: '#/components/schemas/BudgetPeriod' }
+        assetCode: { type: string, minLength: 2, maxLength: 12, pattern: '^[A-Z][A-Z0-9]+$' }
+        version: { type: integer, minimum: 1 }
+    CreateBudgetTargetRequest:
+      type: object
+      additionalProperties: false
+      required: [scopeType, scopeId, valueType, amount, ratio]
+      properties:
+        scopeType: { $ref: '#/components/schemas/BudgetScopeType' }
+        scopeId: { type: string, minLength: 1, maxLength: 64 }
+        valueType: { $ref: '#/components/schemas/BudgetValueType' }
+        amount:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        ratio:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+    UpdateBudgetTargetRequest:
+      type: object
+      additionalProperties: false
+      required: [valueType, amount, ratio, version]
+      properties:
+        valueType: { $ref: '#/components/schemas/BudgetValueType' }
+        amount:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        ratio:
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        version: { type: integer, minimum: 1 }
     FoundationStatus:
       type: object
       additionalProperties: false

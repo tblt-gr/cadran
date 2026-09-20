@@ -144,6 +144,9 @@ final readonly class WorkspaceFixture
         // The capabilities, rule periods and brackets follow their model
         // through ON DELETE CASCADE.
         $this->connection->executeStatement('DELETE FROM account_product_models');
+        // Targets restrict plan deletion.
+        $this->connection->executeStatement('DELETE FROM budget_targets');
+        $this->connection->executeStatement('DELETE FROM budget_plans');
         // Redirections restrict category deletion: they point at both ends of a merge.
         $this->connection->executeStatement('DELETE FROM category_replacements');
         $this->connection->executeStatement('DELETE FROM category_categories');

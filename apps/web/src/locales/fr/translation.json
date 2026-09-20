@@ -109,6 +109,7 @@
     "productModels": "Modèles de produits"
   },
   "routes": {
+    "budgetPlan": "Plan budgétaire",
     "accountDetail": "Détail du compte",
     "allYearsReport": "Rapport pluriannuel",
     "lifeInsurance": "Assurance-vie",
@@ -2157,6 +2158,102 @@
       "EQUALS": "N’est pas égal à",
       "CONTAINS": "Ne contient pas",
       "REGEX": "Ne correspond pas au motif"
+    }
+  },
+  "budget": {
+    "eyebrow": "Configuration budgétaire",
+    "title": "Plans budgétaires",
+    "description": "Définissez des objectifs mensuels ou annuels sans modifier vos transactions.",
+    "detailTitle": "Plan {{period}}",
+    "detailDescription": "Les montants résolus et avertissements sont fournis par le serveur.",
+    "addPlan": "Nouveau plan",
+    "addFirst": "Créer le premier plan",
+    "back": "Retour aux plans",
+    "edit": "Modifier",
+    "activate": "Activer",
+    "close": "Clôturer",
+    "loading": "Chargement des plans budgétaires…",
+    "nonCalculable": "Non calculable",
+    "overlap": "Chevauchement de périmètre",
+    "columns": {
+      "period": "Période",
+      "currency": "Devise",
+      "state": "État",
+      "scope": "Périmètre",
+      "value": "Objectif",
+      "resolved": "Montant résolu",
+      "warning": "Avertissement"
+    },
+    "periodTypes": { "MONTH": "Mensuel", "YEAR": "Annuel" },
+    "states": { "DRAFT": "Brouillon", "ACTIVE": "Actif", "CLOSED": "Clôturé" },
+    "scopeTypes": { "CATEGORY": "Catégorie", "GROUP": "Groupe", "AXIS": "Axe" },
+    "valueTypes": { "AMOUNT": "Montant exact", "RATIO": "Ratio" },
+    "fields": {
+      "periodType": "Type de période",
+      "period": "Période",
+      "assetCode": "Devise ou actif",
+      "scopeType": "Type de périmètre",
+      "scope": "Périmètre",
+      "valueType": "Type d’objectif",
+      "amount": "Montant",
+      "ratio": "Ratio décimal"
+    },
+    "form": {
+      "createEyebrow": "Création",
+      "createTitle": "Nouveau plan budgétaire",
+      "editEyebrow": "Modification",
+      "editTitle": "Modifier le plan",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "chooseAxis": "Choisir un axe"
+    },
+    "target": {
+      "createEyebrow": "Création",
+      "createTitle": "Nouvel objectif",
+      "editEyebrow": "Modification",
+      "editTitle": "Modifier l’objectif"
+    },
+    "targets": {
+      "title": "Objectifs",
+      "description": "Chaque objectif hérite de la période, de l’état et de la devise du plan.",
+      "add": "Ajouter un objectif",
+      "empty": "Ajoutez un objectif avant d’activer ce plan."
+    },
+    "empty": {
+      "title": "Aucun plan budgétaire",
+      "description": "Créez un plan mensuel ou annuel pour commencer."
+    },
+    "error": {
+      "title": "Plans indisponibles",
+      "description": "Impossible de charger les plans budgétaires. Réessayez."
+    },
+    "unauthorized": {
+      "title": "Session expirée",
+      "description": "Votre session n’autorise plus l’accès aux plans budgétaires."
+    },
+    "errors": {
+      "conflict": "Les données ont changé. Rechargez le plan avant de recommencer.",
+      "invalid": "La demande est invalide ou une référence n’est plus utilisable.",
+      "network": "L’opération a échoué. Réessayez.",
+      "unauthorized": "Votre session n’autorise pas cette opération."
+    },
+    "validation": {
+      "period": "Saisissez une période valide pour le type choisi.",
+      "assetCode": "Saisissez un code actif valide en majuscules.",
+      "scope": "Choisissez un périmètre valide.",
+      "value": "Saisissez un décimal positif canonique."
+    },
+    "hints": {
+      "ratio": "Saisissez le ratio décimal exact : 0.30 correspond à 30 %."
+    },
+    "reasons": {
+      "MIXED_ASSETS": "Actifs mélangés",
+      "NO_ACCOUNT": "Aucun compte de trésorerie",
+      "ZERO_CASH_INCOME": "Revenus de trésorerie nuls"
+    },
+    "toasts": {
+      "saved": "Le plan budgétaire a été enregistré.",
+      "stateChanged": "L’état du plan a été mis à jour."
     }
   }
 }
