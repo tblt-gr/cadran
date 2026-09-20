@@ -31,7 +31,8 @@ final class MonthlyBudgetActualCalculator
         $sum = '0';
         /** @var array<string, true> $assets */
         $assets = [];
-        $transactionIds = [];
+        /** @var array<string, MonthlyBudgetActualSource> $sources */
+        $sources = [];
         foreach ($booked as $movement) {
             $selected = self::selectedSplits(
                 $movement,
@@ -44,10 +45,25 @@ final class MonthlyBudgetActualCalculator
                 continue;
             }
             $assets[$movement->asset->toString()] = true;
+            $selectedAmount = '0';
             foreach ($selected as $split) {
                 $sum = ExactDecimal::addForResponse($sum, $split->amount->toString());
+                $selectedAmount = ExactDecimal::addForResponse($selectedAmount, $split->amount->toString());
             }
-            $transactionIds[] = $movement->transactionId;
+            if (isset($sources[$movement->transactionId])) {
+                if (!$sources[$movement->transactionId]->asset->equals($movement->asset)) {
+                    throw new \LogicException('One transaction cannot contribute budget sources in multiple assets.');
+                }
+                $selectedAmount = ExactDecimal::addForResponse(
+                    $sources[$movement->transactionId]->amount,
+                    $selectedAmount,
+                );
+            }
+            $sources[$movement->transactionId] = new MonthlyBudgetActualSource(
+                $movement->transactionId,
+                $selectedAmount,
+                $movement->asset,
+            );
         }
 
         $pendingCount = 0;
@@ -63,18 +79,18 @@ final class MonthlyBudgetActualCalculator
             }
         }
 
-        $transactionIds = array_values(array_unique($transactionIds));
-        sort($transactionIds, SORT_STRING);
+        ksort($sources, SORT_STRING);
+        $sources = array_values($sources);
 
         if (!$hasAccounts) {
-            return new MonthlyBudgetActual(null, null, MonthlyProjectionReason::NO_ACCOUNT, $transactionIds, $pendingCount);
+            return new MonthlyBudgetActual(null, null, MonthlyProjectionReason::NO_ACCOUNT, $sources, $pendingCount);
         }
         if (count($assets) > 1) {
-            return new MonthlyBudgetActual(null, null, MonthlyProjectionReason::MIXED_ASSETS, $transactionIds, $pendingCount);
+            return new MonthlyBudgetActual(null, null, MonthlyProjectionReason::MIXED_ASSETS, $sources, $pendingCount);
         }
         $asset = AssetCode::fromString([] === $assets ? $fallbackAsset : (string) array_key_first($assets));
 
-        return new MonthlyBudgetActual(ExactDecimal::negateForResponse($sum), $asset, null, $transactionIds, $pendingCount);
+        return new MonthlyBudgetActual(ExactDecimal::negateForResponse($sum), $asset, null, $sources, $pendingCount);
     }
 
     /**

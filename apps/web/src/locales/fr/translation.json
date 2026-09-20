@@ -2232,6 +2232,10 @@
       "pending_other": "{{count}} transactions en attente",
       "sources_one": "{{count}} transaction incluse",
       "sources_other": "{{count}} transactions incluses",
+      "policy": {
+        "summary": "Méthode de calcul appliquée",
+        "description": "Les dépenses, frais et remboursements comptabilisés et non annulés sont inclus dans les catégories du budget. Pour les ventilations, seule la part relevant du périmètre est comptée. Les transactions en attente sont signalées, mais exclues des montants ; les virements et ajustements sont exclus."
+      },
       "statuses": {
         "WITHIN_TARGET": "Dans le budget",
         "ON_TARGET": "Objectif atteint",

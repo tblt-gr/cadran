@@ -12,6 +12,7 @@ use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Categories\Domain\Category;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Domain\MonthlyBudgetActualCalculator;
+use App\Module\Reporting\Domain\MonthlyBudgetActualSource;
 use App\Module\Reporting\Domain\MonthlyBudgetCashIncomeCalculator;
 use App\Module\Reporting\Domain\MonthlyMovement;
 use App\Module\Reporting\Domain\MonthlyMovementKind;
@@ -52,6 +53,10 @@ final readonly class ReadMonthlyBudgetActuals
             static fn (MonthlyTransactionFact $fact): MonthlyMovement => self::movement($fact, $accountsById),
             $transactionFacts->pending,
         );
+        $bookedFactsById = [];
+        foreach ($transactionFacts->booked as $fact) {
+            $bookedFactsById[$fact->id] = $fact;
+        }
         $accountAssets = array_map(static fn (MonthlyAccountFact $account): string => $account->assetCode, $accountFacts->accounts);
         [$flags, $ancestors] = self::categoryMaps($categoryFacts);
         $cashIncome = MonthlyBudgetCashIncomeCalculator::compute($accountAssets, $booked);
@@ -71,7 +76,21 @@ final readonly class ReadMonthlyBudgetActuals
             $actuals[$scope->key] = new MonthlyBudgetActualView(
                 $scope->key,
                 new MonthlyMetricView($actual->amount, $actual->asset?->toString(), $actual->reason?->value),
-                $actual->transactionIds,
+                array_map(
+                    static function (MonthlyBudgetActualSource $source) use ($bookedFactsById): MonthlyBudgetSourceView {
+                        $fact = $bookedFactsById[$source->transactionId]
+                            ?? throw new \LogicException('A budget source has no matching monthly transaction fact.');
+
+                        return new MonthlyBudgetSourceView(
+                            $source->transactionId,
+                            $fact->bookedOn,
+                            $fact->rawLabel,
+                            $source->amount,
+                            $source->asset->toString(),
+                        );
+                    },
+                    $actual->sources,
+                ),
                 $actual->pendingCount,
             );
         }

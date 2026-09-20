@@ -65,7 +65,14 @@ final class MonthlyBudgetActualCalculatorTest extends TestCase
         self::assertSame($expected, $actual->amount);
         self::assertSame('EUR', $actual->asset?->toString());
         self::assertNull($actual->reason);
-        self::assertSame($expectedIds, $actual->transactionIds);
+        self::assertSame($expectedIds, array_map(
+            static fn ($source): string => $source->transactionId,
+            $actual->sources,
+        ));
+        self::assertSame(['-100.00', '20.00'], array_map(
+            static fn ($source): string => $source->amount,
+            $actual->sources,
+        ));
         self::assertSame($expectedPending, $actual->pendingCount);
     }
 
@@ -115,6 +122,30 @@ final class MonthlyBudgetActualCalculatorTest extends TestCase
         self::assertSame('MIXED_ASSETS', $mixed->reason?->value);
     }
 
+    public function testSourceEvidenceSumsOnlyTheSplitsRetainedByTheScope(): void
+    {
+        $actual = MonthlyBudgetActualCalculator::compute(
+            [self::movement('a1', '-175.00', MonthlyMovementKind::EXPENSE, [
+                self::split(self::FOOD, '-100.00', ['ESSENTIAL']),
+                self::split(self::LEISURE, '-50.00', ['ESSENTIAL']),
+                self::split(self::LEISURE, '-25.00', ['DISCRETIONARY']),
+            ])],
+            [],
+            [self::FOOD => true, self::LEISURE => true],
+            [],
+            'AXIS',
+            'ESSENTIAL',
+            'EUR',
+            true,
+        );
+
+        self::assertSame('150.00', $actual->amount);
+        self::assertCount(1, $actual->sources);
+        self::assertSame('a1', $actual->sources[0]->transactionId);
+        self::assertSame('-150.00', $actual->sources[0]->amount);
+        self::assertSame('EUR', $actual->sources[0]->asset->toString());
+    }
+
     public function testACalculatedTotalMayExceedTheStorageIntegerWidth(): void
     {
         $maximum = '-99999999999999999999999999.999999999999999999999999';
@@ -133,7 +164,14 @@ final class MonthlyBudgetActualCalculatorTest extends TestCase
         );
 
         self::assertSame('199999999999999999999999999.999999999999999999999998', $actual->amount);
-        self::assertSame(['l1', 'l2'], $actual->transactionIds);
+        self::assertSame(['l1', 'l2'], array_map(
+            static fn ($source): string => $source->transactionId,
+            $actual->sources,
+        ));
+        self::assertSame([$maximum, $maximum], array_map(
+            static fn ($source): string => $source->amount,
+            $actual->sources,
+        ));
     }
 
     public function testNoAccountIsDifferentFromAnEmptyScopedAmount(): void

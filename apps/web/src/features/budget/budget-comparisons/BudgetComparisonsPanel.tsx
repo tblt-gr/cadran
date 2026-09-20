@@ -5,7 +5,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { budgetRequestError } from '@/features/budget/budgetError';
-import { formatAmount } from '@/lib/decimal';
+import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import styles from './BudgetComparisonsPanel.module.css';
 
 const statusTones = {
@@ -84,14 +84,25 @@ function ComparisonCard({
         </p>
       ) : null}
       {comparison.overlapping ? <p className={styles.warning}>{t('budget.overlap')}</p> : null}
-      <p className={styles.policy}>{comparison.policy}</p>
+      <details className={styles.policy}>
+        <summary>{t('budget.comparisons.policy.summary')}</summary>
+        <p>{t('budget.comparisons.policy.description')}</p>
+      </details>
       <details className={styles.sources}>
         <summary>
-          {t('budget.comparisons.sources', { count: comparison.includedTransactionIds.length })}
+          {t('budget.comparisons.sources', { count: comparison.includedTransactions.length })}
         </summary>
         <ul>
-          {comparison.includedTransactionIds.map((transactionId) => (
-            <li key={transactionId}>{transactionId}</li>
+          {comparison.includedTransactions.map((transaction) => (
+            <li className={styles.source} key={transaction.id}>
+              <time dateTime={transaction.bookedOn}>
+                {formatCalendarDay(transaction.bookedOn, i18n.language)}
+              </time>
+              <span>{transaction.rawLabel}</span>
+              <MoneyValue
+                value={formatAmount(transaction.amount, transaction.assetCode, i18n.language)}
+              />
+            </li>
           ))}
         </ul>
       </details>

@@ -60,6 +60,8 @@ final readonly class ReadMonthlyTransactionFacts
             $transaction->amount->value,
             $transaction->amount->asset,
             $transaction->nature->value,
+            $transaction->bookedOn->format('Y-m-d'),
+            $transaction->rawLabel,
             array_map(static fn ($split): MonthlyTransactionSplitFact => new MonthlyTransactionSplitFact(
                 $split->categoryId,
                 $split->amount->value,

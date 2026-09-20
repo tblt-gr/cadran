@@ -6,11 +6,11 @@ namespace App\Module\Reporting\Application;
 
 final readonly class MonthlyBudgetActualView
 {
-    /** @param list<string> $transactionIds */
+    /** @param list<MonthlyBudgetSourceView> $sources */
     public function __construct(
         public string $scopeKey,
         public MonthlyMetricView $amount,
-        public array $transactionIds,
+        public array $sources,
         public int $pendingCount,
     ) {
     }

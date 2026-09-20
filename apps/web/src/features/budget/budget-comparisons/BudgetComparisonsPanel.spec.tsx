@@ -28,7 +28,15 @@ const result = (overrides: Partial<BudgetComparisons> = {}): BudgetComparisons =
       targetReason: null,
       variance: '57.50',
       status: 'WITHIN_TARGET',
-      includedTransactionIds: ['00000000-0000-7000-8000-000000000003'],
+      includedTransactions: [
+        {
+          id: '00000000-0000-7000-8000-000000000003',
+          bookedOn: '2026-03-12',
+          rawLabel: 'Courses du marché',
+          amount: '-42.50',
+          assetCode: 'EUR',
+        },
+      ],
       pendingCount: 1,
       overlapping: false,
       policy: 'Booked non-voided expense rows only.',
@@ -53,16 +61,52 @@ describe('BudgetComparisonsPanel', () => {
     vi.clearAllMocks();
   });
 
-  it('renders exact server figures, source transaction IDs, policy and pending scope count', async () => {
+  it('renders exact server figures, readable source evidence, applied policy and pending scope count', async () => {
     api.readBudgetComparisons.mockResolvedValue({ data: result(), response: new Response('{}') });
     mount();
 
-    expect(await screen.findByText(/42,50/)).toBeTruthy();
-    expect(screen.getByText(/57,50/)).toBeTruthy();
+    expect(await screen.findByText(/^42,50/)).toBeTruthy();
+    expect(screen.getByText(/^57,50/)).toBeTruthy();
     expect(screen.getByText('Dans le budget')).toBeTruthy();
     expect(screen.getByText('1 transaction en attente')).toBeTruthy();
-    expect(screen.getByText('Booked non-voided expense rows only.')).toBeTruthy();
-    expect(screen.getByText('00000000-0000-7000-8000-000000000003')).toBeTruthy();
+    expect(screen.getByText('Méthode de calcul appliquée')).toBeTruthy();
+    expect(screen.getByText(/Les dépenses, frais et remboursements/)).toBeTruthy();
+    expect(screen.queryByText('Booked non-voided expense rows only.')).toBeNull();
+    expect(screen.getByText('Courses du marché')).toBeTruthy();
+    expect(screen.getByText('12 mars 2026')).toBeTruthy();
+    expect(screen.getByText(/^-42,50/)).toBeTruthy();
+    expect(screen.queryByText('00000000-0000-7000-8000-000000000003')).toBeNull();
+  });
+
+  it('keeps break opportunities for a maximum exact source amount at 360 px', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 360 });
+    api.readBudgetComparisons.mockResolvedValue({
+      data: result({
+        comparisons: [
+          {
+            ...result().comparisons[0],
+            includedTransactions: [
+              {
+                ...result().comparisons[0].includedTransactions[0],
+                amount: '-99999999999999999999999999.999999999999999999999999',
+                rawLabel: 'Montant exact maximal',
+              },
+            ],
+          },
+        ],
+      }),
+      response: new Response('{}'),
+    });
+    const { container } = mount();
+
+    await screen.findByText('Montant exact maximal');
+    const source = screen.getByText('Montant exact maximal').closest('li');
+
+    expect(source?.textContent).toContain('999');
+    expect(source?.querySelectorAll('wbr').length).toBeGreaterThan(0);
+    expect(container.querySelector('[class*="source"]')?.textContent).toContain(
+      'Montant exact maximal',
+    );
   });
 
   it('renders an explicit no-target state rather than a zero', async () => {

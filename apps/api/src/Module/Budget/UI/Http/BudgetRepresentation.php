@@ -11,6 +11,7 @@ use App\Module\Budget\Application\BudgetPlanPage;
 use App\Module\Budget\Application\BudgetPlanView;
 use App\Module\Budget\Application\BudgetTargetDetailView;
 use App\Module\Budget\Application\BudgetTargetView;
+use App\Module\Reporting\Application\MonthlyBudgetSourceView;
 
 final class BudgetRepresentation
 {
@@ -95,7 +96,13 @@ final class BudgetRepresentation
             'targetReason' => $comparison->targetReason,
             'variance' => $comparison->variance,
             'status' => $comparison->status,
-            'includedTransactionIds' => $comparison->includedTransactionIds,
+            'includedTransactions' => array_map(static fn (MonthlyBudgetSourceView $source): array => [
+                'id' => $source->id,
+                'bookedOn' => $source->bookedOn,
+                'rawLabel' => $source->rawLabel,
+                'amount' => $source->amount,
+                'assetCode' => $source->assetCode,
+            ], $comparison->includedTransactions),
             'pendingCount' => $comparison->pendingCount,
             'overlapping' => $comparison->overlapping,
             'policy' => $comparison->policy,

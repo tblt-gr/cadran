@@ -16,6 +16,8 @@ final readonly class MonthlyTransactionFact
         public DecimalValue $amount,
         public AssetCode $asset,
         public string $nature,
+        public string $bookedOn,
+        public string $rawLabel,
         public array $splits,
     ) {
     }

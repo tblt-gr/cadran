@@ -8,12 +8,12 @@ use App\Module\Foundation\Domain\AssetCode;
 
 final readonly class MonthlyBudgetActual
 {
-    /** @param list<string> $transactionIds */
+    /** @param list<MonthlyBudgetActualSource> $sources */
     public function __construct(
         public ?string $amount,
         public ?AssetCode $asset,
         public ?MonthlyProjectionReason $reason,
-        public array $transactionIds,
+        public array $sources,
         public int $pendingCount,
     ) {
         if ((null === $amount) === (null === $reason) || (null === $amount) !== (null === $asset)) {

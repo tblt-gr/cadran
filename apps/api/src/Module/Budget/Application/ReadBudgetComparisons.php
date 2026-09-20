@@ -109,7 +109,7 @@ final readonly class ReadBudgetComparisons
                 $targetReason?->value,
                 $result->variance,
                 $result->status,
-                $actual->transactionIds,
+                $actual->sources,
                 $actual->pendingCount,
                 $overlaps[$target->id] ?? false,
                 MonthlyBudgetActualCalculator::POLICY_DESCRIPTION,

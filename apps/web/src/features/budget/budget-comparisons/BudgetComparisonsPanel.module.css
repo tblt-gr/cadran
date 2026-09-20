@@ -65,7 +65,21 @@
 
 .sources ul {
   padding-left: var(--spacing-6);
+}
+
+.source {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--spacing-2);
+  align-items: baseline;
+}
+
+.source span {
   overflow-wrap: anywhere;
+}
+
+.source time {
+  white-space: nowrap;
 }
 
 .alert {
@@ -89,5 +103,14 @@
   .figures {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .source {
+    grid-template-columns: 1fr auto;
+  }
+
+  .source span {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 }

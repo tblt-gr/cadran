@@ -4784,7 +4784,7 @@ components:
           targetReason,
           variance,
           status,
-          includedTransactionIds,
+          includedTransactions,
           pendingCount,
           overlapping,
           policy,
@@ -4815,16 +4815,31 @@ components:
             - $ref: '#/components/schemas/BudgetExactDecimal'
             - type: 'null'
         status: { $ref: '#/components/schemas/BudgetComparisonStatus' }
-        includedTransactionIds:
+        includedTransactions:
           type: array
           maxItems: 500
           uniqueItems: true
-          items: { type: string, format: uuid }
+          items: { $ref: '#/components/schemas/BudgetComparisonTransaction' }
         pendingCount: { type: integer, minimum: 0, maximum: 500 }
         overlapping: { type: boolean }
         policy:
           type: string
           description: Human-readable built-in metric policy applied to this comparison; not a selectable or persisted identifier.
+    BudgetComparisonTransaction:
+      type: object
+      additionalProperties: false
+      required: [id, bookedOn, rawLabel, amount, assetCode]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Stable internal key for rendering; the interface presents the readable transaction fields instead.
+        bookedOn: { type: string, format: date }
+        rawLabel: { type: string, minLength: 1, maxLength: 140 }
+        amount:
+          description: Exact signed sum of this transaction's splits retained in the comparison scope.
+          $ref: '#/components/schemas/BudgetExactDecimal'
+        assetCode: { type: string, minLength: 2, maxLength: 12, pattern: '^[A-Z][A-Z0-9]+$' }
     BudgetComparisons:
       type: object
       additionalProperties: false

@@ -104,9 +104,22 @@ final class BudgetComparisonControllerTest extends WebTestCase
             self::assertNull($comparison['actualReason']);
             self::assertSame(1, $comparison['pendingCount']);
             self::assertSame([
-                '00000000-0000-7000-8000-000000000102',
-                '00000000-0000-7000-8000-000000000103',
-            ], $comparison['includedTransactionIds']);
+                [
+                    'id' => '00000000-0000-7000-8000-000000000102',
+                    'bookedOn' => '2026-09-15',
+                    'rawLabel' => 'Budget 02',
+                    'amount' => '-125.00',
+                    'assetCode' => 'EUR',
+                ],
+                [
+                    'id' => '00000000-0000-7000-8000-000000000103',
+                    'bookedOn' => '2026-09-15',
+                    'rawLabel' => 'Budget 03',
+                    'amount' => '25.00',
+                    'assetCode' => 'EUR',
+                ],
+            ], $comparison['includedTransactions']);
+            self::assertArrayNotHasKey('includedTransactionIds', $comparison);
             self::assertIsString($comparison['policy']);
             self::assertStringContainsString('BOOKED', $comparison['policy']);
             self::assertArrayNotHasKey('policyId', $comparison);
