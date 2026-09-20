@@ -35,6 +35,7 @@ const target = {
   id: '00000000-0000-7000-8000-000000000002',
   scopeType: 'AXIS' as const,
   scopeId: 'ESSENTIAL',
+  scopeLabel: 'Essential',
   valueType: 'AMOUNT' as const,
   storedAmount: '1',
   storedRatio: null,
@@ -98,6 +99,7 @@ describe('BudgetPage', () => {
               id: '00000000-0000-7000-8000-000000000002',
               scopeType: 'AXIS',
               scopeId: 'ESSENTIAL',
+              scopeLabel: 'Essential',
               valueType: 'RATIO',
               storedAmount: null,
               storedRatio: '0.30',
@@ -133,6 +135,28 @@ describe('BudgetPage', () => {
     expect(activate.getAttribute('disabled')).not.toBeNull();
     expect(activate.getAttribute('aria-describedby')).toBeTruthy();
     expect(screen.getByText('Ajoutez un objectif avant d’activer ce plan.')).toBeTruthy();
+  });
+  it('renders a readable target scope label instead of its category identifier', async () => {
+    const categoryId = '00000000-0000-7000-8000-000000000004';
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));
+    api.readBudgetPlan.mockReturnValue(
+      ok(
+        detail({
+          targets: [
+            {
+              ...target,
+              scopeType: 'CATEGORY',
+              scopeId: categoryId,
+              scopeLabel: 'Logement',
+            },
+          ],
+        }),
+      ),
+    );
+    renderPage(plan.id);
+
+    expect(await screen.findByText(/Catégorie · Logement/)).toBeTruthy();
+    expect(screen.queryByText(categoryId)).toBeNull();
   });
   it('opens the category target perimeter picker as a labelled combobox', async () => {
     api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));

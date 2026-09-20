@@ -76,6 +76,7 @@ final class BudgetRepresentation
     {
         return [
             'id' => $target->id, 'scopeType' => $target->scopeType, 'scopeId' => $target->scopeId,
+            'scopeLabel' => $target->scopeLabel,
             'valueType' => $target->valueType, 'storedAmount' => $target->storedAmount,
             'storedRatio' => $target->storedRatio, 'resolvedAmount' => $target->resolvedAmount,
             'nonCalculableReason' => $target->nonCalculableReason, 'overlapping' => $target->overlapping,
@@ -90,6 +91,7 @@ final class BudgetRepresentation
             'targetId' => $comparison->targetId,
             'scopeType' => $comparison->scopeType,
             'scopeId' => $comparison->scopeId,
+            'scopeLabel' => $comparison->scopeLabel,
             'actual' => $comparison->actual,
             'actualReason' => $comparison->actualReason,
             'target' => $comparison->target,

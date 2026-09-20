@@ -124,6 +124,9 @@ final class BudgetComparisonControllerTest extends WebTestCase
             self::assertStringContainsString('BOOKED', $comparison['policy']);
             self::assertArrayNotHasKey('policyId', $comparison);
         }
+        self::assertSame('Food', $comparisons[0]['scopeLabel']);
+        self::assertSame('Living', $comparisons[1]['scopeLabel']);
+        self::assertSame('Essential', $comparisons[2]['scopeLabel']);
         self::assertSame('150.00', $comparisons[0]['target']);
         self::assertSame('50.00', $comparisons[0]['variance']);
         self::assertSame('WITHIN_TARGET', $comparisons[0]['status']);

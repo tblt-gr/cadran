@@ -10,6 +10,7 @@ final readonly class BudgetTargetDetailView
         public string $id,
         public string $scopeType,
         public string $scopeId,
+        public string $scopeLabel,
         public string $valueType,
         public ?string $storedAmount,
         public ?string $storedRatio,

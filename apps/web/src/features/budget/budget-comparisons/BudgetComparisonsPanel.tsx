@@ -46,7 +46,7 @@ function ComparisonCard({
     <article className={`card ${styles.card}`}>
       <div className={styles.heading}>
         <h4>
-          {t(`budget.scopeTypes.${comparison.scopeType}`)} · {comparison.scopeId}
+          {t(`budget.scopeTypes.${comparison.scopeType}`)} · {comparison.scopeLabel}
         </h4>
         <StatusBadge tone={statusTones[comparison.status]}>
           {t(`budget.comparisons.statuses.${comparison.status}`)}
