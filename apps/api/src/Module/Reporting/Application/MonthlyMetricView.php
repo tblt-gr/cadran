@@ -9,10 +9,17 @@ use App\Module\Reporting\Domain\MonthlyMetric;
 
 final readonly class MonthlyMetricView
 {
+    /**
+     * @param list<string> $sourceTransactionIds
+     * @param list<string> $sourceAccountIds
+     */
     public function __construct(
         public ?string $value,
         public ?string $assetCode,
         public ?string $reason,
+        public array $sourceTransactionIds = [],
+        public array $sourceAccountIds = [],
+        public int $pendingCount = 0,
     ) {
     }
 
@@ -22,11 +29,15 @@ final readonly class MonthlyMetricView
             $metric->value?->toString(),
             $metric->asset?->toString(),
             $metric->reason?->value,
+            $metric->sourceTransactionIds,
+            [],
+            $metric->pendingCount,
         );
     }
 
-    public static function fromNetWorth(?NetWorthAmountView $amount, ?string $reason): self
+    /** @param list<string> $sourceAccountIds */
+    public static function fromNetWorth(?NetWorthAmountView $amount, ?string $reason, array $sourceAccountIds = []): self
     {
-        return new self($amount?->amount, $amount?->asset, null === $amount ? $reason : null);
+        return new self($amount?->amount, $amount?->asset, null === $amount ? $reason : null, [], $sourceAccountIds);
     }
 }

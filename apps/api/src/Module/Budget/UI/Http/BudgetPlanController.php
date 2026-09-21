@@ -7,6 +7,7 @@ namespace App\Module\Budget\UI\Http;
 use App\Module\Budget\Application\BudgetComparisonScopeTooLarge;
 use App\Module\Budget\Application\BudgetComparisonUnavailable;
 use App\Module\Budget\Application\BudgetIncomeScopeTooLarge;
+use App\Module\Budget\Application\BudgetKpiExplanationNotFound;
 use App\Module\Budget\Application\BudgetPlanConflict;
 use App\Module\Budget\Application\BudgetPlanNotFound;
 use App\Module\Budget\Application\CreateBudgetPlan;
@@ -14,10 +15,12 @@ use App\Module\Budget\Application\CreateBudgetPlanInput;
 use App\Module\Budget\Application\InvalidBudgetPlanInput;
 use App\Module\Budget\Application\ListBudgetPlans;
 use App\Module\Budget\Application\ReadBudgetComparisons;
+use App\Module\Budget\Application\ReadBudgetKpiExplanation;
 use App\Module\Budget\Application\ReadBudgetPlan;
 use App\Module\Budget\Application\UpdateBudgetPlan;
 use App\Module\Budget\Application\UpdateBudgetPlanInput;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Reporting\UI\Http\MonthlyKpiExplanationRepresentation;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -109,6 +112,27 @@ final readonly class BudgetPlanController
         }
 
         return $this->envelope->json(BudgetRepresentation::comparisons($result));
+    }
+
+    #[Route('/api/v1/budget-plans/{id}/comparisons/{targetId}/explain', name: 'api_v1_budget_comparison_explain', methods: ['GET'])]
+    public function explainComparison(string $id, string $targetId, ReadBudgetKpiExplanation $read): Response
+    {
+        if (!$this->envelope->isIdentifier($id) || !$this->envelope->isIdentifier($targetId)) {
+            return $this->notFound();
+        }
+        try {
+            $result = $read($id, $targetId);
+        } catch (BudgetPlanNotFound|BudgetKpiExplanationNotFound) {
+            return $this->notFound();
+        } catch (BudgetComparisonUnavailable) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.budget_comparison_unavailable');
+        } catch (BudgetComparisonScopeTooLarge) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.budget_scope_too_large');
+        } catch (WorkspaceAccessDenied) {
+            return $this->forbidden();
+        }
+
+        return $this->envelope->json(MonthlyKpiExplanationRepresentation::of($result));
     }
 
     #[Route('/api/v1/budget-plans/{id}', name: 'api_v1_budget_plans_update', methods: ['PUT'])]

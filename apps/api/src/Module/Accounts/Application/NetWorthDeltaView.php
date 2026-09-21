@@ -23,6 +23,10 @@ final readonly class NetWorthDeltaView
      */
     public const int RATE_DISPLAY_SCALE = 2;
 
+    /**
+     * @param list<string> $previousSourceAccountIds
+     * @param list<string> $currentSourceAccountIds
+     */
     public function __construct(
         public string $comparedOn,
         public ?NetWorthAmountView $previousTotal,
@@ -33,11 +37,21 @@ final readonly class NetWorthDeltaView
         public ?string $ratePercent,
         public ?string $ratePercentDisplay,
         public ?string $rateReason,
+        public array $previousSourceAccountIds,
+        public array $currentSourceAccountIds,
     ) {
     }
 
-    public static function fromDelta(NetWorthDelta $delta, NetWorthAssetReferences $references): self
-    {
+    /**
+     * @param list<string> $previousSourceAccountIds
+     * @param list<string> $currentSourceAccountIds
+     */
+    public static function fromDelta(
+        NetWorthDelta $delta,
+        NetWorthAssetReferences $references,
+        array $previousSourceAccountIds,
+        array $currentSourceAccountIds,
+    ): self {
         return new self(
             comparedOn: $delta->comparedOn->format('Y-m-d'),
             previousTotal: NetWorthAmountView::of(
@@ -54,6 +68,8 @@ final readonly class NetWorthDeltaView
                 ? null
                 : ExactDecimal::round($delta->ratePercent, self::RATE_DISPLAY_SCALE, RoundingMode::HALF_UP)->toString(),
             rateReason: $delta->rateReason?->value,
+            previousSourceAccountIds: $previousSourceAccountIds,
+            currentSourceAccountIds: $currentSourceAccountIds,
         );
     }
 }

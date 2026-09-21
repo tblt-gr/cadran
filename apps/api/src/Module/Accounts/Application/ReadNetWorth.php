@@ -59,8 +59,10 @@ final readonly class ReadNetWorth
 
         $workspace = $this->caller->resolve();
         $set = $this->contributions->on($workspace, [$requestedOn, $comparedOn]);
-        $current = NetWorthCalculator::compute($set->on($requestedOn), $requestedOn);
-        $previous = NetWorthCalculator::compute($set->on($comparedOn), $comparedOn);
+        $currentContributions = $set->on($requestedOn);
+        $previousContributions = $set->on($comparedOn);
+        $current = NetWorthCalculator::compute($currentContributions, $requestedOn);
+        $previous = NetWorthCalculator::compute($previousContributions, $comparedOn);
 
         // Archived buckets still carry the lineage of the accounts that point
         // at them, so they are read for the roll-up and dropped from the
@@ -75,18 +77,39 @@ final readonly class ReadNetWorth
         $lineages = AccountGroupTree::lineages($groups);
         $shareInputs = array_map(
             static fn (NetWorthContribution $contribution): AccountShareInput => $contribution->share(),
-            $set->on($requestedOn),
+            $currentContributions,
         );
         $shares = NetWorthShareCalculator::compute($shareInputs, $lineages);
         $references = new NetWorthAssetReferences($this->assets);
 
         return NetWorthView::of(
             $current,
-            NetWorthDeltaView::fromDelta(NetWorthDelta::between($current, $previous), $references),
+            NetWorthDeltaView::fromDelta(
+                NetWorthDelta::between($current, $previous),
+                $references,
+                self::sourceAccountIds($previousContributions),
+                self::sourceAccountIds($currentContributions),
+            ),
             self::contributionViews($set, $current, $groups, $shares, $references),
             self::allocationViews($current, $groups, $lineages, $shareInputs, $shares, $references),
             $references->for($current->asset),
         );
+    }
+
+    /**
+     * @param list<NetWorthContribution> $contributions
+     *
+     * @return list<string>
+     */
+    private static function sourceAccountIds(array $contributions): array
+    {
+        $ids = array_map(
+            static fn (NetWorthContribution $contribution): string => $contribution->accountId,
+            array_filter($contributions, static fn (NetWorthContribution $contribution): bool => $contribution->eligible),
+        );
+        sort($ids, SORT_STRING);
+
+        return $ids;
     }
 
     /**

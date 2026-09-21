@@ -138,6 +138,13 @@ final class MonthlyProjectionControllerTest extends WebTestCase
         self::assertIsArray($accounts);
         self::assertSame('STALE', self::fields(self::fields($accounts[0])['endValue'])['quality']);
         self::assertSame('MISSING', self::fields(self::fields($accounts[1])['endValue'])['quality']);
+
+        $cash = $this->read('/api/v1/reports/monthly/cashIncome/explain?month=2026-09');
+        self::assertNull($cash['value']);
+        self::assertSame('MIXED_ASSETS', $cash['reason']);
+        self::assertSame(['00000000-0000-7000-8000-000000000101'], $cash['sourceTransactionIds']);
+        $endNetWorth = $this->read('/api/v1/reports/monthly/endNetWorth/explain?month=2026-09');
+        self::assertSame([self::ACCOUNT, self::SAVINGS], $endNetWorth['sourceAccountIds']);
     }
 
     public function testNegativePriorWealthKeepsAnExactDeltaAndNamesTheBaseState(): void
@@ -193,24 +200,97 @@ final class MonthlyProjectionControllerTest extends WebTestCase
     public function testBeginningAndEndNetWorthKeepTheirOwnAsymmetricReasons(): void
     {
         $this->signIn();
-        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Euro', 'CURRENT', openedOn: '2026-09-02');
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Euro', 'CURRENT');
         $this->account(self::SAVINGS, WorkspaceFixture::OWN_WORKSPACE, 'Dollar', 'SAVINGS', 'USD', '2026-09-02');
+        $this->snapshot(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, '2026-09-01', '100.00', 'RECONCILED');
         $this->snapshot(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, '2026-09-30', '100.00', 'RECONCILED');
         $this->snapshot(self::SAVINGS, WorkspaceFixture::OWN_WORKSPACE, '2026-09-30', '100.00', 'RECONCILED', 'USD');
 
         $report = $this->read('/api/v1/reports/monthly?month=2026-09');
 
-        self::assertNull(self::fields($report['beginningNetWorth'])['value']);
-        self::assertSame('NO_ELIGIBLE_ACCOUNT', self::fields($report['beginningNetWorth'])['reason']);
+        self::assertSame('100.00', self::fields($report['beginningNetWorth'])['value']);
+        self::assertNull(self::fields($report['beginningNetWorth'])['reason']);
         self::assertNull(self::fields($report['endNetWorth'])['value']);
         self::assertSame('MIXED_ASSETS', self::fields($report['endNetWorth'])['reason']);
         self::assertNull(self::fields($report['netWorthDelta'])['value']);
         self::assertSame('MIXED_ASSETS', self::fields($report['netWorthDelta'])['reason']);
+
+        $beginning = $this->read('/api/v1/reports/monthly/beginningNetWorth/explain?month=2026-09');
+        self::assertSame([self::ACCOUNT], $beginning['sourceAccountIds']);
+        $end = $this->read('/api/v1/reports/monthly/endNetWorth/explain?month=2026-09');
+        self::assertSame([self::ACCOUNT, self::SAVINGS], $end['sourceAccountIds']);
+        $delta = $this->read('/api/v1/reports/monthly/netWorthDelta/explain?month=2026-09');
+        self::assertSame([self::ACCOUNT, self::SAVINGS], $delta['sourceAccountIds']);
+    }
+
+    public function testItExplainsTheExactMonthlyViewWithWorkspaceScopedSources(): void
+    {
+        $this->signIn();
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->account(self::SAVINGS, WorkspaceFixture::OWN_WORKSPACE, 'Épargne', 'SAVINGS');
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Secret', 'CURRENT');
+        $this->category(self::CATEGORY, WorkspaceFixture::OWN_WORKSPACE, true);
+        $this->snapshot(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, '2026-09-01', '100.00', 'RECONCILED');
+        $this->snapshot(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, '2026-09-30', '150.00', 'RECONCILED');
+        $this->snapshot(self::SAVINGS, WorkspaceFixture::OWN_WORKSPACE, '2026-09-01', '10.00', 'RECONCILED');
+        $this->snapshot(self::SAVINGS, WorkspaceFixture::OWN_WORKSPACE, '2026-09-30', '30.00', 'RECONCILED');
+        $this->transaction('01', self::ACCOUNT, '50.00', 'INCOME');
+        $this->transaction('02', self::ACCOUNT, '5.00', 'INCOME', state: 'PENDING');
+        $this->transaction('03', self::ACCOUNT, '-10.00', 'EXPENSE', state: 'PENDING', splitAmount: '-10.00');
+        $this->transaction('04', self::SAVINGS, '20.00', 'TRANSFER', state: 'PENDING');
+        $this->transaction('05', self::ACCOUNT, '99.00', 'ADJUSTMENT', state: 'PENDING');
+        $this->transaction('09', self::OTHER_ACCOUNT, '999999.00', 'INCOME', workspace: WorkspaceFixture::OTHER_WORKSPACE);
+
+        $detail = $this->read('/api/v1/reports/monthly/cashIncome/explain?month=2026-09');
+
+        self::assertSame('cashIncome', $detail['kpi']);
+        self::assertSame('50.00', $detail['value']);
+        self::assertSame('EUR', $detail['assetCode']);
+        self::assertNull($detail['reason']);
+        self::assertNull($detail['reasonExplanation']);
+        self::assertIsString($detail['formula']);
+        self::assertIsString($detail['scope']);
+        self::assertSame(['start' => '2026-09-01', 'end' => '2026-09-30'], $detail['period']);
+        self::assertSame(['00000000-0000-7000-8000-000000000101'], $detail['sourceTransactionIds']);
+        self::assertSame([], $detail['sourceAccountIds']);
+        self::assertSame('PENDING', $detail['freshness']);
+        self::assertSame('CURRENT', $detail['quality']);
+        self::assertSame(1, $detail['pendingCount']);
+        self::assertArrayNotHasKey('policyVersion', $detail);
+        self::assertStringNotContainsString('999999', (string) $this->client->getResponse()->getContent());
+
+        $expenses = $this->read('/api/v1/reports/monthly/budgetExpenses/explain?month=2026-09');
+        self::assertSame(1, $expenses['pendingCount']);
+        self::assertSame('PENDING', $expenses['freshness']);
+        $uncategorized = $this->read('/api/v1/reports/monthly/uncategorizedExpenses/explain?month=2026-09');
+        self::assertSame(0, $uncategorized['pendingCount']);
+        self::assertSame('CURRENT', $uncategorized['freshness']);
+        $surplus = $this->read('/api/v1/reports/monthly/budgetSurplus/explain?month=2026-09');
+        self::assertSame(2, $surplus['pendingCount']);
+        self::assertSame('PENDING', $surplus['freshness']);
+        $savings = $this->read('/api/v1/reports/monthly/savingsTransfers/explain?month=2026-09');
+        self::assertSame(1, $savings['pendingCount']);
+        self::assertSame('PENDING', $savings['freshness']);
+        $rate = $this->read('/api/v1/reports/monthly/cashSavingsRate/explain?month=2026-09');
+        self::assertSame(2, $rate['pendingCount']);
+        self::assertSame('PENDING', $rate['freshness']);
+
+        $missing = $this->read('/api/v1/reports/monthly/nonCashBenefits/explain?month=2026-09');
+        self::assertNull($missing['value']);
+        self::assertSame('MISSING_BENEFIT_SOURCE', $missing['reason']);
+        self::assertIsString($missing['reasonExplanation']);
+        self::assertSame(0, $missing['pendingCount']);
+        self::assertSame('CURRENT', $missing['freshness']);
+
+        $this->client->request('GET', '/api/v1/reports/monthly/not-a-kpi/explain?month=2026-09');
+        self::assertResponseStatusCodeSame(400);
     }
 
     public function testAnAnonymousCallerReadsNothing(): void
     {
         $this->client->request('GET', '/api/v1/reports/monthly?month=2026-09');
+        self::assertResponseStatusCodeSame(401);
+        $this->client->request('GET', '/api/v1/reports/monthly/cashIncome/explain?month=2026-09');
         self::assertResponseStatusCodeSame(401);
     }
 

@@ -1071,6 +1071,37 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/budget-plans/{id}/comparisons/{targetId}/explain:
+    get:
+      operationId: explainBudgetComparison
+      summary: Explain one exact monthly budget comparison
+      description: >-
+        Selects the existing scoped comparison view and exposes its formula,
+        period, caller-workspace sources, freshness and quality. A foreign plan
+        or target is indistinguishable from an unknown one.
+      tags: [Budget, Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: targetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The exact calculation details for the addressed comparison.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MonthlyKpiExplanation' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/budget-plans/{id}/activate:
     post:
       operationId: activateBudgetPlan
@@ -2124,6 +2155,57 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/reports/monthly/{kpi}/explain:
+    get:
+      operationId: explainMonthlyKpi
+      summary: Explain one monthly projection KPI of the calling workspace
+      description: >-
+        Selects a metric from the exact monthly projection view and exposes its
+        formula, bounded source identifiers, freshness and quality. No policy
+        selector or version is exposed in this release.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: kpi
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              [
+                cashIncome,
+                nonCashBenefits,
+                budgetExpenses,
+                uncategorizedExpenses,
+                budgetSurplus,
+                savingsTransfers,
+                cashSavingsRate,
+                beginningNetWorth,
+                endNetWorth,
+                netWorthDelta,
+              ]
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+      responses:
+        '200':
+          description: The exact calculation details for the addressed monthly KPI.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MonthlyKpiExplanation' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: The workspace exceeds a bounded aggregate limit.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/net-worth:
     get:
       operationId: readNetWorth
@@ -7950,6 +8032,95 @@ components:
           oneOf:
             - $ref: '#/components/schemas/MonthlyProjectionReason'
             - type: 'null'
+    MonthlyKpiExplanation:
+      type: object
+      additionalProperties: false
+      required:
+        - kpi
+        - value
+        - assetCode
+        - reason
+        - reasonExplanation
+        - formula
+        - scope
+        - period
+        - sourceTransactionIds
+        - sourceAccountIds
+        - freshness
+        - quality
+        - pendingCount
+      properties:
+        kpi:
+          type: string
+          enum:
+            [
+              cashIncome,
+              nonCashBenefits,
+              budgetExpenses,
+              uncategorizedExpenses,
+              budgetSurplus,
+              savingsTransfers,
+              cashSavingsRate,
+              beginningNetWorth,
+              endNetWorth,
+              netWorthDelta,
+              budgetComparison,
+            ]
+        value:
+          type: [string, 'null']
+          pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        assetCode:
+          type: [string, 'null']
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        reason:
+          type: [string, 'null']
+          enum:
+            [
+              MIXED_ASSETS,
+              NO_ACCOUNT,
+              ZERO_CASH_INCOME,
+              MISSING_BENEFIT_SOURCE,
+              MISSING_VALUATION,
+              NO_ELIGIBLE_ACCOUNT,
+              MISSING_TARGET,
+              null,
+            ]
+        reasonExplanation:
+          type: [string, 'null']
+          minLength: 1
+        formula:
+          type: string
+          minLength: 1
+        scope:
+          type: string
+          minLength: 1
+        period:
+          type: object
+          additionalProperties: false
+          required: [start, end]
+          properties:
+            start: { type: string, format: date }
+            end: { type: string, format: date }
+        sourceTransactionIds:
+          type: array
+          maxItems: 500
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        sourceAccountIds:
+          type: array
+          maxItems: 500
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        freshness:
+          type: string
+          enum: [COMPLETE, EMPTY, PENDING, CURRENT]
+        quality:
+          type: string
+          enum: [CURRENT, STALE, MISSING, WITHIN_TARGET, ON_TARGET, OVER_TARGET, NON_CALCULABLE]
+        pendingCount:
+          type: integer
+          minimum: 0
+          maximum: 500
     MonthlyAccountValue:
       type: object
       additionalProperties: false

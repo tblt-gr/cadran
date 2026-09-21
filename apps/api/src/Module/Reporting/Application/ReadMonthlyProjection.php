@@ -58,26 +58,31 @@ final readonly class ReadMonthlyProjection
         foreach ($accountFacts->accounts as $account) {
             $accountsById[$account->id] = $account;
         }
-        $movements = array_map(
-            static fn (MonthlyTransactionFact $fact): MonthlyMovement => new MonthlyMovement(
-                $fact->amount,
-                $fact->asset,
-                MonthlyMovementKind::from($fact->nature),
-                array_map(static fn ($split): MonthlySplit => new MonthlySplit(
-                    $split->categoryId,
-                    $split->amount,
-                    $split->analyticAxes,
-                ), $fact->splits),
-                $accountsById[$fact->accountId]->savingsDestination ?? false,
-                $fact->id,
-            ),
-            $transactionFacts->booked,
+        $toMovement = static fn (MonthlyTransactionFact $fact): MonthlyMovement => new MonthlyMovement(
+            $fact->amount,
+            $fact->asset,
+            MonthlyMovementKind::from($fact->nature),
+            array_map(static fn ($split): MonthlySplit => new MonthlySplit(
+                $split->categoryId,
+                $split->amount,
+                $split->analyticAxes,
+            ), $fact->splits),
+            $accountsById[$fact->accountId]->savingsDestination ?? false,
+            $fact->id,
         );
+        $movements = array_map($toMovement, $transactionFacts->booked);
+        $pendingMovements = array_map($toMovement, $transactionFacts->pending);
         $metrics = MonthlyProjectionCalculator::compute(
             array_map(static fn (MonthlyAccountFact $account): string => $account->assetCode, $accountFacts->accounts),
             $movements,
             $categoryFlags,
+            $pendingMovements,
         );
+        $netWorthDeltaAccountIds = array_values(array_unique(array_merge(
+            $netWorth->delta->previousSourceAccountIds,
+            $netWorth->delta->currentSourceAccountIds,
+        )));
+        sort($netWorthDeltaAccountIds, SORT_STRING);
 
         return new MonthlyProjectionView(
             $month->key(),
@@ -93,9 +98,9 @@ final readonly class ReadMonthlyProjection
             MonthlyMetricView::fromMetric($metrics->budgetSurplus),
             MonthlyMetricView::fromMetric($metrics->savingsTransfers),
             MonthlyMetricView::fromMetric($metrics->cashSavingsRate),
-            MonthlyMetricView::fromNetWorth($netWorth->delta->previousTotal, $netWorth->delta->previousReason),
-            MonthlyMetricView::fromNetWorth($netWorth->total, $netWorth->reason),
-            MonthlyMetricView::fromNetWorth($netWorth->delta->amount, $netWorth->delta->amountReason),
+            MonthlyMetricView::fromNetWorth($netWorth->delta->previousTotal, $netWorth->delta->previousReason, $netWorth->delta->previousSourceAccountIds),
+            MonthlyMetricView::fromNetWorth($netWorth->total, $netWorth->reason, $netWorth->delta->currentSourceAccountIds),
+            MonthlyMetricView::fromNetWorth($netWorth->delta->amount, $netWorth->delta->amountReason, $netWorthDeltaAccountIds),
             self::beginningState($netWorth->delta->previousTotal?->amount),
             array_map(MonthlyAccountView::of(...), $accountFacts->accounts),
             $accountFacts->reconciliationStatus,
