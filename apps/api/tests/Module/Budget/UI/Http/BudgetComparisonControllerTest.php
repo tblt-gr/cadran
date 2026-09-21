@@ -152,6 +152,49 @@ final class BudgetComparisonControllerTest extends WebTestCase
         self::assertSame($foreign, (string) $this->client->getResponse()->getContent());
     }
 
+    public function testItExplainsOneExactComparisonWithoutLeakingForeignResources(): void
+    {
+        $this->plan(self::PLAN, WorkspaceFixture::OWN_WORKSPACE, 'ACTIVE');
+        $this->plan(self::FOREIGN_PLAN, WorkspaceFixture::OTHER_WORKSPACE, 'ACTIVE');
+        $this->account();
+        $this->category(self::PARENT, null, 1);
+        $this->category(self::CATEGORY, self::PARENT, 2);
+        $this->target('d1', 'CATEGORY', self::CATEGORY, 'AMOUNT', '150.00', 2, null, null);
+        $this->transaction('02', '-125.00', 'EXPENSE', 'BOOKED', '-125.00');
+        $this->transaction('03', '25.00', 'REFUND', 'BOOKED', '25.00');
+        $this->transaction('04', '-30.00', 'EXPENSE', 'PENDING', '-30.00');
+
+        $target = '00000000-0000-7000-8000-0000000000d1';
+        $detail = $this->read('/api/v1/budget-plans/'.self::PLAN.'/comparisons/'.$target.'/explain');
+
+        self::assertSame('budgetComparison', $detail['kpi']);
+        self::assertSame('50.00', $detail['value']);
+        self::assertSame('EUR', $detail['assetCode']);
+        self::assertNull($detail['reason']);
+        self::assertNull($detail['reasonExplanation']);
+        self::assertSame(['start' => '2026-09-01', 'end' => '2026-09-30'], $detail['period']);
+        self::assertSame([
+            '00000000-0000-7000-8000-000000000102',
+            '00000000-0000-7000-8000-000000000103',
+        ], $detail['sourceTransactionIds']);
+        self::assertSame([], $detail['sourceAccountIds']);
+        self::assertSame('PENDING', $detail['freshness']);
+        self::assertSame('WITHIN_TARGET', $detail['quality']);
+        self::assertSame(1, $detail['pendingCount']);
+        self::assertArrayNotHasKey('policyVersion', $detail);
+
+        $unknown = '00000000-0000-7000-8000-0000000000e8';
+        $this->client->request('GET', '/api/v1/budget-plans/'.self::FOREIGN_PLAN.'/comparisons/'.$target.'/explain');
+        self::assertResponseStatusCodeSame(404);
+        $foreign = (string) $this->client->getResponse()->getContent();
+        $this->client->request('GET', '/api/v1/budget-plans/'.$unknown.'/comparisons/'.$target.'/explain');
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame($foreign, (string) $this->client->getResponse()->getContent());
+        $this->client->request('GET', '/api/v1/budget-plans/'.self::PLAN.'/comparisons/'.$unknown.'/explain');
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame($foreign, (string) $this->client->getResponse()->getContent());
+    }
+
     public function testAZeroIncomeRatioAndANonCalculableActualNeverBecomeDefaultZeroes(): void
     {
         $this->plan(self::PLAN, WorkspaceFixture::OWN_WORKSPACE, 'ACTIVE');

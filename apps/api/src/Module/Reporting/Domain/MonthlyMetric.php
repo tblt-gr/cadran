@@ -9,23 +9,28 @@ use App\Module\Foundation\Domain\DecimalValue;
 
 final readonly class MonthlyMetric
 {
+    /** @param list<string> $sourceTransactionIds */
     private function __construct(
         public ?DecimalValue $value,
         public ?AssetCode $asset,
         public ?MonthlyProjectionReason $reason,
+        public array $sourceTransactionIds,
+        public int $pendingCount,
     ) {
         if ((null === $value) === (null === $reason)) {
             throw new \InvalidArgumentException('A monthly metric carries either a value or a reason.');
         }
     }
 
-    public static function value(DecimalValue $value, ?AssetCode $asset = null): self
+    /** @param list<string> $sourceTransactionIds */
+    public static function value(DecimalValue $value, ?AssetCode $asset = null, array $sourceTransactionIds = [], int $pendingCount = 0): self
     {
-        return new self($value, $asset, null);
+        return new self($value, $asset, null, $sourceTransactionIds, $pendingCount);
     }
 
-    public static function missing(MonthlyProjectionReason $reason): self
+    /** @param list<string> $sourceTransactionIds */
+    public static function missing(MonthlyProjectionReason $reason, array $sourceTransactionIds = [], int $pendingCount = 0): self
     {
-        return new self(null, null, $reason);
+        return new self(null, null, $reason, $sourceTransactionIds, $pendingCount);
     }
 }

@@ -6,8 +6,10 @@ namespace App\Module\Reporting\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Reporting\Application\InvalidMonthlyKpiExplanationQuery;
 use App\Module\Reporting\Application\InvalidMonthlyProjectionQuery;
 use App\Module\Reporting\Application\MonthlyProjectionScopeTooLarge;
+use App\Module\Reporting\Application\ReadMonthlyKpiExplanation;
 use App\Module\Reporting\Application\ReadMonthlyProjection;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -47,6 +49,35 @@ final readonly class MonthlyProjectionController
 
         return new JsonResponse(
             MonthlyProjectionRepresentation::of($projection),
+            Response::HTTP_OK,
+            ['Cache-Control' => 'no-store'],
+        );
+    }
+
+    #[Route('/api/v1/reports/monthly/{kpi}/explain', name: 'api_v1_reports_monthly_explain', methods: ['GET'])]
+    public function explain(string $kpi, Request $request, ReadMonthlyKpiExplanation $read): Response
+    {
+        $month = $request->query->getString('month');
+        if (1 !== preg_match('/^[0-9]{4}-[0-9]{2}$/D', $month)) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_projection_query');
+        }
+
+        try {
+            $explanation = $read($month, $kpi);
+        } catch (InvalidMonthlyKpiExplanationQuery|InvalidMonthlyProjectionQuery) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_projection_query');
+        } catch (MonthlyProjectionScopeTooLarge) {
+            return $this->problem(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                'api.problem.monthly_projection_scope_too_large',
+                self::TYPE_SCOPE_TOO_LARGE,
+            );
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
+        }
+
+        return new JsonResponse(
+            MonthlyKpiExplanationRepresentation::of($explanation),
             Response::HTTP_OK,
             ['Cache-Control' => 'no-store'],
         );
