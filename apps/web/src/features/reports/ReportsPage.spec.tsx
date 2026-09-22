@@ -83,7 +83,16 @@ const explanation: MonthlyKpiExplanation = {
   formula: 'revenus comptabilisés',
   scope: 'espace courant',
   period: { start: '2026-09-01', end: '2026-09-30' },
-  sourceTransactionIds: [],
+  sourceTransactionIds: ['00000000-0000-7000-8000-0000000000a1'],
+  sourceTransactions: [
+    {
+      id: '00000000-0000-7000-8000-0000000000a1',
+      bookedOn: '2026-09-12',
+      label: 'Salaire septembre',
+      amount: { value: '1200.50', assetCode: 'EUR' },
+      state: 'BOOKED',
+    },
+  ],
   sourceAccountIds: [],
   freshness: 'CURRENT',
   quality: 'CURRENT',
@@ -117,7 +126,14 @@ describe('ReportsPage', () => {
     expect(document.activeElement).toBe(explain);
     fireEvent.click(explain);
     expect(await screen.findByText('revenus comptabilisés')).toBeTruthy();
-    expect(screen.getAllByText('Aucune source dans le périmètre.')).toHaveLength(2);
+    const sources = screen.getByRole('table', { name: 'Transactions sources' });
+    const sourceRegion = screen.getByRole('region', { name: 'Transactions sources' });
+    expect(sourceRegion.getAttribute('tabindex')).toBe('0');
+    expect(sources.textContent).toContain('12/09/2026');
+    expect(sources.textContent).toContain('Salaire septembre');
+    expect(sources.textContent).toContain('1 200,50 €');
+    expect(sources.textContent).toContain('BOOKED');
+    expect(screen.getByText('Aucune source dans le périmètre.')).toBeTruthy();
     expect(explain.getAttribute('aria-controls')).toBe('monthly-kpi-explanation-cashIncome');
     expect(api.explainMonthlyKpi).toHaveBeenCalledWith(
       expect.objectContaining({

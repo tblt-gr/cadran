@@ -312,6 +312,11 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
         return $this->inner->find($workspace, $id);
     }
 
+    public function findMany(\App\Module\Foundation\Domain\WorkspaceScope $workspace, array $ids): array
+    {
+        return $this->inner->findMany($workspace, $ids);
+    }
+
     public function findForUpdate(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $id): ?Transaction
     {
         return $this->inner->findForUpdate($workspace, $id);

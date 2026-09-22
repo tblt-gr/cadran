@@ -141,6 +141,11 @@
     "period": "Période",
     "freshness": "Fraîcheur",
     "transactionSources": "Transactions sources",
+    "sourceId": "Identifiant",
+    "sourceDate": "Date",
+    "sourceLabel": "Libellé",
+    "sourceAmount": "Montant exact",
+    "sourceState": "État",
     "accountSources": "Comptes sources",
     "noSources": "Aucune source dans le périmètre.",
     "metrics": {

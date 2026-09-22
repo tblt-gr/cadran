@@ -11,6 +11,16 @@ interface TransactionRepository
 {
     public function find(WorkspaceScope $workspace, string $id): ?Transaction;
 
+    /**
+     * Returns the existing rows among the requested identifiers, always scoped
+     * to the caller workspace and ordered by identifier.
+     *
+     * @param list<string> $ids
+     *
+     * @return list<Transaction>
+     */
+    public function findMany(WorkspaceScope $workspace, array $ids): array;
+
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Transaction;
 
     /**

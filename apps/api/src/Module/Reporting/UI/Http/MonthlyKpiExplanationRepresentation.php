@@ -21,6 +21,13 @@ final class MonthlyKpiExplanationRepresentation
             'scope' => $view->scope,
             'period' => ['start' => $view->periodStart, 'end' => $view->periodEnd],
             'sourceTransactionIds' => $view->sourceTransactionIds,
+            'sourceTransactions' => array_map(static fn ($transaction): array => [
+                'id' => $transaction->id,
+                'bookedOn' => $transaction->bookedOn,
+                'label' => $transaction->label,
+                'amount' => ['value' => $transaction->amount, 'assetCode' => $transaction->assetCode],
+                'state' => $transaction->state,
+            ], $view->sourceTransactions),
             'sourceAccountIds' => $view->sourceAccountIds,
             'freshness' => $view->freshness,
             'quality' => $view->quality,

@@ -32,6 +32,15 @@ final class InMemoryTransactionRepository implements TransactionRepository
         throw new \LogicException('Not needed by the Budget module.');
     }
 
+    public function findMany(WorkspaceScope $workspace, array $ids): array
+    {
+        return array_values(array_filter(
+            $this->transactions,
+            static fn (Transaction $transaction): bool => $transaction->workspace->equals($workspace)
+                && in_array($transaction->id, $ids, true),
+        ));
+    }
+
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Transaction
     {
         throw new \LogicException('Not needed by the Budget module.');
