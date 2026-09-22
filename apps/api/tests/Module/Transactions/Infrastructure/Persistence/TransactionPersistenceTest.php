@@ -72,6 +72,10 @@ final class TransactionPersistenceTest extends KernelTestCase
         self::assertSame(2, $stored->amount->value->scale());
         self::assertCount(1, $stored->splits);
         self::assertNull($this->repository->find(WorkspaceFixture::own(), self::OTHER_TRANSACTION));
+        self::assertSame([self::OWN_TRANSACTION], array_column($this->repository->findMany(
+            WorkspaceFixture::own(),
+            [self::OWN_TRANSACTION, self::OTHER_TRANSACTION, '00000000-0000-7000-8000-0000000000ff'],
+        ), 'id'));
         self::assertSame([self::OWN_TRANSACTION], array_column(
             $this->repository->search(WorkspaceFixture::own(), $this->notVoidedFilters(), 100, null),
             'id',

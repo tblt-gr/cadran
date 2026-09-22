@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace App\Module\Budget\Application;
 
 use App\Module\Accounts\Domain\CalendarMonth;
+use App\Module\Foundation\Application\CallerWorkspace;
 use App\Module\Reporting\Application\MonthlyBudgetSourceView;
 use App\Module\Reporting\Application\MonthlyKpiExplanationView;
 use App\Module\Reporting\Application\MonthlyKpiReasonExplanation;
+use App\Module\Transactions\Application\ReadTransactionSummaries;
 
 final readonly class ReadBudgetKpiExplanation
 {
-    public function __construct(private ReadBudgetComparisons $comparisons)
-    {
+    public function __construct(
+        private ReadBudgetComparisons $comparisons,
+        private CallerWorkspace $caller,
+        private ReadTransactionSummaries $transactionSummaries,
+    ) {
     }
 
     public function __invoke(string $planId, string $targetId): MonthlyKpiExplanationView
@@ -48,6 +53,7 @@ final readonly class ReadBudgetKpiExplanation
             periodStart: $month->firstDay()->format('Y-m-d'),
             periodEnd: $month->lastDay()->format('Y-m-d'),
             sourceTransactionIds: $sourceTransactionIds,
+            sourceTransactions: ($this->transactionSummaries)($this->caller->resolve(), $sourceTransactionIds),
             sourceAccountIds: [],
             freshness: $comparison->pendingCount > 0 ? 'PENDING' : 'CURRENT',
             quality: $comparison->status,

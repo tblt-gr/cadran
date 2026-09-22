@@ -56,10 +56,13 @@ export const navigationItems: NavigationItem[] = [
     match: (path) => /^\/tax\/\d{4}$/.test(path),
   },
   {
-    href: '/reports/annual/2026',
+    href: '/reports',
     icon: 'transactions',
     labelKey: 'navigation.reports',
-    match: (path) => /^\/reports\/annual\/\d{4}$/.test(path) || path === '/reports/all-years',
+    match: (path) =>
+      path === '/reports' ||
+      /^\/reports\/annual\/\d{4}$/.test(path) ||
+      path === '/reports/all-years',
   },
   {
     href: '/categories',

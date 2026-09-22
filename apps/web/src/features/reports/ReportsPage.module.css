@@ -1,0 +1,107 @@
+.page {
+  display: grid;
+  gap: var(--spacing-4);
+}
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+.header h1 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-page-title);
+}
+.header label {
+  display: grid;
+  gap: var(--spacing-1);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.summary {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+}
+.panel,
+.state {
+  padding: var(--spacing-6);
+}
+.tableWrap {
+  overflow-x: auto;
+  margin-top: var(--spacing-4);
+}
+.tableWrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.tableWrap th,
+.tableWrap td {
+  padding: var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: top;
+}
+.tableWrap td {
+  color: var(--text-secondary);
+}
+.explanation {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--spacing-2) var(--spacing-4);
+  margin: var(--spacing-4) var(--spacing-none) var(--spacing-none);
+}
+.explanation dt {
+  color: var(--text-secondary);
+}
+.explanation dd {
+  margin: var(--spacing-none);
+  overflow-wrap: anywhere;
+}
+.explanation ul {
+  margin: var(--spacing-none);
+  padding-left: var(--spacing-4);
+}
+.sourceTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.sourceTableWrap {
+  overflow-x: auto;
+}
+.sourceTable th,
+.sourceTable td {
+  padding: var(--spacing-2);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: top;
+}
+.sourceTable td {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .header input {
+    width: 100%;
+  }
+  .panel,
+  .state {
+    padding: var(--spacing-4);
+  }
+  .tableWrap th,
+  .tableWrap td {
+    min-width: 8rem;
+  }
+  .explanation {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-1);
+  }
+  .sourceTable th,
+  .sourceTable td {
+    min-width: 6rem;
+  }
+}

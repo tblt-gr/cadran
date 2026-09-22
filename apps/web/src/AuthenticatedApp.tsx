@@ -20,6 +20,7 @@ import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingS
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { ProfileSettingsPage } from '@/features/settings/ProfileSettingsPage';
 import { BudgetPage } from '@/features/budget/BudgetPage';
+import { ReportsPage } from '@/features/reports/ReportsPage';
 import { getRouteTitleKey } from '@/lib/navigation';
 
 /**
@@ -78,6 +79,8 @@ export function AuthenticatedApp() {
     content = <RecurrencesPage />;
   } else if (path === '/budget') {
     content = <BudgetPage />;
+  } else if (path === '/reports') {
+    content = <ReportsPage />;
   } else if (/^\/budget\/[^/]+$/.test(path)) {
     content = <BudgetPage planId={path.split('/')[2]} />;
   } else if (path === '/settings/profile') {
@@ -116,6 +119,7 @@ export function AuthenticatedApp() {
         path !== '/transactions' &&
         path !== '/transactions/recurrences' &&
         path !== '/budget' &&
+        path !== '/reports' &&
         !/^\/budget\/[^/]+$/.test(path) &&
         path !== '/settings/profile'
       }

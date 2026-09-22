@@ -41,6 +41,21 @@ final readonly class DbalTransactionRepository implements CategoryClassification
         return $this->one($workspace, $id, false);
     }
 
+    public function findMany(WorkspaceScope $workspace, array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.self::COLUMNS.' FROM transaction_transactions WHERE workspace_id = :workspace_id AND id IN (:ids) ORDER BY id ASC',
+            ['workspace_id' => $workspace->id, 'ids' => $ids],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        return $this->hydrateMany($workspace, $rows);
+    }
+
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Transaction
     {
         return $this->one($workspace, $id, true);

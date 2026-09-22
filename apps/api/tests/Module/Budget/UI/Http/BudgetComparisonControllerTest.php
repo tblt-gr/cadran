@@ -177,6 +177,22 @@ final class BudgetComparisonControllerTest extends WebTestCase
             '00000000-0000-7000-8000-000000000102',
             '00000000-0000-7000-8000-000000000103',
         ], $detail['sourceTransactionIds']);
+        self::assertSame([
+            [
+                'id' => '00000000-0000-7000-8000-000000000102',
+                'bookedOn' => '2026-09-15',
+                'label' => 'Budget 02',
+                'amount' => ['value' => '-125.00', 'assetCode' => 'EUR'],
+                'state' => 'BOOKED',
+            ],
+            [
+                'id' => '00000000-0000-7000-8000-000000000103',
+                'bookedOn' => '2026-09-15',
+                'label' => 'Budget 03',
+                'amount' => ['value' => '25.00', 'assetCode' => 'EUR'],
+                'state' => 'BOOKED',
+            ],
+        ], $detail['sourceTransactions']);
         self::assertSame([], $detail['sourceAccountIds']);
         self::assertSame('PENDING', $detail['freshness']);
         self::assertSame('WITHIN_TARGET', $detail['quality']);

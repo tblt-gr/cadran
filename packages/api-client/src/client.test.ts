@@ -6,13 +6,13 @@ import {
   listAssets,
   listAuditEvents,
   listProducts,
-} from './generated';
+} from './generated/index.js';
 import type {
   CreateCategoryRequest,
   CreateTransactionRequest,
   DecimalAmount,
   ProductCapability,
-} from './generated';
+} from './generated/index.js';
 
 describe('generated Cadran client', () => {
   it('calls the versioned endpoint with its generated response type', async () => {

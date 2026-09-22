@@ -252,11 +252,21 @@ final class MonthlyProjectionControllerTest extends WebTestCase
         self::assertIsString($detail['scope']);
         self::assertSame(['start' => '2026-09-01', 'end' => '2026-09-30'], $detail['period']);
         self::assertSame(['00000000-0000-7000-8000-000000000101'], $detail['sourceTransactionIds']);
+        self::assertSame([[
+            'id' => '00000000-0000-7000-8000-000000000101',
+            'bookedOn' => '2026-09-15',
+            'label' => 'Projection 01',
+            'amount' => ['value' => '50.00', 'assetCode' => 'EUR'],
+            'state' => 'BOOKED',
+        ]], $detail['sourceTransactions']);
         self::assertSame([], $detail['sourceAccountIds']);
         self::assertSame('PENDING', $detail['freshness']);
         self::assertSame('CURRENT', $detail['quality']);
         self::assertSame(1, $detail['pendingCount']);
         self::assertArrayNotHasKey('policyVersion', $detail);
+        self::assertArrayNotHasKey('counterparty', self::fields($detail['sourceTransactions'][0]));
+        self::assertArrayNotHasKey('note', self::fields($detail['sourceTransactions'][0]));
+        self::assertArrayNotHasKey('bankReference', self::fields($detail['sourceTransactions'][0]));
         self::assertStringNotContainsString('999999', (string) $this->client->getResponse()->getContent());
 
         $expenses = $this->read('/api/v1/reports/monthly/budgetExpenses/explain?month=2026-09');
@@ -281,6 +291,7 @@ final class MonthlyProjectionControllerTest extends WebTestCase
         self::assertIsString($missing['reasonExplanation']);
         self::assertSame(0, $missing['pendingCount']);
         self::assertSame('CURRENT', $missing['freshness']);
+        self::assertSame([], $missing['sourceTransactions']);
 
         $this->client->request('GET', '/api/v1/reports/monthly/not-a-kpi/explain?month=2026-09');
         self::assertResponseStatusCodeSame(400);

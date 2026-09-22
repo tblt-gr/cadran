@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace App\Module\Reporting\Application;
 
+use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Transactions\Application\ReadTransactionSummaries;
+
 final readonly class ReadMonthlyKpiExplanation
 {
-    public function __construct(private ReadMonthlyProjection $projection)
-    {
+    public function __construct(
+        private ReadMonthlyProjection $projection,
+        private CallerWorkspace $caller,
+        private ReadTransactionSummaries $transactionSummaries,
+    ) {
     }
 
     public function __invoke(string $requestedMonth, string $requestedKpi): MonthlyKpiExplanationView
@@ -31,6 +37,7 @@ final readonly class ReadMonthlyKpiExplanation
             periodStart: $projection->periodStart,
             periodEnd: $projection->periodEnd,
             sourceTransactionIds: $metric->sourceTransactionIds,
+            sourceTransactions: ($this->transactionSummaries)($this->caller->resolve(), $metric->sourceTransactionIds),
             sourceAccountIds: $metric->sourceAccountIds,
             freshness: $metric->pendingCount > 0 ? 'PENDING' : 'CURRENT',
             quality: $projection->quality,

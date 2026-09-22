@@ -8045,6 +8045,7 @@ components:
         - scope
         - period
         - sourceTransactionIds
+        - sourceTransactions
         - sourceAccountIds
         - freshness
         - quality
@@ -8106,6 +8107,11 @@ components:
           maxItems: 500
           uniqueItems: true
           items: { type: string, format: uuid }
+        sourceTransactions:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/MonthlyKpiSourceTransaction'
         sourceAccountIds:
           type: array
           maxItems: 500
@@ -8121,6 +8127,22 @@ components:
           type: integer
           minimum: 0
           maximum: 500
+    MonthlyKpiSourceTransaction:
+      type: object
+      additionalProperties: false
+      required: [id, bookedOn, label, amount, state]
+      properties:
+        id: { type: string, format: uuid }
+        bookedOn: { type: string, format: date }
+        label:
+          type: string
+          minLength: 1
+          maxLength: 140
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        state:
+          type: string
+          enum: [PENDING, BOOKED, VOIDED, REJECTED]
     MonthlyAccountValue:
       type: object
       additionalProperties: false
