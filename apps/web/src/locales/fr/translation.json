@@ -121,7 +121,7 @@
     "title": "Rapports",
     "month": "Mois",
     "loading": "Chargement du rapport…",
-    "empty": "Aucune donnée publiée pour ce mois",
+    "empty": "Aucun mouvement comptabilisé pour ce mois",
     "error": "Le rapport est indisponible",
     "unauthorized": "Vous n’êtes pas autorisé à consulter ce rapport",
     "retry": "Réessayer",

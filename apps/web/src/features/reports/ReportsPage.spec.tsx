@@ -33,6 +33,47 @@ const report: MonthlyProjection = {
   accounts: [],
   reconciliationStatus: 'NO_ACCOUNTS',
 };
+const zeroMetric = { value: '0', assetCode: 'EUR', reason: null };
+const emptyReport: MonthlyProjection = {
+  ...report,
+  state: 'EMPTY',
+  pendingCount: 0,
+  cashIncome: zeroMetric,
+  nonCashBenefits: { value: null, assetCode: null, reason: 'MISSING_BENEFIT_SOURCE' },
+  budgetExpenses: zeroMetric,
+  uncategorizedExpenses: zeroMetric,
+  budgetSurplus: zeroMetric,
+  savingsTransfers: zeroMetric,
+  cashSavingsRate: { value: null, assetCode: null, reason: 'ZERO_CASH_INCOME' },
+  beginningNetWorth: zeroMetric,
+  endNetWorth: zeroMetric,
+  netWorthDelta: zeroMetric,
+  beginningNetWorthState: 'ZERO',
+  accounts: [
+    {
+      id: '00000000-0000-7000-8000-0000000000d1',
+      label: 'Compte courant',
+      assetCode: 'EUR',
+      kind: 'CURRENT',
+      beginningValue: {
+        value: '0',
+        assetCode: 'EUR',
+        quality: 'CURRENT',
+        ageDays: 0,
+        valuedOn: '2026-09-01',
+      },
+      endValue: {
+        value: '0',
+        assetCode: 'EUR',
+        quality: 'CURRENT',
+        ageDays: 0,
+        valuedOn: '2026-09-30',
+      },
+      reconciliationStatus: 'UNRECONCILED',
+    },
+  ],
+  reconciliationStatus: 'UNRECONCILED',
+};
 const explanation: MonthlyKpiExplanation = {
   kpi: 'cashIncome',
   value: '1200.50',
@@ -86,7 +127,7 @@ describe('ReportsPage', () => {
     );
   });
 
-  it('keeps month selection visible for loading, empty and unauthorized states', async () => {
+  it('keeps month selection visible for loading and a contract-realistic empty report', async () => {
     api.readMonthlyProjection.mockReturnValue(new Promise(() => {}));
     const loading = render(
       <QueryClientProvider client={new QueryClient()}>
@@ -96,16 +137,18 @@ describe('ReportsPage', () => {
     expect((await screen.findByRole('status')).textContent).toContain('Chargement');
     expect(screen.getByLabelText('Mois')).toBeTruthy();
 
-    api.readMonthlyProjection.mockReturnValue(success({ ...report, state: 'EMPTY' }));
+    api.readMonthlyProjection.mockReturnValue(success(emptyReport));
     loading.unmount();
     render(
       <QueryClientProvider client={new QueryClient()}>
         <ReportsPage />
       </QueryClientProvider>,
     );
-    expect(await screen.findByText('Aucune donnée publiée pour ce mois')).toBeTruthy();
+    expect(await screen.findByText('Aucun mouvement comptabilisé pour ce mois')).toBeTruthy();
     expect(screen.getByLabelText('Mois')).toBeTruthy();
     expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.getByRole('table').textContent).toContain('0 €');
+    expect(screen.getByText('Non calculable : ZERO_CASH_INCOME')).toBeTruthy();
   });
 
   it('switches the bounded monthly query when the selected month changes', async () => {
@@ -123,7 +166,7 @@ describe('ReportsPage', () => {
     );
   });
 
-  it('names unavailable figures and authorization failures instead of presenting zero', async () => {
+  it('names unavailable figures and keeps the selector plus retry action for a generic error', async () => {
     api.readMonthlyProjection.mockReturnValue(
       success({ ...report, cashIncome: { value: null, assetCode: null, reason: 'NO_ACCOUNT' } }),
     );
@@ -134,15 +177,35 @@ describe('ReportsPage', () => {
     );
     expect(await screen.findByText('Non calculable : NO_ACCOUNT')).toBeTruthy();
 
-    api.readMonthlyProjection.mockReturnValue(
-      Promise.resolve({ data: undefined, response: new Response(null, { status: 401 }) }),
-    );
+    api.readMonthlyProjection.mockReset();
+    api.readMonthlyProjection
+      .mockReturnValueOnce(
+        Promise.resolve({ data: undefined, response: new Response(null, { status: 500 }) }),
+      )
+      .mockReturnValue(success(report));
     calculable.unmount();
     render(
       <QueryClientProvider client={new QueryClient()}>
         <ReportsPage />
       </QueryClientProvider>,
     );
+    expect((await screen.findByRole('alert')).textContent).toContain('indisponible');
+    expect(screen.getByLabelText('Mois')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+    expect(await screen.findByRole('table')).toBeTruthy();
+  });
+
+  it('keeps the selector but does not offer retry when the workspace is unauthorized', async () => {
+    api.readMonthlyProjection.mockReturnValue(
+      Promise.resolve({ data: undefined, response: new Response(null, { status: 403 }) }),
+    );
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ReportsPage />
+      </QueryClientProvider>,
+    );
     expect((await screen.findByRole('alert')).textContent).toContain('pas autorisé');
+    expect(screen.getByLabelText('Mois')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
   });
 });
