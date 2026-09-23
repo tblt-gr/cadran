@@ -20,6 +20,9 @@ import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingS
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { ProfileSettingsPage } from '@/features/settings/ProfileSettingsPage';
 import { BudgetPage } from '@/features/budget/BudgetPage';
+import { BudgetRouteRedirect } from '@/features/budget/monthly-budget/BudgetRouteRedirect';
+import { workspaceToday } from '@/features/budget/monthly-budget/budgetPeriod';
+import { MonthlyBudgetPage } from '@/features/budget/monthly-budget/MonthlyBudgetPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { getRouteTitleKey } from '@/lib/navigation';
 
@@ -78,11 +81,21 @@ export function AuthenticatedApp() {
   } else if (path === '/transactions/recurrences') {
     content = <RecurrencesPage />;
   } else if (path === '/budget') {
+    content = <BudgetRouteRedirect href={`/budget/${workspaceToday().slice(0, 7)}`} />;
+  } else if (path === '/budget/plans') {
     content = <BudgetPage />;
+  } else if (/^\/budget\/plans\/[^/]+$/.test(path)) {
+    content = <BudgetPage planId={path.split('/')[3]} />;
   } else if (path === '/reports') {
     content = <ReportsPage />;
+  } else if (
+    /^\/budget\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      path,
+    )
+  ) {
+    content = <BudgetRouteRedirect href={`/budget/plans/${path.split('/')[2]}`} />;
   } else if (/^\/budget\/[^/]+$/.test(path)) {
-    content = <BudgetPage planId={path.split('/')[2]} />;
+    content = <MonthlyBudgetPage periodKey={path.split('/')[2]!} />;
   } else if (path === '/settings/profile') {
     content = <ProfileSettingsPage />;
   } else if (path !== '/') {
@@ -118,9 +131,8 @@ export function AuthenticatedApp() {
         path !== '/product-models' &&
         path !== '/transactions' &&
         path !== '/transactions/recurrences' &&
-        path !== '/budget' &&
+        !path.startsWith('/budget') &&
         path !== '/reports' &&
-        !/^\/budget\/[^/]+$/.test(path) &&
         path !== '/settings/profile'
       }
     >

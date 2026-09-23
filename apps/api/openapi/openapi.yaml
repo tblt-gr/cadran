@@ -2155,6 +2155,102 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/reports/monthly/ledger:
+    get:
+      operationId: readMonthlyLedger
+      summary: Read the month-first budget ledger of the calling workspace
+      description: >-
+        Groups booked split amounts once by income or expense category and
+        booked transfer legs by account. Pending and voided rows move no total.
+        Active categories and accounts remain present without an invented zero.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+        - name: axis
+          in: query
+          required: false
+          description: Filters expense splits by their booked analytic axis.
+          schema:
+            type: string
+            enum: [DISCRETIONARY, ESSENTIAL, FIXED, PERSONAL, PROFESSIONAL, VARIABLE]
+      responses:
+        '200':
+          description: The exact monthly ledger summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MonthlyLedger' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: The workspace exceeds a bounded monthly read limit.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/reports/monthly/ledger/{kind}/{id}/movements:
+    get:
+      operationId: readMonthlyLedgerMovements
+      summary: Read one monthly ledger row's source movements
+      description: >-
+        Returns at most 50 booked source movements, ordered by booked day and
+        source identifier descending. Category amounts are attributed split
+        amounts; account amounts are signed transfer legs.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [income, expense, account]
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+        - name: axis
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [DISCRETIONARY, ESSENTIAL, FIXED, PERSONAL, PROFESSIONAL, VARIABLE]
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 512
+      responses:
+        '200':
+          description: A stable bounded page of source movements.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MonthlyLedgerMovementPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: The workspace exceeds a bounded monthly read limit.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/reports/monthly/{kpi}/explain:
     get:
       operationId: explainMonthlyKpi
@@ -8182,6 +8278,157 @@ components:
         valuedOn:
           type: [string, 'null']
           format: date
+    MonthlyLedgerMetric:
+      type: object
+      additionalProperties: false
+      required: [value, assetCode, reason]
+      properties:
+        value:
+          type: [string, 'null']
+          pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        assetCode:
+          type: [string, 'null']
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        reason:
+          type: [string, 'null']
+          enum: [NO_MOVEMENTS, MIXED_ASSETS, null]
+    MonthlyLedgerCategoryRow:
+      type: object
+      additionalProperties: false
+      required:
+        [id, label, icon, color, budgetIncluded, archived, total, movementCount, hasMovements]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 80 }
+        icon:
+          type: [string, 'null']
+        color:
+          type: [string, 'null']
+          pattern: '^#[0-9A-F]{6}$'
+        budgetIncluded: { type: boolean }
+        archived: { type: boolean }
+        total: { $ref: '#/components/schemas/MonthlyLedgerMetric' }
+        movementCount: { type: integer, minimum: 0, maximum: 500 }
+        hasMovements: { type: boolean }
+    MonthlyLedgerAccountRow:
+      type: object
+      additionalProperties: false
+      required: [id, label, assetCode, kind, total, movementCount, hasMovements]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 100 }
+        assetCode:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        kind: { $ref: '#/components/schemas/AccountKind' }
+        total: { $ref: '#/components/schemas/MonthlyLedgerMetric' }
+        movementCount: { type: integer, minimum: 0, maximum: 500 }
+        hasMovements: { type: boolean }
+    MonthlyLedger:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          month,
+          periodStart,
+          periodEnd,
+          axis,
+          state,
+          quality,
+          timezone,
+          pendingCount,
+          closed,
+          actionsAllowed,
+          actionReason,
+          incomeCategories,
+          expenseCategories,
+          accounts,
+        ]
+      properties:
+        month:
+          type: string
+          pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        axis:
+          type: [string, 'null']
+          enum: [DISCRETIONARY, ESSENTIAL, FIXED, PERSONAL, PROFESSIONAL, VARIABLE, null]
+        state:
+          type: string
+          enum: [COMPLETE, EMPTY, PENDING]
+        quality:
+          type: string
+          enum: [CURRENT, MISSING]
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: IANA timezone of the workspace, which decides the current day and month.
+        pendingCount: { type: integer, minimum: 0, maximum: 500 }
+        closed: { type: boolean }
+        actionsAllowed: { type: boolean }
+        actionReason:
+          type: [string, 'null']
+          enum: [PERIOD_CLOSED, null]
+        incomeCategories:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/MonthlyLedgerCategoryRow' }
+        expenseCategories:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/MonthlyLedgerCategoryRow' }
+        accounts:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/MonthlyLedgerAccountRow' }
+    MonthlyLedgerMovement:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          transactionId,
+          transferId,
+          bookedOn,
+          label,
+          amount,
+          direction,
+          counterpartAccountId,
+          counterpartAccountLabel,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        transactionId: { type: [string, 'null'], format: uuid }
+        transferId: { type: [string, 'null'], format: uuid }
+        bookedOn: { type: string, format: date }
+        label:
+          type: string
+          minLength: 1
+          maxLength: 140
+          description: Transaction label, or the counterpart account label for a transfer leg. The client composes the direction sentence.
+        amount: { $ref: '#/components/schemas/DecimalAmount' }
+        direction:
+          type: [string, 'null']
+          enum: [IN, OUT, null]
+        counterpartAccountId: { type: [string, 'null'], format: uuid }
+        counterpartAccountLabel:
+          type: [string, 'null']
+          maxLength: 100
+    MonthlyLedgerMovementPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor, hasMore, pageSize]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/MonthlyLedgerMovement' }
+        nextCursor:
+          type: [string, 'null']
+          maxLength: 512
+        hasMore: { type: boolean }
+        pageSize: { type: integer, const: 50 }
     MonthlyProjectionAccount:
       type: object
       additionalProperties: false

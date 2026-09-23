@@ -101,7 +101,7 @@ export function BudgetPage({ planId }: { planId?: string }) {
       setNotice(t('budget.toasts.saved'));
       await refresh();
       if (!planId) {
-        window.history.pushState({}, '', `/budget/${plan.id}`);
+        window.history.pushState({}, '', `/budget/plans/${plan.id}`);
         window.dispatchEvent(new PopStateEvent('popstate'));
       }
     },
@@ -201,8 +201,8 @@ export function BudgetPage({ planId }: { planId?: string }) {
           {selected ? (
             <a
               className="secondary-action"
-              href="/budget"
-              onClick={(event) => handleClientNavigation(event, '/budget')}
+              href="/budget/plans"
+              onClick={(event) => handleClientNavigation(event, '/budget/plans')}
             >
               {t('budget.back')}
             </a>
@@ -248,8 +248,8 @@ export function BudgetPage({ planId }: { planId?: string }) {
               <tr key={plan.id}>
                 <td>
                   <a
-                    href={`/budget/${plan.id}`}
-                    onClick={(event) => handleClientNavigation(event, `/budget/${plan.id}`)}
+                    href={`/budget/plans/${plan.id}`}
+                    onClick={(event) => handleClientNavigation(event, `/budget/plans/${plan.id}`)}
                   >
                     {plan.period}
                   </a>

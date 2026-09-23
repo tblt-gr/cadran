@@ -1,0 +1,35 @@
+ROOT.statuses p {
+  margin: var(--spacing-none);
+}
+
+.statuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.closed {
+  color: var(--warning);
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+
+.panels > :last-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 60rem) {
+  .panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panels > :last-child {
+    grid-column: auto;
+  }
+}

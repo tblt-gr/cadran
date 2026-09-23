@@ -1,0 +1,64 @@
+.navigator {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-4);
+}
+
+.year {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.tabs {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  gap: var(--spacing-1);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-1);
+}
+
+.tabs a,
+.tabs button {
+  min-width: max-content;
+  border-radius: var(--radius-control);
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  text-decoration: none;
+}
+
+.tabs button {
+  border: var(--border-none);
+  background: var(--color-transparent);
+  font-family: inherit;
+}
+
+.tabs a:hover,
+.tabs a:focus-visible {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.tabs .active {
+  background: var(--bg-surface-2);
+  box-shadow: var(--shadow-nav-active);
+  color: var(--text-primary);
+}
+
+.tabs .disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 42rem) {
+  .navigator {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

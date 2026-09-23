@@ -33,10 +33,18 @@ const PAYMENT_METHODS: Array<NonNullable<CreateTransactionRequest['paymentMethod
 
 interface TransactionFormProps {
   accounts: Account[];
+  defaults?: TransactionFormDefaults;
   onSubmit: (body: CreateTransactionRequest | UpdateTransactionRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
   transaction?: Transaction;
+}
+
+export interface TransactionFormDefaults {
+  bookedOn: string;
+  category: SavedCategory & { type: TransactionFormValues['categoryType'] };
+  nature: TransactionFormValues['nature'];
+  requireAccountChoice: boolean;
 }
 
 /**
@@ -45,18 +53,32 @@ interface TransactionFormProps {
  */
 export function TransactionForm({
   accounts,
+  defaults,
   onSubmit,
   pending,
   submitError,
   transaction,
 }: TransactionFormProps) {
   const { t } = useTranslation();
-  const [values, setValues] = useState(() => initialTransactionValues(transaction, accounts));
+  const [values, setValues] = useState(() => {
+    const initial = initialTransactionValues(transaction, accounts, defaults?.bookedOn);
+
+    return transaction === undefined && defaults
+      ? {
+          ...initial,
+          accountId: defaults.requireAccountChoice ? '' : initial.accountId,
+          bookedOn: defaults.bookedOn,
+          categoryId: defaults.category.id,
+          categoryType: defaults.category.type,
+          nature: defaults.nature,
+        }
+      : initial;
+  });
   const [showErrors, setShowErrors] = useState(false);
   // A split transaction is edited in the advanced section, so it opens there.
   const [advancedOpen, setAdvancedOpen] = useState(() => values.splitMode);
   const resolved =
-    values.accountId === '' && accounts[0] !== undefined
+    !defaults?.requireAccountChoice && values.accountId === '' && accounts[0] !== undefined
       ? { ...values, accountId: accounts[0].id }
       : values;
   const errors = validateTransactionValues(resolved, accounts, transaction);
@@ -102,6 +124,9 @@ export function TransactionForm({
             onChange={(event) => set('accountId', event.target.value)}
             value={resolved.accountId}
           >
+            {defaults?.requireAccountChoice ? (
+              <option value="">{t('transactions.transfer.fields.selectAccount')}</option>
+            ) : null}
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.label}
@@ -224,7 +249,7 @@ export function TransactionForm({
               setValues((current) => ({ ...current, categoryId, categoryType }))
             }
             preferredType={preferredType}
-            savedCategory={savedCategory(transaction)}
+            savedCategory={savedCategory(transaction) ?? defaults?.category ?? null}
             value={values.categoryId}
           />
         )}
