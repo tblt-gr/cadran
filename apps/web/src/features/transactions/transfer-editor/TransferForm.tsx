@@ -13,9 +13,16 @@ import formStyles from '@/features/transactions/transaction-form/TransactionForm
 
 interface TransferFormProps {
   accounts: Account[];
+  defaults?: TransferFormDefaults;
   onSubmit: (body: CreateTransferRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
+}
+
+export interface TransferFormDefaults {
+  bookedOn: string;
+  requireSourceChoice: boolean;
+  targetAccountId: string;
 }
 
 /**
@@ -23,9 +30,26 @@ interface TransferFormProps {
  * transfer exists, exactly like a plain transaction's asset and account, so
  * this form never receives an existing transfer to edit.
  */
-export function TransferForm({ accounts, onSubmit, pending, submitError }: TransferFormProps) {
+export function TransferForm({
+  accounts,
+  defaults,
+  onSubmit,
+  pending,
+  submitError,
+}: TransferFormProps) {
   const { t } = useTranslation();
-  const [values, setValues] = useState(() => initialTransferValues(accounts));
+  const [values, setValues] = useState(() => {
+    const initial = initialTransferValues(accounts, defaults?.bookedOn);
+
+    return defaults
+      ? {
+          ...initial,
+          bookedOn: defaults.bookedOn,
+          sourceAccountId: defaults.requireSourceChoice ? '' : initial.sourceAccountId,
+          targetAccountId: defaults.targetAccountId,
+        }
+      : initial;
+  });
   const [showErrors, setShowErrors] = useState(false);
   const errors = validateTransferValues(values, accounts);
   const crossAsset = isCrossAssetTransfer(values, accounts);

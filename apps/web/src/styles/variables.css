@@ -42,7 +42,6 @@
 
   /* Effects */
   --shadow-card: none;
-  --shadow-nav-active: inset 0.125rem 0 0 var(--gold-300);
   --glow-cta: 0 0 1.5rem rgba(241, 192, 134, 0.18);
   --shadow-mobile-navigation: 0 1rem 2.5rem rgba(0, 0, 0, 0.46);
   --shadow-sheet: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);

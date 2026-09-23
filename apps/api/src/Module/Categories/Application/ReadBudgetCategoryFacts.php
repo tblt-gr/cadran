@@ -27,6 +27,11 @@ final readonly class ReadBudgetCategoryFacts
                 $category->id,
                 $category->parentId,
                 $category->budgetIncluded,
+                $category->type->value,
+                $category->label,
+                $category->icon,
+                $category->color,
+                $category->archivedAt?->format(DATE_ATOM),
             ),
             $categories,
         );

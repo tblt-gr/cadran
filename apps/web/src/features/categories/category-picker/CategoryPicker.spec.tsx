@@ -254,12 +254,17 @@ describe('CategoryPicker', () => {
     );
 
     const combobox = screen.getByRole('combobox', { name: 'Catégorie' });
-    // The swatch shares the control with the text instead of adding a line under it,
-    // so a selection never changes the height of the field.
-    const control = combobox.parentElement as HTMLElement;
-    expect(control.querySelector('[data-icon="utensils"]')?.getAttribute('aria-hidden')).toBe(
-      'true',
-    );
+    // The field stays neutral; only the pill inside it carries the category colour, with
+    // the glyph before the input in the same flex row, so the text cannot run under it.
+    const chip = combobox.parentElement as HTMLElement;
+    const control = chip.parentElement as HTMLElement;
+    expect(chip.querySelector('[data-icon="utensils"]')?.getAttribute('aria-hidden')).toBe('true');
+    expect(chip.style.background).not.toBe('');
+    expect(chip.style.color).not.toBe('');
+    expect(control.style.background).toBe('');
+    expect(chip.firstElementChild?.getAttribute('data-icon')).toBe('utensils');
+    expect(chip.firstElementChild?.nextElementSibling).toBe(combobox);
+    expect((chip.firstElementChild as HTMLElement).style.background).toBe('');
     expect(control.nextElementSibling?.textContent).toBe('Catégorie refusée.');
     expect(combobox.getAttribute('aria-invalid')).toBe('true');
     expect(combobox.getAttribute('aria-describedby')).toBe(control.nextElementSibling?.id);

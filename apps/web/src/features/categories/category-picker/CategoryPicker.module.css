@@ -6,42 +6,71 @@
   gap: var(--spacing-1-5);
 }
 
-/* Anchors both the swatch and the option list to the field itself, so a
-   message below the field never pushes the list away from it. */
+/* The field is a neutral input at all times; the option list is anchored to it, so a
+   message below the field never pushes the list away. It carries its own styling: the
+   picker is mounted both inside the category form and inside the lifecycle modal, and
+   a shared component that only looks right when its host happens to style descendant
+   inputs renders unstyled in the next place it is used. */
 .control {
   position: relative;
-}
-
-/* The picker carries its own control styling: it is mounted both inside the
-   category form and inside the lifecycle modal, and a shared component that only
-   looks right when its host happens to style descendant inputs is a component
-   that renders unstyled in the next place it is used. */
-.picker input {
-  width: 100%;
-  min-width: 0;
+  display: flex;
+  align-items: center;
   min-height: var(--control-height);
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-none) var(--spacing-3);
   border: var(--border-line-strong);
   border-radius: var(--radius-control);
-  color: var(--text-primary);
   background: var(--bg-surface-2);
+  gap: var(--spacing-2);
 }
 
-.picker input.withSwatch {
-  padding-left: calc(var(--spacing-2) + var(--spacing-6) + var(--spacing-2));
+.control:focus-within {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
 }
 
-.picker input[aria-invalid='true'] {
+.control[data-invalid='true'] {
   border-color: var(--negative);
 }
 
-.swatch {
-  position: absolute;
-  top: 50%;
-  left: var(--spacing-2);
-  display: inline-flex;
-  pointer-events: none;
-  transform: translateY(-50%);
+.chip {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
+  align-items: center;
+  color: var(--text-primary);
+}
+
+/* The selected category's pill: inline colour and ink come from the category, the
+   input inherits that ink and only the pill is coloured. */
+.selected {
+  flex: 0 1 auto;
+  min-height: 1.625rem;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-medium);
+  gap: var(--spacing-1-5);
+}
+
+.picker input {
+  width: 100%;
+  min-width: 0;
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  border-radius: var(--radius-none);
+  color: inherit;
+  background: var(--color-transparent);
+  font: inherit;
+  text-overflow: ellipsis;
+}
+
+.picker input:focus-visible {
+  outline: none;
+}
+
+.selected input {
+  width: auto;
+  max-width: 100%;
 }
 
 .hint {

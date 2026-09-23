@@ -10,6 +10,11 @@ final readonly class BudgetCategoryFact
         public string $id,
         public ?string $parentId,
         public bool $budgetIncluded,
+        public string $type,
+        public string $label,
+        public ?string $icon,
+        public ?string $color,
+        public ?string $archivedAt,
     ) {
     }
 }

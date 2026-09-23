@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
 import { ADVANCED_FIELDS } from './advanced-fields/advancedFields';
 import { AdvancedTransactionFields } from './advanced-fields/AdvancedTransactionFields';
+import { SplitAxes } from '@/features/transactions/split-editor/split-axes/SplitAxes';
 import { SplitField } from './split-field/SplitField';
 import { TransactionCategoryField } from './transaction-category-field/TransactionCategoryField';
 import {
@@ -33,10 +34,18 @@ const PAYMENT_METHODS: Array<NonNullable<CreateTransactionRequest['paymentMethod
 
 interface TransactionFormProps {
   accounts: Account[];
+  defaults?: TransactionFormDefaults;
   onSubmit: (body: CreateTransactionRequest | UpdateTransactionRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
   transaction?: Transaction;
+}
+
+export interface TransactionFormDefaults {
+  bookedOn: string;
+  category: SavedCategory & { type: TransactionFormValues['categoryType'] };
+  nature: TransactionFormValues['nature'];
+  requireAccountChoice: boolean;
 }
 
 /**
@@ -45,18 +54,32 @@ interface TransactionFormProps {
  */
 export function TransactionForm({
   accounts,
+  defaults,
   onSubmit,
   pending,
   submitError,
   transaction,
 }: TransactionFormProps) {
   const { t } = useTranslation();
-  const [values, setValues] = useState(() => initialTransactionValues(transaction, accounts));
+  const [values, setValues] = useState(() => {
+    const initial = initialTransactionValues(transaction, accounts, defaults?.bookedOn);
+
+    return transaction === undefined && defaults
+      ? {
+          ...initial,
+          accountId: defaults.requireAccountChoice ? '' : initial.accountId,
+          bookedOn: defaults.bookedOn,
+          categoryId: defaults.category.id,
+          categoryType: defaults.category.type,
+          nature: defaults.nature,
+        }
+      : initial;
+  });
   const [showErrors, setShowErrors] = useState(false);
   // A split transaction is edited in the advanced section, so it opens there.
   const [advancedOpen, setAdvancedOpen] = useState(() => values.splitMode);
   const resolved =
-    values.accountId === '' && accounts[0] !== undefined
+    !defaults?.requireAccountChoice && values.accountId === '' && accounts[0] !== undefined
       ? { ...values, accountId: accounts[0].id }
       : values;
   const errors = validateTransactionValues(resolved, accounts, transaction);
@@ -102,6 +125,9 @@ export function TransactionForm({
             onChange={(event) => set('accountId', event.target.value)}
             value={resolved.accountId}
           >
+            {defaults?.requireAccountChoice ? (
+              <option value="">{t('transactions.transfer.fields.selectAccount')}</option>
+            ) : null}
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.label}
@@ -220,14 +246,31 @@ export function TransactionForm({
                 ? t(`transactions.validation.categoryMismatch.${values.categoryType}`)
                 : null
             }
-            onChange={(categoryId, categoryType) =>
-              setValues((current) => ({ ...current, categoryId, categoryType }))
+            onChange={(categoryId, categoryType, categoryDefaultAxes) =>
+              setValues((current) => ({
+                ...current,
+                // An override made for the previous category no longer describes this one.
+                analyticAxes: categoryId === current.categoryId ? current.analyticAxes : null,
+                categoryDefaultAxes,
+                categoryId,
+                categoryType,
+              }))
             }
             preferredType={preferredType}
-            savedCategory={savedCategory(transaction)}
+            savedCategory={savedCategory(transaction) ?? defaults?.category ?? null}
             value={values.categoryId}
           />
         )}
+
+        {!values.splitMode && values.categoryId !== '' && values.categoryType === 'EXPENSE' ? (
+          <SplitAxes
+            axes={values.analyticAxes}
+            compact={false}
+            defaultAxes={values.categoryDefaultAxes}
+            legend={t('transactions.form.axesLegend')}
+            onChange={(analyticAxes) => set('analyticAxes', analyticAxes)}
+          />
+        ) : null}
 
         <AdvancedTransactionFields
           errors={errors}

@@ -1,0 +1,58 @@
+.movements {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  margin: var(--spacing-none) var(--spacing-none) var(--spacing-3);
+  padding: var(--spacing-none);
+  list-style: none;
+}
+
+.movement {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--spacing-3);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: var(--border-none);
+  border-radius: var(--radius-control);
+  background: var(--color-transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.movementAction {
+  cursor: pointer;
+}
+
+.movementAction:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.movement time {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.movement strong {
+  min-width: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.movement > :last-child {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 42rem) {
+  .movement {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .movement > :last-child {
+    grid-column: 2;
+    text-align: left;
+  }
+}

@@ -28,7 +28,7 @@ export const navigationItems: NavigationItem[] = [
     href: '/budget',
     icon: 'budget',
     labelKey: 'navigation.budget',
-    match: (path) => path === '/budget' || /^\/budget\/[^/]+$/.test(path),
+    match: (path) => path === '/budget' || path.startsWith('/budget/'),
   },
   {
     href: '/accounts',
@@ -97,7 +97,8 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
   if (/^\/accounts\/(?!groups$)[^/]+$/.test(pathname)) return 'routes.accountDetail';
   if (/^\/life-insurance\/[^/]+$/.test(pathname)) return 'routes.lifeInsurance';
   if (pathname === '/reports/all-years') return 'routes.allYearsReport';
-  if (/^\/budget\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';
+  if (/^\/budget\/plans\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';
+  if (pathname === '/budget/plans') return 'routes.budgetPlans';
 
   return navigationItems.find((item) => item.match(pathname))?.labelKey ?? 'routes.notFound';
 }

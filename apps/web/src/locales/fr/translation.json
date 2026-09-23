@@ -110,6 +110,7 @@
   },
   "routes": {
     "budgetPlan": "Plan budgétaire",
+    "budgetPlans": "Plans budgétaires",
     "accountDetail": "Détail du compte",
     "allYearsReport": "Rapport pluriannuel",
     "lifeInsurance": "Assurance-vie",
@@ -1734,6 +1735,7 @@
       "stateLocked": "Une transaction comptabilisée ne revient pas en attente. Utilisez l’action Annuler si nécessaire.",
       "rawLabelLocked": "Ce libellé provient d’une source externe et reste inchangé pour la traçabilité.",
       "noCategory": "Sans catégorie",
+      "axesLegend": "Axes analytiques de la transaction",
       "noPaymentMethod": "Non renseigné",
       "advanced": "Champs avancés"
     },
@@ -2210,6 +2212,81 @@
     }
   },
   "budget": {
+    "monthly": {
+      "eyebrow": "Budget mensuel",
+      "title": "Budget de {{month}}",
+      "description": "Consultez les mouvements comptabilisés du mois et ajoutez les corrections utiles.",
+      "managePlans": "Gérer les plans et objectifs",
+      "createTransaction": "Créer une transaction",
+      "year": "Année",
+      "months": "Mois du budget",
+      "axis": "Axe analytique",
+      "allAxes": "Tous les axes",
+      "axes": {
+        "DISCRETIONARY": "Discrétionnaire",
+        "ESSENTIAL": "Essentiel",
+        "FIXED": "Fixe",
+        "PERSONAL": "Personnel",
+        "PROFESSIONAL": "Professionnel",
+        "VARIABLE": "Variable"
+      },
+      "panels": {
+        "income": "Revenus par catégorie",
+        "expense": "Dépenses par catégorie",
+        "account": "Virements par compte"
+      },
+      "panelDescriptions": {
+        "income": "Entrées comptabilisées, hors virements.",
+        "expense": "Sorties et remboursements attribués à chaque catégorie.",
+        "account": "Deux sens du virement et mouvement net signé."
+      },
+      "loading": "Chargement du budget mensuel…",
+      "empty": "Aucune ligne active pour ce mois.",
+      "pending_one": "{{count}} transaction en attente",
+      "pending_other": "{{count}} transactions en attente",
+      "noMovement": "Aucun mouvement",
+      "mixedAssets": "Actifs mélangés",
+      "outOfBudget": "Hors budget",
+      "archived": "Archivée",
+      "movementCount_one": "{{count}} mouvement",
+      "movementCount_other": "{{count}} mouvements",
+      "showMovements": "Afficher les mouvements de {{label}}",
+      "hideMovements": "Masquer les mouvements de {{label}}",
+      "addIncome": "Ajouter un revenu dans {{label}}",
+      "addExpense": "Ajouter une dépense dans {{label}}",
+      "addTransfer": "Ajouter un virement vers {{label}}",
+      "addFreeIncome": "Ajouter un revenu",
+      "addFreeExpense": "Ajouter une dépense",
+      "closedReason": "Cette période est clôturée.",
+      "accountUnavailable": "Ce compte est clos : aucun virement n'est possible.",
+      "movements": {
+        "loading": "Chargement des mouvements…",
+        "empty": "Aucun mouvement comptabilisé pour cette ligne.",
+        "error": "Impossible de charger les mouvements.",
+        "retry": "Réessayer",
+        "more": "Afficher les mouvements suivants",
+        "loadingMore": "Chargement…",
+        "in": "Entrée depuis {{account}}",
+        "out": "Sortie vers {{account}}",
+        "edit": "Modifier le mouvement {{label}} du {{date}}, {{amount}}",
+        "editLoading": "Chargement du mouvement…",
+        "editError": "Impossible de charger ce mouvement."
+      },
+      "route": {
+        "invalidTitle": "Période invalide",
+        "invalidDescription": "Utilisez une période au format AAAA-MM.",
+        "futureTitle": "Période future",
+        "futureDescription": "Le budget mensuel ne peut pas encore ouvrir cette période.",
+        "recover": "Revenir au mois courant"
+      },
+      "error": {
+        "title": "Budget mensuel indisponible",
+        "description": "Impossible de charger les mouvements du mois. Réessayez."
+      },
+      "accountsLoading": "Chargement des comptes…",
+      "accountsError": "Impossible de charger les comptes pour cette création.",
+      "saved": "Le mouvement a été enregistré."
+    },
     "eyebrow": "Configuration budgétaire",
     "title": "Plans budgétaires",
     "description": "Définissez des objectifs mensuels ou annuels sans modifier vos transactions.",

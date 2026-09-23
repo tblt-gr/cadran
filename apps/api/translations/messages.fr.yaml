@@ -9,6 +9,12 @@ api:
     monthly_projection_forbidden:
       title: 'Projection mensuelle inaccessible'
       detail: 'Vous ne pouvez pas consulter cette projection mensuelle.'
+    invalid_monthly_ledger_query:
+      title: 'Requête de registre mensuel invalide'
+      detail: 'Vérifiez le mois, l’axe, la ligne et le curseur demandés.'
+    monthly_ledger_scope_too_large:
+      title: 'Registre mensuel trop volumineux'
+      detail: 'Le registre dépasse les limites de lecture autorisées.'
     not_found:
       title: 'Ressource introuvable'
       detail: "La ressource d'API demandée est introuvable."

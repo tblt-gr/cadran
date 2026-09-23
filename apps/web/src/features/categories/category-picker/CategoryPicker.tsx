@@ -1,6 +1,7 @@
 import type { Category, CategoryType } from '@cadran/api-client';
 import { useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
+import { canonicalCategoryColor, categoryInk } from '@/features/categories/category-color';
 import { CategorySwatch } from '@/features/categories/category-swatch/CategorySwatch';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { CategoryOptionList } from './category-option-list/CategoryOptionList';
@@ -117,6 +118,10 @@ export function CategoryPicker({
       ? undefined
       : { color: selectedColor, icon: selectedIcon, label: selectedLabel ?? '' });
 
+  const selectedText = value !== NONE ? (identity?.label ?? selectedLabel ?? query) : query;
+  const selectedFill = value === NONE ? null : canonicalCategoryColor(identity?.color);
+  const selectedInk = categoryInk(selectedFill);
+
   const typeRank = (candidate: Category): number =>
     candidate.type === preferredType ? -1 : TYPE_ORDER.indexOf(candidate.type);
   const matches: CategoryChoice[] = (candidates.data?.items ?? [])
@@ -222,60 +227,66 @@ export function CategoryPicker({
       <label className={labelHidden ? 'sr-only' : undefined} htmlFor={inputId}>
         {label}
       </label>
-      {/* The selection shows as the field text, led by its colour and glyph inside
-          the control: a pill beside the field would change its height and push
-          every neighbouring field out of line. */}
-      <div className={styles.control}>
-        {value !== NONE ? (
-          <span className={styles.swatch}>
-            <CategorySwatch color={identity?.color} icon={identity?.icon} />
-          </span>
-        ) : null}
-        <input
-          aria-activedescendant={expanded && active ? optionId(listId, active) : undefined}
-          aria-autocomplete="list"
-          aria-controls={listId}
-          aria-describedby={describedBy || undefined}
-          aria-expanded={expanded}
-          aria-invalid={error ? true : undefined}
-          autoComplete="off"
-          className={value !== NONE ? styles.withSwatch : undefined}
-          id={inputId}
-          maxLength={80}
-          onBlur={() => {
-            // A pointer selection lands after the blur, so the list stays open long
-            // enough for the click on it to register.
-            blurTimeout.current = window.setTimeout(() => setExpanded(false), 120);
-          }}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setExpanded(true);
-            setActiveIndex(0);
-            if (chosen !== null || value !== NONE) {
-              setChosen(null);
-              onChange(NONE, null);
-            }
-          }}
-          onFocus={() => {
-            window.clearTimeout(blurTimeout.current);
-            if (skipFocusOpen.current) {
+      {/* The field stays a neutral input. A selection puts the category's pill inside
+          it (colour fill, glyph and the editable label in one flex row), so the text
+          can never run under the glyph. The wrapper is always rendered: swapping it
+          for another element on selection would remount the input and drop focus. */}
+      <div className={styles.control} data-invalid={error ? 'true' : undefined}>
+        <span
+          className={value !== NONE ? `${styles.chip} ${styles.selected}` : styles.chip}
+          style={
+            value === NONE || selectedFill === null || selectedInk === null
+              ? undefined
+              : { background: selectedFill, color: selectedInk }
+          }
+        >
+          {value !== NONE ? <CategorySwatch icon={identity?.icon} /> : null}
+          <input
+            aria-activedescendant={expanded && active ? optionId(listId, active) : undefined}
+            aria-autocomplete="list"
+            aria-controls={listId}
+            aria-describedby={describedBy || undefined}
+            aria-expanded={expanded}
+            aria-invalid={error ? true : undefined}
+            autoComplete="off"
+            id={inputId}
+            maxLength={80}
+            onBlur={() => {
+              // A pointer selection lands after the blur, so the list stays open long
+              // enough for the click on it to register.
+              blurTimeout.current = window.setTimeout(() => setExpanded(false), 120);
+            }}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setExpanded(true);
+              setActiveIndex(0);
+              if (chosen !== null || value !== NONE) {
+                setChosen(null);
+                onChange(NONE, null);
+              }
+            }}
+            onFocus={() => {
+              window.clearTimeout(blurTimeout.current);
+              if (skipFocusOpen.current) {
+                skipFocusOpen.current = false;
+                return;
+              }
+              setExpanded(true);
+            }}
+            onKeyDown={onKeyDown}
+            onMouseDown={(event) => {
+              // A pointer on the field asks for the list, even when it already has focus.
               skipFocusOpen.current = false;
-              return;
-            }
-            setExpanded(true);
-          }}
-          onKeyDown={onKeyDown}
-          onMouseDown={(event) => {
-            // A pointer on the field asks for the list, even when it already has focus.
-            skipFocusOpen.current = false;
-            if (document.activeElement === event.currentTarget) setExpanded(true);
-          }}
-          placeholder={placeholder ?? t('categories.picker.placeholder')}
-          ref={ref}
-          role="combobox"
-          type="text"
-          value={value !== NONE ? (identity?.label ?? selectedLabel ?? query) : query}
-        />
+              if (document.activeElement === event.currentTarget) setExpanded(true);
+            }}
+            placeholder={placeholder ?? t('categories.picker.placeholder')}
+            ref={ref}
+            role="combobox"
+            type="text"
+            style={value !== NONE ? { width: `${selectedText.length + 1}ch` } : undefined}
+            value={selectedText}
+          />
+        </span>
 
         {expanded && choices.length > 0 ? (
           <CategoryOptionList

@@ -122,6 +122,9 @@ interface TransactionRepository
         \DateTimeImmutable $to,
     ): int;
 
+    /** The earliest booked day of any live (BOOKED or PENDING) row of the workspace, null when it has none. */
+    public function firstLiveBookedOn(WorkspaceScope $workspace): ?\DateTimeImmutable;
+
     /** PENDING rows of the whole workspace booked between two days, inclusive. */
     public function countPendingInWorkspace(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int;
 
