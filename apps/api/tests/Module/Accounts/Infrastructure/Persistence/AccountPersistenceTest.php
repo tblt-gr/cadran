@@ -145,6 +145,33 @@ final class AccountPersistenceTest extends KernelTestCase
         );
     }
 
+    public function testAMonthListingDropsAccountsClosedOrArchivedBeforeItAndKeepsThoseOpenDuringIt(): void
+    {
+        $id = static fn (int $n): string => sprintf('00000000-0000-7000-8000-00000000f%03d', $n);
+        $this->repository->add($this->account($id(1), WorkspaceFixture::own(), label: 'Actif'));
+        $this->repository->add($this->account($id(2), WorkspaceFixture::own(), label: 'Clos veille', closedOn: '2026-04-30'));
+        $this->repository->add($this->account($id(3), WorkspaceFixture::own(), label: 'Clos le 1er', closedOn: '2026-05-01'));
+        $this->repository->add($this->account($id(4), WorkspaceFixture::own(), label: 'Clos dans le mois', closedOn: '2026-05-15'));
+        $this->repository->add($this->account($id(5), WorkspaceFixture::own(), label: 'Clos apres', closedOn: '2026-06-10'));
+        $this->repository->add($this->account($id(6), WorkspaceFixture::own(), label: 'Archive avant')
+            ->archive(new \DateTimeImmutable('2026-04-30T12:00:00+00:00')));
+        $this->repository->add($this->account($id(7), WorkspaceFixture::own(), label: 'Archive dans le mois')
+            ->archive(new \DateTimeImmutable('2026-05-15T12:00:00+00:00')));
+        $this->repository->add($this->account($id(8), WorkspaceFixture::other(), label: 'Autre espace'));
+
+        $listed = $this->repository->listOpenDuring(
+            WorkspaceFixture::own(),
+            new \DateTimeImmutable('2026-05-01', new \DateTimeZone('UTC')),
+            new \DateTimeImmutable('2026-05-31', new \DateTimeZone('UTC')),
+            new \DateTimeZone('Europe/Paris'),
+            100,
+        );
+
+        $ids = array_map(static fn (Account $account): string => $account->id, $listed);
+        sort($ids);
+        self::assertSame([$id(1), $id(3), $id(4), $id(5), $id(7)], $ids);
+    }
+
     public function testOptimisticVersioningRejectsAStaleUpdate(): void
     {
         $account = $this->account(self::OWN_ACCOUNT, WorkspaceFixture::own());

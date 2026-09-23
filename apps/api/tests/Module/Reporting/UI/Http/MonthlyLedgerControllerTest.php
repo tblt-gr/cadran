@@ -165,6 +165,24 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    public function testFirstDataMonthIsNullWithoutTransactionsThenTheOldestLiveOwnMonth(): void
+    {
+        $this->signIn();
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Secret', 'CURRENT');
+
+        self::assertNull($this->read('/api/v1/reports/monthly/ledger?month=2026-09')['firstDataMonth']);
+
+        $this->transaction('11', self::OTHER_ACCOUNT, '-5', 'EXPENSE', workspace: WorkspaceFixture::OTHER_WORKSPACE, bookedOn: '2010-03-01');
+        $this->transaction('12', self::CURRENT, '-5', 'EXPENSE', bookedOn: '2015-06-10');
+        $this->connection->update('transaction_transactions', ['state' => 'VOIDED', 'voided_at' => '2015-06-11 12:00:00+00'], ['id' => '00000000-0000-7000-8000-000000000112']);
+        self::assertNull($this->read('/api/v1/reports/monthly/ledger?month=2026-09')['firstDataMonth']);
+
+        $this->transaction('13', self::CURRENT, '-5', 'EXPENSE', bookedOn: '2025-11-30');
+        $this->transaction('14', self::CURRENT, '-5', 'EXPENSE', state: 'PENDING', bookedOn: '2026-02-01');
+        self::assertSame('2025-11', $this->read('/api/v1/reports/monthly/ledger?month=2026-09')['firstDataMonth']);
+    }
+
     public function testClosedPeriodDisablesActionsAndAnonymousCallersReadNothing(): void
     {
         $this->signIn();

@@ -8336,6 +8336,7 @@ components:
           state,
           quality,
           timezone,
+          firstDataMonth,
           pendingCount,
           closed,
           actionsAllowed,
@@ -8364,6 +8365,10 @@ components:
           minLength: 1
           maxLength: 64
           description: IANA timezone of the workspace, which decides the current day and month.
+        firstDataMonth:
+          type: [string, 'null']
+          pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+          description: Month of the oldest booked or pending transaction of the workspace, null when it has none.
         pendingCount: { type: integer, minimum: 0, maximum: 500 }
         closed: { type: boolean }
         actionsAllowed: { type: boolean }

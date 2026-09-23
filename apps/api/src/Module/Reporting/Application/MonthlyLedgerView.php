@@ -19,6 +19,7 @@ final readonly class MonthlyLedgerView
         public string $state,
         public string $quality,
         public string $timezone,
+        public ?string $firstDataMonth,
         public int $pendingCount,
         public bool $closed,
         public bool $actionsAllowed,

@@ -19,6 +19,7 @@ use App\Module\Reporting\Domain\MonthlyLedgerCalculator;
 use App\Module\Reporting\Domain\MonthlyLedgerEntry;
 use App\Module\Reporting\Domain\MonthlyLedgerTotal;
 use App\Module\Transactions\Application\MonthlyTransactionScopeTooLarge;
+use App\Module\Transactions\Application\ReadFirstTransactionMonth;
 use App\Module\Transactions\Application\ReadMonthlyTransactionFacts;
 use App\Module\Transactions\Application\ReadMonthlyTransferPairs;
 
@@ -27,6 +28,7 @@ final readonly class ReadMonthlyLedger
     public function __construct(
         private CallerWorkspace $caller,
         private ReadMonthlyTransactionFacts $transactions,
+        private ReadFirstTransactionMonth $firstTransactionMonth,
         private ReadMonthlyTransferPairs $transfers,
         private ReadMonthlyAccountFacts $accounts,
         private ReadBudgetCategoryFacts $categories,
@@ -81,6 +83,7 @@ final readonly class ReadMonthlyLedger
             },
             $invalidTransfer ? 'MISSING' : 'CURRENT',
             $this->timezones->timezone($workspace),
+            ($this->firstTransactionMonth)($workspace),
             $transactions->pendingCount,
             null !== $period->closure,
             null === $period->closure,
