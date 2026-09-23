@@ -54,6 +54,7 @@ final readonly class ReadBudgetKpiExplanation
             periodEnd: $month->lastDay()->format('Y-m-d'),
             sourceTransactionIds: $sourceTransactionIds,
             sourceTransactions: ($this->transactionSummaries)($this->caller->resolve(), $sourceTransactionIds),
+            sourceTransferIds: [],
             sourceAccountIds: [],
             freshness: $comparison->pendingCount > 0 ? 'PENDING' : 'CURRENT',
             quality: $comparison->status,

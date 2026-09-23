@@ -38,6 +38,7 @@ final readonly class ReadMonthlyKpiExplanation
             periodEnd: $projection->periodEnd,
             sourceTransactionIds: $metric->sourceTransactionIds,
             sourceTransactions: ($this->transactionSummaries)($this->caller->resolve(), $metric->sourceTransactionIds),
+            sourceTransferIds: $metric->sourceTransferIds,
             sourceAccountIds: $metric->sourceAccountIds,
             freshness: $metric->pendingCount > 0 ? 'PENDING' : 'CURRENT',
             quality: $projection->quality,

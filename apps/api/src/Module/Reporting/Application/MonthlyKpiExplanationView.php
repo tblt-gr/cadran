@@ -11,6 +11,7 @@ final readonly class MonthlyKpiExplanationView
     /**
      * @param list<string>                 $sourceTransactionIds
      * @param list<TransactionSummaryView> $sourceTransactions
+     * @param list<string>                 $sourceTransferIds
      * @param list<string>                 $sourceAccountIds
      */
     public function __construct(
@@ -25,6 +26,7 @@ final readonly class MonthlyKpiExplanationView
         public string $periodEnd,
         public array $sourceTransactionIds,
         public array $sourceTransactions,
+        public array $sourceTransferIds,
         public array $sourceAccountIds,
         public string $freshness,
         public string $quality,

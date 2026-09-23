@@ -147,6 +147,7 @@
     "sourceAmount": "Montant exact",
     "sourceState": "État",
     "accountSources": "Comptes sources",
+    "transferSources": "Virements sources",
     "noSources": "Aucune source dans le périmètre.",
     "metrics": {
       "cashIncome": "Revenus en espèces",
@@ -156,6 +157,10 @@
       "budgetSurplus": "Solde budgétaire",
       "savingsTransfers": "Virements vers l’épargne",
       "cashSavingsRate": "Taux d’épargne",
+      "savingsInflows": "Entrées vers l’épargne",
+      "savingsWithdrawals": "Sorties de l’épargne",
+      "netSavingsTransfers": "Épargne nette par virements",
+      "netSavingsRate": "Taux d’épargne net",
       "beginningNetWorth": "Patrimoine initial",
       "endNetWorth": "Patrimoine final",
       "netWorthDelta": "Variation du patrimoine"

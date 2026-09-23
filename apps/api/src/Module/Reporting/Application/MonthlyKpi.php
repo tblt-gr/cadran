@@ -13,6 +13,10 @@ enum MonthlyKpi: string
     case BUDGET_SURPLUS = 'budgetSurplus';
     case SAVINGS_TRANSFERS = 'savingsTransfers';
     case CASH_SAVINGS_RATE = 'cashSavingsRate';
+    case SAVINGS_INFLOWS = 'savingsInflows';
+    case SAVINGS_WITHDRAWALS = 'savingsWithdrawals';
+    case NET_SAVINGS_TRANSFERS = 'netSavingsTransfers';
+    case NET_SAVINGS_RATE = 'netSavingsRate';
     case BEGINNING_NET_WORTH = 'beginningNetWorth';
     case END_NET_WORTH = 'endNetWorth';
     case NET_WORTH_DELTA = 'netWorthDelta';
@@ -27,6 +31,10 @@ enum MonthlyKpi: string
             self::BUDGET_SURPLUS => $view->budgetSurplus,
             self::SAVINGS_TRANSFERS => $view->savingsTransfers,
             self::CASH_SAVINGS_RATE => $view->cashSavingsRate,
+            self::SAVINGS_INFLOWS => $view->savingsInflows,
+            self::SAVINGS_WITHDRAWALS => $view->savingsWithdrawals,
+            self::NET_SAVINGS_TRANSFERS => $view->netSavingsTransfers,
+            self::NET_SAVINGS_RATE => $view->netSavingsRate,
             self::BEGINNING_NET_WORTH => $view->beginningNetWorth,
             self::END_NET_WORTH => $view->endNetWorth,
             self::NET_WORTH_DELTA => $view->netWorthDelta,
@@ -43,6 +51,10 @@ enum MonthlyKpi: string
             self::BUDGET_SURPLUS => 'budget surplus = cash income - budget expenses',
             self::SAVINGS_TRANSFERS => 'savings transfers = sum of incoming transfers to SAVINGS or PORTFOLIO accounts',
             self::CASH_SAVINGS_RATE => 'cash savings rate = budget surplus / cash income',
+            self::SAVINGS_INFLOWS => 'savings inflows = sum of booked transfer pairs crossing into SAVINGS or PORTFOLIO accounts',
+            self::SAVINGS_WITHDRAWALS => 'savings withdrawals = sum of booked transfer pairs crossing out of SAVINGS or PORTFOLIO accounts',
+            self::NET_SAVINGS_TRANSFERS => 'net savings transfers = savings inflows - savings withdrawals',
+            self::NET_SAVINGS_RATE => 'net savings rate = net savings transfers / cash income',
             self::BEGINNING_NET_WORTH => 'beginning net worth = sum of eligible signed account valuations on period start',
             self::END_NET_WORTH => 'end net worth = sum of eligible signed account valuations on period end',
             self::NET_WORTH_DELTA => 'net worth delta = end net worth - beginning net worth',
@@ -58,6 +70,8 @@ enum MonthlyKpi: string
             self::UNCATEGORIZED_EXPENSES => 'Booked, non-voided unsplit EXPENSE, FEE and REFUND transactions in the caller workspace and month.',
             self::BUDGET_SURPLUS, self::CASH_SAVINGS_RATE => 'The exact cash-income and budget-expense views for the caller workspace and month.',
             self::SAVINGS_TRANSFERS => 'Booked incoming TRANSFER transactions to SAVINGS or PORTFOLIO accounts in the caller workspace and month.',
+            self::SAVINGS_INFLOWS, self::SAVINGS_WITHDRAWALS, self::NET_SAVINGS_TRANSFERS => 'Complete, same-day and same-asset transfer pairs crossing the SAVINGS or PORTFOLIO boundary in the caller workspace and month.',
+            self::NET_SAVINGS_RATE => 'The exact net-savings-transfer and cash-income views for the caller workspace and month.',
             self::BEGINNING_NET_WORTH => 'Eligible accounts and their latest valid valuation on the first day of the month in the caller workspace.',
             self::END_NET_WORTH => 'Eligible accounts and their latest valid valuation on the last day of the month in the caller workspace.',
             self::NET_WORTH_DELTA => 'The exact beginning and end net-worth views for the caller workspace and month.',

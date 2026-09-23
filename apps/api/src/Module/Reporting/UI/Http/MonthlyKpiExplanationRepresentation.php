@@ -28,6 +28,7 @@ final class MonthlyKpiExplanationRepresentation
                 'amount' => ['value' => $transaction->amount, 'assetCode' => $transaction->assetCode],
                 'state' => $transaction->state,
             ], $view->sourceTransactions),
+            'sourceTransferIds' => $view->sourceTransferIds,
             'sourceAccountIds' => $view->sourceAccountIds,
             'freshness' => $view->freshness,
             'quality' => $view->quality,
