@@ -21,6 +21,19 @@
   border-radius: var(--radius-circle);
   background: var(--color-transparent);
   color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.togglePlaceholder {
+  display: inline-block;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.rowEmpty .accountIdentity,
+.rowEmpty .amount,
+.rowEmpty .meta {
+  color: var(--text-muted);
 }
 
 .toggle:hover,
@@ -49,6 +62,7 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--spacing-1);
 }
 
@@ -87,39 +101,6 @@
   margin: var(--spacing-none);
 }
 
-.movements {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  margin: var(--spacing-none) var(--spacing-none) var(--spacing-3);
-  padding: var(--spacing-none);
-  list-style: none;
-}
-
-.movements li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--spacing-3);
-}
-
-.movements time,
-.movements small {
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
-}
-
-.movements li > span:nth-child(2) {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.movements li > span:last-child {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
 @media (max-width: 42rem) {
   .summary {
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -137,15 +118,6 @@
 
   .details {
     padding-left: var(--spacing-4);
-  }
-
-  .movements li {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .movements li > span:last-child {
-    grid-column: 2;
-    text-align: left;
   }
 }
 

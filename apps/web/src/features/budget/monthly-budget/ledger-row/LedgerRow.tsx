@@ -1,18 +1,13 @@
-import {
-  readMonthlyLedgerMovements,
-  type MonthlyLedgerAccountRow,
-  type MonthlyLedgerCategoryRow,
-} from '@cadran/api-client';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import type { MonthlyLedgerAccountRow, MonthlyLedgerCategoryRow } from '@cadran/api-client';
 import type { TFunction } from 'i18next';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
-import { authApiOptions } from '@/features/auth/apiOptions';
 import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
-import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
+import { formatAmount } from '@/lib/decimal';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
+import { MovementDetails } from '@/features/budget/monthly-budget/movement-details/MovementDetails';
 import styles from './LedgerRow.module.css';
 
 export type LedgerKind = 'income' | 'expense' | 'account';
@@ -26,6 +21,7 @@ interface LedgerRowProps {
   language: string;
   month: string;
   onAdd: () => void;
+  onEditTransaction?: (transactionId: string) => void;
   row: LedgerRowData;
 }
 
@@ -37,6 +33,7 @@ export function LedgerRow({
   language,
   month,
   onAdd,
+  onEditTransaction,
   row,
 }: LedgerRowProps) {
   const { t } = useTranslation();
@@ -58,23 +55,27 @@ export function LedgerRow({
   );
 
   return (
-    <li className={styles.row}>
+    <li className={row.hasMovements ? styles.row : `${styles.row} ${styles.rowEmpty}`}>
       <div className={styles.summary}>
-        <button
-          aria-controls={detailsId}
-          aria-expanded={expanded}
-          aria-label={t(
-            expanded ? 'budget.monthly.hideMovements' : 'budget.monthly.showMovements',
-            { label: row.label },
-          )}
-          className={styles.toggle}
-          onClick={() => setExpanded((current) => !current)}
-          type="button"
-        >
-          <span className={expanded ? styles.chevronOpen : styles.chevron}>
-            <Icon name="chevron-right" size={18} />
-          </span>
-        </button>
+        {row.hasMovements ? (
+          <button
+            aria-controls={detailsId}
+            aria-expanded={expanded}
+            aria-label={t(
+              expanded ? 'budget.monthly.hideMovements' : 'budget.monthly.showMovements',
+              { label: row.label },
+            )}
+            className={styles.toggle}
+            onClick={() => setExpanded((current) => !current)}
+            type="button"
+          >
+            <span className={expanded ? styles.chevronOpen : styles.chevron}>
+              <Icon name="chevron-right" size={18} />
+            </span>
+          </button>
+        ) : (
+          <span aria-hidden="true" className={styles.togglePlaceholder} />
+        )}
 
         <div className={styles.identity}>
           {category ? (
@@ -116,113 +117,20 @@ export function LedgerRow({
         </span>
       ) : null}
 
-      {expanded ? (
+      {expanded && row.hasMovements ? (
         <div className={styles.details} id={detailsId}>
-          {row.hasMovements ? (
-            <MovementDetails
-              axis={axis}
-              kind={kind}
-              language={language}
-              month={month}
-              rowId={row.id}
-            />
-          ) : (
-            <p>{t('budget.monthly.movements.empty')}</p>
-          )}
+          <MovementDetails
+            axis={axis}
+            editable={actionsAllowed}
+            kind={kind}
+            language={language}
+            month={month}
+            onEditTransaction={onEditTransaction}
+            rowId={row.id}
+          />
         </div>
       ) : null}
     </li>
-  );
-}
-
-function MovementDetails({
-  axis,
-  kind,
-  language,
-  month,
-  rowId,
-}: {
-  axis: BudgetAxis | null;
-  kind: LedgerKind;
-  language: string;
-  month: string;
-  rowId: string;
-}) {
-  const { t } = useTranslation();
-  const query = useInfiniteQuery({
-    queryKey: ['monthly-ledger-movements', month, axis, kind, rowId],
-    queryFn: async ({ pageParam, signal }) => {
-      const result = await readMonthlyLedgerMovements({
-        ...authApiOptions(),
-        path: { id: rowId, kind },
-        query: {
-          month,
-          ...(kind === 'expense' && axis ? { axis } : {}),
-          ...(pageParam ? { cursor: pageParam } : {}),
-        },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) throw new Error('monthly-ledger-movements');
-      return result.data;
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (page) => (page.hasMore ? page.nextCursor : undefined),
-    retry: false,
-  });
-
-  if (query.isPending) return <p aria-live="polite">{t('budget.monthly.movements.loading')}</p>;
-  if (query.isError)
-    return (
-      <div role="alert">
-        <p>{t('budget.monthly.movements.error')}</p>
-        <button className="secondary-action" onClick={() => void query.refetch()} type="button">
-          {t('budget.monthly.movements.retry')}
-        </button>
-      </div>
-    );
-
-  const movements = query.data.pages.flatMap((page) => page.items);
-  if (movements.length === 0) return <p>{t('budget.monthly.movements.empty')}</p>;
-
-  return (
-    <>
-      <ul className={styles.movements}>
-        {movements.map((movement) => (
-          <li key={movement.id}>
-            <time dateTime={movement.bookedOn}>{formatCalendarNumericDay(movement.bookedOn)}</time>
-            <span>
-              <strong>
-                {movement.direction && movement.counterpartAccountLabel
-                  ? t(
-                      movement.direction === 'IN'
-                        ? 'budget.monthly.movements.in'
-                        : 'budget.monthly.movements.out',
-                      { account: movement.counterpartAccountLabel },
-                    )
-                  : movement.label}
-              </strong>
-            </span>
-            <MoneyValue
-              value={formatAmount(movement.amount.value, movement.amount.assetCode, language)}
-            />
-          </li>
-        ))}
-      </ul>
-      {query.hasNextPage ? (
-        <button
-          className="secondary-action"
-          disabled={query.isFetchingNextPage}
-          onClick={() => void query.fetchNextPage()}
-          type="button"
-        >
-          {t(
-            query.isFetchingNextPage
-              ? 'budget.monthly.movements.loadingMore'
-              : 'budget.monthly.movements.more',
-          )}
-        </button>
-      ) : null}
-    </>
   );
 }
 

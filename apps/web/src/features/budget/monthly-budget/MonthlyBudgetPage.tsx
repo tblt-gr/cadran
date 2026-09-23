@@ -19,6 +19,7 @@ import {
 } from './budget-creation-modals/BudgetCreationModals';
 import { LedgerPanels } from './ledger-panels/LedgerPanels';
 import { MonthNavigator } from './month-navigator/MonthNavigator';
+import { MovementEditModal } from './movement-edit-modal/MovementEditModal';
 import styles from './MonthlyBudgetPage.module.css';
 
 interface MonthlyBudgetPageProps {
@@ -35,6 +36,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
   const parsed = parseBudgetMonth(periodKey, routeToday);
   const [axis, setAxis] = useState<BudgetAxis | null>(() => readAxis(window.location.search));
   const [draft, setDraft] = useState<BudgetCreationDraft>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const queryMonth = parsed.kind === 'valid' ? parsed.month : '';
 
@@ -58,6 +60,13 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
     },
     retry: false,
   });
+
+  // Kept across month changes: the ledger of the next month is pending, the first year is not.
+  const [firstDataMonth, setFirstDataMonth] = useState<string | null>(null);
+  const answeredFirstDataMonth = ledger.data?.firstDataMonth;
+  if (answeredFirstDataMonth !== undefined && answeredFirstDataMonth !== firstDataMonth) {
+    setFirstDataMonth(answeredFirstDataMonth);
+  }
 
   const activeAccounts = useActiveBudgetAccounts(parsed.kind === 'valid');
   const activeAccountIds = activeAccounts.data
@@ -130,16 +139,36 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
           </h2>
           <span>{t('budget.monthly.description')}</span>
         </div>
-        <a
-          className="secondary-action"
-          href="/budget/plans"
-          onClick={(event) => handleClientNavigation(event, '/budget/plans')}
-        >
-          {t('budget.monthly.managePlans')}
-        </a>
+        <div className={styles.actions}>
+          <button
+            className="primary-action"
+            disabled={!ledger.data?.actionsAllowed}
+            onClick={() => setDraft({ kind: 'expense', row: null })}
+            title={
+              ledger.data && !ledger.data.actionsAllowed
+                ? t('budget.monthly.closedReason')
+                : undefined
+            }
+            type="button"
+          >
+            {t('budget.monthly.createTransaction')}
+          </button>
+          <a
+            className="secondary-action"
+            href="/budget/plans"
+            onClick={(event) => handleClientNavigation(event, '/budget/plans')}
+          >
+            {t('budget.monthly.managePlans')}
+          </a>
+        </div>
       </section>
 
-      <MonthNavigator axis={axis} currentMonth={currentMonth} month={month} />
+      <MonthNavigator
+        axis={axis}
+        currentMonth={currentMonth}
+        firstDataMonth={firstDataMonth}
+        month={month}
+      />
 
       {ledger.isPending ? (
         <section aria-busy="true" className={`card ${styles.routeError}`} role="status">
@@ -162,6 +191,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
           month={month}
           onAxisChange={changeAxis}
           onDraft={setDraft}
+          onEditTransaction={setEditingTransactionId}
         />
       )}
 
@@ -172,6 +202,14 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         onSaved={refreshAfterSave}
         today={today}
       />
+
+      {editingTransactionId ? (
+        <MovementEditModal
+          close={() => setEditingTransactionId(null)}
+          onSaved={refreshAfterSave}
+          transactionId={editingTransactionId}
+        />
+      ) : null}
     </div>
   );
 }

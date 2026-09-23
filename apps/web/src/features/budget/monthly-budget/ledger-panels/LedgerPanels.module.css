@@ -1,4 +1,4 @@
-ROOT.statuses p {
+.statuses p {
   margin: var(--spacing-none);
 }
 
@@ -16,20 +16,19 @@ ROOT.statuses p {
 
 .panels {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: var(--spacing-4);
 }
 
-.panels > :last-child {
-  grid-column: 1 / -1;
+@media (max-width: 75rem) {
+  .panels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-@media (max-width: 60rem) {
+@media (max-width: 42rem) {
   .panels {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .panels > :last-child {
-    grid-column: auto;
   }
 }

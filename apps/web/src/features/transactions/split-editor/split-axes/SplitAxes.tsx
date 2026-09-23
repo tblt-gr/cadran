@@ -20,7 +20,11 @@ interface SplitAxesProps {
   axes: AnalyticAxis[] | null;
   /** Defaults of the row's category, `null` while they are not known. */
   defaultAxes: AnalyticAxis[] | null;
-  index: number;
+  /** Smaller summary for a split row; the simple form uses the regular size like its other disclosures. */
+  compact?: boolean;
+  index?: number;
+  /** Accessible name of the checkbox group; defaults to the split row it belongs to. */
+  legend?: string;
   onChange: (axes: AnalyticAxis[] | null) => void;
 }
 
@@ -28,7 +32,14 @@ interface SplitAxesProps {
  * The analytic axes of one split row. Most rows keep the defaults of their
  * category, so the checkboxes stay folded behind a summary of what applies.
  */
-export function SplitAxes({ axes, defaultAxes, index, onChange }: SplitAxesProps) {
+export function SplitAxes({
+  axes,
+  compact = true,
+  defaultAxes,
+  index = 0,
+  legend,
+  onChange,
+}: SplitAxesProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const inherited = axes === null;
@@ -58,14 +69,16 @@ export function SplitAxes({ axes, defaultAxes, index, onChange }: SplitAxesProps
 
   return (
     <Disclosure
-      compact
+      compact={compact}
       meta={summary}
       onToggle={setOpen}
       open={open}
       title={t('transactions.split.axesTitle')}
     >
       <fieldset className={styles.axes}>
-        <legend className="sr-only">{t('transactions.split.axesRow', { row: index + 1 })}</legend>
+        <legend className="sr-only">
+          {legend ?? t('transactions.split.axesRow', { row: index + 1 })}
+        </legend>
         {AXES.map((axis) => (
           <label key={axis}>
             <input

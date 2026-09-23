@@ -194,4 +194,72 @@ describe('transactionFormValues', () => {
       accountId: true,
     });
   });
+
+  describe('single-category axes', () => {
+    const saved = {
+      id: 'split-1',
+      categoryId: 'category-1',
+      categoryColor: null,
+      categoryIcon: null,
+      categoryLabel: 'Abonnement',
+      amount: { value: '-1.50', assetCode: 'EUR' },
+      analyticAxes: ['FIXED'],
+      note: 'garde-moi',
+    } as Transaction['splits'][number];
+    const withSplit = { ...transaction, splits: [saved] } as Transaction;
+
+    it('shows the stored axes of a saved single-split transaction', () => {
+      expect(initialTransactionValues(withSplit, [account]).analyticAxes).toEqual(['FIXED']);
+      expect(initialTransactionValues(undefined, [account]).analyticAxes).toBeNull();
+    });
+
+    it('inherits the category defaults, without a split, while the axes are null', () => {
+      const values = {
+        ...initialTransactionValues(undefined, [account], '2026-09-08'),
+        amountValue: '-12.00',
+        categoryId: 'category-1',
+      };
+
+      expect(transactionRequest(values, [account])).toMatchObject({
+        categoryId: 'category-1',
+        splits: null,
+      });
+    });
+
+    it('sends an explicit override, even empty, as one split covering the amount', () => {
+      const values = {
+        ...initialTransactionValues(undefined, [account], '2026-09-08'),
+        amountValue: '-12.00',
+        categoryId: 'category-1',
+        analyticAxes: [],
+      };
+
+      expect(transactionRequest(values, [account])).toMatchObject({
+        categoryId: null,
+        splits: [
+          {
+            categoryId: 'category-1',
+            amount: { value: '-12.00', assetCode: 'EUR' },
+            analyticAxes: [],
+            note: null,
+          },
+        ],
+      });
+    });
+
+    it('keeps the plain category path and the note when an edit leaves the axes untouched', () => {
+      const values = initialTransactionValues(withSplit, [account]);
+
+      expect(transactionRequest(values, [account], withSplit)).toMatchObject({
+        categoryId: 'category-1',
+        splits: null,
+      });
+      expect(
+        transactionRequest({ ...values, analyticAxes: ['VARIABLE'] }, [account], withSplit),
+      ).toMatchObject({
+        categoryId: null,
+        splits: [{ analyticAxes: ['VARIABLE'], note: 'garde-moi' }],
+      });
+    });
+  });
 });

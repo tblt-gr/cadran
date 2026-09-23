@@ -338,6 +338,69 @@ describe('TransactionsPage', () => {
     await waitFor(() => expect(document.activeElement).toBe(picker));
   });
 
+  it('prefills the axes of the picked category, resets them on a category change and sends an override', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    const abonnement = {
+      ...expenseCategory,
+      id: '00000000-0000-7000-8000-0000000000c2',
+      label: 'Abonnement',
+      defaultAnalyticAxes: ['FIXED', 'ESSENTIAL'],
+    } as Category;
+    const loisirs = {
+      ...expenseCategory,
+      id: '00000000-0000-7000-8000-0000000000c3',
+      label: 'Loisirs',
+      defaultAnalyticAxes: ['DISCRETIONARY'],
+    } as Category;
+    api.listCategories.mockImplementation(() =>
+      success({ items: [abonnement, loisirs], page: 1, perPage: 50, total: 2 }),
+    );
+    api.createTransaction.mockImplementation(({ body }) =>
+      success({ ...transaction, ...body, splits: [] }, 201),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '-9.99' } });
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'ABONNEMENT' } });
+    expect(screen.queryByRole('group', { name: 'Axes analytiques de la transaction' })).toBeNull();
+
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' });
+    fireEvent.change(picker, { target: { value: 'Abonn' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /Abonnement/ }));
+    expect(await screen.findByText(/Essentiel, Fixe|Fixe, Essentiel/)).toBeTruthy();
+
+    fireEvent.focus(picker);
+    fireEvent.change(picker, { target: { value: 'Loisirs' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /^Loisirs/ }));
+    expect(await screen.findByText(/^Discrétionnaire.*ceux de la catégorie/)).toBeTruthy();
+
+    const group = screen.getByRole('group', { name: 'Axes analytiques de la transaction' });
+    fireEvent.click(within(group).getByLabelText('Discrétionnaire'));
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).getByRole('button', {
+        name: 'Enregistrer',
+      }),
+    );
+
+    await waitFor(() => expect(api.createTransaction).toHaveBeenCalledOnce());
+    const body = api.createTransaction.mock.calls[0]?.[0].body;
+    expect(body.categoryId).toBeNull();
+    expect(body.splits).toEqual([
+      {
+        categoryId: loisirs.id,
+        amount: { value: '-9.99', assetCode: 'EUR' },
+        analyticAxes: [],
+        note: null,
+      },
+    ]);
+  });
+
   it('cancels quick creation without touching the draft or the transaction focus trap', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 100, total: 1 }),

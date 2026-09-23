@@ -11,6 +11,12 @@
   gap: var(--spacing-4);
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
 .intro p,
 .intro h2,
 .intro span,
@@ -54,7 +60,11 @@
     flex-direction: column;
   }
 
-  .intro > a {
+  .actions {
+    flex-direction: column;
+  }
+
+  .actions > * {
     width: 100%;
   }
 

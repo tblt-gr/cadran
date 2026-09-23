@@ -1,4 +1,4 @@
-import type { Category, CategoryType } from '@cadran/api-client';
+import type { AnalyticAxes, Category, CategoryType } from '@cadran/api-client';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
@@ -15,7 +15,11 @@ export interface SavedCategory {
 interface TransactionCategoryFieldProps {
   /** Validation message, typically a category the transaction sign would refuse. */
   error: string | null;
-  onChange: (categoryId: string, type: CategoryType | null) => void;
+  onChange: (
+    categoryId: string,
+    type: CategoryType | null,
+    defaultAxes: AnalyticAxes | null,
+  ) => void;
   /** Category type the draft sign expects: listed first, and the quick-create default. */
   preferredType: CategoryType;
   /** Category of the edited transaction, displayed while it stays selected. */
@@ -47,7 +51,7 @@ export function TransactionCategoryField({
 
   function selectCreated(category: Category) {
     setCreated(category);
-    onChange(category.id, category.type);
+    onChange(category.id, category.type, category.defaultAnalyticAxes);
   }
 
   return (
@@ -56,7 +60,9 @@ export function TransactionCategoryField({
         emptyOptionLabel={t('transactions.form.noCategory')}
         error={error}
         label={t('transactions.fields.category')}
-        onChange={(categoryId, category) => onChange(categoryId, category?.type ?? null)}
+        onChange={(categoryId, category) =>
+          onChange(categoryId, category?.type ?? null, category?.defaultAnalyticAxes ?? null)
+        }
         onCreateRequest={setQuickLabel}
         preferredType={preferredType}
         ref={picker}

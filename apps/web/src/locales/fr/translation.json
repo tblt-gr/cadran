@@ -1735,6 +1735,7 @@
       "stateLocked": "Une transaction comptabilisée ne revient pas en attente. Utilisez l’action Annuler si nécessaire.",
       "rawLabelLocked": "Ce libellé provient d’une source externe et reste inchangé pour la traçabilité.",
       "noCategory": "Sans catégorie",
+      "axesLegend": "Axes analytiques de la transaction",
       "noPaymentMethod": "Non renseigné",
       "advanced": "Champs avancés"
     },
@@ -2216,6 +2217,7 @@
       "title": "Budget de {{month}}",
       "description": "Consultez les mouvements comptabilisés du mois et ajoutez les corrections utiles.",
       "managePlans": "Gérer les plans et objectifs",
+      "createTransaction": "Créer une transaction",
       "year": "Année",
       "months": "Mois du budget",
       "axis": "Axe analytique",
@@ -2253,6 +2255,8 @@
       "addIncome": "Ajouter un revenu dans {{label}}",
       "addExpense": "Ajouter une dépense dans {{label}}",
       "addTransfer": "Ajouter un virement vers {{label}}",
+      "addFreeIncome": "Ajouter un revenu",
+      "addFreeExpense": "Ajouter une dépense",
       "closedReason": "Cette période est clôturée.",
       "accountUnavailable": "Ce compte est clos : aucun virement n'est possible.",
       "movements": {
@@ -2263,7 +2267,10 @@
         "more": "Afficher les mouvements suivants",
         "loadingMore": "Chargement…",
         "in": "Entrée depuis {{account}}",
-        "out": "Sortie vers {{account}}"
+        "out": "Sortie vers {{account}}",
+        "edit": "Modifier le mouvement {{label}} du {{date}}, {{amount}}",
+        "editLoading": "Chargement du mouvement…",
+        "editError": "Impossible de charger ce mouvement."
       },
       "route": {
         "invalidTitle": "Période invalide",

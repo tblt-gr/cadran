@@ -17,6 +17,7 @@ interface LedgerPanelsProps {
   month: string;
   onAxisChange: (axis: BudgetAxis | null) => void;
   onDraft: (draft: BudgetCreationDraft) => void;
+  onEditTransaction: (transactionId: string) => void;
 }
 
 export function LedgerPanels({
@@ -27,9 +28,20 @@ export function LedgerPanels({
   month,
   onAxisChange,
   onDraft,
+  onEditTransaction,
 }: LedgerPanelsProps) {
   const { t } = useTranslation();
-  const common = { actionsAllowed: data.actionsAllowed, axis, language, month };
+  const common = {
+    actionsAllowed: data.actionsAllowed,
+    axis,
+    language,
+    month,
+    onEditTransaction,
+  };
+  // A category with no movement this month has nothing to explain; accounts stay listed
+  // because an account without a transfer is still a valid transfer target.
+  const incomeRows = data.incomeCategories.filter((row) => row.hasMovements);
+  const expenseRows = data.expenseCategories.filter((row) => row.hasMovements);
 
   return (
     <>
@@ -48,15 +60,17 @@ export function LedgerPanels({
         <LedgerPanel
           {...common}
           kind="income"
+          onAddFree={() => onDraft({ kind: 'income', row: null })}
           onAdd={(row) => onDraft({ kind: 'income', row: row as MonthlyLedgerCategoryRow })}
-          rows={data.incomeCategories}
+          rows={incomeRows}
         />
         <LedgerPanel
           {...common}
           kind="expense"
+          onAddFree={() => onDraft({ kind: 'expense', row: null })}
           onAdd={(row) => onDraft({ kind: 'expense', row: row as MonthlyLedgerCategoryRow })}
           onAxisChange={onAxisChange}
-          rows={data.expenseCategories}
+          rows={expenseRows}
         />
         <LedgerPanel
           {...common}

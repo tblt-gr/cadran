@@ -44,10 +44,9 @@
   color: var(--text-primary);
 }
 
-.tabs .active {
-  background: var(--bg-surface-2);
-  box-shadow: var(--shadow-nav-active);
-  color: var(--text-primary);
+.tabs a.active {
+  background: var(--color-transparent);
+  color: var(--gold-300);
 }
 
 .tabs .disabled {

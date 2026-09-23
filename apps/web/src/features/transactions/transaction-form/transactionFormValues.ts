@@ -1,5 +1,6 @@
 import type {
   Account,
+  AnalyticAxes,
   CategoryType,
   CreateTransactionRequest,
   Transaction,
@@ -10,13 +11,19 @@ import { compareDecimals, isCanonicalDecimal, isZeroDecimal } from '@/lib/decima
 import { remainingAmount } from '@/features/transactions/split-editor/splitAllocation';
 import type { SplitRowValues } from '@/features/transactions/split-editor/SplitRow';
 
+type AnalyticAxis = AnalyticAxes[number];
+
 export type TransactionFormValues = {
   accountId: string;
+  /** Axes of the single-category draft: `null` inherits the category defaults, an array (even empty) overrides them. */
+  analyticAxes: AnalyticAxis[] | null;
   amountValue: string;
   authorizedOn: string;
   bankReference: string;
   bookedOn: string;
   categoryId: string;
+  /** Default axes of the selected category, `null` while they are not known. */
+  categoryDefaultAxes: AnalyticAxis[] | null;
   /** Type of the selected category, `null` when none is selected or it is not known. */
   categoryType: CategoryType | null;
   counterparty: string;
@@ -58,10 +65,13 @@ export function initialTransactionValues(
 
   return {
     accountId: transaction?.accountId ?? accounts[0]?.id ?? '',
+    analyticAxes:
+      (transaction?.splits.length ?? 0) === 1 ? transaction!.splits[0]!.analyticAxes : null,
     amountValue: transaction?.amount.value ?? '',
     authorizedOn: transaction?.authorizedOn ?? '',
     bankReference: transaction?.bankReference ?? '',
     bookedOn: transaction?.bookedOn ?? today,
+    categoryDefaultAxes: null,
     categoryId: transaction?.splits[0]?.categoryId ?? '',
     categoryType: transaction?.splits[0] ? savedCategoryType : null,
     counterparty: transaction?.counterparty ?? '',
@@ -228,15 +238,7 @@ export function transactionRequest(
     mcc: optional(values.mcc),
     maskedCard: optional(values.maskedCard),
     bankReference: optional(values.bankReference),
-    categoryId: values.splitMode ? null : values.categoryId || null,
-    splits: values.splitMode
-      ? values.splits.map((row) => ({
-          categoryId: row.categoryId,
-          amount: { value: row.amount, assetCode },
-          analyticAxes: row.analyticAxes,
-          note: optional(row.note),
-        }))
-      : null,
+    ...categorisation(values, assetCode, transaction),
   };
 
   if (transaction !== undefined) {
@@ -247,6 +249,56 @@ export function transactionRequest(
     ...common,
     state: values.state === 'REJECTED' ? 'BOOKED' : values.state,
   };
+}
+
+/**
+ * A single category alone inherits its defaults on the server, so explicit axes
+ * travel as one split covering the whole amount. The saved split's note is kept
+ * when the category is unchanged, as the single-category path would.
+ */
+function categorisation(
+  values: TransactionFormValues,
+  assetCode: string,
+  transaction: Transaction | undefined,
+): Pick<CreateTransactionRequest, 'categoryId' | 'splits'> {
+  if (values.splitMode) {
+    return {
+      categoryId: null,
+      splits: values.splits.map((row) => ({
+        categoryId: row.categoryId,
+        amount: { value: row.amount, assetCode },
+        analyticAxes: row.analyticAxes,
+        note: optional(row.note),
+      })),
+    };
+  }
+
+  const saved = transaction?.splits.length === 1 ? transaction.splits[0] : undefined;
+  const sameCategory = saved?.categoryId === values.categoryId;
+  const unchanged =
+    sameCategory &&
+    values.analyticAxes !== null &&
+    sameAxes(saved?.analyticAxes ?? [], values.analyticAxes);
+
+  if (values.categoryId === '' || values.analyticAxes === null || unchanged) {
+    return { categoryId: values.categoryId || null, splits: null };
+  }
+
+  return {
+    categoryId: null,
+    splits: [
+      {
+        categoryId: values.categoryId,
+        amount: { value: values.amountValue, assetCode },
+        analyticAxes: values.analyticAxes,
+        note: sameCategory ? (saved?.note ?? null) : null,
+      },
+    ],
+  };
+}
+
+function sameAxes(left: AnalyticAxis[], right: AnalyticAxis[]): boolean {
+  return left.length === right.length && left.every((axis) => right.includes(axis));
 }
 
 export function categoryTypeForAmount(

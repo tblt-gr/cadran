@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
 import { ADVANCED_FIELDS } from './advanced-fields/advancedFields';
 import { AdvancedTransactionFields } from './advanced-fields/AdvancedTransactionFields';
+import { SplitAxes } from '@/features/transactions/split-editor/split-axes/SplitAxes';
 import { SplitField } from './split-field/SplitField';
 import { TransactionCategoryField } from './transaction-category-field/TransactionCategoryField';
 import {
@@ -245,14 +246,31 @@ export function TransactionForm({
                 ? t(`transactions.validation.categoryMismatch.${values.categoryType}`)
                 : null
             }
-            onChange={(categoryId, categoryType) =>
-              setValues((current) => ({ ...current, categoryId, categoryType }))
+            onChange={(categoryId, categoryType, categoryDefaultAxes) =>
+              setValues((current) => ({
+                ...current,
+                // An override made for the previous category no longer describes this one.
+                analyticAxes: categoryId === current.categoryId ? current.analyticAxes : null,
+                categoryDefaultAxes,
+                categoryId,
+                categoryType,
+              }))
             }
             preferredType={preferredType}
             savedCategory={savedCategory(transaction) ?? defaults?.category ?? null}
             value={values.categoryId}
           />
         )}
+
+        {!values.splitMode && values.categoryId !== '' && values.categoryType === 'EXPENSE' ? (
+          <SplitAxes
+            axes={values.analyticAxes}
+            compact={false}
+            defaultAxes={values.categoryDefaultAxes}
+            legend={t('transactions.form.axesLegend')}
+            onChange={(analyticAxes) => set('analyticAxes', analyticAxes)}
+          />
+        ) : null}
 
         <AdvancedTransactionFields
           errors={errors}

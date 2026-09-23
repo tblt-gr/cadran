@@ -21,7 +21,8 @@ import { defaultDayForMonth } from '@/features/budget/monthly-budget/budgetPerio
 import { useActiveBudgetAccounts } from './useActiveBudgetAccounts';
 
 export type BudgetCreationDraft =
-  | { kind: 'income' | 'expense'; row: MonthlyLedgerCategoryRow }
+  /** A `null` row opens the form with no category, chosen inside the modal. */
+  | { kind: 'income' | 'expense'; row: MonthlyLedgerCategoryRow | null }
   | { kind: 'account'; row: MonthlyLedgerAccountRow }
   | null;
 
@@ -118,10 +119,10 @@ export function BudgetCreationModals({
       defaults={{
         bookedOn,
         category: {
-          color: draft.row.color,
-          icon: draft.row.icon,
-          id: draft.row.id,
-          label: draft.row.label,
+          color: draft.row?.color ?? null,
+          icon: draft.row?.icon ?? null,
+          id: draft.row?.id ?? '',
+          label: draft.row?.label ?? '',
           type: draft.kind === 'income' ? 'INCOME' : 'EXPENSE',
         },
         nature: draft.kind === 'income' ? 'INCOME' : 'EXPENSE',

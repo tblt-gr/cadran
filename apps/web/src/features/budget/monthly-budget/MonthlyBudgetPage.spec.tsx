@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { MonthlyBudgetPage } from './MonthlyBudgetPage';
@@ -7,9 +7,11 @@ import { MonthlyBudgetPage } from './MonthlyBudgetPage';
 const api = vi.hoisted(() => ({
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
+  getTransaction: vi.fn(),
   listAccounts: vi.fn(),
   readMonthlyLedger: vi.fn(),
   readMonthlyLedgerMovements: vi.fn(),
+  updateTransaction: vi.fn(),
 }));
 
 vi.mock('@cadran/api-client', async (original) => ({
@@ -20,6 +22,8 @@ vi.mock('@cadran/api-client', async (original) => ({
 const incomeId = '00000000-0000-7000-8000-000000000001';
 const expenseId = '00000000-0000-7000-8000-000000000002';
 const accountId = '00000000-0000-7000-8000-000000000003';
+const emptyAccountId = '00000000-0000-7000-8000-000000000010';
+const movementTransactionId = '00000000-0000-7000-8000-000000000005';
 const ledger = {
   month: '2026-03',
   periodStart: '2026-03-01',
@@ -28,6 +32,7 @@ const ledger = {
   state: 'COMPLETE' as const,
   quality: 'CURRENT' as const,
   timezone: 'Europe/Paris',
+  firstDataMonth: '2025-06',
   pendingCount: 2,
   closed: false,
   actionsAllowed: true,
@@ -67,6 +72,15 @@ const ledger = {
       total: { value: '-25.00', assetCode: 'EUR', reason: null },
       movementCount: 2,
       hasMovements: true,
+    },
+    {
+      id: emptyAccountId,
+      label: 'Livret vide',
+      assetCode: 'EUR',
+      kind: 'SAVINGS' as const,
+      total: { value: null, assetCode: null, reason: 'NO_MOVEMENTS' as const },
+      movementCount: 0,
+      hasMovements: false,
     },
   ],
 };
@@ -128,7 +142,7 @@ describe('MonthlyBudgetPage', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('renders exact zero separately from an empty active row and marks out-of-budget expenses', async () => {
+  it('renders exact zero, hides categories without movement and keeps every account', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Budget de mars 2026' })).toBeTruthy();
@@ -138,9 +152,167 @@ describe('MonthlyBudgetPage', () => {
         (_content, node) => node?.textContent === '0 €' && node.tagName === 'SPAN',
       ).length,
     ).toBeGreaterThan(0);
+    expect(screen.getByText('Compte courant')).toBeTruthy();
+    expect(screen.getByText('Livret vide')).toBeTruthy();
     expect(screen.getByText('Aucun mouvement')).toBeTruthy();
-    expect(screen.getByText('Hors budget')).toBeTruthy();
+    expect(screen.queryByText('Voyages')).toBeNull();
+    expect(screen.queryByText('Hors budget')).toBeNull();
     expect(screen.getByText('2 transactions en attente')).toBeTruthy();
+  });
+
+  it('gives a row without movement no accordion toggle and mutes its text', async () => {
+    renderPage();
+
+    const emptyRow = (await screen.findByText('Livret vide')).closest('li')!;
+    expect(
+      screen.queryByRole('button', { name: 'Afficher les mouvements de Livret vide' }),
+    ).toBeNull();
+    expect(emptyRow.querySelector('[aria-controls]')).toBeNull();
+    expect(emptyRow.className).toMatch(/rowEmpty/);
+    expect(emptyRow.querySelector('button')?.getAttribute('aria-label')).toBe(
+      'Ajouter un virement vers Livret vide',
+    );
+
+    const filledRow = screen.getByText('Compte courant').closest('li')!;
+    expect(
+      screen.getByRole('button', { name: 'Afficher les mouvements de Compte courant' }),
+    ).toBeTruthy();
+    expect(filledRow.className).not.toMatch(/rowEmpty/);
+  });
+
+  it('shows the empty state of a panel whose categories all have no movement', async () => {
+    api.readMonthlyLedger.mockReturnValue(ok({ ...ledger, incomeCategories: [] }));
+    renderPage();
+
+    const income = await screen.findByRole('region', { name: 'Revenus par catégorie' });
+    expect(within(income).getByText('Aucune ligne active pour ce mois.')).toBeTruthy();
+  });
+
+  it('keeps an out-of-budget expense category that has movements', async () => {
+    api.readMonthlyLedger.mockReturnValue(
+      ok({
+        ...ledger,
+        expenseCategories: [
+          {
+            ...ledger.expenseCategories[0]!,
+            total: { value: '-10.00', assetCode: 'EUR', reason: null },
+            movementCount: 1,
+            hasMovements: true,
+          },
+        ],
+      }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Voyages')).toBeTruthy();
+    expect(screen.getByText('Hors budget')).toBeTruthy();
+  });
+
+  it('opens the transaction editor from a movement and refreshes the ledger after saving', async () => {
+    const stored = {
+      id: movementTransactionId,
+      accountId,
+      amount: { value: '2500.00', assetCode: 'EUR' },
+      originalAmount: null,
+      exchangeRate: null,
+      nature: 'INCOME',
+      state: 'BOOKED',
+      source: 'MANUAL',
+      sourceRef: null,
+      bookedOn: '2026-03-14',
+      valueOn: null,
+      authorizedOn: null,
+      rawLabel: 'Paie mars',
+      counterparty: null,
+      note: null,
+      paymentMethod: null,
+      mcc: null,
+      maskedCard: null,
+      bankReference: null,
+      splits: [],
+      version: 3,
+      createdAt: '2026-03-14T09:00:00+01:00',
+      updatedAt: '2026-03-14T09:00:00+01:00',
+      voidedAt: null,
+      transferId: null,
+      refundOriginalId: null,
+      refundOriginalLabel: null,
+      refundedAmount: null,
+      reviewReason: null,
+      reconciliationCandidateIds: [],
+      reconciledIntoId: null,
+    };
+    api.getTransaction.mockReturnValue(ok(stored));
+    api.updateTransaction.mockImplementation(({ body }) => ok({ ...stored, ...body }));
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Afficher les mouvements de Salaire' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /^Modifier le mouvement Paie mars du .*, 2\s500,00\s€$/,
+      }),
+    );
+
+    const label = await screen.findByRole('textbox', { name: 'Libellé' });
+    const dialog = screen.getByRole('dialog', { name: 'Modifier la transaction' });
+    expect(api.getTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ path: { id: movementTransactionId } }),
+    );
+    const callsBeforeSave = api.readMonthlyLedger.mock.calls.length;
+    fireEvent.change(label, { target: { value: 'Paie mars corrigée' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.updateTransaction).toHaveBeenCalledOnce());
+    expect(api.updateTransaction.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ path: { id: movementTransactionId } }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(api.readMonthlyLedger.mock.calls.length).toBeGreaterThan(callsBeforeSave),
+    );
+    await waitFor(() =>
+      expect(api.readMonthlyLedgerMovements.mock.calls.length).toBeGreaterThan(1),
+    );
+    expect(await screen.findByText('Le mouvement a été enregistré.')).toBeTruthy();
+  });
+
+  it('offers a retry when the movement cannot be loaded', async () => {
+    api.getTransaction.mockReturnValue(
+      Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Afficher les mouvements de Salaire' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Modifier le mouvement Paie mars/ }),
+    );
+
+    const dialog = await screen.findByRole('dialog', { name: 'Modifier la transaction' });
+    expect(await within(dialog).findByRole('alert')).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Réessayer' })).toBeTruthy();
+  });
+
+  it('does not turn a movement into an edit button while the period is closed', async () => {
+    api.readMonthlyLedger.mockReturnValue(
+      ok({
+        ...ledger,
+        closed: true,
+        actionsAllowed: false,
+        actionReason: 'PERIOD_CLOSED' as const,
+      }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Afficher les mouvements de Salaire' }),
+    );
+
+    expect(await screen.findByText('Paie mars')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Modifier le mouvement/ })).toBeNull();
   });
 
   it('does not fetch row movements before its accessible accordion is opened', async () => {
@@ -235,6 +407,52 @@ describe('MonthlyBudgetPage', () => {
     );
   });
 
+  it('adds a transaction from an empty panel header with no category preselected', async () => {
+    api.readMonthlyLedger.mockReturnValue(ok({ ...ledger, expenseCategories: [] }));
+    renderPage();
+
+    const expense = await screen.findByRole('region', { name: 'Dépenses par catégorie' });
+    expect(within(expense).getByText('Aucune ligne active pour ce mois.')).toBeTruthy();
+    fireEvent.click(within(expense).getByRole('button', { name: 'Ajouter une dépense' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
+    expect(((await screen.findByLabelText('Nature')) as HTMLSelectElement).value).toBe('EXPENSE');
+    expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
+      '',
+    );
+  });
+
+  it('opens the transaction modal from the header button', async () => {
+    renderPage();
+
+    await screen.findByRole('region', { name: 'Revenus par catégorie' });
+    fireEvent.click(screen.getByRole('button', { name: 'Créer une transaction' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
+    expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
+      '',
+    );
+  });
+
+  it('disables the header and panel free-add buttons while the period is closed', async () => {
+    api.readMonthlyLedger.mockReturnValue(
+      ok({
+        ...ledger,
+        closed: true,
+        actionsAllowed: false,
+        actionReason: 'PERIOD_CLOSED' as const,
+      }),
+    );
+    renderPage();
+
+    await screen.findByRole('region', { name: 'Revenus par catégorie' });
+    const header = screen.getByRole('button', { name: 'Créer une transaction' });
+    expect(header.getAttribute('disabled')).not.toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Ajouter un revenu' }).getAttribute('disabled'),
+    ).not.toBeNull();
+  });
+
   it('opens the shared transfer modal with destination and date prefilled but no source', async () => {
     renderPage();
 
@@ -315,6 +533,7 @@ describe('MonthlyBudgetPage', () => {
     );
 
     expect(await screen.findByText('Sortie vers Livret A')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Modifier le mouvement/ })).toBeNull();
   });
 
   it('disables the transfer action for an account that is not active', async () => {

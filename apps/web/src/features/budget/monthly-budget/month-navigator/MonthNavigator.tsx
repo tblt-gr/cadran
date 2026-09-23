@@ -6,18 +6,29 @@ import styles from './MonthNavigator.module.css';
 interface MonthNavigatorProps {
   axis: BudgetAxis | null;
   currentMonth: string;
+  /** Oldest month holding a transaction; null while unknown or when the workspace has none. */
+  firstDataMonth?: string | null;
   month: string;
 }
 
-const FIRST_YEAR = 2000;
-
-export function MonthNavigator({ axis, currentMonth, month }: MonthNavigatorProps) {
+export function MonthNavigator({
+  axis,
+  currentMonth,
+  firstDataMonth = null,
+  month,
+}: MonthNavigatorProps) {
   const { t, i18n } = useTranslation();
   const selectedYear = Number.parseInt(month.slice(0, 4), 10);
   const selectedMonthNumber = month.slice(5, 7);
   const currentYear = Number.parseInt(currentMonth.slice(0, 4), 10);
+  // Years before the first transaction have nothing to show; the selected year stays listed
+  // so a deep link never leaves the select without its own value.
+  const firstYear = Math.min(
+    firstDataMonth === null ? currentYear : Number.parseInt(firstDataMonth.slice(0, 4), 10),
+    selectedYear,
+  );
   const years = Array.from(
-    { length: currentYear - FIRST_YEAR + 1 },
+    { length: currentYear - firstYear + 1 },
     (_, index) => currentYear - index,
   );
 
