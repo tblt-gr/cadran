@@ -12,6 +12,7 @@ final readonly class MonthlyMetricView
     /**
      * @param list<string> $sourceTransactionIds
      * @param list<string> $sourceAccountIds
+     * @param list<string> $sourceTransferIds
      */
     public function __construct(
         public ?string $value,
@@ -20,6 +21,7 @@ final readonly class MonthlyMetricView
         public array $sourceTransactionIds = [],
         public array $sourceAccountIds = [],
         public int $pendingCount = 0,
+        public array $sourceTransferIds = [],
     ) {
     }
 
@@ -32,6 +34,7 @@ final readonly class MonthlyMetricView
             $metric->sourceTransactionIds,
             [],
             $metric->pendingCount,
+            $metric->sourceTransferIds,
         );
     }
 

@@ -2181,6 +2181,10 @@ paths:
                 budgetSurplus,
                 savingsTransfers,
                 cashSavingsRate,
+                savingsInflows,
+                savingsWithdrawals,
+                netSavingsTransfers,
+                netSavingsRate,
                 beginningNetWorth,
                 endNetWorth,
                 netWorthDelta,
@@ -8017,6 +8021,9 @@ components:
         - MISSING_BENEFIT_SOURCE
         - MISSING_VALUATION
         - NO_ELIGIBLE_ACCOUNT
+        - INCOMPLETE_TRANSFER_PAIR
+        - MISMATCHED_TRANSFER_PAIR
+        - MISSING_ACCOUNT_CLASSIFICATION
     MonthlyProjectionMetric:
       type: object
       additionalProperties: false
@@ -8046,6 +8053,7 @@ components:
         - period
         - sourceTransactionIds
         - sourceTransactions
+        - sourceTransferIds
         - sourceAccountIds
         - freshness
         - quality
@@ -8062,6 +8070,10 @@ components:
               budgetSurplus,
               savingsTransfers,
               cashSavingsRate,
+              savingsInflows,
+              savingsWithdrawals,
+              netSavingsTransfers,
+              netSavingsRate,
               beginningNetWorth,
               endNetWorth,
               netWorthDelta,
@@ -8084,6 +8096,9 @@ components:
               MISSING_VALUATION,
               NO_ELIGIBLE_ACCOUNT,
               MISSING_TARGET,
+              INCOMPLETE_TRANSFER_PAIR,
+              MISMATCHED_TRANSFER_PAIR,
+              MISSING_ACCOUNT_CLASSIFICATION,
               null,
             ]
         reasonExplanation:
@@ -8112,6 +8127,11 @@ components:
           maxItems: 500
           items:
             $ref: '#/components/schemas/MonthlyKpiSourceTransaction'
+        sourceTransferIds:
+          type: array
+          maxItems: 500
+          uniqueItems: true
+          items: { type: string, format: uuid }
         sourceAccountIds:
           type: array
           maxItems: 500
@@ -8201,6 +8221,10 @@ components:
         - budgetSurplus
         - savingsTransfers
         - cashSavingsRate
+        - savingsInflows
+        - savingsWithdrawals
+        - netSavingsTransfers
+        - netSavingsRate
         - beginningNetWorth
         - endNetWorth
         - netWorthDelta
@@ -8238,6 +8262,14 @@ components:
         savingsTransfers:
           $ref: '#/components/schemas/MonthlyProjectionMetric'
         cashSavingsRate:
+          $ref: '#/components/schemas/MonthlyProjectionMetric'
+        savingsInflows:
+          $ref: '#/components/schemas/MonthlyProjectionMetric'
+        savingsWithdrawals:
+          $ref: '#/components/schemas/MonthlyProjectionMetric'
+        netSavingsTransfers:
+          $ref: '#/components/schemas/MonthlyProjectionMetric'
+        netSavingsRate:
           $ref: '#/components/schemas/MonthlyProjectionMetric'
         beginningNetWorth:
           $ref: '#/components/schemas/MonthlyProjectionMetric'

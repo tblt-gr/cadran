@@ -17,8 +17,10 @@ final class MonthlyProjectionControllerTest extends WebTestCase
 {
     private const string ACCOUNT = '00000000-0000-7000-8000-0000000000a1';
     private const string SAVINGS = '00000000-0000-7000-8000-0000000000a2';
+    private const string PORTFOLIO = '00000000-0000-7000-8000-0000000000a3';
     private const string CATEGORY = '00000000-0000-7000-8000-0000000000c1';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000a9';
+    private const string OTHER_SAVINGS = '00000000-0000-7000-8000-0000000000a8';
     private KernelBrowser $client;
     private Connection $connection;
     private WorkspaceFixture $fixture;
@@ -109,6 +111,9 @@ final class MonthlyProjectionControllerTest extends WebTestCase
         self::assertSame('0', self::metric($report, 'cashIncome'));
         self::assertNull(self::fields($report['cashSavingsRate'])['value']);
         self::assertSame('ZERO_CASH_INCOME', self::fields($report['cashSavingsRate'])['reason']);
+        self::assertSame('0', self::metric($report, 'netSavingsTransfers'));
+        self::assertNull(self::fields($report['netSavingsRate'])['value']);
+        self::assertSame('ZERO_CASH_INCOME', self::fields($report['netSavingsRate'])['reason']);
         self::assertSame('ZERO', $report['beginningNetWorthState']);
 
         foreach (['', '2026-00', '2026-13', '1899-12', '3000-01', '09-2026'] as $month) {
@@ -116,6 +121,46 @@ final class MonthlyProjectionControllerTest extends WebTestCase
             self::assertResponseStatusCodeSame(400);
             self::assertResponseHeaderSame('content-type', 'application/problem+json');
         }
+    }
+
+    public function testNetSavingsCountsPairsOnceAndExposesTransferProvenance(): void
+    {
+        $this->signIn();
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->account(self::SAVINGS, WorkspaceFixture::OWN_WORKSPACE, 'Épargne', 'SAVINGS');
+        $this->account(self::PORTFOLIO, WorkspaceFixture::OWN_WORKSPACE, 'PEA', 'PORTFOLIO');
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Secret courant', 'CURRENT');
+        $this->account(self::OTHER_SAVINGS, WorkspaceFixture::OTHER_WORKSPACE, 'Secret épargne', 'SAVINGS');
+        $this->transaction('01', self::ACCOUNT, '1000.00', 'INCOME');
+        $this->transferPair('a', self::ACCOUNT, self::SAVINGS, '300.00');
+        $this->transferPair('b', self::SAVINGS, self::ACCOUNT, '50.00');
+        $this->transferPair('c', self::SAVINGS, self::PORTFOLIO, '100.00');
+        $this->transferPair('d', self::OTHER_ACCOUNT, self::OTHER_SAVINGS, '999999.00', WorkspaceFixture::OTHER_WORKSPACE);
+
+        $report = $this->read('/api/v1/reports/monthly?month=2026-09');
+
+        self::assertSame('400.00', self::metric($report, 'savingsTransfers'));
+        self::assertSame('300.00', self::metric($report, 'savingsInflows'));
+        self::assertSame('50.00', self::metric($report, 'savingsWithdrawals'));
+        self::assertSame('250.00', self::metric($report, 'netSavingsTransfers'));
+        self::assertSame('0.250000000000000000000000', self::metric($report, 'netSavingsRate'));
+        self::assertStringNotContainsString('999999', (string) $this->client->getResponse()->getContent());
+
+        $detail = $this->read('/api/v1/reports/monthly/netSavingsTransfers/explain?month=2026-09');
+        self::assertSame('net savings transfers = savings inflows - savings withdrawals', $detail['formula']);
+        self::assertSame([
+            '00000000-0000-7000-8000-0000000004a3',
+            '00000000-0000-7000-8000-0000000004b3',
+        ], $detail['sourceTransferIds']);
+        self::assertSame([
+            '00000000-0000-7000-8000-0000000001a1',
+            '00000000-0000-7000-8000-0000000001a2',
+            '00000000-0000-7000-8000-0000000001b1',
+            '00000000-0000-7000-8000-0000000001b2',
+        ], $detail['sourceTransactionIds']);
+        $sourceTransactions = self::fields($detail)['sourceTransactions'];
+        self::assertIsArray($sourceTransactions);
+        self::assertCount(4, $sourceTransactions);
     }
 
     public function testMixedAssetsMissingAndStaleValuationsStayExplicit(): void
@@ -374,13 +419,15 @@ final class MonthlyProjectionControllerTest extends WebTestCase
         string $state = 'BOOKED',
         ?string $splitAmount = null,
         string $workspace = WorkspaceFixture::OWN_WORKSPACE,
+        string $bookedOn = '2026-09-15',
+        string $asset = 'EUR',
     ): void {
         $id = '00000000-0000-7000-8000-0000000001'.$suffix;
         $this->connection->insert('transaction_transactions', [
-            'id' => $id, 'workspace_id' => $workspace, 'account_id' => $account, 'asset_code' => 'EUR',
+            'id' => $id, 'workspace_id' => $workspace, 'account_id' => $account, 'asset_code' => $asset,
             'amount_value' => $amount, 'amount_scale' => 2, 'state' => $state, 'nature' => $nature,
-            'source' => 'MANUAL', 'booked_on' => '2026-09-15', 'raw_label' => 'Projection '.$suffix,
-            'version' => 1, 'created_at' => '2026-09-15 12:00:00+00', 'updated_at' => '2026-09-15 12:00:00+00',
+            'source' => 'MANUAL', 'booked_on' => $bookedOn, 'raw_label' => 'Projection '.$suffix,
+            'version' => 1, 'created_at' => $bookedOn.' 12:00:00+00', 'updated_at' => $bookedOn.' 12:00:00+00',
         ]);
         if (null !== $splitAmount) {
             $this->connection->insert('transaction_splits', [
@@ -389,6 +436,26 @@ final class MonthlyProjectionControllerTest extends WebTestCase
                 'amount_scale' => 2, 'asset_code' => 'EUR', 'created_at' => '2026-09-15 12:00:00+00',
             ]);
         }
+    }
+
+    private function transferPair(
+        string $suffix,
+        string $sourceAccount,
+        string $targetAccount,
+        string $amount,
+        string $workspace = WorkspaceFixture::OWN_WORKSPACE,
+    ): void {
+        $this->transaction($suffix.'1', $sourceAccount, '-'.$amount, 'TRANSFER', workspace: $workspace);
+        $this->transaction($suffix.'2', $targetAccount, $amount, 'TRANSFER', workspace: $workspace);
+        $this->connection->insert('transaction_transfers', [
+            'id' => '00000000-0000-7000-8000-0000000004'.$suffix.'3',
+            'workspace_id' => $workspace,
+            'source_transaction_id' => '00000000-0000-7000-8000-0000000001'.$suffix.'1',
+            'target_transaction_id' => '00000000-0000-7000-8000-0000000001'.$suffix.'2',
+            'version' => 1,
+            'created_at' => '2026-09-15 12:00:00+00',
+            'updated_at' => '2026-09-15 12:00:00+00',
+        ]);
     }
 
     /** @param array<string, mixed> $report */

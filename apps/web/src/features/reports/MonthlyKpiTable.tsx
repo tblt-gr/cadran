@@ -19,6 +19,10 @@ const kpis: ExplainMonthlyKpiData['path']['kpi'][] = [
   'budgetSurplus',
   'savingsTransfers',
   'cashSavingsRate',
+  'savingsInflows',
+  'savingsWithdrawals',
+  'netSavingsTransfers',
+  'netSavingsRate',
   'beginningNetWorth',
   'endNetWorth',
   'netWorthDelta',
@@ -118,6 +122,18 @@ function Explanation({ month, kpi }: { month: string; kpi: ExplainMonthlyKpiData
           t('reports.noSources')
         )}
       </dd>
+      <dt>{t('reports.transferSources')}</dt>
+      <dd>
+        {value.sourceTransferIds.length ? (
+          <ul>
+            {value.sourceTransferIds.map((id) => (
+              <li key={id}>{id}</li>
+            ))}
+          </ul>
+        ) : (
+          t('reports.noSources')
+        )}
+      </dd>
     </dl>
   );
 }
@@ -144,7 +160,10 @@ export function MonthlyKpiTable({ report }: { report: MonthlyProjection }) {
               <tr key={kpi}>
                 <th scope="row">{t(`reports.metrics.${kpi}`)}</th>
                 <td>
-                  <MetricValue metric={report[kpi]} rate={kpi === 'cashSavingsRate'} />
+                  <MetricValue
+                    metric={report[kpi]}
+                    rate={kpi === 'cashSavingsRate' || kpi === 'netSavingsRate'}
+                  />
                 </td>
                 <td>{report.quality}</td>
                 <td>

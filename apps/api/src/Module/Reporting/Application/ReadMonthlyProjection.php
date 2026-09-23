@@ -20,16 +20,21 @@ use App\Module\Reporting\Domain\MonthlyMovement;
 use App\Module\Reporting\Domain\MonthlyMovementKind;
 use App\Module\Reporting\Domain\MonthlyProjectionCalculator;
 use App\Module\Reporting\Domain\MonthlyProjectionReason;
+use App\Module\Reporting\Domain\MonthlySavingsTransfer;
+use App\Module\Reporting\Domain\MonthlySavingsTransferCalculator;
 use App\Module\Reporting\Domain\MonthlySplit;
 use App\Module\Transactions\Application\MonthlyTransactionFact;
 use App\Module\Transactions\Application\MonthlyTransactionScopeTooLarge;
+use App\Module\Transactions\Application\MonthlyTransferPairFact;
 use App\Module\Transactions\Application\ReadMonthlyTransactionFacts;
+use App\Module\Transactions\Application\ReadMonthlyTransferPairs;
 
 final readonly class ReadMonthlyProjection
 {
     public function __construct(
         private CallerWorkspace $caller,
         private ReadMonthlyTransactionFacts $transactions,
+        private ReadMonthlyTransferPairs $transferPairs,
         private ReadMonthlyAccountFacts $accounts,
         private ReadBudgetCategoryFlags $categories,
         private ReadNetWorth $netWorth,
@@ -47,6 +52,7 @@ final readonly class ReadMonthlyProjection
         $workspace = $this->caller->resolve();
         try {
             $transactionFacts = ($this->transactions)($workspace, $month);
+            $transferPairFacts = ($this->transferPairs)($workspace, $month);
             $accountFacts = ($this->accounts)($workspace, $month);
             $categoryFlags = ($this->categories)($workspace);
             $netWorth = ($this->netWorth)($month->lastDay()->format('Y-m-d'), $month->firstDay()->format('Y-m-d'));
@@ -78,6 +84,32 @@ final readonly class ReadMonthlyProjection
             $categoryFlags,
             $pendingMovements,
         );
+        $accountKindsById = [];
+        foreach ($accountFacts->accounts as $account) {
+            $accountKindsById[$account->id] = $account->kind;
+        }
+        $toTransfer = static fn (MonthlyTransferPairFact $pair): MonthlySavingsTransfer => new MonthlySavingsTransfer(
+            $pair->transferId,
+            $pair->sourceTransactionId,
+            $pair->targetTransactionId,
+            $pair->sourceAccountId,
+            $pair->targetAccountId,
+            $pair->sourceAmount,
+            $pair->targetAmount,
+            $pair->sourceAsset,
+            $pair->targetAsset,
+            $pair->sourceState,
+            $pair->targetState,
+            $pair->sourceBookedOn,
+            $pair->targetBookedOn,
+            $pair->voided,
+        );
+        $savingsMetrics = MonthlySavingsTransferCalculator::compute(
+            array_map(static fn (MonthlyAccountFact $account): string => $account->assetCode, $accountFacts->accounts),
+            $accountKindsById,
+            array_map($toTransfer, $transferPairFacts),
+            $metrics->cashIncome,
+        );
         $netWorthDeltaAccountIds = array_values(array_unique(array_merge(
             $netWorth->delta->previousSourceAccountIds,
             $netWorth->delta->currentSourceAccountIds,
@@ -98,6 +130,10 @@ final readonly class ReadMonthlyProjection
             MonthlyMetricView::fromMetric($metrics->budgetSurplus),
             MonthlyMetricView::fromMetric($metrics->savingsTransfers),
             MonthlyMetricView::fromMetric($metrics->cashSavingsRate),
+            MonthlyMetricView::fromMetric($savingsMetrics->savingsInflows),
+            MonthlyMetricView::fromMetric($savingsMetrics->savingsWithdrawals),
+            MonthlyMetricView::fromMetric($savingsMetrics->netSavingsTransfers),
+            MonthlyMetricView::fromMetric($savingsMetrics->netSavingsRate),
             MonthlyMetricView::fromNetWorth($netWorth->delta->previousTotal, $netWorth->delta->previousReason, $netWorth->delta->previousSourceAccountIds),
             MonthlyMetricView::fromNetWorth($netWorth->total, $netWorth->reason, $netWorth->delta->currentSourceAccountIds),
             MonthlyMetricView::fromNetWorth($netWorth->delta->amount, $netWorth->delta->amountReason, $netWorthDeltaAccountIds),

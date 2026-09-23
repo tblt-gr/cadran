@@ -26,6 +26,10 @@ const report: MonthlyProjection = {
   budgetSurplus: metric,
   savingsTransfers: metric,
   cashSavingsRate: { value: '0.12345', assetCode: null, reason: null },
+  savingsInflows: { value: '300', assetCode: 'EUR', reason: null },
+  savingsWithdrawals: { value: '50', assetCode: 'EUR', reason: null },
+  netSavingsTransfers: { value: '250', assetCode: 'EUR', reason: null },
+  netSavingsRate: { value: '0.20825', assetCode: null, reason: null },
   beginningNetWorth: metric,
   endNetWorth: metric,
   netWorthDelta: metric,
@@ -45,6 +49,10 @@ const emptyReport: MonthlyProjection = {
   budgetSurplus: zeroMetric,
   savingsTransfers: zeroMetric,
   cashSavingsRate: { value: null, assetCode: null, reason: 'ZERO_CASH_INCOME' },
+  savingsInflows: zeroMetric,
+  savingsWithdrawals: zeroMetric,
+  netSavingsTransfers: zeroMetric,
+  netSavingsRate: { value: null, assetCode: null, reason: 'ZERO_CASH_INCOME' },
   beginningNetWorth: zeroMetric,
   endNetWorth: zeroMetric,
   netWorthDelta: zeroMetric,
@@ -94,6 +102,7 @@ const explanation: MonthlyKpiExplanation = {
     },
   ],
   sourceAccountIds: [],
+  sourceTransferIds: ['00000000-0000-7000-8000-0000000000b1'],
   freshness: 'CURRENT',
   quality: 'CURRENT',
   pendingCount: 2,
@@ -121,6 +130,8 @@ describe('ReportsPage', () => {
     expect(screen.getByText(/2 mouvement\(s\) en attente/)).toBeTruthy();
     expect(screen.getByRole('table').textContent).toContain('1 200,50 €');
     expect(screen.getByRole('table').textContent).toContain('12,345 %');
+    expect(screen.getByRole('table').textContent).toContain('250 €');
+    expect(screen.getByRole('table').textContent).toContain('20,825 %');
     const explain = screen.getByRole('button', { name: 'Expliquer : Revenus en espèces' });
     explain.focus();
     expect(document.activeElement).toBe(explain);
@@ -134,6 +145,7 @@ describe('ReportsPage', () => {
     expect(sources.textContent).toContain('1 200,50 €');
     expect(sources.textContent).toContain('BOOKED');
     expect(screen.getByText('Aucune source dans le périmètre.')).toBeTruthy();
+    expect(screen.getByText('00000000-0000-7000-8000-0000000000b1')).toBeTruthy();
     expect(explain.getAttribute('aria-controls')).toBe('monthly-kpi-explanation-cashIncome');
     expect(api.explainMonthlyKpi).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -164,7 +176,7 @@ describe('ReportsPage', () => {
     expect(screen.getByLabelText('Mois')).toBeTruthy();
     expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getByRole('table').textContent).toContain('0 €');
-    expect(screen.getByText('Non calculable : ZERO_CASH_INCOME')).toBeTruthy();
+    expect(screen.getAllByText('Non calculable : ZERO_CASH_INCOME')).toHaveLength(2);
   });
 
   it('switches the bounded monthly query when the selected month changes', async () => {
@@ -223,5 +235,29 @@ describe('ReportsPage', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('pas autorisé');
     expect(screen.getByLabelText('Mois')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
+  });
+  it('keeps a negative net savings metric distinct from zero and explains it by transfer ID', async () => {
+    api.readMonthlyProjection.mockReturnValue(
+      success({
+        ...report,
+        savingsInflows: { value: '100', assetCode: 'EUR', reason: null },
+        savingsWithdrawals: { value: '300', assetCode: 'EUR', reason: null },
+        netSavingsTransfers: { value: '-200', assetCode: 'EUR', reason: null },
+        netSavingsRate: { value: '-0.1666', assetCode: null, reason: null },
+      }),
+    );
+    api.explainMonthlyKpi.mockReturnValue(
+      success({ ...explanation, kpi: 'netSavingsTransfers', value: '-200' }),
+    );
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ReportsPage />
+      </QueryClientProvider>,
+    );
+    expect((await screen.findByRole('table')).textContent).toContain('-200 €');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Expliquer : Épargne nette par virements' }),
+    );
+    expect(await screen.findByText('00000000-0000-7000-8000-0000000000b1')).toBeTruthy();
   });
 });
