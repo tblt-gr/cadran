@@ -1,17 +1,26 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-6);
+  padding: var(--spacing-6);
 }
 
-.heading {
+.top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--spacing-4);
+  gap: var(--spacing-6);
 }
 
-.heading p {
+.identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.identity p {
   margin: var(--spacing-none);
   color: var(--gold-300);
   font-size: var(--font-size-xs);
@@ -20,15 +29,51 @@
   text-transform: uppercase;
 }
 
-.heading h3 {
-  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+.identity h3 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
 }
 
-.heading span {
-  display: block;
-  margin-top: var(--spacing-1);
+.identity span {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
+}
+
+.balancePanel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: var(--spacing-1);
+  text-align: right;
+}
+
+.balanceLabel {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.openedOn {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.rateStat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+}
+
+.rateMeasure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
 }
 
 .list {
@@ -50,20 +95,26 @@
   gap: var(--spacing-1);
 }
 
-.valuation {
-  grid-column: span 3;
-}
-
 @media (max-width: 42rem) {
-  .heading {
+  .top {
     flex-direction: column;
+  }
+
+  .balancePanel {
+    align-items: flex-start;
+    width: 100%;
+    text-align: left;
+  }
+
+  .rateStat {
+    align-items: flex-start;
+  }
+
+  .rateMeasure {
+    align-items: flex-start;
   }
 
   .list {
     grid-template-columns: 1fr;
-  }
-
-  .valuation {
-    grid-column: span 1;
   }
 }

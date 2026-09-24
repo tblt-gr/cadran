@@ -5,6 +5,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.large {
+  color: var(--text-primary);
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-display);
+  line-height: var(--line-height-tight);
+}
+
+.large .unknown {
+  font-size: var(--font-size-card-title);
+}
+
 .cell small {
   color: var(--text-muted);
   font-size: var(--font-size-xs);

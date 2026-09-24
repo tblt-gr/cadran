@@ -44,11 +44,6 @@
   font-weight: var(--font-weight-strong);
 }
 
-.accountLink:hover,
-.accountLink:focus-visible {
-  text-decoration: underline;
-}
-
 .panel tbody th small {
   margin-top: var(--spacing-1);
   color: var(--text-muted);

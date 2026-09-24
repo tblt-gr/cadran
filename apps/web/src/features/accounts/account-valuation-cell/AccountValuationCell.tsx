@@ -7,6 +7,7 @@ import styles from './AccountValuationCell.module.css';
 
 interface AccountValuationCellProps {
   ceiling?: { assetCode: string; value: string } | null;
+  size?: 'md' | 'lg';
   valuation: AccountValuation;
 }
 
@@ -17,12 +18,17 @@ interface AccountValuationCellProps {
  * figure is a reason, never `0`. Quality is named in words so colour is not
  * the only signal.
  */
-export function AccountValuationCell({ ceiling = null, valuation }: AccountValuationCellProps) {
+export function AccountValuationCell({
+  ceiling = null,
+  size = 'md',
+  valuation,
+}: AccountValuationCellProps) {
   const { i18n, t } = useTranslation();
+  const cellClassName = size === 'lg' ? `${styles.cell} ${styles.large}` : styles.cell;
 
   if (valuation.quality === 'MISSING') {
     return (
-      <div className={styles.cell}>
+      <div className={cellClassName}>
         <span className={styles.unknown}>{t('accounts.balances.missing')}</span>
         <small>{t('accounts.balances.qualities.MISSING')}</small>
       </div>
@@ -43,7 +49,7 @@ export function AccountValuationCell({ ceiling = null, valuation }: AccountValua
       : ceilingFillPercent(valuation.display.value, ceiling.value);
 
   return (
-    <div className={styles.cell}>
+    <div className={cellClassName}>
       {valuation.belowDisplayStep || !valuation.display ? (
         <span className={styles.unknown}>{figure}</span>
       ) : ceilingLabel === null ? (
