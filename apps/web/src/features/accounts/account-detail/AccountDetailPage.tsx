@@ -9,6 +9,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -187,15 +188,20 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
     <div className={styles.page}>
       <section aria-labelledby="account-detail-title" className={styles.intro}>
         <div>
-          <a
-            className={styles.back}
-            href="/accounts"
-            onClick={(event) => handleClientNavigation(event, '/accounts')}
-          >
-            {t('accounts.detail.back')}
-          </a>
-          <p>{t('accounts.detail.eyebrow')}</p>
-          <h2 id="account-detail-title">{current.label}</h2>
+          <div className={styles.titleRow}>
+            <a
+              aria-label={t('accounts.detail.back')}
+              className={`icon-button ${styles.back}`}
+              href="/accounts"
+              onClick={(event) => handleClientNavigation(event, '/accounts')}
+            >
+              <Icon name="arrow-left" size={18} />
+            </a>
+            <p>{t('accounts.detail.eyebrow')}</p>
+          </div>
+          <h2 className="sr-only" id="account-detail-title">
+            {current.label}
+          </h2>
         </div>
         <div className={styles.actions}>
           <button className="secondary-action" onClick={() => setRulesOpen(true)} type="button">

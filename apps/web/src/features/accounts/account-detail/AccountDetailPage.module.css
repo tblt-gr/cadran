@@ -11,19 +11,8 @@
   gap: var(--spacing-4);
 }
 
-.intro p,
-.intro h2 {
-  margin: var(--spacing-none);
-}
-
-.back {
-  display: inline-block;
-  margin-bottom: var(--spacing-2);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-
 .intro p {
+  margin: var(--spacing-none);
   color: var(--gold-300);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
@@ -31,9 +20,15 @@
   text-transform: uppercase;
 }
 
-.intro h2 {
-  margin-top: var(--spacing-1);
-  font-size: var(--font-size-kpi);
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.back {
+  flex-shrink: 0;
+  text-decoration: none;
 }
 
 .actions {
