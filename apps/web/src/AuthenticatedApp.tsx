@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { AccountsPage } from '@/features/accounts/AccountsPage';
+import { AccountDetailPage } from '@/features/accounts/account-detail/AccountDetailPage';
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
 import { DashboardContextPanel } from '@/features/dashboard/context-panel/DashboardContextPanel';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
@@ -68,6 +69,8 @@ export function AuthenticatedApp() {
     content = <AccountsPage />;
   } else if (path === '/accounts/groups') {
     content = <AccountGroupsPage />;
+  } else if (/^\/accounts\/[^/]+$/.test(path)) {
+    content = <AccountDetailPage accountId={path.split('/')[2]!} />;
   } else if (path === '/categories') {
     content = <CategoryPage />;
   } else if (path === '/categories/rules') {
@@ -125,6 +128,7 @@ export function AuthenticatedApp() {
       showGlobalActions={
         path !== '/accounts' &&
         path !== '/accounts/groups' &&
+        !/^\/accounts\/[^/]+$/.test(path) &&
         path !== '/categories' &&
         path !== '/categories/rules' &&
         path !== '/catalog' &&

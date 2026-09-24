@@ -271,6 +271,62 @@ final class AccountControllerTest extends WebTestCase
         self::assertSame([], $this->items());
     }
 
+    public function testAnAccountIsReadByIdentifierWithItsPublishedFieldSet(): void
+    {
+        $created = $this->createAccount(label: 'Livret A Banque X');
+
+        $this->client->request('GET', '/api/v1/accounts/'.self::stringValue($created, 'id'));
+
+        self::assertResponseIsSuccessful();
+        // A detail body is account data: no intermediary keeps a copy of it.
+        self::assertStringContainsString(
+            'no-store',
+            (string) $this->client->getResponse()->headers->get('cache-control'),
+        );
+        // The detail answers the same representation as the listing, so the
+        // page never grows a second account shape of its own.
+        self::assertSame($created, $this->decode());
+    }
+
+    public function testAClosedOrArchivedAccountStaysReadableByIdentifier(): void
+    {
+        $account = $this->createAccount(label: 'Ancien livret', overrides: ['closedOn' => '2026-02-01']);
+        $id = self::stringValue($account, 'id');
+
+        $this->client->request('GET', '/api/v1/accounts/'.$id);
+        self::assertResponseIsSuccessful();
+        self::assertSame('CLOSED', $this->decode()['status'] ?? null);
+
+        $this->requestArchive($id, self::intValue($account, 'version'));
+        self::assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/api/v1/accounts/'.$id);
+        self::assertResponseIsSuccessful();
+        $archived = $this->decode();
+        self::assertSame('ARCHIVED', $archived['status']);
+        self::assertFalse($archived['editable']);
+    }
+
+    public function testAnUnknownForeignOrMalformedIdentifierAnswersTheSameDetailNotFound(): void
+    {
+        $foreignId = '00000000-0000-7000-8000-0000000000df';
+        $this->insertAccount($foreignId, WorkspaceFixture::OTHER_WORKSPACE, 'Private label');
+
+        $this->client->request('GET', '/api/v1/accounts/'.$foreignId);
+        self::assertResponseStatusCodeSame(404);
+        self::assertResponseHeaderSame('content-type', 'application/problem+json');
+        $foreign = (string) $this->client->getResponse()->getContent();
+        self::assertStringNotContainsString('Private label', $foreign);
+
+        $this->client->request('GET', '/api/v1/accounts/00000000-0000-7000-8000-0000000000de');
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame($foreign, (string) $this->client->getResponse()->getContent());
+
+        $this->client->request('GET', '/api/v1/accounts/not-a-uuid');
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame($foreign, (string) $this->client->getResponse()->getContent());
+    }
+
     public function testAnUpdateUsesOptimisticVersioning(): void
     {
         $account = $this->createAccount(label: 'Livret A Banque X');

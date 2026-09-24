@@ -3,6 +3,23 @@ import { useTranslation } from 'react-i18next';
 import { formatAmount, formatDecimal } from '@/lib/decimal';
 import styles from './RateMeasure.module.css';
 
+/**
+ * The applied reading arrives at the storage scale of 24 fractional digits
+ * even when it is an exact round figure, because nothing upstream rounds it
+ * the way a balance's `display` companion does. Dropping a fraction that is
+ * entirely zero prints the same value it was — this is not the rounding
+ * `formatDecimal`/`formatAmount` refuse to do, since no digit that could
+ * change the value is ever touched, only the zeros that cannot.
+ */
+function withoutZeroFraction(value: string): string {
+  const separator = value.indexOf('.');
+  if (separator === -1) {
+    return value;
+  }
+
+  return /^0*$/.test(value.slice(separator + 1)) ? value.slice(0, separator) : value;
+}
+
 interface RateMeasureProps {
   applied: AppliedRate | null;
   assetCode: string;
@@ -65,9 +82,9 @@ function AppliedReading({
       <small>
         {t('accounts.rules.applied.effective', {
           rate: t('catalog.rules.percentValue', {
-            value: formatDecimal(applied.effectivePercentage, language),
+            value: formatDecimal(withoutZeroFraction(applied.effectivePercentage), language),
           }),
-          interest: formatAmount(applied.interest, assetCode, language),
+          interest: formatAmount(withoutZeroFraction(applied.interest), assetCode, language),
         })}
       </small>
       {applied.rateShiftsAboveFirstBracket ? (

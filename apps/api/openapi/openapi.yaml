@@ -1580,6 +1580,46 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{id}:
+    get:
+      operationId: readAccount
+      summary: Read one financial account
+      description: >-
+        Returns the same account representation as the listing, for one
+        identifier. Closed and archived accounts are included: a detail view
+        stays linkable once the account leaves the working set, so a past
+        statement remains re-readable. The embedded valuation is always
+        present and reports the current dated reading; its `amount` and
+        `display` are `null` and `quality` is `MISSING` when no source states
+        one, rather than the valuation itself being absent. A dated reading on
+        another business day is the valuation resource. An identifier that is
+        malformed, unknown, or held by another workspace answers the same
+        404, so the response never confirms that a stranger's account exists.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     put:
       operationId: updateAccount
       summary: Update an active financial account

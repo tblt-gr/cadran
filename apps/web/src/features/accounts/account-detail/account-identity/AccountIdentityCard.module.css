@@ -1,0 +1,124 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-6);
+}
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-6);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.identity p {
+  margin: var(--spacing-none);
+  color: var(--gold-300);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.identity h3 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+
+.identity span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.meta {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.balancePanel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: var(--spacing-1);
+  text-align: right;
+}
+
+.balanceLabel {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.openedOn {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.rateStat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+}
+
+.rateMeasure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.list {
+  margin: var(--spacing-none);
+}
+
+.list dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.list dd {
+  margin: var(--spacing-none);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+@media (max-width: 42rem) {
+  .top {
+    flex-direction: column;
+  }
+
+  .balancePanel {
+    align-items: flex-start;
+    width: 100%;
+    text-align: left;
+  }
+
+  .rateStat {
+    align-items: flex-start;
+  }
+
+  .rateMeasure {
+    align-items: flex-start;
+  }
+}

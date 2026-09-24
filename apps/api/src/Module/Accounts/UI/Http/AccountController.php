@@ -13,6 +13,7 @@ use App\Module\Accounts\Application\CreateAccountInput;
 use App\Module\Accounts\Application\InvalidAccountInput;
 use App\Module\Accounts\Application\ListAccounts;
 use App\Module\Accounts\Application\PresentAccountRules;
+use App\Module\Accounts\Application\ReadAccount;
 use App\Module\Accounts\Application\ReadAccountRules;
 use App\Module\Accounts\Application\StaleAccountVersion;
 use App\Module\Accounts\Application\UpdateAccount;
@@ -124,6 +125,34 @@ final readonly class AccountController
         }
 
         return self::json(AccountRepresentation::one($account), Response::HTTP_CREATED);
+    }
+
+    /**
+     * One account, closed and archived ones included: a detail page has to stay
+     * linkable once the account leaves the working set, or a past statement
+     * stops being re-readable.
+     *
+     * A malformed identifier, an unknown one and one belonging to another
+     * workspace all answer the same not-found problem. Telling them apart would
+     * confirm the existence of a stranger's account to whoever enumerates
+     * identifiers.
+     */
+    #[Route('/api/v1/accounts/{id}', name: 'api_v1_accounts_show', methods: ['GET'])]
+    public function show(string $id, ReadAccount $readAccount): Response
+    {
+        if (!self::identifier($id)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+        }
+
+        try {
+            $account = $readAccount($id);
+        } catch (AccountNotFound) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        }
+
+        return self::json(AccountRepresentation::one($account));
     }
 
     #[Route('/api/v1/accounts/{id}', name: 'api_v1_accounts_update', methods: ['PUT'])]

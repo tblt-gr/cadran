@@ -34,8 +34,15 @@
 }
 
 .panel tbody th span,
-.panel tbody th small {
+.panel tbody th small,
+.accountLink {
   display: block;
+}
+
+.accountLink {
+  color: inherit;
+  font-weight: var(--font-weight-strong);
+  text-decoration: none;
 }
 
 .panel tbody th small {

@@ -5,6 +5,25 @@
   font-variant-numeric: tabular-nums;
 }
 
+.large {
+  color: var(--text-primary);
+  font-size: var(--font-size-metric);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+}
+
+.large [data-sign='inflow'] {
+  color: var(--positive);
+}
+
+.large [data-sign='outflow'] {
+  color: var(--negative);
+}
+
+.large .unknown {
+  font-size: var(--font-size-card-title);
+}
+
 .cell small {
   color: var(--text-muted);
   font-size: var(--font-size-xs);
