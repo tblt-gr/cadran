@@ -7,10 +7,15 @@ import { MonthlyBudgetPage } from './MonthlyBudgetPage';
 const api = vi.hoisted(() => ({
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
+  getSession: vi.fn(),
   getTransaction: vi.fn(),
   listAccounts: vi.fn(),
+  listCategories: vi.fn(),
   readMonthlyLedger: vi.fn(),
   readMonthlyLedgerMovements: vi.fn(),
+  readMonthlyRecap: vi.fn(),
+  readMonthlyRecapPreferences: vi.fn(),
+  saveMonthlyRecapPreferences: vi.fn(),
   updateTransaction: vi.fn(),
 }));
 
@@ -93,6 +98,171 @@ const account = {
   openedOn: '2020-01-01',
 };
 
+const recap = {
+  month: '2026-03',
+  previousAsOf: '2026-02-28',
+  currentAsOf: '2026-03-15',
+  provisional: true,
+  state: 'PENDING' as const,
+  quality: 'CURRENT' as const,
+  accounts: [
+    {
+      accountId,
+      label: 'Compte courant',
+      kind: 'CURRENT',
+      netWorthSign: 1 as const,
+      primaryGroupId: 'group-1',
+      primaryGroupLabel: 'Liquidités',
+      eligible: true,
+      previousValue: {
+        value: '100.00',
+        assetCode: 'EUR',
+        quality: 'CURRENT' as const,
+        ageDays: 0,
+        valuedOn: '2026-02-28',
+      },
+      currentValue: {
+        value: null,
+        assetCode: null,
+        quality: 'MISSING' as const,
+        ageDays: null,
+        valuedOn: null,
+      },
+      share: {
+        ratio: null,
+        percent: null,
+        percentDisplay: null,
+        reason: 'MISSING_VALUATION' as const,
+      },
+    },
+  ],
+  groups: [
+    {
+      groupId: 'group-1',
+      label: 'Liquidités',
+      parentId: null,
+      depth: 1,
+      value: null,
+      share: {
+        ratio: null,
+        percent: null,
+        percentDisplay: null,
+        reason: 'MISSING_VALUATION' as const,
+      },
+    },
+  ],
+  netWorth: {
+    previous: {
+      value: '100.00',
+      assetCode: 'EUR',
+      display: { value: '100.00', assetCode: 'EUR' },
+      belowDisplayStep: false,
+    },
+    previousReason: null,
+    current: null,
+    currentReason: 'MISSING_VALUATION' as const,
+    difference: null,
+    differenceReason: 'MISSING_VALUATION' as const,
+    changeRatio: null,
+    changePercent: null,
+    changePercentDisplay: null,
+    changeReason: 'MISSING_VALUATION' as const,
+    previousQuality: 'CURRENT' as const,
+    previousStalestAgeDays: 0,
+    previousMissingValuationCount: 0,
+    previousStaleValuationCount: 0,
+    quality: 'MISSING' as const,
+    stalestAgeDays: null,
+    eligibleAccountCount: 1,
+    missingValuationCount: 1,
+    staleValuationCount: 0,
+    previousSourceAccountIds: [accountId],
+    currentSourceAccountIds: [],
+  },
+  totals: {
+    cashIncome: {
+      kpi: 'cashIncome' as const,
+      value: '1200.00',
+      assetCode: 'EUR',
+      reason: null,
+      pendingCount: 0,
+      sourceTransactionIds: [],
+      sourceTransferIds: [],
+    },
+    budgetExpenses: {
+      kpi: 'budgetExpenses' as const,
+      value: '-400.00',
+      assetCode: 'EUR',
+      reason: null,
+      pendingCount: 0,
+      sourceTransactionIds: [],
+      sourceTransferIds: [],
+    },
+    savingsInflows: {
+      kpi: 'savingsInflows' as const,
+      value: '50.00',
+      assetCode: 'EUR',
+      reason: null,
+      pendingCount: 0,
+      sourceTransactionIds: [],
+      sourceTransferIds: [],
+    },
+    savingsWithdrawals: {
+      kpi: 'savingsWithdrawals' as const,
+      value: '0',
+      assetCode: 'EUR',
+      reason: null,
+      pendingCount: 0,
+      sourceTransactionIds: [],
+      sourceTransferIds: [],
+    },
+    netSavingsTransfers: {
+      kpi: 'netSavingsTransfers' as const,
+      value: '-50.00',
+      assetCode: 'EUR',
+      reason: null,
+      pendingCount: 0,
+      sourceTransactionIds: [],
+      sourceTransferIds: [],
+    },
+    netSavingsRate: {
+      kpi: 'netSavingsRate' as const,
+      value: '-0.041666',
+      assetCode: null,
+      reason: null,
+      pendingCount: 0,
+      sourceTransactionIds: [],
+      sourceTransferIds: [],
+    },
+    expensesByAxis: [
+      {
+        axis: 'ESSENTIAL' as const,
+        kpi: null,
+        value: '-400.00',
+        assetCode: 'EUR',
+        reason: null,
+        pendingCount: 0,
+        sourceTransactionIds: [],
+        sourceTransferIds: [],
+      },
+    ],
+    categories: [
+      {
+        id: expenseId,
+        label: 'Voyages',
+        type: 'EXPENSE' as const,
+        kpi: null,
+        value: '400.00',
+        assetCode: 'EUR',
+        reason: null,
+        pendingCount: 0,
+        sourceTransactionIds: [],
+        sourceTransferIds: [],
+      },
+    ],
+  },
+};
+
 function ok<T>(data: T) {
   return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
 }
@@ -113,6 +283,19 @@ describe('MonthlyBudgetPage', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/budget/2026-03');
     api.readMonthlyLedger.mockReturnValue(ok(ledger));
+    api.readMonthlyRecap.mockReturnValue(ok(recap));
+    api.readMonthlyRecapPreferences.mockReturnValue(
+      ok({ visibleCategoryIds: [expenseId], visibleAxes: ['ESSENTIAL'], version: 0 }),
+    );
+    api.listCategories.mockReturnValue(ok({ items: [], page: 1, perPage: 100, total: 0 }));
+    api.getSession.mockReturnValue(
+      ok({
+        authenticated: true,
+        provisioned: true,
+        user: { id: 'u1', email: 'owner@example.test', displayName: 'Owner' },
+        workspace: { id: 'w1', role: 'OWNER' },
+      }),
+    );
     api.listAccounts.mockReturnValue(ok({ items: [account], page: 1, perPage: 100, total: 1 }));
     api.readMonthlyLedgerMovements.mockReturnValue(
       ok({
@@ -158,6 +341,26 @@ describe('MonthlyBudgetPage', () => {
     expect(screen.queryByText('Voyages')).toBeNull();
     expect(screen.queryByText('Hors budget')).toBeNull();
     expect(screen.getByText('2 transactions en attente')).toBeTruthy();
+  });
+
+  it('shows the backend-owned totals in the ledger panel headers', async () => {
+    renderPage();
+
+    const income = await screen.findByRole('region', { name: 'Revenus par catégorie' });
+    const expense = screen.getByRole('region', { name: 'Dépenses par catégorie' });
+    const transfers = screen.getByRole('region', { name: 'Virements par compte' });
+
+    await waitFor(() => {
+      expect(within(income).getByText('Total des revenus').parentElement?.textContent).toContain(
+        '1 200,00 €',
+      );
+      expect(within(expense).getByText('Total des dépenses').parentElement?.textContent).toContain(
+        '-400,00 €',
+      );
+      expect(
+        within(transfers).getByText('Total net des virements').parentElement?.textContent,
+      ).toContain('-50,00 €');
+    });
   });
 
   it('gives a row without movement no accordion toggle and mutes its text', async () => {
@@ -261,6 +464,7 @@ describe('MonthlyBudgetPage', () => {
       expect.objectContaining({ path: { id: movementTransactionId } }),
     );
     const callsBeforeSave = api.readMonthlyLedger.mock.calls.length;
+    const recapCallsBeforeSave = api.readMonthlyRecap.mock.calls.length;
     fireEvent.change(label, { target: { value: 'Paie mars corrigée' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
 
@@ -274,6 +478,9 @@ describe('MonthlyBudgetPage', () => {
     );
     await waitFor(() =>
       expect(api.readMonthlyLedgerMovements.mock.calls.length).toBeGreaterThan(1),
+    );
+    await waitFor(() =>
+      expect(api.readMonthlyRecap.mock.calls.length).toBeGreaterThan(recapCallsBeforeSave),
     );
     expect(await screen.findByText('Le mouvement a été enregistré.')).toBeTruthy();
   });
@@ -570,6 +777,217 @@ describe('MonthlyBudgetPage', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('shows provisional non-calculable recap values, links accounts, and saves owner preferences', async () => {
+    api.listCategories.mockReturnValue(
+      ok({
+        items: [{ id: expenseId, label: 'Voyages', type: 'EXPENSE' }],
+        page: 1,
+        perPage: 100,
+        total: 1,
+      }),
+    );
+    api.saveMonthlyRecapPreferences.mockReturnValue(
+      ok({ visibleCategoryIds: [], visibleAxes: ['ESSENTIAL'], version: 1 }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Valeurs provisoires à la date du jour.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Compte courant' }).getAttribute('href')).toBe(
+      `/accounts/${accountId}`,
+    );
+    expect(screen.getAllByText('Non calculable').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Configurer l’affichage' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
+    expect(screen.getAllByText('Voyages').length).toBeGreaterThan(0);
+    fireEvent.click(await within(dialog).findByLabelText('Voyages'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() =>
+      expect(api.saveMonthlyRecapPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { visibleCategoryIds: [], visibleAxes: ['ESSENTIAL'], version: 0 },
+        }),
+      ),
+    );
+  });
+
+  it('loads every income and expense category page for recap preferences', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      id: `category-${index + 1}`,
+      label: `Category ${index + 1}`,
+      type: 'EXPENSE' as const,
+    }));
+    const incomeCategory = { id: 'category-101', label: 'Income 101', type: 'INCOME' as const };
+    api.listCategories.mockImplementation(({ query }) =>
+      ok(
+        query?.page === 2
+          ? { items: [incomeCategory], page: 2, perPage: 100, total: 101 }
+          : { items: firstPage, page: 1, perPage: 100, total: 101 },
+      ),
+    );
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        totals: {
+          ...recap.totals,
+          categories: [
+            ...recap.totals.categories,
+            { ...recap.totals.categories[0], id: incomeCategory.id },
+          ],
+        },
+      }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Configurer l’affichage' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
+    expect(await within(dialog).findByLabelText('Income 101')).toBeTruthy();
+    expect(api.listCategories).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ page: 2, perPage: 100 }) }),
+    );
+  });
+
+  it('offers an archived category when it is represented by the recap', async () => {
+    const archivedCategory = {
+      id: expenseId,
+      label: 'Voyages archivés',
+      archived: true,
+      type: 'EXPENSE' as const,
+    };
+    api.listCategories.mockReturnValue(
+      ok({ items: [archivedCategory], page: 1, perPage: 100, total: 1 }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Configurer l’affichage' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
+    expect(await within(dialog).findByLabelText('Voyages archivés')).toBeTruthy();
+    expect(api.listCategories).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ includeArchived: true }) }),
+    );
+  });
+
+  it('reports N−1 valuation staleness even when the current value is current', async () => {
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        netWorth: {
+          ...recap.netWorth,
+          current: recap.netWorth.previous,
+          currentReason: null,
+          difference: recap.netWorth.previous,
+          differenceReason: null,
+          changePercentDisplay: '0',
+          changeReason: null,
+          previousQuality: 'STALE' as const,
+          previousStalestAgeDays: 3,
+          previousStaleValuationCount: 1,
+          quality: 'CURRENT' as const,
+          missingValuationCount: 0,
+          staleValuationCount: 0,
+        },
+      }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Au N−1, 1 valorisation est ancienne (3 jours).')).toBeTruthy();
+  });
+
+  it('reloads preferences after a stale version refusal', async () => {
+    api.saveMonthlyRecapPreferences.mockReturnValue(
+      Promise.resolve({ data: undefined, response: new Response('{}', { status: 409 }) }),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Configurer l’affichage' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Enregistrer' }));
+    expect(
+      await within(dialog).findByRole('button', { name: 'Recharger les préférences' }),
+    ).toBeTruthy();
+    const readsBeforeReload = api.readMonthlyRecapPreferences.mock.calls.length;
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Recharger les préférences' }));
+    await waitFor(() =>
+      expect(api.readMonthlyRecapPreferences.mock.calls.length).toBeGreaterThan(readsBeforeReload),
+    );
+  });
+
+  it('opens source transactions by label and amount for configured axes and categories', async () => {
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        totals: {
+          ...recap.totals,
+          expensesByAxis: [
+            {
+              ...recap.totals.expensesByAxis[0],
+              sourceTransactionIds: ['axis-transaction'],
+              sourceTransactions: [
+                {
+                  id: 'axis-transaction',
+                  bookedOn: '2026-03-01',
+                  label: 'Loyer',
+                  amount: { value: '-400.00', assetCode: 'EUR' },
+                  state: 'BOOKED',
+                },
+              ],
+            },
+          ],
+          categories: [
+            {
+              ...recap.totals.categories[0],
+              sourceTransactionIds: ['category-transaction'],
+              sourceTransactions: [
+                {
+                  id: 'category-transaction',
+                  bookedOn: '2026-03-02',
+                  label: 'Courses',
+                  amount: { value: '-42.50', assetCode: 'EUR' },
+                  state: 'BOOKED',
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Expliquer : Essentiel' }));
+    const axisDialog = await screen.findByRole('dialog', { name: 'Expliquer : Essentiel' });
+    expect(within(axisDialog).getByText('Loyer')).toBeTruthy();
+    expect(axisDialog.textContent).toContain('-400,00 €');
+    expect(within(axisDialog).queryByText('axis-transaction')).toBeNull();
+    fireEvent.click(within(axisDialog).getByRole('button', { name: 'Fermer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Voyages' }));
+    const categoryDialog = await screen.findByRole('dialog', { name: 'Expliquer : Voyages' });
+    expect(within(categoryDialog).getByText('Courses')).toBeTruthy();
+    expect(categoryDialog.textContent).toContain('-42,50 €');
+    expect(within(categoryDialog).queryByText('category-transaction')).toBeNull();
+  });
+
+  it('retries loading recap preferences and preference categories after errors', async () => {
+    api.readMonthlyRecapPreferences.mockReturnValueOnce(
+      Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+    );
+    renderPage();
+    const retry = await screen.findByRole('button', { name: 'Réessayer' });
+    const preferenceReads = api.readMonthlyRecapPreferences.mock.calls.length;
+    fireEvent.click(retry);
+    await waitFor(() =>
+      expect(api.readMonthlyRecapPreferences.mock.calls.length).toBeGreaterThan(preferenceReads),
+    );
+
+    api.listCategories.mockReturnValueOnce(
+      Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Configurer l’affichage' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
+    const categoryReads = api.listCategories.mock.calls.length;
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Réessayer' }));
+    await waitFor(() =>
+      expect(api.listCategories.mock.calls.length).toBeGreaterThan(categoryReads),
+    );
   });
 
   it('shows a recoverable error for malformed and future month routes without querying', () => {

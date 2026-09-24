@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Accounts\Domain\NetWorth;
 use App\Module\Accounts\Domain\NetWorthDelta;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\RoundingMode;
@@ -37,6 +38,10 @@ final readonly class NetWorthDeltaView
         public ?string $ratePercent,
         public ?string $ratePercentDisplay,
         public ?string $rateReason,
+        public string $previousQuality,
+        public ?int $previousStalestAgeDays,
+        public int $previousMissingValuationCount,
+        public int $previousStaleValuationCount,
         public array $previousSourceAccountIds,
         public array $currentSourceAccountIds,
     ) {
@@ -48,6 +53,7 @@ final readonly class NetWorthDeltaView
      */
     public static function fromDelta(
         NetWorthDelta $delta,
+        NetWorth $previous,
         NetWorthAssetReferences $references,
         array $previousSourceAccountIds,
         array $currentSourceAccountIds,
@@ -68,6 +74,10 @@ final readonly class NetWorthDeltaView
                 ? null
                 : ExactDecimal::round($delta->ratePercent, self::RATE_DISPLAY_SCALE, RoundingMode::HALF_UP)->toString(),
             rateReason: $delta->rateReason?->value,
+            previousQuality: $previous->quality->value,
+            previousStalestAgeDays: $previous->stalestAgeDays,
+            previousMissingValuationCount: $previous->missingValuationCount,
+            previousStaleValuationCount: $previous->staleValuationCount,
             previousSourceAccountIds: $previousSourceAccountIds,
             currentSourceAccountIds: $currentSourceAccountIds,
         );

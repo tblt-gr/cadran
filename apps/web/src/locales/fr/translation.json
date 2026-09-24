@@ -54,6 +54,7 @@
   "actions": {
     "add": "Ajouter",
     "backHome": "Revenir à la synthèse",
+    "cancel": "Annuler",
     "close": "Fermer",
     "collapse": "Réduire",
     "expand": "Déployer",
@@ -2298,8 +2299,14 @@
         "expense": "Sorties et remboursements attribués à chaque catégorie.",
         "account": "Deux sens du virement et mouvement net signé."
       },
+      "panelTotals": {
+        "income": "Total des revenus",
+        "expense": "Total des dépenses",
+        "account": "Total net des virements"
+      },
       "loading": "Chargement du budget mensuel…",
       "empty": "Aucune ligne active pour ce mois.",
+      "totalLoading": "Chargement du total…",
       "pending_one": "{{count}} transaction en attente",
       "pending_other": "{{count}} transactions en attente",
       "noMovement": "Aucun mouvement",
@@ -2343,7 +2350,86 @@
       },
       "accountsLoading": "Chargement des comptes…",
       "accountsError": "Impossible de charger les comptes pour cette création.",
-      "saved": "Le mouvement a été enregistré."
+      "saved": "Le mouvement a été enregistré.",
+      "recap": {
+        "label": "Synthèse mensuelle",
+        "loading": "Chargement de la synthèse mensuelle…",
+        "pending": "Des opérations en attente peuvent encore modifier cette synthèse.",
+        "empty": "Aucune donnée comptabilisée pour cette synthèse.",
+        "provisional": "Valeurs provisoires à la date du jour.",
+        "reasons": {
+          "MIXED_ASSETS": "Unités différentes",
+          "NO_ACCOUNT": "Aucun compte de trésorerie",
+          "NO_MOVEMENTS": "Aucun mouvement comptabilisé",
+          "ZERO_CASH_INCOME": "Revenus de trésorerie nuls",
+          "MISSING_BENEFIT_SOURCE": "Source manquante",
+          "MISSING_VALUATION": "Valorisation manquante",
+          "NO_ELIGIBLE_ACCOUNT": "Aucun compte éligible",
+          "INCOMPLETE_TRANSFER_PAIR": "Virement incomplet",
+          "MISMATCHED_TRANSFER_PAIR": "Virement incohérent",
+          "MISSING_ACCOUNT_CLASSIFICATION": "Classification de compte manquante"
+        },
+        "error": {
+          "title": "Synthèse mensuelle indisponible",
+          "description": "Impossible de charger les comptes et le patrimoine du mois. Réessayez."
+        },
+        "accounts": {
+          "title": "Comptes et patrimoine",
+          "caption": "Valeurs des comptes et parts du patrimoine net",
+          "account": "Compte",
+          "previous": "Au {{date}}",
+          "current": "Au {{date}}",
+          "previousShort": "N−1",
+          "currentShort": "N",
+          "share": "Part",
+          "empty": "Aucun compte n’est inclus dans le patrimoine.",
+          "ungrouped": "Sans groupe principal",
+          "notOpen": "Compte non ouvert à cette date",
+          "missingValuation": "Valorisation non disponible",
+          "stale": "Valorisation vieille de {{days}} jours",
+          "ineligible": "Hors patrimoine net"
+        },
+        "wealth": {
+          "title": "Évolution du patrimoine",
+          "previous": "Patrimoine N−1",
+          "current": "Patrimoine N",
+          "difference": "Variation",
+          "changePercent": "Évolution",
+          "previousMissingCount_one": "Au N−1, 1 valorisation manque.",
+          "previousMissingCount_other": "Au N−1, {{count}} valorisations manquent.",
+          "previousStaleCount_one": "Au N−1, 1 valorisation est ancienne.",
+          "previousStaleCount_other": "Au N−1, {{count}} valorisations sont anciennes.",
+          "previousStaleCountWithAge_one": "Au N−1, 1 valorisation est ancienne ({{days}} jours).",
+          "previousStaleCountWithAge_other": "Au N−1, {{count}} valorisations sont anciennes (jusqu’à {{days}} jours).",
+          "missingCount_one": "1 valorisation manque.",
+          "missingCount_other": "{{count}} valorisations manquent.",
+          "staleCount_one": "1 valorisation est ancienne.",
+          "staleCount_other": "{{count}} valorisations sont anciennes."
+        },
+        "totals": {
+          "title": "Synthèse des flux",
+          "axes": "Dépenses par axe",
+          "axesEmpty": "Aucun axe n’est affiché.",
+          "categories": "Dépenses par catégorie",
+          "categoriesEmpty": "Aucune catégorie n’est affichée."
+        },
+        "preferences": {
+          "open": "Configurer l’affichage",
+          "eyebrow": "Espace de travail",
+          "title": "Affichage de la synthèse",
+          "categories": "Catégories",
+          "axes": "Axes analytiques",
+          "loading": "Chargement des préférences…",
+          "categoriesError": "Impossible de charger les catégories.",
+          "categoriesEmpty": "Aucune catégorie de la synthèse n’est disponible.",
+          "emptyHint": "Une sélection vide masque les détails facultatifs et conserve les totaux essentiels.",
+          "save": "Enregistrer",
+          "saving": "Enregistrement…",
+          "stale": "Les préférences ont changé dans un autre onglet. Rechargez la page avant de les modifier.",
+          "reload": "Recharger les préférences",
+          "error": "Les préférences d’affichage sont indisponibles."
+        }
+      }
     },
     "eyebrow": "Configuration budgétaire",
     "title": "Plans budgétaires",

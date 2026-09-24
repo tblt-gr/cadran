@@ -20,6 +20,7 @@ import {
 import { LedgerPanels } from './ledger-panels/LedgerPanels';
 import { MonthNavigator } from './month-navigator/MonthNavigator';
 import { MovementEditModal } from './movement-edit-modal/MovementEditModal';
+import { MonthlyRecap } from './monthly-recap/MonthlyRecap';
 import styles from './MonthlyBudgetPage.module.css';
 
 interface MonthlyBudgetPageProps {
@@ -124,6 +125,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger-movements', month] }),
+      queryClient.invalidateQueries({ queryKey: ['monthly-recap', month] }),
     ]);
   }
 
@@ -183,16 +185,19 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
           </button>
         </section>
       ) : (
-        <LedgerPanels
-          activeAccountIds={activeAccountIds}
-          axis={axis}
-          data={ledger.data}
-          language={i18n.language}
-          month={month}
-          onAxisChange={changeAxis}
-          onDraft={setDraft}
-          onEditTransaction={setEditingTransactionId}
-        />
+        <div className={styles.workbook}>
+          <LedgerPanels
+            activeAccountIds={activeAccountIds}
+            axis={axis}
+            data={ledger.data}
+            language={i18n.language}
+            month={month}
+            onAxisChange={changeAxis}
+            onDraft={setDraft}
+            onEditTransaction={setEditingTransactionId}
+          />
+          <MonthlyRecap month={month} />
+        </div>
       )}
 
       <BudgetCreationModals

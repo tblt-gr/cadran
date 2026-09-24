@@ -1,0 +1,113 @@
+.panel {
+  overflow: hidden;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.panel table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.panel th,
+.panel td {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.panel thead th {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.panel tbody th {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+}
+
+.panel td {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.groupRow th,
+.groupRow td {
+  background: var(--bg-surface-2);
+  font-weight: var(--font-weight-bold);
+}
+
+.unavailable {
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+}
+
+.unavailable small,
+.ineligible {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.empty {
+  color: var(--text-muted);
+}
+
+@media (max-width: 48rem) {
+  .tableScroll {
+    overflow: visible;
+  }
+
+  .panel table,
+  .panel tbody,
+  .panel tr {
+    display: block;
+  }
+
+  .panel thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .panel tbody {
+    display: grid;
+    gap: var(--spacing-3);
+    padding: var(--spacing-3);
+  }
+
+  .panel tbody tr {
+    padding: var(--spacing-3);
+    border: var(--border-line-subtle);
+    border-radius: var(--radius-card);
+    background: var(--bg-surface-2);
+  }
+
+  .panel tbody th,
+  .panel tbody td {
+    display: grid;
+    min-width: 0;
+    padding: var(--spacing-2) var(--spacing-none);
+    grid-template-columns: minmax(7rem, 40%) minmax(0, 1fr);
+    gap: var(--spacing-3);
+  }
+
+  .panel tbody th::before,
+  .panel tbody td::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--letter-spacing-card);
+    text-transform: uppercase;
+  }
+}

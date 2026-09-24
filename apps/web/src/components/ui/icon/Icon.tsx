@@ -21,6 +21,7 @@ type IconName =
   | 'edit'
   | 'goals'
   | 'home'
+  | 'info'
   | 'investments'
   | 'menu'
   | 'merge'
@@ -44,6 +45,8 @@ function IconPath({ name }: { name: IconName }) {
   switch (name) {
     case 'home':
       return <path d="M3.5 10.5 12 3l8.5 7.5V21h-6v-6h-5v6h-6Z" />;
+    case 'info':
+      return <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-10v5m0-8h.01" />;
     case 'transactions':
       return <path d="M4 7h13m-3-3 3 3-3 3M20 17H7m3 3-3-3 3-3" />;
     case 'accounts':

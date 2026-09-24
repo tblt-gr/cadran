@@ -86,6 +86,7 @@ final readonly class ReadNetWorth
             $current,
             NetWorthDeltaView::fromDelta(
                 NetWorthDelta::between($current, $previous),
+                $previous,
                 $references,
                 self::sourceAccountIds($previousContributions),
                 self::sourceAccountIds($currentContributions),

@@ -2346,6 +2346,113 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/reports/monthly/recap:
+    get:
+      operationId: readMonthlyRecap
+      summary: Read the account, wealth and totals recap of one month
+      description: >-
+        Composes the exclusive net-worth roll-up and the monthly projection
+        into one read. N−1 is the last calendar day of the preceding month,
+        never the first day of the selected one. A month still running stops on
+        the workspace-local current day and is marked provisional, so a
+        valuation dated later is never published as already applying. Group
+        subtotals use primary membership only; a secondary label never adds a
+        second total for the same account. Every absent figure carries its own
+        reason and is never shown as zero.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: month
+          in: query
+          required: true
+          description: The bounded calendar month to recap.
+          schema:
+            type: string
+            pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+      responses:
+        '200':
+          description: The exact monthly recap.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MonthlyRecap' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: >-
+            The workspace exceeds a bounded aggregate limit
+            (`type: /problems/monthly-projection-scope-too-large`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/reports/monthly/recap-preferences:
+    get:
+      operationId: readMonthlyRecapPreferences
+      summary: Read the recap visibility preferences of the calling workspace
+      description: >-
+        With no stored row the response carries version 0, no extra category
+        and every defined analytic axis.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The stored or default recap selection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MonthlyRecapPreferences' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    put:
+      operationId: saveMonthlyRecapPreferences
+      summary: Store the recap visibility preferences of the calling workspace
+      description: >-
+        Each array is bounded to 100 unique items, every category must belong
+        to the calling workspace and every axis must be a defined analytic
+        axis. A save at version 0 inserts the row. An explicitly empty
+        selection hides the optional breakdowns and never the core totals. The
+        mutation requires the same-origin CSRF token.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MonthlyRecapPreferencesInput' }
+      responses:
+        '200':
+          description: The stored selection and its new version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MonthlyRecapPreferences' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: >-
+            The CSRF / Origin check failed (`type: /problems/csrf-token`), or
+            the session belongs to no workspace.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The stored selection moved past the version the caller read.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: The selection is out of bounds, unknown or not owned by the workspace.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/net-worth:
     get:
       operationId: readNetWorth
@@ -8537,6 +8644,9 @@ components:
           type: string
           enum: [COMPLETE, EMPTY, PENDING]
         quality:
+          description: >-
+            Worst valuation quality across the same N−1 month-end and
+            effective-N net-worth reads used by the published KPI figures.
           $ref: '#/components/schemas/ValuationQuality'
         pendingCount:
           type: integer
@@ -8580,6 +8690,474 @@ components:
         reconciliationStatus:
           type: string
           enum: [RECONCILED, UNRECONCILED, NO_ACCOUNTS]
+    MonthlyRecapMetric:
+      description: >-
+        One published monthly figure with everything needed to challenge it.
+        `kpi` names the explanation endpoint when one addresses this figure;
+        an analytic-axis facet has none and carries its sources directly.
+      type: object
+      additionalProperties: false
+      required:
+        - kpi
+        - value
+        - assetCode
+        - reason
+        - pendingCount
+        - sourceTransactionIds
+        - sourceTransferIds
+      properties:
+        kpi:
+          type: [string, 'null']
+          enum:
+            [
+              cashIncome,
+              budgetExpenses,
+              savingsInflows,
+              savingsWithdrawals,
+              netSavingsTransfers,
+              netSavingsRate,
+              null,
+            ]
+        value:
+          type: [string, 'null']
+          pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        assetCode:
+          type: [string, 'null']
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        reason:
+          oneOf:
+            - $ref: '#/components/schemas/MonthlyProjectionReason'
+            - type: 'null'
+        pendingCount:
+          type: integer
+          minimum: 0
+        sourceTransactionIds:
+          type: array
+          maxItems: 500
+          items: { type: string, format: uuid }
+        sourceTransferIds:
+          type: array
+          maxItems: 5000
+          items: { type: string, format: uuid }
+    MonthlyRecapAxis:
+      description: >-
+        Budget expenses seen through one analytic axis. An axis is a facet of a
+        split, not a bucket: a split carrying two axes counts in both, so the
+        axes deliberately do not add up to `budgetExpenses`.
+      type: object
+      additionalProperties: false
+      required:
+        - axis
+        - kpi
+        - value
+        - assetCode
+        - reason
+        - pendingCount
+        - sourceTransactionIds
+        - sourceTransactions
+        - sourceTransferIds
+      properties:
+        axis:
+          type: string
+          enum: [DISCRETIONARY, ESSENTIAL, FIXED, PERSONAL, PROFESSIONAL, VARIABLE]
+        kpi:
+          type: 'null'
+        value:
+          type: [string, 'null']
+          pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        assetCode:
+          type: [string, 'null']
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        reason:
+          oneOf:
+            - $ref: '#/components/schemas/MonthlyProjectionReason'
+            - type: 'null'
+        pendingCount:
+          type: integer
+          minimum: 0
+        sourceTransactionIds:
+          type: array
+          maxItems: 500
+          items: { type: string, format: uuid }
+        sourceTransactions:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/MonthlyKpiSourceTransaction'
+        sourceTransferIds:
+          type: array
+          maxItems: 5000
+          items: { type: string, format: uuid }
+    MonthlyRecapCategory:
+      description: >-
+        One selectable category row computed with the same signed split policy
+        as the monthly ledger. Expense amounts are presented as positive costs,
+        refunds reduce them, and income keeps its financial sign. A category
+        without a movement is null with `NO_MOVEMENTS`; mixed assets are null
+        with `MIXED_ASSETS`. Preferences only select these published rows.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - label
+        - type
+        - kpi
+        - value
+        - assetCode
+        - reason
+        - pendingCount
+        - sourceTransactionIds
+        - sourceTransactions
+        - sourceTransferIds
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 80 }
+        type:
+          type: string
+          enum: [INCOME, EXPENSE]
+        kpi:
+          type: 'null'
+        value:
+          type: [string, 'null']
+          pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        assetCode:
+          type: [string, 'null']
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        reason:
+          type: [string, 'null']
+          enum: [NO_MOVEMENTS, MIXED_ASSETS, null]
+        pendingCount:
+          type: integer
+          minimum: 0
+        sourceTransactionIds:
+          type: array
+          maxItems: 500
+          items: { type: string, format: uuid }
+        sourceTransactions:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/MonthlyKpiSourceTransaction'
+        sourceTransferIds:
+          type: array
+          maxItems: 0
+          items: { type: string, format: uuid }
+    MonthlyRecapTotals:
+      type: object
+      additionalProperties: false
+      required:
+        - cashIncome
+        - budgetExpenses
+        - savingsInflows
+        - savingsWithdrawals
+        - netSavingsTransfers
+        - netSavingsRate
+        - expensesByAxis
+        - categories
+      properties:
+        cashIncome:
+          $ref: '#/components/schemas/MonthlyRecapMetric'
+        budgetExpenses:
+          $ref: '#/components/schemas/MonthlyRecapMetric'
+        savingsInflows:
+          $ref: '#/components/schemas/MonthlyRecapMetric'
+        savingsWithdrawals:
+          $ref: '#/components/schemas/MonthlyRecapMetric'
+        netSavingsTransfers:
+          description: >-
+            Gross inflows minus withdrawals. It stays negative when the month
+            took more out of savings than it put in.
+          $ref: '#/components/schemas/MonthlyRecapMetric'
+        netSavingsRate:
+          description: >-
+            Net savings transfers over cash income. A month without cash income
+            has no rate: the value is null with `ZERO_CASH_INCOME`, never `0%`.
+          $ref: '#/components/schemas/MonthlyRecapMetric'
+        expensesByAxis:
+          type: array
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/MonthlyRecapAxis'
+        categories:
+          description: >-
+            Every active workspace category plus archived categories that have
+            movements in the month. The saved visibility preference filters
+            this list only in the presentation layer.
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/MonthlyRecapCategory'
+    MonthlyRecapAccount:
+      description: >-
+        One account of the recap. A value is absent, never zero, when the day
+        holds no valuation; the whole value object is absent when the workspace
+        did not hold the account on that day at all.
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - label
+        - kind
+        - netWorthSign
+        - primaryGroupId
+        - primaryGroupLabel
+        - eligible
+        - previousValue
+        - currentValue
+        - share
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        label:
+          type: string
+          minLength: 1
+          maxLength: 120
+        kind:
+          type: string
+        netWorthSign:
+          type: integer
+          enum: [-1, 1]
+        primaryGroupId:
+          type: [string, 'null']
+          format: uuid
+        primaryGroupLabel:
+          type: [string, 'null']
+        eligible:
+          type: boolean
+        previousValue:
+          oneOf:
+            - $ref: '#/components/schemas/MonthlyAccountValue'
+            - type: 'null'
+        currentValue:
+          oneOf:
+            - $ref: '#/components/schemas/MonthlyAccountValue'
+            - type: 'null'
+        share:
+          $ref: '#/components/schemas/NetWorthShare'
+    MonthlyRecapGroup:
+      description: >-
+        The exclusive subtotal of one primary group at N, and the share of
+        eligible net worth it represents. A secondary label never adds a second
+        total for the same account.
+      type: object
+      additionalProperties: false
+      required: [groupId, label, parentId, depth, value, share]
+      properties:
+        groupId:
+          type: string
+          format: uuid
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        parentId:
+          type: [string, 'null']
+          format: uuid
+        depth:
+          type: integer
+          minimum: 1
+          maximum: 8
+        value:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        share:
+          $ref: '#/components/schemas/NetWorthShare'
+    MonthlyRecapNetWorth:
+      description: >-
+        The wealth card: N−1, N, the signed currency difference and the change
+        rate. Each figure carries its own reason because they fail for
+        different causes; none of them is ever replaced by a zero.
+      type: object
+      additionalProperties: false
+      required:
+        - previous
+        - previousReason
+        - current
+        - currentReason
+        - difference
+        - differenceReason
+        - changeRatio
+        - changePercent
+        - changePercentDisplay
+        - changeReason
+        - previousQuality
+        - previousStalestAgeDays
+        - previousMissingValuationCount
+        - previousStaleValuationCount
+        - quality
+        - stalestAgeDays
+        - eligibleAccountCount
+        - missingValuationCount
+        - staleValuationCount
+        - previousSourceAccountIds
+        - currentSourceAccountIds
+      properties:
+        previous:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        previousReason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthReason'
+            - type: 'null'
+        current:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        currentReason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthReason'
+            - type: 'null'
+        difference:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        differenceReason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthReason'
+            - type: 'null'
+        changeRatio:
+          type: [string, 'null']
+          pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        changePercent:
+          type: [string, 'null']
+          pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        changePercentDisplay:
+          type: [string, 'null']
+          pattern: '^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        changeReason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthReason'
+            - type: 'null'
+        previousQuality:
+          description: Valuation quality of the N−1 net worth figure.
+          $ref: '#/components/schemas/ValuationQuality'
+        previousStalestAgeDays:
+          description: Oldest usable valuation age, in days, among N−1 eligible accounts.
+          type: [integer, 'null']
+          minimum: 0
+        previousMissingValuationCount:
+          description: Eligible accounts without a valuation at N−1.
+          type: integer
+          minimum: 0
+        previousStaleValuationCount:
+          description: Eligible accounts whose usable N−1 valuation predates N−1.
+          type: integer
+          minimum: 0
+        quality:
+          description: Valuation quality of the effective-N net worth figure.
+          $ref: '#/components/schemas/ValuationQuality'
+        stalestAgeDays:
+          type: [integer, 'null']
+          minimum: 0
+        eligibleAccountCount:
+          type: integer
+          minimum: 0
+        missingValuationCount:
+          type: integer
+          minimum: 0
+        staleValuationCount:
+          type: integer
+          minimum: 0
+        previousSourceAccountIds:
+          type: array
+          maxItems: 500
+          items: { type: string, format: uuid }
+        currentSourceAccountIds:
+          type: array
+          maxItems: 500
+          items: { type: string, format: uuid }
+    MonthlyRecap:
+      description: >-
+        The account, wealth and totals recap of one month. `previousAsOf` is
+        the last calendar day of the preceding month. `currentAsOf` is the
+        month's calendar end, or the workspace-local current day while the
+        month is still running, in which case `provisional` is true.
+      type: object
+      additionalProperties: false
+      required:
+        - month
+        - previousAsOf
+        - currentAsOf
+        - provisional
+        - state
+        - quality
+        - accounts
+        - groups
+        - netWorth
+        - totals
+      properties:
+        month:
+          type: string
+          pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+        previousAsOf:
+          type: string
+          format: date
+        currentAsOf:
+          type: string
+          format: date
+        provisional:
+          type: boolean
+        state:
+          type: string
+          enum: [COMPLETE, EMPTY, PENDING]
+        quality:
+          description: >-
+            Valuation quality at effective N. The independent N−1 quality is
+            published as `netWorth.previousQuality`.
+          $ref: '#/components/schemas/ValuationQuality'
+        accounts:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/MonthlyRecapAccount'
+        groups:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/MonthlyRecapGroup'
+        netWorth:
+          $ref: '#/components/schemas/MonthlyRecapNetWorth'
+        totals:
+          $ref: '#/components/schemas/MonthlyRecapTotals'
+    MonthlyRecapPreferences:
+      description: >-
+        Which optional category and axis breakdowns the compact recap shows.
+        The selection picks rows only: it never changes a total or a formula,
+        and the core totals stay published whatever it holds. Version 0 means
+        the workspace never saved one and is reading the default selection.
+      type: object
+      additionalProperties: false
+      required: [visibleCategoryIds, visibleAxes, version]
+      properties:
+        visibleCategoryIds:
+          type: array
+          uniqueItems: true
+          maxItems: 100
+          items: { type: string, format: uuid }
+        visibleAxes:
+          $ref: '#/components/schemas/AnalyticAxes'
+        version:
+          type: integer
+          minimum: 0
+    MonthlyRecapPreferencesInput:
+      type: object
+      additionalProperties: false
+      required: [visibleCategoryIds, visibleAxes, version]
+      properties:
+        visibleCategoryIds:
+          type: array
+          uniqueItems: true
+          maxItems: 100
+          items: { type: string, format: uuid }
+        visibleAxes:
+          $ref: '#/components/schemas/AnalyticAxes'
+        version:
+          description: The version the caller last read. A stale one is refused with 409.
+          type: integer
+          minimum: 0
     NetWorthReason:
       description: >-
         Why a net-worth figure, a delta or a change rate could not be produced.

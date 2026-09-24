@@ -1,0 +1,58 @@
+.form {
+  display: grid;
+  gap: var(--spacing-6);
+}
+.form fieldset {
+  display: grid;
+  gap: var(--spacing-3);
+  margin: var(--spacing-none);
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+}
+.form legend {
+  padding: var(--spacing-none) var(--spacing-1);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
+}
+.options label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--text-primary);
+  font-size: var(--font-size-label);
+}
+.alert {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-negative);
+  border-radius: var(--radius-control);
+  color: var(--negative);
+  background: var(--negative-soft);
+}
+.hint {
+  margin: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+}
+@media (max-width: 22.5rem) {
+  .options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .actions {
+    flex-direction: column-reverse;
+  }
+  .actions button {
+    width: 100%;
+  }
+}

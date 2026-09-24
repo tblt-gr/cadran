@@ -55,8 +55,8 @@ enum MonthlyKpi: string
             self::SAVINGS_WITHDRAWALS => 'savings withdrawals = sum of booked transfer pairs crossing out of SAVINGS or PORTFOLIO accounts',
             self::NET_SAVINGS_TRANSFERS => 'net savings transfers = savings inflows - savings withdrawals',
             self::NET_SAVINGS_RATE => 'net savings rate = net savings transfers / cash income',
-            self::BEGINNING_NET_WORTH => 'beginning net worth = sum of eligible signed account valuations on period start',
-            self::END_NET_WORTH => 'end net worth = sum of eligible signed account valuations on period end',
+            self::BEGINNING_NET_WORTH => 'beginning net worth = sum of eligible signed account valuations on the last calendar day of the preceding month',
+            self::END_NET_WORTH => 'end net worth = sum of eligible signed account valuations on the effective end day of the month',
             self::NET_WORTH_DELTA => 'net worth delta = end net worth - beginning net worth',
         };
     }
@@ -72,8 +72,8 @@ enum MonthlyKpi: string
             self::SAVINGS_TRANSFERS => 'Booked incoming TRANSFER transactions to SAVINGS or PORTFOLIO accounts in the caller workspace and month.',
             self::SAVINGS_INFLOWS, self::SAVINGS_WITHDRAWALS, self::NET_SAVINGS_TRANSFERS => 'Complete, same-day and same-asset transfer pairs crossing the SAVINGS or PORTFOLIO boundary in the caller workspace and month.',
             self::NET_SAVINGS_RATE => 'The exact net-savings-transfer and cash-income views for the caller workspace and month.',
-            self::BEGINNING_NET_WORTH => 'Eligible accounts and their latest valid valuation on the first day of the month in the caller workspace.',
-            self::END_NET_WORTH => 'Eligible accounts and their latest valid valuation on the last day of the month in the caller workspace.',
+            self::BEGINNING_NET_WORTH => 'Eligible accounts and their latest valid valuation on the last calendar day of the month preceding the requested one, in the caller workspace.',
+            self::END_NET_WORTH => 'Eligible accounts and their latest valid valuation on the last calendar day of the requested month in the caller workspace, or on the workspace-local current day while that month is still running.',
             self::NET_WORTH_DELTA => 'The exact beginning and end net-worth views for the caller workspace and month.',
         };
     }

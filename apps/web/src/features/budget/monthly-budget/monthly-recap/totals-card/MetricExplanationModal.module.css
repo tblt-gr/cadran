@@ -1,0 +1,34 @@
+.details {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--spacing-1) var(--spacing-3);
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.details dd {
+  margin: var(--spacing-none);
+}
+
+.transactions {
+  display: grid;
+  gap: var(--spacing-2);
+  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+}
+
+.transactions li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-none);
+  border-bottom: var(--border-line-subtle);
+}
+
+.transactions li span:last-child {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}

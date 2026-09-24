@@ -54,6 +54,19 @@
   padding: var(--spacing-8);
 }
 
+.workbook {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  align-items: start;
+  gap: var(--spacing-4);
+}
+
+@media (max-width: 64rem) {
+  .workbook {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 42rem) {
   .intro {
     align-items: stretch;
