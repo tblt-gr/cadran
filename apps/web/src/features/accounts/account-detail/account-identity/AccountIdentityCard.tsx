@@ -1,8 +1,6 @@
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { useAccountProduct } from '@/features/accounts/account-editor/useAccountProduct';
-import { useAccountProductModel } from '@/features/accounts/account-editor/useAccountProductModel';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
 import { rateLayers } from '@/features/accounts/account-rules/ruleLayers';
@@ -36,8 +34,6 @@ const STATUS_TONE = {
  */
 export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
   const { i18n, t } = useTranslation();
-  const product = useAccountProduct(account.productCode, account.openedOn);
-  const template = useAccountProductModel(account.productModelId);
   const group = useAccountGroupLabel(account.primaryGroupId);
   const products = useProductOptions(account.valuation.requestedOn);
   const templates = useTemplateOptions();
@@ -58,20 +54,6 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
       : rateLayers(headlineRate, rulesData.assetCode).find(
           (layer) => layer.layer === headlineRate.effectiveLayer,
         );
-
-  const originLabel = account.productCode
-    ? product.isPending
-      ? t('accounts.detail.identity.productLoading')
-      : product.product
-        ? product.product.displayName
-        : t('accounts.detail.identity.productUnavailable')
-    : account.productModelId
-      ? template.isPending
-        ? t('accounts.detail.identity.productLoading')
-        : template.template
-          ? template.template.name
-          : t('accounts.detail.identity.productUnavailable')
-      : t('accounts.detail.identity.manual');
 
   // An absent primary group and one this hook could not resolve must read
   // differently: the first is a fact about the account, the second is a read
@@ -97,6 +79,8 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
               .filter(Boolean)
               .join(' · ') || t('accounts.detail.identity.noInstitution')}
           </span>
+          <span className={styles.meta}>{t(`accounts.kinds.${account.kind}`)}</span>
+          <span className={styles.meta}>{groupLabel}</span>
           <StatusBadge tone={STATUS_TONE[account.status]}>
             {t(`accounts.statuses.${account.status}`)}
           </StatusBadge>
@@ -122,24 +106,8 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
         </div>
       </div>
 
-      <dl className={styles.list}>
-        <div>
-          <dt>{t('accounts.fields.kind')}</dt>
-          <dd>{t(`accounts.kinds.${account.kind}`)}</dd>
-        </div>
-        <div>
-          <dt>{t('accounts.fields.assetCode')}</dt>
-          <dd>{account.assetCode}</dd>
-        </div>
-        <div>
-          <dt>{t('accounts.detail.identity.product')}</dt>
-          <dd>{originLabel}</dd>
-        </div>
-        <div>
-          <dt>{t('accounts.detail.identity.group')}</dt>
-          <dd>{groupLabel}</dd>
-        </div>
-        {account.closedOn || account.archivedAt ? (
+      {account.closedOn || account.archivedAt ? (
+        <dl className={styles.list}>
           <div>
             <dt>{t('accounts.detail.identity.lifecycle')}</dt>
             <dd>
@@ -159,8 +127,8 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
               ) : null}
             </dd>
           </div>
-        ) : null}
-      </dl>
+        </dl>
+      ) : null}
     </div>
   );
 }

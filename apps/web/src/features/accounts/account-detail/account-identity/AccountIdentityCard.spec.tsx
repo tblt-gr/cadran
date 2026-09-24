@@ -99,25 +99,10 @@ describe('AccountIdentityCard', () => {
     expect(screen.getByText('Banque X · ••4821')).toBeTruthy();
   });
 
-  it('names the account as manually described when it follows no product or model', () => {
-    renderCard(account);
-
-    expect(screen.getByText('Décrit à la main, sans produit ni modèle')).toBeTruthy();
-  });
-
   it('shows a missing-valuation state, not zero, when no dated source answers', () => {
     renderCard(account);
 
     expect(screen.getByText('Non calculable')).toBeTruthy();
-  });
-
-  it('reads the catalogue product name for an account created from one', async () => {
-    api.readProduct.mockImplementation(() =>
-      success({ code: 'FR_LIVRET_A', displayName: 'Livret A' }),
-    );
-    renderCard({ ...account, productCode: 'FR_LIVRET_A' });
-
-    expect(await screen.findByText('Livret A')).toBeTruthy();
   });
 
   it('reads the primary group label when the account has one', async () => {

@@ -39,6 +39,11 @@
   font-size: var(--font-size-label);
 }
 
+.meta {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
 .balancePanel {
   display: flex;
   flex-direction: column;
@@ -77,9 +82,6 @@
 }
 
 .list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--spacing-4);
   margin: var(--spacing-none);
 }
 
@@ -112,9 +114,5 @@
 
   .rateMeasure {
     align-items: flex-start;
-  }
-
-  .list {
-    grid-template-columns: 1fr;
   }
 }
