@@ -52,7 +52,7 @@ describe('AppShell', () => {
 
   it('hides dashboard-only context and global placeholders on feature routes', () => {
     render(
-      <AppShell path="/categories" setPath={vi.fn()} showGlobalActions={false}>
+      <AppShell path="/transactions/categories" setPath={vi.fn()} showGlobalActions={false}>
         <p>Catégories</p>
       </AppShell>,
     );

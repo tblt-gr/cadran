@@ -126,6 +126,13 @@ export function TransactionsPage() {
           </button>
           <a
             className="secondary-action"
+            href="/transactions/categories"
+            onClick={(event) => handleClientNavigation(event, '/transactions/categories')}
+          >
+            {t('transactions.manageCategories')}
+          </a>
+          <a
+            className="secondary-action"
             href="/transactions/recurrences"
             onClick={(event) => handleClientNavigation(event, '/transactions/recurrences')}
           >

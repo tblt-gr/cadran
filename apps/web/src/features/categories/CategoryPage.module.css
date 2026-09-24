@@ -31,8 +31,19 @@
 }
 
 .intro h2 {
-  margin-top: var(--spacing-1);
   font-size: var(--font-size-kpi);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  margin-top: var(--spacing-1);
+  gap: var(--spacing-3);
+}
+
+.back {
+  flex-shrink: 0;
+  text-decoration: none;
 }
 
 .intro span,

@@ -9,6 +9,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -110,14 +111,24 @@ export function CategoryPage() {
       <section className={styles.intro} aria-labelledby="category-intro-title">
         <div>
           <p>{t('categories.eyebrow')}</p>
-          <h2 id="category-intro-title">{t('categories.title')}</h2>
+          <div className={styles.titleRow}>
+            <a
+              aria-label={t('categories.backToTransactions')}
+              className={`icon-button ${styles.back}`}
+              href="/transactions"
+              onClick={(event) => handleClientNavigation(event, '/transactions')}
+            >
+              <Icon name="arrow-left" size={18} />
+            </a>
+            <h2 id="category-intro-title">{t('categories.title')}</h2>
+          </div>
           <span>{t('categories.description')}</span>
         </div>
         <div className={styles.introActions}>
           <a
             className="secondary-action"
-            href="/categories/rules"
-            onClick={(event) => handleClientNavigation(event, '/categories/rules')}
+            href="/transactions/categories/rules"
+            onClick={(event) => handleClientNavigation(event, '/transactions/categories/rules')}
           >
             {t('categories.manageRules')}
           </a>

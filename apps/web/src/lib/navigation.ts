@@ -21,7 +21,13 @@ export const navigationItems: NavigationItem[] = [
     href: '/transactions',
     icon: 'transactions',
     labelKey: 'navigation.transactions',
-    match: (path) => path === '/transactions' || path === '/transactions/recurrences',
+    match: (path) =>
+      [
+        '/transactions',
+        '/transactions/recurrences',
+        '/transactions/categories',
+        '/transactions/categories/rules',
+      ].includes(path),
     mobile: true,
   },
   {
@@ -65,12 +71,6 @@ export const navigationItems: NavigationItem[] = [
       path === '/reports/all-years',
   },
   {
-    href: '/categories',
-    icon: 'categories',
-    labelKey: 'navigation.categories',
-    match: (path) => path === '/categories' || path === '/categories/rules',
-  },
-  {
     href: '/catalog',
     icon: 'catalog',
     labelKey: 'navigation.catalog',
@@ -91,7 +91,10 @@ export const navigationItems: NavigationItem[] = [
 ];
 
 export function getRouteTitleKey(pathname: string): ParseKeys {
-  if (pathname === '/categories/rules') return 'routes.categorizationRules';
+  if (pathname === '/categories/rules' || pathname === '/transactions/categories/rules')
+    return 'routes.categorizationRules';
+  if (pathname === '/categories' || pathname === '/transactions/categories')
+    return 'routes.categories';
   if (pathname === '/transactions/recurrences') return 'routes.recurrences';
   if (pathname === '/accounts/groups') return 'navigation.accountGroups';
   if (/^\/accounts\/(?!groups$)[^/]+$/.test(pathname)) return 'routes.accountDetail';
