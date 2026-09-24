@@ -5,6 +5,8 @@ export type TransactionsStateKind =
   'loading' | 'error' | 'unauthorized' | 'empty' | 'queueEmpty' | 'impossible';
 
 interface TransactionsStateProps {
+  /** Hides the empty state's create action where creation is not available (a closed or archived account). */
+  canCreate?: boolean;
   kind: TransactionsStateKind;
   onCreate: () => void;
   onResetFilters?: () => void;
@@ -12,6 +14,7 @@ interface TransactionsStateProps {
 }
 
 export function TransactionsState({
+  canCreate = true,
   kind,
   onCreate,
   onResetFilters,
@@ -32,9 +35,11 @@ export function TransactionsState({
       <section className={`card ${styles.state}`}>
         <h2>{t('transactions.empty.title')}</h2>
         <p>{t('transactions.empty.description')}</p>
-        <button className="primary-action" onClick={onCreate} type="button">
-          {t('transactions.addFirst')}
-        </button>
+        {canCreate ? (
+          <button className="primary-action" onClick={onCreate} type="button">
+            {t('transactions.addFirst')}
+          </button>
+        ) : null}
       </section>
     );
   }

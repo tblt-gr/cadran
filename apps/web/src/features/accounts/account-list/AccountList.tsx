@@ -7,6 +7,7 @@ import { AccountValuationCell } from '@/features/accounts/account-valuation-cell
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
 import { useNetWorth } from '@/features/dashboard/net-worth/useNetWorth';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { depositCeilingOf } from '@/lib/depositCeiling';
 import styles from './AccountList.module.css';
 
@@ -72,7 +73,13 @@ export function AccountList({
               return (
                 <tr key={account.id}>
                   <th scope="row">
-                    <span>{account.label}</span>
+                    <a
+                      className={styles.accountLink}
+                      href={`/accounts/${account.id}`}
+                      onClick={(event) => handleClientNavigation(event, `/accounts/${account.id}`)}
+                    >
+                      {account.label}
+                    </a>
                     {account.institution || account.maskedIdentifier ? (
                       <small>
                         {[

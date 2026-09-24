@@ -28,6 +28,8 @@ final class AccountFixture
         string $id = self::ID,
         string $workspace = self::WORKSPACE,
         ?string $productModelId = null,
+        ?string $closedOn = null,
+        ?string $archivedAt = null,
     ): Account {
         $now = new \DateTimeImmutable('2026-09-03T10:00:00+00:00');
 
@@ -46,10 +48,11 @@ final class AccountFixture
             includeInNetWorth: true,
             includeInEmergencyFund: false,
             openedOn: new \DateTimeImmutable('2026-01-10', new \DateTimeZone('UTC')),
-            closedOn: null,
+            closedOn: null === $closedOn ? null : new \DateTimeImmutable($closedOn, new \DateTimeZone('UTC')),
             version: 1,
             createdAt: $now,
             updatedAt: $now,
+            archivedAt: null === $archivedAt ? null : new \DateTimeImmutable($archivedAt),
         );
     }
 }

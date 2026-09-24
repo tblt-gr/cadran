@@ -34,8 +34,19 @@
 }
 
 .panel tbody th span,
-.panel tbody th small {
+.panel tbody th small,
+.accountLink {
   display: block;
+}
+
+.accountLink {
+  color: inherit;
+  font-weight: var(--font-weight-strong);
+}
+
+.accountLink:hover,
+.accountLink:focus-visible {
+  text-decoration: underline;
 }
 
 .panel tbody th small {

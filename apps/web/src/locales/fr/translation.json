@@ -658,6 +658,64 @@
         "reason": "Le motif est obligatoire et ne dépasse pas 200 caractères.",
         "network": "La demande n’a pas abouti. Réessayez."
       }
+    },
+    "detail": {
+      "eyebrow": "Détail du compte",
+      "back": "Retour aux comptes",
+      "loading": "Chargement du compte…",
+      "notFound": {
+        "title": "Compte introuvable",
+        "description": "Ce compte n’existe pas dans cet espace, ou vous n’y avez pas accès."
+      },
+      "unauthorized": {
+        "title": "Session expirée",
+        "description": "Reconnectez-vous pour consulter ce compte."
+      },
+      "error": {
+        "title": "Compte indisponible",
+        "description": "Ce compte n’a pas pu être chargé."
+      },
+      "identity": {
+        "title": "Identité",
+        "noInstitution": "—",
+        "product": "Origine",
+        "manual": "Décrit à la main, sans produit ni modèle",
+        "productLoading": "Chargement de l’origine…",
+        "productUnavailable": "L’origine de ce compte n’a pas pu être lue.",
+        "group": "Groupe patrimonial",
+        "groupLoading": "Chargement du groupe…",
+        "noGroup": "Aucun groupe",
+        "groupUnavailable": "Le groupe rattaché à ce compte n’a pas pu être lu.",
+        "lifecycle": "Cycle de vie",
+        "openedOn": "Ouvert le {{date}}",
+        "closedOn": "Clôturé le {{date}}",
+        "archivedOn": "Archivé le {{date}}"
+      },
+      "movements": {
+        "eyebrow": "Historique",
+        "title": "Mouvements",
+        "caption": "Mouvements de ce compte",
+        "counterpart": "Contrepartie",
+        "periodActive": "Période affichée : {{month}}",
+        "clearPeriod": "Voir tout l’historique"
+      },
+      "actions": {
+        "addTransaction": "Nouvelle transaction",
+        "addTransfer": "Nouveau virement",
+        "rules": "Voir les règles",
+        "reconcile": "Rapprocher",
+        "unavailable": {
+          "CLOSED": "Ce compte est clôturé : aucun nouveau mouvement ne peut y être enregistré. Rouvrez-le depuis la liste des comptes pour en ajouter un.",
+          "ARCHIVED": "Ce compte est archivé et n’accepte plus de nouveau mouvement."
+        }
+      },
+      "toasts": {
+        "transactionSaved": "La transaction a été enregistrée.",
+        "transferSaved": "Le virement a été enregistré.",
+        "claimed": "La dérogation a été enregistrée sur ce compte.",
+        "withdrawn": "La dérogation a été retirée : le compte suit de nouveau la règle héritée.",
+        "reconciled": "Le solde a été rapproché."
+      }
     }
   },
   "accountGroups": {

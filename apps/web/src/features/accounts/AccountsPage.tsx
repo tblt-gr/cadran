@@ -3,14 +3,10 @@ import {
   createAccount,
   listAccounts,
   recordAccountBalance,
-  recordAccountRuleOverride,
   updateAccount,
-  withdrawAccountRuleOverride,
   type Account,
-  type AccountRuleClaim,
   type CreateAccountRequest,
   type RecordAccountBalanceRequest,
-  type RecordAccountRuleOverrideRequest,
   type UpdateAccountRequest,
 } from '@cadran/api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,14 +27,11 @@ import { AccountFilters } from './account-filters/AccountFilters';
 import { AccountEditor } from './account-editor/AccountEditor';
 import { AccountList } from './account-list/AccountList';
 import { AccountPagination } from './account-pagination/AccountPagination';
-import { AccountRuleOverrideForm } from './account-rules/account-rule-override-form/AccountRuleOverrideForm';
-import { AccountRulesPanel } from './account-rules/AccountRulesPanel';
-import type { OverrideDraft } from './account-rules/overrideTarget';
-import { WithdrawOverrideDialog } from './account-rules/withdraw-override-dialog/WithdrawOverrideDialog';
+import { AccountRulesModals } from './account-rules/AccountRulesModals';
 import { AccountWizard } from './account-wizard/AccountWizard';
 import { AccountsState } from './accounts-state/AccountsState';
 import { ArchiveAccountDialog } from './archive-account-dialog/ArchiveAccountDialog';
-import { ReconciliationPanel } from './reconciliation-panel/ReconciliationPanel';
+import { AccountReconciliationModal } from './reconciliation-panel/AccountReconciliationModal';
 import { RecordBalanceForm } from './record-balance-form/RecordBalanceForm';
 import styles from './AccountsPage.module.css';
 
@@ -55,11 +48,6 @@ export function AccountsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<Account | null>(null);
   const [inspecting, setInspecting] = useState<Account | null>(null);
-  // Recording and withdrawing a claim both happen for the account whose rules
-  // are open, and both replace that modal rather than stacking a second one
-  // over it. Closing either returns the reader to the rules they came from.
-  const [overriding, setOverriding] = useState<OverrideDraft | null>(null);
-  const [withdrawing, setWithdrawing] = useState<AccountRuleClaim | null>(null);
   const [recording, setRecording] = useState<Account | null>(null);
   const [reconciling, setReconciling] = useState<Account | null>(null);
   const [saved, setSaved] = useState<
@@ -146,29 +134,6 @@ export function AccountsPage() {
     },
   });
 
-  const recordOverride = useMutation({
-    mutationFn: async ({
-      account,
-      body,
-    }: {
-      account: Account;
-      body: RecordAccountRuleOverrideRequest;
-    }) => {
-      const result = await withCsrfRetry(() =>
-        recordAccountRuleOverride({ ...authApiOptions(), path: { id: account.id }, body }),
-      );
-      if (requestFailed(result)) {
-        throw accountRequestError(result);
-      }
-      return result.data;
-    },
-    onSuccess: async () => {
-      setOverriding(null);
-      setSaved('claimed');
-      await refreshRules();
-    },
-  });
-
   const recordBalance = useMutation({
     mutationFn: async ({
       account,
@@ -193,53 +158,9 @@ export function AccountsPage() {
     },
   });
 
-  const withdrawOverride = useMutation({
-    mutationFn: async ({ account, overrideId }: { account: Account; overrideId: string }) => {
-      const result = await withCsrfRetry(() =>
-        withdrawAccountRuleOverride({
-          ...authApiOptions(),
-          path: { id: account.id, overrideId },
-          body: {},
-        }),
-      );
-      if (requestFailed(result)) {
-        throw accountRequestError(result);
-      }
-      return result.data;
-    },
-    onSuccess: async () => {
-      setWithdrawing(null);
-      setSaved('withdrawn');
-      await refreshRules();
-    },
-  });
-
-  /**
-   * A claim changes what every business date resolves to, and each date is its
-   * own cache key. Invalidating the whole family is the only way a reader who
-   * moves the date back afterwards sees the corrected answer rather than the
-   * one cached before the claim existed.
-   */
-  async function refreshRules() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['account-rules'] }),
-      queryClient.invalidateQueries({ queryKey: ['account-rule-overrides'] }),
-    ]);
-  }
-
   function closeEditor() {
     setEditor(null);
     save.reset();
-  }
-
-  function closeOverride() {
-    setOverriding(null);
-    recordOverride.reset();
-  }
-
-  function closeWithdraw() {
-    setWithdrawing(null);
-    withdrawOverride.reset();
   }
 
   function closeArchive() {
@@ -345,58 +266,14 @@ export function AccountsPage() {
         </Modal>
       ) : null}
 
-      {inspecting && !overriding && !withdrawing ? (
-        <Modal
+      {inspecting ? (
+        <AccountRulesModals
+          account={inspecting}
           close={() => setInspecting(null)}
-          eyebrow={t('accounts.rules.eyebrow')}
-          title={t('accounts.rules.title', { label: inspecting.label })}
-        >
-          <AccountRulesPanel
-            account={inspecting}
-            key={inspecting.id}
-            onOverride={setOverriding}
-            onWithdraw={setWithdrawing}
-          />
-        </Modal>
-      ) : null}
-
-      {inspecting && overriding ? (
-        <Modal
-          close={closeOverride}
-          eyebrow={t('accounts.overrides.eyebrow')}
-          title={t('accounts.overrides.title', { label: inspecting.label })}
-        >
-          <AccountRuleOverrideForm
-            accountAsset={inspecting.assetCode}
-            initialKind={overriding.kind}
-            kinds={overriding.kinds}
-            onCancel={closeOverride}
-            onSubmit={(body) => recordOverride.mutate({ account: inspecting, body })}
-            pending={recordOverride.isPending}
-            submitError={accountErrorKind(recordOverride.error, recordOverride.isError)}
-          />
-        </Modal>
-      ) : null}
-
-      {inspecting && withdrawing ? (
-        <Modal
-          close={closeWithdraw}
-          eyebrow={t('accounts.overrides.eyebrow')}
-          title={t('accounts.overrides.withdrawTitle')}
-        >
-          <WithdrawOverrideDialog
-            onCancel={closeWithdraw}
-            onConfirm={() =>
-              withdrawOverride.mutate({
-                account: inspecting,
-                overrideId: withdrawing.overrideId,
-              })
-            }
-            pending={withdrawOverride.isPending}
-            reason={withdrawing.reason}
-            submitError={accountErrorKind(withdrawOverride.error, withdrawOverride.isError)}
-          />
-        </Modal>
+          key={inspecting.id}
+          onOverrideRecorded={() => setSaved('claimed')}
+          onOverrideWithdrawn={() => setSaved('withdrawn')}
+        />
       ) : null}
 
       {recording ? (
@@ -418,20 +295,15 @@ export function AccountsPage() {
       ) : null}
 
       {reconciling ? (
-        <Modal
+        <AccountReconciliationModal
+          account={reconcilingLive ?? reconciling}
           close={() => setReconciling(null)}
-          eyebrow={t('accounts.reconciliation.eyebrow')}
-          title={t('accounts.reconciliation.title', { label: reconcilingLive?.label })}
-        >
-          <ReconciliationPanel
-            account={reconcilingLive ?? reconciling}
-            key={reconciling.id}
-            onReconciled={() => {
-              setReconciling(null);
-              setSaved('reconciled');
-            }}
-          />
-        </Modal>
+          key={reconciling.id}
+          onReconciled={() => {
+            setReconciling(null);
+            setSaved('reconciled');
+          }}
+        />
       ) : null}
 
       {archiving ? (
