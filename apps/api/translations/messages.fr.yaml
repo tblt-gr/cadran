@@ -15,6 +15,12 @@ api:
     monthly_ledger_scope_too_large:
       title: 'Registre mensuel trop volumineux'
       detail: 'Le registre dépasse les limites de lecture autorisées.'
+    invalid_recap_preferences:
+      title: 'Préférences de récapitulatif invalides'
+      detail: 'Vérifiez les catégories, les axes et la version transmis ; chaque liste est bornée à 100 éléments uniques de cet espace de travail.'
+    recap_preferences_conflict:
+      title: 'Conflit de préférences de récapitulatif'
+      detail: 'Les préférences ont changé depuis leur lecture. Rechargez-les avant de réenregistrer.'
     not_found:
       title: 'Ressource introuvable'
       detail: "La ressource d'API demandée est introuvable."

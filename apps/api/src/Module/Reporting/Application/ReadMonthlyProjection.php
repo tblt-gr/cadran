@@ -5,21 +5,24 @@ declare(strict_types=1);
 namespace App\Module\Reporting\Application;
 
 use App\Module\Accounts\Application\MonthlyAccountFact;
-use App\Module\Accounts\Application\MonthlyAccountFacts;
 use App\Module\Accounts\Application\NetWorthScopeTooLarge;
+use App\Module\Accounts\Application\NetWorthView;
 use App\Module\Accounts\Application\ReadMonthlyAccountFacts;
 use App\Module\Accounts\Application\ReadNetWorth;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\InvalidCalendarMonth;
 use App\Module\Categories\Application\BudgetCategoryScopeTooLarge;
-use App\Module\Categories\Application\ReadBudgetCategoryFlags;
+use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Reporting\Domain\MonthlyAxisExpenseCalculator;
 use App\Module\Reporting\Domain\MonthlyMetric;
 use App\Module\Reporting\Domain\MonthlyMovement;
 use App\Module\Reporting\Domain\MonthlyMovementKind;
 use App\Module\Reporting\Domain\MonthlyProjectionCalculator;
 use App\Module\Reporting\Domain\MonthlyProjectionReason;
+use App\Module\Reporting\Domain\MonthlyRecapWindow;
 use App\Module\Reporting\Domain\MonthlySavingsTransfer;
 use App\Module\Reporting\Domain\MonthlySavingsTransferCalculator;
 use App\Module\Reporting\Domain\MonthlySplit;
@@ -36,8 +39,9 @@ final readonly class ReadMonthlyProjection
         private ReadMonthlyTransactionFacts $transactions,
         private ReadMonthlyTransferPairs $transferPairs,
         private ReadMonthlyAccountFacts $accounts,
-        private ReadBudgetCategoryFlags $categories,
+        private ReadBudgetCategoryFacts $categories,
         private ReadNetWorth $netWorth,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
@@ -50,12 +54,18 @@ final readonly class ReadMonthlyProjection
         }
 
         $workspace = $this->caller->resolve();
+        // N−1 is the last day of the preceding month, and an unfinished month
+        // stops on the day the workspace is living in. See MonthlyRecapWindow.
+        $window = MonthlyRecapWindow::of($month, $this->calendar->today());
         try {
             $transactionFacts = ($this->transactions)($workspace, $month);
             $transferPairFacts = ($this->transferPairs)($workspace, $month);
-            $accountFacts = ($this->accounts)($workspace, $month);
-            $categoryFlags = ($this->categories)($workspace);
-            $netWorth = ($this->netWorth)($month->lastDay()->format('Y-m-d'), $month->firstDay()->format('Y-m-d'));
+            $accountFacts = ($this->accounts)($workspace, $month, $window->currentAsOf);
+            $categoryFacts = ($this->categories)($workspace);
+            $netWorth = ($this->netWorth)(
+                $window->currentAsOf->format('Y-m-d'),
+                $window->previousAsOf->format('Y-m-d'),
+            );
         } catch (MonthlyTransactionScopeTooLarge|BudgetCategoryScopeTooLarge|NetWorthScopeTooLarge $exception) {
             throw new MonthlyProjectionScopeTooLarge('The monthly projection scope exceeds its bounds.', previous: $exception);
         }
@@ -78,12 +88,30 @@ final readonly class ReadMonthlyProjection
         );
         $movements = array_map($toMovement, $transactionFacts->booked);
         $pendingMovements = array_map($toMovement, $transactionFacts->pending);
+        $categoryFlags = [];
+        foreach ($categoryFacts as $category) {
+            $categoryFlags[$category->id] = $category->budgetIncluded;
+        }
+        $ledgerEntries = MonthlyLedgerFacts::entries($transactionFacts->booked);
+        $categoryMetrics = [];
+        foreach ($categoryFacts as $category) {
+            $metric = MonthlyRecapCategoryView::of($category, $ledgerEntries);
+            if (null !== $category->archivedAt && [] === $metric->metric->sourceTransactionIds) {
+                continue;
+            }
+            $categoryMetrics[] = $metric;
+        }
+        $accountAssets = array_map(
+            static fn (MonthlyAccountFact $account): string => $account->assetCode,
+            $accountFacts->accounts,
+        );
         $metrics = MonthlyProjectionCalculator::compute(
-            array_map(static fn (MonthlyAccountFact $account): string => $account->assetCode, $accountFacts->accounts),
+            $accountAssets,
             $movements,
             $categoryFlags,
             $pendingMovements,
         );
+        $axisMetrics = MonthlyAxisExpenseCalculator::compute($accountAssets, $movements, $categoryFlags, RecapAxes::all());
         $accountKindsById = [];
         foreach ($accountFacts->accounts as $account) {
             $accountKindsById[$account->id] = $account->kind;
@@ -105,7 +133,7 @@ final readonly class ReadMonthlyProjection
             $pair->voided,
         );
         $savingsMetrics = MonthlySavingsTransferCalculator::compute(
-            array_map(static fn (MonthlyAccountFact $account): string => $account->assetCode, $accountFacts->accounts),
+            $accountAssets,
             $accountKindsById,
             array_map($toTransfer, $transferPairFacts),
             $metrics->cashIncome,
@@ -120,8 +148,11 @@ final readonly class ReadMonthlyProjection
             $month->key(),
             $month->firstDay()->format('Y-m-d'),
             $month->lastDay()->format('Y-m-d'),
+            $window->previousAsOf->format('Y-m-d'),
+            $window->currentAsOf->format('Y-m-d'),
+            $window->provisional,
             self::state(count($transactionFacts->booked), $transactionFacts->pendingCount),
-            self::quality($accountFacts),
+            self::quality($netWorth),
             $transactionFacts->pendingCount,
             MonthlyMetricView::fromMetric($metrics->cashIncome),
             MonthlyMetricView::fromMetric(MonthlyMetric::missing(MonthlyProjectionReason::MISSING_BENEFIT_SOURCE)),
@@ -140,6 +171,9 @@ final readonly class ReadMonthlyProjection
             self::beginningState($netWorth->delta->previousTotal?->amount),
             array_map(MonthlyAccountView::of(...), $accountFacts->accounts),
             $accountFacts->reconciliationStatus,
+            array_map(MonthlyMetricView::fromMetric(...), $axisMetrics),
+            $categoryMetrics,
+            $netWorth,
         );
     }
 
@@ -152,23 +186,13 @@ final readonly class ReadMonthlyProjection
         };
     }
 
-    private static function quality(MonthlyAccountFacts $facts): string
+    private static function quality(NetWorthView $netWorth): string
     {
-        if ([] === $facts->accounts) {
-            return 'MISSING';
-        }
-        foreach ($facts->accounts as $account) {
-            if ('MISSING' === $account->beginning->quality || 'MISSING' === $account->end->quality) {
-                return 'MISSING';
-            }
-        }
-        foreach ($facts->accounts as $account) {
-            if ('STALE' === $account->beginning->quality || 'STALE' === $account->end->quality) {
-                return 'STALE';
-            }
-        }
-
-        return 'CURRENT';
+        return match (true) {
+            'MISSING' === $netWorth->delta->previousQuality || 'MISSING' === $netWorth->quality => 'MISSING',
+            'STALE' === $netWorth->delta->previousQuality || 'STALE' === $netWorth->quality => 'STALE',
+            default => 'CURRENT',
+        };
     }
 
     private static function beginningState(?string $value): string

@@ -28,10 +28,22 @@ final readonly class ReadMonthlyAccountFacts
     ) {
     }
 
-    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month): MonthlyAccountFacts
-    {
+    /**
+     * @param ?\DateTimeImmutable $effectiveEnd the day the month is read up to, when it is not the
+     *                                          calendar end: a month still running stops on the day
+     *                                          the workspace is living in, so a valuation the reader
+     *                                          dated later is never published as already applying
+     */
+    public function __invoke(
+        WorkspaceScope $workspace,
+        CalendarMonth $month,
+        ?\DateTimeImmutable $effectiveEnd = null,
+    ): MonthlyAccountFacts {
         $first = $month->firstDay();
-        $last = $month->lastDay();
+        $last = $effectiveEnd ?? $month->lastDay();
+        if ($last < $first || $last > $month->lastDay()) {
+            throw new \InvalidArgumentException('A monthly read ends inside the month it reads.');
+        }
         $workspaceTimezone = new \DateTimeZone($this->timezones->timezone($workspace));
         $accounts = $this->accounts->listOpenDuring($workspace, $first, $last, $workspaceTimezone, self::MAX_ACCOUNTS + 1);
         if (count($accounts) > self::MAX_ACCOUNTS) {

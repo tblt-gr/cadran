@@ -1,8 +1,14 @@
-import type { MonthlyLedgerAccountRow, MonthlyLedgerCategoryRow } from '@cadran/api-client';
+import type {
+  MonthlyLedgerAccountRow,
+  MonthlyLedgerCategoryRow,
+  MonthlyRecapMetric,
+} from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { BUDGET_AXES, type BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import { LedgerRow, type LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
+import { formatAmount } from '@/lib/decimal';
 import styles from './LedgerPanel.module.css';
 
 interface LedgerPanelProps {
@@ -18,6 +24,18 @@ interface LedgerPanelProps {
   onAxisChange?: (axis: BudgetAxis | null) => void;
   onEditTransaction?: (transactionId: string) => void;
   rows: Array<MonthlyLedgerCategoryRow | MonthlyLedgerAccountRow>;
+  total?: MonthlyRecapMetric;
+  totalState: 'loading' | 'ready' | 'unavailable';
+}
+
+function HeaderTotal({ total, totalState }: Pick<LedgerPanelProps, 'total' | 'totalState'>) {
+  const { i18n, t } = useTranslation();
+  if (totalState === 'loading') return <span>{t('budget.monthly.totalLoading')}</span>;
+  if (totalState === 'unavailable' || !total || total.value === null || total.assetCode === null) {
+    return <span>{t('states.notCalculable.label')}</span>;
+  }
+
+  return <MoneyValue value={formatAmount(total.value, total.assetCode, i18n.language)} />;
 }
 
 export function LedgerPanel({
@@ -32,6 +50,8 @@ export function LedgerPanel({
   onAxisChange,
   onEditTransaction,
   rows,
+  total,
+  totalState,
 }: LedgerPanelProps) {
   const { t } = useTranslation();
   const titleId = `monthly-ledger-${kind}`;
@@ -42,6 +62,10 @@ export function LedgerPanel({
         <div>
           <h3 id={titleId}>{t(`budget.monthly.panels.${kind}`)}</h3>
           <p>{t(`budget.monthly.panelDescriptions.${kind}`)}</p>
+          <p className={styles.total}>
+            <span>{t(`budget.monthly.panelTotals.${kind}`)}</span>
+            <HeaderTotal total={total} totalState={totalState} />
+          </p>
         </div>
         <div className={styles.headingActions}>
           {kind === 'expense' && onAxisChange ? (

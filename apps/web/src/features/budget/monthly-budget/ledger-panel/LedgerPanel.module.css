@@ -20,6 +20,21 @@
   margin: var(--spacing-none);
 }
 
+.total {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.total span:last-child {
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-variant-numeric: tabular-nums;
+}
+
 .heading h3 {
   color: var(--text-primary);
   font-size: var(--font-size-card-title);
