@@ -209,38 +209,66 @@ describe('App', () => {
     await waitFor(() => expect(document.title).toBe('Transactions · Cadran Budget'));
   });
 
-  it('keeps categorization rules under Categories and navigates between both screens', async () => {
+  it('nests categories and rules under Transactions and navigates between them', async () => {
     mockApi();
-    window.history.replaceState({}, '', '/categories');
+    window.history.replaceState({}, '', '/transactions');
 
     renderApp();
 
-    const categoryLinks = await screen.findAllByRole('link', { name: 'Catégories' });
-    expect(categoryLinks.some((link) => link.getAttribute('aria-current') === 'page')).toBe(true);
-    expect(screen.queryByRole('link', { name: 'Règles de catégorisation' })).toBeNull();
+    const manageCategories = await screen.findByRole('link', { name: 'Gérer les catégories' });
+    fireEvent.click(manageCategories, { ctrlKey: true });
+    expect(window.location.pathname).toBe('/transactions');
+
+    fireEvent.click(manageCategories);
+
+    expect(window.location.pathname).toBe('/transactions/categories');
+    const transactionLinks = await screen.findAllByRole('link', { name: 'Transactions' });
+    expect(transactionLinks.some((link) => link.getAttribute('aria-current') === 'page')).toBe(
+      true,
+    );
+    expect(screen.queryByRole('link', { name: 'Catégories' })).toBeNull();
 
     const manageRules = screen.getByRole('link', { name: 'Gérer les règles' });
-    fireEvent.click(manageRules, { ctrlKey: true });
-    expect(window.location.pathname).toBe('/categories');
-
     fireEvent.click(manageRules);
 
-    expect(window.location.pathname).toBe('/categories/rules');
+    expect(window.location.pathname).toBe('/transactions/categories/rules');
     expect(
       await screen.findAllByRole('heading', { name: 'Règles de catégorisation' }),
     ).toHaveLength(2);
-    expect(screen.getByRole('link', { name: 'Retour aux catégories' })).toBeTruthy();
 
-    const backToCategories = screen.getByRole('link', { name: 'Retour aux catégories' });
-    fireEvent.click(backToCategories, { metaKey: true });
-    expect(window.location.pathname).toBe('/categories/rules');
-
-    fireEvent.click(backToCategories);
-
-    expect(window.location.pathname).toBe('/categories');
+    fireEvent.click(screen.getByRole('link', { name: 'Retour aux catégories' }));
+    expect(window.location.pathname).toBe('/transactions/categories');
     expect(
       await screen.findByRole('heading', { name: 'Catégories et axes analytiques' }),
     ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('link', { name: 'Retour aux transactions' }));
+    expect(window.location.pathname).toBe('/transactions');
+  });
+
+  it('skips the legacy URL on browser back after a redirect', async () => {
+    mockApi();
+    window.history.replaceState({}, '', '/transactions');
+    window.history.pushState({}, '', '/categories');
+
+    renderApp();
+
+    await waitFor(() => expect(window.location.pathname).toBe('/transactions/categories'));
+    window.history.back();
+    await waitFor(() => expect(window.location.pathname).toBe('/transactions'));
+  });
+
+  it.each([
+    ['/categories?includeArchived=1#top', '/transactions/categories'],
+    ['/categories/rules?q=abc', '/transactions/categories/rules'],
+  ])('redirects legacy %s and keeps its query state', async (legacy, target) => {
+    mockApi();
+    window.history.replaceState({}, '', legacy);
+
+    renderApp();
+
+    await waitFor(() => expect(window.location.pathname).toBe(target));
+    expect(window.location.search + window.location.hash).toBe(legacy.slice(legacy.indexOf('?')));
   });
 
   it('redirects an old UUID-shaped budget link to the plan subroute', async () => {

@@ -92,7 +92,6 @@
     "accounts": "Comptes",
     "budget": "Budget",
     "accountGroups": "Groupes de comptes",
-    "categories": "Catégories",
     "collapse": "Réduire la navigation",
     "expand": "Déployer la navigation",
     "explore": "Explorer Cadran",
@@ -117,6 +116,8 @@
     "lifeInsurance": "Assurance-vie",
     "categorizationRules": "Règles de catégorisation",
     "recurrences": "Récurrences",
+    "categories": "Catégories",
+    "redirecting": "Redirection…",
     "notFound": "Page introuvable"
   },
   "reports": {
@@ -832,6 +833,7 @@
     "description": "Structurez les revenus et dépenses sans doubler les totaux, puis ajoutez des axes transversaux.",
     "add": "Nouvelle catégorie",
     "manageRules": "Gérer les règles",
+    "backToTransactions": "Retour aux transactions",
     "addFirst": "Créer la première catégorie",
     "includeArchived": "Afficher les catégories archivées",
     "loading": "Chargement des catégories…",
@@ -1666,6 +1668,7 @@
     "addFirst": "Enregistrer la première transaction",
     "addTransfer": "Nouveau virement",
     "manageRecurrences": "Gérer les récurrences",
+    "manageCategories": "Gérer les catégories",
     "includeVoided": "Afficher les transactions annulées",
     "loading": "Chargement des transactions…",
     "toasts": {

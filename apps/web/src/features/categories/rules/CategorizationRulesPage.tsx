@@ -41,8 +41,8 @@ export function CategorizationRulesPage() {
             <a
               aria-label={t('categorizationRules.backToCategories')}
               className={`icon-button ${styles.back}`}
-              href="/categories"
-              onClick={(event) => handleClientNavigation(event, '/categories')}
+              href="/transactions/categories"
+              onClick={(event) => handleClientNavigation(event, '/transactions/categories')}
             >
               <Icon name="arrow-left" size={18} />
             </a>

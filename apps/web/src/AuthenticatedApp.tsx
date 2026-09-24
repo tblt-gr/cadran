@@ -2,6 +2,7 @@ import { getFoundationStatus } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { RouteRedirect } from '@/components/layout/route-redirect/RouteRedirect';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { AccountsPage } from '@/features/accounts/AccountsPage';
 import { AccountDetailPage } from '@/features/accounts/account-detail/AccountDetailPage';
@@ -71,10 +72,14 @@ export function AuthenticatedApp() {
     content = <AccountGroupsPage />;
   } else if (/^\/accounts\/[^/]+$/.test(path)) {
     content = <AccountDetailPage accountId={path.split('/')[2]!} />;
-  } else if (path === '/categories') {
+  } else if (path === '/transactions/categories') {
     content = <CategoryPage />;
-  } else if (path === '/categories/rules') {
+  } else if (path === '/transactions/categories/rules') {
     content = <CategorizationRulesPage />;
+  } else if (path === '/categories') {
+    content = <RouteRedirect to="/transactions/categories" />;
+  } else if (path === '/categories/rules') {
+    content = <RouteRedirect to="/transactions/categories/rules" />;
   } else if (path === '/catalog') {
     content = <ProductCatalogPage />;
   } else if (path === '/product-models') {
@@ -131,6 +136,8 @@ export function AuthenticatedApp() {
         !/^\/accounts\/[^/]+$/.test(path) &&
         path !== '/categories' &&
         path !== '/categories/rules' &&
+        path !== '/transactions/categories' &&
+        path !== '/transactions/categories/rules' &&
         path !== '/catalog' &&
         path !== '/product-models' &&
         path !== '/transactions' &&
