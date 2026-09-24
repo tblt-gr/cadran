@@ -7,10 +7,17 @@
 
 .large {
   color: var(--text-primary);
-  font-size: var(--font-size-display);
+  font-size: var(--font-size-metric);
   font-weight: var(--font-weight-medium);
-  letter-spacing: var(--letter-spacing-display);
   line-height: var(--line-height-tight);
+}
+
+.large [data-sign='inflow'] {
+  color: var(--positive);
+}
+
+.large [data-sign='outflow'] {
+  color: var(--negative);
 }
 
 .large .unknown {

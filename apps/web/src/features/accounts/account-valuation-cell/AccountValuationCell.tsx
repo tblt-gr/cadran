@@ -35,11 +35,21 @@ export function AccountValuationCell({
     );
   }
 
+  const negative = valuation.display !== null && valuation.display.value.startsWith('-');
   const figure = valuation.belowDisplayStep
     ? t('accounts.balances.belowStep')
     : valuation.display
       ? formatAmount(valuation.display.value, valuation.display.assetCode, i18n.language)
       : t('accounts.balances.missing');
+  // A colour never carries the sign alone: the balance itself already reads
+  // "-" or a forced "+", so a reader who cannot tell red from green still
+  // gets the same fact.
+  const signedFigure =
+    size === 'lg' && valuation.display && !valuation.belowDisplayStep
+      ? negative || figure.startsWith('+')
+        ? figure
+        : `+${figure}`
+      : figure;
 
   const ceilingLabel =
     ceiling === null ? null : formatAmount(ceiling.value, ceiling.assetCode, i18n.language);
@@ -53,7 +63,13 @@ export function AccountValuationCell({
       {valuation.belowDisplayStep || !valuation.display ? (
         <span className={styles.unknown}>{figure}</span>
       ) : ceilingLabel === null ? (
-        <MoneyValue value={figure} />
+        size === 'lg' ? (
+          <span data-sign={negative ? 'outflow' : 'inflow'}>
+            <MoneyValue value={signedFigure} />
+          </span>
+        ) : (
+          <MoneyValue value={signedFigure} />
+        )
       ) : (
         <div className={styles.ceiling}>
           <MoneyValue

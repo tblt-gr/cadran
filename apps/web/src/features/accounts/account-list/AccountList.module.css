@@ -42,6 +42,7 @@
 .accountLink {
   color: inherit;
   font-weight: var(--font-weight-strong);
+  text-decoration: none;
 }
 
 .panel tbody th small {
