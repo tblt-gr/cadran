@@ -29,6 +29,12 @@
   text-transform: uppercase;
 }
 
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
 .identity h3 {
   margin: var(--spacing-none);
   font-size: var(--font-size-card-title);

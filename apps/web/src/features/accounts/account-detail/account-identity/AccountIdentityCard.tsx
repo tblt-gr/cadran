@@ -73,17 +73,22 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
       <div className={styles.top}>
         <div className={styles.identity}>
           <p>{t('accounts.detail.identity.title')}</p>
-          <h3>{account.label}</h3>
+          <div className={styles.nameRow}>
+            <h3>{account.label}</h3>
+            {account.status === 'ACTIVE' ? null : (
+              <StatusBadge tone={STATUS_TONE[account.status]}>
+                {t(`accounts.statuses.${account.status}`)}
+              </StatusBadge>
+            )}
+          </div>
           <span>
             {[account.institution, account.maskedIdentifier && `••${account.maskedIdentifier}`]
               .filter(Boolean)
               .join(' · ') || t('accounts.detail.identity.noInstitution')}
           </span>
-          <span className={styles.meta}>{t(`accounts.kinds.${account.kind}`)}</span>
-          <span className={styles.meta}>{groupLabel}</span>
-          <StatusBadge tone={STATUS_TONE[account.status]}>
-            {t(`accounts.statuses.${account.status}`)}
-          </StatusBadge>
+          <span className={styles.meta}>
+            {t(`accounts.kinds.${account.kind}`)} • {groupLabel}
+          </span>
         </div>
 
         <div className={styles.balancePanel}>

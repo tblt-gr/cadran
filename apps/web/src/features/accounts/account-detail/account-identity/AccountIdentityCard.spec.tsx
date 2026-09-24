@@ -91,12 +91,18 @@ describe('AccountIdentityCard', () => {
     cleanup();
   });
 
-  it('shows the account label, kind and institution', () => {
+  it('shows the account label, kind, group and institution', () => {
     renderCard(account);
 
     expect(screen.getByRole('heading', { name: 'Livret A Banque X' })).toBeTruthy();
-    expect(screen.getByText('Livret ou épargne')).toBeTruthy();
+    expect(screen.getByText('Livret ou épargne • Aucun groupe')).toBeTruthy();
     expect(screen.getByText('Banque X · ••4821')).toBeTruthy();
+  });
+
+  it('shows no status badge for an active account, only for an inactive one', () => {
+    renderCard(account);
+
+    expect(screen.queryByText('Actif')).toBeNull();
   });
 
   it('shows a missing-valuation state, not zero, when no dated source answers', () => {
@@ -116,7 +122,7 @@ describe('AccountIdentityCard', () => {
     );
     renderCard({ ...account, primaryGroupId: '00000000-0000-7000-8000-0000000000c1' });
 
-    expect(await screen.findByText('Épargne')).toBeTruthy();
+    expect(await screen.findByText('Livret ou épargne • Épargne')).toBeTruthy();
   });
 
   it('shows the group as unavailable, not as no group, when the group read fails', async () => {
@@ -124,9 +130,11 @@ describe('AccountIdentityCard', () => {
     renderCard({ ...account, primaryGroupId: '00000000-0000-7000-8000-0000000000c1' });
 
     expect(
-      await screen.findByText('Le groupe rattaché à ce compte n’a pas pu être lu.'),
+      await screen.findByText(
+        'Livret ou épargne • Le groupe rattaché à ce compte n’a pas pu être lu.',
+      ),
     ).toBeTruthy();
-    expect(screen.queryByText('Aucun groupe')).toBeNull();
+    expect(screen.queryByText('Livret ou épargne • Aucun groupe')).toBeNull();
   });
 
   it('shows the group as unavailable, not as no group, when it is not on the fetched page', async () => {
@@ -136,9 +144,11 @@ describe('AccountIdentityCard', () => {
     renderCard({ ...account, primaryGroupId: '00000000-0000-7000-8000-0000000000c1' });
 
     expect(
-      await screen.findByText('Le groupe rattaché à ce compte n’a pas pu être lu.'),
+      await screen.findByText(
+        'Livret ou épargne • Le groupe rattaché à ce compte n’a pas pu être lu.',
+      ),
     ).toBeTruthy();
-    expect(screen.queryByText('Aucun groupe')).toBeNull();
+    expect(screen.queryByText('Livret ou épargne • Aucun groupe')).toBeNull();
   });
 
   it('stays linkable and readable for an archived account', () => {
