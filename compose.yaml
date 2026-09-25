@@ -33,6 +33,8 @@ services:
     tmpfs:
       - /app/apps/api/var:uid=33,gid=33,mode=0700
       - /tmp:uid=33,gid=33,mode=1777
+    mem_limit: 512m
+    pids_limit: 256
     read_only: true
     cap_drop:
       - ALL
@@ -66,6 +68,8 @@ services:
     tmpfs:
       - /var/run/postgresql:uid=70,gid=70,mode=0775
       - /tmp:uid=70,gid=70,mode=1777
+    mem_limit: 1g
+    pids_limit: 256
     read_only: true
     cap_drop:
       - ALL

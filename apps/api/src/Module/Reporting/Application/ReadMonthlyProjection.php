@@ -112,9 +112,9 @@ final readonly class ReadMonthlyProjection
             $pendingMovements,
         );
         $axisMetrics = MonthlyAxisExpenseCalculator::compute($accountAssets, $movements, $categoryFlags, RecapAxes::all());
-        $accountKindsById = [];
+        $savingsDestinationById = [];
         foreach ($accountFacts->accounts as $account) {
-            $accountKindsById[$account->id] = $account->kind;
+            $savingsDestinationById[$account->id] = $account->savingsDestination;
         }
         $toTransfer = static fn (MonthlyTransferPairFact $pair): MonthlySavingsTransfer => new MonthlySavingsTransfer(
             $pair->transferId,
@@ -134,7 +134,7 @@ final readonly class ReadMonthlyProjection
         );
         $savingsMetrics = MonthlySavingsTransferCalculator::compute(
             $accountAssets,
-            $accountKindsById,
+            $savingsDestinationById,
             array_map($toTransfer, $transferPairFacts),
             $metrics->cashIncome,
         );

@@ -10,16 +10,20 @@ use App\Module\Foundation\Domain\ExactDecimal;
 
 final class MonthlySavingsTransferCalculator
 {
-    private const array SAVINGS_KINDS = ['SAVINGS', 'PORTFOLIO'];
-
     /**
      * @param list<string>                 $accountAssets
-     * @param array<string, string>        $accountKindsById
+     * @param array<string, bool>          $savingsDestinationById whether each account sits on the
+     *                                                             savings side of a transfer
+     *                                                             (`AccountKind::isSavingsDestination()`,
+     *                                                             read from Accounts through the
+     *                                                             account facts this module already
+     *                                                             consumes; this calculator does not
+     *                                                             decide the perimeter itself)
      * @param list<MonthlySavingsTransfer> $pairs
      */
     public static function compute(
         array $accountAssets,
-        array $accountKindsById,
+        array $savingsDestinationById,
         array $pairs,
         MonthlyMetric $cashIncome,
     ): MonthlySavingsTransferMetrics {
@@ -96,9 +100,9 @@ final class MonthlySavingsTransferCalculator
                 );
             }
 
-            $sourceKind = $accountKindsById[$sourceAccountId] ?? null;
-            $targetKind = $accountKindsById[$targetAccountId] ?? null;
-            if (null === $sourceKind || null === $targetKind) {
+            $sourceInside = $savingsDestinationById[$sourceAccountId] ?? null;
+            $targetInside = $savingsDestinationById[$targetAccountId] ?? null;
+            if (null === $sourceInside || null === $targetInside) {
                 return self::allMissing(
                     MonthlyProjectionReason::MISSING_ACCOUNT_CLASSIFICATION,
                     self::pairTransactionIds($pair),
@@ -106,8 +110,6 @@ final class MonthlySavingsTransferCalculator
                 );
             }
 
-            $sourceInside = in_array($sourceKind, self::SAVINGS_KINDS, true);
-            $targetInside = in_array($targetKind, self::SAVINGS_KINDS, true);
             if ($sourceInside === $targetInside) {
                 continue;
             }

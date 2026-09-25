@@ -7,6 +7,7 @@ namespace App\Tests\Module\Categories\UI\Http;
 use App\Module\Categories\Domain\Category;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
@@ -20,6 +21,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class CategoryLifecycleControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private KernelBrowser $client;
     private Connection $connection;
     private WorkspaceFixture $fixture;
@@ -491,6 +494,35 @@ final class CategoryLifecycleControllerTest extends WebTestCase
         self::assertSame($eatingOut['id'], $moved['parentId']);
         self::assertSame(2, $moved['depth']);
         self::assertNotNull($moved['archivedAt']);
+    }
+
+    public function testMovingACategoryDuringAnActiveClosureIsRefused(): void
+    {
+        $food = $this->createCategory('Alimentation');
+        $restaurants = $this->createCategory('Restaurants', $food['id']);
+        $leisure = $this->createCategory('Loisirs');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $this->move($restaurants['id'], $leisure['id'], $restaurants['version']);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        $unchanged = $this->row($restaurants['id']);
+        self::assertSame($food['id'], $unchanged['parentId']);
+    }
+
+    public function testMergingACategoryDuringAnActiveClosureIsRefused(): void
+    {
+        $restaurants = $this->createCategory('Restaurants');
+        $eatingOut = $this->createCategory('Sorties');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $this->merge($restaurants['id'], $eatingOut['id'], $restaurants['version']);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        $unchanged = $this->row($restaurants['id']);
+        self::assertNull($unchanged['archivedAt']);
     }
 
     /** @return array<string, mixed> */

@@ -1,7 +1,9 @@
 import type { Account, CreateTransferRequest } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
+import { workspaceToday } from '@/lib/workspaceTime';
 import {
   initialTransferValues,
   isCrossAssetTransfer,
@@ -38,8 +40,10 @@ export function TransferForm({
   submitError,
 }: TransferFormProps) {
   const { t } = useTranslation();
+  const workspaceTimeZone = useWorkspaceTimeZone();
+  const today = workspaceToday(new Date(), workspaceTimeZone);
   const [values, setValues] = useState(() => {
-    const initial = initialTransferValues(accounts, defaults?.bookedOn);
+    const initial = initialTransferValues(accounts, defaults?.bookedOn ?? today);
 
     return defaults
       ? {
@@ -51,7 +55,7 @@ export function TransferForm({
       : initial;
   });
   const [showErrors, setShowErrors] = useState(false);
-  const errors = validateTransferValues(values, accounts);
+  const errors = validateTransferValues(values, accounts, today);
   const crossAsset = isCrossAssetTransfer(values, accounts);
   const sourceAsset = accounts.find((account) => account.id === values.sourceAccountId)?.assetCode;
   const targetAsset = accounts.find((account) => account.id === values.targetAccountId)?.assetCode;

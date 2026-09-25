@@ -28,7 +28,7 @@ const authenticatedSession = {
   authenticated: true,
   setupRequired: false,
   user: { id: 'u1', email: 'owner@example.test', displayName: 'Owner' },
-  workspace: { id: 'w1', role: 'OWNER' },
+  workspace: { id: 'w1', role: 'OWNER', timeZone: 'Europe/Paris' },
 };
 
 /** Enough of a net-worth answer for the dashboard cards to render. */

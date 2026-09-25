@@ -18,7 +18,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
     {
         $metrics = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT', 'savings' => 'SAVINGS', 'portfolio' => 'PORTFOLIO', 'cash' => 'CASH'],
+            ['current' => false, 'savings' => true, 'portfolio' => true, 'cash' => false],
             [
                 self::pair('inflow', 'current', 'savings', '-300.00', '300.00'),
                 self::pair('withdrawal', 'savings', 'current', '-50.00', '50.00'),
@@ -41,7 +41,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
     {
         $negative = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT', 'savings' => 'SAVINGS'],
+            ['current' => false, 'savings' => true],
             [
                 self::pair('inflow', 'current', 'savings', '-100.00', '100.00'),
                 self::pair('withdrawal', 'savings', 'current', '-300.00', '300.00'),
@@ -53,7 +53,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
 
         $zero = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT', 'savings' => 'SAVINGS'],
+            ['current' => false, 'savings' => true],
             [
                 self::pair('inflow', 'current', 'savings', '-100.00', '100.00'),
                 self::pair('withdrawal', 'savings', 'current', '-100.00', '100.00'),
@@ -68,7 +68,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
     {
         $metrics = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT', 'savings' => 'SAVINGS'],
+            ['current' => false, 'savings' => true],
             [
                 self::pair('booked', 'current', 'savings', '-20.00', '20.00'),
                 self::pair('pending', 'current', 'savings', '-30.00', '30.00', state: 'PENDING'),
@@ -87,7 +87,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
     {
         $zeroIncome = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT', 'savings' => 'SAVINGS'],
+            ['current' => false, 'savings' => true],
             [self::pair('inflow', 'current', 'savings', '-10.00', '10.00')],
             MonthlyMetric::value(DecimalValue::zero(), AssetCode::fromString('EUR')),
         );
@@ -96,7 +96,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
 
         $missingLeg = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT', 'savings' => 'SAVINGS'],
+            ['current' => false, 'savings' => true],
             [self::pair('broken', 'current', null, '-10.00', null)],
             MonthlyMetric::value(DecimalValue::fromString('100.00'), AssetCode::fromString('EUR')),
         );
@@ -104,7 +104,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
 
         $mixedState = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT', 'savings' => 'SAVINGS'],
+            ['current' => false, 'savings' => true],
             [self::pair('mixed-state', 'current', 'savings', '-10.00', '10.00', targetState: 'PENDING')],
             MonthlyMetric::value(DecimalValue::fromString('100.00'), AssetCode::fromString('EUR')),
         );
@@ -112,7 +112,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
 
         $mixedDay = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT', 'savings' => 'SAVINGS'],
+            ['current' => false, 'savings' => true],
             [self::pair('mixed-day', 'current', 'savings', '-10.00', '10.00', targetBookedOn: '2026-09-16')],
             MonthlyMetric::value(DecimalValue::fromString('100.00'), AssetCode::fromString('EUR')),
         );
@@ -120,7 +120,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
 
         $missingClassification = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT'],
+            ['current' => false],
             [self::pair('unclassified', 'current', 'missing', '-10.00', '10.00')],
             MonthlyMetric::value(DecimalValue::fromString('100.00'), AssetCode::fromString('EUR')),
         );
@@ -149,7 +149,7 @@ final class MonthlySavingsTransferCalculatorTest extends TestCase
 
         $metrics = MonthlySavingsTransferCalculator::compute(
             ['EUR'],
-            ['current' => 'CURRENT', 'savings' => 'SAVINGS'],
+            ['current' => false, 'savings' => true],
             [$pair],
             MonthlyMetric::value(DecimalValue::fromString('100.00'), AssetCode::fromString('EUR')),
         );

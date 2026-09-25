@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Identity\Application;
 
+use App\Module\Foundation\Application\WorkspaceTimezoneReader;
+
 /**
  * Builds the session view for GET /api/v1/session. The caller passes the
  * authenticated identifier resolved by the firewall, or null when the request
@@ -14,6 +16,7 @@ final readonly class DescribeSession
     public function __construct(
         private AuthenticationUserRepository $users,
         private WorkspaceMembershipReader $memberships,
+        private WorkspaceTimezoneReader $timezones,
     ) {
     }
 
@@ -44,7 +47,11 @@ final readonly class DescribeSession
             user: new SessionUser($user->id, $user->email, $user->displayName),
             workspace: null === $membership
                 ? null
-                : new SessionWorkspace($membership->workspace->id, $membership->role),
+                : new SessionWorkspace(
+                    $membership->workspace->id,
+                    $membership->role,
+                    $this->timezones->timezone($membership->workspace),
+                ),
         );
     }
 }

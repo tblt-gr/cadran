@@ -12,7 +12,6 @@ use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\ReconciliationStatus;
-use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
@@ -67,7 +66,7 @@ final readonly class ReadMonthlyAccountFacts
                 $account->label,
                 $account->assetCode->toString(),
                 $account->kind->value,
-                in_array($account->kind, [AccountKind::SAVINGS, AccountKind::PORTFOLIO], true),
+                $account->kind->isSavingsDestination(),
                 self::valuation($account, $beginning, $first, $workspaceTimezone),
                 self::valuation($account, $end, $last, $workspaceTimezone),
                 $reconciled ? ReconciliationStatus::RECONCILED->value : ReconciliationStatus::UNRECONCILED->value,

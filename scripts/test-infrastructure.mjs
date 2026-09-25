@@ -49,6 +49,16 @@ for (const [serviceName, service] of Object.entries(services)) {
   if (!service.user || service.user.startsWith('0:')) {
     fail(`${serviceName} must run as a non-root user`);
   }
+
+  // A runaway request handler or query must not be able to starve the host
+  // or the sibling container of memory or of the kernel's process table.
+  if (!service.mem_limit) {
+    fail(`${serviceName} must declare a memory limit`);
+  }
+
+  if (!service.pids_limit || service.pids_limit <= 0) {
+    fail(`${serviceName} must declare a positive pids limit`);
+  }
 }
 
 if (services.db.ports !== undefined) {

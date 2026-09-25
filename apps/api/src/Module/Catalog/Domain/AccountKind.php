@@ -31,4 +31,18 @@ enum AccountKind: string
             default => ProductNature::ASSET,
         };
     }
+
+    /**
+     * Whether this kind sits on the savings side of a transfer: money moved
+     * into it builds savings, money moved out of it withdraws from savings.
+     * Reporting's monthly net-savings KPI (RPT-007) reads this instead of
+     * hard-coding the two kinds itself, so the perimeter has one owner.
+     */
+    public function isSavingsDestination(): bool
+    {
+        return match ($this) {
+            self::SAVINGS, self::PORTFOLIO => true,
+            default => false,
+        };
+    }
 }

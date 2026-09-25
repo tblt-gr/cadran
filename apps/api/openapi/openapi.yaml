@@ -2023,6 +2023,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: '#/components/parameters/CsrfToken'
         - name: id
           in: path
           required: true
@@ -2047,7 +2048,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/WorkspaceForbidden'
+          $ref: '#/components/responses/AccountMutationForbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
@@ -2095,6 +2096,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: '#/components/parameters/CsrfToken'
         - name: id
           in: path
           required: true
@@ -2125,7 +2127,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/WorkspaceForbidden'
+          $ref: '#/components/responses/AccountMutationForbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
@@ -5308,6 +5310,7 @@ components:
       required:
         - id
         - role
+        - timeZone
       properties:
         id:
           type: string
@@ -5316,6 +5319,13 @@ components:
           type: string
           enum:
             - OWNER
+        timeZone:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: >-
+            IANA timezone of the workspace, which decides its current day and
+            month. The SPA reads this instead of assuming a fixed zone.
     LoginRequest:
       type: object
       additionalProperties: false

@@ -7,12 +7,15 @@ namespace App\Tests\Module\Accounts\Application;
 use App\Module\Accounts\Application\AccountArchived;
 use App\Module\Accounts\Application\AccountBalanceConflict;
 use App\Module\Accounts\Application\AccountNotFound;
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Application\InvalidAccountBalanceInput;
+use App\Module\Accounts\Application\PeriodClosed;
 use App\Module\Accounts\Application\RecordAccountBalance;
 use App\Module\Accounts\Application\RecordAccountBalanceInput;
 use App\Module\Accounts\Application\StaleAccountVersion;
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\BalanceSnapshotSource;
+use App\Module\Accounts\Domain\PeriodClosureRepository;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\InvalidAmountInput;
@@ -164,6 +167,16 @@ final class RecordAccountBalanceTest extends TestCase
         ($this->record())(AccountFixture::ID, $this->input(asOf: '2026-01-09'));
     }
 
+    public function testASnapshotDatedInAClosedMonthIsRefused(): void
+    {
+        $closures = $this->createStub(PeriodClosureRepository::class);
+        $closures->method('closedAmong')->willReturn(['2026-09']);
+
+        $this->expectException(PeriodClosed::class);
+
+        ($this->record(assertPeriodOpen: new AssertPeriodOpen($closures)))(AccountFixture::ID, $this->input());
+    }
+
     public function testASnapshotCannotPostdateTheAccountClosing(): void
     {
         $account = AccountFixture::account();
@@ -210,6 +223,7 @@ final class RecordAccountBalanceTest extends TestCase
         ?InMemoryAccountRepository $accounts = null,
         ?InMemoryAccountBalanceSnapshotRepository $snapshots = null,
         string $caller = AccountFixture::WORKSPACE,
+        ?AssertPeriodOpen $assertPeriodOpen = null,
     ): RecordAccountBalance {
         return new RecordAccountBalance(
             new FixedCallerWorkspace($caller),
@@ -220,6 +234,7 @@ final class RecordAccountBalanceTest extends TestCase
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),
             new MockClock(self::NOW, 'UTC'),
+            $assertPeriodOpen ?? new AssertPeriodOpen($this->createStub(PeriodClosureRepository::class)),
         );
     }
 }

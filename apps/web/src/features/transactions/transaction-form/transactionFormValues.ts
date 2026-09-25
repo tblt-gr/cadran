@@ -49,14 +49,10 @@ const OPTIONAL_LIMITS = {
   note: 500,
 } as const;
 
-export function todayInParis(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' });
-}
-
 export function initialTransactionValues(
   transaction: Transaction | undefined,
   accounts: Account[],
-  today = todayInParis(),
+  today: string,
 ): TransactionFormValues {
   // A saved split was accepted only with a category matching the transaction sign,
   // and a used category can no longer change type: the sign tells its type.
@@ -104,8 +100,8 @@ export function initialTransactionValues(
 export function validateTransactionValues(
   values: TransactionFormValues,
   accounts: Account[],
+  today: string,
   transaction?: Transaction,
-  today = todayInParis(),
 ): TransactionFormErrors {
   const errors: TransactionFormErrors = {};
   const account = accounts.find((candidate) => candidate.id === values.accountId);

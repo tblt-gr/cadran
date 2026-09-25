@@ -8,13 +8,72 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ### Added
 
+- Reconcile pending transactions into their booked counterparts: a `PENDING` transaction matched
+  to a real movement becomes `RECEIVED` or is read back as `LATE` from the calendar, without
+  duplicating the canonical transaction or losing user enrichment (TX-010).
+- Reconcile account balances against a dated observed statement and explain the discrepancy
+  between the opening balance plus movements and the closing figure, with unreconciled items kept
+  distinct from reconciled ones (TX-007).
+- Close and reopen monthly periods safely: a workspace-wide closure protects every dated write
+  behind one shared `AssertPeriodOpen` guard, blocking conditions (unreconciled account,
+  unexplained discrepancy, pending transactions) must each be confirmed with a reason, and
+  reopening always records a reason and is audited (CLS-001).
+- Build the monthly financial projection, reproduced from source transactions and valuations
+  rather than stored per-month tables (RPT-001), and create the `Reporting` module.
 - Workspace-scoped budget plans and category, group or analytic-axis targets for monthly or
   annual periods: plans move through draft, active and closed states with audited activation and
   closure; targets store exact AMOUNT or RATIO values with a single asset code inherited from the
   plan; overlap between parent and child scopes is detected at read time; ratio targets surface
   explicit non-calculable reasons (`ZERO_CASH_INCOME`, `MIXED_ASSETS`, `NO_ACCOUNT`) instead of a
   silent zero; and the Budget screen manages plans and targets through the shared modal without
-  hard-coding a 50/30/20 rule.
+  hard-coding a 50/30/20 rule (BUD-001).
+- Compare monthly budget targets with actual results: actual, target, variance and status are
+  calculated per scope from the selected metric policy (BUD-002).
+- Expose a calculation-detail drill-down for every complex KPI: formula, scope, period, source
+  rows, freshness and quality are always available (RPT-004).
+- Build the accessible monthly report and its data alternatives: one selected month's projection,
+  quality, pending state and KPI explanations, with a tabular alternative to every chart (UI-002),
+  and create the `Reports` navigation entry.
+- Calculate net monthly savings transfers as a KPI distinct from gross incoming transfers to
+  savings and portfolio accounts, so transfers between savings accounts never register as new
+  savings (RPT-007).
+- Build the month-first budget workbook: the Budget navigation now opens directly on the selected
+  month's sheet, with January-to-December tabs, source movements by category or account, and
+  plan/target management moved to a Budget subpage (BUD-003).
+- Build the generic account detail page: identity, dated value, reconciliation quality, rules and
+  movements for any account, reachable from the monthly recap (ACC-008).
+- Show the monthly account and wealth recap: account and group values beside the budget movement
+  panels, a net-worth change card and a configurable totals recap, all read-only and built from
+  dated source valuations (RPT-008).
+- Nest category management under Transactions: the former top-level Categories page moves into
+  the Transactions section with an explicit management action from the transaction list (UI-004).
+
+### Fixed
+
+- Closed-period guard on manual balance snapshots: recording or superseding a dated observed
+  balance now calls `AssertPeriodOpen` before writing, so a snapshot dated in a closed month is
+  refused with the shared `/problems/period-closed` response instead of silently altering a
+  closed period (including resetting a `RECONCILED` snapshot back to `UNRECONCILED`).
+
+### Security
+
+- Re-review the seven accepted image-scan findings bundled in FrankenPHP 1.12.7 (kin-openapi,
+  gRPC-Go, golang.org/x/crypto) and extend their `.trivyignore` expiry to 2026-10-10: no fixed
+  official image exists yet and the deployed Caddyfile still reaches none of those code paths.
+- Document the CSRF parameter on the two account rule-override mutations
+  (`POST /api/v1/accounts/{id}/rule-overrides` and its `/withdraw` sibling), which enforced the
+  guard already but omitted it from the OpenAPI contract; a new
+  `pnpm openapi:csrf` check now fails the build if any mutating `/api/v1` operation is
+  undocumented for CSRF.
+- Expose the workspace's IANA timezone on the session payload (`workspace.timeZone`) instead of
+  hardcoding `Europe/Paris` in the SPA: the budget route and its "today" resolution now read the
+  zone from the session the browser already loaded.
+- Bound the `app` and `db` containers with an explicit `mem_limit` and `pids_limit` in
+  `compose.yaml`, so a runaway request or query cannot exhaust host memory or the process table;
+  `scripts/test-infrastructure.mjs` now asserts both are set.
+- Pin the `node`, `composer`, `dunglas/frankenphp` and `postgres` base images in
+  `docker/app/Dockerfile`, `docker/tools/Dockerfile` and `docker/postgres/Dockerfile` by digest
+  (tag kept for readability), so a build always resolves the exact image reviewed.
 
 ## [0.3.0] - 2026-09-17
 

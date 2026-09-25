@@ -103,7 +103,7 @@ describe('AuthGate', () => {
     respondWithSession({
       authenticated: true,
       user: { id: 'u1', email: 'owner@example.test', displayName: 'Owner' },
-      workspace: { id: 'w1', role: 'OWNER' },
+      workspace: { id: 'w1', role: 'OWNER', timeZone: 'Europe/Paris' },
     });
 
     renderGate();

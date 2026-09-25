@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Identity\Application;
 
+use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Identity\Application\AuthenticatedUser;
 use App\Module\Identity\Application\AuthenticationUserRepository;
@@ -22,6 +23,7 @@ final class DescribeSessionTest extends TestCase
         $describe = new DescribeSession(
             new InMemoryAuthenticationUserRepository(owner: self::owner(hasPassword: false)),
             new InMemoryWorkspaceMembershipReader(),
+            new FixedWorkspaceTimezoneReader(),
         );
 
         $view = $describe(null);
@@ -38,6 +40,7 @@ final class DescribeSessionTest extends TestCase
         $describe = new DescribeSession(
             new InMemoryAuthenticationUserRepository(owner: self::owner(hasPassword: true)),
             new InMemoryWorkspaceMembershipReader(),
+            new FixedWorkspaceTimezoneReader(),
         );
 
         $view = $describe(null);
@@ -52,6 +55,7 @@ final class DescribeSessionTest extends TestCase
         $describe = new DescribeSession(
             new InMemoryAuthenticationUserRepository(owner: null),
             new InMemoryWorkspaceMembershipReader(),
+            new FixedWorkspaceTimezoneReader(),
         );
 
         $view = $describe(null);
@@ -66,6 +70,7 @@ final class DescribeSessionTest extends TestCase
         $describe = new DescribeSession(
             new InMemoryAuthenticationUserRepository(owner: $owner),
             new InMemoryWorkspaceMembershipReader([$owner->id => new WorkspaceMembership(WorkspaceScope::fromString(self::WORKSPACE_ID), 'OWNER')]),
+            new FixedWorkspaceTimezoneReader(),
         );
 
         $view = $describe($owner->email);
@@ -79,6 +84,7 @@ final class DescribeSessionTest extends TestCase
         self::assertNotNull($view->workspace);
         self::assertSame(self::WORKSPACE_ID, $view->workspace->id);
         self::assertSame('OWNER', $view->workspace->role);
+        self::assertSame('Europe/Paris', $view->workspace->timeZone);
     }
 
     public function testAuthenticatedRequestWithoutMembershipReturnsNoWorkspace(): void
@@ -87,6 +93,7 @@ final class DescribeSessionTest extends TestCase
         $describe = new DescribeSession(
             new InMemoryAuthenticationUserRepository(owner: $owner),
             new InMemoryWorkspaceMembershipReader(),
+            new FixedWorkspaceTimezoneReader(),
         );
 
         $view = $describe($owner->email);
@@ -101,6 +108,7 @@ final class DescribeSessionTest extends TestCase
         $describe = new DescribeSession(
             new InMemoryAuthenticationUserRepository(owner: $owner),
             new InMemoryWorkspaceMembershipReader([$owner->id => new WorkspaceMembership(WorkspaceScope::fromString(self::WORKSPACE_ID), 'OWNER')]),
+            new FixedWorkspaceTimezoneReader(),
         );
 
         $view = $describe($owner->email);
@@ -114,6 +122,7 @@ final class DescribeSessionTest extends TestCase
         $describe = new DescribeSession(
             new InMemoryAuthenticationUserRepository(owner: self::owner(hasPassword: true)),
             new InMemoryWorkspaceMembershipReader(),
+            new FixedWorkspaceTimezoneReader(),
         );
 
         self::assertFalse($describe('ghost@example.test')->authenticated);
@@ -173,6 +182,14 @@ final class InMemoryAuthenticationUserRepository implements AuthenticationUserRe
     public function findProvisionedOwner(): ?AuthenticatedUser
     {
         return $this->owner;
+    }
+}
+
+final class FixedWorkspaceTimezoneReader implements WorkspaceTimezoneReader
+{
+    public function timezone(WorkspaceScope $workspace): string
+    {
+        return 'Europe/Paris';
     }
 }
 

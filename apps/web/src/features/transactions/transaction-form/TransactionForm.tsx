@@ -6,7 +6,9 @@ import type {
 } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
+import { workspaceToday } from '@/lib/workspaceTime';
 import { ADVANCED_FIELDS } from './advanced-fields/advancedFields';
 import { AdvancedTransactionFields } from './advanced-fields/AdvancedTransactionFields';
 import { SplitAxes } from '@/features/transactions/split-editor/split-axes/SplitAxes';
@@ -61,8 +63,10 @@ export function TransactionForm({
   transaction,
 }: TransactionFormProps) {
   const { t } = useTranslation();
+  const workspaceTimeZone = useWorkspaceTimeZone();
+  const today = workspaceToday(new Date(), workspaceTimeZone);
   const [values, setValues] = useState(() => {
-    const initial = initialTransactionValues(transaction, accounts, defaults?.bookedOn);
+    const initial = initialTransactionValues(transaction, accounts, defaults?.bookedOn ?? today);
 
     return transaction === undefined && defaults
       ? {
@@ -82,7 +86,7 @@ export function TransactionForm({
     !defaults?.requireAccountChoice && values.accountId === '' && accounts[0] !== undefined
       ? { ...values, accountId: accounts[0].id }
       : values;
-  const errors = validateTransactionValues(resolved, accounts, transaction);
+  const errors = validateTransactionValues(resolved, accounts, today, transaction);
   const editing = transaction !== undefined;
   const stateLocked = editing && transaction.state !== 'PENDING';
   const rawLabelLocked = editing && transaction.source !== 'MANUAL';

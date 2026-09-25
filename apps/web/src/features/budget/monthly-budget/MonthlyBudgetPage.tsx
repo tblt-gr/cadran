@@ -4,14 +4,10 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import {
-  monthHref,
-  parseBudgetMonth,
-  readAxis,
-  workspaceToday,
-  type BudgetAxis,
-} from './budgetPeriod';
+import { workspaceToday } from '@/lib/workspaceTime';
+import { monthHref, parseBudgetMonth, readAxis, type BudgetAxis } from './budgetPeriod';
 import { useActiveBudgetAccounts } from './budget-creation-modals/useActiveBudgetAccounts';
 import {
   BudgetCreationModals,
@@ -31,9 +27,11 @@ interface MonthlyBudgetPageProps {
 export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBudgetPageProps) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  // The route is validated with the fallback zone before any request; once the ledger
-  // answers, the workspace's own timezone decides the current day and month.
-  const routeToday = injectedToday ?? workspaceToday();
+  // The session (already loaded by AuthGate before this page can render) carries
+  // the workspace's own timezone, so the route is validated against the same
+  // zone the ledger itself will answer with, never a fixed assumption.
+  const workspaceTimeZone = useWorkspaceTimeZone();
+  const routeToday = injectedToday ?? workspaceToday(new Date(), workspaceTimeZone);
   const parsed = parseBudgetMonth(periodKey, routeToday);
   const [axis, setAxis] = useState<BudgetAxis | null>(() => readAxis(window.location.search));
   const [draft, setDraft] = useState<BudgetCreationDraft>(null);
@@ -75,6 +73,9 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
     : null;
   const today =
     injectedToday ?? (ledger.data ? workspaceToday(new Date(), ledger.data.timezone) : routeToday);
+  // ledger.data.timezone and workspaceTimeZone are the same workspace value;
+  // the ledger's own copy is kept as the source of truth once it has answered,
+  // since it is what the displayed figures were actually computed against.
 
   if (parsed.kind !== 'valid') {
     return (

@@ -40,6 +40,7 @@ final readonly class RecordAccountBalance
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
+        private AssertPeriodOpen $assertPeriodOpen,
     ) {
     }
 
@@ -58,6 +59,7 @@ final readonly class RecordAccountBalance
             }
 
             $snapshot = $this->submitted($account, $input, $context->actorId);
+            ($this->assertPeriodOpen)($context->workspace, $snapshot->asOf);
             $current = $this->snapshots->findActive(
                 $context->workspace,
                 $account->id,

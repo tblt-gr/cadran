@@ -1,19 +1,9 @@
-import {
-  createTransaction,
-  createTransfer,
-  listAccounts,
-  type Account,
-  type CreateTransactionRequest,
-  type CreateTransferRequest,
-} from '@cadran/api-client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { listAccounts, type Account, type CreateTransactionRequest } from '@cadran/api-client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import {
   accountRequestError,
   AccountRequestError,
@@ -23,17 +13,13 @@ import { AccountRulesModals } from '@/features/accounts/account-rules/AccountRul
 import { AccountReconciliationModal } from '@/features/accounts/reconciliation-panel/AccountReconciliationModal';
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
 import { TransferEditor } from '@/features/transactions/transfer-editor/TransferEditor';
-import { TransactionsState } from '@/features/transactions/transactions-state/TransactionsState';
-import { TransactionListFooter } from '@/features/transactions/transaction-list/TransactionListFooter';
-import {
-  transactionErrorKind,
-  transactionRequestError,
-} from '@/features/transactions/transactionError';
-import { formatCalendarMonth } from '@/lib/decimal';
+import { transactionErrorKind } from '@/features/transactions/transactionError';
+import { AccountDetailHeader } from './account-detail-header/AccountDetailHeader';
 import { AccountIdentityCard } from './account-identity/AccountIdentityCard';
-import { AccountMovementsTable } from './account-movements/AccountMovementsTable';
+import { AccountMovementsSection } from './account-movements-section/AccountMovementsSection';
 import { useAccountMovements } from './account-movements/useAccountMovements';
 import { useAccountDetail } from './useAccountDetail';
+import { useAccountDetailMutations } from './useAccountDetailMutations';
 import styles from './AccountDetailPage.module.css';
 
 type Saved = 'transactionSaved' | 'transferSaved' | 'claimed' | 'withdrawn' | 'reconciled' | null;
@@ -94,38 +80,16 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
     retry: false,
   });
 
-  async function refreshAfterWrite() {
-    await queryClient.invalidateQueries({ queryKey: ['account', accountId] });
-    await reloadAfterWrite();
-  }
-
-  const saveTransaction = useMutation({
-    mutationFn: async (body: CreateTransactionRequest) => {
-      const result = await withCsrfRetry(() => createTransaction({ ...authApiOptions(), body }));
-      if (!result.response?.ok || !result.data) {
-        throw transactionRequestError(result);
-      }
-      return result.data;
-    },
-    onSuccess: async () => {
+  const { saveTransaction, saveTransfer } = useAccountDetailMutations({
+    accountId,
+    reloadAfterWrite,
+    onTransactionSaved: () => {
       setTransactionEditorOpen(false);
       setSaved('transactionSaved');
-      await refreshAfterWrite();
     },
-  });
-
-  const saveTransfer = useMutation({
-    mutationFn: async (body: CreateTransferRequest) => {
-      const result = await withCsrfRetry(() => createTransfer({ ...authApiOptions(), body }));
-      if (!result.response?.ok || !result.data) {
-        throw transactionRequestError(result);
-      }
-      return result.data;
-    },
-    onSuccess: async () => {
+    onTransferSaved: () => {
       setTransferEditorOpen(false);
       setSaved('transferSaved');
-      await refreshAfterWrite();
     },
   });
 
@@ -186,53 +150,14 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
 
   return (
     <div className={styles.page}>
-      <section aria-labelledby="account-detail-title" className={styles.intro}>
-        <div>
-          <div className={styles.titleRow}>
-            <a
-              aria-label={t('accounts.detail.back')}
-              className={`icon-button ${styles.back}`}
-              href="/accounts"
-              onClick={(event) => handleClientNavigation(event, '/accounts')}
-            >
-              <Icon name="arrow-left" size={18} />
-            </a>
-            <p>{t('accounts.detail.eyebrow')}</p>
-          </div>
-          <h2 className="sr-only" id="account-detail-title">
-            {current.label}
-          </h2>
-        </div>
-        <div className={styles.actions}>
-          <button className="secondary-action" onClick={() => setRulesOpen(true)} type="button">
-            {t('accounts.detail.actions.rules')}
-          </button>
-          <button
-            className="secondary-action"
-            disabled={current.valuation.snapshotId === null}
-            onClick={() => setReconciling(true)}
-            type="button"
-          >
-            {t('accounts.detail.actions.reconcile')}
-          </button>
-          <button
-            className="secondary-action"
-            disabled={!creatable}
-            onClick={openTransferEditor}
-            type="button"
-          >
-            {t('accounts.detail.actions.addTransfer')}
-          </button>
-          <button
-            className="primary-action"
-            disabled={!creatable}
-            onClick={openTransactionEditor}
-            type="button"
-          >
-            {t('accounts.detail.actions.addTransaction')}
-          </button>
-        </div>
-      </section>
+      <AccountDetailHeader
+        account={current}
+        creatable={creatable}
+        onAddTransaction={openTransactionEditor}
+        onAddTransfer={openTransferEditor}
+        onOpenRules={() => setRulesOpen(true)}
+        onReconcile={() => setReconciling(true)}
+      />
 
       {!creatable && current.status !== 'ACTIVE' ? (
         <p className={styles.notice} role="status">
@@ -287,53 +212,21 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
         />
       ) : null}
 
-      <div className={styles.movementsHeading}>
-        <h3 className={styles.movementsTitle}>{t('accounts.detail.movements.title')}</h3>
-        {month !== null ? (
-          <p className={styles.periodNotice}>
-            {t('accounts.detail.movements.periodActive', {
-              month: formatCalendarMonth(`${month}-01`, i18n.language),
-            })}
-            <button className="secondary-action" onClick={() => setMonth(null)} type="button">
-              {t('accounts.detail.movements.clearPeriod')}
-            </button>
-          </p>
-        ) : null}
-      </div>
-
-      {transactions.isPending ? (
-        <TransactionsState
-          canCreate={creatable}
-          kind="loading"
-          onCreate={openTransactionEditor}
-          onRetry={() => void transactions.refetch()}
-        />
-      ) : transactions.isError && !staleCursorError ? (
-        <TransactionsState
-          canCreate={creatable}
-          kind={movementsUnauthorized ? 'unauthorized' : 'error'}
-          onCreate={openTransactionEditor}
-          onRetry={() => void transactions.refetch()}
-        />
-      ) : items.length === 0 ? (
-        <TransactionsState
-          canCreate={creatable}
-          kind="empty"
-          onCreate={openTransactionEditor}
-          onRetry={() => void transactions.refetch()}
-        />
-      ) : (
-        <>
-          <AccountMovementsTable transactions={items} />
-          <TransactionListFooter
-            hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
-            loadingMore={transactions.isFetching && !transactions.isPending}
-            onLoadMore={loadMore}
-            onReloadFromFirstPage={reloadFromFirstPage}
-            stale={staleCursorError}
-          />
-        </>
-      )}
+      <AccountMovementsSection
+        canCreate={creatable}
+        displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
+        items={items}
+        language={i18n.language}
+        loadingMore={transactions.isFetching && !transactions.isPending}
+        month={month}
+        onClearMonth={() => setMonth(null)}
+        onCreate={openTransactionEditor}
+        onLoadMore={loadMore}
+        onReloadFromFirstPage={reloadFromFirstPage}
+        staleCursorError={staleCursorError}
+        transactions={transactions}
+        unauthorized={movementsUnauthorized}
+      />
     </div>
   );
 }
