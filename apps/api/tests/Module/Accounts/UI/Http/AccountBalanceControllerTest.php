@@ -6,6 +6,7 @@ namespace App\Tests\Module\Accounts\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -22,6 +23,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class AccountBalanceControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private const string LIVRET = '00000000-0000-7000-8000-0000000000e1';
     private const string FOREIGN = '00000000-0000-7000-8000-0000000000e5';
     private const string DEFAULT_GROUP = '00000000-0000-7000-8000-0000000000c1';
@@ -326,6 +329,56 @@ final class AccountBalanceControllerTest extends WebTestCase
         self::assertArrayNotHasKey('amount', $fingerprint);
         self::assertArrayNotHasKey('comment', $fingerprint);
         self::assertArrayNotHasKey('accountId', $fingerprint);
+    }
+
+    public function testRecordingInAClosedMonthIsRefusedWithThePeriodClosedProblem(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'Livret A');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $this->requestRecord(self::LIVRET, $this->body('2026-03-14', '230.5688'));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertSame(0, $this->countSnapshots());
+    }
+
+    public function testSupersedingASnapshotDatedInAClosedMonthIsRefused(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'Livret A');
+        $first = $this->record(self::LIVRET, $this->body('2026-03-14', '230.5688'));
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $this->requestRecord(self::LIVRET, $this->body('2026-03-14', '999.00', version: 1));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        // The refused supersession must not have touched the existing snapshot.
+        self::assertSame(1, $this->countSnapshots());
+        $row = $this->connection->fetchAssociative(
+            'SELECT amount_literal, superseded_at, version, reconciliation_status FROM account_balance_snapshots WHERE id = ?',
+            [$first['id']],
+        );
+        self::assertIsArray($row);
+        self::assertSame('230.5688', $row['amount_literal']);
+        self::assertNull($row['superseded_at']);
+        $version = $row['version'];
+        self::assertTrue(is_int($version) || is_string($version));
+        self::assertSame(1, (int) $version);
+    }
+
+    public function testRecordingInAnOpenMonthStillWorksAfterAnUnrelatedClosure(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'Livret A');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $recorded = $this->record(self::LIVRET, $this->body('2026-05-10', '230.5688'));
+
+        self::assertSame(['value' => '230.5688', 'assetCode' => 'EUR'], $recorded['amount']);
+        self::assertSame(1, $this->countSnapshots());
     }
 
     public function testAMutationWithoutACsrfTokenIsRefused(): void

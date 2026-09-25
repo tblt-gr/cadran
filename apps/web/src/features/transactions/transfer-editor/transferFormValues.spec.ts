@@ -51,56 +51,74 @@ describe('transferFormValues', () => {
   });
 
   it('accepts a valid same-asset transfer without a target amount', () => {
-    expect(validateTransferValues(values(), [source, target])).toEqual({});
+    expect(validateTransferValues(values(), [source, target], '2026-09-08')).toEqual({});
   });
 
   it('refuses the same account on both sides', () => {
     expect(
-      validateTransferValues(values({ targetAccountId: source.id }), [source, target]),
+      validateTransferValues(
+        values({ targetAccountId: source.id }),
+        [source, target],
+        '2026-09-08',
+      ),
     ).toEqual({ targetAccountId: true });
   });
 
   it('refuses a zero or negative source amount', () => {
-    expect(validateTransferValues(values({ sourceAmountValue: '0.00' }), [source, target])).toEqual(
-      { sourceAmountValue: true },
-    );
     expect(
-      validateTransferValues(values({ sourceAmountValue: '-500.00' }), [source, target]),
+      validateTransferValues(values({ sourceAmountValue: '0.00' }), [source, target], '2026-09-08'),
+    ).toEqual({ sourceAmountValue: true });
+    expect(
+      validateTransferValues(
+        values({ sourceAmountValue: '-500.00' }),
+        [source, target],
+        '2026-09-08',
+      ),
     ).toEqual({ sourceAmountValue: true });
   });
 
   it('requires a positive target amount for a cross-asset transfer', () => {
     const crossAsset = values({ targetAccountId: chfTarget.id });
-    expect(validateTransferValues(crossAsset, [source, target, chfTarget])).toEqual({
+    expect(validateTransferValues(crossAsset, [source, target, chfTarget], '2026-09-08')).toEqual({
       targetAmountValue: true,
     });
     expect(
-      validateTransferValues({ ...crossAsset, targetAmountValue: '540.25' }, [
-        source,
-        target,
-        chfTarget,
-      ]),
+      validateTransferValues(
+        { ...crossAsset, targetAmountValue: '540.25' },
+        [source, target, chfTarget],
+        '2026-09-08',
+      ),
     ).toEqual({});
   });
 
   it('refuses a booked date before either account opened', () => {
-    expect(validateTransferValues(values({ bookedOn: '2025-12-31' }), [source, target])).toEqual({
+    expect(
+      validateTransferValues(values({ bookedOn: '2025-12-31' }), [source, target], '2026-09-08'),
+    ).toEqual({
       bookedOn: true,
     });
   });
 
   it('refuses an empty label', () => {
-    expect(validateTransferValues(values({ label: '' }), [source, target])).toEqual({
+    expect(validateTransferValues(values({ label: '' }), [source, target], '2026-09-08')).toEqual({
       label: true,
     });
   });
 
   it('requires a positive fee magnitude once a fee is toggled on', () => {
     expect(
-      validateTransferValues(values({ hasFee: true, feeValue: '' }), [source, target]),
+      validateTransferValues(
+        values({ hasFee: true, feeValue: '' }),
+        [source, target],
+        '2026-09-08',
+      ),
     ).toEqual({ feeValue: true });
     expect(
-      validateTransferValues(values({ hasFee: true, feeValue: '2.50' }), [source, target]),
+      validateTransferValues(
+        values({ hasFee: true, feeValue: '2.50' }),
+        [source, target],
+        '2026-09-08',
+      ),
     ).toEqual({});
   });
 

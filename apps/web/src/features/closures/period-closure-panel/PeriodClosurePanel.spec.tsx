@@ -57,7 +57,7 @@ function session(role: 'OWNER' | null) {
       authenticated: true,
       setupRequired: false,
       user: { id: 'u1', email: 'a@b.c', displayName: 'A' },
-      workspace: role === null ? null : { id: 'w', role },
+      workspace: role === null ? null : { id: 'w', role, timeZone: 'Europe/Paris' },
     }),
   );
 }

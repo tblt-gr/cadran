@@ -1,36 +1,22 @@
 import {
-  activateBudgetPlan,
-  closeBudgetPlan,
-  createBudgetPlan,
-  createBudgetTarget,
   listBudgetPlans,
   readBudgetPlan,
-  updateBudgetPlan,
-  updateBudgetTarget,
   type BudgetPlan,
-  type BudgetPlanDetail,
   type BudgetTargetDetail,
-  type CreateBudgetPlanRequest,
-  type CreateBudgetTargetRequest,
-  type UpdateBudgetPlanRequest,
-  type UpdateBudgetTargetRequest,
 } from '@cadran/api-client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
-import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import { formatAmount } from '@/lib/decimal';
-import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { BudgetPlanForm } from './budget-plan-form/BudgetPlanForm';
-import { BudgetComparisonsPanel } from './budget-comparisons/BudgetComparisonsPanel';
 import { BudgetTargetForm } from './budget-target-form/BudgetTargetForm';
 import { budgetErrorKind, budgetRequestError, BudgetRequestError } from './budgetError';
+import { PlanDetail } from './plan-detail/PlanDetail';
+import { useBudgetPlanMutations } from './useBudgetPlanMutations';
 import styles from './BudgetPage.module.css';
 
 type PlanEditor = BudgetPlan | 'create' | null;
@@ -43,7 +29,6 @@ function failed(result: { response?: Response; data?: unknown }) {
 
 export function BudgetPage({ planId }: { planId?: string }) {
   const { t, i18n } = useTranslation();
-  const queryClient = useQueryClient();
   const [planEditor, setPlanEditor] = useState<PlanEditor>(null);
   const [targetEditor, setTargetEditor] = useState<TargetEditor>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -70,83 +55,13 @@ export function BudgetPage({ planId }: { planId?: string }) {
     },
     retry: false,
   });
-  const refresh = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['budget-plans'] }),
-      queryClient.invalidateQueries({ queryKey: ['budget-plan', planId] }),
-      ...(planId
-        ? [queryClient.invalidateQueries({ queryKey: ['budget-comparisons', planId] })]
-        : []),
-    ]);
-  };
-  const planSave = useMutation({
-    mutationFn: async (body: CreateBudgetPlanRequest | UpdateBudgetPlanRequest) => {
-      const result =
-        planEditor && planEditor !== 'create'
-          ? await withCsrfRetry(() =>
-              updateBudgetPlan({
-                ...authApiOptions(),
-                path: { id: planEditor.id },
-                body: body as UpdateBudgetPlanRequest,
-              }),
-            )
-          : await withCsrfRetry(() =>
-              createBudgetPlan({ ...authApiOptions(), body: body as CreateBudgetPlanRequest }),
-            );
-      if (failed(result)) throw budgetRequestError(result);
-      return result.data!;
-    },
-    onSuccess: async (plan) => {
-      setPlanEditor(null);
-      setNotice(t('budget.toasts.saved'));
-      await refresh();
-      if (!planId) {
-        window.history.pushState({}, '', `/budget/plans/${plan.id}`);
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      }
-    },
-  });
-  const targetSave = useMutation({
-    mutationFn: async (body: CreateBudgetTargetRequest | UpdateBudgetTargetRequest) => {
-      const result =
-        targetEditor && targetEditor !== 'create'
-          ? await withCsrfRetry(() =>
-              updateBudgetTarget({
-                ...authApiOptions(),
-                path: { id: targetEditor.id },
-                body: body as UpdateBudgetTargetRequest,
-              }),
-            )
-          : await withCsrfRetry(() =>
-              createBudgetTarget({
-                ...authApiOptions(),
-                path: { planId: planId! },
-                body: body as CreateBudgetTargetRequest,
-              }),
-            );
-      if (failed(result)) throw budgetRequestError(result);
-      return result.data!;
-    },
-    onSuccess: async () => {
-      setTargetEditor(null);
-      setNotice(t('budget.toasts.saved'));
-      await refresh();
-    },
-  });
-  const lifecycle = useMutation({
-    mutationFn: async (action: 'activate' | 'close') => {
-      const result = await withCsrfRetry(() =>
-        action === 'activate'
-          ? activateBudgetPlan({ ...authApiOptions(), path: { id: planId! }, body: {} })
-          : closeBudgetPlan({ ...authApiOptions(), path: { id: planId! }, body: {} }),
-      );
-      if (failed(result)) throw budgetRequestError(result);
-      return result.data!;
-    },
-    onSuccess: async () => {
-      setNotice(t('budget.toasts.stateChanged'));
-      await refresh();
-    },
+  const { planSave, targetSave, lifecycle } = useBudgetPlanMutations({
+    planId,
+    planEditor,
+    targetEditor,
+    closePlanEditor: () => setPlanEditor(null),
+    closeTargetEditor: () => setTargetEditor(null),
+    notify: setNotice,
   });
   const error =
     plans.error instanceof BudgetRequestError
@@ -315,177 +230,5 @@ export function BudgetPage({ planId }: { planId?: string }) {
         </Modal>
       ) : null}
     </div>
-  );
-}
-
-function PlanDetail({
-  detail,
-  language,
-  onEditPlan,
-  onEditTarget,
-  onNewTarget,
-  onLifecycle,
-  lifecycleError,
-  lifecyclePending,
-}: {
-  detail: BudgetPlanDetail;
-  language: string;
-  onEditPlan: () => void;
-  onEditTarget: (target: BudgetTargetDetail) => void;
-  onNewTarget: () => void;
-  onLifecycle: (action: 'activate' | 'close') => void;
-  lifecycleError: ReturnType<typeof budgetErrorKind>;
-  lifecyclePending: boolean;
-}) {
-  const { t } = useTranslation();
-  const activationHintId = `budget-plan-${detail.id}-activation-hint`;
-  const emptyDraft = detail.state === 'DRAFT' && detail.targets.length === 0;
-  return (
-    <>
-      <section className={`card ${styles.summary}`}>
-        <div>
-          <span>{t('budget.columns.currency')}</span>
-          <strong>{detail.assetCode}</strong>
-        </div>
-        <div>
-          <span>{t('budget.columns.state')}</span>
-          <StatusBadge tone={tones[detail.state]}>{t(`budget.states.${detail.state}`)}</StatusBadge>
-        </div>
-        <div className={styles.summaryActions}>
-          {detail.state === 'DRAFT' ? (
-            <>
-              <button className="secondary-action" onClick={onEditPlan} type="button">
-                {t('budget.edit')}
-              </button>
-              <button
-                aria-describedby={emptyDraft ? activationHintId : undefined}
-                className="primary-action"
-                disabled={lifecyclePending || emptyDraft}
-                onClick={() => onLifecycle('activate')}
-                type="button"
-              >
-                {t('budget.activate')}
-              </button>
-            </>
-          ) : null}
-          {detail.state === 'ACTIVE' ? (
-            <button
-              className="secondary-action"
-              disabled={lifecyclePending}
-              onClick={() => onLifecycle('close')}
-              type="button"
-            >
-              {t('budget.close')}
-            </button>
-          ) : null}
-        </div>
-        {lifecycleError ? (
-          <p className={styles.lifecycleError} role="alert">
-            {t(`budget.errors.${lifecycleError}`)}
-          </p>
-        ) : null}
-      </section>
-      <section className={styles.targets}>
-        <div className={styles.targetHeading}>
-          <div>
-            <h3>{t('budget.targets.title')}</h3>
-            <p>{t('budget.targets.description')}</p>
-          </div>
-          {detail.state !== 'CLOSED' ? (
-            <button className="primary-action" onClick={onNewTarget} type="button">
-              {t('budget.targets.add')}
-            </button>
-          ) : null}
-        </div>
-        {detail.targets.length === 0 ? (
-          <p className={styles.emptyTargets} id={emptyDraft ? activationHintId : undefined}>
-            {t('budget.targets.empty')}
-          </p>
-        ) : (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>{t('budget.columns.scope')}</th>
-                  <th>{t('budget.columns.value')}</th>
-                  <th>{t('budget.columns.resolved')}</th>
-                  <th>{t('budget.columns.warning')}</th>
-                  <th>
-                    <span className="sr-only">{t('actions.more')}</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.targets.map((target) => (
-                  <tr key={target.id}>
-                    <td>
-                      {t(`budget.scopeTypes.${target.scopeType}`)} · {target.scopeLabel}
-                    </td>
-                    <td>
-                      {target.valueType === 'AMOUNT' && target.storedAmount ? (
-                        <MoneyValue
-                          value={formatAmount(target.storedAmount, detail.assetCode, language)}
-                        />
-                      ) : target.storedRatio ? (
-                        formatRatioPercentage(target.storedRatio, language)
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td>
-                      {target.resolvedAmount === null ? (
-                        <span>{t('budget.nonCalculable')}</span>
-                      ) : (
-                        <MoneyValue
-                          value={formatAmount(target.resolvedAmount, detail.assetCode, language)}
-                        />
-                      )}
-                    </td>
-                    <td>
-                      {target.overlapping || target.nonCalculableReason ? (
-                        <div className={styles.warnings}>
-                          {target.overlapping ? (
-                            <span className={styles.warning}>{t('budget.overlap')}</span>
-                          ) : null}
-                          {target.nonCalculableReason ? (
-                            <span className={styles.warning}>
-                              {t(`budget.reasons.${target.nonCalculableReason}`)}
-                            </span>
-                          ) : null}
-                        </div>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td>
-                      {detail.state !== 'CLOSED' ? (
-                        <button
-                          className="secondary-action"
-                          onClick={() => onEditTarget(target)}
-                          type="button"
-                        >
-                          {t('budget.edit')}
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-      {detail.periodType === 'MONTH' ? (
-        <section className={styles.comparisons} aria-labelledby="budget-comparisons-title">
-          <div className={styles.targetHeading}>
-            <div>
-              <h3 id="budget-comparisons-title">{t('budget.comparisons.title')}</h3>
-              <p>{t('budget.comparisons.description')}</p>
-            </div>
-          </div>
-          <BudgetComparisonsPanel planId={detail.id} />
-        </section>
-      ) : null}
-    </>
   );
 }

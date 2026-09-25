@@ -19,14 +19,7 @@ export type TransferFormErrors = Partial<Record<keyof TransferFormValues, true>>
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-export function todayInParis(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' });
-}
-
-export function initialTransferValues(
-  accounts: Account[],
-  today = todayInParis(),
-): TransferFormValues {
+export function initialTransferValues(accounts: Account[], today: string): TransferFormValues {
   const active = accounts.filter((account) => account.status === 'ACTIVE');
 
   return {
@@ -55,7 +48,7 @@ export function isCrossAssetTransfer(values: TransferFormValues, accounts: Accou
 export function validateTransferValues(
   values: TransferFormValues,
   accounts: Account[],
-  today = todayInParis(),
+  today: string,
 ): TransferFormErrors {
   const errors: TransferFormErrors = {};
   const source = accounts.find((account) => account.id === values.sourceAccountId);

@@ -112,6 +112,7 @@ final class SessionController
                 'workspace' => null === $view->workspace ? null : [
                     'id' => $view->workspace->id,
                     'role' => $view->workspace->role,
+                    'timeZone' => $view->workspace->timeZone,
                 ],
             ],
             headers: ['Cache-Control' => 'no-store'],

@@ -8,6 +8,7 @@ use App\Module\Accounts\Infrastructure\Persistence\DbalProductModelRepository;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Tests\Module\Accounts\Domain\ProductModelFixture;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DbalException;
@@ -18,6 +19,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class AccountControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private const string OTHER_MODEL = '00000000-0000-7000-8000-0000000000e2';
     private const string DEFAULT_GROUP = '00000000-0000-7000-8000-0000000000c1';
 
@@ -842,6 +845,69 @@ final class AccountControllerTest extends WebTestCase
             content: json_encode($body, JSON_THROW_ON_ERROR),
         );
         self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testCreatingAnAccountOpenedDuringAClosedMonthIsRefused(): void
+    {
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+        $before = $this->ownAccountCount();
+
+        $this->requestCreate($this->payload('Livret ouvert en mars', [
+            'openedOn' => '2026-03-10',
+            'closedOn' => null,
+        ]));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertSame($before, $this->ownAccountCount());
+    }
+
+    public function testClosingAnOpenEndedAccountThatCoveredAClosedMonthIsRefused(): void
+    {
+        // Opened well before any closure and never closed: it currently overlaps
+        // every month up to and including the closed one below.
+        $account = $this->createAccount('Livret A', ['openedOn' => '2026-01-10', 'closedOn' => null]);
+        $this->closeMonthInDatabase($this->connection, 2026, 12);
+
+        // Setting a closing date before December removes the account from a
+        // month it used to cover: the lifecycle guard refuses it.
+        $this->requestUpdate(self::stringValue($account, 'id'), [...$account, 'closedOn' => '2026-02-01']);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        $unchanged = $this->connection->fetchAssociative(
+            'SELECT closed_on, version FROM account_financial_accounts WHERE id = ?',
+            [self::stringValue($account, 'id')],
+        );
+        self::assertIsArray($unchanged);
+        self::assertNull($unchanged['closed_on']);
+        $version = $unchanged['version'];
+        self::assertTrue(is_int($version) || is_string($version));
+        self::assertSame(1, (int) $version);
+    }
+
+    public function testArchivingAnAccountThatWouldLeaveAClosedMonthItCoveredIsRefused(): void
+    {
+        // Open-ended: it currently overlaps every future month, including one
+        // closed ahead of time below.
+        $account = $this->createAccount('Livret A', ['openedOn' => '2026-01-10', 'closedOn' => null]);
+        $this->closeMonthInDatabase($this->connection, 2026, 12);
+
+        // Archiving today closes the account as of yesterday, which no longer
+        // overlaps the closed month it used to cover.
+        $this->requestArchive(self::stringValue($account, 'id'), self::intValue($account, 'version'));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        $unchanged = $this->connection->fetchAssociative(
+            'SELECT archived_at, version FROM account_financial_accounts WHERE id = ?',
+            [self::stringValue($account, 'id')],
+        );
+        self::assertIsArray($unchanged);
+        self::assertNull($unchanged['archived_at']);
+        $version = $unchanged['version'];
+        self::assertTrue(is_int($version) || is_string($version));
+        self::assertSame(1, (int) $version);
     }
 
     private function signIn(): void

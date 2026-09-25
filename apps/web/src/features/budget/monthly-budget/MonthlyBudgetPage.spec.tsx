@@ -293,7 +293,7 @@ describe('MonthlyBudgetPage', () => {
         authenticated: true,
         provisioned: true,
         user: { id: 'u1', email: 'owner@example.test', displayName: 'Owner' },
-        workspace: { id: 'w1', role: 'OWNER' },
+        workspace: { id: 'w1', role: 'OWNER', timeZone: 'Europe/Paris' },
       }),
     );
     api.listAccounts.mockReturnValue(ok({ items: [account], page: 1, perPage: 100, total: 1 }));

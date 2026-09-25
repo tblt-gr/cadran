@@ -1,32 +1,18 @@
 import { getFoundationStatus } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RouteRedirect } from '@/components/layout/route-redirect/RouteRedirect';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
-import { AccountsPage } from '@/features/accounts/AccountsPage';
-import { AccountDetailPage } from '@/features/accounts/account-detail/AccountDetailPage';
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
 import { DashboardContextPanel } from '@/features/dashboard/context-panel/DashboardContextPanel';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { useDashboardHeader } from '@/features/dashboard/net-worth/useDashboardHeader';
-import { ProductCatalogPage } from '@/features/catalog/ProductCatalogPage';
-import { ProductModelsPage } from '@/features/product-models/ProductModelsPage';
-import { AccountGroupsPage } from '@/features/accounts/groups/AccountGroupsPage';
-import { CategoryPage } from '@/features/categories/CategoryPage';
-import { CategorizationRulesPage } from '@/features/categories/rules/CategorizationRulesPage';
-import { TransactionsPage } from '@/features/transactions/TransactionsPage';
-import { RecurrencesPage } from '@/features/recurrences/RecurrencesPage';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
-import { ProfileSettingsPage } from '@/features/settings/ProfileSettingsPage';
-import { BudgetPage } from '@/features/budget/BudgetPage';
-import { BudgetRouteRedirect } from '@/features/budget/monthly-budget/BudgetRouteRedirect';
-import { workspaceToday } from '@/features/budget/monthly-budget/budgetPeriod';
-import { MonthlyBudgetPage } from '@/features/budget/monthly-budget/MonthlyBudgetPage';
-import { ReportsPage } from '@/features/reports/ReportsPage';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { getRouteTitleKey } from '@/lib/navigation';
+import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from './AuthenticatedApp.routes';
 
 /**
  * The application once a session exists: shell, routing and the foundation
@@ -35,6 +21,10 @@ import { getRouteTitleKey } from '@/lib/navigation';
 export function AuthenticatedApp() {
   const { t } = useTranslation();
   const [path, setPath] = useState(() => window.location.pathname);
+  // AuthGate only renders this tree once the session query already resolved
+  // to an authenticated, workspace-bound user, so this read is a cache hit:
+  // no extra request and no loading state to handle here.
+  const workspaceTimeZone = useWorkspaceTimeZone();
   const status = useQuery({
     queryKey: ['foundation-status'],
     queryFn: async ({ signal }) => {
@@ -50,6 +40,8 @@ export function AuthenticatedApp() {
   });
 
   const dashboardHeader = useDashboardHeader(path === '/');
+  const routes = useMemo(() => buildAuthenticatedRoutes(workspaceTimeZone), [workspaceTimeZone]);
+  const matched = matchAuthenticatedRoute(routes, path);
 
   useEffect(() => {
     function updatePath() {
@@ -66,46 +58,8 @@ export function AuthenticatedApp() {
   }, [path, t]);
 
   let content;
-  if (path === '/accounts') {
-    content = <AccountsPage />;
-  } else if (path === '/accounts/groups') {
-    content = <AccountGroupsPage />;
-  } else if (/^\/accounts\/[^/]+$/.test(path)) {
-    content = <AccountDetailPage accountId={path.split('/')[2]!} />;
-  } else if (path === '/transactions/categories') {
-    content = <CategoryPage />;
-  } else if (path === '/transactions/categories/rules') {
-    content = <CategorizationRulesPage />;
-  } else if (path === '/categories') {
-    content = <RouteRedirect to="/transactions/categories" />;
-  } else if (path === '/categories/rules') {
-    content = <RouteRedirect to="/transactions/categories/rules" />;
-  } else if (path === '/catalog') {
-    content = <ProductCatalogPage />;
-  } else if (path === '/product-models') {
-    content = <ProductModelsPage />;
-  } else if (path === '/transactions') {
-    content = <TransactionsPage />;
-  } else if (path === '/transactions/recurrences') {
-    content = <RecurrencesPage />;
-  } else if (path === '/budget') {
-    content = <BudgetRouteRedirect href={`/budget/${workspaceToday().slice(0, 7)}`} />;
-  } else if (path === '/budget/plans') {
-    content = <BudgetPage />;
-  } else if (/^\/budget\/plans\/[^/]+$/.test(path)) {
-    content = <BudgetPage planId={path.split('/')[3]} />;
-  } else if (path === '/reports') {
-    content = <ReportsPage />;
-  } else if (
-    /^\/budget\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      path,
-    )
-  ) {
-    content = <BudgetRouteRedirect href={`/budget/plans/${path.split('/')[2]}`} />;
-  } else if (/^\/budget\/[^/]+$/.test(path)) {
-    content = <MonthlyBudgetPage periodKey={path.split('/')[2]!} />;
-  } else if (path === '/settings/profile') {
-    content = <ProfileSettingsPage />;
+  if (matched) {
+    content = matched.route.render(matched.match);
   } else if (path !== '/') {
     content = <PlaceholderPage />;
   } else if (status.isPending) {
@@ -121,6 +75,7 @@ export function AuthenticatedApp() {
   } else {
     content = <DashboardPage apiVersion={status.data.apiVersion} />;
   }
+  const showGlobalActions = matched ? (matched.route.globalActions ?? true) : true;
 
   return (
     <AppShell
@@ -130,22 +85,7 @@ export function AuthenticatedApp() {
       headerDate={path === '/' ? dashboardHeader.headerDate : undefined}
       path={path}
       setPath={setPath}
-      showGlobalActions={
-        path !== '/accounts' &&
-        path !== '/accounts/groups' &&
-        !/^\/accounts\/[^/]+$/.test(path) &&
-        path !== '/categories' &&
-        path !== '/categories/rules' &&
-        path !== '/transactions/categories' &&
-        path !== '/transactions/categories/rules' &&
-        path !== '/catalog' &&
-        path !== '/product-models' &&
-        path !== '/transactions' &&
-        path !== '/transactions/recurrences' &&
-        !path.startsWith('/budget') &&
-        path !== '/reports' &&
-        path !== '/settings/profile'
-      }
+      showGlobalActions={showGlobalActions}
     >
       {content}
     </AppShell>

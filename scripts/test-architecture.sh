@@ -132,3 +132,23 @@ if ! grep -q 'creates a WorkspaceScope outside a trusted resolution path' "$resu
 fi
 
 printf '%s\n' 'The representative client-selected workspace scope was rejected.'
+
+if node scripts/check-openapi-csrf.mjs tests/architecture/fixtures/openapi/missing-csrf.yaml >"$result_file" 2>&1; then
+  printf '%s\n' 'A mutating operation undocumented for CSRF was not rejected.' >&2
+  exit 1
+fi
+
+if ! grep -q "archiveWidgetWithoutCsrf.*missing the '#/components/parameters/CsrfToken' parameter" "$result_file"; then
+  printf '%s\n' 'The OpenAPI CSRF guard failed without the expected diagnostic.' >&2
+  exit 1
+fi
+
+printf '%s\n' 'The representative undocumented CSRF mutation was rejected.'
+
+if ! node scripts/check-openapi-csrf.mjs apps/api/openapi/openapi.yaml >"$result_file" 2>&1; then
+  cat "$result_file" >&2
+  printf '%s\n' 'The real OpenAPI contract has a mutating operation undocumented for CSRF.' >&2
+  exit 1
+fi
+
+printf '%s\n' 'Every mutating /api/v1 operation in the real contract documents the CSRF guard.'

@@ -1,0 +1,35 @@
+openapi: 3.1.0
+info:
+  title: Representative fixture
+  version: 0.0.0
+paths:
+  /api/v1/widgets:
+    get:
+      operationId: listWidgets
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+  /api/v1/widgets/{id}/archive:
+    post:
+      operationId: archiveWidgetWithoutCsrf
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+components:
+  parameters:
+    CsrfToken:
+      name: X-CSRF-TOKEN
+      in: header
+      required: true
+      schema:
+        type: string

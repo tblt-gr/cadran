@@ -1,4 +1,4 @@
-FROM node:22.22.0-bookworm-slim AS web_build
+FROM node:22.22.0-bookworm-slim@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca6d3ea96f16cb30df6187d94 AS web_build
 
 ENV LEFTHOOK=0
 WORKDIR /workspace
@@ -23,7 +23,7 @@ COPY tests/fixtures tests/fixtures
 RUN pnpm generate:api \
     && pnpm --filter @cadran/web build
 
-FROM composer:2.9 AS php_dependencies
+FROM composer:2.9@sha256:b09bccd91a78fe8a9ab4b33d707b862e8fe54fec17782e32683ad2a69c46867d AS php_dependencies
 
 WORKDIR /build
 
@@ -38,7 +38,7 @@ RUN composer install \
     --prefer-dist \
     --ignore-platform-req=php
 
-FROM dunglas/frankenphp:1.12.7-php8.5-bookworm AS runtime
+FROM dunglas/frankenphp:1.12.7-php8.5-bookworm@sha256:d502c4823f75f7738b463919ae993a6a4c7ccccab034e3e3020d3b9d042ec83e AS runtime
 
 # Install patched Bookworm packages that are still stale in the FrankenPHP
 # base image. Keep the list explicit so unrelated runtime packages do not move.

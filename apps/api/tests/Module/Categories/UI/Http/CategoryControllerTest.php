@@ -6,6 +6,7 @@ namespace App\Tests\Module\Categories\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
@@ -14,6 +15,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class CategoryControllerTest extends WebTestCase
 {
+    use ClosesPeriods;
+
     private KernelBrowser $client;
     private Connection $connection;
     private WorkspaceFixture $fixture;
@@ -316,6 +319,41 @@ final class CategoryControllerTest extends WebTestCase
             content: json_encode($oversized, JSON_THROW_ON_ERROR),
         );
         self::assertResponseStatusCodeSame(413);
+    }
+
+    public function testTogglingBudgetIncludedDuringAnActiveClosureIsRefused(): void
+    {
+        $category = $this->createCategory('Restaurants');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $toggled = $category;
+        $toggled['budgetIncluded'] = false;
+        $this->requestUpdate(self::stringValue($category, 'id'), $toggled);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        $row = $this->connection->fetchAssociative(
+            'SELECT budget_included, version FROM category_categories WHERE id = ?',
+            [self::stringValue($category, 'id')],
+        );
+        self::assertIsArray($row);
+        self::assertTrue((bool) $row['budget_included']);
+        $version = $row['version'];
+        self::assertTrue(is_int($version) || is_string($version));
+        self::assertSame(1, (int) $version);
+    }
+
+    public function testEditingAFieldOtherThanBudgetIncludedDuringAnActiveClosureStillWorks(): void
+    {
+        $category = $this->createCategory('Restaurants');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $edited = $category;
+        $edited['label'] = 'Restaurants et bars';
+        $this->requestUpdate(self::stringValue($category, 'id'), $edited);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('Restaurants et bars', $this->decode()['label']);
     }
 
     private function signIn(): void

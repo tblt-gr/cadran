@@ -1,6 +1,6 @@
 {
   "name": "cadran",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Self-hosted personal budget and wealth tracking application",
   "license": "MIT",
@@ -16,8 +16,9 @@
     "typecheck": "pnpm --recursive --if-present typecheck",
     "test": "pnpm generate:api && pnpm --recursive --if-present test",
     "build": "pnpm generate:api && pnpm --recursive --if-present build",
-    "quality": "pnpm generate:api && pnpm openapi:lint && pnpm format:check && pnpm lint && pnpm typecheck",
+    "quality": "pnpm generate:api && pnpm openapi:lint && pnpm openapi:csrf && pnpm format:check && pnpm lint && pnpm typecheck",
     "openapi:lint": "redocly lint apps/api/openapi/openapi.yaml",
+    "openapi:csrf": "node scripts/check-openapi-csrf.mjs apps/api/openapi/openapi.yaml",
     "e2e": "pnpm --filter @cadran/e2e e2e"
   },
   "devDependencies": {

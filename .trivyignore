@@ -7,40 +7,46 @@
 # HIGH finding that has a fix available. The nightly workflow
 # (image-scan-nightly.yml) additionally fails on unfixable ones, so base-image
 # exposure with no upstream patch is surfaced daily rather than silently passed.
+#
+# 2026-09-25: every FrankenPHP entry below was re-reviewed and extended to
+# 2026-10-10. The 1.12.7-php8.5-bookworm rebuild published that day is still the
+# latest official tag and still bundles the same kin-openapi, gRPC and
+# golang.org/x/crypto versions; the Caddyfile still runs with `admin off` and
+# configures no reverse_proxy, gRPC, xDS or SSH listener.
 
-# review: 2026-09-26 — FrankenPHP 1.12.7 bundles kin-openapi 0.140.0 through
+# review: 2026-10-10 — FrankenPHP 1.12.7 bundles kin-openapi 0.140.0 through
 # Caddy, but this deployment disables Caddy's admin API and never loads an
 # OpenAPI schema at runtime. Remove when the official image upgrades kin-openapi.
-GHSA-r277-6w6q-xmqw exp:2026-09-26
+GHSA-r277-6w6q-xmqw exp:2026-10-10
 
-# review: 2026-09-26 — Same unreachable bundled kin-openapi code path as above;
+# review: 2026-10-10 — Same unreachable bundled kin-openapi code path as above;
 # no user-controlled OpenAPI document is parsed by the runtime.
-CVE-2026-76905 exp:2026-09-26
+CVE-2026-76905 exp:2026-10-10
 
-# review: 2026-09-26 — Same unreachable bundled kin-openapi code path as above;
+# review: 2026-10-10 — Same unreachable bundled kin-openapi code path as above;
 # no user-controlled OpenAPI document is parsed by the runtime.
-CVE-2026-77354 exp:2026-09-26
+CVE-2026-77354 exp:2026-10-10
 
-# review: 2026-09-26 — FrankenPHP 1.12.7 bundles gRPC 1.81.1, but the deployed
+# review: 2026-10-10 — FrankenPHP 1.12.7 bundles gRPC 1.81.1, but the deployed
 # Caddyfile configures neither reverse_proxy nor xDS/RBAC. Remove when the
 # official image upgrades gRPC.
-GHSA-hrxh-6v49-42gf exp:2026-09-26
+GHSA-hrxh-6v49-42gf exp:2026-10-10
 
-# review: 2026-09-26 — Unauthenticated HTTP/2 DATA-frame fragmentation OOM
+# review: 2026-10-10 — Unauthenticated HTTP/2 DATA-frame fragmentation OOM
 # against gRPC-Go servers, fixed in gRPC-Go 1.83.1. Same unreachable bundled
 # gRPC path as above: the deployed Caddyfile starts no gRPC listener
 # (no reverse_proxy, no xDS/RBAC, admin off). Remove when the official image
 # upgrades gRPC.
-CVE-2026-84304 exp:2026-09-26
+CVE-2026-84304 exp:2026-10-10
 
-# review: 2026-09-26 — CVE-2026-84445 crashes gRPC-Go xDS servers when both
+# review: 2026-10-10 — CVE-2026-84445 crashes gRPC-Go xDS servers when both
 # :authority and Host are missing. FrankenPHP embeds gRPC 1.81.1 through Caddy,
 # but this deployment starts no xDS or gRPC server and disables Caddy's admin
 # API. Remove when the official image upgrades gRPC to a fixed release.
-CVE-2026-84445 exp:2026-09-26
+CVE-2026-84445 exp:2026-10-10
 
-# review: 2026-09-26 — FrankenPHP 1.12.7 bundles golang.org/x/crypto 0.54.0,
+# review: 2026-10-10 — FrankenPHP 1.12.7 bundles golang.org/x/crypto 0.54.0,
 # but Cadran exposes only HTTP(S) and configures no SSH server, authentication
 # callback or source-address restriction. Remove when the official image
 # upgrades golang.org/x/crypto to 0.55.0 or later.
-CVE-2026-56854 exp:2026-09-26
+CVE-2026-56854 exp:2026-10-10

@@ -1,38 +1,17 @@
-import {
-  archiveAccount,
-  createAccount,
-  listAccounts,
-  recordAccountBalance,
-  updateAccount,
-  type Account,
-  type CreateAccountRequest,
-  type RecordAccountBalanceRequest,
-  type UpdateAccountRequest,
-} from '@cadran/api-client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { listAccounts, type Account } from '@cadran/api-client';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import {
-  accountErrorKind,
-  accountRequestError,
-  AccountRequestError,
-  requestFailed,
-} from './accountError';
+import { AccountRequestError, requestFailed, accountRequestError } from './accountError';
+import { AccountsPageModals } from './accounts-page-modals/AccountsPageModals';
 import { AccountFilters } from './account-filters/AccountFilters';
-import { AccountEditor } from './account-editor/AccountEditor';
 import { AccountList } from './account-list/AccountList';
 import { AccountPagination } from './account-pagination/AccountPagination';
-import { AccountRulesModals } from './account-rules/AccountRulesModals';
-import { AccountWizard } from './account-wizard/AccountWizard';
 import { AccountsState } from './accounts-state/AccountsState';
-import { ArchiveAccountDialog } from './archive-account-dialog/ArchiveAccountDialog';
-import { AccountReconciliationModal } from './reconciliation-panel/AccountReconciliationModal';
-import { RecordBalanceForm } from './record-balance-form/RecordBalanceForm';
+import { useAccountsPageMutations } from './useAccountsPageMutations';
 import styles from './AccountsPage.module.css';
 
 const PAGE_SIZE = 50;
@@ -41,7 +20,6 @@ type Editor = Account | 'create' | null;
 
 export function AccountsPage() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [includeClosed, setIncludeClosed] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [page, setPage] = useState(1);
@@ -70,92 +48,12 @@ export function AccountsPage() {
     retry: false,
   });
 
-  /**
-   * A stale version or an archived account means the list this page shows is
-   * behind the server. Refetching it turns the next attempt into a decision on
-   * current data instead of a second rejection.
-   */
-  async function refreshOnStaleState(error: unknown) {
-    if (
-      error instanceof AccountRequestError &&
-      (error.kind === 'stale' || error.kind === 'archived')
-    ) {
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    }
-  }
-
-  const save = useMutation({
-    mutationFn: async (body: CreateAccountRequest | UpdateAccountRequest) => {
-      const result =
-        editor && editor !== 'create'
-          ? await withCsrfRetry(() =>
-              updateAccount({
-                ...authApiOptions(),
-                path: { id: editor.id },
-                body: body as UpdateAccountRequest,
-              }),
-            )
-          : await withCsrfRetry(() =>
-              createAccount({ ...authApiOptions(), body: body as CreateAccountRequest }),
-            );
-
-      if (requestFailed(result)) {
-        throw accountRequestError(result);
-      }
-      return result.data;
-    },
-    onError: refreshOnStaleState,
-    onSuccess: async () => {
-      setEditor(null);
-      setSaved('saved');
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    },
-  });
-
-  const archive = useMutation({
-    mutationFn: async (account: Account) => {
-      const result = await withCsrfRetry(() =>
-        archiveAccount({
-          ...authApiOptions(),
-          path: { id: account.id },
-          body: { version: account.version },
-        }),
-      );
-      if (requestFailed(result)) {
-        throw accountRequestError(result);
-      }
-      return result.data;
-    },
-    onError: refreshOnStaleState,
-    onSuccess: async () => {
-      setArchiving(null);
-      setSaved('archived');
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    },
-  });
-
-  const recordBalance = useMutation({
-    mutationFn: async ({
-      account,
-      body,
-    }: {
-      account: Account;
-      body: RecordAccountBalanceRequest;
-    }) => {
-      const result = await withCsrfRetry(() =>
-        recordAccountBalance({ ...authApiOptions(), path: { id: account.id }, body }),
-      );
-      if (requestFailed(result)) {
-        throw accountRequestError(result);
-      }
-      return result.data;
-    },
-    onError: refreshOnStaleState,
-    onSuccess: async () => {
-      setRecording(null);
-      setSaved('recorded');
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    },
+  const { save, archive, recordBalance } = useAccountsPageMutations({
+    editor,
+    closeEditor: () => setEditor(null),
+    closeArchive: () => setArchiving(null),
+    closeRecording: () => setRecording(null),
+    notify: setSaved,
   });
 
   function closeEditor() {
@@ -238,89 +136,28 @@ export function AccountsPage() {
         <Toast onDismiss={() => setSaved(null)}>{t(`accounts.toasts.${saved}`)}</Toast>
       ) : null}
 
-      {editor ? (
-        <Modal
-          close={closeEditor}
-          eyebrow={t(
-            editor === 'create' ? 'accounts.form.createEyebrow' : 'accounts.form.editEyebrow',
-          )}
-          title={t(editor === 'create' ? 'accounts.form.createTitle' : 'accounts.form.editTitle')}
-        >
-          {editor === 'create' ? (
-            <AccountWizard
-              onCancel={closeEditor}
-              onCreate={(body) => save.mutate(body)}
-              pending={save.isPending}
-              submitError={accountErrorKind(save.error, save.isError)}
-            />
-          ) : (
-            <AccountEditor
-              account={editor}
-              key={editor.id}
-              onCancel={closeEditor}
-              onSubmit={(body) => save.mutate(body)}
-              pending={save.isPending}
-              submitError={accountErrorKind(save.error, save.isError)}
-            />
-          )}
-        </Modal>
-      ) : null}
-
-      {inspecting ? (
-        <AccountRulesModals
-          account={inspecting}
-          close={() => setInspecting(null)}
-          key={inspecting.id}
-          onOverrideRecorded={() => setSaved('claimed')}
-          onOverrideWithdrawn={() => setSaved('withdrawn')}
-        />
-      ) : null}
-
-      {recording ? (
-        <Modal
-          close={closeRecording}
-          eyebrow={t('accounts.balances.eyebrow')}
-          title={t('accounts.balances.title', { label: recording.label })}
-        >
-          <RecordBalanceForm
-            account={recording}
-            key={recording.id}
-            onCancel={closeRecording}
-            onSubmit={(body) => recordBalance.mutate({ account: recording, body })}
-            pending={recordBalance.isPending}
-            submitError={accountErrorKind(recordBalance.error, recordBalance.isError)}
-            valuation={recording.valuation}
-          />
-        </Modal>
-      ) : null}
-
-      {reconciling ? (
-        <AccountReconciliationModal
-          account={reconcilingLive ?? reconciling}
-          close={() => setReconciling(null)}
-          key={reconciling.id}
-          onReconciled={() => {
-            setReconciling(null);
-            setSaved('reconciled');
-          }}
-        />
-      ) : null}
-
-      {archiving ? (
-        <Modal
-          close={closeArchive}
-          eyebrow={t('accounts.archive.eyebrow')}
-          title={t('accounts.archive.title')}
-        >
-          <ArchiveAccountDialog
-            account={archiving}
-            onCancel={closeArchive}
-            onConfirm={() => archive.mutate(archiving)}
-            pending={archive.isPending}
-            submitError={accountErrorKind(archive.error, archive.isError)}
-          />
-        </Modal>
-      ) : null}
+      <AccountsPageModals
+        archive={archive}
+        archiving={archiving}
+        closeArchive={closeArchive}
+        closeEditor={closeEditor}
+        closeRecording={closeRecording}
+        editor={editor}
+        inspecting={inspecting}
+        onOverrideRecorded={() => setSaved('claimed')}
+        onOverrideWithdrawn={() => setSaved('withdrawn')}
+        onReconciled={() => {
+          setReconciling(null);
+          setSaved('reconciled');
+        }}
+        reconciling={reconciling}
+        reconcilingLive={reconcilingLive}
+        recordBalance={recordBalance}
+        recording={recording}
+        save={save}
+        setInspecting={setInspecting}
+        setReconciling={setReconciling}
+      />
 
       <AccountFilters
         includeArchived={includeArchived}

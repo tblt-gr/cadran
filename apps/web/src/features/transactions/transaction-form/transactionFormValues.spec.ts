@@ -59,25 +59,19 @@ describe('transactionFormValues', () => {
       categoryType: 'INCOME' as const,
     };
 
-    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toEqual({
+    expect(validateTransactionValues(values, [account], '2026-09-08')).toEqual({
       categoryId: true,
     });
     expect(
       validateTransactionValues(
         { ...values, amountValue: '12.00', nature: 'INCOME' },
         [account],
-        undefined,
         '2026-09-08',
       ),
     ).toEqual({});
     // An unknown type contradicts nothing: the server keeps the last word.
     expect(
-      validateTransactionValues(
-        { ...values, categoryType: null },
-        [account],
-        undefined,
-        '2026-09-08',
-      ),
+      validateTransactionValues({ ...values, categoryType: null }, [account], '2026-09-08'),
     ).toEqual({});
   });
 
@@ -102,7 +96,7 @@ describe('transactionFormValues', () => {
 
     expect(values.categoryType).toBe('EXPENSE');
     expect(values.splits[0]?.categoryType).toBe('EXPENSE');
-    expect(initialTransactionValues(transaction, [account]).categoryType).toBeNull();
+    expect(initialTransactionValues(transaction, [account], '2026-09-08').categoryType).toBeNull();
   });
 
   it('uses the selected nature to load categories before an amount is entered', () => {
@@ -135,7 +129,7 @@ describe('transactionFormValues', () => {
       counterparty: '   ',
     });
 
-    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toMatchObject({
+    expect(validateTransactionValues(values, [account], '2026-09-08')).toMatchObject({
       amountValue: true,
       rawLabel: true,
       counterparty: true,
@@ -152,7 +146,7 @@ describe('transactionFormValues', () => {
       rawLabel: 'Test',
     });
 
-    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toMatchObject({
+    expect(validateTransactionValues(values, [account], '2026-09-08')).toMatchObject({
       amountValue: true,
       bookedOn: true,
       authorizedOn: true,
@@ -161,7 +155,7 @@ describe('transactionFormValues', () => {
 
     values.amountValue = '42.90';
     values.bookedOn = '2026-09-01';
-    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toMatchObject({
+    expect(validateTransactionValues(values, [account], '2026-09-08')).toMatchObject({
       amountValue: true,
       nature: true,
     });
@@ -174,7 +168,7 @@ describe('transactionFormValues', () => {
       rawLabel: 'Prélèvement exact',
     });
 
-    expect(validateTransactionValues(values, [account], undefined, '2026-09-08')).toEqual({});
+    expect(validateTransactionValues(values, [account], '2026-09-08')).toEqual({});
     expect(transactionRequest(values, [account])).toMatchObject({
       amount: { value: '-99999999999999999999999999.123456789012345678901234' },
     });
@@ -185,12 +179,10 @@ describe('transactionFormValues', () => {
     const values = initialTransactionValues(transaction, [historicalAccount], '2026-09-08');
 
     expect(
-      validateTransactionValues(values, [historicalAccount], transaction, '2026-09-08'),
+      validateTransactionValues(values, [historicalAccount], '2026-09-08', transaction),
     ).toEqual({});
-    expect(validateTransactionValues(values, [], transaction, '2026-09-08')).toEqual({});
-    expect(
-      validateTransactionValues(values, [historicalAccount], undefined, '2026-09-08'),
-    ).toMatchObject({
+    expect(validateTransactionValues(values, [], '2026-09-08', transaction)).toEqual({});
+    expect(validateTransactionValues(values, [historicalAccount], '2026-09-08')).toMatchObject({
       accountId: true,
     });
   });
@@ -209,8 +201,10 @@ describe('transactionFormValues', () => {
     const withSplit = { ...transaction, splits: [saved] } as Transaction;
 
     it('shows the stored axes of a saved single-split transaction', () => {
-      expect(initialTransactionValues(withSplit, [account]).analyticAxes).toEqual(['FIXED']);
-      expect(initialTransactionValues(undefined, [account]).analyticAxes).toBeNull();
+      expect(initialTransactionValues(withSplit, [account], '2026-09-08').analyticAxes).toEqual([
+        'FIXED',
+      ]);
+      expect(initialTransactionValues(undefined, [account], '2026-09-08').analyticAxes).toBeNull();
     });
 
     it('inherits the category defaults, without a split, while the axes are null', () => {
@@ -248,7 +242,7 @@ describe('transactionFormValues', () => {
     });
 
     it('keeps the plain category path and the note when an edit leaves the axes untouched', () => {
-      const values = initialTransactionValues(withSplit, [account]);
+      const values = initialTransactionValues(withSplit, [account], '2026-09-08');
 
       expect(transactionRequest(values, [account], withSplit)).toMatchObject({
         categoryId: 'category-1',
