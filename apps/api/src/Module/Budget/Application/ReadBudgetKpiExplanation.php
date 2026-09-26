@@ -59,6 +59,7 @@ final readonly class ReadBudgetKpiExplanation
             freshness: $comparison->pendingCount > 0 ? 'PENDING' : 'CURRENT',
             quality: $comparison->status,
             pendingCount: $comparison->pendingCount,
+            metricPolicy: $comparisons->metricPolicy,
         );
     }
 }

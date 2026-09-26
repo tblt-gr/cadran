@@ -7,6 +7,7 @@ namespace App\Tests\Module\Budget\Domain;
 use App\Module\Budget\Domain\BudgetIncomeCalculator;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Reporting\Domain\MetricPolicy;
 use App\Module\Reporting\Domain\MonthlyMovement;
 use App\Module\Reporting\Domain\MonthlyMovementKind;
 use App\Module\Reporting\Domain\MonthlyProjectionReason;
@@ -24,7 +25,7 @@ final class BudgetIncomeCalculatorTest extends TestCase
             new MonthlyMovement(DecimalValue::fromString('100.50'), $eur, MonthlyMovementKind::REFUND, [], false),
         ];
 
-        $income = BudgetIncomeCalculator::sumIncome(['EUR'], $movements);
+        $income = BudgetIncomeCalculator::sumIncome(['EUR'], $movements, MetricPolicy::systemV1());
 
         self::assertSame('2500.00', $income->value?->toString());
         self::assertNull($income->reason);
@@ -37,7 +38,7 @@ final class BudgetIncomeCalculatorTest extends TestCase
             new MonthlyMovement(DecimalValue::fromString('-42.00'), $eur, MonthlyMovementKind::EXPENSE, [], false),
         ];
 
-        $income = BudgetIncomeCalculator::sumIncome(['EUR'], $movements);
+        $income = BudgetIncomeCalculator::sumIncome(['EUR'], $movements, MetricPolicy::systemV1());
 
         self::assertNull($income->value);
         self::assertSame(MonthlyProjectionReason::ZERO_CASH_INCOME, $income->reason);
@@ -45,7 +46,7 @@ final class BudgetIncomeCalculatorTest extends TestCase
 
     public function testItIsNonCalculableWhenThereIsNoAccountAtAll(): void
     {
-        $income = BudgetIncomeCalculator::sumIncome([], []);
+        $income = BudgetIncomeCalculator::sumIncome([], [], MetricPolicy::systemV1());
 
         self::assertNull($income->value);
         self::assertSame(MonthlyProjectionReason::NO_ACCOUNT, $income->reason);
@@ -53,7 +54,7 @@ final class BudgetIncomeCalculatorTest extends TestCase
 
     public function testItIsNonCalculableWhenAccountsSpanMoreThanOneAsset(): void
     {
-        $income = BudgetIncomeCalculator::sumIncome(['EUR', 'USD'], []);
+        $income = BudgetIncomeCalculator::sumIncome(['EUR', 'USD'], [], MetricPolicy::systemV1());
 
         self::assertNull($income->value);
         self::assertSame(MonthlyProjectionReason::MIXED_ASSETS, $income->reason);
@@ -68,7 +69,7 @@ final class BudgetIncomeCalculatorTest extends TestCase
             new MonthlyMovement(DecimalValue::zero(), $eur, MonthlyMovementKind::INCOME, [], false),
         ];
 
-        $income = BudgetIncomeCalculator::sumIncome(['EUR'], $movements);
+        $income = BudgetIncomeCalculator::sumIncome(['EUR'], $movements, MetricPolicy::systemV1());
 
         self::assertNull($income->value);
         self::assertSame(MonthlyProjectionReason::ZERO_CASH_INCOME, $income->reason);

@@ -19,6 +19,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Reporting\Application\ResolveMetricPolicy;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionSource;
@@ -35,7 +36,10 @@ use App\Tests\Module\Budget\Application\Double\InMemoryTransactionRepository;
 use App\Tests\Module\Budget\Application\Double\SequenceUuidGenerator;
 use App\Tests\Module\Categories\Application\Double\InMemoryCategoryRepository;
 use App\Tests\Module\Reference\Application\Double\InMemoryAssetCatalog;
+use App\Tests\Module\Reporting\Application\Double\InMemoryMetricPolicyRepository;
+use App\Tests\Module\Reporting\Application\Double\InMemoryPeriodClosureRepository;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 
 final class ReadBudgetPlanTest extends TestCase
 {
@@ -126,7 +130,7 @@ final class ReadBudgetPlanTest extends TestCase
             $plans,
             $targets,
             new ReadCategoryReference($categories),
-            new ReadPeriodCashIncome(new InMemoryAccountRepository(), new InMemoryTransactionRepository(), new FixedWorkspaceTimezoneReader()),
+            new ReadPeriodCashIncome(new InMemoryAccountRepository(), new InMemoryTransactionRepository(), new FixedWorkspaceTimezoneReader(), new ResolveMetricPolicy(new InMemoryMetricPolicyRepository(), new InMemoryPeriodClosureRepository(), new MockClock('2026-09-19T10:00:00+00:00'))),
         );
 
         $this->expectException(BudgetPlanNotFound::class);
@@ -176,7 +180,7 @@ final class ReadBudgetPlanTest extends TestCase
         $transactionsRepo = null === $income
             ? new InMemoryTransactionRepository()
             : new InMemoryTransactionRepository($this->income($income, $incomeAsset));
-        $incomeReader = new ReadPeriodCashIncome($accounts, $transactionsRepo, new FixedWorkspaceTimezoneReader());
+        $incomeReader = new ReadPeriodCashIncome($accounts, $transactionsRepo, new FixedWorkspaceTimezoneReader(), new ResolveMetricPolicy(new InMemoryMetricPolicyRepository(), new InMemoryPeriodClosureRepository(), new MockClock('2026-09-19T10:00:00+00:00')));
 
         $read = new ReadBudgetPlan($caller, $plans, $targets, new ReadCategoryReference($categories), $incomeReader);
 
@@ -234,7 +238,7 @@ final class ReadBudgetPlanTest extends TestCase
         ($createTarget)(new CreateBudgetTargetInput($plan->id, 'CATEGORY', self::CHILD_CATEGORY_ID, 'AMOUNT', '100.00', null));
 
         $accounts = new InMemoryAccountRepository(AccountFixture::account());
-        $incomeReader = new ReadPeriodCashIncome($accounts, new InMemoryTransactionRepository(), new FixedWorkspaceTimezoneReader());
+        $incomeReader = new ReadPeriodCashIncome($accounts, new InMemoryTransactionRepository(), new FixedWorkspaceTimezoneReader(), new ResolveMetricPolicy(new InMemoryMetricPolicyRepository(), new InMemoryPeriodClosureRepository(), new MockClock('2026-09-19T10:00:00+00:00')));
         $read = new ReadBudgetPlan($caller, $plans, $targets, new ReadCategoryReference($categories), $incomeReader);
 
         return [$read, $plan->id];

@@ -23,6 +23,7 @@ final class MonthlyProjectionRepresentation
             'pendingCount' => $view->pendingCount,
             'cashIncome' => self::metric($view->cashIncome),
             'nonCashBenefits' => self::metric($view->nonCashBenefits),
+            'benefitSpending' => self::metric($view->benefitSpending),
             'budgetExpenses' => self::metric($view->budgetExpenses),
             'uncategorizedExpenses' => self::metric($view->uncategorizedExpenses),
             'budgetSurplus' => self::metric($view->budgetSurplus),
@@ -38,6 +39,7 @@ final class MonthlyProjectionRepresentation
             'beginningNetWorthState' => $view->beginningNetWorthState,
             'accounts' => array_map(self::account(...), $view->accounts),
             'reconciliationStatus' => $view->reconciliationStatus,
+            'metricPolicy' => MetricPolicyRepresentation::reference($view->metricPolicy),
         ];
     }
 

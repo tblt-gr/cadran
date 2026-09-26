@@ -33,6 +33,7 @@ final class MonthlyRecapRepresentation
             'groups' => array_map(self::group(...), $view->groups),
             'netWorth' => self::netWorth($view->netWorth),
             'totals' => self::totals($view->totals),
+            'metricPolicy' => MetricPolicyRepresentation::reference($view->metricPolicy),
         ];
     }
 

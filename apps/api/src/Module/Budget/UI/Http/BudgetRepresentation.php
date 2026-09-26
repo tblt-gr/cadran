@@ -12,6 +12,7 @@ use App\Module\Budget\Application\BudgetPlanView;
 use App\Module\Budget\Application\BudgetTargetDetailView;
 use App\Module\Budget\Application\BudgetTargetView;
 use App\Module\Reporting\Application\MonthlyBudgetSourceView;
+use App\Module\Reporting\UI\Http\MetricPolicyRepresentation;
 
 final class BudgetRepresentation
 {
@@ -39,6 +40,7 @@ final class BudgetRepresentation
             'state' => $plan->state,
             'version' => $plan->version,
             'targets' => array_map(self::targetDetail(...), $plan->targets),
+            'metricPolicy' => MetricPolicyRepresentation::reference($plan->metricPolicy),
         ];
     }
 
@@ -68,6 +70,7 @@ final class BudgetRepresentation
             'status' => $view->status,
             'reason' => $view->reason,
             'comparisons' => array_map(self::comparison(...), $view->comparisons),
+            'metricPolicy' => MetricPolicyRepresentation::reference($view->metricPolicy),
         ];
     }
 

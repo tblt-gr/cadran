@@ -1,3 +1,4 @@
+import { MetricPolicyBadge } from '@/features/metric-policy/metric-policy-badge/MetricPolicyBadge';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/features/auth/useSession';
@@ -34,6 +35,9 @@ export function MonthlyRecap({ month }: { month: string }) {
   const data = recap.data;
   return (
     <aside aria-label={t('budget.monthly.recap.label')} className={styles.recap}>
+      <p className={styles.policy}>
+        <MetricPolicyBadge policy={data.metricPolicy} />
+      </p>
       {data.state === 'PENDING' ? (
         <p className={styles.pending} role="status">
           {t('budget.monthly.recap.pending')}

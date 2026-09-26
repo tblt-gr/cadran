@@ -8,6 +8,7 @@ enum MonthlyKpi: string
 {
     case CASH_INCOME = 'cashIncome';
     case NON_CASH_BENEFITS = 'nonCashBenefits';
+    case BENEFIT_SPENDING = 'benefitSpending';
     case BUDGET_EXPENSES = 'budgetExpenses';
     case UNCATEGORIZED_EXPENSES = 'uncategorizedExpenses';
     case BUDGET_SURPLUS = 'budgetSurplus';
@@ -26,6 +27,7 @@ enum MonthlyKpi: string
         return match ($this) {
             self::CASH_INCOME => $view->cashIncome,
             self::NON_CASH_BENEFITS => $view->nonCashBenefits,
+            self::BENEFIT_SPENDING => $view->benefitSpending,
             self::BUDGET_EXPENSES => $view->budgetExpenses,
             self::UNCATEGORIZED_EXPENSES => $view->uncategorizedExpenses,
             self::BUDGET_SURPLUS => $view->budgetSurplus,
@@ -44,10 +46,11 @@ enum MonthlyKpi: string
     public function formula(): string
     {
         return match ($this) {
-            self::CASH_INCOME => 'cash income = sum of booked INCOME transaction amounts',
-            self::NON_CASH_BENEFITS => 'non-cash benefits = sum of modelled non-cash benefit sources',
-            self::BUDGET_EXPENSES => 'budget expenses = negative sum of retained signed EXPENSE, FEE and REFUND amounts',
-            self::UNCATEGORIZED_EXPENSES => 'uncategorized expenses = negative sum of retained unsplit signed expense amounts',
+            self::CASH_INCOME => 'cash income = sum of booked INCOME amounts on accounts inside the cash perimeter',
+            self::NON_CASH_BENEFITS => 'non-cash benefits = sum of booked INCOME amounts on accounts outside the cash perimeter',
+            self::BENEFIT_SPENDING => 'benefit spending = negative sum of booked EXPENSE, FEE and REFUND amounts on accounts outside the cash perimeter',
+            self::BUDGET_EXPENSES => 'budget expenses = negative sum of retained signed EXPENSE, FEE and REFUND amounts on accounts inside the cash perimeter of the governing metric policy',
+            self::UNCATEGORIZED_EXPENSES => 'uncategorized expenses = negative sum of retained unsplit signed expense amounts on accounts inside the cash perimeter of the governing metric policy',
             self::BUDGET_SURPLUS => 'budget surplus = cash income - budget expenses',
             self::SAVINGS_TRANSFERS => 'savings transfers = sum of incoming transfers to SAVINGS or PORTFOLIO accounts',
             self::CASH_SAVINGS_RATE => 'cash savings rate = budget surplus / cash income',
@@ -64,10 +67,11 @@ enum MonthlyKpi: string
     public function scope(): string
     {
         return match ($this) {
-            self::CASH_INCOME => 'Booked, non-voided INCOME transactions in the caller workspace and month.',
-            self::NON_CASH_BENEFITS => 'Non-cash benefit sources in the caller workspace and month; none are modelled in this release.',
-            self::BUDGET_EXPENSES => 'Booked, non-voided EXPENSE, FEE and REFUND amounts retained by budget-included categories in the caller workspace and month.',
-            self::UNCATEGORIZED_EXPENSES => 'Booked, non-voided unsplit EXPENSE, FEE and REFUND transactions in the caller workspace and month.',
+            self::CASH_INCOME => 'Booked, non-voided INCOME transactions on accounts inside the cash perimeter of the governing metric policy, in the caller workspace and month.',
+            self::NON_CASH_BENEFITS => 'Booked, non-voided INCOME transactions on accounts outside the cash perimeter of the governing metric policy, in the caller workspace and month.',
+            self::BENEFIT_SPENDING => 'Booked, non-voided EXPENSE, FEE and REFUND transactions on accounts outside the cash perimeter of the governing metric policy, in the caller workspace and month.',
+            self::BUDGET_EXPENSES => 'Booked, non-voided EXPENSE, FEE and REFUND amounts on accounts inside the cash perimeter of the governing metric policy, retained by budget-included categories in the caller workspace and month.',
+            self::UNCATEGORIZED_EXPENSES => 'Booked, non-voided unsplit EXPENSE, FEE and REFUND transactions on accounts inside the cash perimeter of the governing metric policy, in the caller workspace and month.',
             self::BUDGET_SURPLUS, self::CASH_SAVINGS_RATE => 'The exact cash-income and budget-expense views for the caller workspace and month.',
             self::SAVINGS_TRANSFERS => 'Booked incoming TRANSFER transactions to SAVINGS or PORTFOLIO accounts in the caller workspace and month.',
             self::SAVINGS_INFLOWS, self::SAVINGS_WITHDRAWALS, self::NET_SAVINGS_TRANSFERS => 'Complete, same-day and same-asset transfer pairs crossing the SAVINGS or PORTFOLIO boundary in the caller workspace and month.',

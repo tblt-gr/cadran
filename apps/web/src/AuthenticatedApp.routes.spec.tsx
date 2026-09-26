@@ -24,6 +24,7 @@ describe('AuthenticatedApp route table', () => {
       '/budget/00000000-0000-7000-8000-000000000001',
       '/budget/2026-03',
       '/settings/profile',
+      '/settings/metric-policy',
     ];
 
     for (const path of paths) {

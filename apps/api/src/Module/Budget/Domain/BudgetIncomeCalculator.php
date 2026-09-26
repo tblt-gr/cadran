@@ -7,6 +7,7 @@ namespace App\Module\Budget\Domain;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
+use App\Module\Reporting\Domain\MetricPolicy;
 use App\Module\Reporting\Domain\MonthlyMetric;
 use App\Module\Reporting\Domain\MonthlyMovementKind;
 use App\Module\Reporting\Domain\MonthlyProjectionReason;
@@ -22,9 +23,13 @@ final class BudgetIncomeCalculator
     /**
      * @param list<string>                                       $accountAssets asset code of every workspace account open during the period
      * @param list<\App\Module\Reporting\Domain\MonthlyMovement> $movements     booked, live source movements of the period
+     * @param ?MetricPolicy                                      $policy        null when the governing version cannot be loaded
      */
-    public static function sumIncome(array $accountAssets, array $movements): MonthlyMetric
+    public static function sumIncome(array $accountAssets, array $movements, ?MetricPolicy $policy): MonthlyMetric
     {
+        if (null === $policy) {
+            return MonthlyMetric::missing(MonthlyProjectionReason::UNKNOWN_METRIC_POLICY);
+        }
         $assets = array_values(array_unique($accountAssets));
         if (count($assets) > 1) {
             return MonthlyMetric::missing(MonthlyProjectionReason::MIXED_ASSETS);
@@ -39,7 +44,7 @@ final class BudgetIncomeCalculator
             if (!$movement->asset->equals($asset)) {
                 return MonthlyMetric::missing(MonthlyProjectionReason::MIXED_ASSETS);
             }
-            if (MonthlyMovementKind::INCOME === $movement->kind) {
+            if (MonthlyMovementKind::INCOME === $movement->kind && !$policy->isExcluded($movement->accountKind)) {
                 $income = ExactDecimal::add($income, $movement->amount);
             }
         }

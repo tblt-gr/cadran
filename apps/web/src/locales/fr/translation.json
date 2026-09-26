@@ -118,7 +118,8 @@
     "recurrences": "Récurrences",
     "categories": "Catégories",
     "redirecting": "Redirection…",
-    "notFound": "Page introuvable"
+    "notFound": "Page introuvable",
+    "metricPolicy": "Politique d’indicateurs"
   },
   "reports": {
     "title": "Rapports",
@@ -166,7 +167,8 @@
       "netSavingsRate": "Taux d’épargne net",
       "beginningNetWorth": "Patrimoine initial",
       "endNetWorth": "Patrimoine final",
-      "netWorthDelta": "Variation du patrimoine"
+      "netWorthDelta": "Variation du patrimoine",
+      "benefitSpending": "Dépenses des avantages"
     }
   },
   "states": {
@@ -1607,6 +1609,11 @@
         "throttled": "Trop de tentatives. Patientez quelques minutes avant de réessayer.",
         "unauthorized": "Votre session n’est plus valide. Reconnectez-vous, puis réessayez."
       }
+    },
+    "tabs": {
+      "label": "Sections des paramètres",
+      "profile": "Profil",
+      "metricPolicy": "Politique d’indicateurs"
     }
   },
   "closures": {
@@ -2039,7 +2046,11 @@
       "unmatched": "Sans transaction",
       "periodClosed": "Mois clôturé : l’échéance reste en attente de comptabilisation"
     },
-    "statuses": { "EXPECTED": "Attendue", "RECEIVED": "Reçue", "LATE": "En retard" }
+    "statuses": {
+      "EXPECTED": "Attendue",
+      "RECEIVED": "Reçue",
+      "LATE": "En retard"
+    }
   },
   "categorizationRules": {
     "eyebrow": "Automatisation contrôlée",
@@ -2370,7 +2381,9 @@
           "NO_ELIGIBLE_ACCOUNT": "Aucun compte éligible",
           "INCOMPLETE_TRANSFER_PAIR": "Virement incomplet",
           "MISMATCHED_TRANSFER_PAIR": "Virement incohérent",
-          "MISSING_ACCOUNT_CLASSIFICATION": "Classification de compte manquante"
+          "MISSING_ACCOUNT_CLASSIFICATION": "Classification de compte manquante",
+          "UNKNOWN_METRIC_POLICY": "Politique d’indicateurs introuvable",
+          "MIXED_METRIC_POLICIES": "Politiques d’indicateurs différentes"
         },
         "error": {
           "title": "Synthèse mensuelle indisponible",
@@ -2457,10 +2470,24 @@
       "resolved": "Montant résolu",
       "warning": "Avertissement"
     },
-    "periodTypes": { "MONTH": "Mensuel", "YEAR": "Annuel" },
-    "states": { "DRAFT": "Brouillon", "ACTIVE": "Actif", "CLOSED": "Clôturé" },
-    "scopeTypes": { "CATEGORY": "Catégorie", "GROUP": "Groupe", "AXIS": "Axe" },
-    "valueTypes": { "AMOUNT": "Montant exact", "RATIO": "Ratio" },
+    "periodTypes": {
+      "MONTH": "Mensuel",
+      "YEAR": "Annuel"
+    },
+    "states": {
+      "DRAFT": "Brouillon",
+      "ACTIVE": "Actif",
+      "CLOSED": "Clôturé"
+    },
+    "scopeTypes": {
+      "CATEGORY": "Catégorie",
+      "GROUP": "Groupe",
+      "AXIS": "Axe"
+    },
+    "valueTypes": {
+      "AMOUNT": "Montant exact",
+      "RATIO": "Ratio"
+    },
     "fields": {
       "periodType": "Type de période",
       "period": "Période",
@@ -2547,11 +2574,83 @@
       "MISSING_TARGET": "Objectif manquant",
       "MIXED_ASSETS": "Actifs mélangés",
       "NO_ACCOUNT": "Aucun compte de trésorerie",
-      "ZERO_CASH_INCOME": "Revenus de trésorerie nuls"
+      "ZERO_CASH_INCOME": "Revenus de trésorerie nuls",
+      "UNKNOWN_METRIC_POLICY": "Politique d’indicateurs introuvable",
+      "MIXED_METRIC_POLICIES": "Politiques d’indicateurs différentes sur la période"
     },
     "toasts": {
       "saved": "Le plan budgétaire a été enregistré.",
       "stateChanged": "L’état du plan a été mis à jour."
+    }
+  },
+  "metricPolicy": {
+    "eyebrow": "Indicateurs",
+    "title": "Politique d’indicateurs",
+    "description": "Définit quels comptes comptent comme trésorerie dans les revenus et les dépenses budgétaires. Les mois clôturés gardent la version active à leur clôture.",
+    "loading": "Chargement de la politique d’indicateurs…",
+    "error": "La politique d’indicateurs est indisponible",
+    "unauthorized": "Vous n’êtes pas autorisé à consulter cette politique",
+    "version": "Version {{version}} · {{label}}",
+    "badge": {
+      "version": "Politique v{{version}}",
+      "mixed": "Politiques mixtes"
+    },
+    "active": {
+      "title": "Politique active",
+      "since": "Active depuis le {{date}}",
+      "builtIn": "Définition intégrée, jamais modifiée",
+      "unresolved": "Version {{version}} introuvable",
+      "unresolvedHint": "Les indicateurs dépendant de la politique sont non calculables. Activez une version existante pour corriger."
+    },
+    "definition": {
+      "excludedKinds": "Types de comptes hors trésorerie",
+      "noExclusion": "Aucun type exclu",
+      "savingsRate": "Taux d’épargne de trésorerie",
+      "netSavingsRate": "Taux d’épargne nette"
+    },
+    "formulas": {
+      "BUDGET_SURPLUS_OVER_CASH_INCOME": "Solde budgétaire divisé par les revenus de trésorerie",
+      "NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME": "Épargne nette transférée divisée par les revenus de trésorerie"
+    },
+    "history": {
+      "title": "Historique des versions",
+      "empty": "Aucune version personnalisée pour le moment.",
+      "version": "Version",
+      "label": "Libellé",
+      "excluded": "Types exclus",
+      "createdAt": "Créée le",
+      "action": "Action",
+      "builtIn": "Intégrée",
+      "activate": "Activer la version {{version}}",
+      "activateShort": "Activer"
+    },
+    "create": {
+      "open": "Nouvelle version",
+      "title": "Nouvelle version de la politique",
+      "label": "Libellé",
+      "labelError": "Saisissez un libellé de 1 à {{max}} caractères.",
+      "kinds": "Types de comptes exclus de la trésorerie",
+      "kindsHint": "Les mouvements de ces comptes ne comptent ni dans les revenus de trésorerie ni dans les dépenses budgétaires.",
+      "submit": "Créer la version"
+    },
+    "activate": {
+      "title": "Activer la version {{version}}",
+      "before": "Avant",
+      "after": "Après",
+      "closedMonths": "Les mois clôturés conservent leur version ; seuls les mois ouverts et les prochaines clôtures utilisent la nouvelle définition.",
+      "reason": "Motif (facultatif)",
+      "submit": "Activer"
+    },
+    "errors": {
+      "already_active": "Cette version est déjà active.",
+      "definition_exists": "Une version avec ces types exclus existe déjà.",
+      "invalid": "La demande est invalide. Vérifiez le libellé et les types de comptes.",
+      "network": "L’opération a échoué. Réessayez.",
+      "stale": "La version active a changé. Le catalogue est rechargé, vérifiez puis réessayez.",
+      "unauthorized": "Votre session n’est plus valide. Reconnectez-vous.",
+      "unknown_version": "Cette version n’existe pas.",
+      "version_limit": "Le nombre maximal de versions est atteint.",
+      "activation_limit": "Le nombre maximal d’activations est atteint."
     }
   }
 }

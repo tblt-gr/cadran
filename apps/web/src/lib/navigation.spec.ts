@@ -12,4 +12,13 @@ describe('navigationItems', () => {
     expect(getRouteTitleKey('/transactions/categories')).toBe('routes.categories');
     expect(getRouteTitleKey('/transactions/categories/rules')).toBe('routes.categorizationRules');
   });
+
+  it('titles the metric policy page while keeping it under Settings', () => {
+    expect(getRouteTitleKey('/settings/metric-policy')).toBe('routes.metricPolicy');
+    expect(
+      navigationItems
+        .find((item) => item.href === '/settings/profile')
+        ?.match('/settings/metric-policy'),
+    ).toBe(true);
+  });
 });

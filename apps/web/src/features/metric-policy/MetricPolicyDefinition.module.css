@@ -1,0 +1,17 @@
+.definition {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: var(--spacing-none);
+  gap: var(--spacing-1);
+}
+
+.definition dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.definition dd {
+  margin: var(--spacing-none) var(--spacing-none) var(--spacing-2);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}

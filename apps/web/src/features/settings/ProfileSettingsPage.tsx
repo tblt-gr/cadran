@@ -2,6 +2,7 @@ import { changeOwnerPassword, updateOwnerProfile } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SettingsTabs } from '@/components/layout/settings-tabs/SettingsTabs';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { sessionQueryKey } from '@/features/auth/useSession';
@@ -76,6 +77,7 @@ export function ProfileSettingsPage() {
 
   return (
     <div className={styles.page}>
+      <SettingsTabs path="/settings/profile" />
       <section className={styles.intro} aria-labelledby="settings-intro-title">
         <div>
           <p>{t('settings.eyebrow')}</p>

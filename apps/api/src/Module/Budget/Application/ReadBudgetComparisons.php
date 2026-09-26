@@ -25,6 +25,7 @@ use App\Module\Reporting\Application\MonthlyBudgetActualView;
 use App\Module\Reporting\Application\MonthlyBudgetScope;
 use App\Module\Reporting\Application\MonthlyMetricView;
 use App\Module\Reporting\Application\ReadMonthlyBudgetActuals;
+use App\Module\Reporting\Application\ResolveMetricPolicy;
 use App\Module\Reporting\Domain\MonthlyBudgetActualCalculator;
 use App\Module\Reporting\Domain\MonthlyProjectionReason;
 use App\Module\Transactions\Application\MonthlyTransactionScopeTooLarge;
@@ -38,6 +39,7 @@ final readonly class ReadBudgetComparisons
         private BudgetTargetRepository $targets,
         private ReadCategoryReference $categoryReference,
         private ReadMonthlyBudgetActuals $actuals,
+        private ResolveMetricPolicy $metricPolicy,
     ) {
     }
 
@@ -64,6 +66,7 @@ final readonly class ReadBudgetComparisons
                 'NO_TARGETS',
                 BudgetComparisonReason::MISSING_TARGET->value,
                 [],
+                ($this->metricPolicy)($workspace, CalendarMonth::fromString($plan->period->key()))->reference(),
             );
         }
 
@@ -137,6 +140,7 @@ final readonly class ReadBudgetComparisons
             'AVAILABLE',
             null,
             $views,
+            $actuals->metricPolicy,
         );
     }
 
@@ -182,6 +186,7 @@ final readonly class ReadBudgetComparisons
             MonthlyProjectionReason::NO_ACCOUNT->value => BudgetComparisonReason::NO_ACCOUNT,
             MonthlyProjectionReason::ZERO_CASH_INCOME->value => BudgetComparisonReason::ZERO_CASH_INCOME,
             MonthlyProjectionReason::MIXED_ASSETS->value => BudgetComparisonReason::MIXED_ASSETS,
+            MonthlyProjectionReason::UNKNOWN_METRIC_POLICY->value => BudgetComparisonReason::UNKNOWN_METRIC_POLICY,
             default => throw new \LogicException('A non-calculable budget metric has no supported reason.'),
         };
     }

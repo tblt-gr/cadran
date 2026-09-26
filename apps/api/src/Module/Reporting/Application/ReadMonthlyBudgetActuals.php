@@ -11,11 +11,13 @@ use App\Module\Categories\Application\BudgetCategoryFact;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Categories\Domain\Category;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Reporting\Domain\MonthlyBudgetActual;
 use App\Module\Reporting\Domain\MonthlyBudgetActualCalculator;
 use App\Module\Reporting\Domain\MonthlyBudgetActualSource;
 use App\Module\Reporting\Domain\MonthlyBudgetCashIncomeCalculator;
 use App\Module\Reporting\Domain\MonthlyMovement;
 use App\Module\Reporting\Domain\MonthlyMovementKind;
+use App\Module\Reporting\Domain\MonthlyProjectionReason;
 use App\Module\Reporting\Domain\MonthlySplit;
 use App\Module\Transactions\Application\MonthlyTransactionFact;
 use App\Module\Transactions\Application\ReadMonthlyTransactionFacts;
@@ -27,6 +29,7 @@ final readonly class ReadMonthlyBudgetActuals
         private ReadMonthlyTransactionFacts $transactions,
         private ReadMonthlyAccountFacts $accounts,
         private ReadBudgetCategoryFacts $categories,
+        private ResolveMetricPolicy $metricPolicy,
     ) {
     }
 
@@ -40,39 +43,44 @@ final readonly class ReadMonthlyBudgetActuals
         $transactionFacts = ($this->transactions)($workspace, $month);
         $accountFacts = ($this->accounts)($workspace, $month);
         $categoryFacts = ($this->categories)($workspace);
+        $policy = ($this->metricPolicy)($workspace, $month);
 
         $accountsById = [];
         foreach ($accountFacts->accounts as $account) {
             $accountsById[$account->id] = $account;
         }
-        $booked = array_map(
+        $allBooked = array_map(
             static fn (MonthlyTransactionFact $fact): MonthlyMovement => self::movement($fact, $accountsById),
             $transactionFacts->booked,
         );
-        $pending = array_map(
+        $inCashPerimeter = static fn (MonthlyMovement $movement): bool => !($policy->policy?->isExcluded($movement->accountKind) ?? false);
+        $booked = array_values(array_filter($allBooked, $inCashPerimeter));
+        $pending = array_values(array_filter(array_map(
             static fn (MonthlyTransactionFact $fact): MonthlyMovement => self::movement($fact, $accountsById),
             $transactionFacts->pending,
-        );
+        ), $inCashPerimeter));
         $bookedFactsById = [];
         foreach ($transactionFacts->booked as $fact) {
             $bookedFactsById[$fact->id] = $fact;
         }
         $accountAssets = array_map(static fn (MonthlyAccountFact $account): string => $account->assetCode, $accountFacts->accounts);
         [$flags, $ancestors] = self::categoryMaps($categoryFacts);
-        $cashIncome = MonthlyBudgetCashIncomeCalculator::compute($accountAssets, $booked);
+        $cashIncome = MonthlyBudgetCashIncomeCalculator::compute($accountAssets, $allBooked, $policy->policy);
 
         $actuals = [];
         foreach ($scopes as $scope) {
-            $actual = MonthlyBudgetActualCalculator::compute(
-                $booked,
-                $pending,
-                $flags,
-                $ancestors,
-                $scope->type,
-                $scope->id,
-                $expectedAsset,
-                [] !== $accountFacts->accounts,
-            );
+            $actual = null === $policy->policy
+                ? new MonthlyBudgetActual(null, null, MonthlyProjectionReason::UNKNOWN_METRIC_POLICY, [], 0)
+                : MonthlyBudgetActualCalculator::compute(
+                    $booked,
+                    $pending,
+                    $flags,
+                    $ancestors,
+                    $scope->type,
+                    $scope->id,
+                    $expectedAsset,
+                    [] !== $accountFacts->accounts,
+                );
             $actuals[$scope->key] = new MonthlyBudgetActualView(
                 $scope->key,
                 new MonthlyMetricView($actual->amount, $actual->asset?->toString(), $actual->reason?->value),
@@ -99,7 +107,7 @@ final readonly class ReadMonthlyBudgetActuals
             $cashIncome->amount,
             $cashIncome->asset?->toString(),
             $cashIncome->reason?->value,
-        ), $actuals);
+        ), $actuals, $policy->reference());
     }
 
     /** @param array<string, MonthlyAccountFact> $accountsById */
@@ -116,6 +124,7 @@ final readonly class ReadMonthlyBudgetActuals
             ), $fact->splits),
             $accountsById[$fact->accountId]->savingsDestination ?? false,
             $fact->id,
+            $accountsById[$fact->accountId]->kind ?? null,
         );
     }
 

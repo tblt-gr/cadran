@@ -10,6 +10,7 @@ final readonly class MonthlyBudgetActualsView
     public function __construct(
         public MonthlyMetricView $cashIncome,
         public array $actuals,
+        public MetricPolicyReference $metricPolicy,
     ) {
     }
 }

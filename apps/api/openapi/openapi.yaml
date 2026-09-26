@@ -2299,8 +2299,8 @@ paths:
       summary: Explain one monthly projection KPI of the calling workspace
       description: >-
         Selects a metric from the exact monthly projection view and exposes its
-        formula, bounded source identifiers, freshness and quality. No policy
-        selector or version is exposed in this release.
+        formula, bounded source identifiers, freshness, quality and the metric
+        policy version that produced it.
       tags: [Reporting]
       security:
         - sessionCookie: []
@@ -2314,6 +2314,7 @@ paths:
               [
                 cashIncome,
                 nonCashBenefits,
+                benefitSpending,
                 budgetExpenses,
                 uncategorizedExpenses,
                 budgetSurplus,
@@ -2454,6 +2455,118 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/reports/metric-policies:
+    get:
+      operationId: listMetricPolicies
+      summary: Read the active metric policy and the version history
+      description: >-
+        Version 1 is built in and always listed first; workspace versions start
+        at 2. `activeSince` is null while no activation exists.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The active policy and every version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MetricPolicyCatalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    post:
+      operationId: createMetricPolicy
+      summary: Append the next immutable metric policy version
+      description: >-
+        Owner only. A version is never edited or deleted. The mutation requires
+        the same-origin CSRF token.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateMetricPolicyRequest' }
+      responses:
+        '201':
+          description: The created version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MetricPolicy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: >-
+            The CSRF / Origin check failed (`type: /problems/csrf-token`), or
+            the caller is not the workspace owner.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: >-
+            `policy_definition_exists` (with the existing `version`) or
+            `policy_version_limit`.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/MetricPolicyProblem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: Invalid label or account kind, duplicated kind or more than 8 kinds.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/reports/metric-policies/active:
+    put:
+      operationId: activateMetricPolicy
+      summary: Activate an existing metric policy version
+      description: >-
+        Owner only. Appends an activation; a closed month keeps the version it
+        was closed under. Concurrent activations are serialized: the loser
+        receives `stale_active_policy`. The mutation requires the same-origin
+        CSRF token.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ActivateMetricPolicyRequest' }
+      responses:
+        '200':
+          description: The newly active version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActiveMetricPolicy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: >-
+            The CSRF / Origin check failed (`type: /problems/csrf-token`), or
+            the caller is not the workspace owner.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: '`stale_active_policy`, `policy_already_active` or `activation_limit`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/MetricPolicyProblem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: '`unknown_policy_version`, or an invalid body.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/MetricPolicyProblem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/net-worth:
     get:
@@ -4992,7 +5105,15 @@ components:
       enum: [WITHIN_TARGET, ON_TARGET, OVER_TARGET, NON_CALCULABLE]
     BudgetComparisonReason:
       type: string
-      enum: [MISSING_TARGET, MIXED_ASSETS, NO_ACCOUNT, ZERO_CASH_INCOME]
+      enum:
+        [
+          MISSING_TARGET,
+          MIXED_ASSETS,
+          NO_ACCOUNT,
+          ZERO_CASH_INCOME,
+          UNKNOWN_METRIC_POLICY,
+          MIXED_METRIC_POLICIES,
+        ]
     BudgetPeriod:
       type: string
       pattern: '^\d{4}(-(0[1-9]|1[0-2]))?$'
@@ -5090,14 +5211,23 @@ components:
             - type: 'null'
         nonCalculableReason:
           type: [string, 'null']
-          enum: [MIXED_ASSETS, NO_ACCOUNT, ZERO_CASH_INCOME, null]
+          enum:
+            [
+              MIXED_ASSETS,
+              NO_ACCOUNT,
+              ZERO_CASH_INCOME,
+              UNKNOWN_METRIC_POLICY,
+              MIXED_METRIC_POLICIES,
+              null,
+            ]
         overlapping: { type: boolean }
         version: { type: integer, minimum: 1 }
     BudgetPlanDetail:
       type: object
       additionalProperties: false
-      required: [id, periodType, period, assetCode, state, version, targets]
+      required: [id, periodType, period, assetCode, state, version, targets, metricPolicy]
       properties:
+        metricPolicy: { $ref: '#/components/schemas/MetricPolicyReference' }
         id: { type: string, format: uuid }
         periodType: { $ref: '#/components/schemas/BudgetPeriodType' }
         period: { $ref: '#/components/schemas/BudgetPeriod' }
@@ -5186,8 +5316,9 @@ components:
     BudgetComparisons:
       type: object
       additionalProperties: false
-      required: [planId, period, assetCode, status, reason, comparisons]
+      required: [planId, period, assetCode, status, reason, comparisons, metricPolicy]
       properties:
+        metricPolicy: { $ref: '#/components/schemas/MetricPolicyReference' }
         planId: { type: string, format: uuid }
         period: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
         assetCode: { type: string, minLength: 2, maxLength: 12, pattern: '^[A-Z][A-Z0-9]+$' }
@@ -8277,6 +8408,8 @@ components:
         - INCOMPLETE_TRANSFER_PAIR
         - MISMATCHED_TRANSFER_PAIR
         - MISSING_ACCOUNT_CLASSIFICATION
+        - UNKNOWN_METRIC_POLICY
+        - MIXED_METRIC_POLICIES
     MonthlyProjectionMetric:
       type: object
       additionalProperties: false
@@ -8311,13 +8444,16 @@ components:
         - freshness
         - quality
         - pendingCount
+        - metricPolicy
       properties:
+        metricPolicy: { $ref: '#/components/schemas/MetricPolicyReference' }
         kpi:
           type: string
           enum:
             [
               cashIncome,
               nonCashBenefits,
+              benefitSpending,
               budgetExpenses,
               uncategorizedExpenses,
               budgetSurplus,
@@ -8352,6 +8488,8 @@ components:
               INCOMPLETE_TRANSFER_PAIR,
               MISMATCHED_TRANSFER_PAIR,
               MISSING_ACCOUNT_CLASSIFICATION,
+              UNKNOWN_METRIC_POLICY,
+              MIXED_METRIC_POLICIES,
               null,
             ]
         reasonExplanation:
@@ -8625,6 +8763,7 @@ components:
         - pendingCount
         - cashIncome
         - nonCashBenefits
+        - benefitSpending
         - budgetExpenses
         - uncategorizedExpenses
         - budgetSurplus
@@ -8640,6 +8779,7 @@ components:
         - beginningNetWorthState
         - accounts
         - reconciliationStatus
+        - metricPolicy
       properties:
         month:
           type: string
@@ -8665,6 +8805,10 @@ components:
           $ref: '#/components/schemas/MonthlyProjectionMetric'
         nonCashBenefits:
           $ref: '#/components/schemas/MonthlyProjectionMetric'
+        benefitSpending:
+          $ref: '#/components/schemas/MonthlyProjectionMetric'
+        metricPolicy:
+          $ref: '#/components/schemas/MetricPolicyReference'
         budgetExpenses:
           $ref: '#/components/schemas/MonthlyProjectionMetric'
         uncategorizedExpenses:
@@ -9098,7 +9242,10 @@ components:
         - groups
         - netWorth
         - totals
+        - metricPolicy
       properties:
+        metricPolicy:
+          $ref: '#/components/schemas/MetricPolicyReference'
         month:
           type: string
           pattern: '^\d{4}-(0[1-9]|1[0-2])$'
@@ -10920,6 +11067,104 @@ components:
           pattern: '^[A-Z][A-Z0-9]{1,11}$'
           examples:
             - EUR
+    MetricPolicyReference:
+      description: >-
+        The metric policy that produced a figure. `version` is null when a
+        period mixes several versions.
+      type: object
+      additionalProperties: false
+      required: [version, label]
+      properties:
+        version: { type: [integer, 'null'], minimum: 1 }
+        label: { type: [string, 'null'], maxLength: 80 }
+    MetricPolicy:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          version,
+          label,
+          cashExcludedAccountKinds,
+          savingsRateFormula,
+          netSavingsRateFormula,
+          createdAt,
+          system,
+        ]
+      properties:
+        version: { type: integer, minimum: 1 }
+        label: { type: string, minLength: 1, maxLength: 80 }
+        cashExcludedAccountKinds:
+          type: array
+          maxItems: 8
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/AccountKind' }
+        savingsRateFormula: { type: string, enum: [BUDGET_SURPLUS_OVER_CASH_INCOME] }
+        netSavingsRateFormula: { type: string, enum: [NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME] }
+        createdAt: { type: [string, 'null'], format: date-time }
+        system: { type: boolean }
+    MetricPolicyCatalog:
+      type: object
+      additionalProperties: false
+      required: [active, activeVersion, activeSince, versions]
+      properties:
+        active:
+          description: >-
+            The active definition, or null when the active version cannot be
+            loaded. `activeVersion` then names the unresolvable version.
+          oneOf:
+            - $ref: '#/components/schemas/MetricPolicy'
+            - type: 'null'
+        activeVersion: { type: integer, minimum: 1 }
+        activeSince: { type: [string, 'null'], format: date-time }
+        versions:
+          type: array
+          maxItems: 101
+          items: { $ref: '#/components/schemas/MetricPolicy' }
+    ActiveMetricPolicy:
+      type: object
+      additionalProperties: false
+      required: [active, activeSince]
+      properties:
+        active: { $ref: '#/components/schemas/MetricPolicy' }
+        activeSince: { type: string, format: date-time }
+    CreateMetricPolicyRequest:
+      type: object
+      additionalProperties: false
+      required: [label, cashExcludedAccountKinds]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 80 }
+        cashExcludedAccountKinds:
+          type: array
+          maxItems: 8
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/AccountKind' }
+    ActivateMetricPolicyRequest:
+      type: object
+      additionalProperties: false
+      required: [version, expectedActiveVersion]
+      properties:
+        version: { type: integer, minimum: 1 }
+        expectedActiveVersion: { type: integer, minimum: 1 }
+        reason: { type: string, maxLength: 200 }
+    MetricPolicyProblem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, detail]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        detail: { type: string }
+        code:
+          type: string
+          enum:
+            - policy_definition_exists
+            - policy_version_limit
+            - stale_active_policy
+            - policy_already_active
+            - activation_limit
+            - unknown_policy_version
+        version: { type: integer, minimum: 1 }
     Problem:
       type: object
       additionalProperties: false

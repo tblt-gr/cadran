@@ -14,6 +14,8 @@ final class MonthlyKpiReasonExplanation
             'NO_ACCOUNT' => 'The metric cannot be calculated because no account is open in the requested period.',
             'ZERO_CASH_INCOME' => 'The metric cannot be calculated because cash income is exactly zero.',
             'MISSING_BENEFIT_SOURCE' => 'The metric cannot be calculated because non-cash benefit sources are not modelled in this release.',
+            'UNKNOWN_METRIC_POLICY' => 'The metric cannot be calculated because the metric policy governing this month cannot be loaded.',
+            'MIXED_METRIC_POLICIES' => 'The metric cannot be calculated because the months of the period were computed under different metric policies.',
             'MISSING_VALUATION' => 'The metric cannot be calculated because at least one required account valuation is missing.',
             'NO_ELIGIBLE_ACCOUNT' => 'The metric cannot be calculated because no account is eligible for net worth on the requested date.',
             'MISSING_TARGET' => 'The metric cannot be calculated because no budget target exists for the requested scope.',

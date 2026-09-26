@@ -21,6 +21,8 @@ const report: MonthlyProjection = {
   pendingCount: 2,
   cashIncome: metric,
   nonCashBenefits: metric,
+  benefitSpending: metric,
+  metricPolicy: { version: 2, label: 'Sans exclusion' },
   budgetExpenses: metric,
   uncategorizedExpenses: metric,
   budgetSurplus: metric,
@@ -43,7 +45,8 @@ const emptyReport: MonthlyProjection = {
   state: 'EMPTY',
   pendingCount: 0,
   cashIncome: zeroMetric,
-  nonCashBenefits: { value: null, assetCode: null, reason: 'MISSING_BENEFIT_SOURCE' },
+  nonCashBenefits: { value: null, assetCode: null, reason: 'UNKNOWN_METRIC_POLICY' },
+  benefitSpending: { value: null, assetCode: null, reason: 'UNKNOWN_METRIC_POLICY' },
   budgetExpenses: zeroMetric,
   uncategorizedExpenses: zeroMetric,
   budgetSurplus: zeroMetric,
@@ -84,6 +87,7 @@ const emptyReport: MonthlyProjection = {
 };
 const explanation: MonthlyKpiExplanation = {
   kpi: 'cashIncome',
+  metricPolicy: { version: 2, label: 'Sans exclusion' },
   value: '1200.50',
   assetCode: 'EUR',
   reason: null,
@@ -128,6 +132,8 @@ describe('ReportsPage', () => {
     );
     expect(await screen.findByRole('table')).toBeTruthy();
     expect(screen.getByText(/2 mouvement\(s\) en attente/)).toBeTruthy();
+    expect(screen.getByText('Politique v2')).toBeTruthy();
+    expect(screen.getByRole('table').textContent).toContain('Dépenses des avantages');
     expect(screen.getByRole('table').textContent).toContain('1 200,50 €');
     expect(screen.getByRole('table').textContent).toContain('12,345 %');
     expect(screen.getByRole('table').textContent).toContain('250 €');

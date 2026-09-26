@@ -1,0 +1,52 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--spacing-4);
+}
+
+.compare h3,
+.compare p,
+.note {
+  margin: var(--spacing-none);
+}
+
+.compare h3 {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+}
+
+.note {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-body);
+}
+
+.error {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3);
+  border: var(--border-line-negative);
+  border-radius: var(--radius-control);
+  color: var(--negative);
+  background: var(--negative-soft);
+  font-size: var(--font-size-body);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+}

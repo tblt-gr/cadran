@@ -1,0 +1,26 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--navigation-link-height);
+  padding: var(--spacing-control-block) var(--spacing-3);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.tab[aria-current='page'] {
+  color: var(--gold-300);
+}

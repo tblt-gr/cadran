@@ -429,3 +429,27 @@ api:
     invalid_period_closure_query:
       title: 'Requête de clôtures invalide'
       detail: "L'année doit comporter quatre chiffres."
+    invalid_metric_policy:
+      title: "Politique d'indicateurs invalide"
+      detail: 'Vérifiez le libellé (1 à 80 caractères) et les types de compte exclus (au plus 8, sans doublon).'
+    metric_policy_definition_exists:
+      title: 'Définition déjà existante'
+      detail: 'Une version avec les mêmes types de compte exclus existe déjà.'
+    metric_policy_version_limit:
+      title: 'Limite de versions atteinte'
+      detail: "Un espace ne peut pas contenir plus de 100 versions de la politique d'indicateurs."
+    stale_active_policy:
+      title: 'Politique active modifiée'
+      detail: "La politique active a changé depuis sa lecture. Rechargez-la avant d'activer une version."
+    policy_already_active:
+      title: 'Version déjà active'
+      detail: 'Cette version de la politique est déjà active.'
+    unknown_policy_version:
+      title: 'Version inconnue'
+      detail: "Cette version de la politique d'indicateurs n'existe pas."
+    metric_policy_forbidden:
+      title: 'Réservé au propriétaire'
+      detail: "Seul le propriétaire de l'espace peut créer ou activer une version de la politique d'indicateurs."
+    metric_policy_activation_limit:
+      title: "Historique d'activations plein"
+      detail: "L'historique d'activations de la politique d'indicateurs a atteint sa limite."

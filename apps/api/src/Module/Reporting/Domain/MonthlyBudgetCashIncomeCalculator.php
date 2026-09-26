@@ -13,9 +13,13 @@ final class MonthlyBudgetCashIncomeCalculator
     /**
      * @param list<string>          $accountAssets
      * @param list<MonthlyMovement> $movements
+     * @param ?MetricPolicy         $policy        null when the governing version cannot be loaded
      */
-    public static function compute(array $accountAssets, array $movements): MonthlyBudgetCashIncome
+    public static function compute(array $accountAssets, array $movements, ?MetricPolicy $policy): MonthlyBudgetCashIncome
     {
+        if (null === $policy) {
+            return new MonthlyBudgetCashIncome(null, null, MonthlyProjectionReason::UNKNOWN_METRIC_POLICY);
+        }
         $assets = array_values(array_unique($accountAssets));
         if ([] === $assets) {
             return new MonthlyBudgetCashIncome(null, null, MonthlyProjectionReason::NO_ACCOUNT);
@@ -30,7 +34,7 @@ final class MonthlyBudgetCashIncomeCalculator
             if (!$movement->asset->equals($asset)) {
                 return new MonthlyBudgetCashIncome(null, null, MonthlyProjectionReason::MIXED_ASSETS);
             }
-            if (MonthlyMovementKind::INCOME === $movement->kind) {
+            if (MonthlyMovementKind::INCOME === $movement->kind && !$policy->isExcluded($movement->accountKind)) {
                 $income = ExactDecimal::addForResponse($income, $movement->amount->toString());
             }
         }

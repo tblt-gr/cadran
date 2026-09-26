@@ -101,8 +101,9 @@ final class MonthlyProjectionControllerTest extends WebTestCase
         self::assertSame('3700.00', self::metric($report, 'budgetSurplus'));
         self::assertSame('750.00', self::metric($report, 'savingsTransfers'));
         self::assertSame('0.740000000000000000000000', self::metric($report, 'cashSavingsRate'));
-        self::assertNull(self::fields($report['nonCashBenefits'])['value']);
-        self::assertSame('MISSING_BENEFIT_SOURCE', self::fields($report['nonCashBenefits'])['reason']);
+        self::assertSame('0', self::metric($report, 'nonCashBenefits'));
+        self::assertSame('0', self::metric($report, 'benefitSpending'));
+        self::assertSame(['version' => 1, 'label' => 'Définition de trésorerie'], $report['metricPolicy']);
         self::assertSame('4650.00', self::metric($report, 'netWorthDelta'));
         self::assertSame('POSITIVE', $report['beginningNetWorthState']);
         self::assertSame('RECONCILED', $report['reconciliationStatus']);
@@ -411,9 +412,9 @@ final class MonthlyProjectionControllerTest extends WebTestCase
         self::assertSame('PENDING', $rate['freshness']);
 
         $missing = $this->read('/api/v1/reports/monthly/nonCashBenefits/explain?month='.$this->month);
-        self::assertNull($missing['value']);
-        self::assertSame('MISSING_BENEFIT_SOURCE', $missing['reason']);
-        self::assertIsString($missing['reasonExplanation']);
+        self::assertSame('0', $missing['value']);
+        self::assertNull($missing['reason']);
+        self::assertSame(['version' => 1, 'label' => 'Définition de trésorerie'], $missing['metricPolicy']);
         self::assertSame(0, $missing['pendingCount']);
         self::assertSame('CURRENT', $missing['freshness']);
         self::assertSame([], $missing['sourceTransactions']);

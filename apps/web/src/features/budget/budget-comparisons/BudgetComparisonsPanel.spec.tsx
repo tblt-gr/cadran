@@ -14,6 +14,7 @@ vi.mock('@cadran/api-client', async (original) => ({
 const result = (overrides: Partial<BudgetComparisons> = {}): BudgetComparisons => ({
   planId: '00000000-0000-7000-8000-000000000001',
   period: '2026-03',
+  metricPolicy: { version: 1, label: 'Définition de trésorerie' },
   assetCode: 'EUR',
   status: 'AVAILABLE',
   reason: null,
