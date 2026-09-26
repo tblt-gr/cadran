@@ -1,7 +1,7 @@
 .plot {
   width: 100%;
   min-width: 0;
-  height: 18rem;
+  height: var(--chart-plot-height-donut);
   overflow: hidden;
 }
 

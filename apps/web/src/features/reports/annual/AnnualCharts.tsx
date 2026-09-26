@@ -2,14 +2,14 @@ import type { AnnualCategoryShare, AnnualReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { FlowsDataTable, NetWorthDataTable } from './ChartDataTables';
 import { ChartFrame } from './ChartFrame';
-import { AnnualDonut, type AnnualLegendRow } from './AnnualDonut';
+import { AnnualDonut, type AnnualDonutItem, type AnnualLegendRow } from './AnnualDonut';
 import { AnnualNetWorthChart } from './AnnualNetWorthChart';
 import { FlowsChart } from './FlowsChart';
 import styles from './AnnualCharts.module.css';
 
 const TOP_VISIBLE_ROWS = 6;
 
-function toRow(item: AnnualCategoryShare): AnnualLegendRow & { label: string } {
+function toRow(item: AnnualCategoryShare): AnnualDonutItem & AnnualLegendRow {
   return {
     amount: item.total,
     key: item.categoryId ?? item.label ?? '',
@@ -25,6 +25,10 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
   const reasonText = (reason: string | null) =>
     t('reports.annual.notCalculable') +
     (reason ? ` : ${t(`reports.annual.reasons.${reason}`, { defaultValue: reason })}` : '');
+  /** Every category is its own slice: the top items followed by the "other"
+   * bucket's individual items, exact amount and share each, no summed
+   * "Autres" slice. */
+  const topCategoryRows = [...top.items, ...(top.other?.items ?? [])].map(toRow);
 
   return (
     <div className={styles.grid}>
@@ -44,24 +48,8 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
           <AnnualDonut
             assetCode={top.assetCode}
             label={t('reports.annual.charts.topCategories')}
-            legend={[...top.items, ...(top.other?.items ?? [])].map(toRow)}
-            slices={[
-              ...top.items.map((item) => ({
-                ...toRow(item),
-                amount: item.total,
-                share: item.share,
-              })),
-              ...(top.other
-                ? [
-                    {
-                      amount: top.other.total,
-                      key: 'other',
-                      label: t('reports.annual.charts.other'),
-                      share: top.other.share,
-                    },
-                  ]
-                : []),
-            ]}
+            legend={topCategoryRows}
+            slices={topCategoryRows}
             visibleRows={TOP_VISIBLE_ROWS}
           />
         )}

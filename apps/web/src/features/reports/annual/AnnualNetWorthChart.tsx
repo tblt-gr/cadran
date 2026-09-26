@@ -4,6 +4,7 @@ import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAnnualValue } from './annualFormat';
 import { monthLabel } from './annualRowLabels';
+import styles from './AnnualCharts.module.css';
 
 /** Year-end net worth per month, drawn like the dashboard curve from the backend's exact strings. */
 export function AnnualNetWorthChart({ netWorth }: { netWorth: AnnualNetWorthSeries }) {
@@ -40,11 +41,13 @@ export function AnnualNetWorthChart({ netWorth }: { netWorth: AnnualNetWorthSeri
   });
 
   return (
-    <CurveChart
-      label={t('reports.annual.charts.netWorth')}
-      points={points}
-      timeAxisLabel={t('reports.annual.month')}
-      valueAxisLabel={t('reports.annual.indicators.endNetWorth')}
-    />
+    <div className={styles.netWorth}>
+      <CurveChart
+        label={t('reports.annual.charts.netWorth')}
+        points={points}
+        timeAxisLabel={t('reports.annual.month')}
+        valueAxisLabel={t('reports.annual.indicators.endNetWorth')}
+      />
+    </div>
   );
 }
