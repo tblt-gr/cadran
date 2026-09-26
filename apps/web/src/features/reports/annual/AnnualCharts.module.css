@@ -1,11 +1,13 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: var(--spacing-4);
 }
 .chart {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   min-width: 0;
   gap: var(--spacing-3);
   padding: var(--spacing-4);
