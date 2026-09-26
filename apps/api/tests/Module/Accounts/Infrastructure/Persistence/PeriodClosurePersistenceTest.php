@@ -9,8 +9,10 @@ use App\Module\Accounts\Application\AssessPeriodClosing;
 use App\Module\Accounts\Application\ClosePeriod;
 use App\Module\Accounts\Application\ClosePeriodInput;
 use App\Module\Accounts\Application\PeriodClosed;
+use App\Module\Accounts\Application\PeriodClosedEvent;
 use App\Module\Accounts\Application\PeriodClosureConflict;
 use App\Module\Accounts\Application\PeriodClosureForbidden;
+use App\Module\Accounts\Application\PeriodReopenedEvent;
 use App\Module\Accounts\Application\ReopenPeriod;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\PeriodClosure;
@@ -27,6 +29,7 @@ use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\DriverException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 /**
  * What only PostgreSQL can prove about a closure: one active row per month,
@@ -38,6 +41,7 @@ final class PeriodClosurePersistenceTest extends KernelTestCase
     private Connection $connection;
     private WorkspaceFixture $fixture;
     private DbalPeriodClosureRepository $closures;
+    private EventDispatcher $events;
 
     protected function setUp(): void
     {
@@ -50,6 +54,7 @@ final class PeriodClosurePersistenceTest extends KernelTestCase
         $this->fixture->reset();
         $this->fixture->seed();
         $this->closures = new DbalPeriodClosureRepository($connection);
+        $this->events = new EventDispatcher();
     }
 
     protected function tearDown(): void
@@ -187,6 +192,43 @@ final class PeriodClosurePersistenceTest extends KernelTestCase
         self::assertFalse($this->reopenPeriod($owner)('2026-03', 1, 'Late invoice')->isActive());
     }
 
+    public function testClosingDispatchesItsEventOnlyAfterTheClosingCommitted(): void
+    {
+        $seen = [];
+        $this->events->addListener(PeriodClosedEvent::class, function (PeriodClosedEvent $event) use (&$seen): void {
+            $seen[] = [
+                $event->month->key(),
+                $event->closureId,
+                $this->connection->isTransactionActive(),
+                $this->closures->findActive(WorkspaceFixture::own(), $event->month)?->id,
+            ];
+        });
+        $owner = new FixedCallerWorkspace(WorkspaceFixture::OWN_WORKSPACE, WorkspaceFixture::OWNER_ID, true);
+
+        $closure = $this->closePeriod($owner)(new ClosePeriodInput('2026-03', []));
+
+        self::assertSame([['2026-03', $closure->id, false, $closure->id]], $seen);
+    }
+
+    public function testReopeningDispatchesItsEventOnlyAfterTheReopeningCommitted(): void
+    {
+        $this->closures->add($this->closure('c02', 2026, 3));
+        $seen = [];
+        $this->events->addListener(PeriodReopenedEvent::class, function (PeriodReopenedEvent $event) use (&$seen): void {
+            $seen[] = [
+                $event->month->key(),
+                $event->closureId,
+                $this->connection->isTransactionActive(),
+                null === $this->closures->findActive(WorkspaceFixture::own(), $event->month),
+            ];
+        });
+        $owner = new FixedCallerWorkspace(WorkspaceFixture::OWN_WORKSPACE, WorkspaceFixture::OWNER_ID, true);
+
+        $reopened = $this->reopenPeriod($owner)('2026-03', 1, 'Late invoice');
+
+        self::assertSame([['2026-03', $reopened->id, false, true]], $seen);
+    }
+
     public function testAClosingWaitsForAnInFlightWriteAndAWriteWaitsForAClosing(): void
     {
         $own = WorkspaceFixture::own();
@@ -261,6 +303,7 @@ final class PeriodClosurePersistenceTest extends KernelTestCase
         return new ClosePeriod(
             $caller, $this->closures, $this->service(AssessPeriodClosing::class), $this->service(UuidGenerator::class),
             $this->service(TransactionBoundary::class), $this->service(RecordAuditEvent::class), $this->calendar($caller),
+            $this->events,
         );
     }
 
@@ -268,6 +311,7 @@ final class PeriodClosurePersistenceTest extends KernelTestCase
     {
         return new ReopenPeriod(
             $caller, $this->closures, $this->service(TransactionBoundary::class), $this->service(RecordAuditEvent::class), $this->calendar($caller),
+            $this->events,
         );
     }
 

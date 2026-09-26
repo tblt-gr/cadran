@@ -1,6 +1,9 @@
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
+import { workspaceToday } from '@/lib/workspaceTime';
 import { MetricPolicyBadge } from '@/features/metric-policy/metric-policy-badge/MetricPolicyBadge';
+import { ReportsTabs } from './ReportsTabs';
 import { MonthlyKpiTable } from './MonthlyKpiTable';
 import styles from './ReportsPage.module.css';
 import { useMonthlyReport } from './useMonthlyReport';
@@ -10,9 +13,18 @@ function currentMonth() {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** A drill-down from the annual report lands here with the month in the query string. */
+function initialMonth() {
+  const requested = new URLSearchParams(window.location.search).get('month');
+  return requested !== null && /^\d{4}-(0[1-9]|1[0-2])$/.test(requested)
+    ? requested
+    : currentMonth();
+}
+
 export function ReportsPage() {
   const { t } = useTranslation();
-  const [month, setMonth] = useState(currentMonth);
+  const workspaceTimeZone = useWorkspaceTimeZone();
+  const [month, setMonth] = useState(initialMonth);
   const report = useMonthlyReport(month);
   let content: ReactNode;
   if (report.isPending) {
@@ -72,6 +84,10 @@ export function ReportsPage() {
           <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
         </label>
       </header>
+      <ReportsTabs
+        active="monthly"
+        currentYear={Number(workspaceToday(new Date(), workspaceTimeZone).slice(0, 4))}
+      />
       {content}
     </div>
   );

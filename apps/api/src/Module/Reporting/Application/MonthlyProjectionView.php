@@ -10,11 +10,12 @@ final readonly class MonthlyProjectionView
 {
     /**
      * @param list<MonthlyAccountView>         $accounts
-     * @param array<string, MonthlyMetricView> $expensesByAxis  budget expenses seen through each
-     *                                                          analytic axis; a split carrying two
-     *                                                          axes counts in both, so the axes do
-     *                                                          not add up to budget expenses
+     * @param array<string, MonthlyMetricView> $expensesByAxis           budget expenses seen through each
+     *                                                                   analytic axis; a split carrying two
+     *                                                                   axes counts in both, so the axes do
+     *                                                                   not add up to budget expenses
      * @param list<MonthlyRecapCategoryView>   $categoryMetrics
+     * @param list<string>                     $budgetExpenseCategoryIds expense categories counted in the budget when the month was read
      */
     public function __construct(
         public string $month,
@@ -48,6 +49,7 @@ final readonly class MonthlyProjectionView
         public array $categoryMetrics,
         public NetWorthView $netWorth,
         public MetricPolicyReference $metricPolicy,
+        public array $budgetExpenseCategoryIds = [],
     ) {
     }
 }

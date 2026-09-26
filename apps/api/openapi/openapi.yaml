@@ -2456,6 +2456,158 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/reports/annual/preferences:
+    get:
+      operationId: readAnnualReportPreferences
+      summary: Read the annual report column preferences of the calling workspace
+      description: >-
+        With no stored row the response carries version 0, the default column
+        selection (the core indicators plus up to three current accounts by
+        label) and the `exclude` incomplete-month setting.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The stored or default selection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnnualReportPreferences' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: The workspace exceeds a bounded aggregate limit.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    put:
+      operationId: saveAnnualReportPreferences
+      summary: Store the annual report column preferences of the calling workspace
+      description: >-
+        At most 40 distinct columns; every category, group or account must
+        belong to the calling workspace, archived or not. The selection picks
+        what is shown and never changes a formula or a metric policy. A save at
+        version 0 inserts the row. The mutation requires the same-origin CSRF
+        token.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnnualReportPreferencesInput' }
+      responses:
+        '200':
+          description: The stored selection and its new version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnnualReportPreferences' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: >-
+            The CSRF / Origin check failed (`type: /problems/csrf-token`), or
+            the session belongs to no workspace.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The stored selection moved past the version the caller read.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: The selection is out of bounds, duplicated, unknown or not owned by the workspace.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/reports/annual/{year}:
+    get:
+      operationId: readAnnualReport
+      summary: Read the annual monthly-summary report of the calling workspace
+      description: >-
+        Twelve rows, one per month, with one cell per selected column, the
+        aggregates of each column computed by the shared exact aggregation
+        engine, the top expense categories and the year-end allocation. A
+        closed month is served from its frozen snapshot. The year lies between
+        1900 and the current workspace-local year.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: year
+          in: path
+          required: true
+          schema: { type: integer, minimum: 0 }
+        - name: incompleteMonths
+          in: query
+          required: false
+          description: Overrides the saved incomplete-month setting for this request only.
+          schema: { $ref: '#/components/schemas/AnnualIncompleteMonths' }
+      responses:
+        '200':
+          description: The annual report.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnnualReport' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: >-
+            The year is out of range (`type: /problems/invalid-report-year`) or
+            the workspace exceeds a bounded aggregate limit.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/reports/annual/{year}/columns/{columnId}/explain:
+    get:
+      operationId: explainAnnualReportColumn
+      summary: Explain the aggregate of one annual report column
+      description: >-
+        Formula, policy, the value of every month with whether it was counted
+        and why not, and the aggregate itself. An unknown column, or one that
+        names an entity of another workspace, answers 404.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: year
+          in: path
+          required: true
+          schema: { type: integer, minimum: 0 }
+        - name: columnId
+          in: path
+          required: true
+          schema: { type: string, maxLength: 80 }
+        - name: incompleteMonths
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/AnnualIncompleteMonths' }
+      responses:
+        '200':
+          description: The column explanation.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnnualColumnExplanation' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: The year is out of range or the workspace exceeds a bounded aggregate limit.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/reports/metric-policies:
     get:
       operationId: listMetricPolicies
@@ -9315,6 +9467,304 @@ components:
           description: The version the caller last read. A stale one is refused with 409.
           type: integer
           minimum: 0
+    AnnualIncompleteMonths:
+      type: string
+      enum: [exclude, include]
+    AnnualReportPreferences:
+      type: object
+      additionalProperties: false
+      required: [columns, incompleteMonths, version]
+      properties:
+        columns:
+          type: array
+          uniqueItems: true
+          maxItems: 40
+          items: { type: string, maxLength: 80 }
+        incompleteMonths:
+          $ref: '#/components/schemas/AnnualIncompleteMonths'
+        version:
+          type: integer
+          minimum: 0
+    AnnualReportPreferencesInput:
+      type: object
+      additionalProperties: false
+      required: [columns, incompleteMonths, version]
+      properties:
+        columns:
+          type: array
+          uniqueItems: true
+          maxItems: 40
+          items: { type: string, maxLength: 80 }
+        incompleteMonths:
+          $ref: '#/components/schemas/AnnualIncompleteMonths'
+        version:
+          description: The version the caller last read. A stale one is refused with 409.
+          type: integer
+          minimum: 0
+    AnnualColumnKind:
+      type: string
+      enum: [FLOW, STOCK, RATE]
+    AnnualMonthState:
+      type: string
+      enum: [COMPLETE, PROVISIONAL, FUTURE, NO_DATA]
+    AnnualAggregateQuality:
+      type: string
+      enum: [COMPLETE, PROVISIONAL, PARTIAL, EMPTY]
+    AnnualPolicy:
+      type: object
+      additionalProperties: false
+      required: [state, version, label, versions]
+      properties:
+        state:
+          type: string
+          enum: [SINGLE, MIXED]
+        version:
+          type: [integer, 'null']
+        label:
+          type: [string, 'null']
+        versions:
+          type: array
+          items: { type: integer }
+    AnnualColumn:
+      type: object
+      additionalProperties: false
+      required: [id, label, kind, assetCode]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        kind: { $ref: '#/components/schemas/AnnualColumnKind' }
+        assetCode: { type: [string, 'null'] }
+    AnnualCell:
+      description: An exact decimal string, or null with the reason it cannot be produced.
+      type: object
+      additionalProperties: false
+      required: [value, reason]
+      properties:
+        value: { type: [string, 'null'] }
+        reason: { type: [string, 'null'] }
+    AnnualRow:
+      type: object
+      additionalProperties: false
+      required: [month, state, closed, snapshot, policyVersion, pendingCount, cells]
+      properties:
+        month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        state: { $ref: '#/components/schemas/AnnualMonthState' }
+        closed: { type: boolean }
+        snapshot:
+          description: True when the figures come from the frozen snapshot of the active closure.
+          type: boolean
+        policyVersion: { type: [integer, 'null'] }
+        pendingCount: { type: integer, minimum: 0 }
+        cells:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/AnnualCell' }
+    AnnualExtreme:
+      type: object
+      additionalProperties: false
+      required: [value, month]
+      properties:
+        value: { type: string }
+        month: { type: string }
+    AnnualExcludedMonth:
+      type: object
+      additionalProperties: false
+      required: [month, reason]
+      properties:
+        month: { type: string }
+        reason:
+          type: string
+          enum: [FUTURE, NO_DATA, PROVISIONAL, NULL_VALUE]
+    AnnualAggregate:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - total
+        - totalReason
+        - average
+        - averageReason
+        - median
+        - medianReason
+        - minimum
+        - maximum
+        - extremesReason
+        - periodEnd
+        - previousYearAverage
+        - previousYearAverageReason
+        - countedMonths
+        - excludedMonths
+        - quality
+        - formula
+      properties:
+        kind: { $ref: '#/components/schemas/AnnualColumnKind' }
+        total: { type: [string, 'null'] }
+        totalReason: { type: [string, 'null'] }
+        average: { type: [string, 'null'] }
+        averageReason: { type: [string, 'null'] }
+        median: { type: [string, 'null'] }
+        medianReason: { type: [string, 'null'] }
+        minimum:
+          oneOf:
+            - { $ref: '#/components/schemas/AnnualExtreme' }
+            - { type: 'null' }
+        maximum:
+          oneOf:
+            - { $ref: '#/components/schemas/AnnualExtreme' }
+            - { type: 'null' }
+        extremesReason: { type: [string, 'null'] }
+        periodEnd:
+          description: The month-end value of the latest counted month, for a stock column.
+          oneOf:
+            - { $ref: '#/components/schemas/AnnualExtreme' }
+            - { type: 'null' }
+        previousYearAverage: { type: [string, 'null'] }
+        previousYearAverageReason: { type: [string, 'null'] }
+        countedMonths:
+          type: array
+          items: { type: string }
+        excludedMonths:
+          type: array
+          items: { $ref: '#/components/schemas/AnnualExcludedMonth' }
+        quality: { $ref: '#/components/schemas/AnnualAggregateQuality' }
+        formula: { type: string }
+    AnnualCategoryShare:
+      type: object
+      additionalProperties: false
+      required: [total, share]
+      properties:
+        categoryId: { type: string, format: uuid }
+        label: { type: string }
+        total: { type: string }
+        share: { type: string }
+    AnnualTopExpenseCategories:
+      type: object
+      additionalProperties: false
+      required: [items, other, reason, assetCode]
+      properties:
+        assetCode: { type: [string, 'null'] }
+        items:
+          type: array
+          maxItems: 6
+          items: { $ref: '#/components/schemas/AnnualCategoryShare' }
+        other:
+          oneOf:
+            - { $ref: '#/components/schemas/AnnualCategoryShare' }
+            - { type: 'null' }
+        reason: { type: [string, 'null'] }
+    AnnualAllocationItem:
+      type: object
+      additionalProperties: false
+      required: [groupId, label, value, share, reason]
+      properties:
+        groupId: { type: string, format: uuid }
+        label: { type: string }
+        value: { type: [string, 'null'] }
+        share: { type: [string, 'null'] }
+        reason: { type: [string, 'null'] }
+    AnnualAllocation:
+      type: object
+      additionalProperties: false
+      required: [asOf, assetCode, items, reason]
+      properties:
+        asOf: { type: [string, 'null'], format: date }
+        assetCode: { type: [string, 'null'] }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AnnualAllocationItem' }
+        reason: { type: [string, 'null'] }
+    AnnualFlowMonth:
+      type: object
+      additionalProperties: false
+      required: [month, cashIncome, budgetExpenses, budgetSurplus]
+      properties:
+        month: { type: string }
+        cashIncome: { $ref: '#/components/schemas/AnnualCell' }
+        budgetExpenses: { $ref: '#/components/schemas/AnnualCell' }
+        budgetSurplus: { $ref: '#/components/schemas/AnnualCell' }
+    AnnualFlows:
+      type: object
+      additionalProperties: false
+      required: [assetCode, months]
+      properties:
+        assetCode: { type: [string, 'null'] }
+        months:
+          type: array
+          items: { $ref: '#/components/schemas/AnnualFlowMonth' }
+    AnnualNetWorthPoint:
+      type: object
+      additionalProperties: false
+      required: [month, value]
+      properties:
+        month: { type: string }
+        value: { $ref: '#/components/schemas/AnnualCell' }
+    AnnualNetWorthSeries:
+      type: object
+      additionalProperties: false
+      required: [assetCode, months]
+      properties:
+        assetCode: { type: [string, 'null'] }
+        months:
+          type: array
+          items: { $ref: '#/components/schemas/AnnualNetWorthPoint' }
+    AnnualCharts:
+      description: >-
+        Chart datasets, independent of the selected columns.
+      type: object
+      additionalProperties: false
+      required: [flows, netWorth, topExpenseCategories, allocation]
+      properties:
+        flows: { $ref: '#/components/schemas/AnnualFlows' }
+        netWorth: { $ref: '#/components/schemas/AnnualNetWorthSeries' }
+        topExpenseCategories: { $ref: '#/components/schemas/AnnualTopExpenseCategories' }
+        allocation: { $ref: '#/components/schemas/AnnualAllocation' }
+    AnnualReport:
+      type: object
+      additionalProperties: false
+      required:
+        [year, today, incompleteMonths, metricPolicy, columns, rows, aggregates, charts, quality]
+      properties:
+        year: { type: integer }
+        today: { type: string, format: date }
+        incompleteMonths: { $ref: '#/components/schemas/AnnualIncompleteMonths' }
+        metricPolicy: { $ref: '#/components/schemas/AnnualPolicy' }
+        columns:
+          type: array
+          maxItems: 40
+          items: { $ref: '#/components/schemas/AnnualColumn' }
+        rows:
+          type: array
+          minItems: 12
+          maxItems: 12
+          items: { $ref: '#/components/schemas/AnnualRow' }
+        aggregates:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/AnnualAggregate' }
+        charts: { $ref: '#/components/schemas/AnnualCharts' }
+        quality: { $ref: '#/components/schemas/AnnualAggregateQuality' }
+    AnnualMonthExplanation:
+      type: object
+      additionalProperties: false
+      required: [month, state, value, reason, counted, exclusionReason]
+      properties:
+        month: { type: string }
+        state: { $ref: '#/components/schemas/AnnualMonthState' }
+        value: { type: [string, 'null'] }
+        reason: { type: [string, 'null'] }
+        counted: { type: boolean }
+        exclusionReason: { type: [string, 'null'] }
+    AnnualColumnExplanation:
+      type: object
+      additionalProperties: false
+      required: [column, kind, formula, policy, months, aggregate]
+      properties:
+        column: { type: string }
+        kind: { $ref: '#/components/schemas/AnnualColumnKind' }
+        formula: { type: string }
+        policy: { $ref: '#/components/schemas/AnnualPolicy' }
+        months:
+          type: array
+          items: { $ref: '#/components/schemas/AnnualMonthExplanation' }
+        aggregate: { $ref: '#/components/schemas/AnnualAggregate' }
     NetWorthReason:
       description: >-
         Why a net-worth figure, a delta or a change rate could not be produced.

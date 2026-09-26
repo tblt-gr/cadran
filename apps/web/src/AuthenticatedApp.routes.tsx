@@ -15,6 +15,7 @@ import { ProfileSettingsPage } from '@/features/settings/ProfileSettingsPage';
 import { BudgetPage } from '@/features/budget/BudgetPage';
 import { BudgetRouteRedirect } from '@/features/budget/monthly-budget/BudgetRouteRedirect';
 import { MonthlyBudgetPage } from '@/features/budget/monthly-budget/MonthlyBudgetPage';
+import { AnnualReportPage } from '@/features/reports/annual/AnnualReportPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { workspaceToday } from '@/lib/workspaceTime';
 
@@ -101,6 +102,16 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
       render: (match) => <BudgetPage planId={match[1]} />,
     },
     { pattern: /^\/reports$/, globalActions: false, render: () => <ReportsPage /> },
+    {
+      pattern: /^\/reports\/annual\/(\d{4})$/,
+      globalActions: false,
+      render: (match) => (
+        <AnnualReportPage
+          today={workspaceToday(new Date(), workspaceTimeZone)}
+          year={Number(match[1])}
+        />
+      ),
+    },
     {
       pattern: new RegExp(`^/budget/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),
       globalActions: false,

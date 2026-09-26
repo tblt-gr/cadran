@@ -15,6 +15,7 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Reopens a closed month. Ownership is checked on the resolved caller of this
@@ -28,6 +29,7 @@ final readonly class ReopenPeriod
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private WorkspaceCalendar $calendar,
+        private EventDispatcherInterface $events,
     ) {
     }
 
@@ -44,7 +46,7 @@ final readonly class ReopenPeriod
             throw new InvalidPeriodClosureInput($exception->getMessage(), previous: $exception);
         }
 
-        return $this->transactionBoundary->transactional(function () use ($context, $month, $version, $reason): PeriodClosure {
+        $reopened = $this->transactionBoundary->transactional(function () use ($context, $month, $version, $reason): PeriodClosure {
             $workspace = $context->workspace;
             $this->closures->lockExclusive($workspace);
             $current = $this->closures->findActive($workspace, $month);
@@ -66,5 +68,8 @@ final readonly class ReopenPeriod
 
             return $reopened;
         });
+        $this->events->dispatch(new PeriodReopenedEvent($context->workspace, $month, $reopened->id));
+
+        return $reopened;
     }
 }

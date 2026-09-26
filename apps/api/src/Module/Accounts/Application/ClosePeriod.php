@@ -17,6 +17,7 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\UuidGenerator;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Closes one month of the workspace.
@@ -37,6 +38,7 @@ final readonly class ClosePeriod
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private WorkspaceCalendar $calendar,
+        private EventDispatcherInterface $events,
     ) {
     }
 
@@ -49,7 +51,7 @@ final readonly class ClosePeriod
             throw new PeriodClosureForbidden('Only the workspace owner may override a closing condition.');
         }
 
-        return $this->transactionBoundary->transactional(function () use ($context, $month, $overrides): PeriodClosure {
+        $closure = $this->transactionBoundary->transactional(function () use ($context, $month, $overrides): PeriodClosure {
             $workspace = $context->workspace;
             $this->closures->lockExclusive($workspace);
             if ($month->lastDay() >= $this->calendar->today()) {
@@ -89,6 +91,10 @@ final readonly class ClosePeriod
 
             return $closure;
         });
+        // After the commit: a listener reading the closed month must see the closure it belongs to.
+        $this->events->dispatch(new PeriodClosedEvent($context->workspace, $month, $closure->id));
+
+        return $closure;
     }
 
     private static function month(string $period): CalendarMonth
