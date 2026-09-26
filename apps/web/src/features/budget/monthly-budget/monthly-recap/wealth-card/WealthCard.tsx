@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { formatSharePercent } from '@/lib/formatSharePercent';
 import styles from './WealthCard.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface WealthCardProps {
   netWorth: MonthlyRecapNetWorth;
@@ -47,12 +48,14 @@ export function WealthCard({ netWorth, provisional }: WealthCardProps) {
           <dt>{t('budget.monthly.recap.wealth.changePercent')}</dt>
           <dd>
             {netWorth.changePercentDisplay === null ? (
-              <span className={styles.unavailable}>
-                {t('states.notCalculable.label')}
-                {netWorth.changeReason ? (
-                  <small>{t(`dashboard.netWorth.rateReasons.${netWorth.changeReason}`)}</small>
-                ) : null}
-              </span>
+              <EmptyValue
+                label={t('states.notCalculable.label')}
+                reason={
+                  netWorth.changeReason
+                    ? t(`dashboard.netWorth.rateReasons.${netWorth.changeReason}`)
+                    : null
+                }
+              />
             ) : (
               formatSharePercent(netWorth.changePercentDisplay)
             )}

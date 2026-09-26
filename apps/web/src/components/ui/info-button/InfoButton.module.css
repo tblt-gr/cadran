@@ -1,0 +1,8 @@
+.button {
+  flex: none;
+  width: var(--icon-size-sm);
+  min-height: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--info);
+  vertical-align: middle;
+}

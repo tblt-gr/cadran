@@ -2,10 +2,11 @@ import type { Account, NetWorthShare, Product, ProductModel } from '@cadran/api-
 import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
-import { AllocationBar } from '@/features/dashboard/allocation-panel/AllocationBar';
+import { AllocationBar } from '@/components/ui/charts/allocation-legend/AllocationBar';
 import { formatAmount } from '@/lib/decimal';
 import { ceilingFillPercent, depositCeilingOf } from '@/lib/depositCeiling';
 import styles from './GroupMembers.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface GroupMembersProps {
   accounts: Account[];
@@ -98,7 +99,7 @@ function MemberAmount({
 }) {
   const valuation = account.valuation;
   if (valuation.quality === 'MISSING' || valuation.belowDisplayStep || valuation.display === null) {
-    return <span className={styles.unknown}>{missing}</span>;
+    return <EmptyValue label={missing} />;
   }
 
   return (

@@ -182,7 +182,10 @@ describe('ReportsPage', () => {
     expect(screen.getByLabelText('Mois')).toBeTruthy();
     expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getByRole('table').textContent).toContain('0 €');
-    expect(screen.getAllByText('Non calculable : ZERO_CASH_INCOME')).toHaveLength(2);
+    expect(screen.getAllByTitle('Non calculable : ZERO_CASH_INCOME')).toHaveLength(2);
+    expect(
+      screen.getAllByText('Non calculable').every((node) => node.className.includes('sr-only')),
+    ).toBe(true);
   });
 
   it('switches the bounded monthly query when the selected month changes', async () => {
@@ -209,7 +212,7 @@ describe('ReportsPage', () => {
         <ReportsPage />
       </QueryClientProvider>,
     );
-    expect(await screen.findByText('Non calculable : NO_ACCOUNT')).toBeTruthy();
+    expect((await screen.findAllByTitle('Non calculable : NO_ACCOUNT')).length).toBeGreaterThan(0);
 
     api.readMonthlyProjection.mockReset();
     api.readMonthlyProjection

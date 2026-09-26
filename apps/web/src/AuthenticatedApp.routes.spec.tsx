@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { cleanup, render } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ReactElement } from 'react';
+import '@/i18n';
+import { AnnualReportPage } from '@/features/reports/annual/AnnualReportPage';
 import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from './AuthenticatedApp.routes';
 
 const routes = buildAuthenticatedRoutes('Europe/Paris');
@@ -89,5 +93,35 @@ describe('AuthenticatedApp route table', () => {
     for (const route of routes) {
       expect(route.globalActions).toBe(false);
     }
+  });
+
+  describe('annual report year guard', () => {
+    afterEach(() => {
+      cleanup();
+      vi.useRealTimers();
+      window.history.replaceState({}, '', '/');
+    });
+
+    function redirectTarget(path: string): string | null {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-24T10:00:00Z') });
+      window.history.replaceState({}, '', path);
+      const matched = matchAuthenticatedRoute(routes, path)!;
+      render(matched.route.render(matched.match));
+      return window.location.pathname === path ? null : window.location.pathname;
+    }
+
+    it.each(['/reports/annual/2027', '/reports/annual/1899', '/reports/annual/abc'])(
+      'replaces %s with the current workspace year',
+      (path) => {
+        expect(redirectTarget(path)).toBe('/reports/annual/2026');
+      },
+    );
+
+    it('keeps a valid empty past year', () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-24T10:00:00Z') });
+      const matched = matchAuthenticatedRoute(routes, '/reports/annual/2001')!;
+      const element = matched.route.render(matched.match) as ReactElement;
+      expect(element.type).toBe(AnnualReportPage);
+    });
   });
 });

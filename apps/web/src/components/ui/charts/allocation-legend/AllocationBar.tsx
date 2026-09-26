@@ -1,5 +1,5 @@
 import { compareDecimals, decimalRatioForGeometry } from '@/lib/decimal';
-import styles from './AllocationPanel.module.css';
+import styles from './AllocationLegend.module.css';
 
 interface AllocationBarProps {
   percent: string | null;
