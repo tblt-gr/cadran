@@ -7,6 +7,7 @@ interface AnnualReportToolbarProps {
   includeIncomplete: boolean;
   onOpenColumns: () => void;
   onToggleIncomplete: () => void;
+  previousYearHasData: boolean;
   saving: boolean;
   year: number;
 }
@@ -16,6 +17,7 @@ export function AnnualReportToolbar({
   includeIncomplete,
   onOpenColumns,
   onToggleIncomplete,
+  previousYearHasData,
   saving,
   year,
 }: AnnualReportToolbarProps) {
@@ -26,9 +28,18 @@ export function AnnualReportToolbar({
   return (
     <div className={styles.toolbar}>
       <div className={styles.years}>
-        <a href={previous} onClick={(event) => handleClientNavigation(event, previous)}>
-          {t('reports.annual.previousYear')}
-        </a>
+        {previousYearHasData ? (
+          <a href={previous} onClick={(event) => handleClientNavigation(event, previous)}>
+            {t('reports.annual.previousYear')}
+          </a>
+        ) : (
+          <span aria-describedby="annual-previous-year-hint" aria-disabled="true">
+            {t('reports.annual.previousYear')}
+            <span className="sr-only" id="annual-previous-year-hint">
+              {t('reports.annual.previousYearEmpty')}
+            </span>
+          </span>
+        )}
         <strong>{year}</strong>
         {year >= currentYear ? (
           <span aria-disabled="true">{t('reports.annual.nextYear')}</span>

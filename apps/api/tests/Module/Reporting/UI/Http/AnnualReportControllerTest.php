@@ -242,6 +242,16 @@ final class AnnualReportControllerTest extends WebTestCase
         self::assertDecimal('1000', self::cell(self::rows($report)[0], 'cashIncome'));
     }
 
+    public function testThePreviousYearFlagTellsWhetherTheYearBeforeHasData(): void
+    {
+        $this->signIn();
+        $this->seedYear();
+
+        self::assertTrue($this->annual($this->year + 1)['previousYearHasData']);
+        self::assertFalse($this->annual($this->year)['previousYearHasData']);
+        self::assertFalse($this->annual(1900)['previousYearHasData']);
+    }
+
     public function testAYearBeforeTheFirstDataMonthIsEntirelyNoData(): void
     {
         $this->signIn();

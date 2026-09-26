@@ -24,6 +24,7 @@ final readonly class AnnualReportView
         public AnnualFlowsView $flows,
         public AnnualNetWorthView $netWorth,
         public string $quality,
+        public bool $previousYearHasData,
     ) {
     }
 }

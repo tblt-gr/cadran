@@ -116,6 +116,7 @@ export function AnnualReportPage({ today, year }: AnnualReportPageProps) {
         includeIncomplete={preferences.data?.incompleteMonths === 'include'}
         onOpenColumns={() => setPickerOpen(true)}
         onToggleIncomplete={toggleIncomplete}
+        previousYearHasData={report.data?.previousYearHasData ?? true}
         saving={save.isPending || !preferences.data}
         year={year}
       />

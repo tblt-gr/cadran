@@ -48,6 +48,25 @@ afterEach(() => {
 });
 
 describe('AnnualReportPage', () => {
+  it('disables the previous-year link when the year before has no data', async () => {
+    api.readAnnualReport.mockResolvedValue(ok({ ...annualReport, previousYearHasData: false }));
+    renderPage();
+    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    expect(screen.queryByRole('link', { name: 'Année précédente' })).toBeNull();
+    const disabled = screen.getByText(/^Année précédente/);
+    expect(disabled.getAttribute('aria-disabled')).toBe('true');
+    const hint = document.getElementById(disabled.getAttribute('aria-describedby') ?? '');
+    expect(hint?.textContent).toMatch(/aucune donnée/i);
+  });
+
+  it('keeps the previous-year link when the year before has data', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    expect(screen.getByRole('link', { name: 'Année précédente' }).getAttribute('href')).toBe(
+      '/reports/annual/2025',
+    );
+  });
+
   it('renders exact amounts, rates and the non-calculable reason as text', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
@@ -99,12 +118,6 @@ describe('AnnualReportPage', () => {
     renderPage();
     const link = await screen.findByRole('link', { name: /politique d’indicateurs/i });
     expect(link.getAttribute('href')).toBe('/settings/metric-policy');
-  });
-
-  it('explains a future year on 422', async () => {
-    api.readAnnualReport.mockResolvedValue(failure(422));
-    renderPage(2027);
-    expect((await screen.findByRole('alert')).textContent).toMatch(/année/i);
   });
 
   it('offers a retry after an error', async () => {

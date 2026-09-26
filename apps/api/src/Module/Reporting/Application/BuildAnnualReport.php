@@ -92,6 +92,7 @@ final readonly class BuildAnnualReport
             AnnualCharts::flows($months),
             AnnualCharts::netWorth($months),
             self::quality($months),
+            self::hasData($previous),
         );
     }
 
@@ -181,6 +182,18 @@ final readonly class BuildAnnualReport
             $this->policyRepository->find($workspace, $version)->label ?? MetricPolicyReference::UNKNOWN_LABEL,
             [$version],
         );
+    }
+
+    /** @param list<AnnualMonth> $months */
+    private static function hasData(array $months): bool
+    {
+        foreach ($months as $month) {
+            if (MonthState::NO_DATA !== $month->state && MonthState::FUTURE !== $month->state) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @param list<AnnualMonth> $months */

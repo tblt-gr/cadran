@@ -226,6 +226,7 @@
       "cardsLabel": "Mois de {{year}}",
       "explainColumn": "Expliquer les agrégats : {{column}}",
       "previousYear": "Année précédente",
+      "previousYearEmpty": "Aucune donnée pour l'année précédente.",
       "nextYear": "Année suivante",
       "columns": "Colonnes",
       "incompleteLabel": "Mois incomplets",

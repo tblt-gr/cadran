@@ -103,14 +103,21 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
     },
     { pattern: /^\/reports$/, globalActions: false, render: () => <ReportsPage /> },
     {
-      pattern: /^\/reports\/annual\/(\d{4})$/,
+      pattern: /^\/reports\/annual\/([^/]+)$/,
       globalActions: false,
-      render: (match) => (
-        <AnnualReportPage
-          today={workspaceToday(new Date(), workspaceTimeZone)}
-          year={Number(match[1])}
-        />
-      ),
+      render: (match) => {
+        const today = workspaceToday(new Date(), workspaceTimeZone);
+        const currentYear = Number(today.slice(0, 4));
+        const year = /^\d{4}$/.test(match[1]!) ? Number(match[1]) : Number.NaN;
+        // An unknown year (not a year, before 1900 or in the future) is not an error
+        // worth showing: land on the current year instead of the 422 state.
+        if (!(year >= 1900 && year <= currentYear)) {
+          return (
+            <RouteRedirect statusKey="reports.loading" to={`/reports/annual/${currentYear}`} />
+          );
+        }
+        return <AnnualReportPage today={today} year={year} />;
+      },
     },
     {
       pattern: new RegExp(`^/budget/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),

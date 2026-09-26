@@ -9721,7 +9721,18 @@ components:
       type: object
       additionalProperties: false
       required:
-        [year, today, incompleteMonths, metricPolicy, columns, rows, aggregates, charts, quality]
+        [
+          year,
+          today,
+          incompleteMonths,
+          metricPolicy,
+          columns,
+          rows,
+          aggregates,
+          charts,
+          quality,
+          previousYearHasData,
+        ]
       properties:
         year: { type: integer }
         today: { type: string, format: date }
@@ -9741,6 +9752,9 @@ components:
           additionalProperties: { $ref: '#/components/schemas/AnnualAggregate' }
         charts: { $ref: '#/components/schemas/AnnualCharts' }
         quality: { $ref: '#/components/schemas/AnnualAggregateQuality' }
+        previousYearHasData:
+          type: boolean
+          description: True when the year before has at least one month with data.
     AnnualMonthExplanation:
       type: object
       additionalProperties: false

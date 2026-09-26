@@ -72,6 +72,7 @@ final class AnnualReportRepresentation
                 ],
             ],
             'quality' => $report->quality,
+            'previousYearHasData' => $report->previousYearHasData,
         ];
     }
 

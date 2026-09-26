@@ -116,6 +116,7 @@ export const annualReport: AnnualReport = {
     },
   },
   quality: 'PROVISIONAL',
+  previousYearHasData: true,
 };
 
 export const annualPreferences: AnnualReportPreferences = {
