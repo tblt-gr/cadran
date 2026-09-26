@@ -63,6 +63,9 @@ interface AccountBalanceSnapshotRepository
 
     public function countForAccount(WorkspaceScope $workspace, string $accountId): int;
 
+    /** The earliest as-of day among the workspace's active snapshots, or null when it has none. */
+    public function firstActiveValuedOn(WorkspaceScope $workspace): ?\DateTimeImmutable;
+
     public function add(AccountBalanceSnapshot $snapshot): void;
 
     /** Returns false when the expected version is stale. */

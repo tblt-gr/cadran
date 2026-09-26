@@ -171,6 +171,18 @@ final readonly class DbalAccountBalanceSnapshotRepository implements AccountBala
         ));
     }
 
+    public function firstActiveValuedOn(WorkspaceScope $workspace): ?\DateTimeImmutable
+    {
+        $day = $this->connection->fetchOne(
+            'SELECT min(as_of)::text FROM account_balance_snapshots WHERE workspace_id = :workspace_id AND superseded_at IS NULL',
+            ['workspace_id' => $workspace->id],
+        );
+
+        return null === $day || false === $day
+            ? null
+            : new \DateTimeImmutable(AccountRow::text($day), new \DateTimeZone('UTC'));
+    }
+
     public function add(AccountBalanceSnapshot $snapshot): void
     {
         try {
