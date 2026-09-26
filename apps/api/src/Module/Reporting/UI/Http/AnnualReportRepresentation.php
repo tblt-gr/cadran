@@ -140,6 +140,7 @@ final class AnnualReportRepresentation
         $item = ['categoryId' => $share->categoryId, 'label' => $share->label, 'total' => $share->total, 'share' => $share->share];
         if (null === $share->categoryId) {
             unset($item['categoryId'], $item['label']);
+            $item['items'] = array_map(self::share(...), $share->items);
         }
 
         return $item;

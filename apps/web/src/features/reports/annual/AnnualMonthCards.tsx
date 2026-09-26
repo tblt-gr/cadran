@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { AnnualCellValue } from './AnnualCellValue';
-import { drillDownHref, SUMMARY_ROW_IDS, summaryFigure } from './annualColumns';
+import { SUMMARY_ROW_IDS, summaryFigure } from './annualColumns';
 import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualMonthCards.module.css';
 
@@ -40,7 +40,6 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
                   <dd>
                     <AnnualCellValue
                       assetCode={column.assetCode}
-                      href={drillDownHref(column.id, row.month)}
                       kind={column.kind}
                       reason={row.cells[column.id]?.reason ?? null}
                       value={row.cells[column.id]?.value ?? null}
@@ -61,11 +60,13 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
             <section key={column.id}>
               <h4>
                 {column.label}
-                <InfoButton
-                  aria-haspopup="dialog"
-                  label={t('reports.annual.explainColumn', { column: column.label })}
-                  onClick={() => onExplain(column.id)}
-                />
+                {aggregate.total !== null ? (
+                  <InfoButton
+                    aria-haspopup="dialog"
+                    label={t('reports.annual.explainColumn', { column: column.label })}
+                    onClick={() => onExplain(column.id)}
+                  />
+                ) : null}
               </h4>
               <dl>
                 {SUMMARY_ROW_IDS.map((rowId) => {

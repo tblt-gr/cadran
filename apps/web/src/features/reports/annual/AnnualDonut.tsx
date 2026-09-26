@@ -13,6 +13,8 @@ export interface AnnualDonutItem {
   label: string;
   /** Exact backend ratio in [0, 1]; only its bounded ratio is used to draw. */
   share: string;
+  /** Categories a slice aggregates; the donut keeps one slice, the legend lists them. */
+  details?: AnnualDonutItem[];
 }
 
 interface AnnualDonutProps {
@@ -41,6 +43,12 @@ export function AnnualDonut({ assetCode, items, label }: AnnualDonutProps) {
         items={items.map((item) => ({
           amount: formatAmount(item.amount, assetCode, i18n.language),
           barPercent: ratioToPercent(item.share),
+          details: item.details?.map((detail) => ({
+            amount: formatAmount(detail.amount, assetCode, i18n.language),
+            key: detail.key,
+            label: detail.label,
+            share: formatRatioPercentage(detail.share, i18n.language),
+          })),
           key: item.key,
           label: item.label,
           share: formatRatioPercentage(item.share, i18n.language),

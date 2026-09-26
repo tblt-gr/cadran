@@ -153,7 +153,11 @@ final class AnnualCharts
     private static function other(array $rest, DecimalValue $total): AnnualCategoryShareView
     {
         $sum = ExactDecimal::sum(...array_map(static fn (array $entry): DecimalValue => $entry[1], $rest));
+        $items = [];
+        foreach ($rest as [$id, $amount, $label]) {
+            $items[] = new AnnualCategoryShareView($id, $label, $amount->toString(), ExactDecimal::divide($amount, $total)->toString());
+        }
 
-        return new AnnualCategoryShareView(null, 'Autres', $sum->toString(), ExactDecimal::divide($sum, $total)->toString());
+        return new AnnualCategoryShareView(null, 'Autres', $sum->toString(), ExactDecimal::divide($sum, $total)->toString(), $items);
     }
 }

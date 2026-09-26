@@ -9648,9 +9648,20 @@ components:
           items: { $ref: '#/components/schemas/AnnualCategoryShare' }
         other:
           oneOf:
-            - { $ref: '#/components/schemas/AnnualCategoryShare' }
+            - { $ref: '#/components/schemas/AnnualOtherCategories' }
             - { type: 'null' }
         reason: { type: [string, 'null'] }
+    AnnualOtherCategories:
+      type: object
+      additionalProperties: false
+      required: [total, share, items]
+      description: The categories beyond the top ones; total and share are the exact sum of items.
+      properties:
+        total: { type: string }
+        share: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AnnualCategoryShare' }
     AnnualAllocationItem:
       type: object
       additionalProperties: false

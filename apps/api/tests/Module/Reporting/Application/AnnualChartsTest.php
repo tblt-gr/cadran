@@ -9,6 +9,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Reporting\Application\AllocationFigure;
 use App\Module\Reporting\Application\AnnualAllocationView;
 use App\Module\Reporting\Application\AnnualCatalogue;
+use App\Module\Reporting\Application\AnnualCategoryShareView;
 use App\Module\Reporting\Application\AnnualCharts;
 use App\Module\Reporting\Application\AnnualMonth;
 use App\Module\Reporting\Application\MonthFigures;
@@ -49,6 +50,11 @@ final class AnnualChartsTest extends TestCase
         self::assertSame('113.15', $chart->other->total);
         self::assertSame('Autres', $chart->other->label);
         self::assertStringStartsWith('0.1131', $chart->other->share);
+        // The drill-down lists every aggregated category, largest first, and sums back to other exactly.
+        self::assertSame(['c7', 'c8'], array_map(static fn (AnnualCategoryShareView $i): ?string => $i->categoryId, $chart->other->items));
+        self::assertSame(['Categorie 7', 'Categorie 8'], array_map(static fn (AnnualCategoryShareView $i): string => $i->label, $chart->other->items));
+        self::assertSame(['110', '3.15'], array_map(static fn (AnnualCategoryShareView $i): string => $i->total, $chart->other->items));
+        self::assertStringStartsWith('0.1099', $chart->other->items[0]->share);
     }
 
     public function testANullOrZeroBudgetTotalGivesNoChartAndAReason(): void

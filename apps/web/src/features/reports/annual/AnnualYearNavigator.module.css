@@ -1,0 +1,21 @@
+.navigator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+.year {
+  min-width: max-content;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-control);
+  color: var(--gold-300);
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+}
+.step {
+  text-decoration: none;
+}
+.step[aria-disabled='true'] {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}

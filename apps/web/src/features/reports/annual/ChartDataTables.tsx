@@ -4,6 +4,7 @@ import type {
   AnnualNetWorthSeries,
   AnnualTopExpenseCategories,
 } from '@cadran/api-client';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAmount } from '@/lib/decimal';
@@ -89,12 +90,16 @@ export function NetWorthDataTable({ netWorth }: { netWorth: AnnualNetWorthSeries
 export function TopCategoriesDataTable({ top }: { top: AnnualTopExpenseCategories }) {
   const { t, i18n } = useTranslation();
   const reasonText = useReasonText();
+  const [otherOpen, setOtherOpen] = useState(false);
   if (top.reason !== null || top.assetCode === null) return <p>{reasonText(top.reason)}</p>;
   const assetCode = top.assetCode;
-  const rows = [
-    ...top.items,
-    ...(top.other ? [{ ...top.other, label: t('reports.annual.charts.other') }] : []),
-  ];
+  const row = (key: string, label: ReactNode, total: string, share: string, nested = false) => (
+    <tr className={nested ? styles.nested : undefined} key={key}>
+      <th scope="row">{label}</th>
+      <td>{formatAmount(total, assetCode, i18n.language)}</td>
+      <td>{formatRatioPercentage(share, i18n.language)}</td>
+    </tr>
+  );
 
   return (
     <table className={styles.data}>
@@ -106,14 +111,34 @@ export function TopCategoriesDataTable({ top }: { top: AnnualTopExpenseCategorie
         </tr>
       </thead>
       <tbody>
-        {rows.map((item, index) => (
-          <tr key={item.categoryId ?? `other-${index}`}>
-            <th scope="row">{item.label}</th>
-            <td>{formatAmount(item.total, assetCode, i18n.language)}</td>
-            <td>{formatRatioPercentage(item.share, i18n.language)}</td>
-          </tr>
-        ))}
+        {top.items.map((item) =>
+          row(item.categoryId ?? item.label ?? '', item.label, item.total, item.share),
+        )}
+        {top.other
+          ? row(
+              'other',
+              <button
+                aria-controls="top-categories-other"
+                aria-expanded={otherOpen}
+                className={styles.toggle}
+                onClick={() => setOtherOpen(!otherOpen)}
+                type="button"
+              >
+                <span aria-hidden="true">{otherOpen ? '▾' : '▸'}</span>{' '}
+                {t('reports.annual.charts.other')}
+              </button>,
+              top.other.total,
+              top.other.share,
+            )
+          : null}
       </tbody>
+      {top.other && otherOpen ? (
+        <tbody id="top-categories-other">
+          {top.other.items.map((item) =>
+            row(`other-${item.categoryId ?? item.label}`, item.label, item.total, item.share, true),
+          )}
+        </tbody>
+      ) : null}
     </table>
   );
 }

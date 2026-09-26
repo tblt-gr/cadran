@@ -1,25 +1,31 @@
+import type { ReactNode } from 'react';
 import type { AnnualReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { AnnualCellValue } from './AnnualCellValue';
-import { drillDownHref, SUMMARY_ROW_IDS, summaryFigure } from './annualColumns';
+import { SUMMARY_ROW_IDS, summaryFigure } from './annualColumns';
 import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualReportTable.module.css';
 
 interface AnnualReportTableProps {
+  /** Table-level controls, shown to the right of the title. */
+  actions?: ReactNode;
   onExplain: (columnId: string) => void;
   report: AnnualReport;
 }
 
-export function AnnualReportTable({ onExplain, report }: AnnualReportTableProps) {
+export function AnnualReportTable({ actions, onExplain, report }: AnnualReportTableProps) {
   const { t, i18n } = useTranslation();
 
   return (
     <section aria-labelledby="annual-table-title" className={`card ${styles.wrap}`}>
-      <h2 className={styles.title} id="annual-table-title">
-        {t('reports.annual.caption', { year: report.year })}
-      </h2>
+      <header className={styles.header}>
+        <h2 className={styles.title} id="annual-table-title">
+          {t('reports.annual.caption', { year: report.year })}
+        </h2>
+        {actions ? <div className={styles.actions}>{actions}</div> : null}
+      </header>
       <div className={styles.scroll}>
         <table aria-labelledby="annual-table-title" className={styles.table}>
           <thead>
@@ -52,7 +58,6 @@ export function AnnualReportTable({ onExplain, report }: AnnualReportTableProps)
                       ) : (
                         <AnnualCellValue
                           assetCode={column.assetCode}
-                          href={drillDownHref(column.id, row.month)}
                           kind={column.kind}
                           reason={cell?.reason ?? null}
                           value={cell?.value ?? null}
@@ -83,7 +88,7 @@ export function AnnualReportTable({ onExplain, report }: AnnualReportTableProps)
                       {figure.month ? (
                         <small> ({monthLabel(figure.month, i18n.language)})</small>
                       ) : null}
-                      {rowId === 'total' ? (
+                      {rowId === 'total' && figure.value !== null ? (
                         <InfoButton
                           aria-haspopup="dialog"
                           label={t('reports.annual.explainColumn', { column: column.label })}

@@ -51,6 +51,12 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
                 ? [
                     {
                       amount: top.other.total,
+                      details: top.other.items.map((item) => ({
+                        amount: item.total,
+                        key: item.categoryId ?? item.label ?? '',
+                        label: item.label ?? '',
+                        share: item.share,
+                      })),
                       key: 'other',
                       label: t('reports.annual.charts.other'),
                       share: top.other.share,

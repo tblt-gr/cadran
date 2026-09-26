@@ -1,6 +1,8 @@
 import type { AnnualCell, AnnualFlows } from '@cadran/api-client';
 import { Bar, BarChart, Tooltip, XAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import styles from './AnnualCharts.module.css';
+import { useBoxSize } from '@/hooks/use-box-size';
 import { formatAnnualValue } from './annualFormat';
 import { ExactTooltip } from './ExactTooltip';
 import { FLOW_SERIES_IDS, flowChartData, prefersReducedMotion } from './chartGeometry';
@@ -19,6 +21,7 @@ function exact(cell: AnnualCell, assetCode: string | null, locale: string, reaso
 
 export function FlowsChart({ flows }: { flows: AnnualFlows }) {
   const { t, i18n } = useTranslation();
+  const { ref, size } = useBoxSize();
   const data = flowChartData(flows.months);
   const linesFor = (month: string) => {
     const row = flows.months.find((m) => m.month.slice(5) === month);
@@ -30,19 +33,28 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
   };
 
   return (
-    <BarChart
-      accessibilityLayer
-      data={data}
-      height={220}
-      role="img"
-      title={t('reports.annual.charts.flows')}
-      width={520}
-    >
-      <XAxis dataKey="month" />
-      <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
-      {FLOW_SERIES_IDS.map((id) => (
-        <Bar dataKey={id} fill={COLORS[id]} isAnimationActive={!prefersReducedMotion()} key={id} />
-      ))}
-    </BarChart>
+    <div ref={ref} className={styles.flows}>
+      {size.width > 0 ? (
+        <BarChart
+          accessibilityLayer
+          data={data}
+          height={220}
+          role="img"
+          title={t('reports.annual.charts.flows')}
+          width={size.width}
+        >
+          <XAxis dataKey="month" />
+          <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
+          {FLOW_SERIES_IDS.map((id) => (
+            <Bar
+              dataKey={id}
+              fill={COLORS[id]}
+              isAnimationActive={!prefersReducedMotion()}
+              key={id}
+            />
+          ))}
+        </BarChart>
+      ) : null}
+    </div>
   );
 }

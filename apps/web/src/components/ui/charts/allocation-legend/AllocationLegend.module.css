@@ -80,3 +80,34 @@
     font-size: var(--font-size-body);
   }
 }
+
+.toggle {
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  color: inherit;
+  background: var(--color-transparent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--text-primary);
+}
+
+/* Sub-list of an aggregated entry; it sits between the label row and the amount. */
+.details {
+  display: grid;
+  grid-column: 1 / -1;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none) var(--spacing-none) var(--spacing-none) var(--spacing-3);
+  border-left: var(--border-line-subtle);
+  list-style: none;
+  gap: var(--spacing-2);
+}
+
+.detailAmount {
+  grid-column: 1 / -1;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+}

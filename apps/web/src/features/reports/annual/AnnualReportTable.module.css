@@ -3,9 +3,21 @@
   padding: var(--spacing-none);
   overflow: hidden;
 }
-.title {
-  margin: var(--spacing-none);
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
   padding: var(--spacing-4);
+}
+.actions {
+  display: flex;
+  flex: none;
+  gap: var(--spacing-2);
+}
+.title {
+  min-width: 0;
+  margin: var(--spacing-none);
   color: var(--text-secondary);
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-normal);
@@ -40,9 +52,6 @@
 .table thead th:first-child {
   z-index: 2;
 }
-.table a {
-  color: var(--text-primary);
-}
 .dimmed td,
 .dimmed th {
   color: var(--text-muted);
@@ -50,6 +59,10 @@
 .table tfoot th,
 .table tfoot td {
   color: var(--text-secondary);
+}
+.table tfoot tr:first-child th,
+.table tfoot tr:first-child td {
+  border-top: var(--border-line-strong);
 }
 .table td button {
   margin-left: var(--spacing-2);

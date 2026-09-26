@@ -224,6 +224,7 @@
       "summaryTitle": "Synthèse de l’année",
       "cardsLabel": "Mois de {{year}}",
       "explainColumn": "Expliquer les agrégats : {{column}}",
+      "yearNavigation": "Année",
       "previousYear": "Année précédente",
       "previousYearEmpty": "Aucune donnée pour l'année précédente.",
       "nextYear": "Année suivante",

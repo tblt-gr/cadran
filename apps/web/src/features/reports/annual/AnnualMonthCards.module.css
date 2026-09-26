@@ -1,5 +1,6 @@
 .list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-3);
   margin: var(--spacing-none);
   padding: var(--spacing-none);
@@ -31,9 +32,6 @@
   margin: var(--spacing-none);
   font-variant-numeric: tabular-nums;
   text-align: right;
-}
-.card a {
-  color: var(--text-primary);
 }
 @media (min-width: 640px) {
   .list {

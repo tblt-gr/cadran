@@ -102,7 +102,14 @@ export const annualReport: AnnualReport = {
     topExpenseCategories: {
       assetCode: 'EUR',
       items: [{ categoryId: 'c1', label: 'Logement', total: '7200', share: '0.42' }],
-      other: { total: '900', share: '0.05' },
+      other: {
+        total: '900',
+        share: '0.05',
+        items: [
+          { categoryId: 'c2', label: 'Loisirs', total: '600', share: '0.03' },
+          { categoryId: 'c3', label: 'Santé', total: '300', share: '0.02' },
+        ],
+      },
       reason: null,
     },
     allocation: {

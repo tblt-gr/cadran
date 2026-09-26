@@ -27,18 +27,6 @@ export const AXIS_IDS = [
   'VARIABLE',
 ] as const;
 
-/**
- * Where a monthly cell leads: the monthly KPI report for an indicator, the month's Budget
- * page for a category or axis, and the account or group screens for a stock.
- */
-export function drillDownHref(columnId: string, month: string): string {
-  if (columnId.startsWith('account:')) return `/accounts/${columnId.slice('account:'.length)}`;
-  if (columnId.startsWith('group:')) return '/accounts/groups';
-  if (columnId.startsWith('category:') || columnId.startsWith('axis:')) return `/budget/${month}`;
-
-  return `/reports?month=${month}`;
-}
-
 export type SummaryRowId =
   'total' | 'average' | 'median' | 'minimum' | 'maximum' | 'previousYearAverage';
 

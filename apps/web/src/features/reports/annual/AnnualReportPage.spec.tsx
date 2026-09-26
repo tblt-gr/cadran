@@ -53,7 +53,7 @@ describe('AnnualReportPage', () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport annuel 2026/i });
     expect(screen.queryByRole('link', { name: 'Année précédente' })).toBeNull();
-    const disabled = screen.getByText(/^Année précédente/);
+    const disabled = screen.getByText(/^Année précédente/).closest('[aria-disabled]')!;
     expect(disabled.getAttribute('aria-disabled')).toBe('true');
     const hint = document.getElementById(disabled.getAttribute('aria-describedby') ?? '');
     expect(hint?.textContent).toMatch(/aucune donnée/i);
@@ -89,17 +89,50 @@ describe('AnnualReportPage', () => {
     expect(within(cards).getAllByText(/2\s?000,50/).length).toBeGreaterThan(0);
   });
 
-  it('links a cell to its drill-down source', async () => {
+  it('renders values as plain text, never as links', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
-    const link = within(table).getAllByRole('link', { name: /2\s?000,50/ })[0]!;
-    expect(link.getAttribute('href')).toBe('/reports?month=2026-01');
+    expect(within(table).queryAllByRole('link')).toEqual([]);
+    const cards = screen.getByRole('list', { name: /mois de 2026/i });
+    expect(within(cards).queryAllByRole('link')).toEqual([]);
+  });
+
+  it('shows no info button beside a value that is not calculable', async () => {
+    renderPage();
+    const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    // cashIncome has a total; cashSavingsRate has none.
+    expect(within(table).getAllByRole('button', { name: /expliquer.*revenus/i }).length).toBe(1);
+    expect(within(table).queryAllByRole('button', { name: /expliquer.*épargne/i })).toEqual([]);
+    const cards = screen.getByRole('list', { name: /mois de 2026/i });
+    expect(within(cards).queryAllByRole('button', { name: /expliquer.*épargne/i })).toEqual([]);
+  });
+
+  it('expands Autres to the categories it aggregates, with the donut keeping one slice', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    const region = screen.getByRole('region', { name: 'Principales catégories de dépenses' });
+    expect(within(region).queryByText('Loisirs')).toBeNull();
+    const toggles = within(region).getAllByRole('button', { name: /autres/i });
+    expect(toggles.length).toBe(2);
+    for (const toggle of toggles) {
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      fireEvent.click(toggle);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    }
+    expect(within(region).getAllByText('Loisirs').length).toBe(2);
+    expect(within(region).getAllByText(/600,00/).length).toBe(2);
+    expect(within(region).getAllByText('Santé').length).toBe(2);
+    fireEvent.click(toggles[0]!);
+    expect(within(region).getAllByText('Loisirs').length).toBe(1);
   });
 
   it('saves the incomplete-month setting and refetches the report', async () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport annuel 2026/i });
-    fireEvent.click(screen.getByRole('switch', { name: /mois incomplets/i }));
+    const toggle = screen.getByRole('button', { name: /mois incomplets/i });
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    expect(toggle.getAttribute('title')).toMatch(/exclus/);
+    fireEvent.click(toggle);
     await waitFor(() =>
       expect(api.saveAnnualReportPreferences).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -153,17 +186,27 @@ describe('AnnualReportPage', () => {
     expect(screen.queryByText(/sélectionnez les colonnes/i)).toBeNull();
   });
 
-  it('keeps every drill-down link in the tab order and focusable', async () => {
+  it('keeps every info button focusable', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
-    const links = within(table).getAllByRole('link');
-    expect(links.length).toBeGreaterThan(0);
-    for (const link of links) {
-      expect(link.getAttribute('href')).toBeTruthy();
-      expect(link.tabIndex).toBeGreaterThanOrEqual(0);
-      link.focus();
-      expect(document.activeElement).toBe(link);
+    const buttons = within(table).getAllByRole('button');
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons) {
+      expect(button.tabIndex).toBeGreaterThanOrEqual(0);
+      button.focus();
+      expect(document.activeElement).toBe(button);
     }
+  });
+
+  it('places the column and incomplete-month controls in the table header as icon buttons', async () => {
+    renderPage();
+    const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    const header = screen.getByRole('heading', { name: 'Rapport annuel 2026' }).parentElement!;
+    const columns = within(header).getByRole('button', { name: 'Colonnes' });
+    expect(columns.classList.contains('icon-button')).toBe(true);
+    expect(columns.getAttribute('title')).toBe('Colonnes');
+    expect(within(header).getByRole('button', { name: /mois incomplets/i })).toBeTruthy();
+    expect(table.parentElement?.contains(columns)).toBe(false);
   });
 
   it('opens the aggregate explanation from a summary cell', async () => {

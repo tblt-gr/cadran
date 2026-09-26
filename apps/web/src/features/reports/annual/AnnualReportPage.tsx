@@ -6,7 +6,8 @@ import { AggregateExplainModal } from './AggregateExplainModal';
 import { AnnualCharts } from './AnnualCharts';
 import { AnnualMonthCards } from './AnnualMonthCards';
 import { AnnualReportTable } from './AnnualReportTable';
-import { AnnualReportToolbar } from './AnnualReportToolbar';
+import { AnnualTableActions } from './AnnualTableActions';
+import { AnnualYearNavigator } from './AnnualYearNavigator';
 import { ColumnPickerModal } from './ColumnPickerModal';
 import { MixedPolicyBanner } from './MixedPolicyBanner';
 import {
@@ -92,7 +93,18 @@ export function AnnualReportPage({ today, year }: AnnualReportPageProps) {
         {report.data.metricPolicy.state === 'MIXED' ? (
           <MixedPolicyBanner policy={report.data.metricPolicy} />
         ) : null}
-        <AnnualReportTable onExplain={setExplained} report={report.data} />
+        <AnnualReportTable
+          actions={
+            <AnnualTableActions
+              includeIncomplete={preferences.data?.incompleteMonths === 'include'}
+              onOpenColumns={() => setPickerOpen(true)}
+              onToggleIncomplete={toggleIncomplete}
+              saving={save.isPending || !preferences.data}
+            />
+          }
+          onExplain={setExplained}
+          report={report.data}
+        />
         <AnnualMonthCards onExplain={setExplained} report={report.data} />
         <AnnualCharts report={report.data} />
         {explainedColumn ? (
@@ -111,13 +123,9 @@ export function AnnualReportPage({ today, year }: AnnualReportPageProps) {
   return (
     <div className={styles.page}>
       <ReportsTabs active="annual" currentYear={currentYear} />
-      <AnnualReportToolbar
+      <AnnualYearNavigator
         currentYear={currentYear}
-        includeIncomplete={preferences.data?.incompleteMonths === 'include'}
-        onOpenColumns={() => setPickerOpen(true)}
-        onToggleIncomplete={toggleIncomplete}
         previousYearHasData={report.data?.previousYearHasData ?? true}
-        saving={save.isPending || !preferences.data}
         year={year}
       />
       {content}

@@ -36,6 +36,15 @@ function NotCalculable({ reason }: { reason: string | null }) {
   return <EmptyValue label={t('states.notCalculable.label')} reason={reason} />;
 }
 
+function isRate(kpi: (typeof kpis)[number]): boolean {
+  return kpi === 'cashSavingsRate' || kpi === 'netSavingsRate';
+}
+
+/** Whether MetricValue shows a figure; a dash has nothing to explain. */
+function isCalculable(metric: MonthlyProjectionMetric, rate: boolean): boolean {
+  return metric.value !== null && (rate || metric.assetCode !== null);
+}
+
 function MetricValue({ metric, rate }: { metric: MonthlyProjectionMetric; rate: boolean }) {
   const { i18n } = useTranslation();
   if (metric.value === null) return <NotCalculable reason={metric.reason} />;
@@ -165,16 +174,15 @@ export function MonthlyKpiTable({ report }: { report: MonthlyProjection }) {
                 <th scope="row">{t(`reports.metrics.${kpi}`)}</th>
                 <td>
                   <span className={styles.value}>
-                    <MetricValue
-                      metric={report[kpi]}
-                      rate={kpi === 'cashSavingsRate' || kpi === 'netSavingsRate'}
-                    />
-                    <InfoButton
-                      aria-controls={`monthly-kpi-explanation-${kpi}`}
-                      aria-expanded={opened === kpi}
-                      label={t('reports.explainKpi', { kpi: t(`reports.metrics.${kpi}`) })}
-                      onClick={() => setOpened(opened === kpi ? null : kpi)}
-                    />
+                    <MetricValue metric={report[kpi]} rate={isRate(kpi)} />
+                    {isCalculable(report[kpi], isRate(kpi)) ? (
+                      <InfoButton
+                        aria-controls={`monthly-kpi-explanation-${kpi}`}
+                        aria-expanded={opened === kpi}
+                        label={t('reports.explainKpi', { kpi: t(`reports.metrics.${kpi}`) })}
+                        onClick={() => setOpened(opened === kpi ? null : kpi)}
+                      />
+                    ) : null}
                   </span>
                 </td>
                 <td>{report.quality}</td>
