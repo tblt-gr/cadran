@@ -1,13 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { AllocationBar } from './AllocationBar';
 import styles from './AllocationLegend.module.css';
-
-export interface AllocationLegendDetail {
-  amount: ReactNode;
-  key: string;
-  label: string;
-  share: ReactNode;
-}
 
 export interface AllocationLegendItem {
   /** Formatted exact amount, or an empty-value marker. */
@@ -18,58 +11,45 @@ export interface AllocationLegendItem {
   barPercent: string | null;
   /** Formatted share text, or an empty-value marker. */
   share: ReactNode;
-  /** What this entry aggregates; when present the label becomes a disclosure that lists them. */
-  details?: AllocationLegendDetail[];
 }
 
 interface AllocationLegendProps {
   items: AllocationLegendItem[];
   label: string;
-}
-
-function LegendName({ item }: { item: AllocationLegendItem }) {
-  const [open, setOpen] = useState(false);
-  if (!item.details) return <span className={styles.name}>{item.label}</span>;
-  const listId = `legend-details-${item.key}`;
-
-  return (
-    <>
-      <button
-        aria-controls={listId}
-        aria-expanded={open}
-        className={`${styles.name} ${styles.toggle}`}
-        onClick={() => setOpen(!open)}
-        type="button"
-      >
-        <span aria-hidden="true">{open ? '▾' : '▸'}</span> {item.label}
-      </button>
-      {open ? (
-        <ul className={styles.details} id={listId}>
-          {item.details.map((detail) => (
-            <li key={detail.key}>
-              <span className={styles.name}>{detail.label}</span>
-              <span className={styles.share}>{detail.share}</span>
-              <span className={`money ${styles.detailAmount}`}>{detail.amount}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </>
-  );
+  /** Shows only the first rows until the toggle is pressed; hidden when nothing exceeds the count. */
+  collapse?: { count: number; moreLabel: string; lessLabel: string };
 }
 
 /** Groups as a list: label, share, amount and a decorative bar, coloured like the donut slices. */
-export function AllocationLegend({ items, label }: AllocationLegendProps) {
+export function AllocationLegend({ collapse, items, label }: AllocationLegendProps) {
+  const [expanded, setExpanded] = useState(false);
+  const listId = useId();
+  const limit = collapse && !expanded ? collapse.count : items.length;
+  const canToggle = collapse !== undefined && items.length > collapse.count;
+
   return (
-    <ul aria-label={label} className={styles.list}>
-      {items.map((item) => (
-        <li key={item.key}>
-          <LegendName item={item} />
-          <span className={styles.share}>{item.share}</span>
-          <strong className={`money ${styles.amount}`}>{item.amount}</strong>
-          <AllocationBar percent={item.barPercent} />
-        </li>
-      ))}
-    </ul>
+    <div className={styles.legend}>
+      <ul aria-label={label} className={styles.list} id={listId}>
+        {items.slice(0, limit).map((item) => (
+          <li key={item.key}>
+            <span className={styles.name}>{item.label}</span>
+            <span className={styles.share}>{item.share}</span>
+            <strong className={`money ${styles.amount}`}>{item.amount}</strong>
+            <AllocationBar percent={item.barPercent} />
+          </li>
+        ))}
+      </ul>
+      {canToggle ? (
+        <button
+          aria-controls={listId}
+          aria-expanded={expanded}
+          className={styles.more}
+          onClick={() => setExpanded(!expanded)}
+          type="button"
+        >
+          {expanded ? collapse.lessLabel : collapse.moreLabel}
+        </button>
+      ) : null}
+    </div>
   );
 }

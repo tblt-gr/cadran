@@ -271,11 +271,9 @@
         "topCategories": "Principales catégories de dépenses",
         "allocation": "Répartition en fin de période",
         "donut": "Diagramme en anneau",
-        "category": "Catégorie",
-        "group": "Groupe",
-        "amount": "Montant",
-        "share": "Part",
-        "other": "Autres"
+        "other": "Autres",
+        "showMore": "Voir plus",
+        "showLess": "Voir moins"
       }
     }
   },

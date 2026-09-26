@@ -1,16 +1,22 @@
-import type { AnnualReport } from '@cadran/api-client';
+import type { AnnualCategoryShare, AnnualReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import {
-  AllocationDataTable,
-  FlowsDataTable,
-  NetWorthDataTable,
-  TopCategoriesDataTable,
-} from './ChartDataTables';
+import { FlowsDataTable, NetWorthDataTable } from './ChartDataTables';
 import { ChartFrame } from './ChartFrame';
-import { AnnualDonut } from './AnnualDonut';
+import { AnnualDonut, type AnnualLegendRow } from './AnnualDonut';
 import { AnnualNetWorthChart } from './AnnualNetWorthChart';
 import { FlowsChart } from './FlowsChart';
 import styles from './AnnualCharts.module.css';
+
+const TOP_VISIBLE_ROWS = 6;
+
+function toRow(item: AnnualCategoryShare): AnnualLegendRow & { label: string } {
+  return {
+    amount: item.total,
+    key: item.categoryId ?? item.label ?? '',
+    label: item.label ?? '',
+    share: item.share,
+  };
+}
 
 /** The four datasets come from the backend and do not depend on the selected columns. */
 export function AnnualCharts({ report }: { report: AnnualReport }) {
@@ -31,32 +37,24 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
       >
         <AnnualNetWorthChart netWorth={netWorth} />
       </ChartFrame>
-      <ChartFrame
-        data={<TopCategoriesDataTable top={top} />}
-        title={t('reports.annual.charts.topCategories')}
-      >
+      <ChartFrame title={t('reports.annual.charts.topCategories')}>
         {top.reason !== null || top.assetCode === null ? (
           <p>{reasonText(top.reason)}</p>
         ) : (
           <AnnualDonut
             assetCode={top.assetCode}
-            items={[
+            label={t('reports.annual.charts.topCategories')}
+            legend={[...top.items, ...(top.other?.items ?? [])].map(toRow)}
+            slices={[
               ...top.items.map((item) => ({
+                ...toRow(item),
                 amount: item.total,
-                key: item.categoryId ?? item.label ?? '',
-                label: item.label ?? '',
                 share: item.share,
               })),
               ...(top.other
                 ? [
                     {
                       amount: top.other.total,
-                      details: top.other.items.map((item) => ({
-                        amount: item.total,
-                        key: item.categoryId ?? item.label ?? '',
-                        label: item.label ?? '',
-                        share: item.share,
-                      })),
                       key: 'other',
                       label: t('reports.annual.charts.other'),
                       share: top.other.share,
@@ -64,25 +62,29 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
                   ]
                 : []),
             ]}
-            label={t('reports.annual.charts.topCategories')}
+            visibleRows={TOP_VISIBLE_ROWS}
           />
         )}
       </ChartFrame>
-      <ChartFrame
-        data={<AllocationDataTable allocation={allocation} />}
-        title={t('reports.annual.charts.allocation')}
-      >
+      <ChartFrame title={t('reports.annual.charts.allocation')}>
         {allocation.reason !== null || allocation.assetCode === null ? (
           <p>{reasonText(allocation.reason)}</p>
         ) : (
           <AnnualDonut
             assetCode={allocation.assetCode}
-            items={allocation.items.flatMap((item) =>
+            label={t('reports.annual.charts.allocation')}
+            legend={allocation.items.map((item) => ({
+              amount: item.value,
+              key: item.groupId,
+              label: item.label,
+              reason: item.reason,
+              share: item.share,
+            }))}
+            slices={allocation.items.flatMap((item) =>
               item.value === null || item.share === null
                 ? []
                 : [{ amount: item.value, key: item.groupId, label: item.label, share: item.share }],
             )}
-            label={t('reports.annual.charts.allocation')}
           />
         )}
       </ChartFrame>

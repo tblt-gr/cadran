@@ -107,23 +107,73 @@ describe('AnnualReportPage', () => {
     expect(within(cards).queryAllByRole('button', { name: /expliquer.*épargne/i })).toEqual([]);
   });
 
-  it('expands Autres to the categories it aggregates, with the donut keeping one slice', async () => {
+  it('lists every top category with its amount and share, without a data disclosure', async () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport annuel 2026/i });
     const region = screen.getByRole('region', { name: 'Principales catégories de dépenses' });
-    expect(within(region).queryByText('Loisirs')).toBeNull();
-    const toggles = within(region).getAllByRole('button', { name: /autres/i });
-    expect(toggles.length).toBe(2);
-    for (const toggle of toggles) {
-      expect(toggle.getAttribute('aria-expanded')).toBe('false');
-      fireEvent.click(toggle);
-      expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    }
-    expect(within(region).getAllByText('Loisirs').length).toBe(2);
-    expect(within(region).getAllByText(/600,00/).length).toBe(2);
-    expect(within(region).getAllByText('Santé').length).toBe(2);
-    fireEvent.click(toggles[0]!);
-    expect(within(region).getAllByText('Loisirs').length).toBe(1);
+    expect(within(region).queryByText('Voir les données')).toBeNull();
+    const list = within(region).getByRole('list', { name: 'Principales catégories de dépenses' });
+    const rows = within(list).getAllByRole('listitem');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Logement'),
+      expect.stringContaining('Loisirs'),
+      expect.stringContaining('Santé'),
+    ]);
+    expect(rows[1]?.textContent).toMatch(/600,00/);
+    expect(rows[1]?.textContent).toMatch(/3,00\s?%/);
+    expect(within(region).queryByRole('button', { name: /voir plus/i })).toBeNull();
+  });
+
+  it('shows six categories, then all of them with Voir plus, by keyboard too', async () => {
+    const extra = Array.from({ length: 5 }, (_, index) => ({
+      categoryId: `x${index}`,
+      label: `Extra ${index}`,
+      total: '10',
+      share: '0.01',
+    }));
+    const top = annualReport.charts.topExpenseCategories;
+    api.readAnnualReport.mockResolvedValue(
+      ok({
+        ...annualReport,
+        charts: {
+          ...annualReport.charts,
+          topExpenseCategories: {
+            ...top,
+            items: [...top.items, ...extra],
+          },
+        },
+      }),
+    );
+    renderPage();
+    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    const region = screen.getByRole('region', { name: 'Principales catégories de dépenses' });
+    const list = within(region).getByRole('list', { name: 'Principales catégories de dépenses' });
+    expect(within(list).getAllByRole('listitem').length).toBe(6);
+    const toggle = within(region).getByRole('button', { name: 'Voir plus' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.getAttribute('aria-controls')).toBe(list.id);
+    toggle.focus();
+    expect(document.activeElement).toBe(toggle);
+    fireEvent.click(toggle); // a native button turns Enter and Space into a click
+    expect(within(list).getAllByRole('listitem').length).toBe(8);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(toggle.textContent).toBe('Voir moins');
+    fireEvent.click(toggle);
+    expect(within(list).getAllByRole('listitem').length).toBe(6);
+  });
+
+  it('lists every allocation group, dashing the ones without a value', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    const region = screen.getByRole('region', { name: 'Répartition en fin de période' });
+    expect(within(region).queryByText('Voir les données')).toBeNull();
+    const rows = within(
+      within(region).getByRole('list', { name: 'Répartition en fin de période' }),
+    ).getAllByRole('listitem');
+    expect(rows.length).toBe(2);
+    expect(rows[1]?.textContent).toContain('Crypto');
+    expect(within(rows[1]!).getAllByText('-').length).toBe(2);
+    expect(within(rows[1]!).getByText(/Valorisation manquante/).className).toContain('sr-only');
   });
 
   it('saves the incomplete-month setting and refetches the report', async () => {
@@ -166,14 +216,10 @@ describe('AnnualReportPage', () => {
     expect(await screen.findByRole('table', { name: /rapport annuel 2026/i })).toBeTruthy();
   });
 
-  it('exposes chart data tables', async () => {
+  it('keeps the data disclosure for the flows and net worth charts only', async () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport annuel 2026/i });
-    expect(screen.getAllByText('Voir les données').length).toBe(4);
-    expect(screen.getAllByText('Logement').length).toBeGreaterThan(0);
-    expect(screen.getAllByTitle('Non calculable : Valorisation manquante').length).toBeGreaterThan(
-      0,
-    );
+    expect(screen.getAllByText('Voir les données').length).toBe(2);
   });
 
   it('shows every chart whatever the selected columns', async () => {
@@ -182,7 +228,7 @@ describe('AnnualReportPage', () => {
     );
     renderPage();
     await screen.findByRole('table', { name: /rapport annuel 2026/i });
-    expect(screen.getAllByText('Voir les données').length).toBe(4);
+    expect(screen.getAllByText('Voir les données').length).toBe(2);
     expect(screen.queryByText(/sélectionnez les colonnes/i)).toBeNull();
   });
 

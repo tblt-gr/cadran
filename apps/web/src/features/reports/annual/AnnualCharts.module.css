@@ -64,17 +64,3 @@
   min-width: 0;
   min-height: 13.75rem;
 }
-
-.toggle {
-  padding: var(--spacing-none);
-  border: var(--border-none);
-  color: inherit;
-  background: var(--color-transparent);
-  font: inherit;
-  cursor: pointer;
-}
-.nested th {
-  padding-left: var(--spacing-6);
-  color: var(--text-secondary);
-  font-weight: var(--font-weight-normal);
-}
