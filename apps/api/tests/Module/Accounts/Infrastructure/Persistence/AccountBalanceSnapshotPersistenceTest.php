@@ -308,6 +308,34 @@ final class AccountBalanceSnapshotPersistenceTest extends KernelTestCase
         self::assertSame([], $latest);
     }
 
+    public function testTheFirstValuationDayIsTheEarliestActiveSnapshotOfTheWorkspace(): void
+    {
+        $this->snapshots->add($this->snapshot(self::FIRST, '10', asOf: '2026-05-20'));
+        $this->snapshots->add($this->snapshot(self::SECOND, '10', asOf: '2026-03-02', source: BalanceSnapshotSource::IMPORT));
+        $this->connection->update('account_balance_snapshots', ['superseded_at' => '2026-09-04 12:00:00+00'], ['id' => self::SECOND]);
+
+        self::assertSame('2026-05-20', $this->snapshots->firstActiveValuedOn(WorkspaceFixture::own())?->format('Y-m-d'));
+    }
+
+    public function testTheFirstValuationDayIsNullWithoutSnapshot(): void
+    {
+        self::assertNull($this->snapshots->firstActiveValuedOn(WorkspaceFixture::own()));
+    }
+
+    public function testTheFirstValuationDayNeverReadsAnotherWorkspace(): void
+    {
+        $this->snapshots->add($this->snapshot(
+            self::THIRD,
+            '10',
+            asOf: '2026-01-05',
+            accountId: self::FOREIGN_ACCOUNT,
+            workspace: WorkspaceFixture::other(),
+        ));
+
+        self::assertNull($this->snapshots->firstActiveValuedOn(WorkspaceFixture::own()));
+        self::assertSame('2026-01-05', $this->snapshots->firstActiveValuedOn(WorkspaceFixture::other())?->format('Y-m-d'));
+    }
+
     private function snapshot(
         string $id,
         string $amount,
