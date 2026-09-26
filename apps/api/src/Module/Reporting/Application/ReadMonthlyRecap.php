@@ -69,6 +69,7 @@ final readonly class ReadMonthlyRecap
             groups: $projection->netWorth->allocation,
             netWorth: MonthlyRecapNetWorthView::of($projection->netWorth),
             totals: MonthlyRecapTotalsView::of($projection, $sourceTransactionsById),
+            metricPolicy: $projection->metricPolicy,
         );
     }
 

@@ -25,6 +25,7 @@ final readonly class MonthlyRecapView
         public array $groups,
         public MonthlyRecapNetWorthView $netWorth,
         public MonthlyRecapTotalsView $totals,
+        public MetricPolicyReference $metricPolicy,
     ) {
     }
 }

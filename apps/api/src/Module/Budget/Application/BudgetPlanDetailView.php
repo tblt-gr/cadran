@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\Application;
 
+use App\Module\Reporting\Application\MetricPolicyReference;
+
 final readonly class BudgetPlanDetailView
 {
     /** @param list<BudgetTargetDetailView> $targets */
@@ -15,6 +17,7 @@ final readonly class BudgetPlanDetailView
         public string $state,
         public int $version,
         public array $targets,
+        public MetricPolicyReference $metricPolicy,
     ) {
     }
 }

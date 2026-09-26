@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\Application;
 
+use App\Module\Reporting\Application\MetricPolicyReference;
+
 final readonly class BudgetComparisonsView
 {
     /** @param list<BudgetComparisonView> $comparisons */
@@ -14,6 +16,7 @@ final readonly class BudgetComparisonsView
         public string $status,
         public ?string $reason,
         public array $comparisons,
+        public MetricPolicyReference $metricPolicy,
     ) {
     }
 }

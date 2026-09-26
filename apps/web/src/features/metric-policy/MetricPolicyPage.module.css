@@ -1,0 +1,99 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.intro p,
+.intro h2,
+.intro span,
+.state h2,
+.active h3,
+.active p,
+.history h3,
+.empty {
+  margin: var(--spacing-none);
+}
+
+.intro p {
+  color: var(--gold-300);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.intro h2 {
+  margin-top: var(--spacing-1);
+  font-size: var(--font-size-kpi);
+}
+
+.intro span,
+.since,
+.empty {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.state {
+  display: flex;
+  min-height: 10rem;
+  justify-content: center;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--spacing-8);
+  gap: var(--spacing-3);
+}
+
+.active,
+.history {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-6);
+  gap: var(--spacing-3);
+}
+
+.activeName {
+  font-weight: var(--font-weight-bold);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.tableWrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body);
+}
+
+.tableWrap th,
+.tableWrap td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.srOnly {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.unresolved {
+  color: var(--negative);
+  font-weight: var(--font-weight-bold);
+}

@@ -102,6 +102,7 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
   if (pathname === '/reports/all-years') return 'routes.allYearsReport';
   if (/^\/budget\/plans\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';
   if (pathname === '/budget/plans') return 'routes.budgetPlans';
+  if (pathname === '/settings/metric-policy') return 'routes.metricPolicy';
 
   return navigationItems.find((item) => item.match(pathname))?.labelKey ?? 'routes.notFound';
 }

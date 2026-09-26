@@ -38,6 +38,8 @@ const reasonKeys = {
   MISSING_ACCOUNT_CLASSIFICATION: 'budget.monthly.recap.reasons.MISSING_ACCOUNT_CLASSIFICATION',
   MISSING_BENEFIT_SOURCE: 'budget.monthly.recap.reasons.MISSING_BENEFIT_SOURCE',
   MISSING_VALUATION: 'budget.monthly.recap.reasons.MISSING_VALUATION',
+  MIXED_METRIC_POLICIES: 'budget.monthly.recap.reasons.MIXED_METRIC_POLICIES',
+  UNKNOWN_METRIC_POLICY: 'budget.monthly.recap.reasons.UNKNOWN_METRIC_POLICY',
   NO_ACCOUNT: 'budget.monthly.recap.reasons.NO_ACCOUNT',
   NO_ELIGIBLE_ACCOUNT: 'budget.monthly.recap.reasons.NO_ELIGIBLE_ACCOUNT',
   NO_MOVEMENTS: 'budget.monthly.recap.reasons.NO_MOVEMENTS',

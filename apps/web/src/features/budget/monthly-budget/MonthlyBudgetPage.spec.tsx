@@ -100,6 +100,7 @@ const account = {
 
 const recap = {
   month: '2026-03',
+  metricPolicy: { version: 1, label: 'Définition de trésorerie' },
   previousAsOf: '2026-02-28',
   currentAsOf: '2026-03-15',
   provisional: true,
@@ -777,6 +778,12 @@ describe('MonthlyBudgetPage', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('shows the metric policy version of the month next to the recap', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Politique v1')).toBeTruthy();
   });
 
   it('shows provisional non-calculable recap values, links accounts, and saves owner preferences', async () => {

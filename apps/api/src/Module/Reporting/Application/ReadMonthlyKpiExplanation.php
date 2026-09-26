@@ -43,6 +43,7 @@ final readonly class ReadMonthlyKpiExplanation
             freshness: $metric->pendingCount > 0 ? 'PENDING' : 'CURRENT',
             quality: $projection->quality,
             pendingCount: $metric->pendingCount,
+            metricPolicy: $projection->metricPolicy,
         );
     }
 }

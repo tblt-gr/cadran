@@ -10,6 +10,7 @@ import { CategorizationRulesPage } from '@/features/categories/rules/Categorizat
 import { TransactionsPage } from '@/features/transactions/TransactionsPage';
 import { RecurrencesPage } from '@/features/recurrences/RecurrencesPage';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
+import { MetricPolicyPage } from '@/features/metric-policy/MetricPolicyPage';
 import { ProfileSettingsPage } from '@/features/settings/ProfileSettingsPage';
 import { BudgetPage } from '@/features/budget/BudgetPage';
 import { BudgetRouteRedirect } from '@/features/budget/monthly-budget/BudgetRouteRedirect';
@@ -114,6 +115,11 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
       pattern: /^\/settings\/profile$/,
       globalActions: false,
       render: () => <ProfileSettingsPage />,
+    },
+    {
+      pattern: /^\/settings\/metric-policy$/,
+      globalActions: false,
+      render: () => <MetricPolicyPage />,
     },
     // Catch-all, checked last: an unmatched path still under /budget (e.g. an
     // extra path segment) is a 404 like any other, but the budget workbook's

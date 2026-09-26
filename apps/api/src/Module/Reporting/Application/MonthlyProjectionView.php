@@ -28,6 +28,7 @@ final readonly class MonthlyProjectionView
         public int $pendingCount,
         public MonthlyMetricView $cashIncome,
         public MonthlyMetricView $nonCashBenefits,
+        public MonthlyMetricView $benefitSpending,
         public MonthlyMetricView $budgetExpenses,
         public MonthlyMetricView $uncategorizedExpenses,
         public MonthlyMetricView $budgetSurplus,
@@ -46,6 +47,7 @@ final readonly class MonthlyProjectionView
         public array $expensesByAxis,
         public array $categoryMetrics,
         public NetWorthView $netWorth,
+        public MetricPolicyReference $metricPolicy,
     ) {
     }
 }

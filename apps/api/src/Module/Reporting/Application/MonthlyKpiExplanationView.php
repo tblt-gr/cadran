@@ -31,6 +31,7 @@ final readonly class MonthlyKpiExplanationView
         public string $freshness,
         public string $quality,
         public int $pendingCount,
+        public MetricPolicyReference $metricPolicy,
     ) {
     }
 }

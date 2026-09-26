@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { MetricPolicyBadge } from '@/features/metric-policy/metric-policy-badge/MetricPolicyBadge';
 import { MonthlyKpiTable } from './MonthlyKpiTable';
 import styles from './ReportsPage.module.css';
 import { useMonthlyReport } from './useMonthlyReport';
@@ -43,7 +44,7 @@ export function ReportsPage() {
       <>
         <p className={styles.summary} role="status">
           {t('reports.pending', { count: report.data.pendingCount })} · {t('reports.quality')}:{' '}
-          {report.data.quality}
+          {report.data.quality} · <MetricPolicyBadge policy={report.data.metricPolicy} />
         </p>
         <section className={`card ${styles.state}`}>
           <h2>{t('reports.empty')}</h2>
@@ -56,7 +57,7 @@ export function ReportsPage() {
       <>
         <p className={styles.summary} role="status">
           {t('reports.pending', { count: report.data.pendingCount })} · {t('reports.quality')}:{' '}
-          {report.data.quality}
+          {report.data.quality} · <MetricPolicyBadge policy={report.data.metricPolicy} />
         </p>
         <MonthlyKpiTable report={report.data} />
       </>

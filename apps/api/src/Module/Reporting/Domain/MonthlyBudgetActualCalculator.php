@@ -10,7 +10,7 @@ use App\Module\Foundation\Domain\ExactDecimal;
 /** Filters one budget scope around the single built-in monthly KPI policy. */
 final class MonthlyBudgetActualCalculator
 {
-    public const string POLICY_DESCRIPTION = 'BOOKED non-voided EXPENSE, FEE and REFUND split amounts in budget-included categories; PENDING rows are counted but excluded from sums; TRANSFER and ADJUSTMENT rows are excluded.';
+    public const string POLICY_DESCRIPTION = 'BOOKED non-voided EXPENSE, FEE and REFUND split amounts on accounts inside the cash perimeter of the governing metric policy, in budget-included categories; PENDING rows are counted but excluded from sums; TRANSFER and ADJUSTMENT rows are excluded.';
 
     /**
      * @param list<MonthlyMovement>       $booked

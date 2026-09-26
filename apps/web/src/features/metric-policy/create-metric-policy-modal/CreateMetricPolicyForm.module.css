@@ -1,0 +1,57 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-body);
+}
+
+.kinds {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  gap: var(--spacing-2);
+}
+
+.kinds legend {
+  padding: var(--spacing-none);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+}
+
+.kinds p {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  min-height: var(--navigation-link-height);
+  gap: var(--spacing-2);
+}
+
+.error {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3);
+  border: var(--border-line-negative);
+  border-radius: var(--radius-control);
+  color: var(--negative);
+  background: var(--negative-soft);
+  font-size: var(--font-size-body);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+}

@@ -62,11 +62,12 @@ final readonly class ReadBudgetPlan
             },
         );
 
+        $metricPolicy = $this->income->policy($workspace, $plan->period);
         $cashIncome = null;
         $views = [];
         foreach ($targets as $target) {
             if (BudgetValueType::RATIO === $target->valueType) {
-                $cashIncome ??= ($this->income)($workspace, $plan->period);
+                $cashIncome ??= ($this->income)($workspace, $plan->period, $metricPolicy);
             }
             $views[] = $this->resolve(
                 $target,
@@ -85,6 +86,7 @@ final readonly class ReadBudgetPlan
             state: $plan->state->value,
             version: $plan->version,
             targets: $views,
+            metricPolicy: $metricPolicy->reference,
         );
     }
 

@@ -14,6 +14,7 @@ import styles from './ReportsPage.module.css';
 const kpis: ExplainMonthlyKpiData['path']['kpi'][] = [
   'cashIncome',
   'nonCashBenefits',
+  'benefitSpending',
   'budgetExpenses',
   'uncategorizedExpenses',
   'budgetSurplus',

@@ -42,6 +42,7 @@ final readonly class ReadMonthlyProjection
         private ReadBudgetCategoryFacts $categories,
         private ReadNetWorth $netWorth,
         private WorkspaceCalendar $calendar,
+        private ResolveMetricPolicy $metricPolicy,
     ) {
     }
 
@@ -54,6 +55,7 @@ final readonly class ReadMonthlyProjection
         }
 
         $workspace = $this->caller->resolve();
+        $policy = ($this->metricPolicy)($workspace, $month);
         // N−1 is the last day of the preceding month, and an unfinished month
         // stops on the day the workspace is living in. See MonthlyRecapWindow.
         $window = MonthlyRecapWindow::of($month, $this->calendar->today());
@@ -85,6 +87,7 @@ final readonly class ReadMonthlyProjection
             ), $fact->splits),
             $accountsById[$fact->accountId]->savingsDestination ?? false,
             $fact->id,
+            $accountsById[$fact->accountId]->kind ?? null,
         );
         $movements = array_map($toMovement, $transactionFacts->booked);
         $pendingMovements = array_map($toMovement, $transactionFacts->pending);
@@ -92,10 +95,15 @@ final readonly class ReadMonthlyProjection
         foreach ($categoryFacts as $category) {
             $categoryFlags[$category->id] = $category->budgetIncluded;
         }
-        $ledgerEntries = MonthlyLedgerFacts::entries($transactionFacts->booked);
+        $ledgerEntries = MonthlyLedgerFacts::entries(array_values(array_filter(
+            $transactionFacts->booked,
+            static fn (MonthlyTransactionFact $fact): bool => !($policy->policy?->isExcluded($accountsById[$fact->accountId]->kind ?? null) ?? false),
+        )));
         $categoryMetrics = [];
         foreach ($categoryFacts as $category) {
-            $metric = MonthlyRecapCategoryView::of($category, $ledgerEntries);
+            $metric = null === $policy->policy
+                ? new MonthlyRecapCategoryView($category->id, $category->label, $category->type, new MonthlyMetricView(null, null, MonthlyProjectionReason::UNKNOWN_METRIC_POLICY->value))
+                : MonthlyRecapCategoryView::of($category, $ledgerEntries);
             if (null !== $category->archivedAt && [] === $metric->metric->sourceTransactionIds) {
                 continue;
             }
@@ -109,9 +117,16 @@ final readonly class ReadMonthlyProjection
             $accountAssets,
             $movements,
             $categoryFlags,
+            $policy->policy,
             $pendingMovements,
         );
-        $axisMetrics = MonthlyAxisExpenseCalculator::compute($accountAssets, $movements, $categoryFlags, RecapAxes::all());
+        $cashMovements = array_values(array_filter(
+            $movements,
+            static fn (MonthlyMovement $movement): bool => !($policy->policy?->isExcluded($movement->accountKind) ?? false),
+        ));
+        $axisMetrics = null === $policy->policy
+            ? array_fill_keys(RecapAxes::all(), MonthlyMetric::missing(MonthlyProjectionReason::UNKNOWN_METRIC_POLICY))
+            : MonthlyAxisExpenseCalculator::compute($accountAssets, $cashMovements, $categoryFlags, RecapAxes::all());
         $savingsDestinationById = [];
         foreach ($accountFacts->accounts as $account) {
             $savingsDestinationById[$account->id] = $account->savingsDestination;
@@ -155,7 +170,8 @@ final readonly class ReadMonthlyProjection
             self::quality($netWorth),
             $transactionFacts->pendingCount,
             MonthlyMetricView::fromMetric($metrics->cashIncome),
-            MonthlyMetricView::fromMetric(MonthlyMetric::missing(MonthlyProjectionReason::MISSING_BENEFIT_SOURCE)),
+            MonthlyMetricView::fromMetric($metrics->nonCashBenefits),
+            MonthlyMetricView::fromMetric($metrics->benefitSpending),
             MonthlyMetricView::fromMetric($metrics->budgetExpenses),
             MonthlyMetricView::fromMetric($metrics->uncategorizedExpenses),
             MonthlyMetricView::fromMetric($metrics->budgetSurplus),
@@ -174,6 +190,7 @@ final readonly class ReadMonthlyProjection
             array_map(MonthlyMetricView::fromMetric(...), $axisMetrics),
             $categoryMetrics,
             $netWorth,
+            $policy->reference(),
         );
     }
 

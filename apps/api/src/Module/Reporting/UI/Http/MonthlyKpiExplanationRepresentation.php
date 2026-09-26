@@ -33,6 +33,7 @@ final class MonthlyKpiExplanationRepresentation
             'freshness' => $view->freshness,
             'quality' => $view->quality,
             'pendingCount' => $view->pendingCount,
+            'metricPolicy' => MetricPolicyRepresentation::reference($view->metricPolicy),
         ];
     }
 }
