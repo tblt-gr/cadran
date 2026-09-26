@@ -9,6 +9,7 @@ import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import styles from './AccountRecap.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface AccountRecapProps {
   accounts: MonthlyRecapAccount[];
@@ -46,12 +47,10 @@ function GroupValueCell({ group }: { group: MonthlyRecapGroup }) {
 
   if (group.value === null) {
     return (
-      <span className={styles.unavailable}>
-        {t('states.notCalculable.label')}
-        {group.share.reason ? (
-          <small>{t(`accountGroups.share.reasons.${group.share.reason}`)}</small>
-        ) : null}
-      </span>
+      <EmptyValue
+        label={t('states.notCalculable.label')}
+        reason={group.share.reason ? t(`accountGroups.share.reasons.${group.share.reason}`) : null}
+      />
     );
   }
 

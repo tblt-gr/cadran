@@ -1,15 +1,9 @@
-import type { AnnualCell } from '@cadran/api-client';
-import { Bar, BarChart, Line, LineChart, Tooltip, XAxis } from 'recharts';
+import type { AnnualCell, AnnualFlows } from '@cadran/api-client';
+import { Bar, BarChart, Tooltip, XAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { formatAnnualValue } from './annualFormat';
 import { ExactTooltip } from './ExactTooltip';
-import {
-  FLOW_SERIES_IDS,
-  flowChartData,
-  prefersReducedMotion,
-  scaleForGeometry,
-} from './chartGeometry';
-import type { AnnualFlows, AnnualNetWorthSeries } from '@cadran/api-client';
+import { FLOW_SERIES_IDS, flowChartData, prefersReducedMotion } from './chartGeometry';
 
 const COLORS = {
   cashIncome: 'var(--positive)',
@@ -50,42 +44,5 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
         <Bar dataKey={id} fill={COLORS[id]} isAnimationActive={!prefersReducedMotion()} key={id} />
       ))}
     </BarChart>
-  );
-}
-
-export function NetWorthChart({ netWorth }: { netWorth: AnnualNetWorthSeries }) {
-  const { t, i18n } = useTranslation();
-  const scaled = scaleForGeometry(netWorth.months.map((point) => point.value.value));
-  const data = netWorth.months.map((point, index) => ({
-    month: point.month.slice(5),
-    endNetWorth: scaled[index],
-  }));
-  const linesFor = (month: string) => {
-    const point = netWorth.months.find((m) => m.month.slice(5) === month);
-    return point
-      ? [
-          `${t('reports.annual.indicators.endNetWorth')} : ${exact(point.value, netWorth.assetCode, i18n.language, t('reports.annual.notCalculable'))}`,
-        ]
-      : [];
-  };
-
-  return (
-    <LineChart
-      accessibilityLayer
-      data={data}
-      height={220}
-      role="img"
-      title={t('reports.annual.charts.netWorth')}
-      width={520}
-    >
-      <XAxis dataKey="month" />
-      <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
-      <Line
-        dataKey="endNetWorth"
-        dot
-        isAnimationActive={!prefersReducedMotion()}
-        stroke="var(--gold-300)"
-      />
-    </LineChart>
   );
 }

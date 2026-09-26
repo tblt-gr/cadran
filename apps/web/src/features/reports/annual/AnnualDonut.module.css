@@ -1,0 +1,4 @@
+.donut {
+  display: grid;
+  gap: var(--spacing-4);
+}

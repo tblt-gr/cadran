@@ -10,6 +10,8 @@ import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { useMonthlyKpiExplanation } from './useMonthlyReport';
 import styles from './ReportsPage.module.css';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 const kpis: ExplainMonthlyKpiData['path']['kpi'][] = [
   'cashIncome',
@@ -29,15 +31,17 @@ const kpis: ExplainMonthlyKpiData['path']['kpi'][] = [
   'netWorthDelta',
 ] as const;
 
+function NotCalculable({ reason }: { reason: string | null }) {
+  const { t } = useTranslation();
+  return <EmptyValue label={t('states.notCalculable.label')} reason={reason} />;
+}
+
 function MetricValue({ metric, rate }: { metric: MonthlyProjectionMetric; rate: boolean }) {
-  const { i18n, t } = useTranslation();
-  if (metric.value === null) {
-    return <span>{t('reports.notCalculable', { reason: metric.reason ?? '' })}</span>;
-  }
+  const { i18n } = useTranslation();
+  if (metric.value === null) return <NotCalculable reason={metric.reason} />;
   if (rate && metric.assetCode === null)
     return <MoneyValue value={formatRatioPercentage(metric.value, i18n.language)} />;
-  if (metric.assetCode === null)
-    return <span>{t('reports.notCalculable', { reason: metric.reason ?? '' })}</span>;
+  if (metric.assetCode === null) return <NotCalculable reason={metric.reason} />;
   return <MoneyValue value={formatAmount(metric.value, metric.assetCode, i18n.language)} />;
 }
 
@@ -153,7 +157,6 @@ export function MonthlyKpiTable({ report }: { report: MonthlyProjection }) {
               <th>{t('reports.metric')}</th>
               <th>{t('reports.value')}</th>
               <th>{t('reports.quality')}</th>
-              <th>{t('reports.explain')}</th>
             </tr>
           </thead>
           <tbody>
@@ -161,24 +164,20 @@ export function MonthlyKpiTable({ report }: { report: MonthlyProjection }) {
               <tr key={kpi}>
                 <th scope="row">{t(`reports.metrics.${kpi}`)}</th>
                 <td>
-                  <MetricValue
-                    metric={report[kpi]}
-                    rate={kpi === 'cashSavingsRate' || kpi === 'netSavingsRate'}
-                  />
+                  <span className={styles.value}>
+                    <MetricValue
+                      metric={report[kpi]}
+                      rate={kpi === 'cashSavingsRate' || kpi === 'netSavingsRate'}
+                    />
+                    <InfoButton
+                      aria-controls={`monthly-kpi-explanation-${kpi}`}
+                      aria-expanded={opened === kpi}
+                      label={t('reports.explainKpi', { kpi: t(`reports.metrics.${kpi}`) })}
+                      onClick={() => setOpened(opened === kpi ? null : kpi)}
+                    />
+                  </span>
                 </td>
                 <td>{report.quality}</td>
-                <td>
-                  <button
-                    className="secondary-action"
-                    type="button"
-                    aria-expanded={opened === kpi}
-                    aria-controls={`monthly-kpi-explanation-${kpi}`}
-                    aria-label={t('reports.explainKpi', { kpi: t(`reports.metrics.${kpi}`) })}
-                    onClick={() => setOpened(opened === kpi ? null : kpi)}
-                  >
-                    {t('reports.explain')}
-                  </button>
-                </td>
               </tr>
             ))}
           </tbody>

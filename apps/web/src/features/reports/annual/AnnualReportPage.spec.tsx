@@ -67,13 +67,19 @@ describe('AnnualReportPage', () => {
     );
   });
 
-  it('renders exact amounts, rates and the non-calculable reason as text', async () => {
+  it('renders exact amounts and rates, and a dash with a hidden reason for empty cells', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
     expect(within(table).getAllByText(/2\s?000,50/).length).toBeGreaterThan(0);
     expect(within(table).getAllByText(/25\s?%/).length).toBeGreaterThan(0);
-    expect(within(table).getAllByText(/Non calculable/).length).toBeGreaterThan(0);
-    expect(within(table).getAllByText('À venir').length).toBe(6);
+    expect(within(table).getAllByText(/Non calculable/)[0]?.className).toContain('sr-only');
+    expect(within(table).getAllByTitle('À venir').length).toBe(6);
+    expect(
+      within(table)
+        .getAllByText('À venir')
+        .every((node) => node.className.includes('sr-only')),
+    ).toBe(true);
+    expect(within(table).getAllByText('-').length).toBeGreaterThan(6);
   });
 
   it('renders the month cards with the same values as the table', async () => {
@@ -132,7 +138,7 @@ describe('AnnualReportPage', () => {
     await screen.findByRole('table', { name: /rapport annuel 2026/i });
     expect(screen.getAllByText('Voir les données').length).toBe(4);
     expect(screen.getAllByText('Logement').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Non calculable : Valorisation manquante/).length).toBeGreaterThan(
+    expect(screen.getAllByTitle('Non calculable : Valorisation manquante').length).toBeGreaterThan(
       0,
     );
   });
@@ -185,6 +191,35 @@ describe('AnnualReportPage', () => {
     fireEvent.click(within(table).getAllByRole('button', { name: /expliquer.*revenus/i })[0]!);
     const dialog = await screen.findByRole('dialog');
     expect(await within(dialog).findByText('annual total = sum')).toBeTruthy();
+  });
+
+  it('keeps the table title outside the horizontally scrolling region', async () => {
+    renderPage();
+    const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    const title = screen.getByRole('heading', { name: 'Rapport annuel 2026' });
+    const scroller = table.parentElement as HTMLElement;
+    expect(scroller.contains(title)).toBe(false);
+    expect(scroller.parentElement?.contains(title)).toBe(true);
+  });
+
+  it('offers explanations as circular info buttons with a tooltip', async () => {
+    renderPage();
+    const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    const button = within(table).getAllByRole('button', { name: /expliquer.*revenus/i })[0]!;
+    expect(button.classList.contains('icon-button')).toBe(true);
+    expect(button.getAttribute('title')).toBe(button.getAttribute('aria-label'));
+    expect(button.textContent).toBe('');
+  });
+
+  it('draws the net worth like the dashboard curve and the donuts with a legend', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    const netWorth = screen.getByRole('region', { name: 'Patrimoine net' });
+    expect(within(netWorth).getByRole('img', { name: 'Patrimoine net' })).toBeTruthy();
+    const allocation = screen.getByRole('region', { name: 'Répartition en fin de période' });
+    expect(
+      within(allocation).getByRole('list', { name: 'Répartition en fin de période' }),
+    ).toBeTruthy();
   });
 
   it('limits the column picker to 40 columns', async () => {

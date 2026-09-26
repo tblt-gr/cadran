@@ -1,17 +1,23 @@
 .wrap {
   display: none;
-  overflow-x: auto;
+  padding: var(--spacing-none);
+  overflow: hidden;
+}
+.title {
+  margin: var(--spacing-none);
   padding: var(--spacing-4);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
+}
+.scroll {
+  overflow-x: auto;
 }
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: var(--spacing-none);
   font-variant-numeric: tabular-nums;
-}
-.table caption {
-  padding-bottom: var(--spacing-3);
-  color: var(--text-secondary);
-  text-align: left;
 }
 .table th,
 .table td {
@@ -20,11 +26,19 @@
   text-align: right;
   white-space: nowrap;
 }
+/* Opaque and stacked above the scrolling cells, so nothing shows through the
+   padding of the sticky column; the right border stays with the column. */
 .table th:first-child {
   position: sticky;
+  z-index: 1;
   left: 0;
+  padding-left: var(--spacing-4);
+  border-right: var(--border-line-subtle);
   background: var(--bg-surface-1);
   text-align: left;
+}
+.table thead th:first-child {
+  z-index: 2;
 }
 .table a {
   color: var(--text-primary);
@@ -39,6 +53,7 @@
 }
 .table td button {
   margin-left: var(--spacing-2);
+  vertical-align: middle;
 }
 @media (min-width: 640px) {
   .wrap {

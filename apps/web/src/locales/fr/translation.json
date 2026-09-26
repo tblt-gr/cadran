@@ -135,7 +135,6 @@
     "metric": "Indicateur",
     "value": "Valeur exacte",
     "quality": "Qualité",
-    "explain": "Expliquer",
     "explainKpi": "Expliquer : {{kpi}}",
     "explanationLabel": "Détail du calcul",
     "explanationLoading": "Chargement de l’explication…",

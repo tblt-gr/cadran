@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAnnualValue } from './annualFormat';
 
@@ -11,15 +12,15 @@ interface AnnualCellValueProps {
   value: string | null;
 }
 
-/** Formats one exact backend value; a missing value shows its reason as visible text. */
+/** Formats one exact backend value; a missing value shows a dash and keeps its reason as hidden text. */
 export function AnnualCellValue({ assetCode, href, kind, reason, value }: AnnualCellValueProps) {
   const { t, i18n } = useTranslation();
   if (value === null) {
     return (
-      <span>
-        {t('reports.annual.notCalculable')}
-        {reason ? ` : ${t(`reports.annual.reasons.${reason}`, { defaultValue: reason })}` : ''}
-      </span>
+      <EmptyValue
+        label={t('reports.annual.notCalculable')}
+        reason={reason ? t(`reports.annual.reasons.${reason}`, { defaultValue: reason }) : null}
+      />
     );
   }
   const text = formatAnnualValue(value, kind, assetCode, i18n.language);

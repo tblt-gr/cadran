@@ -7,6 +7,7 @@ import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { BudgetComparisonsPanel } from '@/features/budget/budget-comparisons/BudgetComparisonsPanel';
 import { budgetErrorKind } from '@/features/budget/budgetError';
 import styles from './PlanDetail.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 const tones = { DRAFT: 'info', ACTIVE: 'positive', CLOSED: 'warning' } as const;
 
@@ -133,7 +134,7 @@ export function PlanDetail({
                     </td>
                     <td>
                       {target.resolvedAmount === null ? (
-                        <span>{t('budget.nonCalculable')}</span>
+                        <EmptyValue label={t('budget.nonCalculable')} />
                       ) : (
                         <MoneyValue
                           value={formatAmount(target.resolvedAmount, detail.assetCode, language)}

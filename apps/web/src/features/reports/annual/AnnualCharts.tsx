@@ -7,8 +7,9 @@ import {
   TopCategoriesDataTable,
 } from './ChartDataTables';
 import { ChartFrame } from './ChartFrame';
-import { DonutChart } from './DonutChart';
-import { FlowsChart, NetWorthChart } from './FlowsChart';
+import { AnnualDonut } from './AnnualDonut';
+import { AnnualNetWorthChart } from './AnnualNetWorthChart';
+import { FlowsChart } from './FlowsChart';
 import styles from './AnnualCharts.module.css';
 
 /** The four datasets come from the backend and do not depend on the selected columns. */
@@ -28,18 +29,20 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
         data={<NetWorthDataTable netWorth={netWorth} />}
         title={t('reports.annual.charts.netWorth')}
       >
-        <NetWorthChart netWorth={netWorth} />
+        <AnnualNetWorthChart netWorth={netWorth} />
       </ChartFrame>
       <ChartFrame
         data={<TopCategoriesDataTable top={top} />}
         title={t('reports.annual.charts.topCategories')}
       >
-        {top.reason !== null ? (
+        {top.reason !== null || top.assetCode === null ? (
           <p>{reasonText(top.reason)}</p>
         ) : (
-          <DonutChart
-            slices={[
+          <AnnualDonut
+            assetCode={top.assetCode}
+            items={[
               ...top.items.map((item) => ({
+                amount: item.total,
                 key: item.categoryId ?? item.label ?? '',
                 label: item.label ?? '',
                 share: item.share,
@@ -47,6 +50,7 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
               ...(top.other
                 ? [
                     {
+                      amount: top.other.total,
                       key: 'other',
                       label: t('reports.annual.charts.other'),
                       share: top.other.share,
@@ -54,6 +58,7 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
                   ]
                 : []),
             ]}
+            label={t('reports.annual.charts.topCategories')}
           />
         )}
       </ChartFrame>
@@ -61,13 +66,17 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
         data={<AllocationDataTable allocation={allocation} />}
         title={t('reports.annual.charts.allocation')}
       >
-        {allocation.reason !== null ? (
+        {allocation.reason !== null || allocation.assetCode === null ? (
           <p>{reasonText(allocation.reason)}</p>
         ) : (
-          <DonutChart
-            slices={allocation.items
-              .filter((item) => item.value !== null)
-              .map((item) => ({ key: item.groupId, label: item.label, share: item.share }))}
+          <AnnualDonut
+            assetCode={allocation.assetCode}
+            items={allocation.items.flatMap((item) =>
+              item.value === null || item.share === null
+                ? []
+                : [{ amount: item.value, key: item.groupId, label: item.label, share: item.share }],
+            )}
+            label={t('reports.annual.charts.allocation')}
           />
         )}
       </ChartFrame>

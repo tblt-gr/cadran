@@ -7,12 +7,13 @@ import type {
 } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { MetricExplanationModal } from './MetricExplanationModal';
 import styles from './TotalsCard.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface TotalsCardProps {
   month: string;
@@ -50,9 +51,10 @@ function Value({ metric, rate }: { metric: RecapMetric; rate?: boolean }) {
   const { i18n, t } = useTranslation();
   if (metric.value === null || (metric.assetCode === null && !rate)) {
     return (
-      <span className={styles.unavailable}>
-        {metric.reason ? t(reasonKeys[metric.reason]) : t('states.notCalculable.label')}
-      </span>
+      <EmptyValue
+        label={t('states.notCalculable.label')}
+        reason={metric.reason ? t(reasonKeys[metric.reason]) : null}
+      />
     );
   }
   if (rate) return <MoneyValue value={formatRatioPercentage(metric.value, i18n.language)} />;
@@ -86,15 +88,11 @@ function MetricRow({
       <div>
         <span className={styles.label}>
           <span>{label}</span>
-          <button
+          <InfoButton
             aria-haspopup="dialog"
-            aria-label={t('reports.explainKpi', { kpi: label })}
-            className={`icon-button ${styles.explain}`}
+            label={t('reports.explainKpi', { kpi: label })}
             onClick={() => setOpen(true)}
-            type="button"
-          >
-            <Icon name="info" size={14} />
-          </button>
+          />
         </span>
         <Value metric={metric} rate={rate} />
       </div>

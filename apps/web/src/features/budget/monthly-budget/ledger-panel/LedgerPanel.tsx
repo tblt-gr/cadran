@@ -10,6 +10,7 @@ import { BUDGET_AXES, type BudgetAxis } from '@/features/budget/monthly-budget/b
 import { LedgerRow, type LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
 import { formatAmount } from '@/lib/decimal';
 import styles from './LedgerPanel.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface LedgerPanelProps {
   actionsAllowed: boolean;
@@ -32,7 +33,7 @@ function HeaderTotal({ total, totalState }: Pick<LedgerPanelProps, 'total' | 'to
   const { i18n, t } = useTranslation();
   if (totalState === 'loading') return <span>{t('budget.monthly.totalLoading')}</span>;
   if (totalState === 'unavailable' || !total || total.value === null || total.assetCode === null) {
-    return <span>{t('states.notCalculable.label')}</span>;
+    return <EmptyValue label={t('states.notCalculable.label')} />;
   }
 
   return <MoneyValue value={formatAmount(total.value, total.assetCode, i18n.language)} />;

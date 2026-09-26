@@ -1,0 +1,82 @@
+.list {
+  display: grid;
+  align-content: space-between;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+  gap: var(--spacing-4);
+}
+
+.list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  column-gap: var(--spacing-3);
+  row-gap: var(--spacing-1-5);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.amount {
+  grid-column: 1 / -1;
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-strong);
+  letter-spacing: var(--letter-spacing-card);
+}
+
+/* The share of each class, read on its own row rather than as a slice everyone
+   has to compare by eye. */
+.track {
+  grid-column: 1 / -1;
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-2);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--chart-allocation-1);
+}
+
+.list li:nth-child(4n + 2) .fill {
+  background: var(--chart-allocation-2);
+}
+
+.list li:nth-child(4n + 3) .fill {
+  background: var(--chart-allocation-3);
+}
+
+.list li:nth-child(4n + 4) .fill {
+  background: var(--chart-allocation-4);
+}
+
+@media (max-width: 767px) {
+  .list {
+    gap: var(--spacing-3);
+  }
+
+  .list li {
+    font-size: var(--font-size-label);
+  }
+
+  .amount {
+    font-size: var(--font-size-body);
+  }
+}

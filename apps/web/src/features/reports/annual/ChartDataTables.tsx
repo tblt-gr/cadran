@@ -5,6 +5,7 @@ import type {
   AnnualTopExpenseCategories,
 } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { AnnualCellValue } from './AnnualCellValue';
@@ -139,11 +140,26 @@ export function AllocationDataTable({ allocation }: { allocation: AnnualAllocati
           <tr key={item.groupId}>
             <th scope="row">{item.label}</th>
             <td>
-              {item.value === null
-                ? reasonText(item.reason)
-                : formatAmount(item.value, assetCode, i18n.language)}
+              {item.value === null ? (
+                <EmptyValue
+                  label={t('reports.annual.notCalculable')}
+                  reason={
+                    item.reason
+                      ? t(`reports.annual.reasons.${item.reason}`, { defaultValue: item.reason })
+                      : null
+                  }
+                />
+              ) : (
+                formatAmount(item.value, assetCode, i18n.language)
+              )}
             </td>
-            <td>{item.share === null ? '' : formatRatioPercentage(item.share, i18n.language)}</td>
+            <td>
+              {item.share === null ? (
+                <EmptyValue label={t('reports.annual.notCalculable')} />
+              ) : (
+                formatRatioPercentage(item.share, i18n.language)
+              )}
+            </td>
           </tr>
         ))}
       </tbody>

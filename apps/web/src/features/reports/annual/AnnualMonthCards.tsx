@@ -1,8 +1,10 @@
 import type { AnnualReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { AnnualCellValue } from './AnnualCellValue';
 import { drillDownHref, SUMMARY_ROW_IDS, summaryFigure } from './annualColumns';
-import { monthLabel } from './annualRowLabels';
+import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualMonthCards.module.css';
 
 interface AnnualMonthCardsProps {
@@ -17,12 +19,19 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
   return (
     <ul aria-label={t('reports.annual.cardsLabel', { year: report.year })} className={styles.list}>
       {report.rows.map((row) => (
-        <li className={`card ${styles.card}`} key={row.month}>
+        <li
+          className={`card ${styles.card} ${isEmptyState(row.state) ? styles.dimmed : ''}`}
+          key={row.month}
+        >
           <h3>{monthLabel(row.month, i18n.language)}</h3>
           {row.state === 'FUTURE' ? (
-            <p>{t('reports.annual.future')}</p>
+            <p>
+              <EmptyValue label={t('reports.annual.future')} />
+            </p>
           ) : row.state === 'NO_DATA' ? (
-            <p>{t('reports.annual.noData')}</p>
+            <p>
+              <EmptyValue label={t('reports.annual.noData')} />
+            </p>
           ) : (
             <dl>
               {report.columns.map((column) => (
@@ -50,7 +59,14 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
           if (!aggregate) return null;
           return (
             <section key={column.id}>
-              <h4>{column.label}</h4>
+              <h4>
+                {column.label}
+                <InfoButton
+                  aria-haspopup="dialog"
+                  label={t('reports.annual.explainColumn', { column: column.label })}
+                  onClick={() => onExplain(column.id)}
+                />
+              </h4>
               <dl>
                 {SUMMARY_ROW_IDS.map((rowId) => {
                   const figure = summaryFigure(aggregate, rowId);
@@ -72,14 +88,6 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
                   );
                 })}
               </dl>
-              <button
-                aria-label={t('reports.annual.explainColumn', { column: column.label })}
-                className="secondary-action"
-                onClick={() => onExplain(column.id)}
-                type="button"
-              >
-                {t('reports.explain')}
-              </button>
             </section>
           );
         })}

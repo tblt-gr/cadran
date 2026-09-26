@@ -5,6 +5,7 @@ import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import { formatSharePercent } from '@/lib/formatSharePercent';
 import { deltaDirection } from './deltaDirection';
 import styles from './NetWorthDelta.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 const ACCESSIBLE_LABEL = {
   down: 'dashboard.netWorth.decreaseAccessible',
@@ -33,12 +34,10 @@ export function NetWorthDelta({ delta }: NetWorthDeltaProps) {
   if (delta.amount === null) {
     return (
       <p className={styles.delta}>
-        <span className={styles.unavailable}>
-          {t('states.notCalculable.label')}
-          {delta.amountReason
-            ? ` · ${t(`dashboard.netWorth.reasons.${delta.amountReason}`)}`
-            : null}
-        </span>
+        <EmptyValue
+          label={t('states.notCalculable.label')}
+          reason={delta.amountReason ? t(`dashboard.netWorth.reasons.${delta.amountReason}`) : null}
+        />
         <span>{since}</span>
       </p>
     );

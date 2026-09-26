@@ -1,0 +1,11 @@
+.plot {
+  width: 100%;
+  min-width: 0;
+  height: 18rem;
+  overflow: hidden;
+}
+
+.plot :global(.recharts-wrapper),
+.plot :global(.recharts-surface) {
+  max-width: 100%;
+}
