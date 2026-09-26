@@ -85,12 +85,12 @@ describe('ProductCard', () => {
     );
 
     const rateFigure = figure('Taux annuel');
-    expect(withoutNarrowSpaces(rateFigure?.textContent ?? '')).toContain('4 %');
+    expect(withoutNarrowSpaces(rateFigure?.textContent ?? '')).toContain('4,00 %');
     expect(rateFigure?.textContent).toContain('Depuis le 1 février 2023');
     expect(rateFigure?.textContent).toContain('À revérifier');
 
     const ceilingFigure = figure('Plafond de dépôt');
-    expect(withoutNarrowSpaces(ceilingFigure?.textContent ?? '')).toContain('1 600 €');
+    expect(withoutNarrowSpaces(ceilingFigure?.textContent ?? '')).toContain('1 600,00 €');
     expect(ceilingFigure?.textContent).toContain('Depuis le 1 janvier 2019');
     expect(ceilingFigure?.textContent).toContain('Vérifiée');
 

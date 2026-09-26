@@ -422,7 +422,7 @@ describe('AccountGroupsPage', () => {
     expect(within(livretsRow).getByText('LDDS')).toBeTruthy();
     await waitFor(() => {
       expect(within(livretsRow).queryByText('Non calculable')).toBeNull();
-      expect(within(livretsRow).getByText('23,9 %')).toBeTruthy();
+      expect(within(livretsRow).getByText('23,90 %')).toBeTruthy();
       expect(within(livretsRow).getByText('1,19 %')).toBeTruthy();
     });
     expect(within(livretsRow).queryByText('PEA')).toBeNull();

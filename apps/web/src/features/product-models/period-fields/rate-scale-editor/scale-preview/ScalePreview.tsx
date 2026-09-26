@@ -6,7 +6,7 @@ import {
   matchingBracket,
   type BracketValues,
 } from '@/features/product-models/period-fields/periodValues';
-import { formatDecimal } from '@/lib/decimal';
+import { formatPercentDecimal } from '@/lib/decimal';
 import styles from './ScalePreview.module.css';
 
 // DecimalValue caps a canonical figure at 26 integer digits, a dot and 24
@@ -120,7 +120,7 @@ export function ScalePreview({ brackets, rateApplication }: ScalePreviewProps) {
             : 'productModels.period.scale.previewResultMarginal',
           {
             value: t('catalog.rules.percentValue', {
-              value: formatDecimal(preview.bracket.percentage, i18n.language),
+              value: formatPercentDecimal(preview.bracket.percentage, i18n.language),
             }),
           },
         );

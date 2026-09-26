@@ -1,6 +1,6 @@
 import type { AccountRate } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { formatAmount, formatDecimal } from '@/lib/decimal';
+import { formatAmount, formatPercentDecimal } from '@/lib/decimal';
 import styles from './RateBrackets.module.css';
 
 interface RateBracketsProps {
@@ -23,7 +23,9 @@ export function RateBrackets({ assetCode, rate }: RateBracketsProps) {
   if (rate.brackets.length === 1 && only !== undefined && only.upperBound === null) {
     return (
       <span className={styles.single}>
-        {t('catalog.rules.percentValue', { value: formatDecimal(only.percentage, i18n.language) })}
+        {t('catalog.rules.percentValue', {
+          value: formatPercentDecimal(only.percentage, i18n.language),
+        })}
       </span>
     );
   }
@@ -34,7 +36,7 @@ export function RateBrackets({ assetCode, rate }: RateBracketsProps) {
         <li key={bracket.lowerBound}>
           <span className={styles.percentage}>
             {t('catalog.rules.percentValue', {
-              value: formatDecimal(bracket.percentage, i18n.language),
+              value: formatPercentDecimal(bracket.percentage, i18n.language),
             })}
           </span>
           <small>

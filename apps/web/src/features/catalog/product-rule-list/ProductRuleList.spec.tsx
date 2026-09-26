@@ -49,7 +49,7 @@ describe('ProductRuleList', () => {
     const { container } = render(<ProductRuleList product={product} />);
 
     const row = screen.getByRole('rowheader', { name: 'Plafond de dépôt' }).closest('tr');
-    expect(row?.textContent?.replace(/\s/g, ' ')).toContain('22 950 €');
+    expect(row?.textContent?.replace(/\s/g, ' ')).toContain('22 950,00 €');
     expect(row?.textContent).toContain('Vérifiée');
     expect(screen.getByRole('link', { name: 'Livret A' }).getAttribute('href')).toBe(
       'https://www.service-public.fr/particuliers/vosdroits/F2365',

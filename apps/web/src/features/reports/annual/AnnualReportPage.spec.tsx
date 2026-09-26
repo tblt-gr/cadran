@@ -71,7 +71,7 @@ describe('AnnualReportPage', () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
     expect(within(table).getAllByText(/2\s?000,50/).length).toBeGreaterThan(0);
-    expect(within(table).getAllByText(/25\s?%/).length).toBeGreaterThan(0);
+    expect(within(table).getAllByText(/25,00\s?%/).length).toBeGreaterThan(0);
     expect(within(table).getAllByText(/Non calculable/)[0]?.className).toContain('sr-only');
     expect(within(table).getAllByTitle('À venir').length).toBe(6);
     expect(

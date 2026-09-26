@@ -160,7 +160,7 @@ describe('AccountRulesPanel', () => {
     renderPanel();
 
     expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
-    expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
+    expect(screen.getByText(/22\s950,00\s€/)).toBeTruthy();
     // One tbody per rule so a spanning header with scope="rowgroup" names
     // only that rule's cells, not every later rate or term in the table.
     expect(screen.getByRole('table').querySelectorAll('tbody')).toHaveLength(2);
@@ -178,7 +178,7 @@ describe('AccountRulesPanel', () => {
     expect(screen.getByText('Depuis le 25 avril 2025')).toBeTruthy();
     expect(screen.getByText('Du 1 août 2026 au 31 janvier 2027')).toBeTruthy();
 
-    expect(screen.getByText('1,7 %')).toBeTruthy();
+    expect(screen.getByText('1,70 %')).toBeTruthy();
     // One bracket covering every amount reads the same under both application
     // modes, so naming the mode beside it would be noise.
     expect(screen.queryByText(/tranche/i)).toBeNull();
@@ -214,14 +214,14 @@ describe('AccountRulesPanel', () => {
     );
     renderPanel();
 
-    expect(await screen.findByText('1,7 %')).toBeTruthy();
+    expect(await screen.findByText('1,70 %')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Date métier'), { target: { value: '2025-06-01' } });
 
     // The answer of the previous date stays on screen while the next one is
     // resolved — walking a year digit by digit would otherwise tear the table
     // down at every keystroke — and it is labelled as the earlier answer rather
     // than passed off as the one being asked for.
-    expect(screen.getByText('1,7 %')).toBeTruthy();
+    expect(screen.getByText('1,70 %')).toBeTruthy();
     expect(screen.queryByText('Résolution des règles du compte…')).toBeNull();
     expect(
       screen.getByText(
@@ -236,9 +236,9 @@ describe('AccountRulesPanel', () => {
         '— Non disponible au 1 juin 2025 : aucune valeur sourcée pour cette date.',
       ),
     ).toBeTruthy();
-    expect(screen.queryByText('1,7 %')).toBeNull();
+    expect(screen.queryByText('1,70 %')).toBeNull();
     // The ceiling has no known end, so an earlier date keeps it.
-    expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
+    expect(screen.getByText(/22\s950,00\s€/)).toBeTruthy();
     await waitFor(() =>
       expect(api.readAccountRules.mock.calls.map((call) => call[0].query.asOf)).toEqual([
         TODAY,
@@ -445,9 +445,9 @@ describe('AccountRulesPanel', () => {
 
     // The three authorities answer the same question and none of them is
     // hidden behind the winner.
-    expect(await screen.findByText(/22\s950\s€/)).toBeTruthy();
-    expect(screen.getByText(/25\s000\s€/)).toBeTruthy();
-    expect(screen.getByText(/30\s000\s€/)).toBeTruthy();
+    expect(await screen.findByText(/22\s950,00\s€/)).toBeTruthy();
+    expect(screen.getByText(/25\s000,00\s€/)).toBeTruthy();
+    expect(screen.getByText(/30\s000,00\s€/)).toBeTruthy();
     expect(screen.getByText('Catalogue système')).toBeTruthy();
     expect(screen.getByText("Modèle de l'espace")).toBeTruthy();
     expect(screen.getByText('Dérogation locale')).toBeTruthy();
@@ -538,7 +538,7 @@ describe('AccountRulesPanel', () => {
     expect(screen.getByText('Retirée le 10 septembre 2026')).toBeTruthy();
     expect(screen.getByText(claim.reason)).toBeTruthy();
     expect(screen.getByText('Owner')).toBeTruthy();
-    expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
+    expect(screen.getByText(/22\s950,00\s€/)).toBeTruthy();
   });
 
   it('warns when a Livret Bleu sits above the Livret A ceiling and shifts the rate', async () => {
@@ -588,7 +588,7 @@ describe('AccountRulesPanel', () => {
         /Au-dessus du plafond de .* : autorisé. Le barème peut changer le rendement/,
       ),
     ).toBeTruthy();
-    expect(screen.getByText(/1,6016\s%/)).toBeTruthy();
+    expect(screen.getByText(/1,60\s%/)).toBeTruthy();
     expect(
       screen.getByText(
         'Le solde a dépassé la première tranche : le rendement change, le dépassement reste autorisé.',

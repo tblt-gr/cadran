@@ -333,7 +333,7 @@ describe('MonthlyBudgetPage', () => {
     expect(await screen.findByText('Salaire')).toBeTruthy();
     expect(
       screen.getAllByText(
-        (_content, node) => node?.textContent === '0 €' && node.tagName === 'SPAN',
+        (_content, node) => node?.textContent === '0,00 €' && node.tagName === 'SPAN',
       ).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText('Compte courant')).toBeTruthy();

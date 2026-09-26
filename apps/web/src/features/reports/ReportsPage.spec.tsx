@@ -135,9 +135,9 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Politique v2')).toBeTruthy();
     expect(screen.getByRole('table').textContent).toContain('Dépenses des avantages');
     expect(screen.getByRole('table').textContent).toContain('1 200,50 €');
-    expect(screen.getByRole('table').textContent).toContain('12,345 %');
-    expect(screen.getByRole('table').textContent).toContain('250 €');
-    expect(screen.getByRole('table').textContent).toContain('20,825 %');
+    expect(screen.getByRole('table').textContent).toContain('12,35 %');
+    expect(screen.getByRole('table').textContent).toContain('250,00 €');
+    expect(screen.getByRole('table').textContent).toContain('20,83 %');
     const explain = screen.getByRole('button', { name: 'Expliquer : Revenus en espèces' });
     explain.focus();
     expect(document.activeElement).toBe(explain);
@@ -263,7 +263,7 @@ describe('ReportsPage', () => {
         <ReportsPage />
       </QueryClientProvider>,
     );
-    expect((await screen.findByRole('table')).textContent).toContain('-200 €');
+    expect((await screen.findByRole('table')).textContent).toContain('-200,00 €');
     fireEvent.click(
       screen.getByRole('button', { name: 'Expliquer : Épargne nette par virements' }),
     );

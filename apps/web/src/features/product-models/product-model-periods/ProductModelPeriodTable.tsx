@@ -1,6 +1,11 @@
 import type { ProductModelRule } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { formatAmount, formatCalendarDay, formatDecimal } from '@/lib/decimal';
+import {
+  formatAmount,
+  formatCalendarDay,
+  formatDecimal,
+  formatPercentDecimal,
+} from '@/lib/decimal';
 import styles from './ProductModelPeriodTable.module.css';
 
 interface ProductModelPeriodTableProps {
@@ -84,7 +89,7 @@ function PeriodValue({ rule }: { rule: ProductModelRule }) {
       return (
         <>
           {t('catalog.rules.percentValue', {
-            value: formatDecimal(only.percentage, i18n.language),
+            value: formatPercentDecimal(only.percentage, i18n.language),
           })}
         </>
       );
@@ -96,7 +101,7 @@ function PeriodValue({ rule }: { rule: ProductModelRule }) {
           <li key={bracket.lowerBound}>
             <span>
               {t('catalog.rules.percentValue', {
-                value: formatDecimal(bracket.percentage, i18n.language),
+                value: formatPercentDecimal(bracket.percentage, i18n.language),
               })}
             </span>
             <small>

@@ -35,7 +35,7 @@ describe('ShareCell', () => {
       />,
     );
 
-    expect(screen.getByText('40 %')).toBeTruthy();
+    expect(screen.getByText('40,00 %')).toBeTruthy();
   });
 
   it('explains an excluded account without a reason', () => {

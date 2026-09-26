@@ -158,7 +158,7 @@ describe('PlanDetail', () => {
       }),
     });
 
-    expect(screen.getByText('30 %')).toBeTruthy();
+    expect(screen.getByText('30,00 %')).toBeTruthy();
     expect(screen.getByText('Non calculable')).toBeTruthy();
     expect(screen.getByText('Revenus de trésorerie nuls')).toBeTruthy();
   });
