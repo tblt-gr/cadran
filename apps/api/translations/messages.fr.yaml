@@ -30,6 +30,15 @@ api:
     annual_column_not_found:
       title: 'Colonne introuvable'
       detail: "Cette colonne n'existe pas dans le rapport annuel de cet espace de travail."
+    invalid_multi_year_report_query:
+      title: 'Requête de rapport pluriannuel invalide'
+      detail: "L'année de début et de fin doivent être des entiers, et le réglage des mois incomplets exclude ou include."
+    invalid_year_range:
+      title: 'Plage d’années invalide'
+      detail: "La plage va de 1900 à l'année en cours de l'espace de travail, année de début au plus tôt."
+    range_too_large:
+      title: 'Plage d’années trop large'
+      detail: 'La plage porte sur au plus 15 années.'
     invalid_annual_preferences:
       title: 'Préférences du rapport annuel invalides'
       detail: 'Vérifiez les colonnes, le réglage des mois incomplets et la version transmis ; au plus 40 colonnes distinctes de cet espace de travail.'

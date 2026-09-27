@@ -1,0 +1,31 @@
+.list {
+  display: grid;
+  gap: var(--spacing-3);
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+}
+.card {
+  display: grid;
+  gap: var(--spacing-2);
+}
+.card dl {
+  display: grid;
+  gap: var(--spacing-1);
+  margin: var(--spacing-none);
+}
+.card dt {
+  color: var(--text-secondary);
+}
+.dimmed {
+  color: var(--text-muted);
+}
+.meta {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+@media (min-width: 640px) {
+  .list {
+    display: none;
+  }
+}

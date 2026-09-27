@@ -274,6 +274,42 @@
         "showMore": "Voir plus",
         "showLess": "Voir moins"
       }
+    },
+    "multiYear": {
+      "title": "Rapport pluriannuel",
+      "caption": "Rapport pluriannuel {{from}}-{{to}}",
+      "year": "Année",
+      "policy": "Politique",
+      "mixedPolicy": "Mixte",
+      "partial": "(partielle)",
+      "snapshotAndLive": "{{snapshot}} mois clôturés, {{live}} en direct",
+      "change": "Évolution sur un an",
+      "changeRatio": "Évolution en pourcentage",
+      "cardsLabel": "Rapport pluriannuel",
+      "empty": "Aucune donnée pour cet espace",
+      "invalidRange": "Cette période n’est pas disponible : elle dépasse 15 ans ou l’année de départ est postérieure à l’année de fin.",
+      "from": "Depuis",
+      "to": "Jusqu'à",
+      "nominalNotice": "Valeurs nominales, non corrigées de l’inflation.",
+      "summary": {
+        "average": "Moyenne des années complètes",
+        "minimum": "Minimum",
+        "maximum": "Maximum"
+      },
+      "reasons": {
+        "PARTIAL_YEAR": "Année partielle",
+        "POLICY_MISMATCH": "Politique différente l’année précédente",
+        "ZERO_BASE": "Valeur nulle l’année précédente",
+        "NEGATIVE_BASE": "Valeur négative l’année précédente",
+        "EMPTY_POPULATION": "Aucune année complète",
+        "MIXED_METRIC_POLICIES": "Politiques d’indicateurs différentes",
+        "ACCOUNT_NOT_OPEN": "Compte non ouvert cette année-là"
+      },
+      "charts": {
+        "flows": "Flux annuels",
+        "netWorth": "Patrimoine net",
+        "unavailable": "Ajoutez les colonnes correspondantes pour afficher ce graphique."
+      }
     }
   },
   "states": {

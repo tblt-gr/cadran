@@ -83,6 +83,12 @@ final readonly class AnnualCatalogue
         };
     }
 
+    /** ISO date of an account's opening, or null when the id names no account of this workspace. */
+    public function accountOpenedOn(string $id): ?string
+    {
+        return $this->accounts[$id]->openedOn ?? null;
+    }
+
     public function categoryLabel(string $id): ?string
     {
         return $this->categories[$id] ?? null;

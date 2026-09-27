@@ -2608,6 +2608,54 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/reports/multi-year:
+    get:
+      operationId: readMultiYearReport
+      summary: Read the multi-year comparison report of the calling workspace
+      description: >-
+        One row per year of the range, oldest first, each cell equal to the matching aggregate of
+        the annual report for the same year and incomplete-month setting. Values are nominal and
+        carry no inflation adjustment. By default the displayed range ends in the current year and
+        starts no earlier than 15 years before it. `availableFrom` separately exposes the workspace's
+        true first data year. An explicit range spans at most 15 years, oldest year at most the newest.
+      tags: [Reporting]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: Oldest displayed year. Defaults to the later of the workspace's first data year and the 15-year lower bound.
+          schema: { type: integer, minimum: 1900 }
+        - name: to
+          in: query
+          required: false
+          description: Newest year of the range. Defaults to the current workspace-local year.
+          schema: { type: integer, minimum: 1900 }
+        - name: incompleteMonths
+          in: query
+          required: false
+          description: Overrides the saved incomplete-month setting for this request only.
+          schema: { $ref: '#/components/schemas/AnnualIncompleteMonths' }
+      responses:
+        '200':
+          description: The multi-year report.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MultiYearReport' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: >-
+            `from > to` or a bound outside 1900..the current year
+            (`type: /problems/invalid-year-range`), the range spans more than 15 years
+            (`type: /problems/range-too-large`), or the workspace exceeds a bounded aggregate
+            limit.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/reports/metric-policies:
     get:
       operationId: listMetricPolicies
@@ -9790,6 +9838,109 @@ components:
           type: array
           items: { $ref: '#/components/schemas/AnnualMonthExplanation' }
         aggregate: { $ref: '#/components/schemas/AnnualAggregate' }
+    MultiYearMetricPolicy:
+      type: object
+      additionalProperties: false
+      required: [state, version]
+      properties:
+        state:
+          type: string
+          enum: [SINGLE, MIXED]
+        version: { type: [integer, 'null'] }
+    MultiYearCell:
+      description: >-
+        A year's value for one column, with the change against the previous year. `changeReason`
+        explains whichever of `change`/`changeRatio` is null, `change` first.
+      type: object
+      additionalProperties: false
+      required: [value, reason, asOf, change, changeRatio, changeReason]
+      properties:
+        value: { type: [string, 'null'] }
+        reason: { type: [string, 'null'] }
+        asOf:
+          description: The `YYYY-MM` of the period-end month, for a stock column only.
+          type: [string, 'null']
+        change: { type: [string, 'null'] }
+        changeRatio: { type: [string, 'null'] }
+        changeReason: { type: [string, 'null'] }
+    MultiYearYearState:
+      type: string
+      enum: [COMPLETE, PARTIAL, NO_DATA]
+    MultiYearYear:
+      type: object
+      additionalProperties: false
+      required: [year, state, countedMonths, snapshotMonths, liveMonths, metricPolicy, cells]
+      properties:
+        year: { type: integer }
+        state: { $ref: '#/components/schemas/MultiYearYearState' }
+        countedMonths: { type: integer, minimum: 0, maximum: 12 }
+        snapshotMonths: { type: integer, minimum: 0, maximum: 12 }
+        liveMonths: { type: integer, minimum: 0, maximum: 12 }
+        metricPolicy: { $ref: '#/components/schemas/MultiYearMetricPolicy' }
+        cells:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/MultiYearCell' }
+    MultiYearExtreme:
+      type: object
+      additionalProperties: false
+      required: [value, year]
+      properties:
+        value: { type: string }
+        year: { type: integer }
+    MultiYearSummaryCell:
+      description: The average of `COMPLETE` years for one column, with its minimum and maximum year.
+      type: object
+      additionalProperties: false
+      required: [average, averageReason, minimum, maximum]
+      properties:
+        average: { type: [string, 'null'] }
+        averageReason: { type: [string, 'null'] }
+        minimum:
+          oneOf:
+            - { $ref: '#/components/schemas/MultiYearExtreme' }
+            - { type: 'null' }
+        maximum:
+          oneOf:
+            - { $ref: '#/components/schemas/MultiYearExtreme' }
+            - { type: 'null' }
+    MultiYearReport:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          from,
+          to,
+          availableFrom,
+          inflationAdjusted,
+          incompleteMonths,
+          columns,
+          years,
+          summary,
+          quality,
+        ]
+      properties:
+        from: { type: integer }
+        to: { type: integer }
+        availableFrom:
+          description: The workspace's true first data year, independently of the requested display range; null when it has no data.
+          type: [integer, 'null']
+          minimum: 1900
+        inflationAdjusted:
+          description: Always false. Values are nominal; there is no adjusted variant.
+          type: boolean
+        incompleteMonths: { $ref: '#/components/schemas/AnnualIncompleteMonths' }
+        columns:
+          type: array
+          maxItems: 40
+          items: { $ref: '#/components/schemas/AnnualColumn' }
+        years:
+          type: array
+          maxItems: 15
+          items: { $ref: '#/components/schemas/MultiYearYear' }
+        summary:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/MultiYearSummaryCell' }
+        quality: { $ref: '#/components/schemas/AnnualAggregateQuality' }
     NetWorthReason:
       description: >-
         Why a net-worth figure, a delta or a change rate could not be produced.

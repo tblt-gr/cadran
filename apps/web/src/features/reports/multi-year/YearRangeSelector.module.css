@@ -1,0 +1,15 @@
+.selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+}
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.error {
+  color: var(--negative);
+}

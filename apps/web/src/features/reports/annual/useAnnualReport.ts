@@ -69,6 +69,7 @@ export function useSaveAnnualReportPreferences() {
     onSuccess: (data) => {
       queryClient.setQueryData(ANNUAL_PREFERENCES_QUERY_KEY, data);
       void queryClient.invalidateQueries({ queryKey: ['annual-report'] });
+      void queryClient.invalidateQueries({ queryKey: ['multi-year-report'] });
     },
   });
 }

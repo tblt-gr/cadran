@@ -16,6 +16,7 @@ import { BudgetPage } from '@/features/budget/BudgetPage';
 import { BudgetRouteRedirect } from '@/features/budget/monthly-budget/BudgetRouteRedirect';
 import { MonthlyBudgetPage } from '@/features/budget/monthly-budget/MonthlyBudgetPage';
 import { AnnualReportPage } from '@/features/reports/annual/AnnualReportPage';
+import { MultiYearReportPage } from '@/features/reports/multi-year/MultiYearReportPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { workspaceToday } from '@/lib/workspaceTime';
 
@@ -118,6 +119,11 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
         }
         return <AnnualReportPage today={today} year={year} />;
       },
+    },
+    {
+      pattern: /^\/reports\/all-years$/,
+      globalActions: false,
+      render: () => <MultiYearReportPage today={workspaceToday(new Date(), workspaceTimeZone)} />,
     },
     {
       pattern: new RegExp(`^/budget/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),

@@ -36,13 +36,22 @@ final class AnnualColumnSeries
                 ? ReportAggregator::stock($values, $incomplete)
                 : ReportAggregator::flow($values, $incomplete);
         }
-        [$numerator, $denominator] = self::RATE_SOURCES[$column->id];
-
         return ReportAggregator::rate(
-            new RateInputs(self::values($numerator, true, $months), self::values($denominator, true, $months)),
+            self::rateInputs($column, $months),
             self::values($column->id, true, $months),
             $incomplete,
         );
+    }
+
+    /** @param list<AnnualMonth> $months */
+    public static function rateInputs(AnnualColumn $column, array $months): RateInputs
+    {
+        if (ColumnKind::RATE !== $column->kind || !isset(self::RATE_SOURCES[$column->id])) {
+            throw new \InvalidArgumentException('Rate inputs exist only for a known rate column.');
+        }
+        [$numerator, $denominator] = self::RATE_SOURCES[$column->id];
+
+        return new RateInputs(self::values($numerator, true, $months), self::values($denominator, true, $months));
     }
 
     public static function cell(AnnualColumn $column, AnnualMonth $month): AnnualCellView

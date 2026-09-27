@@ -113,6 +113,18 @@ final class ExactDecimalTest extends TestCase
         self::assertSame(str_repeat('9', 25).'8'.str_repeat('0', 25).'1', $product);
     }
 
+    public function testResponseDivisionAcceptsAnUnboundedCanonicalNumeratorAndRoundsToTwentyFourPlaces(): void
+    {
+        self::assertSame(
+            '-2.000000000000000000000000',
+            ExactDecimal::divideForResponse('-199999999999999999999999998', '99999999999999999999999999'),
+        );
+        self::assertSame(
+            '0.333333333333333333333333',
+            ExactDecimal::divideForResponse('1', '3'),
+        );
+    }
+
     /**
      * @return array{
      *   add: list<array{a: string, b: string, result: string}>,
