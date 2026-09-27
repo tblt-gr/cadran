@@ -1,0 +1,11 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: var(--spacing-4);
+}
+.state {
+  display: grid;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6);
+}

@@ -1,7 +1,7 @@
 import type { ProductRule } from '@cadran/api-client';
 import type { TFunction } from 'i18next';
 import { ruleTextKey } from '@/features/catalog-rules/ruleText';
-import { formatAmount, formatDecimal } from '@/lib/decimal';
+import { formatAmount, formatPercentDecimal } from '@/lib/decimal';
 
 /**
  * Formats a catalogue rule the same way on the figure strip and in the
@@ -13,7 +13,9 @@ export function formatProductRuleValue(rule: ProductRule, locale: string, t: TFu
   }
 
   if (rule.percentage !== null) {
-    return t('catalog.rules.percentValue', { value: formatDecimal(rule.percentage, locale) });
+    return t('catalog.rules.percentValue', {
+      value: formatPercentDecimal(rule.percentage, locale),
+    });
   }
 
   if (rule.text !== null) {

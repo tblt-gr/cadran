@@ -45,6 +45,11 @@
 .tableWrap td {
   color: var(--text-secondary);
 }
+.value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
 .explanation {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);

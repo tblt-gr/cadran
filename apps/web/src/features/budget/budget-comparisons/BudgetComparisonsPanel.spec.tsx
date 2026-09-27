@@ -113,7 +113,7 @@ describe('BudgetComparisonsPanel', () => {
             includedTransactions: [
               {
                 ...result().comparisons[0].includedTransactions[0],
-                amount: '-99999999999999999999999999.999999999999999999999999',
+                amount: '-99999999999999999999999999.004',
                 rawLabel: 'Montant exact maximal',
               },
             ],

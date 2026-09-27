@@ -30,6 +30,7 @@
   display: grid;
   /* The content row takes the height the header leaves, so a short page fills
      the viewport instead of stopping on a band of empty shell. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   min-width: 0;
   overflow: hidden;
@@ -44,6 +45,7 @@
 
 .body main {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 1fr;
   min-width: 0;
 }

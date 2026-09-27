@@ -1,0 +1,14 @@
+.banner {
+  display: grid;
+  gap: var(--spacing-2);
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  background: var(--warning-soft);
+}
+.banner p {
+  margin: var(--spacing-none);
+}
+.banner a {
+  color: var(--text-primary);
+}

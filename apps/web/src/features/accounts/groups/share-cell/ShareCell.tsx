@@ -2,6 +2,7 @@ import type { NetWorthShare } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { formatSharePercent } from '@/lib/formatSharePercent';
 import styles from './ShareCell.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface ShareCellProps {
   share: NetWorthShare;
@@ -15,11 +16,13 @@ export function ShareCell({ share }: ShareCellProps) {
 
   if (share.percentDisplay === null) {
     return (
-      <span className={styles.unknown}>
-        {share.reason
-          ? t(`accountGroups.share.reasons.${share.reason}`)
-          : t('accountGroups.share.notApplicable')}
-      </span>
+      <EmptyValue
+        label={
+          share.reason
+            ? t(`accountGroups.share.reasons.${share.reason}`)
+            : t('accountGroups.share.notApplicable')
+        }
+      />
     );
   }
 

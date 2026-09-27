@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { formatAmount } from '@/lib/decimal';
 import styles from './NetWorthFigure.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface NetWorthFigureProps {
   amount: NetWorthAmount | null;
@@ -22,10 +23,10 @@ export function NetWorthFigure({ amount, className, reason }: NetWorthFigureProp
 
   if (amount === null) {
     return (
-      <span className={`${styles.unavailable} ${className ?? ''}`}>
-        {t('states.notCalculable.label')}
-        {reason ? <small>{t(`dashboard.netWorth.reasons.${reason}`)}</small> : null}
-      </span>
+      <EmptyValue
+        label={t('states.notCalculable.label')}
+        reason={reason ? t(`dashboard.netWorth.reasons.${reason}`) : null}
+      />
     );
   }
 

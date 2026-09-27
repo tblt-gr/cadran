@@ -1,0 +1,17 @@
+.tabs {
+  display: flex;
+  gap: var(--spacing-2);
+  overflow-x: auto;
+}
+.tabs a {
+  padding: var(--spacing-2) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-button);
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tabs a[aria-current='page'] {
+  border-color: var(--gold-300);
+  color: var(--gold-300);
+}

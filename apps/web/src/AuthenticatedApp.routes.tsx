@@ -15,6 +15,7 @@ import { ProfileSettingsPage } from '@/features/settings/ProfileSettingsPage';
 import { BudgetPage } from '@/features/budget/BudgetPage';
 import { BudgetRouteRedirect } from '@/features/budget/monthly-budget/BudgetRouteRedirect';
 import { MonthlyBudgetPage } from '@/features/budget/monthly-budget/MonthlyBudgetPage';
+import { AnnualReportPage } from '@/features/reports/annual/AnnualReportPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { workspaceToday } from '@/lib/workspaceTime';
 
@@ -101,6 +102,23 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
       render: (match) => <BudgetPage planId={match[1]} />,
     },
     { pattern: /^\/reports$/, globalActions: false, render: () => <ReportsPage /> },
+    {
+      pattern: /^\/reports\/annual\/([^/]+)$/,
+      globalActions: false,
+      render: (match) => {
+        const today = workspaceToday(new Date(), workspaceTimeZone);
+        const currentYear = Number(today.slice(0, 4));
+        const year = /^\d{4}$/.test(match[1]!) ? Number(match[1]) : Number.NaN;
+        // An unknown year (not a year, before 1900 or in the future) is not an error
+        // worth showing: land on the current year instead of the 422 state.
+        if (!(year >= 1900 && year <= currentYear)) {
+          return (
+            <RouteRedirect statusKey="reports.loading" to={`/reports/annual/${currentYear}`} />
+          );
+        }
+        return <AnnualReportPage today={today} year={year} />;
+      },
+    },
     {
       pattern: new RegExp(`^/budget/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),
       globalActions: false,

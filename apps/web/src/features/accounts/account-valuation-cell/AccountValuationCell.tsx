@@ -4,6 +4,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { ceilingFillPercent } from '@/lib/depositCeiling';
 import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import styles from './AccountValuationCell.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface AccountValuationCellProps {
   ceiling?: { assetCode: string; value: string } | null;
@@ -29,8 +30,10 @@ export function AccountValuationCell({
   if (valuation.quality === 'MISSING') {
     return (
       <div className={cellClassName}>
-        <span className={styles.unknown}>{t('accounts.balances.missing')}</span>
-        <small>{t('accounts.balances.qualities.MISSING')}</small>
+        <EmptyValue
+          label={t('accounts.balances.missing')}
+          reason={t('accounts.balances.qualities.MISSING')}
+        />
       </div>
     );
   }
@@ -60,8 +63,10 @@ export function AccountValuationCell({
 
   return (
     <div className={cellClassName}>
-      {valuation.belowDisplayStep || !valuation.display ? (
+      {valuation.belowDisplayStep ? (
         <span className={styles.unknown}>{figure}</span>
+      ) : !valuation.display ? (
+        <EmptyValue label={t('accounts.balances.missing')} />
       ) : ceilingLabel === null ? (
         size === 'lg' ? (
           <span data-sign={negative ? 'outflow' : 'inflow'}>

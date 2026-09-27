@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { compareDecimals, formatAmount } from '@/lib/decimal';
 import styles from './ReconciliationFigures.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface ReconciliationFiguresProps {
   reconciliation: AccountReconciliation;
@@ -16,9 +17,11 @@ interface ReconciliationFiguresProps {
 export function ReconciliationFigures({ reconciliation }: ReconciliationFiguresProps) {
   const { i18n, t } = useTranslation();
   const money = (amount: { value: string; assetCode: string } | null) =>
-    amount === null
-      ? t('accounts.reconciliation.missing')
-      : formatAmount(amount.value, amount.assetCode, i18n.language);
+    amount === null ? (
+      <EmptyValue label={t('accounts.reconciliation.missing')} />
+    ) : (
+      <MoneyValue value={formatAmount(amount.value, amount.assetCode, i18n.language)} />
+    );
   const { discrepancy, nonCalculableReason } = reconciliation;
   const direction = discrepancy === null ? null : compareDecimals(discrepancy.value, '0');
 
@@ -32,27 +35,21 @@ export function ReconciliationFigures({ reconciliation }: ReconciliationFiguresP
       <dl className={styles.list}>
         <div>
           <dt>{t('accounts.reconciliation.opening')}</dt>
-          <dd>
-            <MoneyValue value={money(reconciliation.openingBalance)} />
-          </dd>
+          <dd>{money(reconciliation.openingBalance)}</dd>
         </div>
         <div>
           <dt>{t('accounts.reconciliation.movements')}</dt>
-          <dd>
-            <MoneyValue value={money(reconciliation.movementsTotal)} />
-          </dd>
+          <dd>{money(reconciliation.movementsTotal)}</dd>
         </div>
         <div>
           <dt>{t('accounts.reconciliation.closing')}</dt>
-          <dd>
-            <MoneyValue value={money(reconciliation.closingBalance)} />
-          </dd>
+          <dd>{money(reconciliation.closingBalance)}</dd>
         </div>
         {discrepancy === null ? null : (
           <div className={styles.discrepancy}>
             <dt>{t('accounts.reconciliation.discrepancy')}</dt>
             <dd data-testid="discrepancy">
-              <MoneyValue value={money(discrepancy)} />
+              {money(discrepancy)}
               {' · '}
               {t(
                 direction === 0

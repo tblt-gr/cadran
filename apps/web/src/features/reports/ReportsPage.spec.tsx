@@ -135,9 +135,9 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Politique v2')).toBeTruthy();
     expect(screen.getByRole('table').textContent).toContain('Dépenses des avantages');
     expect(screen.getByRole('table').textContent).toContain('1 200,50 €');
-    expect(screen.getByRole('table').textContent).toContain('12,345 %');
-    expect(screen.getByRole('table').textContent).toContain('250 €');
-    expect(screen.getByRole('table').textContent).toContain('20,825 %');
+    expect(screen.getByRole('table').textContent).toContain('12,35 %');
+    expect(screen.getByRole('table').textContent).toContain('250,00 €');
+    expect(screen.getByRole('table').textContent).toContain('20,83 %');
     const explain = screen.getByRole('button', { name: 'Expliquer : Revenus en espèces' });
     explain.focus();
     expect(document.activeElement).toBe(explain);
@@ -182,7 +182,13 @@ describe('ReportsPage', () => {
     expect(screen.getByLabelText('Mois')).toBeTruthy();
     expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getByRole('table').textContent).toContain('0 €');
-    expect(screen.getAllByText('Non calculable : ZERO_CASH_INCOME')).toHaveLength(2);
+    expect(screen.getAllByTitle('Non calculable : ZERO_CASH_INCOME')).toHaveLength(2);
+    // A dash has nothing to explain: no info button beside it, one beside each figure.
+    expect(screen.queryByRole('button', { name: 'Expliquer : Taux d’épargne' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Expliquer : Revenus en espèces' })).toBeTruthy();
+    expect(
+      screen.getAllByText('Non calculable').every((node) => node.className.includes('sr-only')),
+    ).toBe(true);
   });
 
   it('switches the bounded monthly query when the selected month changes', async () => {
@@ -209,7 +215,7 @@ describe('ReportsPage', () => {
         <ReportsPage />
       </QueryClientProvider>,
     );
-    expect(await screen.findByText('Non calculable : NO_ACCOUNT')).toBeTruthy();
+    expect((await screen.findAllByTitle('Non calculable : NO_ACCOUNT')).length).toBeGreaterThan(0);
 
     api.readMonthlyProjection.mockReset();
     api.readMonthlyProjection
@@ -260,7 +266,7 @@ describe('ReportsPage', () => {
         <ReportsPage />
       </QueryClientProvider>,
     );
-    expect((await screen.findByRole('table')).textContent).toContain('-200 €');
+    expect((await screen.findByRole('table')).textContent).toContain('-200,00 €');
     fireEvent.click(
       screen.getByRole('button', { name: 'Expliquer : Épargne nette par virements' }),
     );

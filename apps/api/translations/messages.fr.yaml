@@ -21,6 +21,21 @@ api:
     recap_preferences_conflict:
       title: 'Conflit de préférences de récapitulatif'
       detail: 'Les préférences ont changé depuis leur lecture. Rechargez-les avant de réenregistrer.'
+    invalid_report_year:
+      title: 'Année de rapport invalide'
+      detail: "L'année doit être comprise entre 1900 et l'année en cours de l'espace de travail."
+    invalid_annual_report_query:
+      title: 'Requête de rapport annuel invalide'
+      detail: 'Le réglage des mois incomplets doit valoir exclude ou include.'
+    annual_column_not_found:
+      title: 'Colonne introuvable'
+      detail: "Cette colonne n'existe pas dans le rapport annuel de cet espace de travail."
+    invalid_annual_preferences:
+      title: 'Préférences du rapport annuel invalides'
+      detail: 'Vérifiez les colonnes, le réglage des mois incomplets et la version transmis ; au plus 40 colonnes distinctes de cet espace de travail.'
+    annual_preferences_conflict:
+      title: 'Conflit de préférences du rapport annuel'
+      detail: 'Les préférences ont changé depuis leur lecture. Rechargez-les avant de réenregistrer.'
     not_found:
       title: 'Ressource introuvable'
       detail: "La ressource d'API demandée est introuvable."

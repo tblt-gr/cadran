@@ -7,9 +7,12 @@
  * the digits it was handed, so these helpers stay exact for the full 24 decimal
  * places the API may carry.
  *
- * They also never round. The fraction digits shown are the ones the value
- * carries, so a reference figure is displayed as recorded and no digit is
- * invented or dropped at the boundary.
+ * Storage and transport stay exact. Display is the only place a figure is
+ * rounded: euro amounts and percentages show exactly 2 fraction digits (the
+ * currency's own exponent for one that has another, such as JPY), rounded half
+ * away from zero on the decimal string, and a negative zero prints as zero.
+ * Quantities (`formatDecimal`) and non-currency assets keep every digit they
+ * carry, so no quantity is ever invented or dropped.
  */
 
 /** ECMA-402 NumberFormat v3 accepts up to 100 fraction digits. */
@@ -51,30 +54,70 @@ export function formatDecimal(value: string, locale: string): string {
   );
 }
 
+/** Two fraction digits, the display rule for percentages and euro amounts. */
+const DISPLAY_FRACTION_DIGITS = 2;
+
+/** `signDisplay: 'negative'` (ES2023) hides the sign of a value rounded to zero. */
+const NO_NEGATIVE_ZERO = { signDisplay: 'negative' } as Intl.NumberFormatOptions;
+
 /**
- * Renders an amount with its currency. An asset the platform does not know as a
- * currency — a crypto-asset, say — falls back to the grouped figure followed by
- * its code, which is exact and still names the unit.
+ * Renders an amount with its currency, rounded half away from zero to the
+ * currency's own number of digits (2 for EUR). An asset the platform does not
+ * know as a currency, a crypto-asset say, falls back to the exact grouped
+ * figure followed by its code, which still names the unit.
  */
 export function formatAmount(value: string, assetCode: string, locale: string): string {
-  const digits = fractionDigits(value);
-  if (digits > MAX_INTL_FRACTION_DIGITS) {
-    return `${value} ${assetCode}`;
+  let digits: number;
+  try {
+    digits = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: assetCode,
+    }).resolvedOptions().maximumFractionDigits!;
+  } catch {
+    return fractionDigits(value) > MAX_INTL_FRACTION_DIGITS
+      ? `${value} ${assetCode}`
+      : `${formatDecimal(value, locale)} ${assetCode}`;
   }
 
-  try {
-    return format(
-      new Intl.NumberFormat(locale, {
-        style: 'currency',
-        currency: assetCode,
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-      }),
-      value,
-    );
-  } catch {
-    return `${formatDecimal(value, locale)} ${assetCode}`;
-  }
+  return format(
+    new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: assetCode,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+      ...NO_NEGATIVE_ZERO,
+    }),
+    value,
+  );
+}
+
+/** Renders a figure already in percent units with 2 rounded fraction digits, without the unit. */
+export function formatPercentDecimal(value: string, locale: string): string {
+  return format(
+    new Intl.NumberFormat(locale, {
+      minimumFractionDigits: DISPLAY_FRACTION_DIGITS,
+      maximumFractionDigits: DISPLAY_FRACTION_DIGITS,
+      ...NO_NEGATIVE_ZERO,
+    }),
+    value,
+  );
+}
+
+/**
+ * Rounds a canonical decimal half away from zero to `digits` fraction digits
+ * on its digits alone, returning a canonical string with exactly that many
+ * digits. A value that rounds to zero carries no sign.
+ */
+export function roundDecimal(value: string, digits: number): string {
+  const negative = value.startsWith('-');
+  const [whole, fraction = ''] = (negative ? value.slice(1) : value).split('.');
+  const kept = BigInt(whole + fraction.slice(0, digits).padEnd(digits, '0'));
+  const up = fraction.length > digits && fraction.charCodeAt(digits) >= 53 ? 1n : 0n;
+  const rounded = kept + up;
+  const text = rounded.toString().padStart(digits + 1, '0');
+  const body = digits === 0 ? text : `${text.slice(0, -digits)}.${text.slice(-digits)}`;
+
+  return negative && rounded !== 0n ? `-${body}` : body;
 }
 
 /**

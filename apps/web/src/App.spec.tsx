@@ -1,3 +1,4 @@
+import { annualPreferences, annualReport } from '@/features/reports/annual/annualFixtures';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -73,6 +74,14 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
 
       if (url.includes('/api/v1/session')) {
         return jsonResponse(authenticatedSession);
+      }
+
+      if (url.includes('/api/v1/reports/annual/preferences')) {
+        return jsonResponse(annualPreferences);
+      }
+
+      if (url.includes('/api/v1/reports/annual/')) {
+        return jsonResponse(annualReport);
       }
 
       if (url.includes('/api/v1/transactions')) {
@@ -182,7 +191,7 @@ describe('App', () => {
     ['/accounts/demo', 'Détail du compte'],
     ['/portfolios/demo', 'Investissements'],
     ['/life-insurance/demo', 'Assurance-vie'],
-    ['/reports/annual/2026', 'Rapports'],
+    ['/reports/annual/2026', 'Rapport annuel'],
     ['/reports/all-years', 'Rapport pluriannuel'],
     ['/goals', 'Objectifs'],
     ['/tax/2026', 'Impôts'],

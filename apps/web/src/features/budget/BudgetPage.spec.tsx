@@ -113,7 +113,7 @@ describe('BudgetPage', () => {
       ),
     );
     renderPage(plan.id);
-    expect(await screen.findByText('30 %')).toBeTruthy();
+    expect(await screen.findByText('30,00 %')).toBeTruthy();
     expect(await screen.findByText('Non calculable')).toBeTruthy();
     expect(screen.getByText('Revenus de trésorerie nuls')).toBeTruthy();
     expect(screen.getByText('Chevauchement de périmètre')).toBeTruthy();

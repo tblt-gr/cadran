@@ -1,8 +1,10 @@
 import type { NetWorthAmount, NetWorthAllocationEntry, NetWorthReason } from '@cadran/api-client';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Cell, Pie, PieChart, Treemap } from 'recharts';
+import { Treemap } from 'recharts';
+import { DonutChart, type DonutSlice } from '@/components/ui/charts/donut-chart/DonutChart';
 import { Icon } from '@/components/ui/icon/Icon';
+import { useBoxSize } from '@/hooks/use-box-size';
 import { formatAmount } from '@/lib/decimal';
 import { formatSharePercent } from '@/lib/formatSharePercent';
 import { allocationSize } from './allocationSize';
@@ -66,38 +68,6 @@ function isSlice(value: unknown): value is AllocationSlice {
     'label' in value &&
     'value' in value
   );
-}
-
-function useBoxSize() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ height: 0, width: 0 });
-
-  useEffect(() => {
-    const node = ref.current;
-    if (node === null) {
-      return;
-    }
-
-    function measure() {
-      const box = node?.getBoundingClientRect();
-      if (box === undefined) {
-        return;
-      }
-
-      setSize({ height: Math.floor(box.height), width: Math.floor(box.width) });
-    }
-
-    measure();
-    if (typeof ResizeObserver === 'undefined') {
-      return;
-    }
-
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  return { ref, size };
 }
 
 function amountLabel(amount: NetWorthAmount | null, fallback: string, locale: string): string {
@@ -170,7 +140,6 @@ export function AllocationCharts({
 }: AllocationChartsProps) {
   const { i18n, t } = useTranslation();
   const [view, setView] = useState<ChartView>('treemap');
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const { ref, size } = useBoxSize();
   const roots = allocation.filter((entry) => entry.depth === 1);
   const slices = roots
@@ -178,7 +147,6 @@ export function AllocationCharts({
     .filter((slice): slice is AllocationSlice => slice !== null);
 
   function changeView(next: ChartView) {
-    setActiveIndex(null);
     setView(next);
     onViewChange?.(next);
   }
@@ -188,11 +156,14 @@ export function AllocationCharts({
   }
 
   const ready = size.width > 0 && size.height > 0;
-  const pieWidth = Math.max(size.width, 1);
-  const pieHeight = Math.max(size.height, 1);
-  const radius = Math.max(48, Math.min(pieWidth, pieHeight) / 2 - 16);
-  const focused = activeIndex === null ? null : (slices[activeIndex] ?? null);
   const fallback = t('states.notCalculable.label');
+  const donutSlices: DonutSlice[] = slices.map((slice) => ({
+    amountText: amountLabel(slice.value, fallback, i18n.language),
+    caption: sliceCaption(slice.label, slice.percentDisplay),
+    fill: slice.fill,
+    key: slice.groupId,
+    size: slice.size,
+  }));
 
   return (
     <div
@@ -234,49 +205,13 @@ export function AllocationCharts({
               width={size.width}
             />
           ) : (
-            <PieChart height={pieHeight} width={pieWidth}>
-              <Pie
-                cx={pieWidth / 2}
-                cy={pieHeight / 2}
-                data={slices}
-                dataKey="size"
-                innerRadius={radius * 0.62}
-                isAnimationActive={false}
-                nameKey="name"
-                onMouseEnter={(_, index) => setActiveIndex(index)}
-                onMouseLeave={() => setActiveIndex(null)}
-                outerRadius={radius}
-                paddingAngle={0}
-              >
-                {slices.map((slice, index) => (
-                  <Cell
-                    fill={slice.fill}
-                    fillOpacity={activeIndex === index ? 0.72 : 1}
-                    key={slice.groupId}
-                    stroke="var(--color-transparent)"
-                    strokeWidth={0}
-                  />
-                ))}
-              </Pie>
-              <text
-                className={styles.centerTotal}
-                textAnchor="middle"
-                x={pieWidth / 2}
-                y={pieHeight / 2 - (focused === null ? 0 : 8)}
-              >
-                {amountLabel(focused === null ? total : focused.value, fallback, i18n.language)}
-              </text>
-              {focused === null ? null : (
-                <text
-                  className={styles.centerTitle}
-                  textAnchor="middle"
-                  x={pieWidth / 2}
-                  y={pieHeight / 2 + 16}
-                >
-                  {sliceCaption(focused.label, focused.percentDisplay)}
-                </text>
-              )}
-            </PieChart>
+            <DonutChart
+              height={size.height}
+              label={t('dashboard.allocation.title')}
+              slices={donutSlices}
+              totalText={amountLabel(total, fallback, i18n.language)}
+              width={size.width}
+            />
           )}
         </div>
       )}

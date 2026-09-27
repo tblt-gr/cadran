@@ -99,6 +99,7 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
   if (pathname === '/accounts/groups') return 'navigation.accountGroups';
   if (/^\/accounts\/(?!groups$)[^/]+$/.test(pathname)) return 'routes.accountDetail';
   if (/^\/life-insurance\/[^/]+$/.test(pathname)) return 'routes.lifeInsurance';
+  if (/^\/reports\/annual\/\d{4}$/.test(pathname)) return 'routes.annualReport';
   if (pathname === '/reports/all-years') return 'routes.allYearsReport';
   if (/^\/budget\/plans\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';
   if (pathname === '/budget/plans') return 'routes.budgetPlans';

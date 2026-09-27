@@ -553,7 +553,7 @@ describe('AccountsPage', () => {
     // says the figure is read from the catalogue rather than copied.
     expect(screen.getByRole('heading', { name: 'Hérité de « Livret A »' })).toBeTruthy();
     expect(screen.getByText('Plafond de dépôt')).toBeTruthy();
-    expect(screen.getByText(/22\s950\s€/)).toBeTruthy();
+    expect(screen.getByText(/22\s950,00\s€/)).toBeTruthy();
     expect(screen.getByText('Plafond sur les sommes déposées, hors intérêts')).toBeTruthy();
     // An unsourced rate is unavailable on this date, never a zero.
     expect(screen.getByText(/Non disponible au/)).toBeTruthy();
@@ -1031,7 +1031,7 @@ describe('AccountsPage', () => {
     fireEvent.click(rules);
 
     expect(screen.getByRole('dialog', { name: 'Règles de « Livret A clos »' })).toBeTruthy();
-    expect(await screen.findByText(/22\s950\s€/)).toBeTruthy();
+    expect(await screen.findByText(/22\s950,00\s€/)).toBeTruthy();
     expect(api.readAccountRules.mock.calls[0]?.[0].path).toEqual({ id: archived.id });
   });
 
@@ -1273,7 +1273,7 @@ describe('AccountsPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByText('48,2 %')).toBeTruthy();
+    expect(await screen.findByText('48,20 %')).toBeTruthy();
     await waitFor(() => expect(screen.queryByText('Valorisation manquante')).toBeNull());
   });
 
@@ -1292,7 +1292,7 @@ describe('AccountsPage', () => {
     expect(await screen.findByText(/231,10/)).toBeTruthy();
     expect(screen.getByText('Chargement du poids…')).toBeTruthy();
     expect(screen.queryByText('Valorisation manquante')).toBeNull();
-    expect(screen.queryByText('48,2 %')).toBeNull();
+    expect(screen.queryByText('48,20 %')).toBeNull();
   });
 
   it('shows a carried-forward balance as stale and records a manual replacement', async () => {

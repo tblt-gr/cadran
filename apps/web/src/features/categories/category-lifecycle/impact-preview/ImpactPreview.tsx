@@ -1,6 +1,7 @@
 import type { CategoryImpact } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import styles from './ImpactPreview.module.css';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface ImpactPreviewProps {
   impact: CategoryImpact | undefined;
@@ -76,13 +77,16 @@ export function ImpactPreview({ impact, status }: ImpactPreviewProps) {
           <dt>{t('categories.lifecycle.impact.classifications')}</dt>
           <dd>
             {impact.affectedClassifications === null ? (
-              <span className={styles.unavailable}>
-                {t(
+              <EmptyValue
+                label={t('states.notCalculable.label')}
+                reason={
                   impact.affectedClassificationsReason === null
-                    ? 'states.notCalculable.label'
-                    : `categories.lifecycle.impact.classificationsReason.${impact.affectedClassificationsReason}`,
-                )}
-              </span>
+                    ? null
+                    : t(
+                        `categories.lifecycle.impact.classificationsReason.${impact.affectedClassificationsReason}`,
+                      )
+                }
+              />
             ) : (
               impact.affectedClassifications
             )}

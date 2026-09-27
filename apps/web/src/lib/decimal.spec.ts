@@ -8,10 +8,12 @@ import {
   formatCalendarDay,
   formatCalendarNumericDay,
   formatDecimal,
+  formatPercentDecimal,
   isCanonicalDecimal,
   isCanonicalUnsignedDecimal,
   isZeroDecimal,
   negateDecimal,
+  roundDecimal,
   subtractDecimals,
   sumDecimals,
 } from './decimal';
@@ -50,9 +52,34 @@ describe('formatDecimal', () => {
 });
 
 describe('formatAmount', () => {
-  it('renders a currency amount at the precision it was given', () => {
-    expect(normalize(formatAmount('22950', 'EUR', 'fr-FR'))).toBe('22 950 €');
+  it('renders a currency amount with exactly two digits', () => {
+    expect(normalize(formatAmount('22950', 'EUR', 'fr-FR'))).toBe('22 950,00 €');
     expect(normalize(formatAmount('22950.50', 'EUR', 'fr-FR'))).toBe('22 950,50 €');
+  });
+
+  it('rounds half away from zero on the decimal string', () => {
+    const eur = (v: string) => normalize(formatAmount(v, 'EUR', 'fr-FR'));
+    expect(eur('0.005')).toBe('0,01 €');
+    expect(eur('0.015')).toBe('0,02 €');
+    expect(eur('0.995')).toBe('1,00 €');
+    expect(eur('-0.005')).toBe('-0,01 €');
+    expect(eur('-1234.565')).toBe('-1 234,57 €');
+    expect(eur('1234.5')).toBe('1 234,50 €');
+  });
+
+  it('never prints a negative zero', () => {
+    expect(normalize(formatAmount('-0.004', 'EUR', 'fr-FR'))).toBe('0,00 €');
+  });
+
+  it('stays exact on very large and 24-digit values', () => {
+    expect(normalize(formatAmount('123456789012345678901234567890.999', 'EUR', 'fr-FR'))).toBe(
+      '123 456 789 012 345 678 901 234 567 891,00 €',
+    );
+    expect(normalize(formatAmount('0.133333333333333333333333', 'EUR', 'fr-FR'))).toBe('0,13 €');
+  });
+
+  it('uses the currency exponent when it is not 2', () => {
+    expect(normalize(formatAmount('1234.5', 'JPY', 'fr-FR'))).toBe('1 235 JPY');
   });
 
   it('names the unit of an asset the platform does not know as a currency', () => {
@@ -181,5 +208,29 @@ describe('signed exact decimal arithmetic', () => {
       expect(compareDecimals(b, a)).toBe(comparison === 0 ? 0 : -comparison);
       expect(compareDecimals(a, a)).toBe(0);
     }
+  });
+});
+
+describe('formatPercentDecimal', () => {
+  it('shows two rounded digits', () => {
+    expect(formatPercentDecimal('30', 'fr-FR')).toBe('30,00');
+    expect(formatPercentDecimal('13.3333333333333333333333', 'fr-FR')).toBe('13,33');
+    expect(formatPercentDecimal('0.995', 'fr-FR')).toBe('1,00');
+    expect(formatPercentDecimal('-0.001', 'fr-FR')).toBe('0,00');
+  });
+});
+
+describe('roundDecimal', () => {
+  it('rounds half away from zero', () => {
+    expect(roundDecimal('0.005', 2)).toBe('0.01');
+    expect(roundDecimal('0.015', 2)).toBe('0.02');
+    expect(roundDecimal('0.995', 2)).toBe('1.00');
+    expect(roundDecimal('-0.995', 2)).toBe('-1.00');
+    expect(roundDecimal('-0.004', 2)).toBe('0.00');
+    expect(roundDecimal('4.2', 2)).toBe('4.20');
+    expect(roundDecimal('12.999999999999999999999999', 2)).toBe('13.00');
+    expect(roundDecimal('99999999999999999999999999.999', 2)).toBe(
+      '100000000000000000000000000.00',
+    );
   });
 });

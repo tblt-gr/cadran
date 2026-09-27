@@ -134,7 +134,7 @@ describe('ProductCatalogPage', () => {
 
     const ceiling = await screen.findByRole('rowheader', { name: 'Plafond de dépôt' });
     const ceilingRow = ceiling.closest('tr');
-    expect(withoutNarrowSpaces(ceilingRow?.textContent ?? '')).toContain('22 950 €');
+    expect(withoutNarrowSpaces(ceilingRow?.textContent ?? '')).toContain('22 950,00 €');
     expect(ceilingRow?.textContent).toContain('Depuis le 25 avril 2025');
     expect(ceilingRow?.textContent).toContain('Vérifiée');
 
@@ -151,7 +151,7 @@ describe('ProductCatalogPage', () => {
 
     const rate = await screen.findByRole('rowheader', { name: 'Taux annuel' });
     const rateRow = rate.closest('tr');
-    expect(withoutNarrowSpaces(rateRow?.textContent ?? '')).toContain('1,7 %');
+    expect(withoutNarrowSpaces(rateRow?.textContent ?? '')).toContain('1,70 %');
     expect(rateRow?.textContent).toContain('Du 1 août 2026 au 31 janvier 2027');
   });
 

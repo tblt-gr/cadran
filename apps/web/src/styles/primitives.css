@@ -105,8 +105,12 @@
   font-variant-numeric: tabular-nums lining-nums;
 }
 
+/* Pinned to its containing block's start: left at its static position, a hidden
+   label inside a horizontally scrolled table escapes the scroller and widens the page. */
 .sr-only {
   position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
   width: var(--border-width-thin);
   height: var(--border-width-thin);
   padding: var(--spacing-none);

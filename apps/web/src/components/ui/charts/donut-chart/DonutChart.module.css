@@ -1,0 +1,23 @@
+.centerTotal {
+  fill: var(--text-primary);
+  font-size: var(--font-size-kpi);
+  font-weight: var(--font-weight-semibold);
+}
+
+.centerTitle {
+  fill: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.donut,
+.donut :global(.recharts-surface),
+.donut :global(.recharts-sector),
+.donut :global(.recharts-pie-sector) {
+  outline: none;
+}
+
+.donut :global(.recharts-sector),
+.donut :global(.recharts-pie-sector) {
+  cursor: pointer;
+  stroke: none;
+}

@@ -65,7 +65,7 @@ describe('ScalePreview', () => {
     typeBalance('15000');
 
     const status = screen.getByRole('status').textContent ?? '';
-    expect(status).toContain('2 %');
+    expect(status).toContain('2,00 %');
     expect(status).not.toMatch(/totalité du solde/);
   });
 
@@ -79,7 +79,7 @@ describe('ScalePreview', () => {
     // The bracket reached at 15 000 is the second one, at 2 % — not the
     // first bracket's 4 %, which a component that read the wrong bracket
     // would still make this test pass without this assertion.
-    expect(status).toContain('2 %');
+    expect(status).toContain('2,00 %');
   });
 
   it('answers a different message per application mode for the same balance', () => {
@@ -133,7 +133,7 @@ describe('ScalePreview', () => {
   it('settles on scale content, not the array identity a caller rebuilt', () => {
     const { rerender } = render(<ScalePreview brackets={[...scale]} rateApplication="MARGINAL" />);
     typeBalance('15000');
-    expect(screen.getByRole('status').textContent).toContain('2 %');
+    expect(screen.getByRole('status').textContent).toContain('2,00 %');
 
     rerender(<ScalePreview brackets={[...scale]} rateApplication="MARGINAL" />);
     act(() => {
@@ -141,7 +141,7 @@ describe('ScalePreview', () => {
     });
     // Same bounds, new array: a reference-equality debounce would go quiet
     // here and stay blank until a later keystroke.
-    expect(screen.getByRole('status').textContent).toContain('2 %');
+    expect(screen.getByRole('status').textContent).toContain('2,00 %');
   });
 
   it('marks the field invalid and names the reason through the field itself, once settled', () => {
@@ -196,7 +196,7 @@ describe('ScalePreview', () => {
       vi.advanceTimersByTime(1);
     });
     expect(balanceField().hasAttribute('aria-invalid')).toBe(false);
-    expect(screen.getByRole('status').textContent).toContain('4 %');
+    expect(screen.getByRole('status').textContent).toContain('4,00 %');
   });
 
   it('gives a distinct message for an incomplete draft scale, not the invalid-balance message', () => {
@@ -250,7 +250,7 @@ describe('ScalePreview', () => {
 
     typeBalance('5000');
 
-    expect(screen.getByRole('status').textContent).toContain('4 %');
+    expect(screen.getByRole('status').textContent).toContain('4,00 %');
   });
 
   it('rejects a scale only well-formed once its rows are reordered, since row order is what is submitted', () => {
@@ -281,7 +281,7 @@ describe('ScalePreview', () => {
     act(() => {
       vi.advanceTimersByTime(1);
     });
-    expect(screen.getByRole('status').textContent).toContain('2 %');
+    expect(screen.getByRole('status').textContent).toContain('2,00 %');
   });
 
   it('answers once for a run of keystrokes rather than once per keystroke', () => {
@@ -299,13 +299,13 @@ describe('ScalePreview', () => {
     act(() => {
       vi.advanceTimersByTime(200);
     });
-    expect(screen.getByRole('status').textContent).toContain('2 %');
+    expect(screen.getByRole('status').textContent).toContain('2,00 %');
   });
 
   it('goes quiet again while a settled balance is edited, rather than keep naming the old bracket', () => {
     renderPreview();
     typeBalance('15000');
-    expect(screen.getByRole('status').textContent).toContain('2 %');
+    expect(screen.getByRole('status').textContent).toContain('2,00 %');
 
     fireEvent.change(balanceField(), { target: { value: '5000' } });
     act(() => {
@@ -318,13 +318,13 @@ describe('ScalePreview', () => {
     act(() => {
       vi.advanceTimersByTime(1);
     });
-    expect(screen.getByRole('status').textContent).toContain('4 %');
+    expect(screen.getByRole('status').textContent).toContain('4,00 %');
   });
 
   it('rearms the same delay when the scale itself changes, not only the balance', () => {
     const { rerender } = render(<ScalePreview brackets={scale} rateApplication="MARGINAL" />);
     typeBalance('15000');
-    expect(screen.getByRole('status').textContent).toContain('2 %');
+    expect(screen.getByRole('status').textContent).toContain('2,00 %');
 
     const widened = [
       { lowerBound: '0', upperBound: '20000', percentage: '4' },
@@ -342,6 +342,6 @@ describe('ScalePreview', () => {
     act(() => {
       vi.advanceTimersByTime(1);
     });
-    expect(screen.getByRole('status').textContent).toContain('4 %');
+    expect(screen.getByRole('status').textContent).toContain('4,00 %');
   });
 });

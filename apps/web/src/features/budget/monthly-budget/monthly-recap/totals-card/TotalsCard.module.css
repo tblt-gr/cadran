@@ -49,12 +49,6 @@
   gap: var(--spacing-1);
 }
 
-.explain {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
-  color: var(--info);
-}
-.unavailable,
 .empty {
   color: var(--text-muted);
 }

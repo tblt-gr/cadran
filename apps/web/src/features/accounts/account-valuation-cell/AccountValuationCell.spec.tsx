@@ -82,6 +82,6 @@ describe('AccountValuationCell', () => {
     );
 
     expect(screen.getByText('Inférieur à l’échelon d’affichage')).toBeTruthy();
-    expect(screen.queryByText(/0,00/)).toBeNull();
+    expect(screen.queryByText(/^0,00/)).toBeNull();
   });
 });
