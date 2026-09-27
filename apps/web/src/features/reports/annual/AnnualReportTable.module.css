@@ -50,8 +50,18 @@
   background: var(--bg-surface-1);
   text-align: left;
 }
-.table thead th:first-child {
+/* Sticky the same way as the first column, on the other axis: the header row
+   stays visible while scrolling the table vertically. Its own z-index sits
+   above body cells but below the corner cell (header × first column), which
+   needs the highest z-index to stay opaque over both. */
+.table thead th {
+  position: sticky;
+  top: 0;
   z-index: 2;
+  background: var(--bg-surface-1);
+}
+.table thead th:first-child {
+  z-index: 3;
 }
 .dimmed td,
 .dimmed th {

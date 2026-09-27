@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Reporting\UI\Http;
 
 use App\Module\Reporting\Application\MultiYearCellView;
+use App\Module\Reporting\Application\MultiYearDetailedAggregateView;
+use App\Module\Reporting\Application\MultiYearDetailedExtremeView;
 use App\Module\Reporting\Application\MultiYearExtremeView;
 use App\Module\Reporting\Application\MultiYearMetricPolicyView;
 use App\Module\Reporting\Application\MultiYearReportView;
@@ -31,6 +33,7 @@ final class MultiYearReportRepresentation
             'years' => array_map(self::year(...), $report->years),
             'summary' => (object) array_map(self::summaryCell(...), $report->summary),
             'quality' => $report->quality,
+            'detailedPeriod' => (object) array_map(self::detailedAggregate(...), $report->detailedPeriod),
         ];
     }
 
@@ -77,6 +80,25 @@ final class MultiYearReportRepresentation
             'averageReason' => $cell->averageReason,
             'minimum' => $extreme($cell->minimum),
             'maximum' => $extreme($cell->maximum),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function detailedAggregate(MultiYearDetailedAggregateView $aggregate): array
+    {
+        $extreme = static fn (?MultiYearDetailedExtremeView $extreme): ?array => null === $extreme ? null : ['value' => $extreme->value, 'month' => $extreme->month];
+
+        return [
+            'total' => $aggregate->total,
+            'totalReason' => $aggregate->totalReason,
+            'average' => $aggregate->average,
+            'averageReason' => $aggregate->averageReason,
+            'median' => $aggregate->median,
+            'medianReason' => $aggregate->medianReason,
+            'minimum' => $extreme($aggregate->minimum),
+            'maximum' => $extreme($aggregate->maximum),
+            'extremesReason' => $aggregate->extremesReason,
+            'quality' => $aggregate->quality,
         ];
     }
 }

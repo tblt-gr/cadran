@@ -6,7 +6,11 @@ namespace App\Module\Reporting\Domain\Aggregation;
 
 use App\Module\Foundation\Domain\ExactDecimal;
 
-/** Exact ratio-of-sums whose response-only intermediate values may exceed NUMERIC(50,24). */
+/**
+ * Exact sums and ratio-of-sums whose response-only intermediate or final values may exceed
+ * NUMERIC(50,24), for instance a flow total spanning several years
+ * ({@see \App\Module\Reporting\Application\ReadMultiYearReport}).
+ */
 final class ResponseRateAggregator
 {
     /** @return array{?string, ?AggregateReason} */
@@ -32,6 +36,21 @@ final class ResponseRateAggregator
             return [null, $guard];
         }
 
+        return self::ratioOfSums($numerators, $denominators);
+    }
+
+    /**
+     * The ratio of already-filtered numerator and denominator months, without re-deriving their
+     * population: the caller (a whole-period aggregate, a per-year total or its average) decides
+     * which months enter each side and has already run its own guard.
+     *
+     * @param list<MonthValue> $numerators
+     * @param list<MonthValue> $denominators
+     *
+     * @return array{?string, ?AggregateReason}
+     */
+    public static function ratioOfSums(array $numerators, array $denominators): array
+    {
         [$numerator, $reason] = self::sum($numerators);
         [$denominator, $denominatorReason] = self::sum($denominators);
         if (null === $numerator || null === $denominator) {
@@ -48,11 +67,15 @@ final class ResponseRateAggregator
     }
 
     /**
+     * The exact sum of a population's monthly amounts, unbounded. `[]` is `EMPTY_POPULATION`, a
+     * `null` monthly value is `MISSING_MONTH_VALUE`; the caller decides whether to divide it into
+     * an average.
+     *
      * @param list<MonthValue> $months
      *
      * @return array{?string, ?AggregateReason}
      */
-    private static function sum(array $months): array
+    public static function sum(array $months): array
     {
         if ([] === $months) {
             return [null, AggregateReason::EMPTY_POPULATION];

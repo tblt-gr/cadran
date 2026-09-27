@@ -36,6 +36,7 @@ final class AnnualColumnSeries
                 ? ReportAggregator::stock($values, $incomplete)
                 : ReportAggregator::flow($values, $incomplete);
         }
+
         return ReportAggregator::rate(
             self::rateInputs($column, $months),
             self::values($column->id, true, $months),
@@ -86,7 +87,7 @@ final class AnnualColumnSeries
      *
      * @return list<MonthValue>
      */
-    private static function values(string $columnId, bool $known, array $months, bool $zeroWithoutMovement = true): array
+    public static function values(string $columnId, bool $known, array $months, bool $zeroWithoutMovement = true): array
     {
         $values = [];
         foreach ($months as $month) {

@@ -1,6 +1,9 @@
+/* `align-content: start`: see MultiYearReportPage.module.css's `.page` for why —
+   same shell-level stretch, same fix. */
 .page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   min-width: 0;
   gap: var(--spacing-4);
 }

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
+import styles from './AnnualTableActions.module.css';
 
 interface AnnualTableActionsProps {
   includeIncomplete: boolean;
@@ -21,10 +22,10 @@ export function AnnualTableActions({
   });
 
   return (
-    <>
+    <div className={styles.actions}>
       <button
         aria-label={t('reports.annual.columns')}
-        className="icon-button"
+        className={`icon-ghost ${styles.button}`}
         onClick={onOpenColumns}
         title={t('reports.annual.columns')}
         type="button"
@@ -34,7 +35,7 @@ export function AnnualTableActions({
       <button
         aria-label={incompleteLabel}
         aria-pressed={includeIncomplete}
-        className="icon-button"
+        className={`icon-ghost ${styles.button}`}
         disabled={saving}
         onClick={onToggleIncomplete}
         title={incompleteLabel}
@@ -42,6 +43,6 @@ export function AnnualTableActions({
       >
         <Icon name="calendar" size={16} />
       </button>
-    </>
+    </div>
   );
 }

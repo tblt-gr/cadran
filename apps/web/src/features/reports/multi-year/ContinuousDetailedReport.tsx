@@ -1,4 +1,5 @@
 import type { AnnualColumn, AnnualReport, MultiYearReport } from '@cadran/api-client';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { AnnualCellValue } from '@/features/reports/annual/AnnualCellValue';
@@ -7,8 +8,14 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import cardStyles from '@/features/reports/annual/AnnualMonthCards.module.css';
 import tableStyles from '@/features/reports/annual/AnnualReportTable.module.css';
 import mixedPolicyStyles from '@/features/reports/annual/MixedPolicyBanner.module.css';
+import localStyles from './ContinuousDetailedReport.module.css';
+import {
+  MULTI_YEAR_DETAILED_AGGREGATE_ROW_IDS,
+  multiYearDetailedAggregateFigure,
+} from './multiYearDetailedAggregate';
 
 interface ContinuousDetailedReportProps {
+  actions?: ReactNode;
   annualReports: AnnualReport[];
   report: MultiYearReport;
 }
@@ -27,7 +34,11 @@ function selectedColumns(reports: AnnualReport[]): AnnualColumn[] {
  * One continuous presentation of monthly, server-supplied annual report rows. It deliberately
  * flattens display lists only: exact financial values remain owned by the annual responses.
  */
-export function ContinuousDetailedReport({ annualReports, report }: ContinuousDetailedReportProps) {
+export function ContinuousDetailedReport({
+  actions,
+  annualReports,
+  report,
+}: ContinuousDetailedReportProps) {
   const { t, i18n } = useTranslation();
   const columns = selectedColumns(annualReports);
   const rows = annualReports.flatMap((annualReport) =>
@@ -62,8 +73,14 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
           <h2 className={tableStyles.title} id={titleId}>
             {t('reports.multiYear.detailedCaption', { from: report.from, to: report.to })}
           </h2>
+          {actions ? <div className={tableStyles.actions}>{actions}</div> : null}
         </header>
-        <div className={tableStyles.scroll}>
+        <div
+          aria-label={t('reports.multiYear.detailedCaption', { from: report.from, to: report.to })}
+          className={`${tableStyles.scroll} ${localStyles.verticalScroll}`}
+          role="region"
+          tabIndex={0}
+        >
           <table aria-labelledby={titleId} className={tableStyles.table}>
             <thead>
               <tr>
@@ -76,39 +93,75 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ annualReport, row }) => (
-                <tr
-                  className={isEmptyState(row.state) ? tableStyles.dimmed : undefined}
-                  key={`${annualReport.year}-${row.month}`}
-                >
-                  <th scope="row">
-                    {monthLabel(row.month, i18n.language)} {annualReport.year}
-                    {row.state === 'PROVISIONAL' ? (
-                      <small> {t('reports.annual.provisional')}</small>
-                    ) : null}
-                  </th>
+              {rows.map(({ annualReport, row }) => {
+                const isYearBoundary = row.month.endsWith('-12');
+                return (
+                  <tr
+                    className={[
+                      isEmptyState(row.state) ? tableStyles.dimmed : '',
+                      isYearBoundary ? localStyles.yearBoundary : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    key={`${annualReport.year}-${row.month}`}
+                  >
+                    <th scope="row">
+                      {monthLabel(row.month, i18n.language)} {annualReport.year}
+                      {row.state === 'PROVISIONAL' ? (
+                        <small> {t('reports.annual.provisional')}</small>
+                      ) : null}
+                    </th>
+                    {columns.map((column) => {
+                      const cell = row.cells[column.id];
+                      return (
+                        <td key={column.id}>
+                          {row.state === 'FUTURE' ? (
+                            <EmptyValue label={t('reports.annual.future')} />
+                          ) : row.state === 'NO_DATA' ? (
+                            <EmptyValue label={t('reports.annual.noData')} />
+                          ) : (
+                            <AnnualCellValue
+                              assetCode={column.assetCode}
+                              kind={column.kind}
+                              reason={cell?.reason ?? null}
+                              value={cell?.value ?? null}
+                            />
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              {MULTI_YEAR_DETAILED_AGGREGATE_ROW_IDS.map((rowId) => (
+                <tr key={rowId}>
+                  <th scope="row">{t(`reports.annual.summary.${rowId}`)}</th>
                   {columns.map((column) => {
-                    const cell = row.cells[column.id];
+                    const aggregate = report.detailedPeriod[column.id];
+                    if (!aggregate) return <td key={column.id} />;
+                    const figure = multiYearDetailedAggregateFigure(aggregate, rowId);
                     return (
                       <td key={column.id}>
-                        {row.state === 'FUTURE' ? (
-                          <EmptyValue label={t('reports.annual.future')} />
-                        ) : row.state === 'NO_DATA' ? (
-                          <EmptyValue label={t('reports.annual.noData')} />
-                        ) : (
-                          <AnnualCellValue
-                            assetCode={column.assetCode}
-                            kind={column.kind}
-                            reason={cell?.reason ?? null}
-                            value={cell?.value ?? null}
-                          />
-                        )}
+                        <AnnualCellValue
+                          assetCode={column.assetCode}
+                          kind={column.kind}
+                          reason={figure.reason}
+                          value={figure.value}
+                        />
+                        {figure.month ? (
+                          <small>
+                            {' '}
+                            ({monthLabel(figure.month, i18n.language)} {figure.month.slice(0, 4)})
+                          </small>
+                        ) : null}
                       </td>
                     );
                   })}
                 </tr>
               ))}
-            </tbody>
+            </tfoot>
           </table>
         </div>
       </section>
@@ -152,6 +205,37 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
             )}
           </li>
         ))}
+        <li className={`card ${cardStyles.card}`}>
+          <h3>{t('reports.multiYear.detailedSummaryCard')}</h3>
+          {MULTI_YEAR_DETAILED_AGGREGATE_ROW_IDS.map((rowId) => (
+            <dl key={rowId}>
+              <dt>{t(`reports.annual.summary.${rowId}`)}</dt>
+              {columns.map((column) => {
+                const aggregate = report.detailedPeriod[column.id];
+                if (!aggregate) return null;
+                const figure = multiYearDetailedAggregateFigure(aggregate, rowId);
+                return (
+                  <dd key={column.id}>
+                    {column.label}
+                    {': '}
+                    <AnnualCellValue
+                      assetCode={column.assetCode}
+                      kind={column.kind}
+                      reason={figure.reason}
+                      value={figure.value}
+                    />
+                    {figure.month ? (
+                      <small>
+                        {' '}
+                        ({monthLabel(figure.month, i18n.language)} {figure.month.slice(0, 4)})
+                      </small>
+                    ) : null}
+                  </dd>
+                );
+              })}
+            </dl>
+          ))}
+        </li>
       </ul>
     </div>
   );

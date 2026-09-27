@@ -21,6 +21,7 @@ final class MultiYearReportControllerTest extends WebTestCase
 
     private const string ACCOUNT = '00000000-0000-7000-8000-0000000000a1';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000a9';
+    private const string MID_RANGE_ACCOUNT = '00000000-0000-7000-8000-0000000000a5';
     private const string CATEGORY = '00000000-0000-7000-8000-0000000000c1';
 
     private KernelBrowser $client;
@@ -461,6 +462,270 @@ final class MultiYearReportControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    public function testTheWholePeriodAggregateSumsAveragesMediansAndExtremesAcrossEveryYearOfTheRange(): void
+    {
+        $this->signIn();
+        $this->seedYear($this->year - 1);
+        $this->seedYear($this->year);
+        $this->put(['cashIncome'], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year - 1, $this->year);
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['cashIncome']);
+
+        self::assertDecimal('156000', self::stringOf($detailed['total']));
+        self::assertNull($detailed['totalReason']);
+        self::assertDecimal('6500', self::stringOf($detailed['average']));
+        self::assertDecimal('6500', self::stringOf($detailed['median']));
+        $minimum = self::fields($detailed['minimum']);
+        self::assertDecimal('1000', self::stringOf($minimum['value']));
+        self::assertSame(sprintf('%d-01', $this->year - 1), $minimum['month']);
+        $maximum = self::fields($detailed['maximum']);
+        self::assertDecimal('12000', self::stringOf($maximum['value']));
+        self::assertSame(sprintf('%d-12', $this->year - 1), $maximum['month']);
+        self::assertNull($detailed['extremesReason']);
+    }
+
+    public function testTheWholePeriodAggregateIsNullWithMixedMetricPoliciesWhenTheRangeCrossesAPolicyChange(): void
+    {
+        $this->signIn();
+        $this->seedYear($this->year - 1);
+        $this->seedYear($this->year);
+        $this->closeYearWithPolicyOne($this->year - 1);
+        $this->policyVersionTwoFrom(($this->year - 1).'-12-15 00:00:00+00');
+        $this->put(['cashIncome'], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year - 1, $this->year);
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['cashIncome']);
+
+        self::assertNull($detailed['total']);
+        self::assertSame('MIXED_METRIC_POLICIES', $detailed['totalReason']);
+        self::assertNull($detailed['average']);
+        self::assertSame('MIXED_METRIC_POLICIES', $detailed['averageReason']);
+        self::assertNull($detailed['median']);
+        self::assertSame('MIXED_METRIC_POLICIES', $detailed['medianReason']);
+    }
+
+    public function testTheWholePeriodAggregateRespectsTheIncompleteMonthsSetting(): void
+    {
+        $this->signIn();
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $today = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris'));
+        $this->transaction($this->nextSuffix(), self::ACCOUNT, '1000.00', 'INCOME', $today->format('Y-m-01'));
+        $this->put(['cashIncome'], 'exclude', 0);
+        $runningYear = (int) $today->format('Y');
+
+        $excluded = $this->multiYear($runningYear, $runningYear);
+        $included = $this->get('/api/v1/reports/multi-year?from='.$runningYear.'&to='.$runningYear.'&incompleteMonths=include');
+
+        $excludedCell = self::fields(self::fields($excluded['detailedPeriod'])['cashIncome']);
+        $includedCell = self::fields(self::fields($included['detailedPeriod'])['cashIncome']);
+
+        self::assertDecimal('1000', self::stringOf($excludedCell['total']));
+        self::assertSame('EMPTY_POPULATION', $excludedCell['averageReason']);
+        self::assertDecimal('1000', self::stringOf($includedCell['average']));
+        self::assertDecimal('1000', self::stringOf($includedCell['median']));
+    }
+
+    public function testTheWholePeriodRateAggregateIsNullWithZeroDenominatorWhenCashIncomeIsAlwaysZero(): void
+    {
+        $this->signIn();
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->category(self::CATEGORY, 'Loyer');
+        for ($month = 1; $month <= 12; ++$month) {
+            $this->transaction($this->nextSuffix(), self::ACCOUNT, '-100.00', 'EXPENSE', sprintf('%d-%02d-10', $this->year, $month), split: self::CATEGORY);
+        }
+        $this->put(['cashSavingsRate'], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year, $this->year);
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['cashSavingsRate']);
+
+        self::assertNull($detailed['total']);
+        self::assertSame('ZERO_DENOMINATOR', $detailed['totalReason']);
+        self::assertNull($detailed['average']);
+        self::assertSame('ZERO_DENOMINATOR', $detailed['averageReason']);
+    }
+
+    public function testAnotherWorkspaceNeverSeesTheOwnWorkspaceWholePeriodAggregate(): void
+    {
+        $this->signIn();
+        $this->seedYear($this->year);
+        $this->put(['cashIncome'], 'exclude', 0);
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Secret', 'CURRENT');
+        $this->transaction($this->nextSuffix(), self::OTHER_ACCOUNT, '999999.00', 'INCOME', $this->year.'-02-10', WorkspaceFixture::OTHER_WORKSPACE);
+
+        $this->client->request('DELETE', '/api/v1/session');
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+        $multi = $this->multiYear($this->year, $this->year);
+
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['cashIncome']);
+        self::assertDecimal('999999', self::stringOf($detailed['total']));
+        self::assertStringNotContainsString('78000', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testTheWholePeriodAggregateExcludesMonthsBeforeAnAccountOpenedMidRange(): void
+    {
+        $this->signIn();
+        $this->seedYear($this->year - 1);
+        $this->seedYear($this->year);
+        $this->account(self::MID_RANGE_ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Nouveau compte', 'SAVINGS', ($this->year - 1).'-04-01');
+        $index = 0;
+        for ($year = $this->year - 1; $year <= $this->year; ++$year) {
+            for ($month = 1; $month <= 12; ++$month) {
+                if ($year === $this->year - 1 && $month < 4) {
+                    // Before the account opened: no snapshot is recorded on purpose, so a value
+                    // leaking into the whole-period population here would surface as a missing
+                    // month rather than a correct figure.
+                    continue;
+                }
+                ++$index;
+                $this->snapshot(self::MID_RANGE_ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, sprintf('%d-%02d-28', $year, $month), sprintf('%d.00', $index * 100), 'RECONCILED');
+            }
+        }
+        $this->put(['account:'.self::MID_RANGE_ACCOUNT], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year - 1, $this->year);
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['account:'.self::MID_RANGE_ACCOUNT]);
+
+        self::assertNull($detailed['total']);
+        self::assertSame('NOT_ADDITIVE', $detailed['totalReason']);
+        self::assertDecimal('1100', self::stringOf($detailed['average']));
+        self::assertDecimal('1100', self::stringOf($detailed['median']));
+        $minimum = self::fields($detailed['minimum']);
+        self::assertDecimal('100', self::stringOf($minimum['value']));
+        self::assertSame(sprintf('%d-04', $this->year - 1), $minimum['month']);
+        $maximum = self::fields($detailed['maximum']);
+        self::assertDecimal('2100', self::stringOf($maximum['value']));
+        self::assertSame(sprintf('%d-12', $this->year), $maximum['month']);
+    }
+
+    public function testTheWholePeriodAggregateExposesQualityForAMixedNoDataCompleteAndProvisionalRange(): void
+    {
+        $this->signIn();
+        $this->seedYear($this->year - 1);
+        $this->seedYear($this->year);
+        $runningYear = $this->year + 1;
+        $this->transaction($this->nextSuffix(), self::ACCOUNT, '1000.00', 'INCOME', $runningYear.'-01-10');
+        $this->put(['cashIncome'], 'exclude', 0);
+
+        $multi = $this->get('/api/v1/reports/multi-year?from='.($this->year - 2).'&to='.$runningYear.'&incompleteMonths=include');
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['cashIncome']);
+
+        self::assertSame('PARTIAL', $detailed['quality']);
+    }
+
+    public function testTheWholePeriodAggregateHasCompleteQualityWhenEveryYearIsFullyElapsed(): void
+    {
+        $this->signIn();
+        $this->seedYear($this->year - 1);
+        $this->seedYear($this->year);
+        $this->put(['cashIncome'], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year - 1, $this->year);
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['cashIncome']);
+
+        self::assertSame('COMPLETE', $detailed['quality']);
+    }
+
+    public function testTheWholePeriodRateAggregateUsesRatioOfSumsNotMeanOfMonthlyRates(): void
+    {
+        $this->signIn();
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->category(self::CATEGORY, 'Loyer');
+        $this->transaction($this->nextSuffix(), self::ACCOUNT, '1000.00', 'INCOME', ($this->year - 1).'-01-10');
+        $this->transaction($this->nextSuffix(), self::ACCOUNT, '-500.00', 'EXPENSE', ($this->year - 1).'-01-10', split: self::CATEGORY);
+        $this->transaction($this->nextSuffix(), self::ACCOUNT, '3000.00', 'INCOME', $this->year.'-01-10');
+        $this->transaction($this->nextSuffix(), self::ACCOUNT, '-2700.00', 'EXPENSE', $this->year.'-01-10', split: self::CATEGORY);
+        $this->put(['cashSavingsRate'], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year - 1, $this->year);
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['cashSavingsRate']);
+
+        // Ratio of sums: (500 + 300) / (1000 + 3000) = 0.2, not the mean of the monthly rates
+        // (0.5 + 0.1) / 2 = 0.3.
+        self::assertDecimal('0.2', self::stringOf($detailed['total']));
+        self::assertDecimal('0.2', self::stringOf($detailed['average']));
+    }
+
+    public function testTheWholePeriodStockAggregateHasNoTotalButRealAverageMedianAndExtremes(): void
+    {
+        $this->signIn();
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        // The workspace's first data month comes from its earliest transaction, not its earliest
+        // balance snapshot, so a transaction anchors the range even though this test only reads
+        // the account's stock aggregate.
+        $this->transaction($this->nextSuffix(), self::ACCOUNT, '1.00', 'INCOME', ($this->year - 1).'-01-05');
+        // A snapshot on the first month of the range carries a real value forward for every month:
+        // without it, the months before the first snapshot would be MISSING_VALUATION.
+        $this->snapshot(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, ($this->year - 1).'-01-28', '500.00', 'RECONCILED');
+        $this->snapshot(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, ($this->year - 1).'-06-28', '1000.00', 'RECONCILED');
+        $this->snapshot(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, $this->year.'-06-28', '3000.00', 'RECONCILED');
+        $this->put(['account:'.self::ACCOUNT], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year - 1, $this->year);
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['account:'.self::ACCOUNT]);
+
+        self::assertNull($detailed['total']);
+        self::assertSame('NOT_ADDITIVE', $detailed['totalReason']);
+        self::assertNotNull($detailed['average']);
+        self::assertNotNull($detailed['median']);
+        self::assertNotNull($detailed['minimum']);
+        self::assertNotNull($detailed['maximum']);
+    }
+
+    public function testTheWholePeriodAggregateIsNullWithMixedAssetsWhenACategorysCurrencyDiffersAcrossYears(): void
+    {
+        $this->signIn();
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->category(self::CATEGORY, 'Loyer');
+        for ($month = 1; $month <= 12; ++$month) {
+            $this->transaction($this->nextSuffix(), self::ACCOUNT, '-100.00', 'EXPENSE', sprintf('%d-%02d-10', $this->year - 1, $month), split: self::CATEGORY);
+        }
+        for ($month = 1; $month <= 12; ++$month) {
+            $this->transaction($this->nextSuffix(), self::ACCOUNT, '-100.00', 'EXPENSE', sprintf('%d-%02d-10', $this->year, $month), split: self::CATEGORY, asset: 'USD');
+        }
+        $this->put(['category:'.self::CATEGORY], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year - 1, $this->year);
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['category:'.self::CATEGORY]);
+
+        self::assertNull($detailed['total']);
+        self::assertSame('MIXED_ASSETS', $detailed['totalReason']);
+        self::assertNull($detailed['average']);
+        self::assertSame('MIXED_ASSETS', $detailed['averageReason']);
+    }
+
+    public function testTheWholePeriodAggregateSumsAveragesAndMediansNegativeAndPositiveMonthsExactly(): void
+    {
+        $this->signIn();
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->category(self::CATEGORY, 'Loyer');
+        for ($month = 1; $month <= 12; ++$month) {
+            $day = sprintf('%d-%02d-10', $this->year - 1, $month);
+            $this->transaction($this->nextSuffix(), self::ACCOUNT, '100.00', 'INCOME', $day);
+            $this->transaction($this->nextSuffix(), self::ACCOUNT, '-1000.00', 'EXPENSE', $day, split: self::CATEGORY);
+        }
+        for ($month = 1; $month <= 12; ++$month) {
+            $day = sprintf('%d-%02d-10', $this->year, $month);
+            $this->transaction($this->nextSuffix(), self::ACCOUNT, '1500.00', 'INCOME', $day);
+            $this->transaction($this->nextSuffix(), self::ACCOUNT, '-100.00', 'EXPENSE', $day, split: self::CATEGORY);
+        }
+        $this->put(['budgetSurplus'], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year - 1, $this->year);
+        $detailed = self::fields(self::fields($multi['detailedPeriod'])['budgetSurplus']);
+
+        self::assertDecimal('6000', self::stringOf($detailed['total']));
+        self::assertNull($detailed['totalReason']);
+        self::assertDecimal('250', self::stringOf($detailed['average']));
+        self::assertDecimal('250', self::stringOf($detailed['median']));
+        $minimum = self::fields($detailed['minimum']);
+        self::assertDecimal('-900', self::stringOf($minimum['value']));
+        self::assertSame(sprintf('%d-01', $this->year - 1), $minimum['month']);
+        $maximum = self::fields($detailed['maximum']);
+        self::assertDecimal('1400', self::stringOf($maximum['value']));
+        self::assertSame(sprintf('%d-01', $this->year), $maximum['month']);
+    }
+
     private function seedYear(int $year): void
     {
         if (!$this->connection->fetchOne('SELECT 1 FROM account_financial_accounts WHERE id = ?', [self::ACCOUNT])) {
@@ -559,13 +824,13 @@ final class MultiYearReportControllerTest extends WebTestCase
         return self::fields(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
     }
 
-    private function account(string $id, string $workspace, string $label, string $kind): void
+    private function account(string $id, string $workspace, string $label, string $kind, string $openedOn = '2000-01-01'): void
     {
         $this->connection->insert('account_financial_accounts', [
             'id' => $id, 'workspace_id' => $workspace, 'label' => $label, 'asset_code' => 'EUR', 'kind' => $kind,
             'valuation_mode' => 'TRANSACTIONS', 'liquidity_level' => 'IMMEDIATE', 'include_in_net_worth' => true,
-            'include_in_emergency_fund' => false, 'opened_on' => '2000-01-01', 'version' => 1,
-            'created_at' => '2000-01-01 12:00:00+00', 'updated_at' => '2000-01-01 12:00:00+00',
+            'include_in_emergency_fund' => false, 'opened_on' => $openedOn, 'version' => 1,
+            'created_at' => $openedOn.' 12:00:00+00', 'updated_at' => $openedOn.' 12:00:00+00',
         ], ['include_in_net_worth' => ParameterType::BOOLEAN, 'include_in_emergency_fund' => ParameterType::BOOLEAN]);
     }
 
@@ -596,10 +861,11 @@ final class MultiYearReportControllerTest extends WebTestCase
         string $bookedOn,
         string $workspace = WorkspaceFixture::OWN_WORKSPACE,
         ?string $split = null,
+        string $asset = 'EUR',
     ): void {
         $id = '00000000-0000-7000-8000-0000000003'.$suffix;
         $this->connection->insert('transaction_transactions', [
-            'id' => $id, 'workspace_id' => $workspace, 'account_id' => $account, 'asset_code' => 'EUR',
+            'id' => $id, 'workspace_id' => $workspace, 'account_id' => $account, 'asset_code' => $asset,
             'amount_value' => $amount, 'amount_scale' => 2, 'state' => 'BOOKED', 'nature' => $nature,
             'source' => 'MANUAL', 'booked_on' => $bookedOn, 'raw_label' => 'MultiYear '.$suffix,
             'version' => 1, 'created_at' => $bookedOn.' 12:00:00+00', 'updated_at' => $bookedOn.' 12:00:00+00',
@@ -608,7 +874,7 @@ final class MultiYearReportControllerTest extends WebTestCase
             $this->connection->insert('transaction_splits', [
                 'id' => '00000000-0000-7000-8000-0000000004'.$suffix, 'workspace_id' => $workspace,
                 'transaction_id' => $id, 'category_id' => $split, 'amount_value' => $amount,
-                'amount_scale' => 2, 'asset_code' => 'EUR', 'created_at' => $bookedOn.' 12:00:00+00',
+                'amount_scale' => 2, 'asset_code' => $asset, 'created_at' => $bookedOn.' 12:00:00+00',
             ]);
         }
     }

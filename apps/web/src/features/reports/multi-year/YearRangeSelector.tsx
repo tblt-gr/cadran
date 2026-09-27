@@ -1,9 +1,14 @@
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import styles from './YearRangeSelector.module.css';
 
 const MAX_SPAN_YEARS = 14;
 
+export type MultiYearDisplayMode = 'compact' | 'detailed';
+
 interface YearRangeSelectorProps {
+  /** Omitted while the range itself is invalid: there is nothing to switch the display of yet. */
+  display?: MultiYearDisplayMode;
   /** Inline message shown when the backend refused the current range (422). */
   error?: string | null;
   from: number;
@@ -12,6 +17,7 @@ interface YearRangeSelectorProps {
   /** The workspace's first data year: no bound goes before it. */
   minYear: number;
   onChange: (range: { from: number; to: number }) => void;
+  onDisplayChange?: (display: MultiYearDisplayMode) => void;
   to: number;
 }
 
@@ -23,11 +29,13 @@ function yearRange(min: number, max: number): number[] {
 
 /** Two bounded selects: the options themselves never allow `from > to` or a span over 15 years. */
 export function YearRangeSelector({
+  display,
   error,
   from,
   maxYear,
   minYear,
   onChange,
+  onDisplayChange,
   to,
 }: YearRangeSelectorProps) {
   const { t } = useTranslation();
@@ -44,33 +52,65 @@ export function YearRangeSelector({
 
   return (
     <div className={`card ${styles.selector}`}>
-      <div className={styles.field}>
-        <label htmlFor="multi-year-range-from">{t('reports.multiYear.from')}</label>
-        <select
-          id="multi-year-range-from"
-          onChange={(event) => changeFrom(Number(event.target.value))}
-          value={from}
-        >
-          {fromOptions.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className={styles.field}>
-        <label htmlFor="multi-year-range-to">{t('reports.multiYear.to')}</label>
-        <select
-          id="multi-year-range-to"
-          onChange={(event) => changeTo(Number(event.target.value))}
-          value={to}
-        >
-          {toOptions.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
+      <div className={styles.row}>
+        <div className={styles.fields}>
+          <div className={styles.field}>
+            <label htmlFor="multi-year-range-from">{t('reports.multiYear.from')}</label>
+            <select
+              id="multi-year-range-from"
+              onChange={(event) => changeFrom(Number(event.target.value))}
+              value={from}
+            >
+              {fromOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="multi-year-range-to">{t('reports.multiYear.to')}</label>
+            <select
+              id="multi-year-range-to"
+              onChange={(event) => changeTo(Number(event.target.value))}
+              value={to}
+            >
+              {toOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {display && onDisplayChange ? (
+          <div
+            aria-label={t('reports.multiYear.displayMode')}
+            className={styles.displayModes}
+            role="group"
+          >
+            <button
+              aria-label={t('reports.multiYear.compact')}
+              aria-pressed={display === 'compact'}
+              disabled={display === 'compact'}
+              onClick={() => onDisplayChange('compact')}
+              title={t('reports.multiYear.compact')}
+              type="button"
+            >
+              <Icon name="menu" size={16} />
+            </button>
+            <button
+              aria-label={t('reports.multiYear.detailed')}
+              aria-pressed={display === 'detailed'}
+              disabled={display === 'detailed'}
+              onClick={() => onDisplayChange('detailed')}
+              title={t('reports.multiYear.detailed')}
+              type="button"
+            >
+              <Icon name="catalog" size={16} />
+            </button>
+          </div>
+        ) : null}
       </div>
       {error ? (
         <p className={styles.error} role="alert">

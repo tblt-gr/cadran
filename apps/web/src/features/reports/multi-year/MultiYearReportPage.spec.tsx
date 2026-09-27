@@ -249,12 +249,12 @@ describe('MultiYearReportPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
 
     const table = await screen.findByRole('table', { name: /rapport détaillé 2024-2026/i });
-    const rows = within(table).getAllByRole('row');
-    expect(rows).toHaveLength(37);
-    expect(rows[1]?.textContent).toMatch(/janvier 2024/i);
-    expect(rows[12]?.textContent).toMatch(/décembre 2024/i);
-    expect(rows[13]?.textContent).toMatch(/janvier 2025/i);
-    expect(rows[36]?.textContent).toMatch(/décembre 2026/i);
+    const rows = within(table.querySelector('tbody')!).getAllByRole('row');
+    expect(rows).toHaveLength(36);
+    expect(rows[0]?.textContent).toMatch(/janvier 2024/i);
+    expect(rows[11]?.textContent).toMatch(/décembre 2024/i);
+    expect(rows[12]?.textContent).toMatch(/janvier 2025/i);
+    expect(rows[35]?.textContent).toMatch(/décembre 2026/i);
     expect(screen.getAllByText(/voir les données/i).length).toBeGreaterThanOrEqual(1);
     const alternatives = [...document.querySelectorAll('details table')];
     expect(alternatives).toHaveLength(2);

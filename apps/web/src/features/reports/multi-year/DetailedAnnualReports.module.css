@@ -1,5 +1,10 @@
+/* `minmax(0, 1fr)`, not a bare `1fr`: a CSS Grid item's implicit `min-width: auto`
+   otherwise lets the wide detailed table push this whole track past the viewport
+   instead of triggering its own horizontal scroll (the compact table avoids this
+   only because it sits directly in `.page`, which already sets this same track). */
 .reports {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-8);
 }
 .reports > section {

@@ -9903,6 +9903,56 @@ components:
           oneOf:
             - { $ref: '#/components/schemas/MultiYearExtreme' }
             - { type: 'null' }
+    MultiYearDetailedExtreme:
+      description: One extreme month of the whole detailed period.
+      type: object
+      additionalProperties: false
+      required: [value, month]
+      properties:
+        value: { type: string }
+        month:
+          description: The `YYYY-MM` of the extreme month.
+          type: string
+    MultiYearDetailedAggregate:
+      description: >-
+        The whole selected detailed period for one column, over every month of every year of the
+        range (not only the `COMPLETE` years the summary row is restricted to): total, average,
+        median, minimum and maximum, respecting flow, stock and rate semantics and the selected
+        `incompleteMonths` setting. `total` is null with `NOT_ADDITIVE` for a stock column, which
+        has no sum. A column whose months mix policy versions or assets is null throughout, with
+        `MIXED_METRIC_POLICIES` or `MIXED_ASSETS`.
+      type: object
+      additionalProperties: false
+      required:
+        [
+          total,
+          totalReason,
+          average,
+          averageReason,
+          median,
+          medianReason,
+          minimum,
+          maximum,
+          extremesReason,
+          quality,
+        ]
+      properties:
+        total: { type: [string, 'null'] }
+        totalReason: { type: [string, 'null'] }
+        average: { type: [string, 'null'] }
+        averageReason: { type: [string, 'null'] }
+        median: { type: [string, 'null'] }
+        medianReason: { type: [string, 'null'] }
+        minimum:
+          oneOf:
+            - { $ref: '#/components/schemas/MultiYearDetailedExtreme' }
+            - { type: 'null' }
+        maximum:
+          oneOf:
+            - { $ref: '#/components/schemas/MultiYearDetailedExtreme' }
+            - { type: 'null' }
+        extremesReason: { type: [string, 'null'] }
+        quality: { $ref: '#/components/schemas/AnnualAggregateQuality' }
     MultiYearReport:
       type: object
       additionalProperties: false
@@ -9917,6 +9967,7 @@ components:
           years,
           summary,
           quality,
+          detailedPeriod,
         ]
       properties:
         from: { type: integer }
@@ -9941,6 +9992,10 @@ components:
           type: object
           additionalProperties: { $ref: '#/components/schemas/MultiYearSummaryCell' }
         quality: { $ref: '#/components/schemas/AnnualAggregateQuality' }
+        detailedPeriod:
+          description: The whole detailed period's aggregate, one entry per column, by column id.
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/MultiYearDetailedAggregate' }
     NetWorthReason:
       description: >-
         Why a net-worth figure, a delta or a change rate could not be produced.

@@ -1,6 +1,6 @@
 import type { AnnualReport, MultiYearReport } from '@cadran/api-client';
 import { useQueries } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnnualRequestError } from '@/features/reports/annual/useAnnualReport';
 import { annualReportQueryOptions } from '@/features/reports/annual/useAnnualReport';
@@ -8,12 +8,17 @@ import { ContinuousDetailedReport } from './ContinuousDetailedReport';
 import styles from './DetailedAnnualReports.module.css';
 
 interface DetailedAnnualReportsProps {
+  actions?: ReactNode;
   onReportsReady: (reports: AnnualReport[] | null) => void;
   report: MultiYearReport;
 }
 
 /** Reuses annual endpoints, then flattens their server-supplied monthly rows into one chronology. */
-export function DetailedAnnualReports({ onReportsReady, report }: DetailedAnnualReportsProps) {
+export function DetailedAnnualReports({
+  actions,
+  onReportsReady,
+  report,
+}: DetailedAnnualReportsProps) {
   const { t } = useTranslation();
   const results = useQueries({
     queries: report.years.map((year) => annualReportQueryOptions(year.year)),
@@ -64,7 +69,7 @@ export function DetailedAnnualReports({ onReportsReady, report }: DetailedAnnual
 
   return (
     <div className={styles.reports}>
-      <ContinuousDetailedReport annualReports={annualReports} report={report} />
+      <ContinuousDetailedReport actions={actions} annualReports={annualReports} report={report} />
     </div>
   );
 }

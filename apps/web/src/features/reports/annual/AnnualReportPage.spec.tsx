@@ -249,7 +249,7 @@ describe('AnnualReportPage', () => {
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
     const header = screen.getByRole('heading', { name: 'Rapport annuel 2026' }).parentElement!;
     const columns = within(header).getByRole('button', { name: 'Colonnes' });
-    expect(columns.classList.contains('icon-button')).toBe(true);
+    expect(columns.classList.contains('icon-ghost')).toBe(true);
     expect(columns.getAttribute('title')).toBe('Colonnes');
     expect(within(header).getByRole('button', { name: /mois incomplets/i })).toBeTruthy();
     expect(table.parentElement?.contains(columns)).toBe(false);

@@ -7,9 +7,10 @@ namespace App\Module\Reporting\Application;
 final readonly class MultiYearReportView
 {
     /**
-     * @param list<AnnualColumnView>                  $columns
-     * @param list<MultiYearYearView>                 $years
-     * @param array<string, MultiYearSummaryCellView> $summary by column id
+     * @param list<AnnualColumnView>                        $columns
+     * @param list<MultiYearYearView>                       $years
+     * @param array<string, MultiYearSummaryCellView>       $summary        by column id
+     * @param array<string, MultiYearDetailedAggregateView> $detailedPeriod by column id
      */
     public function __construct(
         public int $from,
@@ -21,6 +22,7 @@ final readonly class MultiYearReportView
         public array $years,
         public array $summary,
         public string $quality,
+        public array $detailedPeriod,
     ) {
     }
 }

@@ -19,3 +19,14 @@
   border-color: var(--gold-300);
   color: var(--gold-300);
 }
+.tabs span[aria-disabled='true'] {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: var(--spacing-2) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-button);
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: not-allowed;
+}
