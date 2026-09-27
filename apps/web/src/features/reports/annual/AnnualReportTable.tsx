@@ -12,22 +12,28 @@ interface AnnualReportTableProps {
   /** Table-level controls, shown to the right of the title. */
   actions?: ReactNode;
   onExplain: (columnId: string) => void;
+  titleId?: string;
   report: AnnualReport;
 }
 
-export function AnnualReportTable({ actions, onExplain, report }: AnnualReportTableProps) {
+export function AnnualReportTable({
+  actions,
+  onExplain,
+  report,
+  titleId = 'annual-table-title',
+}: AnnualReportTableProps) {
   const { t, i18n } = useTranslation();
 
   return (
-    <section aria-labelledby="annual-table-title" className={`card ${styles.wrap}`}>
+    <section aria-labelledby={titleId} className={`card ${styles.wrap}`}>
       <header className={styles.header}>
-        <h2 className={styles.title} id="annual-table-title">
+        <h2 className={styles.title} id={titleId}>
           {t('reports.annual.caption', { year: report.year })}
         </h2>
         {actions ? <div className={styles.actions}>{actions}</div> : null}
       </header>
       <div className={styles.scroll}>
-        <table aria-labelledby="annual-table-title" className={styles.table}>
+        <table aria-labelledby={titleId} className={styles.table}>
           <thead>
             <tr>
               <th scope="col">{t('reports.annual.month')}</th>
@@ -91,6 +97,7 @@ export function AnnualReportTable({ actions, onExplain, report }: AnnualReportTa
                       {rowId === 'total' && figure.value !== null ? (
                         <InfoButton
                           aria-haspopup="dialog"
+                          className={styles.explain}
                           label={t('reports.annual.explainColumn', { column: column.label })}
                           onClick={() => onExplain(column.id)}
                         />

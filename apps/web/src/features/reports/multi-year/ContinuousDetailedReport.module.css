@@ -1,0 +1,35 @@
+/* Scoped to the multi-year detailed table only: the annual per-year table (AnnualReportTable)
+   shares AnnualReportTable.module.css's `.scroll`/`.table` classes but keeps its own natural
+   height. This table alone flattens years of rows, so it alone gets a vertical scroll clamp,
+   added onto the same element as `.scroll`'s overflow-x — not a separate wrapping div — so the
+   horizontal scrollbar sits at the bottom of the 480px visible viewport (always reachable)
+   rather than at the bottom of the full, much taller table content. */
+.verticalScroll {
+  min-width: 0;
+  max-height: 480px;
+  overflow-y: auto;
+}
+/* The column header stays visible while scrolling the ~180 body rows of a long range
+   vertically. `z-index` keeps it above body cells; the sticky first column
+   (AnnualReportTable.module.css) already uses z-index 1/2, so the header cell needs at
+   least 2 to stay above scrolled-under body cells too.
+   The footer's 5 aggregate rows are NOT sticky: `position: sticky; bottom: 0` on every
+   one of them pins them all to the same spot, so they overlap instead of stacking as
+   you scroll. Making a multi-row footer stick correctly needs each row offset by the
+   height of the rows below it, which is not worth it here — the footer stays reachable
+   by scrolling to the end, like any other row. */
+.verticalScroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-surface-1);
+}
+.verticalScroll thead th:first-child {
+  z-index: 3;
+}
+/* A stronger bottom border marks the last row of each year (its December row, rendered even when
+   that month is FUTURE or NO_DATA) so the continuous chronology still reads as distinct years. */
+.yearBoundary th,
+.yearBoundary td {
+  border-bottom: var(--border-line-strong);
+}

@@ -1,0 +1,15 @@
+.state {
+  display: grid;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6);
+}
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: var(--spacing-none) var(--spacing-2);
+}
+.row td {
+  height: var(--spacing-6);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface-2);
+}

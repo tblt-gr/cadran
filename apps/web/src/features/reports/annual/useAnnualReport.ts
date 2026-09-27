@@ -24,16 +24,20 @@ function requestError(result: { response?: Response }) {
   return new AnnualRequestError(result.response?.status ?? 0);
 }
 
-export function useAnnualReport(year: number) {
-  return useQuery({
+export function annualReportQueryOptions(year: number) {
+  return {
     queryKey: ['annual-report', year],
-    queryFn: async ({ signal }) => {
+    queryFn: async ({ signal }: { signal: AbortSignal }) => {
       const result = await readAnnualReport({ ...authApiOptions(), path: { year }, signal });
       if (!result.response?.ok || !result.data) throw requestError(result);
       return result.data;
     },
     retry: false,
-  });
+  };
+}
+
+export function useAnnualReport(year: number) {
+  return useQuery(annualReportQueryOptions(year));
 }
 
 export function useAnnualReportPreferences() {
@@ -69,6 +73,7 @@ export function useSaveAnnualReportPreferences() {
     onSuccess: (data) => {
       queryClient.setQueryData(ANNUAL_PREFERENCES_QUERY_KEY, data);
       void queryClient.invalidateQueries({ queryKey: ['annual-report'] });
+      void queryClient.invalidateQueries({ queryKey: ['multi-year-report'] });
     },
   });
 }

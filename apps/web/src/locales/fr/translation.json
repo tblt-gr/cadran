@@ -125,6 +125,7 @@
   "reports": {
     "title": "Rapports",
     "month": "Mois",
+    "monthlyTitle": "Rapport mensuel {{month}}",
     "loading": "Chargement du rapport…",
     "empty": "Aucun mouvement comptabilisé pour ce mois",
     "error": "Le rapport est indisponible",
@@ -174,7 +175,8 @@
       "label": "Type de rapport",
       "monthly": "Mensuel",
       "annual": "Annuel",
-      "allYears": "Pluriannuel"
+      "allYears": "Pluriannuel",
+      "allYearsNeedsHistory": "Nécessite au moins deux années de données"
     },
     "annual": {
       "title": "Rapport annuel",
@@ -196,6 +198,7 @@
         "STOCK_NOT_ADDITIVE": "Un solde ne s’additionne pas",
         "MIXED_ASSETS": "Actifs mélangés",
         "MISSING_VALUATION": "Valorisation manquante",
+        "MISSING_MONTH_VALUE": "Mois manquant",
         "NO_DATA": "Aucune donnée"
       },
       "indicators": {
@@ -225,9 +228,6 @@
       "cardsLabel": "Mois de {{year}}",
       "explainColumn": "Expliquer les agrégats : {{column}}",
       "yearNavigation": "Année",
-      "previousYear": "Année précédente",
-      "previousYearEmpty": "Aucune donnée pour l'année précédente.",
-      "nextYear": "Année suivante",
       "columns": "Colonnes",
       "incompleteLabel": "Mois incomplets",
       "incompleteMonths": "Mois incomplets : {{state}}",
@@ -273,6 +273,48 @@
         "donut": "Diagramme en anneau",
         "showMore": "Voir plus",
         "showLess": "Voir moins"
+      }
+    },
+    "multiYear": {
+      "title": "Rapport pluriannuel",
+      "caption": "Rapport pluriannuel {{from}}-{{to}}",
+      "year": "Année",
+      "policy": "Politique",
+      "mixedPolicy": "Mixte",
+      "partial": "(partielle)",
+      "snapshotAndLive": "{{snapshot}} mois clôturés, {{live}} en direct",
+      "change": "Évolution sur un an",
+      "changeRatio": "Évolution en pourcentage",
+      "cardsLabel": "Rapport pluriannuel",
+      "empty": "Aucune donnée pour cet espace",
+      "invalidRange": "Cette période n’est pas disponible : elle dépasse 15 ans ou l’année de départ est postérieure à l’année de fin.",
+      "from": "Depuis",
+      "to": "Jusqu'à",
+      "displayMode": "Mode d’affichage",
+      "compact": "Vue compacte",
+      "detailed": "Vue détaillée",
+      "detailedCaption": "Rapport détaillé {{from}}-{{to}}",
+      "detailedCardsLabel": "Mois de {{from}} à {{to}}",
+      "detailedSummaryCard": "Synthèse de la période détaillée",
+      "detailedMixedPolicy": "Cette période couvre plusieurs versions de la politique d’indicateurs. Les valeurs restent rattachées à leur année d’origine.",
+      "summary": {
+        "average": "Moyenne des années complètes",
+        "minimum": "Minimum",
+        "maximum": "Maximum"
+      },
+      "reasons": {
+        "PARTIAL_YEAR": "Année partielle",
+        "POLICY_MISMATCH": "Politique différente l’année précédente",
+        "ZERO_BASE": "Valeur nulle l’année précédente",
+        "NEGATIVE_BASE": "Valeur négative l’année précédente",
+        "EMPTY_POPULATION": "Aucune année complète",
+        "MIXED_METRIC_POLICIES": "Politiques d’indicateurs différentes",
+        "ACCOUNT_NOT_OPEN": "Compte non ouvert cette année-là"
+      },
+      "charts": {
+        "flows": "Flux annuels",
+        "netWorth": "Patrimoine net",
+        "unavailable": "Ajoutez les colonnes correspondantes pour afficher ce graphique."
       }
     }
   },

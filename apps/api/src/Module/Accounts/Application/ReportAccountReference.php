@@ -12,6 +12,7 @@ final readonly class ReportAccountReference
         public string $kind,
         public bool $includeInNetWorth,
         public bool $archived,
+        public string $openedOn,
     ) {
     }
 }

@@ -32,10 +32,17 @@ export function prefersReducedMotion(): boolean {
 
 export const FLOW_SERIES_IDS = ['cashIncome', 'budgetExpenses', 'budgetSurplus'] as const;
 
-/** One shared scale for all flow series, so bar heights stay comparable across series. */
+/** One shared scale for the income/expense bars and surplus trajectory; expenses always sit below zero. */
 export function flowChartData(months: AnnualFlowMonth[]) {
   const scaled = scaleForGeometry(
-    months.flatMap((month) => FLOW_SERIES_IDS.map((id) => month[id].value)),
+    months.flatMap((month) =>
+      FLOW_SERIES_IDS.map((id) => {
+        const value = month[id].value;
+        return id === 'budgetExpenses' && value !== null && !value.startsWith('-')
+          ? `-${value}`
+          : value;
+      }),
+    ),
   );
   return months.map((month, index) => ({
     month: month.month.slice(5),

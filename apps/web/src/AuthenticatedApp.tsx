@@ -1,7 +1,6 @@
 import { getFoundationStatus } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
 import { DashboardContextPanel } from '@/features/dashboard/context-panel/DashboardContextPanel';
@@ -11,7 +10,6 @@ import { FoundationErrorState } from '@/features/foundation/FoundationErrorState
 import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
-import { getRouteTitleKey } from '@/lib/navigation';
 import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from './AuthenticatedApp.routes';
 
 /**
@@ -19,7 +17,6 @@ import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from './Authenticat
  * probe. Rendered by AuthGate only for an authenticated request.
  */
 export function AuthenticatedApp() {
-  const { t } = useTranslation();
   const [path, setPath] = useState(() => window.location.pathname);
   // AuthGate only renders this tree once the session query already resolved
   // to an authenticated, workspace-bound user, so this read is a cache hit:
@@ -51,11 +48,6 @@ export function AuthenticatedApp() {
     window.addEventListener('popstate', updatePath);
     return () => window.removeEventListener('popstate', updatePath);
   }, []);
-
-  useEffect(() => {
-    const routeTitle = t(getRouteTitleKey(path));
-    document.title = path === '/' ? t('app.name') : `${routeTitle} · ${t('app.name')}`;
-  }, [path, t]);
 
   let content;
   if (matched) {

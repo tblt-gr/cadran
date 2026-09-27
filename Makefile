@@ -1,4 +1,4 @@
-.PHONY: init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
+.PHONY: demo-seed init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 COMPOSE := docker compose --env-file $(COMPOSE_ENV)
@@ -40,6 +40,14 @@ down:
 migrate:
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) run --rm --no-deps app php apps/api/bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+# Dev only: fill an empty workspace with a realistic multi-year ledger. Runs in the
+# tooling container (APP_ENV=dev) against the local database; pass EMAIL=... to
+# target another owner than the provisioned one.
+demo-seed: tools
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait db
+	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console --no-debug app:demo:seed $(EMAIL)
 
 # One-time: create the first owner, their isolated workspace, the OWNER
 # membership and the account password. Every value is prompted for, so no

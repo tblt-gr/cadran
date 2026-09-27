@@ -1,0 +1,17 @@
+/* `align-content: start`: the shell's `main` stretches to the viewport height
+   so a short page still fills the background (see AppShell.module.css), but
+   without this, that leftover height distributes across every row of this
+   grid by default — including the tabs bar above `content` — stretching the
+   nav buttons to whatever the empty state leaves free. */
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-width: 0;
+  gap: var(--spacing-4);
+}
+.state {
+  display: grid;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6);
+}

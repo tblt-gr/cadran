@@ -1,69 +1,49 @@
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { useMultiYearReport } from '@/features/reports/multi-year/useMultiYearReport';
 import styles from './AnnualYearNavigator.module.css';
 
 interface AnnualYearNavigatorProps {
   currentYear: number;
-  previousYearHasData: boolean;
   year: number;
 }
 
-/** Round previous/next controls around the year, in the same family as the Budget month navigator. */
-export function AnnualYearNavigator({
-  currentYear,
-  previousYearHasData,
-  year,
-}: AnnualYearNavigatorProps) {
+/**
+ * Every available year, newest first, in the same family as the Budget month
+ * tabs: horizontal scroll when the range overflows, active year in gold and
+ * the current year in a distinct colour.
+ */
+export function AnnualYearNavigator({ currentYear, year }: AnnualYearNavigatorProps) {
   const { t } = useTranslation();
-  const previous = `/reports/annual/${year - 1}`;
-  const next = `/reports/annual/${year + 1}`;
+  // Unparameterized: the backend's own default bounds carry `availableFrom`,
+  // the workspace's first data year. While they load, the selected year and
+  // the current year are enough for a stable list.
+  const bounds = useMultiYearReport();
+  const minYear = Math.min(bounds.data?.availableFrom ?? year, year, currentYear);
+  const years: number[] = [];
+  for (let candidate = currentYear; candidate >= minYear; candidate -= 1) {
+    years.push(candidate);
+  }
 
   return (
-    <nav aria-label={t('reports.annual.yearNavigation')} className={styles.navigator}>
-      {previousYearHasData ? (
-        <a
-          aria-label={t('reports.annual.previousYear')}
-          className={`icon-button ${styles.step}`}
-          href={previous}
-          onClick={(event) => handleClientNavigation(event, previous)}
-          title={t('reports.annual.previousYear')}
-        >
-          <Icon name="chevron-left" size={16} />
-        </a>
-      ) : (
-        <span
-          aria-describedby="annual-previous-year-hint"
-          aria-disabled="true"
-          className={`icon-button ${styles.step}`}
-          title={t('reports.annual.previousYearEmpty')}
-        >
-          <Icon name="chevron-left" size={16} />
-          <span className="sr-only">{t('reports.annual.previousYear')}</span>
-          <span className="sr-only" id="annual-previous-year-hint">
-            {t('reports.annual.previousYearEmpty')}
-          </span>
-        </span>
-      )}
-      <strong aria-current="page" className={styles.year}>
-        {year}
-      </strong>
-      {year >= currentYear ? (
-        <span aria-disabled="true" className={`icon-button ${styles.step}`}>
-          <Icon name="chevron-right" size={16} />
-          <span className="sr-only">{t('reports.annual.nextYear')}</span>
-        </span>
-      ) : (
-        <a
-          aria-label={t('reports.annual.nextYear')}
-          className={`icon-button ${styles.step}`}
-          href={next}
-          onClick={(event) => handleClientNavigation(event, next)}
-          title={t('reports.annual.nextYear')}
-        >
-          <Icon name="chevron-right" size={16} />
-        </a>
-      )}
+    <nav aria-label={t('reports.annual.yearNavigation')} className={styles.years}>
+      {years.map((candidate) => {
+        const href = `/reports/annual/${candidate}`;
+        const active = candidate === year;
+        return (
+          <a
+            aria-current={active ? 'page' : undefined}
+            className={
+              active ? styles.active : candidate === currentYear ? styles.current : undefined
+            }
+            href={href}
+            key={candidate}
+            onClick={(event) => handleClientNavigation(event, href)}
+          >
+            {candidate}
+          </a>
+        );
+      })}
     </nav>
   );
 }

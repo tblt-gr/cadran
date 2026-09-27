@@ -1,5 +1,5 @@
 import type { AnnualCell, AnnualFlows } from '@cadran/api-client';
-import { Bar, BarChart, Tooltip, XAxis } from 'recharts';
+import { Bar, ComposedChart, Line, Tooltip, XAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import styles from './AnnualCharts.module.css';
 import { useBoxSize } from '@/hooks/use-box-size';
@@ -7,10 +7,23 @@ import { formatAnnualValue } from './annualFormat';
 import { ExactTooltip } from './ExactTooltip';
 import { FLOW_SERIES_IDS, flowChartData, prefersReducedMotion } from './chartGeometry';
 
-const COLORS = {
+export const FLOW_CHART_COLORS = {
   cashIncome: 'var(--positive)',
   budgetExpenses: 'var(--negative)',
-  budgetSurplus: 'var(--gold-300)',
+  budgetSurplus: 'var(--chart-allocation-1)',
+} as const;
+
+export const FLOW_BAR_SERIES = [
+  { dataKey: 'cashIncome', fill: FLOW_CHART_COLORS.cashIncome, stackId: 'flows' },
+  { dataKey: 'budgetExpenses', fill: FLOW_CHART_COLORS.budgetExpenses, stackId: 'flows' },
+] as const;
+
+/** Recharts' positive/negative stack keeps one time bucket on either side of zero. */
+export const FLOW_CHART_STACK_OFFSET = 'sign' as const;
+
+export const FLOW_SURPLUS_SERIES = {
+  dataKey: 'budgetSurplus',
+  stroke: FLOW_CHART_COLORS.budgetSurplus,
 } as const;
 
 function exact(cell: AnnualCell, assetCode: string | null, locale: string, reasonText: string) {
@@ -35,25 +48,34 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
   return (
     <div ref={ref} className={styles.flows}>
       {size.width > 0 ? (
-        <BarChart
+        <ComposedChart
           accessibilityLayer
           data={data}
           height={220}
           role="img"
+          stackOffset={FLOW_CHART_STACK_OFFSET}
           title={t('reports.annual.charts.flows')}
           width={size.width}
         >
           <XAxis dataKey="month" />
           <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
-          {FLOW_SERIES_IDS.map((id) => (
+          {FLOW_BAR_SERIES.map((series) => (
             <Bar
-              dataKey={id}
-              fill={COLORS[id]}
+              dataKey={series.dataKey}
+              fill={series.fill}
               isAnimationActive={!prefersReducedMotion()}
-              key={id}
+              key={series.dataKey}
+              stackId={series.stackId}
             />
           ))}
-        </BarChart>
+          <Line
+            dataKey={FLOW_SURPLUS_SERIES.dataKey}
+            dot={false}
+            isAnimationActive={!prefersReducedMotion()}
+            stroke={FLOW_SURPLUS_SERIES.stroke}
+            type="monotone"
+          />
+        </ComposedChart>
       ) : null}
     </div>
   );

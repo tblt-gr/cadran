@@ -1,0 +1,31 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-4);
+}
+.chart {
+  display: grid;
+  gap: var(--spacing-3);
+}
+.plot {
+  min-height: 220px;
+}
+.flows {
+  width: 100%;
+}
+.netWorth {
+  width: 100%;
+}
+.data {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.data th,
+.data td {
+  padding: var(--spacing-1) var(--spacing-2);
+  text-align: right;
+}
+.data th:first-child,
+.data td:first-child {
+  text-align: left;
+}

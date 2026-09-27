@@ -2,11 +2,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import {
+  HeaderTitleProvider,
+  useHeaderTitleValue,
+} from '@/components/layout/header/HeaderTitleContext';
 import { annualPreferences, annualReport } from './annualFixtures';
 import { AnnualReportPage } from './AnnualReportPage';
 
 const api = vi.hoisted(() => ({
   readAnnualReport: vi.fn(),
+  readMultiYearReport: vi.fn(),
   readAnnualReportPreferences: vi.fn(),
   saveAnnualReportPreferences: vi.fn(),
   explainAnnualReportColumn: vi.fn(),
@@ -25,17 +30,25 @@ function ok<T>(data: T) {
 function failure(status: number) {
   return { data: undefined, response: { ok: false, status } };
 }
+function HeaderTitleProbe({ path }: { path: string }) {
+  return <span data-testid="header-title">{useHeaderTitleValue(path)}</span>;
+}
+
 function renderPage(year = 2026) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <AnnualReportPage today="2026-09-24" year={year} />
+      <HeaderTitleProvider>
+        <AnnualReportPage today="2026-09-24" year={year} />
+        <HeaderTitleProbe path={`/reports/annual/${year}`} />
+      </HeaderTitleProvider>
     </QueryClientProvider>,
   );
 }
 
 beforeEach(() => {
   api.readAnnualReport.mockResolvedValue(ok(annualReport));
+  api.readMultiYearReport.mockResolvedValue(ok({ availableFrom: 2024, from: 2024, to: 2026 }));
   api.readAnnualReportPreferences.mockResolvedValue(ok(annualPreferences));
   api.saveAnnualReportPreferences.mockResolvedValue(ok({ ...annualPreferences, version: 4 }));
   api.listCategories.mockResolvedValue(ok({ items: [], total: 0 }));
@@ -48,23 +61,27 @@ afterEach(() => {
 });
 
 describe('AnnualReportPage', () => {
-  it('disables the previous-year link when the year before has no data', async () => {
-    api.readAnnualReport.mockResolvedValue(ok({ ...annualReport, previousYearHasData: false }));
+  it('lists every year from the current year down to the first data year, newest first', async () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport annuel 2026/i });
-    expect(screen.queryByRole('link', { name: 'Année précédente' })).toBeNull();
-    const disabled = screen.getByText(/^Année précédente/).closest('[aria-disabled]')!;
-    expect(disabled.getAttribute('aria-disabled')).toBe('true');
-    const hint = document.getElementById(disabled.getAttribute('aria-describedby') ?? '');
-    expect(hint?.textContent).toMatch(/aucune donnée/i);
+    expect(screen.getByTestId('header-title').textContent).toBe('Rapport annuel 2026');
+    const nav = screen.getByRole('navigation', { name: 'Année' });
+    const links = within(nav).getAllByRole('link');
+    expect(links.map((link) => link.textContent)).toEqual(['2026', '2025', '2024']);
+    expect(links[1]?.getAttribute('href')).toBe('/reports/annual/2025');
   });
 
-  it('keeps the previous-year link when the year before has data', async () => {
-    renderPage();
-    await screen.findByRole('table', { name: /rapport annuel 2026/i });
-    expect(screen.getByRole('link', { name: 'Année précédente' }).getAttribute('href')).toBe(
-      '/reports/annual/2025',
-    );
+  it('marks the selected year as the current page and the current year distinctly', async () => {
+    renderPage(2025);
+    await screen.findByRole('table', { name: /rapport annuel/i });
+    expect(screen.getByTestId('header-title').textContent).toBe('Rapport annuel 2025');
+    const selected = screen.getByRole('link', { name: '2025' });
+    expect(selected.getAttribute('aria-current')).toBe('page');
+    expect(selected.className).toContain('active');
+    const current = screen.getByRole('link', { name: '2026' });
+    expect(current.getAttribute('aria-current')).toBeNull();
+    expect(current.className).toContain('current');
+    expect(screen.getByRole('link', { name: '2024' }).className).toBe('');
   });
 
   it('renders exact amounts and rates, and a dash with a hidden reason for empty cells', async () => {
@@ -249,7 +266,7 @@ describe('AnnualReportPage', () => {
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
     const header = screen.getByRole('heading', { name: 'Rapport annuel 2026' }).parentElement!;
     const columns = within(header).getByRole('button', { name: 'Colonnes' });
-    expect(columns.classList.contains('icon-button')).toBe(true);
+    expect(columns.classList.contains('icon-ghost')).toBe(true);
     expect(columns.getAttribute('title')).toBe('Colonnes');
     expect(within(header).getByRole('button', { name: /mois incomplets/i })).toBeTruthy();
     expect(table.parentElement?.contains(columns)).toBe(false);

@@ -63,6 +63,7 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
                 {aggregate.total !== null ? (
                   <InfoButton
                     aria-haspopup="dialog"
+                    className={styles.explain}
                     label={t('reports.annual.explainColumn', { column: column.label })}
                     onClick={() => onExplain(column.id)}
                   />

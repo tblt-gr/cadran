@@ -97,6 +97,14 @@ final class ExactDecimal
         return (string) BigDecimal::of($left)->plus(BigDecimal::of($right));
     }
 
+    /** Divides API-only calculated decimals without applying the storage integer width. */
+    public static function divideForResponse(string $numerator, string $denominator, int $scale = DecimalValue::MAX_SCALE): string
+    {
+        $precision = max(0, $scale);
+
+        return (string) BigDecimal::of($numerator)->dividedBy(BigDecimal::of($denominator), $precision, BrickRoundingMode::HalfUp);
+    }
+
     /** Negates an API-only calculated decimal while preserving its scale. */
     public static function negateForResponse(string $value): string
     {

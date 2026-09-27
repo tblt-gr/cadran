@@ -1,0 +1,32 @@
+.months {
+  display: flex;
+  gap: var(--spacing-1);
+  min-height: var(--control-height);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-1);
+}
+.months button {
+  min-width: max-content;
+  border: var(--border-none);
+  border-radius: var(--radius-control);
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  background: var(--color-transparent);
+  font-family: inherit;
+  cursor: pointer;
+}
+.months button:hover,
+.months button:focus-visible {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+.months button.current {
+  color: var(--text-primary);
+}
+.months button.active {
+  background: var(--color-transparent);
+  color: var(--gold-300);
+}
