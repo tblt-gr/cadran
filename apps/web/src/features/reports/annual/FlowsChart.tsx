@@ -13,6 +13,15 @@ export const FLOW_CHART_COLORS = {
   budgetSurplus: 'var(--chart-allocation-1)',
 } as const;
 
+export const FLOW_BAR_SERIES = [
+  { dataKey: 'cashIncome', fill: FLOW_CHART_COLORS.cashIncome, stackId: 'flows' },
+  { dataKey: 'budgetExpenses', fill: FLOW_CHART_COLORS.budgetExpenses, stackId: 'flows' },
+] as const;
+
+export const FLOW_SURPLUS_SERIES = {
+  dataKey: 'budgetSurplus', stroke: FLOW_CHART_COLORS.budgetSurplus,
+} as const;
+
 function exact(cell: AnnualCell, assetCode: string | null, locale: string, reasonText: string) {
   return cell.value === null
     ? reasonText
@@ -45,19 +54,20 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
         >
           <XAxis dataKey="month" />
           <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
-          {FLOW_SERIES_IDS.filter((id) => id !== 'budgetSurplus').map((id) => (
+          {FLOW_BAR_SERIES.map((series) => (
             <Bar
-              dataKey={id}
-              fill={FLOW_CHART_COLORS[id]}
+              dataKey={series.dataKey}
+              fill={series.fill}
               isAnimationActive={!prefersReducedMotion()}
-              key={id}
+              key={series.dataKey}
+              stackId={series.stackId}
             />
           ))}
           <Line
-            dataKey="budgetSurplus"
+            dataKey={FLOW_SURPLUS_SERIES.dataKey}
             dot={false}
             isAnimationActive={!prefersReducedMotion()}
-            stroke={FLOW_CHART_COLORS.budgetSurplus}
+            stroke={FLOW_SURPLUS_SERIES.stroke}
             type="monotone"
           />
         </ComposedChart>

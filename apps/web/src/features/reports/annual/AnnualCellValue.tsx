@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAnnualValue } from './annualFormat';
-import styles from './PerformanceValue.module.css';
 
 interface AnnualCellValueProps {
   assetCode: string | null;
@@ -23,10 +22,5 @@ export function AnnualCellValue({ assetCode, kind, reason, value }: AnnualCellVa
   }
   const text = formatAnnualValue(value, kind, assetCode, i18n.language);
 
-  const tone = value.startsWith('-')
-    ? styles.negative
-    : value === '0'
-      ? styles.zero
-      : styles.positive;
-  return <span className={tone}>{text}</span>;
+  return <span>{text}</span>;
 }

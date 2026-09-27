@@ -6,7 +6,10 @@ import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { ChartFrame } from '@/features/reports/annual/ChartFrame';
 import { ExactTooltip } from '@/features/reports/annual/ExactTooltip';
-import { FLOW_CHART_COLORS } from '@/features/reports/annual/FlowsChart';
+import {
+  FLOW_BAR_SERIES,
+  FLOW_SURPLUS_SERIES,
+} from '@/features/reports/annual/FlowsChart';
 import { scaleForGeometry, prefersReducedMotion } from '@/features/reports/annual/chartGeometry';
 import { formatAnnualValue } from '@/features/reports/annual/annualFormat';
 import { monthLabel } from '@/features/reports/annual/annualRowLabels';
@@ -135,19 +138,20 @@ function MultiYearFlowsChart({ annualReports, report }: MultiYearChartsProps) {
         >
           <XAxis dataKey="year" />
           <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
-          {FLOW_SERIES_IDS.filter((id) => id !== 'budgetSurplus').map((id) => (
+          {FLOW_BAR_SERIES.map((series) => (
             <Bar
-              dataKey={id}
-              fill={FLOW_CHART_COLORS[id]}
+              dataKey={series.dataKey}
+              fill={series.fill}
               isAnimationActive={!prefersReducedMotion()}
-              key={id}
+              key={series.dataKey}
+              stackId={series.stackId}
             />
           ))}
           <Line
-            dataKey="budgetSurplus"
+            dataKey={FLOW_SURPLUS_SERIES.dataKey}
             dot={false}
             isAnimationActive={!prefersReducedMotion()}
-            stroke={FLOW_CHART_COLORS.budgetSurplus}
+            stroke={FLOW_SURPLUS_SERIES.stroke}
             type="monotone"
           />
         </ComposedChart>

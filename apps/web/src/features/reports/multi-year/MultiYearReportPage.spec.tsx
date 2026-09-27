@@ -276,6 +276,58 @@ describe('MultiYearReportPage', () => {
     expect((await screen.findAllByRole('status')).length).toBe(3);
   });
 
+  it('loads annual months only for the currently selected detailed range', async () => {
+    api.readAnnualReport.mockImplementation(({ path }: { path: { year: number } }) =>
+      Promise.resolve(
+        ok({
+          ...annualReport,
+          year: path.year,
+          charts: {
+            ...annualReport.charts,
+            flows: {
+              ...annualReport.charts.flows,
+              months: annualReport.charts.flows.months.map((month) => ({
+                ...month,
+                month: `${path.year}${month.month.slice(4)}`,
+              })),
+            },
+            netWorth: {
+              ...annualReport.charts.netWorth,
+              months: annualReport.charts.netWorth.months.map((month) => ({
+                ...month,
+                month: `${path.year}${month.month.slice(4)}`,
+              })),
+            },
+          },
+        }),
+      ),
+    );
+    api.readMultiYearReport.mockImplementation(({ query }: { query: { from?: number } }) =>
+      Promise.resolve(
+        ok(
+          query.from === 2025
+            ? { ...multiYearReport, from: 2025, years: multiYearReport.years.slice(1) }
+            : multiYearReport,
+        ),
+      ),
+    );
+    renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+    fireEvent.change(screen.getByLabelText('Depuis'), { target: { value: '2025' } });
+    await screen.findByRole('table', { name: /pluriannuel/i });
+    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+    await screen.findAllByRole('table', { name: /rapport annuel/i });
+    expect(api.readAnnualReport).toHaveBeenCalledWith(
+      expect.objectContaining({ path: { year: 2025 } }),
+    );
+    expect(api.readAnnualReport).toHaveBeenCalledWith(
+      expect.objectContaining({ path: { year: 2026 } }),
+    );
+    expect(api.readAnnualReport).not.toHaveBeenCalledWith(
+      expect.objectContaining({ path: { year: 2024 } }),
+    );
+  });
+
   it('shows the average of complete years in a summary row', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /pluriannuel/i });

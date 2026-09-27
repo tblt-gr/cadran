@@ -13,6 +13,11 @@ interface MultiYearCellValueProps {
   kind: 'FLOW' | 'STOCK' | 'RATE';
 }
 
+function performanceTone(value: string): string {
+  if (value.startsWith('-')) return styles.negative;
+  return /^0(?:\.0+)?$/.test(value) ? styles.zero : styles.positive;
+}
+
 /**
  * A year's value for one column, with its year-over-year change below it. The
  * change carries an explicit `+`/`-` text sign, never colour alone. A RATE
@@ -39,6 +44,7 @@ export function MultiYearCellValue({ assetCode, cell, kind }: MultiYearCellValue
   const asOf = cell.asOf ? ` (${monthLabel(cell.asOf, i18n.language)})` : '';
 
   let change: ReactNode;
+  const changeTone = cell.change === null ? undefined : performanceTone(cell.change);
   if (cell.change === null) {
     change = (
       <EmptyValue
@@ -77,20 +83,12 @@ export function MultiYearCellValue({ assetCode, cell, kind }: MultiYearCellValue
 
   return (
     <>
-      <span
-        className={
-          cell.value.startsWith('-')
-            ? styles.negative
-            : cell.value === '0'
-              ? styles.zero
-              : styles.positive
-        }
-      >
+      <span>
         {text}
         {asOf}
       </span>
       <br />
-      <small>{change}</small>
+      <small className={changeTone}>{change}</small>
     </>
   );
 }
