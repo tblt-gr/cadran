@@ -25,6 +25,9 @@ services:
   App\Module\Categories\Application\CategoryClassificationCounter:
     alias: App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository
 
+  App\Module\Demo\Application\DemoActor:
+    alias: App\Module\Demo\Infrastructure\TokenDemoActor
+
   # Session records in PostgreSQL (ADR-0024). The handler keeps its own
   # connection — it must survive a rolled-back business transaction — but takes
   # its parameters from the Doctrine connection, so it reaches the same database
