@@ -125,6 +125,7 @@
   "reports": {
     "title": "Rapports",
     "month": "Mois",
+    "monthlyTitle": "Rapport mensuel {{month}}",
     "loading": "Chargement du rapport…",
     "empty": "Aucun mouvement comptabilisé pour ce mois",
     "error": "Le rapport est indisponible",
@@ -227,9 +228,6 @@
       "cardsLabel": "Mois de {{year}}",
       "explainColumn": "Expliquer les agrégats : {{column}}",
       "yearNavigation": "Année",
-      "previousYear": "Année précédente",
-      "previousYearEmpty": "Aucune donnée pour l'année précédente.",
-      "nextYear": "Année suivante",
       "columns": "Colonnes",
       "incompleteLabel": "Mois incomplets",
       "incompleteMonths": "Mois incomplets : {{state}}",
@@ -299,7 +297,6 @@
       "detailedCardsLabel": "Mois de {{from}} à {{to}}",
       "detailedSummaryCard": "Synthèse de la période détaillée",
       "detailedMixedPolicy": "Cette période couvre plusieurs versions de la politique d’indicateurs. Les valeurs restent rattachées à leur année d’origine.",
-      "nominalNotice": "Valeurs nominales, non corrigées de l’inflation.",
       "summary": {
         "average": "Moyenne des années complètes",
         "minimum": "Minimum",

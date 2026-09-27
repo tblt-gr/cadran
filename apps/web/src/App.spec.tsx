@@ -191,7 +191,7 @@ describe('App', () => {
     ['/accounts/demo', 'Détail du compte'],
     ['/portfolios/demo', 'Investissements'],
     ['/life-insurance/demo', 'Assurance-vie'],
-    ['/reports/annual/2026', 'Rapport annuel'],
+    ['/reports/annual/2026', 'Rapport annuel 2026'],
     ['/reports/all-years', 'Rapport pluriannuel'],
     ['/goals', 'Objectifs'],
     ['/tax/2026', 'Impôts'],

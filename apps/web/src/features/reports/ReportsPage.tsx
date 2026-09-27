@@ -2,30 +2,29 @@ import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
-import { MetricPolicyBadge } from '@/features/metric-policy/metric-policy-badge/MetricPolicyBadge';
+import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { ReportsTabs } from './ReportsTabs';
 import { MonthlyKpiTable } from './MonthlyKpiTable';
+import { MonthlyMonthNavigator, formatMonthLabel } from './MonthlyMonthNavigator';
 import styles from './ReportsPage.module.css';
 import { useMonthlyReport } from './useMonthlyReport';
 
-function currentMonth() {
-  const today = new Date();
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-}
-
 /** A drill-down from the annual report lands here with the month in the query string. */
-function initialMonth() {
+function initialMonth(fallback: string) {
   const requested = new URLSearchParams(window.location.search).get('month');
-  return requested !== null && /^\d{4}-(0[1-9]|1[0-2])$/.test(requested)
-    ? requested
-    : currentMonth();
+  return requested !== null && /^\d{4}-(0[1-9]|1[0-2])$/.test(requested) ? requested : fallback;
 }
 
 export function ReportsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const workspaceTimeZone = useWorkspaceTimeZone();
-  const [month, setMonth] = useState(initialMonth);
+  const todayMonth = workspaceToday(new Date(), workspaceTimeZone).slice(0, 7);
+  const [month, setMonth] = useState(() => initialMonth(todayMonth));
   const report = useMonthlyReport(month);
+  useHeaderTitle(
+    '/reports',
+    t('reports.monthlyTitle', { month: formatMonthLabel(month, i18n.language) }),
+  );
   let content: ReactNode;
   if (report.isPending) {
     content = (
@@ -54,10 +53,6 @@ export function ReportsPage() {
   } else if (report.data.state === 'EMPTY') {
     content = (
       <>
-        <p className={styles.summary} role="status">
-          {t('reports.pending', { count: report.data.pendingCount })} · {t('reports.quality')}:{' '}
-          {report.data.quality} · <MetricPolicyBadge policy={report.data.metricPolicy} />
-        </p>
         <section className={`card ${styles.state}`}>
           <h2>{t('reports.empty')}</h2>
         </section>
@@ -65,29 +60,12 @@ export function ReportsPage() {
       </>
     );
   } else {
-    content = (
-      <>
-        <p className={styles.summary} role="status">
-          {t('reports.pending', { count: report.data.pendingCount })} · {t('reports.quality')}:{' '}
-          {report.data.quality} · <MetricPolicyBadge policy={report.data.metricPolicy} />
-        </p>
-        <MonthlyKpiTable report={report.data} />
-      </>
-    );
+    content = <MonthlyKpiTable report={report.data} />;
   }
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1>{t('reports.title')}</h1>
-        <label>
-          {t('reports.month')}
-          <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
-        </label>
-      </header>
-      <ReportsTabs
-        active="monthly"
-        currentYear={Number(workspaceToday(new Date(), workspaceTimeZone).slice(0, 4))}
-      />
+      <ReportsTabs active="monthly" currentYear={Number(todayMonth.slice(0, 4))} />
+      <MonthlyMonthNavigator currentMonth={todayMonth} month={month} onSelect={setMonth} />
       {content}
     </div>
   );

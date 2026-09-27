@@ -2,6 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import {
+  HeaderTitleProvider,
+  useHeaderTitleValue,
+} from '@/components/layout/header/HeaderTitleContext';
 import { annualReport } from '@/features/reports/annual/annualFixtures';
 import { multiYearReport } from './multiYearFixtures';
 import { MultiYearReportPage } from './MultiYearReportPage';
@@ -23,11 +27,18 @@ function ok<T>(data: T) {
 function failure(status: number) {
   return { data: undefined, response: { ok: false, status } };
 }
+function HeaderTitleProbe({ path }: { path: string }) {
+  return <span data-testid="header-title">{useHeaderTitleValue(path)}</span>;
+}
+
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MultiYearReportPage today="2026-09-24" />
+      <HeaderTitleProvider>
+        <MultiYearReportPage today="2026-09-24" />
+        <HeaderTitleProbe path="/reports/all-years" />
+      </HeaderTitleProvider>
     </QueryClientProvider>,
   );
 }
@@ -56,6 +67,12 @@ describe('MultiYearReportPage', () => {
     expect(within(status).getAllByRole('row')).toHaveLength(1);
     resolve(ok(multiYearReport));
     await screen.findByRole('table', { name: /pluriannuel/i });
+  });
+
+  it('publishes the selected year range as the shell header title', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+    expect(screen.getByTestId('header-title').textContent).toBe('Rapport pluriannuel 2024-2026');
   });
 
   it('shows exactly one skeleton row per requested year while a narrowed range is fetching', async () => {
@@ -209,12 +226,6 @@ describe('MultiYearReportPage', () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /pluriannuel/i });
     expect(within(table).getAllByRole('link').length).toBe(15);
-  });
-
-  it('shows the nominal values notice', async () => {
-    renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
-    expect(screen.getByText(/valeurs nominales, non corrigées de l’inflation/i)).toBeTruthy();
   });
 
   it('switches to detailed mode and renders every month of the selected years in one chronology', async () => {

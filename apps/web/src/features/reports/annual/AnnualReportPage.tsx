@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Toast } from '@/components/ui/toast/Toast';
+import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { ReportsTabs } from '@/features/reports/ReportsTabs';
 import { AggregateExplainModal } from './AggregateExplainModal';
 import { AnnualCharts } from './AnnualCharts';
@@ -33,6 +34,7 @@ export function AnnualReportPage({ today, year }: AnnualReportPageProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [explained, setExplained] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  useHeaderTitle(`/reports/annual/${year}`, t('reports.annual.caption', { year }));
 
   function toggleIncomplete() {
     if (!preferences.data) return;
@@ -123,11 +125,7 @@ export function AnnualReportPage({ today, year }: AnnualReportPageProps) {
   return (
     <div className={styles.page}>
       <ReportsTabs active="annual" currentYear={currentYear} />
-      <AnnualYearNavigator
-        currentYear={currentYear}
-        previousYearHasData={report.data?.previousYearHasData ?? true}
-        year={year}
-      />
+      <AnnualYearNavigator currentYear={currentYear} year={year} />
       {content}
       {pickerOpen && preferences.data ? (
         <ColumnPickerModal

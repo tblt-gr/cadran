@@ -1,21 +1,32 @@
-.navigator {
+.years {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
+  gap: var(--spacing-1);
+  min-height: var(--control-height);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-1);
 }
-.year {
+.years a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
   min-width: max-content;
   padding: var(--spacing-2) var(--spacing-3);
   border-radius: var(--radius-control);
-  color: var(--gold-300);
+  color: var(--text-secondary);
   font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
-}
-.step {
   text-decoration: none;
+  white-space: nowrap;
 }
-.step[aria-disabled='true'] {
-  color: var(--text-muted);
-  cursor: not-allowed;
-  opacity: 0.55;
+.years a:hover,
+.years a:focus-visible {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+.years a.current {
+  color: var(--text-primary);
+}
+.years a.active {
+  background: var(--color-transparent);
+  color: var(--gold-300);
 }

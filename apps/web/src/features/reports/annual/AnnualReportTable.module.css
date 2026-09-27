@@ -79,6 +79,10 @@
   margin-left: var(--spacing-2);
   vertical-align: middle;
 }
+/* White "i" icon on every reports page, beating InfoButton's own colour. */
+button.explain {
+  color: var(--text-primary);
+}
 @media (min-width: 640px) {
   .wrap {
     display: block;

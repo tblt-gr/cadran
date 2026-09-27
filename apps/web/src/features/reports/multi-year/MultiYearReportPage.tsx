@@ -2,6 +2,7 @@ import type { AnnualReport } from '@cadran/api-client';
 import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Toast } from '@/components/ui/toast/Toast';
+import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { ReportsTabs } from '@/features/reports/ReportsTabs';
 import { AnnualTableActions } from '@/features/reports/annual/AnnualTableActions';
 import { ColumnPickerModal } from '@/features/reports/annual/ColumnPickerModal';
@@ -15,7 +16,6 @@ import { MultiYearCharts } from './MultiYearCharts';
 import { DetailedAnnualReports } from './DetailedAnnualReports';
 import { MultiYearSkeleton } from './MultiYearSkeleton';
 import { MultiYearTable } from './MultiYearTable';
-import { NominalValuesNotice } from './NominalValuesNotice';
 import { MultiYearRequestError, useMultiYearReport } from './useMultiYearReport';
 import { YearRangeSelector, type MultiYearDisplayMode } from './YearRangeSelector';
 import styles from './MultiYearReportPage.module.css';
@@ -75,6 +75,17 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
   // was still refused by the backend: the selector and its bounds are known, so
   // the error can stay inline next to it instead of replacing the whole screen.
   const boundsForRangeError = report.isError && status === 422 && bounds.data ? bounds.data : null;
+  const effectiveRange =
+    range ??
+    (report.data ? { from: report.data.from, to: report.data.to } : null) ??
+    (bounds.data ? { from: bounds.data.from, to: bounds.data.to } : null);
+  const title =
+    effectiveRange === null
+      ? null
+      : effectiveRange.from === effectiveRange.to
+        ? `${t('reports.multiYear.title')} ${effectiveRange.from}`
+        : t('reports.multiYear.caption', { from: effectiveRange.from, to: effectiveRange.to });
+  useHeaderTitle('/reports/all-years', title);
 
   let content: ReactNode;
   if (report.isPending) {
@@ -99,20 +110,17 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
     );
   } else if (report.isError) {
     content = (
-      <>
-        <NominalValuesNotice />
-        <YearRangeSelector
-          error={t('reports.multiYear.invalidRange')}
-          from={range?.from ?? boundsForRangeError!.from}
-          maxYear={currentYear}
-          minYear={boundsForRangeError!.availableFrom ?? boundsForRangeError!.from}
-          onChange={(nextRange) => {
-            setDetailedReports(null);
-            setRange(nextRange);
-          }}
-          to={range?.to ?? boundsForRangeError!.to}
-        />
-      </>
+      <YearRangeSelector
+        error={t('reports.multiYear.invalidRange')}
+        from={range?.from ?? boundsForRangeError!.from}
+        maxYear={currentYear}
+        minYear={boundsForRangeError!.availableFrom ?? boundsForRangeError!.from}
+        onChange={(nextRange) => {
+          setDetailedReports(null);
+          setRange(nextRange);
+        }}
+        to={range?.to ?? boundsForRangeError!.to}
+      />
     );
   } else if (report.data.years.length === 0) {
     content = (
@@ -131,7 +139,6 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
     );
     content = (
       <>
-        <NominalValuesNotice />
         <YearRangeSelector
           display={display}
           from={range?.from ?? report.data.from}

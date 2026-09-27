@@ -97,6 +97,7 @@ export function AnnualReportTable({
                       {rowId === 'total' && figure.value !== null ? (
                         <InfoButton
                           aria-haspopup="dialog"
+                          className={styles.explain}
                           label={t('reports.annual.explainColumn', { column: column.label })}
                           onClick={() => onExplain(column.id)}
                         />

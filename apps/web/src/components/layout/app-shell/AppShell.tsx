@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FoundationActionSheet,
@@ -7,6 +7,10 @@ import {
 import { useClientNavigation } from '@/hooks/use-client-navigation';
 import { getRouteTitleKey } from '@/lib/navigation';
 import { Header } from '@/components/layout/header/Header';
+import {
+  HeaderTitleProvider,
+  useHeaderTitleValue,
+} from '@/components/layout/header/HeaderTitleContext';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav/MobileBottomNav';
 import { MobileMoreSheet } from '@/components/layout/mobile-more-sheet/MobileMoreSheet';
 import { Sidebar } from '@/components/layout/sidebar/Sidebar';
@@ -23,7 +27,15 @@ interface AppShellProps {
   showGlobalActions?: boolean;
 }
 
-export function AppShell({
+export function AppShell(props: AppShellProps) {
+  return (
+    <HeaderTitleProvider>
+      <AppShellContent {...props} />
+    </HeaderTitleProvider>
+  );
+}
+
+function AppShellContent({
   children,
   accountSlot,
   contextPanel,
@@ -39,8 +51,13 @@ export function AppShell({
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const actionTrigger = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
-  const title = t(getRouteTitleKey(path));
+  const headerOverride = useHeaderTitleValue(path);
+  const title = headerOverride ?? t(getRouteTitleKey(path));
   const { handleNavigate, navigate } = useClientNavigation(path, setPath);
+
+  useEffect(() => {
+    document.title = path === '/' ? t('app.name') : `${title} · ${t('app.name')}`;
+  }, [path, title, t]);
 
   function closeMoreSheet() {
     setIsMoreOpen(false);

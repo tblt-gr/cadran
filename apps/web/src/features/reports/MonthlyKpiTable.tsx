@@ -179,6 +179,7 @@ export function MonthlyKpiTable({ report }: { report: MonthlyProjection }) {
                       <InfoButton
                         aria-controls={`monthly-kpi-explanation-${kpi}`}
                         aria-expanded={opened === kpi}
+                        className={styles.explain}
                         label={t('reports.explainKpi', { kpi: t(`reports.metrics.${kpi}`) })}
                         onClick={() => setOpened(opened === kpi ? null : kpi)}
                       />

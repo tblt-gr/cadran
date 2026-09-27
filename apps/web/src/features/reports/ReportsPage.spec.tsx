@@ -1,11 +1,23 @@
 import type { MonthlyKpiExplanation, MonthlyProjection } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import {
+  HeaderTitleProvider,
+  useHeaderTitleValue,
+} from '@/components/layout/header/HeaderTitleContext';
 import { ReportsPage } from './ReportsPage';
 
-const api = vi.hoisted(() => ({ readMonthlyProjection: vi.fn(), explainMonthlyKpi: vi.fn() }));
+function HeaderTitleProbe({ path }: { path: string }) {
+  return <span data-testid="header-title">{useHeaderTitleValue(path)}</span>;
+}
+
+const api = vi.hoisted(() => ({
+  readMonthlyProjection: vi.fn(),
+  readMultiYearReport: vi.fn(),
+  explainMonthlyKpi: vi.fn(),
+}));
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
   ...api,
@@ -115,9 +127,17 @@ const success = <T,>(data: T) =>
   Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
 
 describe('ReportsPage', () => {
+  beforeEach(() => {
+    api.readMultiYearReport.mockResolvedValue({
+      data: { availableFrom: 2024, from: 2024, to: 2026 },
+      response: { ok: true, status: 200 },
+    });
+  });
+
   afterEach(() => {
     cleanup();
     vi.resetAllMocks();
+    window.history.replaceState({}, '', '/');
   });
 
   it('prints exact backend metrics, pending data and the server explanation without calculating', async () => {
@@ -131,8 +151,6 @@ describe('ReportsPage', () => {
       </QueryClientProvider>,
     );
     expect(await screen.findByRole('table')).toBeTruthy();
-    expect(screen.getByText(/2 mouvement\(s\) en attente/)).toBeTruthy();
-    expect(screen.getByText('Politique v2')).toBeTruthy();
     expect(screen.getByRole('table').textContent).toContain('Dépenses des avantages');
     expect(screen.getByRole('table').textContent).toContain('1 200,50 €');
     expect(screen.getByRole('table').textContent).toContain('12,35 %');
@@ -169,7 +187,7 @@ describe('ReportsPage', () => {
       </QueryClientProvider>,
     );
     expect((await screen.findByRole('status')).textContent).toContain('Chargement');
-    expect(screen.getByLabelText('Mois')).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Mois' })).toBeTruthy();
 
     api.readMonthlyProjection.mockReturnValue(success(emptyReport));
     loading.unmount();
@@ -179,7 +197,7 @@ describe('ReportsPage', () => {
       </QueryClientProvider>,
     );
     expect(await screen.findByText('Aucun mouvement comptabilisé pour ce mois')).toBeTruthy();
-    expect(screen.getByLabelText('Mois')).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Mois' })).toBeTruthy();
     expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getByRole('table').textContent).toContain('0 €');
     expect(screen.getAllByTitle('Non calculable : ZERO_CASH_INCOME')).toHaveLength(2);
@@ -191,15 +209,33 @@ describe('ReportsPage', () => {
     ).toBe(true);
   });
 
+  it('publishes the selected month and year as the shell header title', async () => {
+    window.history.replaceState({}, '', '/reports?month=2026-09');
+    api.readMonthlyProjection.mockReturnValue(success(report));
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <HeaderTitleProvider>
+          <ReportsPage />
+          <HeaderTitleProbe path="/reports" />
+        </HeaderTitleProvider>
+      </QueryClientProvider>,
+    );
+    const august = await screen.findByRole('button', { name: 'Août 2026' });
+    fireEvent.click(august);
+    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(screen.getByTestId('header-title').textContent).toBe('Rapport mensuel Août 2026');
+    expect(august.getAttribute('aria-current')).toBe('page');
+  });
+
   it('switches the bounded monthly query when the selected month changes', async () => {
+    window.history.replaceState({}, '', '/reports?month=2026-09');
     api.readMonthlyProjection.mockReturnValue(success(report));
     render(
       <QueryClientProvider client={new QueryClient()}>
         <ReportsPage />
       </QueryClientProvider>,
     );
-    const month = await screen.findByLabelText('Mois');
-    fireEvent.change(month, { target: { value: '2026-08' } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Août 2026' }));
     expect(await screen.findByRole('table')).toBeTruthy();
     expect(api.readMonthlyProjection).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: { month: '2026-08' } }),
@@ -230,7 +266,7 @@ describe('ReportsPage', () => {
       </QueryClientProvider>,
     );
     expect((await screen.findByRole('alert')).textContent).toContain('indisponible');
-    expect(screen.getByLabelText('Mois')).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Mois' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
     expect(await screen.findByRole('table')).toBeTruthy();
   });
@@ -245,7 +281,7 @@ describe('ReportsPage', () => {
       </QueryClientProvider>,
     );
     expect((await screen.findByRole('alert')).textContent).toContain('pas autorisé');
-    expect(screen.getByLabelText('Mois')).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Mois' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
   });
   it('keeps a negative net savings metric distinct from zero and explains it by transfer ID', async () => {
