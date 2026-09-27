@@ -51,7 +51,7 @@ export function YearRangeSelector({
   }
 
   return (
-    <div className={`card ${styles.selector}`}>
+    <div className={styles.selector}>
       <div className={styles.row}>
         <div className={styles.fields}>
           <div className={styles.field}>
