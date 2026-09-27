@@ -2,7 +2,12 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import '@/i18n';
 import { AnnualCellValue } from './AnnualCellValue';
-import { FLOW_BAR_SERIES, FLOW_CHART_COLORS, FLOW_SURPLUS_SERIES } from './FlowsChart';
+import {
+  FLOW_BAR_SERIES,
+  FLOW_CHART_COLORS,
+  FLOW_CHART_STACK_OFFSET,
+  FLOW_SURPLUS_SERIES,
+} from './FlowsChart';
 import { annualReport } from './annualFixtures';
 import { multiYearReport } from '@/features/reports/multi-year/multiYearFixtures';
 import { netWorthAssetCode } from '@/features/reports/multi-year/MultiYearCharts';
@@ -18,6 +23,7 @@ describe('report visual semantics', () => {
   });
 
   it('locks the shared stacked bars and blue surplus line used by annual and multi-year charts', () => {
+    expect(FLOW_CHART_STACK_OFFSET).toBe('sign');
     expect(FLOW_BAR_SERIES).toEqual([
       { dataKey: 'cashIncome', fill: 'var(--positive)', stackId: 'flows' },
       { dataKey: 'budgetExpenses', fill: 'var(--negative)', stackId: 'flows' },

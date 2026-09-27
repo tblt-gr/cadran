@@ -18,8 +18,12 @@ export const FLOW_BAR_SERIES = [
   { dataKey: 'budgetExpenses', fill: FLOW_CHART_COLORS.budgetExpenses, stackId: 'flows' },
 ] as const;
 
+/** Recharts' positive/negative stack keeps one time bucket on either side of zero. */
+export const FLOW_CHART_STACK_OFFSET = 'sign' as const;
+
 export const FLOW_SURPLUS_SERIES = {
-  dataKey: 'budgetSurplus', stroke: FLOW_CHART_COLORS.budgetSurplus,
+  dataKey: 'budgetSurplus',
+  stroke: FLOW_CHART_COLORS.budgetSurplus,
 } as const;
 
 function exact(cell: AnnualCell, assetCode: string | null, locale: string, reasonText: string) {
@@ -49,6 +53,7 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
           data={data}
           height={220}
           role="img"
+          stackOffset={FLOW_CHART_STACK_OFFSET}
           title={t('reports.annual.charts.flows')}
           width={size.width}
         >

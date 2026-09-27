@@ -217,7 +217,7 @@ describe('MultiYearReportPage', () => {
     expect(screen.getByText(/valeurs nominales, non corrigées de l’inflation/i)).toBeTruthy();
   });
 
-  it('switches to detailed mode and renders every selected year with its monthly annual report', async () => {
+  it('switches to detailed mode and renders every month of the selected years in one chronology', async () => {
     api.readAnnualReport.mockImplementation(({ path }: { path: { year: number } }) =>
       Promise.resolve(
         ok({
@@ -248,10 +248,13 @@ describe('MultiYearReportPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
 
-    expect(
-      (await screen.findAllByRole('heading', { name: /rapport annuel 2024/i })).length,
-    ).toBeGreaterThan(0);
-    expect((await screen.findAllByRole('table', { name: /rapport annuel/i })).length).toBe(3);
+    const table = await screen.findByRole('table', { name: /rapport détaillé 2024-2026/i });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(37);
+    expect(rows[1]?.textContent).toMatch(/janvier 2024/i);
+    expect(rows[12]?.textContent).toMatch(/décembre 2024/i);
+    expect(rows[13]?.textContent).toMatch(/janvier 2025/i);
+    expect(rows[36]?.textContent).toMatch(/décembre 2026/i);
     expect(screen.getAllByText(/voir les données/i).length).toBeGreaterThanOrEqual(1);
     const alternatives = [...document.querySelectorAll('details table')];
     expect(alternatives).toHaveLength(2);
@@ -273,7 +276,61 @@ describe('MultiYearReportPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
 
     expect(screen.getByRole('navigation', { name: /type de rapport/i })).toBeTruthy();
-    expect((await screen.findAllByRole('status')).length).toBe(3);
+    expect((await screen.findAllByRole('status')).length).toBe(1);
+  });
+
+  it('shows one policy warning before the continuous chronology when the selected years differ', async () => {
+    api.readAnnualReport.mockImplementation(({ path }: { path: { year: number } }) =>
+      Promise.resolve(
+        ok({
+          ...annualReport,
+          year: path.year,
+          rows: annualReport.rows.map((row) => ({
+            ...row,
+            month: `${path.year}${row.month.slice(4)}`,
+          })),
+          charts: {
+            ...annualReport.charts,
+            flows: {
+              ...annualReport.charts.flows,
+              months: annualReport.charts.flows.months.map((month) => ({
+                ...month,
+                month: `${path.year}${month.month.slice(4)}`,
+              })),
+            },
+            netWorth: {
+              ...annualReport.charts.netWorth,
+              months: annualReport.charts.netWorth.months.map((month) => ({
+                ...month,
+                month: `${path.year}${month.month.slice(4)}`,
+              })),
+            },
+          },
+        }),
+      ),
+    );
+    api.readMultiYearReport.mockResolvedValue(
+      ok({
+        ...multiYearReport,
+        years: [
+          multiYearReport.years[0]!,
+          {
+            ...multiYearReport.years[1]!,
+            metricPolicy: { state: 'SINGLE', version: 2 },
+          },
+          multiYearReport.years[2]!,
+        ],
+      }),
+    );
+    renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+
+    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+
+    expect(
+      await screen.findByText(/plusieurs versions de la politique d’indicateurs/i),
+    ).toBeTruthy();
+    expect(screen.getAllByRole('table', { name: /rapport détaillé/i })).toHaveLength(1);
   });
 
   it('loads annual months only for the currently selected detailed range', async () => {
@@ -316,7 +373,7 @@ describe('MultiYearReportPage', () => {
     fireEvent.change(screen.getByLabelText('Depuis'), { target: { value: '2025' } });
     await screen.findByRole('table', { name: /pluriannuel/i });
     fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
-    await screen.findAllByRole('table', { name: /rapport annuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé 2025-2026/i });
     expect(api.readAnnualReport).toHaveBeenCalledWith(
       expect.objectContaining({ path: { year: 2025 } }),
     );

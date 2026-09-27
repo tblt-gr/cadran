@@ -8,6 +8,7 @@ import { ChartFrame } from '@/features/reports/annual/ChartFrame';
 import { ExactTooltip } from '@/features/reports/annual/ExactTooltip';
 import {
   FLOW_BAR_SERIES,
+  FLOW_CHART_STACK_OFFSET,
   FLOW_SURPLUS_SERIES,
 } from '@/features/reports/annual/FlowsChart';
 import { scaleForGeometry, prefersReducedMotion } from '@/features/reports/annual/chartGeometry';
@@ -133,6 +134,7 @@ function MultiYearFlowsChart({ annualReports, report }: MultiYearChartsProps) {
           data={data}
           height={220}
           role="img"
+          stackOffset={FLOW_CHART_STACK_OFFSET}
           title={t('reports.multiYear.charts.flows')}
           width={size.width}
         >

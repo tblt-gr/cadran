@@ -293,6 +293,9 @@
       "displayMode": "Mode d’affichage",
       "compact": "Vue compacte",
       "detailed": "Vue détaillée",
+      "detailedCaption": "Rapport détaillé {{from}}-{{to}}",
+      "detailedCardsLabel": "Mois de {{from}} à {{to}}",
+      "detailedMixedPolicy": "Cette période couvre plusieurs versions de la politique d’indicateurs. Les valeurs restent rattachées à leur année d’origine.",
       "nominalNotice": "Valeurs nominales, non corrigées de l’inflation.",
       "summary": {
         "average": "Moyenne des années complètes",
