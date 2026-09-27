@@ -2,10 +2,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { annualReport } from '@/features/reports/annual/annualFixtures';
 import { multiYearReport } from './multiYearFixtures';
 import { MultiYearReportPage } from './MultiYearReportPage';
 
 const api = vi.hoisted(() => ({
+  readAnnualReport: vi.fn(),
   readMultiYearReport: vi.fn(),
   readAnnualReportPreferences: vi.fn(),
   saveAnnualReportPreferences: vi.fn(),
@@ -32,6 +34,7 @@ function renderPage() {
 
 beforeEach(() => {
   api.readMultiYearReport.mockResolvedValue(ok(multiYearReport));
+  api.readAnnualReport.mockResolvedValue(ok(annualReport));
   api.readAnnualReportPreferences.mockResolvedValue(
     ok({ columns: ['cashIncome', 'endNetWorth'], incompleteMonths: 'exclude', version: 3 }),
   );
@@ -212,6 +215,65 @@ describe('MultiYearReportPage', () => {
     renderPage();
     await screen.findByRole('table', { name: /pluriannuel/i });
     expect(screen.getByText(/valeurs nominales, non corrigées de l’inflation/i)).toBeTruthy();
+  });
+
+  it('switches to detailed mode and renders every selected year with its monthly annual report', async () => {
+    api.readAnnualReport.mockImplementation(({ path }: { path: { year: number } }) =>
+      Promise.resolve(
+        ok({
+          ...annualReport,
+          year: path.year,
+          charts: {
+            ...annualReport.charts,
+            flows: {
+              ...annualReport.charts.flows,
+              months: annualReport.charts.flows.months.map((month) => ({
+                ...month,
+                month: `${path.year}${month.month.slice(4)}`,
+              })),
+            },
+            netWorth: {
+              ...annualReport.charts.netWorth,
+              months: annualReport.charts.netWorth.months.map((month) => ({
+                ...month,
+                month: `${path.year}${month.month.slice(4)}`,
+              })),
+            },
+          },
+        }),
+      ),
+    );
+    renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+
+    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+
+    expect(
+      (await screen.findAllByRole('heading', { name: /rapport annuel 2024/i })).length,
+    ).toBeGreaterThan(0);
+    expect((await screen.findAllByRole('table', { name: /rapport annuel/i })).length).toBe(3);
+    expect(screen.getAllByText(/voir les données/i).length).toBeGreaterThanOrEqual(1);
+    const alternatives = [...document.querySelectorAll('details table')];
+    expect(alternatives).toHaveLength(2);
+    expect(alternatives.map((table) => table.querySelectorAll('tbody tr').length)).toEqual([
+      36, 36,
+    ]);
+    expect(api.readAnnualReport).toHaveBeenCalledWith(
+      expect.objectContaining({ path: { year: 2024 } }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /vue compacte/i }));
+    expect(await screen.findByRole('table', { name: /pluriannuel/i })).toBeTruthy();
+  });
+
+  it('keeps report tabs present while the detailed annual reports are loading', async () => {
+    api.readAnnualReport.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+
+    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+
+    expect(screen.getByRole('navigation', { name: /type de rapport/i })).toBeTruthy();
+    expect((await screen.findAllByRole('status')).length).toBe(3);
   });
 
   it('shows the average of complete years in a summary row', async () => {

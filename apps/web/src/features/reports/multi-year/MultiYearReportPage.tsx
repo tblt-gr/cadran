@@ -1,8 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import type { AnnualReport } from '@cadran/api-client';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ReportsTabs } from '@/features/reports/ReportsTabs';
 import { MultiYearCards } from './MultiYearCards';
 import { MultiYearCharts } from './MultiYearCharts';
+import { DetailedAnnualReports } from './DetailedAnnualReports';
 import { MultiYearSkeleton } from './MultiYearSkeleton';
 import { MultiYearTable } from './MultiYearTable';
 import { NominalValuesNotice } from './NominalValuesNotice';
@@ -21,6 +23,18 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
   const { t } = useTranslation();
   const currentYear = Number(today.slice(0, 4));
   const [range, setRange] = useState<{ from: number; to: number } | null>(null);
+  const [display, setDisplay] = useState<'compact' | 'detailed'>('compact');
+  const [detailedReports, setDetailedReports] = useState<AnnualReport[] | null>(null);
+  const setReportsReady = useCallback((reports: AnnualReport[] | null) => {
+    setDetailedReports((current) =>
+      current !== null &&
+      reports !== null &&
+      current.length === reports.length &&
+      current.every((item, index) => item === reports[index])
+        ? current
+        : reports,
+    );
+  }, []);
   // The unfiltered response carries `availableFrom`, the workspace's true first
   // data year. Its displayed `from` may be capped to the latest 15-year window,
   // so it must not become the selector's lower bound.
@@ -62,7 +76,10 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
           from={range?.from ?? boundsForRangeError!.from}
           maxYear={currentYear}
           minYear={boundsForRangeError!.availableFrom ?? boundsForRangeError!.from}
-          onChange={setRange}
+          onChange={(nextRange) => {
+            setDetailedReports(null);
+            setRange(nextRange);
+          }}
           to={range?.to ?? boundsForRangeError!.to}
         />
       </>
@@ -81,12 +98,51 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
           from={range?.from ?? report.data.from}
           maxYear={currentYear}
           minYear={bounds.data?.availableFrom ?? report.data.availableFrom ?? report.data.from}
-          onChange={setRange}
+          onChange={(nextRange) => {
+            setDetailedReports(null);
+            setRange(nextRange);
+          }}
           to={range?.to ?? report.data.to}
         />
-        <MultiYearTable report={report.data} />
-        <MultiYearCards report={report.data} />
-        <MultiYearCharts report={report.data} />
+        <div
+          aria-label={t('reports.multiYear.displayMode')}
+          className={styles.displayModes}
+          role="group"
+        >
+          <button
+            aria-pressed={display === 'compact'}
+            className="secondary-action"
+            onClick={() => {
+              setDetailedReports(null);
+              setDisplay('compact');
+            }}
+            type="button"
+          >
+            {t('reports.multiYear.compact')}
+          </button>
+          <button
+            aria-pressed={display === 'detailed'}
+            className="secondary-action"
+            onClick={() => setDisplay('detailed')}
+            type="button"
+          >
+            {t('reports.multiYear.detailed')}
+          </button>
+        </div>
+        {display === 'compact' ? (
+          <>
+            <MultiYearTable report={report.data} />
+            <MultiYearCards report={report.data} />
+            <MultiYearCharts report={report.data} />
+          </>
+        ) : (
+          <>
+            <DetailedAnnualReports onReportsReady={setReportsReady} report={report.data} />
+            {detailedReports ? (
+              <MultiYearCharts annualReports={detailedReports} report={report.data} />
+            ) : null}
+          </>
+        )}
       </>
     );
   }

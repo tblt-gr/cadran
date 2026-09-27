@@ -19,7 +19,13 @@ function toRow(item: AnnualCategoryShare): AnnualDonutItem & AnnualLegendRow {
 }
 
 /** The four datasets come from the backend and do not depend on the selected columns. */
-export function AnnualCharts({ report }: { report: AnnualReport }) {
+export function AnnualCharts({
+  includeTrends = true,
+  report,
+}: {
+  includeTrends?: boolean;
+  report: AnnualReport;
+}) {
   const { t } = useTranslation();
   const { flows, netWorth, topExpenseCategories: top, allocation } = report.charts;
   const reasonText = (reason: string | null) =>
@@ -32,15 +38,22 @@ export function AnnualCharts({ report }: { report: AnnualReport }) {
 
   return (
     <div className={styles.grid}>
-      <ChartFrame data={<FlowsDataTable flows={flows} />} title={t('reports.annual.charts.flows')}>
-        <FlowsChart flows={flows} />
-      </ChartFrame>
-      <ChartFrame
-        data={<NetWorthDataTable netWorth={netWorth} />}
-        title={t('reports.annual.charts.netWorth')}
-      >
-        <AnnualNetWorthChart netWorth={netWorth} />
-      </ChartFrame>
+      {includeTrends ? (
+        <>
+          <ChartFrame
+            data={<FlowsDataTable flows={flows} />}
+            title={t('reports.annual.charts.flows')}
+          >
+            <FlowsChart flows={flows} />
+          </ChartFrame>
+          <ChartFrame
+            data={<NetWorthDataTable netWorth={netWorth} />}
+            title={t('reports.annual.charts.netWorth')}
+          >
+            <AnnualNetWorthChart netWorth={netWorth} />
+          </ChartFrame>
+        </>
+      ) : null}
       <ChartFrame title={t('reports.annual.charts.topCategories')}>
         {top.reason !== null || top.assetCode === null ? (
           <p>{reasonText(top.reason)}</p>

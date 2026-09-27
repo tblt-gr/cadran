@@ -1,0 +1,9 @@
+.positive {
+  color: var(--positive);
+}
+.negative {
+  color: var(--negative);
+}
+.zero {
+  color: var(--text-secondary);
+}

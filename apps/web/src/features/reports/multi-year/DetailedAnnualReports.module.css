@@ -1,0 +1,17 @@
+.reports {
+  display: grid;
+  gap: var(--spacing-8);
+}
+.reports > section {
+  display: grid;
+  gap: var(--spacing-4);
+}
+.reports h2 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+.state {
+  display: grid;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6);
+}

@@ -9,3 +9,8 @@
   gap: var(--spacing-3);
   padding: var(--spacing-6);
 }
+.displayModes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}

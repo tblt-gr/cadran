@@ -1,9 +1,13 @@
 .tabs {
   display: flex;
   gap: var(--spacing-2);
+  min-height: var(--control-height);
   overflow-x: auto;
 }
 .tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
   padding: var(--spacing-2) var(--spacing-4);
   border: var(--border-line-subtle);
   border-radius: var(--radius-button);

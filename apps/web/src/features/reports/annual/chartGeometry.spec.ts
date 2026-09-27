@@ -18,7 +18,7 @@ describe('chart geometry', () => {
       },
     ];
     const [first, second] = flowChartData(months);
-    expect(first).toMatchObject({ cashIncome: 1, budgetExpenses: 0.5, budgetSurplus: -0.25 });
+    expect(first).toMatchObject({ cashIncome: 1, budgetExpenses: -0.5, budgetSurplus: -0.25 });
     expect(second).toMatchObject({ cashIncome: null });
   });
 

@@ -1,24 +1,21 @@
-import type { MultiYearReport } from '@cadran/api-client';
-import { Bar, BarChart, Tooltip, XAxis } from 'recharts';
+import type { AnnualReport, MultiYearReport } from '@cadran/api-client';
+import { Bar, ComposedChart, Line, Tooltip, XAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { useBoxSize } from '@/hooks/use-box-size';
 import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/CurveChart';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { ChartFrame } from '@/features/reports/annual/ChartFrame';
 import { ExactTooltip } from '@/features/reports/annual/ExactTooltip';
+import { FLOW_CHART_COLORS } from '@/features/reports/annual/FlowsChart';
 import { scaleForGeometry, prefersReducedMotion } from '@/features/reports/annual/chartGeometry';
 import { formatAnnualValue } from '@/features/reports/annual/annualFormat';
+import { monthLabel } from '@/features/reports/annual/annualRowLabels';
 import styles from './MultiYearCharts.module.css';
 
 const FLOW_SERIES_IDS = ['cashIncome', 'budgetExpenses', 'budgetSurplus'] as const;
 const NET_WORTH_ID = 'endNetWorth';
-const COLORS = {
-  cashIncome: 'var(--positive)',
-  budgetExpenses: 'var(--negative)',
-  budgetSurplus: 'var(--gold-300)',
-} as const;
-
 interface MultiYearChartsProps {
+  annualReports?: AnnualReport[];
   report: MultiYearReport;
 }
 
@@ -26,15 +23,37 @@ function columnLookup(report: MultiYearReport, id: string) {
   return report.columns.find((column) => column.id === id) ?? null;
 }
 
-function FlowsDataTable({ report }: { report: MultiYearReport }) {
+function flowAssetCode(annualReports: AnnualReport[] | undefined, report: MultiYearReport) {
+  return (
+    annualReports?.find((annualReport) => annualReport.charts.flows.assetCode !== null)?.charts
+      .flows.assetCode ??
+    columnLookup(report, 'cashIncome')?.assetCode ??
+    null
+  );
+}
+
+export function netWorthAssetCode(
+  annualReports: AnnualReport[] | undefined,
+  report: MultiYearReport,
+) {
+  return (
+    annualReports?.find((annualReport) => annualReport.charts.netWorth.assetCode !== null)?.charts
+      .netWorth.assetCode ??
+    columnLookup(report, NET_WORTH_ID)?.assetCode ??
+    null
+  );
+}
+
+function FlowsDataTable({ annualReports, report }: MultiYearChartsProps) {
   const { t, i18n } = useTranslation();
-  const assetCode = columnLookup(report, 'cashIncome')?.assetCode ?? null;
+  const assetCode = flowAssetCode(annualReports, report);
+  const months = annualReports?.flatMap((annualReport) => annualReport.charts.flows.months) ?? null;
 
   return (
     <table className={styles.data}>
       <thead>
         <tr>
-          <th scope="col">{t('reports.multiYear.year')}</th>
+          <th scope="col">{months ? t('reports.annual.month') : t('reports.multiYear.year')}</th>
           {FLOW_SERIES_IDS.map((id) => (
             <th key={id} scope="col">
               {t(`reports.annual.indicators.${id}`)}
@@ -43,11 +62,13 @@ function FlowsDataTable({ report }: { report: MultiYearReport }) {
         </tr>
       </thead>
       <tbody>
-        {report.years.map((year) => (
-          <tr key={year.year}>
-            <th scope="row">{year.year}</th>
+        {(months ?? report.years).map((entry) => (
+          <tr key={'month' in entry ? entry.month : entry.year}>
+            <th scope="row">
+              {'month' in entry ? monthLabel(entry.month, i18n.language) : entry.year}
+            </th>
             {FLOW_SERIES_IDS.map((id) => {
-              const cell = year.cells[id];
+              const cell = 'month' in entry ? entry[id] : entry.cells[id];
               return (
                 <td key={id}>
                   {cell?.value == null ? (
@@ -65,25 +86,34 @@ function FlowsDataTable({ report }: { report: MultiYearReport }) {
   );
 }
 
-function MultiYearFlowsChart({ report }: { report: MultiYearReport }) {
+function MultiYearFlowsChart({ annualReports, report }: MultiYearChartsProps) {
   const { t, i18n } = useTranslation();
   const { ref, size } = useBoxSize();
-  const values = report.years.flatMap((year) =>
-    FLOW_SERIES_IDS.map((id) => year.cells[id]?.value ?? null),
+  const entries =
+    annualReports?.flatMap((annualReport) => annualReport.charts.flows.months) ?? report.years;
+  const values = entries.flatMap((entry) =>
+    FLOW_SERIES_IDS.map((id) => {
+      const value = ('month' in entry ? entry[id].value : entry.cells[id]?.value) ?? null;
+      return id === 'budgetExpenses' && value !== null && !value.startsWith('-')
+        ? `-${value}`
+        : value;
+    }),
   );
   const scaled = scaleForGeometry(values);
-  const data = report.years.map((year, index) => ({
-    year: String(year.year),
+  const data = entries.map((entry, index) => ({
+    year: 'month' in entry ? entry.month : String(entry.year),
     ...Object.fromEntries(
       FLOW_SERIES_IDS.map((id, s) => [id, scaled[index * FLOW_SERIES_IDS.length + s]]),
     ),
   }));
-  const assetCode = columnLookup(report, 'cashIncome')?.assetCode ?? null;
+  const assetCode = flowAssetCode(annualReports, report);
   const linesFor = (label: string) => {
-    const year = report.years.find((y) => String(y.year) === label);
-    if (!year) return [];
+    const entry = entries.find(
+      (item) => ('month' in item ? item.month : String(item.year)) === label,
+    );
+    if (!entry) return [];
     return FLOW_SERIES_IDS.map((id) => {
-      const cell = year.cells[id];
+      const cell = 'month' in entry ? entry[id] : entry.cells[id];
       const text =
         cell?.value == null
           ? t('reports.annual.notCalculable')
@@ -95,7 +125,7 @@ function MultiYearFlowsChart({ report }: { report: MultiYearReport }) {
   return (
     <div className={styles.flows} ref={ref}>
       {size.width > 0 ? (
-        <BarChart
+        <ComposedChart
           accessibilityLayer
           data={data}
           height={220}
@@ -105,38 +135,52 @@ function MultiYearFlowsChart({ report }: { report: MultiYearReport }) {
         >
           <XAxis dataKey="year" />
           <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
-          {FLOW_SERIES_IDS.map((id) => (
+          {FLOW_SERIES_IDS.filter((id) => id !== 'budgetSurplus').map((id) => (
             <Bar
               dataKey={id}
-              fill={COLORS[id]}
+              fill={FLOW_CHART_COLORS[id]}
               isAnimationActive={!prefersReducedMotion()}
               key={id}
             />
           ))}
-        </BarChart>
+          <Line
+            dataKey="budgetSurplus"
+            dot={false}
+            isAnimationActive={!prefersReducedMotion()}
+            stroke={FLOW_CHART_COLORS.budgetSurplus}
+            type="monotone"
+          />
+        </ComposedChart>
       ) : null}
     </div>
   );
 }
 
-function NetWorthDataTable({ report }: { report: MultiYearReport }) {
+function NetWorthDataTable({ annualReports, report }: MultiYearChartsProps) {
   const { t, i18n } = useTranslation();
-  const assetCode = columnLookup(report, NET_WORTH_ID)?.assetCode ?? null;
+  const assetCode = netWorthAssetCode(annualReports, report);
 
   return (
     <table className={styles.data}>
       <thead>
         <tr>
-          <th scope="col">{t('reports.multiYear.year')}</th>
+          <th scope="col">
+            {annualReports ? t('reports.annual.month') : t('reports.multiYear.year')}
+          </th>
           <th scope="col">{t('reports.annual.indicators.endNetWorth')}</th>
         </tr>
       </thead>
       <tbody>
-        {report.years.map((year) => {
-          const cell = year.cells[NET_WORTH_ID];
+        {(
+          annualReports?.flatMap((annualReport) => annualReport.charts.netWorth.months) ??
+          report.years
+        ).map((entry) => {
+          const cell = 'month' in entry ? entry.value : entry.cells[NET_WORTH_ID];
           return (
-            <tr key={year.year}>
-              <th scope="row">{year.year}</th>
+            <tr key={'month' in entry ? entry.month : entry.year}>
+              <th scope="row">
+                {'month' in entry ? monthLabel(entry.month, i18n.language) : entry.year}
+              </th>
               <td>
                 {cell?.value == null ? (
                   <EmptyValue label={t('reports.annual.notCalculable')} />
@@ -152,20 +196,23 @@ function NetWorthDataTable({ report }: { report: MultiYearReport }) {
   );
 }
 
-function MultiYearNetWorthChart({ report }: { report: MultiYearReport }) {
+function MultiYearNetWorthChart({ annualReports, report }: MultiYearChartsProps) {
   const { t, i18n } = useTranslation();
-  const assetCode = columnLookup(report, NET_WORTH_ID)?.assetCode ?? null;
-  const points: CurvePoint[] = report.years.map((year) => {
-    const cell = year.cells[NET_WORTH_ID];
+  const assetCode = netWorthAssetCode(annualReports, report);
+  const entries =
+    annualReports?.flatMap((annualReport) => annualReport.charts.netWorth.months) ?? report.years;
+  const points: CurvePoint[] = entries.map((entry) => {
+    const cell = 'month' in entry ? entry.value : entry.cells[NET_WORTH_ID];
+    const label = 'month' in entry ? entry.month : String(entry.year);
     const text =
       cell?.value == null ? null : formatAnnualValue(cell.value, 'STOCK', assetCode, i18n.language);
 
     return {
-      axisLabel: String(year.year),
+      axisLabel: label,
       geometryValue: cell?.value ?? null,
-      hitLabel: text === null ? String(year.year) : `${year.year}, ${text}`,
-      key: String(year.year),
-      tooltipTitle: String(year.year),
+      hitLabel: text === null ? label : `${label}, ${text}`,
+      key: label,
+      tooltipTitle: label,
       value: text === null ? <EmptyValue label={t('reports.annual.notCalculable')} /> : text,
     };
   });
@@ -175,7 +222,7 @@ function MultiYearNetWorthChart({ report }: { report: MultiYearReport }) {
       <CurveChart
         label={t('reports.multiYear.charts.netWorth')}
         points={points}
-        timeAxisLabel={t('reports.multiYear.year')}
+        timeAxisLabel={annualReports ? t('reports.annual.month') : t('reports.multiYear.year')}
         valueAxisLabel={t('reports.annual.indicators.endNetWorth')}
       />
     </div>
@@ -187,29 +234,39 @@ function MultiYearNetWorthChart({ report }: { report: MultiYearReport }) {
  * line, built from the selected report columns. A chart is skipped, with an explanatory
  * note, when its columns are not part of the caller's selected preferences.
  */
-export function MultiYearCharts({ report }: MultiYearChartsProps) {
+export function MultiYearCharts({ annualReports, report }: MultiYearChartsProps) {
   const { t } = useTranslation();
-  const hasFlows = FLOW_SERIES_IDS.every((id) => columnLookup(report, id) !== null);
-  const hasNetWorth = columnLookup(report, NET_WORTH_ID) !== null;
+  const hasFlows = annualReports
+    ? annualReports.some((annualReport) => annualReport.charts.flows.assetCode !== null)
+    : FLOW_SERIES_IDS.every((id) => columnLookup(report, id) !== null);
+  const hasNetWorth = annualReports
+    ? annualReports.some((annualReport) => annualReport.charts.netWorth.assetCode !== null)
+    : columnLookup(report, NET_WORTH_ID) !== null;
 
   return (
     <div className={styles.grid}>
       <ChartFrame
-        data={hasFlows ? <FlowsDataTable report={report} /> : undefined}
+        data={
+          hasFlows ? <FlowsDataTable annualReports={annualReports} report={report} /> : undefined
+        }
         title={t('reports.multiYear.charts.flows')}
       >
         {hasFlows ? (
-          <MultiYearFlowsChart report={report} />
+          <MultiYearFlowsChart annualReports={annualReports} report={report} />
         ) : (
           <p>{t('reports.multiYear.charts.unavailable')}</p>
         )}
       </ChartFrame>
       <ChartFrame
-        data={hasNetWorth ? <NetWorthDataTable report={report} /> : undefined}
+        data={
+          hasNetWorth ? (
+            <NetWorthDataTable annualReports={annualReports} report={report} />
+          ) : undefined
+        }
         title={t('reports.multiYear.charts.netWorth')}
       >
         {hasNetWorth ? (
-          <MultiYearNetWorthChart report={report} />
+          <MultiYearNetWorthChart annualReports={annualReports} report={report} />
         ) : (
           <p>{t('reports.multiYear.charts.unavailable')}</p>
         )}

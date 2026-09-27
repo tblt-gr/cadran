@@ -290,6 +290,9 @@
       "invalidRange": "Cette période n’est pas disponible : elle dépasse 15 ans ou l’année de départ est postérieure à l’année de fin.",
       "from": "Depuis",
       "to": "Jusqu'à",
+      "displayMode": "Mode d’affichage",
+      "compact": "Vue compacte",
+      "detailed": "Vue détaillée",
       "nominalNotice": "Valeurs nominales, non corrigées de l’inflation.",
       "summary": {
         "average": "Moyenne des années complètes",

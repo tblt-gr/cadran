@@ -5,6 +5,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAnnualValue } from '@/features/reports/annual/annualFormat';
 import { monthLabel } from '@/features/reports/annual/annualRowLabels';
 import { formatSignedChange, formatSignedRatioPoints } from './multiYearFormat';
+import styles from '@/features/reports/annual/PerformanceValue.module.css';
 
 interface MultiYearCellValueProps {
   assetCode: string | null;
@@ -76,7 +77,15 @@ export function MultiYearCellValue({ assetCode, cell, kind }: MultiYearCellValue
 
   return (
     <>
-      <span>
+      <span
+        className={
+          cell.value.startsWith('-')
+            ? styles.negative
+            : cell.value === '0'
+              ? styles.zero
+              : styles.positive
+        }
+      >
         {text}
         {asOf}
       </span>

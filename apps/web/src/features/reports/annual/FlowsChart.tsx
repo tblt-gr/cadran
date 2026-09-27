@@ -1,5 +1,5 @@
 import type { AnnualCell, AnnualFlows } from '@cadran/api-client';
-import { Bar, BarChart, Tooltip, XAxis } from 'recharts';
+import { Bar, ComposedChart, Line, Tooltip, XAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import styles from './AnnualCharts.module.css';
 import { useBoxSize } from '@/hooks/use-box-size';
@@ -7,10 +7,10 @@ import { formatAnnualValue } from './annualFormat';
 import { ExactTooltip } from './ExactTooltip';
 import { FLOW_SERIES_IDS, flowChartData, prefersReducedMotion } from './chartGeometry';
 
-const COLORS = {
+export const FLOW_CHART_COLORS = {
   cashIncome: 'var(--positive)',
   budgetExpenses: 'var(--negative)',
-  budgetSurplus: 'var(--gold-300)',
+  budgetSurplus: 'var(--chart-allocation-1)',
 } as const;
 
 function exact(cell: AnnualCell, assetCode: string | null, locale: string, reasonText: string) {
@@ -35,7 +35,7 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
   return (
     <div ref={ref} className={styles.flows}>
       {size.width > 0 ? (
-        <BarChart
+        <ComposedChart
           accessibilityLayer
           data={data}
           height={220}
@@ -45,15 +45,22 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
         >
           <XAxis dataKey="month" />
           <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
-          {FLOW_SERIES_IDS.map((id) => (
+          {FLOW_SERIES_IDS.filter((id) => id !== 'budgetSurplus').map((id) => (
             <Bar
               dataKey={id}
-              fill={COLORS[id]}
+              fill={FLOW_CHART_COLORS[id]}
               isAnimationActive={!prefersReducedMotion()}
               key={id}
             />
           ))}
-        </BarChart>
+          <Line
+            dataKey="budgetSurplus"
+            dot={false}
+            isAnimationActive={!prefersReducedMotion()}
+            stroke={FLOW_CHART_COLORS.budgetSurplus}
+            type="monotone"
+          />
+        </ComposedChart>
       ) : null}
     </div>
   );
