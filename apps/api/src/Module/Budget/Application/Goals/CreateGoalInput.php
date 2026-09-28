@@ -17,6 +17,7 @@ final readonly class CreateGoalInput
         public ?string $targetAssetCode,
         public ?string $ratio,
         public ?string $startMonth,
+        public ?GoalScheduleInput $schedule = null,
     ) {
     }
 }

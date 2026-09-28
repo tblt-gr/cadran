@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\Infrastructure\Persistence;
 
+use App\Module\Budget\Domain\Goals\GoalSchedule;
+use App\Module\Budget\Domain\Goals\GoalScheduleMode;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 final class GoalVersionRow
 {
-    /** @param array<string, mixed> $row */
-    public static function hydrate(array $row, WorkspaceScope $workspace): GoalVersion
+    /**
+     * @param array<string, mixed>       $row
+     * @param list<array<string, mixed>> $parts the version's stored schedule parts, January first
+     */
+    public static function hydrate(array $row, WorkspaceScope $workspace, array $parts): GoalVersion
     {
         if ($workspace->id !== GoalRow::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A goal version row escaped its requested workspace.');
@@ -20,7 +25,11 @@ final class GoalVersionRow
         $createdAt = new \DateTimeImmutable(GoalRow::text($row['created_at'] ?? null));
         $createdBy = GoalRow::text($row['created_by'] ?? null);
         if (null !== ($row['target_amount'] ?? null)) {
-            return GoalVersion::annual(...[...$common, (int) GoalRow::text($row['year'] ?? null), DecimalValue::fromString(self::decimal($row['target_amount'], $row['target_scale'])), $createdAt, $createdBy]);
+            $target = DecimalValue::fromString(self::decimal($row['target_amount'], $row['target_scale']));
+            $mode = $row['schedule_mode'] ?? null;
+            $schedule = null === $mode ? null : GoalSchedule::restore(GoalScheduleMode::from(GoalRow::text($mode)), $target, array_map(static fn (array $part): DecimalValue => DecimalValue::fromString(self::decimal($part['amount'] ?? null, $part['amount_scale'] ?? null)), $parts));
+
+            return GoalVersion::annual(...[...$common, (int) GoalRow::text($row['year'] ?? null), $target, $schedule, $createdAt, $createdBy]);
         }
 
         return GoalVersion::rolling(...[...$common, DecimalValue::fromString(self::decimal($row['ratio'] ?? null, $row['ratio_scale'] ?? null)), $createdAt, $createdBy]);
@@ -29,7 +38,7 @@ final class GoalVersionRow
     /** @return array<string, mixed> */
     public static function columns(GoalVersion $version): array
     {
-        return ['goal_id' => $version->goalId, 'version_no' => $version->versionNo, 'effective_from' => $version->effectiveFrom, 'year' => $version->year, 'target_amount' => $version->targetAmount?->toString(), 'target_scale' => $version->targetAmount?->scale(), 'ratio' => $version->ratio?->toString(), 'ratio_scale' => $version->ratio?->scale(), 'schedule_mode' => $version->scheduleMode, 'reason' => $version->reason, 'created_at' => $version->createdAt->format('Y-m-d H:i:s.uP'), 'created_by' => $version->createdBy];
+        return ['goal_id' => $version->goalId, 'version_no' => $version->versionNo, 'effective_from' => $version->effectiveFrom, 'year' => $version->year, 'target_amount' => $version->targetAmount?->toString(), 'target_scale' => $version->targetAmount?->scale(), 'ratio' => $version->ratio?->toString(), 'ratio_scale' => $version->ratio?->scale(), 'schedule_mode' => $version->scheduleMode(), 'reason' => $version->reason, 'created_at' => $version->createdAt->format('Y-m-d H:i:s.uP'), 'created_by' => $version->createdBy];
     }
 
     private static function decimal(mixed $value, mixed $scale): string

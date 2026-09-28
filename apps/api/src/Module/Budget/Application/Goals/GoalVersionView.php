@@ -6,7 +6,7 @@ namespace App\Module\Budget\Application\Goals;
 
 final readonly class GoalVersionView
 {
-    public function __construct(public int $versionNo, public string $effectiveFrom, public ?int $year, public ?string $targetAmount, public ?string $ratio)
+    public function __construct(public int $versionNo, public string $effectiveFrom, public ?int $year, public ?string $targetAmount, public ?string $ratio, public ?GoalScheduleView $schedule)
     {
     }
 }

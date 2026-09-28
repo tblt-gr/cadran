@@ -59,6 +59,6 @@ final readonly class PresentGoal
 
     private static function version(GoalVersion $version): GoalVersionView
     {
-        return new GoalVersionView($version->versionNo, $version->effectiveFrom, $version->year, $version->targetAmount?->toString(), $version->ratio?->toString());
+        return new GoalVersionView($version->versionNo, $version->effectiveFrom, $version->year, $version->targetAmount?->toString(), $version->ratio?->toString(), null === $version->schedule ? null : GoalScheduleView::of($version->schedule, $version->year));
     }
 }

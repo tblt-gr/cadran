@@ -77,11 +77,11 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame(1, $created['version']);
         $id = $this->id($created);
 
-        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Annual savings', 'targetAmount' => ['value' => '15000.125', 'assetCode' => 'EUR'], 'ratio' => null, 'version' => 1]);
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Annual savings', 'targetAmount' => ['value' => '15000.12', 'assetCode' => 'EUR'], 'ratio' => null, 'version' => 1]);
         self::assertResponseIsSuccessful();
         $updated = $this->decode();
         self::assertSame(2, self::arr($updated['currentVersion'])['versionNo']);
-        self::assertSame('15000.125', self::arr($updated['currentVersion'])['targetAmount']);
+        self::assertSame('15000.12', self::arr($updated['currentVersion'])['targetAmount']);
         self::assertSame('2026-09', self::arr($updated['currentVersion'])['effectiveFrom']);
         self::assertCount(2, self::items($updated['versions']));
 

@@ -10,6 +10,7 @@ use App\Module\Budget\Application\Goals\CreateGoalInput;
 use App\Module\Budget\Application\Goals\GoalConflict;
 use App\Module\Budget\Application\Goals\GoalInputError;
 use App\Module\Budget\Application\Goals\GoalNotFound;
+use App\Module\Budget\Application\Goals\GoalScheduleInput;
 use App\Module\Budget\Application\Goals\ListGoals;
 use App\Module\Budget\Application\Goals\ReadGoal;
 use App\Module\Budget\Application\Goals\UpdateGoal;
@@ -51,16 +52,16 @@ final readonly class GoalController
             return $body;
         }
         try {
-            self::allowed($body, ['label', 'kind', 'metric', 'scope', 'year', 'targetAmount', 'ratio', 'startMonth'], ['label', 'kind', 'metric', 'scope']);
+            self::allowed($body, ['label', 'kind', 'metric', 'scope', 'year', 'targetAmount', 'ratio', 'startMonth', 'schedule'], ['label', 'kind', 'metric', 'scope']);
             $scope = self::object($body['scope']);
             self::allowed($scope, ['type', 'ref'], ['type', 'ref']);
             $target = null === ($body['targetAmount'] ?? null) ? null : self::object($body['targetAmount']);
             if (null !== $target) {
                 self::allowed($target, ['value', 'assetCode'], ['value', 'assetCode']);
             }
-            $result = $create(new CreateGoalInput(self::string($body, 'label'), self::string($body, 'kind'), self::string($body, 'metric'), self::string($scope, 'type'), self::nullableString($scope, 'ref'), self::nullableInteger($body, 'year'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), self::nullableString($body, 'startMonth')));
+            $result = $create(new CreateGoalInput(self::string($body, 'label'), self::string($body, 'kind'), self::string($body, 'metric'), self::string($scope, 'type'), self::nullableString($scope, 'ref'), self::nullableInteger($body, 'year'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), self::nullableString($body, 'startMonth'), self::schedule($body)));
         } catch (GoalInputError $error) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode);
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode, $error->details);
         } catch (\UnexpectedValueException) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_goal_target');
         } catch (GoalConflict $error) {
@@ -98,14 +99,14 @@ final readonly class GoalController
             return $body;
         }
         try {
-            self::allowed($body, ['label', 'targetAmount', 'ratio', 'version', 'metric', 'scope'], ['label', 'version']);
+            self::allowed($body, ['label', 'targetAmount', 'ratio', 'version', 'metric', 'scope', 'schedule'], ['label', 'version']);
             $target = null === ($body['targetAmount'] ?? null) ? null : self::object($body['targetAmount']);
             if (null !== $target) {
                 self::allowed($target, ['value', 'assetCode'], ['value', 'assetCode']);
             }
-            $result = $update(new UpdateGoalInput($id, self::integer($body, 'version'), self::string($body, 'label'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), array_key_exists('metric', $body) || array_key_exists('scope', $body)));
+            $result = $update(new UpdateGoalInput($id, self::integer($body, 'version'), self::string($body, 'label'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), array_key_exists('metric', $body) || array_key_exists('scope', $body), self::schedule($body)));
         } catch (GoalInputError $error) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode);
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode, $error->details);
         } catch (\UnexpectedValueException) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_goal_target');
         } catch (GoalNotFound) {
@@ -145,9 +146,35 @@ final readonly class GoalController
         return $this->envelope->json(GoalRepresentation::detail($result));
     }
 
-    private function problem(int $status, string $code): Response
+    /** @param array<string, string> $details */
+    private function problem(int $status, string $code, array $details = []): Response
     {
-        return $this->envelope->problem($status, 'api.problem.goal_error', '/problems/'.$code, ['code' => $code]);
+        return $this->envelope->problem($status, 'api.problem.goal_error', '/problems/'.$code, ['code' => $code, ...$details]);
+    }
+
+    /**
+     * Reads the optional `schedule` object: a mode, plus the twelve part
+     * strings of a custom schedule.
+     *
+     * @param array<mixed> $body
+     */
+    private static function schedule(array $body): ?GoalScheduleInput
+    {
+        if (null === ($body['schedule'] ?? null)) {
+            return null;
+        }
+        try {
+            $schedule = self::object($body['schedule']);
+            self::allowed($schedule, ['mode', 'parts'], ['mode']);
+            $parts = $schedule['parts'] ?? null;
+            if (null !== $parts && (!is_array($parts) || !array_is_list($parts) || count($parts) > 24)) {
+                throw new \UnexpectedValueException('Schedule parts are a short list of decimal strings.');
+            }
+
+            return new GoalScheduleInput(self::string($schedule, 'mode'), null === $parts ? null : array_map(static fn (mixed $part): string => is_string($part) ? $part : throw new \UnexpectedValueException('A schedule part is a decimal string.'), $parts));
+        } catch (\UnexpectedValueException $error) {
+            throw new GoalInputError('invalid_goal_schedule', $error->getMessage());
+        }
     }
 
     private function notFound(): Response
