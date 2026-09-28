@@ -1,6 +1,7 @@
 import type { GoalDetail } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { formatAmount } from '@/lib/decimal';
+import { formatGoalMonth } from './goalMonth';
 import styles from './GoalsPage.module.css';
 
 export function ReferenceIncomeNote({ goal }: { goal: GoalDetail }) {
@@ -14,8 +15,8 @@ export function ReferenceIncomeNote({ goal }: { goal: GoalDetail }) {
         : t('goals.referenceIncome', {
             value: formatAmount(income.value, goal.assetCode, i18n.language),
             usable: income.usableMonths,
-            start: income.windowStart,
-            end: income.windowEnd,
+            start: formatGoalMonth(income.windowStart, i18n.language),
+            end: formatGoalMonth(income.windowEnd, i18n.language),
           })}
     </p>
   );

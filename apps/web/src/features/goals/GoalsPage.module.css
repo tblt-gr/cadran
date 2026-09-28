@@ -17,8 +17,7 @@
 .closeDialog p {
   margin: var(--spacing-none);
 }
-.intro p,
-.metric {
+.intro p {
   color: var(--gold-300);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
@@ -30,7 +29,7 @@
   font-size: var(--font-size-kpi);
 }
 .intro span,
-.scope,
+.notice,
 .reference,
 .closeDialog p {
   color: var(--text-secondary);
@@ -59,35 +58,51 @@
   color: var(--text-secondary);
   font-size: var(--font-size-label);
 }
-.toolbar input,
-.form input,
-.form select {
-  min-height: var(--control-height);
-  padding: var(--spacing-2) var(--spacing-3);
-  border: var(--border-line-strong);
-  border-radius: var(--radius-control);
-  color: var(--text-primary);
-  background: var(--bg-surface-2);
-}
-.toolbar input {
+.toolbar input:not([type='radio']) {
   width: 6rem;
+}
+.toolbar input[type='radio'],
+.radios input {
+  accent-color: var(--gold-300);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.notice {
+  margin: var(--spacing-none);
+  color: var(--text-muted);
 }
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
   gap: var(--spacing-4);
 }
-.goalCard,
-.futureSlot {
-  min-height: 12rem;
-}
 .goalCard {
   display: flex;
+  min-height: 12rem;
   flex-direction: column;
   gap: var(--spacing-3);
 }
-.cardHeading,
-.value {
+.metric {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.facts {
+  display: flex;
+  flex-direction: column;
+  margin: auto var(--spacing-none) var(--spacing-none);
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  gap: var(--spacing-1);
+}
+.facts dd {
+  margin: var(--spacing-none);
+}
+.cardHeading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -97,36 +112,25 @@
   margin-top: var(--spacing-1);
   font-size: var(--font-size-card-title);
 }
-.goalCard .scope {
-  flex-grow: 1;
-}
 .value {
-  align-items: end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
 }
-.value span {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
+.direction {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
 }
 .value strong {
+  color: var(--text-primary);
   font-size: var(--font-size-metric);
+  font-weight: var(--font-weight-strong);
+  line-height: var(--line-height-tight);
   letter-spacing: var(--letter-spacing-kpi);
 }
-.warning {
-  padding: var(--spacing-2);
-  border-radius: var(--radius-control);
-  color: var(--warning);
-  background: var(--warning-soft);
-  font-size: var(--font-size-xs);
-}
-.futureSlot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-card);
-  color: var(--text-muted);
-  font-size: var(--font-size-label);
+.modalLoading {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
 }
 .state {
   display: flex;
@@ -155,9 +159,6 @@
 .form small {
   color: var(--text-muted);
   font-size: var(--font-size-xs);
-}
-.form input[aria-invalid='true'] {
-  border-color: var(--negative);
 }
 .alert,
 .validation {
@@ -198,7 +199,7 @@
   .grid {
     grid-template-columns: 1fr;
   }
-  .futureSlot {
-    min-height: 4rem;
+  .goalCard {
+    min-height: auto;
   }
 }

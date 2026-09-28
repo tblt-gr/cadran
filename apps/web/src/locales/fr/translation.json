@@ -2468,6 +2468,10 @@
     "ratioHint": "Saisissez un pourcentage exact entre 0 et 100 : 30 correspond à 30 %.",
     "minimum": "Minimum",
     "ceiling": "Plafond",
+    "annualPeriod": "Année {{year}}",
+    "rollingPeriod": "Ratio glissant depuis {{month}}",
+    "closedBadge": "Clôturé",
+    "noValue": "Valeur absente",
     "referenceArchived": "Référence archivée",
     "referenceIncome": "Revenu de référence : {{value}} ({{usable}}/12 mois, {{start}} à {{end}})",
     "noReferenceIncome": "Revenu de référence non calculable : aucune période utilisable.",
@@ -2481,7 +2485,10 @@
     "saving": "Enregistrement…",
     "closing": "Clôture…",
     "saved": "L’objectif a été enregistré.",
-    "kinds": { "ANNUAL": "Annuel", "ROLLING_RATIO": "Ratio glissant" },
+    "kinds": {
+      "ANNUAL": "Annuel",
+      "ROLLING_RATIO": "Ratio glissant"
+    },
     "metrics": {
       "NET_SAVINGS_TRANSFERS": "Épargne nette par virements",
       "BUDGET_SURPLUS": "Excédent budgétaire",
@@ -2497,7 +2504,7 @@
     },
     "validation": {
       "scope": "Choisissez un périmètre.",
-      "form": "Vérifiez le libellé, le périmètre et la valeur saisie."
+      "form": "Vérifiez le libellé, le périmètre, la période et la valeur saisie."
     },
     "errors": {
       "conflict": "Cet objectif a changé. Actualisez puis réessayez.",

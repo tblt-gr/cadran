@@ -116,6 +116,25 @@ describe('GoalsPage', () => {
       await screen.findByRole('heading', { name: 'Aucun objectif clôturé pour cette année' }),
     ).toBeTruthy();
   });
+  it('marks a closed goal with a labelled badge instead of an inert action menu', async () => {
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [{ ...goal, state: 'CLOSED' as const }] }));
+    renderPage();
+    expect(await screen.findByText('Clôturé')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Actions de l’objectif « Épargne »' })).toBeNull();
+    expect(screen.getByText('Année 2026')).toBeTruthy();
+  });
+  it('flags only the invalid field when an annual goal is submitted without a label', async () => {
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [] }));
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouvel objectif' }));
+    fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '5000.00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(screen.getByLabelText('Libellé').getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByLabelText('Montant cible').getAttribute('aria-invalid')).toBeNull();
+    expect(api.createGoal).not.toHaveBeenCalled();
+  });
   it('shows rolling reference income without coercing its exact amount to a number', async () => {
     mockSession();
     const rolling = {
@@ -144,7 +163,9 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
-    expect(await screen.findByText(/Revenu de référence.*10\/12/)).toBeTruthy();
+    expect(
+      await screen.findByText(/Revenu de référence.*10\/12 mois, septembre 2025 à août 2026/),
+    ).toBeTruthy();
   });
   it('opens the create modal from the keyboard, fills an annual goal and submits it', async () => {
     mockSession();

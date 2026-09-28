@@ -19,6 +19,7 @@ import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { useWorkspaceBaseCurrency } from '@/features/auth/useWorkspaceBaseCurrency';
 import { CloseGoalDialog } from './CloseGoalDialog';
 import { GoalCard } from './GoalCard';
+import { GoalFilters, type GoalListState } from './GoalFilters';
 import { GoalForm } from './GoalForm';
 import { goalErrorKind, goalRequestError } from './goalError';
 import { ReferenceIncomeNote } from './ReferenceIncomeNote';
@@ -32,8 +33,7 @@ export function GoalsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [year, setYear] = useState(currentYear());
-  const [yearText, setYearText] = useState(String(currentYear()));
-  const [state, setState] = useState<'active' | 'closed'>('active');
+  const [state, setState] = useState<GoalListState>('active');
   const [editor, setEditor] = useState<Editor>(null);
   const [closeTarget, setCloseTarget] = useState<GoalSummary | null>(null);
   const [saved, setSaved] = useState(false);
@@ -135,43 +135,7 @@ export function GoalsPage() {
         </button>
       </section>
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('goals.saved')}</Toast> : null}
-      <section className={`card ${styles.toolbar}`} aria-label={t('goals.filters')}>
-        <label>
-          <span>{t('goals.year')}</span>
-          <input
-            inputMode="numeric"
-            onChange={(event) => {
-              setYearText(event.target.value);
-              if (/^\d{4}$/.test(event.target.value)) {
-                const next = Number.parseInt(event.target.value, 10);
-                if (next >= 1900 && next <= 2999) setYear(next);
-              }
-            }}
-            value={yearText}
-          />
-        </label>
-        <fieldset>
-          <legend>{t('goals.state')}</legend>
-          <label>
-            <input
-              checked={state === 'active'}
-              name="goal-state"
-              onChange={() => setState('active')}
-              type="radio"
-            />
-            {t('goals.active')}
-          </label>
-          <label>
-            <input
-              checked={state === 'closed'}
-              name="goal-state"
-              onChange={() => setState('closed')}
-              type="radio"
-            />
-            {t('goals.closed')}
-          </label>
-        </fieldset>
-      </section>
+      <GoalFilters onStateChange={setState} onYearChange={setYear} state={state} year={year} />
       {goals.isPending ? (
         <section className={`card ${styles.state}`} aria-busy="true" role="status">
           <h3>{t('goals.loading')}</h3>
@@ -189,25 +153,34 @@ export function GoalsPage() {
         <section className={`card ${styles.state}`}>
           <h3>{t(state === 'active' ? 'goals.empty' : 'goals.emptyClosed')}</h3>
           {state === 'active' ? (
-            <button className="primary-action" onClick={() => setEditor('create')} type="button">
+            <button
+              className="secondary-action"
+              onClick={() => {
+                save.reset();
+                setEditor('create');
+              }}
+              type="button"
+            >
               {t('goals.add')}
             </button>
           ) : null}
         </section>
       ) : (
-        <section className={styles.grid} aria-label={t('goals.list')}>
-          <div className={styles.futureSlot}>{t('goals.progressLater')}</div>
-          {items.map((goal) => (
-            <GoalCard
-              goal={goal}
-              key={goal.id}
-              onClose={setCloseTarget}
-              onEdit={(target) => {
-                save.reset();
-                setEditor(target);
-              }}
-            />
-          ))}
+        <section className={styles.list} aria-label={t('goals.list')}>
+          <p className={styles.notice}>{t('goals.progressLater')}</p>
+          <div className={styles.grid}>
+            {items.map((goal) => (
+              <GoalCard
+                goal={goal}
+                key={goal.id}
+                onClose={setCloseTarget}
+                onEdit={(target) => {
+                  save.reset();
+                  setEditor(target);
+                }}
+              />
+            ))}
+          </div>
         </section>
       )}
       {editor ? (
@@ -219,10 +192,11 @@ export function GoalsPage() {
           eyebrow={t(editor === 'create' ? 'goals.createEyebrow' : 'goals.editEyebrow')}
           title={t(editor === 'create' ? 'goals.createTitle' : 'goals.editTitle')}
         >
+          {detail.data ? <ReferenceIncomeNote goal={detail.data as GoalDetail} /> : null}
           {editingSummary && !latestDetail && detail.isPending ? (
-            <section className={`card ${styles.state}`} aria-busy="true" role="status">
-              <h3>{t('goals.loading')}</h3>
-            </section>
+            <p className={styles.modalLoading} aria-busy="true" role="status">
+              {t('goals.loading')}
+            </p>
           ) : (
             <GoalForm
               baseCurrency={baseCurrency}
@@ -237,7 +211,6 @@ export function GoalsPage() {
               submitError={goalErrorKind(save.error, save.isError)}
             />
           )}
-          {detail.data ? <ReferenceIncomeNote goal={detail.data as GoalDetail} /> : null}
         </Modal>
       ) : null}
       {closeTarget ? (

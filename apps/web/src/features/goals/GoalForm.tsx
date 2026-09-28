@@ -110,6 +110,7 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
   const scopeValid = scopeType === 'WORKSPACE' || scope !== '';
   const yearValid =
     /^\d{4}$/.test(year) && Number(year) >= 1900 && Number(year) <= new Date().getFullYear() + 5;
+  const periodValid = kind === 'ANNUAL' ? yearValid : /^\d{4}-\d{2}$/.test(startMonth);
   function changeKind(next: GoalKind) {
     setKind(next);
     const nextMetric = (next === 'ANNUAL' ? annualMetrics : rollingMetrics).includes(metric)
@@ -120,13 +121,7 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
   }
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (
-      !labelValid ||
-      !decimalValid ||
-      !scopeValid ||
-      (kind === 'ANNUAL' && !yearValid) ||
-      (kind === 'ROLLING_RATIO' && !/^\d{4}-\d{2}$/.test(startMonth))
-    ) {
+    if (!labelValid || !decimalValid || !scopeValid || !periodValid) {
       setShowErrors(true);
       return;
     }
@@ -150,9 +145,8 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
         : { ratio: percentageToRatio(value)!, startMonth }),
     });
   }
-  const invalid =
-    showErrors &&
-    (!labelValid || !decimalValid || !scopeValid || (kind === 'ANNUAL' && !yearValid));
+  const invalid = showErrors && (!labelValid || !decimalValid || !scopeValid || !periodValid);
+  const flag = (valid: boolean) => (showErrors && !valid ? true : undefined);
   return (
     <form className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
@@ -163,6 +157,7 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
       <label>
         <span>{t('goals.label')}</span>
         <input
+          aria-invalid={flag(labelValid)}
           data-autofocus
           maxLength={80}
           onChange={(e) => setLabel(e.target.value)}
@@ -219,7 +214,12 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
       {scopeType === 'AXIS' ? (
         <label>
           <span>{t('goals.scope')}</span>
-          <select disabled={Boolean(goal)} onChange={(e) => setScope(e.target.value)} value={scope}>
+          <select
+            aria-invalid={flag(scopeValid)}
+            disabled={Boolean(goal)}
+            onChange={(e) => setScope(e.target.value)}
+            value={scope}
+          >
             <option value="">{t('goals.chooseScope')}</option>
             {AXES.map((axis) => (
               <option key={axis} value={axis}>
@@ -239,6 +239,7 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
           <label>
             <span>{t('goals.scope')}</span>
             <select
+              aria-invalid={flag(scopeValid)}
               disabled={Boolean(goal) || accountQuery.isPending}
               onChange={(e) => setScope(e.target.value)}
               value={scope}
@@ -269,7 +270,7 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
         <label>
           <span>{t('goals.year')}</span>
           <input
-            aria-invalid={showErrors && !yearValid ? true : undefined}
+            aria-invalid={flag(yearValid)}
             disabled={Boolean(goal)}
             inputMode="numeric"
             onChange={(e) => setYear(e.target.value)}
@@ -280,6 +281,7 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
         <label>
           <span>{t('goals.startMonth')}</span>
           <input
+            aria-invalid={flag(periodValid)}
             disabled={Boolean(goal)}
             onChange={(e) => setStartMonth(e.target.value)}
             type="month"
@@ -290,10 +292,10 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
       <label>
         <span>{t(kind === 'ANNUAL' ? 'goals.targetAmount' : 'goals.ratio')}</span>
         {kind === 'ANNUAL' ? (
-          <AmountInput invalid={invalid} onChange={setValue} value={value} />
+          <AmountInput invalid={Boolean(flag(decimalValid))} onChange={setValue} value={value} />
         ) : (
           <input
-            aria-invalid={invalid ? true : undefined}
+            aria-invalid={flag(decimalValid)}
             inputMode="decimal"
             onChange={(e) => setValue(e.target.value)}
             value={value}
@@ -301,7 +303,11 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
         )}
         {kind === 'ROLLING_RATIO' ? <small>{t('goals.ratioHint')}</small> : null}
       </label>
-      {invalid ? <small className={styles.validation}>{t('goals.validation.form')}</small> : null}
+      {invalid ? (
+        <p className={styles.alert} role="alert">
+          {t('goals.validation.form')}
+        </p>
+      ) : null}
       <div className={styles.formActions}>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'goals.saving' : 'goals.save')}
