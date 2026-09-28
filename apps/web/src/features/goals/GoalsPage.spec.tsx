@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { GoalsPage } from './GoalsPage';
 
@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   updateGoal: vi.fn(),
   closeGoal: vi.fn(),
   readGoal: vi.fn(),
+  readGoalStatus: vi.fn(),
   previewGoalSchedule: vi.fn(),
   listAccounts: vi.fn(),
   listCategories: vi.fn(),
@@ -66,9 +67,17 @@ function renderPage() {
   );
 }
 describe('GoalsPage', () => {
+  // The page derives its default year and month from today's date, and the list mock mirrors a
+  // server that rejects months after 2026-09: freezing only `Date` keeps the suite independent of
+  // the real calendar while leaving the timers React Query and waitFor rely on untouched.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-15T10:00:00Z'));
+  });
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
   function mockSession() {
     api.getSession.mockReturnValue(
@@ -100,6 +109,57 @@ describe('GoalsPage', () => {
           }),
         }),
       ),
+    );
+  });
+  it('renders an accessible provisional status and opens its keyboard-usable monthly detail', async () => {
+    mockSession();
+    const status = {
+      goalId: goal.id,
+      month: '2026-09',
+      kind: 'ANNUAL' as const,
+      direction: 'MINIMUM' as const,
+      goalVersion: 1,
+      scheduleMode: 'LINEAR' as const,
+      provisional: true,
+      metricPolicy: { state: 'SINGLE' as const, version: 1, versions: [1] },
+      target: '12000',
+      achieved: '9000',
+      expected: '9000',
+      gap: '0',
+      remaining: '3000',
+      excess: '0',
+      status: 'AHEAD' as const,
+      progressRatio: '0.75',
+      progressRatioDisplay: '0.75',
+      reason: null,
+      quality: 'PROVISIONAL' as const,
+    };
+    api.listGoals.mockReturnValue(ok({ items: [{ ...goal, status }] }));
+    api.readGoalStatus.mockReturnValue(
+      ok({
+        ...status,
+        months: [
+          {
+            month: '2026-09',
+            state: 'PROVISIONAL',
+            value: '1000',
+            expectedPart: '1000',
+            cumulativeValue: '9000',
+            cumulativeExpected: '9000',
+            goalVersion: 1,
+            policyVersion: 1,
+          },
+        ],
+      }),
+    );
+    renderPage();
+    expect(await screen.findByText('En avance')).toBeTruthy();
+    expect(screen.getByRole('meter')).toBeTruthy();
+    expect(screen.getByText('Provisoire')).toBeTruthy();
+    activateWithKeyboard(screen.getByRole('button', { name: 'Détail mensuel' }));
+    expect(await screen.findByRole('dialog', { name: 'Détail de l’objectif' })).toBeTruthy();
+    expect((await screen.findByRole('link', { name: 'septembre 2026' })).getAttribute('href')).toBe(
+      '/budget/2026-09',
     );
   });
   it('switches to closed goals and opens the close confirmation from the accessible action menu', async () => {
@@ -363,6 +423,227 @@ describe('GoalsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
 
     expect(await screen.findByText('Aucun calendrier mensuel pour cet objectif.')).toBeTruthy();
+  });
+  it('shows an error inside the detail modal, not a page-wide failure, when the status call fails', async () => {
+    mockSession();
+    const status = {
+      goalId: goal.id,
+      month: '2026-09',
+      kind: 'ANNUAL' as const,
+      direction: 'MINIMUM' as const,
+      goalVersion: 1,
+      scheduleMode: 'LINEAR' as const,
+      provisional: false,
+      metricPolicy: { state: 'SINGLE' as const, version: 1, versions: [1] },
+      target: '12000',
+      achieved: '9000',
+      expected: '9000',
+      gap: '0',
+      remaining: '3000',
+      excess: '0',
+      status: 'AHEAD' as const,
+      progressRatio: '0.75',
+      progressRatioDisplay: '0.75',
+      reason: null,
+      quality: 'COMPLETE' as const,
+    };
+    api.listGoals.mockReturnValue(ok({ items: [{ ...goal, status }] }));
+    api.readGoalStatus.mockReturnValue(
+      Promise.resolve({
+        error: {
+          type: '/problems/internal',
+          title: 'Internal Server Error',
+          status: 500,
+          detail: 'unavailable',
+        },
+        response: new Response(null, { status: 500 }),
+      }),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Détail mensuel' }));
+    expect(await screen.findByRole('dialog', { name: 'Détail de l’objectif' })).toBeTruthy();
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      'Impossible de charger les objectifs',
+    );
+    expect(
+      screen.queryByRole('heading', { name: 'Impossible de charger les objectifs' }),
+    ).toBeNull();
+  });
+  it('sends the month chosen for a past year so the cards show that month, not December', async () => {
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [goal] }));
+    renderPage();
+    expect(await screen.findByText('Épargne')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Année'), { target: { value: '2025' } });
+    fireEvent.change(screen.getByLabelText('Mois'), { target: { value: '2025-06' } });
+
+    await waitFor(() =>
+      expect(api.listGoals).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ year: 2025, month: '2025-06' }),
+        }),
+      ),
+    );
+  });
+  it('offers no monthly detail nor month choice for a future year, so no status call can fail', async () => {
+    mockSession();
+    const status = {
+      goalId: goal.id,
+      month: '2027-01',
+      kind: 'ANNUAL' as const,
+      direction: 'MINIMUM' as const,
+      goalVersion: 1,
+      scheduleMode: 'LINEAR' as const,
+      provisional: true,
+      metricPolicy: { state: 'SINGLE' as const, version: 1, versions: [1] },
+      target: '12000',
+      achieved: null,
+      expected: null,
+      gap: null,
+      remaining: null,
+      excess: null,
+      status: 'NOT_CALCULABLE' as const,
+      progressRatio: null,
+      progressRatioDisplay: null,
+      reason: 'GOAL_NOT_STARTED' as const,
+      quality: 'PARTIAL' as const,
+    };
+    const future = {
+      ...goal,
+      label: 'Épargne 2027',
+      currentVersion: { ...goal.currentVersion, year: 2027, effectiveFrom: '2027-01' },
+    };
+    api.listGoals.mockImplementation(({ query }) =>
+      ok({ items: query.year === 2027 ? [{ ...future, status }] : [{ ...goal, status }] }),
+    );
+    renderPage();
+    expect(await screen.findByRole('button', { name: 'Détail mensuel' })).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Année'), { target: { value: '2027' } });
+
+    expect(await screen.findByText('Épargne 2027')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Détail mensuel' })).toBeNull();
+    expect((screen.getByLabelText('Mois') as HTMLInputElement).disabled).toBe(true);
+    expect(api.readGoalStatus).not.toHaveBeenCalled();
+  });
+  it('keeps the goals list usable after selecting a future year instead of showing a page-wide error', async () => {
+    mockSession();
+    const future = {
+      ...goal,
+      id: '00000000-0000-7000-8000-000000000005',
+      currentVersion: { ...goal.currentVersion, year: 2027, effectiveFrom: '2027-01' },
+    };
+    api.listGoals.mockImplementation(({ query }) => {
+      // The real backend rejects any month after the current workspace-local month (2026-09).
+      if (typeof query.month === 'string' && query.month > '2026-09') {
+        return Promise.resolve({
+          error: {
+            type: '/problems/future_goal_month',
+            title: 'Unprocessable',
+            status: 422,
+            detail: 'future',
+            code: 'future_goal_month',
+          },
+          response: new Response(null, { status: 422 }),
+        });
+      }
+      return ok({ items: query.year === 2027 ? [future] : [goal] });
+    });
+    renderPage();
+    expect(await screen.findByText('Épargne')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Année'), { target: { value: '2027' } });
+
+    await waitFor(() =>
+      expect(api.listGoals).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ year: 2027, month: undefined }),
+        }),
+      ),
+    );
+    expect(await screen.findByText('Épargne')).toBeTruthy();
+    expect(
+      screen.queryByRole('heading', { name: 'Impossible de charger les objectifs' }),
+    ).toBeNull();
+  });
+  /** Mirrors the server: an empty, malformed or out-of-year month rejects the whole list. */
+  function mockListRejectingInvalidMonths() {
+    api.listGoals.mockImplementation(({ query }) => {
+      const month: unknown = query.month;
+      const valid =
+        month === undefined ||
+        (typeof month === 'string' &&
+          /^\d{4}-(0[1-9]|1[0-2])$/.test(month) &&
+          month.startsWith(`${query.year}-`));
+      if (!valid) {
+        return Promise.resolve({
+          error: {
+            type: '/problems/invalid_goal_month',
+            title: 'Bad Request',
+            status: 400,
+            detail: 'invalid',
+            code: 'invalid_goal_month',
+          },
+          response: new Response(null, { status: 400 }),
+        });
+      }
+      return ok({ items: [goal] });
+    });
+  }
+  it('keeps the last valid month and flags the field when the month picker is emptied', async () => {
+    mockSession();
+    mockListRejectingInvalidMonths();
+    renderPage();
+    expect(await screen.findByText('Épargne')).toBeTruthy();
+    const monthInput = screen.getByLabelText('Mois') as HTMLInputElement;
+
+    fireEvent.change(monthInput, { target: { value: '' } });
+
+    await waitFor(() => expect(monthInput.getAttribute('aria-invalid')).toBe('true'));
+    expect(api.listGoals).not.toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ month: '' }) }),
+    );
+    expect(screen.getByText('Épargne')).toBeTruthy();
+    expect(
+      screen.queryByRole('heading', { name: 'Impossible de charger les objectifs' }),
+    ).toBeNull();
+  });
+  it('keeps the last valid month and flags the field when a month of another year is typed', async () => {
+    mockSession();
+    mockListRejectingInvalidMonths();
+    renderPage();
+    expect(await screen.findByText('Épargne')).toBeTruthy();
+    const monthInput = screen.getByLabelText('Mois') as HTMLInputElement;
+    const otherYear = String(Number.parseInt(monthInput.value.slice(0, 4), 10) - 2);
+
+    fireEvent.change(monthInput, { target: { value: `${otherYear}-03` } });
+
+    await waitFor(() => expect(monthInput.getAttribute('aria-invalid')).toBe('true'));
+    expect(api.listGoals).not.toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ month: `${otherYear}-03` }) }),
+    );
+    expect(screen.getByText('Épargne')).toBeTruthy();
+    expect(
+      screen.queryByRole('heading', { name: 'Impossible de charger les objectifs' }),
+    ).toBeNull();
+  });
+  it('does not send a month later than the current month of the displayed year', async () => {
+    mockSession();
+    mockListRejectingInvalidMonths();
+    renderPage();
+    expect(await screen.findByText('Épargne')).toBeTruthy();
+    const monthInput = screen.getByLabelText('Mois') as HTMLInputElement;
+    if (monthInput.value.endsWith('-12')) return;
+    const later = `${monthInput.value.slice(0, 4)}-12`;
+
+    fireEvent.change(monthInput, { target: { value: later } });
+
+    await waitFor(() => expect(monthInput.getAttribute('aria-invalid')).toBe('true'));
+    expect(api.listGoals).not.toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ month: later }) }),
+    );
   });
   it('prefills the edit form from the latest version so a rename cannot revert a newer ratio', async () => {
     mockSession();

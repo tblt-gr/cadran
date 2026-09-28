@@ -137,6 +137,67 @@
   font-size: var(--font-size-label);
   cursor: pointer;
 }
+.progress,
+.statusFacts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.progress {
+  position: relative;
+}
+.progress label,
+.statusFacts dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.progress meter {
+  width: 100%;
+}
+.expectedTick {
+  position: absolute;
+  top: var(--spacing-4);
+  height: var(--spacing-4);
+  border-left: var(--border-line-warning);
+}
+.progress span {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+.statusMonth {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.statusReason {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.statusFacts {
+  margin: var(--spacing-none);
+}
+.statusFacts dd {
+  margin: var(--spacing-none);
+  font-weight: var(--font-weight-strong);
+}
+.statusTableWrap {
+  overflow-x: auto;
+}
+.statusTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body);
+}
+.statusTable th,
+.statusTable td {
+  padding: var(--spacing-2);
+  border-bottom: var(--border-line-subtle);
+  text-align: right;
+  white-space: nowrap;
+}
+.statusTable th:first-child {
+  text-align: left;
+}
 .scheduleDetails table {
   margin-top: var(--spacing-3);
 }

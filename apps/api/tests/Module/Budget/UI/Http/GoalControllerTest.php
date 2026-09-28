@@ -129,6 +129,110 @@ final class GoalControllerTest extends WebTestCase
         self::assertNull(self::arr($goal['resolvedMonthlyTarget'])['value']);
     }
 
+    public function testStatusEndpointAndListExposeAnExplicitNonCalculableAnnualStatus(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?month=2026-09');
+        self::assertResponseIsSuccessful();
+        $status = $this->decode();
+        self::assertSame($id, $status['goalId']);
+        self::assertSame('2026-09', $status['month']);
+        self::assertSame('9000.00', $status['expected']);
+        self::assertNull($status['achieved']);
+        self::assertSame('NOT_CALCULABLE', $status['status']);
+        self::assertSame('MISSING_MONTH_VALUE', $status['reason']);
+        self::assertSame('PARTIAL', $status['quality']);
+        self::assertCount(9, self::items($status['months']));
+
+        $this->client->request('GET', '/api/v1/goals?year=2026&month=2026-09');
+        self::assertResponseIsSuccessful();
+        $summary = self::arr(self::items($this->decode()['items'])[0]);
+        $summaryStatus = self::arr($summary['status']);
+        self::assertSame('NOT_CALCULABLE', $summaryStatus['status']);
+        self::assertArrayNotHasKey('months', $summaryStatus);
+    }
+
+    public function testStatusMonthDefaultsToTheCurrentMonthOrDecemberOfAPastYear(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        $id = $this->id($this->decode());
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status');
+        self::assertResponseIsSuccessful();
+        self::assertSame('2026-09', $this->decode()['month']);
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?year=2026');
+        self::assertResponseIsSuccessful();
+        self::assertSame('2026-09', $this->decode()['month']);
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?year=2025');
+        self::assertResponseIsSuccessful();
+        $status = $this->decode();
+        self::assertSame('2025-12', $status['month']);
+        self::assertSame('GOAL_NOT_STARTED', $status['reason']);
+        self::assertNull($status['gap']);
+    }
+
+    public function testStatusRejectsMalformedMonthsAndMonthsOutsideTheRequestedYear(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        $id = $this->id($this->decode());
+
+        foreach (['2026-13', '2026-9', 'september', ''] as $month) {
+            $this->client->request('GET', '/api/v1/goals/'.$id.'/status?month='.$month);
+            self::assertResponseStatusCodeSame(400);
+            self::assertSame('invalid_goal_month', $this->decode()['code']);
+        }
+        foreach (['26', '1899', '2032'] as $year) {
+            $this->client->request('GET', '/api/v1/goals/'.$id.'/status?year='.$year);
+            self::assertResponseStatusCodeSame(400);
+        }
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?year=2025&month=2026-09');
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame('invalid_goal_query', $this->decode()['code']);
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?year=2027');
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('future_goal_month', $this->decode()['code']);
+    }
+
+    public function testListRejectsAFutureMonthAndAMonthOutsideItsYear(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+
+        $this->client->request('GET', '/api/v1/goals?year=2026&month=2026-10');
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('future_goal_month', $this->decode()['code']);
+
+        $this->client->request('GET', '/api/v1/goals?year=2026&month=2025-12');
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame('invalid_goal_query', $this->decode()['code']);
+
+        $this->client->request('GET', '/api/v1/goals?year=2026&month=2026-13');
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame('invalid_goal_month', $this->decode()['code']);
+    }
+
+    public function testFutureAndForeignGoalStatusAreRejectedWithoutLeakingTheGoal(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        $id = $this->id($this->decode());
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?month=2026-10');
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('future_goal_month', $this->decode()['code']);
+
+        $foreign = '00000000-0000-7000-8000-0000000000e7';
+        $this->insertGoal($foreign, WorkspaceFixture::OTHER_WORKSPACE, '00000000-0000-7000-8000-0000000000f7');
+        $this->client->request('GET', '/api/v1/goals/'.$foreign.'/status?month=2026-09');
+        self::assertResponseStatusCodeSame(404);
+        $body = (string) $this->client->getResponse()->getContent();
+        $this->client->request('GET', '/api/v1/goals/00000000-0000-7000-8000-0000000000e8/status?month=2026-09');
+        self::assertSame($body, (string) $this->client->getResponse()->getContent());
+    }
+
     public function testForeignUnknownAndArchivedCategoryReferencesShareTheSameErrorThenArchivingOnlyWarns(): void
     {
         $foreign = '00000000-0000-7000-8000-0000000000c9';
@@ -298,7 +402,17 @@ final class GoalControllerTest extends WebTestCase
 
         $this->client->request('GET', '/api/v1/goals?year=2027&state=active');
         self::assertResponseIsSuccessful();
-        self::assertCount(1, self::items($this->decode()['items']));
+        $items = self::items($this->decode()['items']);
+        self::assertCount(1, $items);
+        // 2027 has no real month yet: the listed status names January 2027, never today's month.
+        $status = self::arr(self::arr($items[0])['status']);
+        self::assertSame('2027-01', $status['month']);
+        self::assertSame('NOT_CALCULABLE', $status['status']);
+        self::assertSame('FUTURE_MONTH', $status['reason']);
+        self::assertSame('0.25', $status['ratio']);
+        self::assertNull($status['target']);
+        self::assertNull($status['actual']);
+        self::assertNull($status['referenceIncome']);
     }
 
     public function testEditingTheTargetOfAnAnnualGoalWhoseYearHasElapsedIsRejected(): void

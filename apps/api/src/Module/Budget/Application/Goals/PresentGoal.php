@@ -18,12 +18,12 @@ final readonly class PresentGoal
     }
 
     /** @param list<GoalVersion> $versions */
-    public function summary(Goal $goal, array $versions, int $year): GoalSummaryView
+    public function summary(Goal $goal, array $versions, int $year, ?GoalStatusView $status = null, ?GoalScopeView $scope = null): GoalSummaryView
     {
         $current = self::forYear($goal, $versions, $year) ?? throw new \LogicException('A listed goal must have a version for the selected year.');
-        $scope = ($this->scope)($goal->workspace, $goal->scopeType, $goal->scopeRef, true);
+        $scope ??= ($this->scope)($goal->workspace, $goal->scopeType, $goal->scopeRef, true);
 
-        return new GoalSummaryView($goal->id, $goal->label, $goal->kind->value, $goal->metric->value, $goal->direction()->value, $scope, $goal->assetCode->toString(), $goal->state->value, self::version($current), $goal->version, $scope->archived ? ['REFERENCE_ARCHIVED'] : []);
+        return new GoalSummaryView($goal->id, $goal->label, $goal->kind->value, $goal->metric->value, $goal->direction()->value, $scope, $goal->assetCode->toString(), $goal->state->value, self::version($current), $goal->version, $scope->archived ? ['REFERENCE_ARCHIVED'] : [], $status);
     }
 
     /** @param list<GoalVersion> $versions */
