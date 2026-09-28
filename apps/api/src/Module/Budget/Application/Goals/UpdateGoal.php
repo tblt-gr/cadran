@@ -135,8 +135,42 @@ final readonly class UpdateGoal
             $target = DecimalValue::fromString($input->targetAmount);
         }
         $targetChanged = 0 !== $target->compareTo($latestTarget);
-        if (!$targetChanged && null === $input->schedule) {
-            return null;
+
+        // The form resubmits a schedule on every edit, including a bare rename. Build it
+        // speculatively so an unchanged (or still non-calculable) schedule short-circuits
+        // before the year and precision checks below, which only guard a real change.
+        $schedule = null;
+        $scheduleError = null;
+        if (null !== $input->schedule) {
+            try {
+                $schedule = ($this->schedules)($goal->assetCode, $target, $input->schedule);
+            } catch (GoalInputError $error) {
+                $scheduleError = $error;
+            }
+        }
+        if (!$targetChanged) {
+            if (null === $input->schedule) {
+                return null;
+            }
+            if (null !== $schedule && null !== $latest->schedule && $schedule->sameAs($latest->schedule)) {
+                return null;
+            }
+            // GOAL-001 could store an annual target that the later scheduling
+            // rule cannot represent. The form still resubmits LINEAR on a bare
+            // rename; keep that historical null instead of blocking the label.
+            // Any custom/malformed replacement remains an explicit error.
+            if (null !== $scheduleError
+                && null === $latest->schedule
+                && trim($input->label) !== $goal->label
+                && GoalScheduleMode::LINEAR->value === $input->schedule->mode
+                && null === $input->schedule->parts
+                && in_array($scheduleError->errorCode, ['schedule_precision_exceeded', 'linear_schedule_impossible'], true)
+            ) {
+                return null;
+            }
+        }
+        if (null !== $scheduleError) {
+            throw $scheduleError;
         }
         $year = $latest->year ?? throw new \LogicException('An annual version carries a year.');
         if ($year < (int) $today->format('Y')) {
@@ -148,10 +182,7 @@ final readonly class UpdateGoal
         if (null === $input->schedule && GoalScheduleMode::CUSTOM === $latest->schedule?->mode) {
             throw new GoalInputError('schedule_part_count', 'A custom schedule needs its twelve new parts when the target changes.');
         }
-        $schedule = null === $input->schedule ? $this->schedules->linear($goal->assetCode, $target) : ($this->schedules)($goal->assetCode, $target, $input->schedule);
-        if (!$targetChanged && null !== $latest->schedule && $schedule->sameAs($latest->schedule)) {
-            return null;
-        }
+        $schedule ??= $this->schedules->linear($goal->assetCode, $target);
 
         return GoalVersion::annual($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $year, $target, $schedule, $now, $actorId);
     }

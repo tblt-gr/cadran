@@ -94,7 +94,7 @@ export function GoalCard({ goal, onEdit, onClose }: Props) {
           </StatusBadge>
         </div>
       ) : null}
-      {goal.kind === 'ANNUAL' && definition.schedule ? (
+      {goal.kind === 'ANNUAL' ? (
         <details className={styles.scheduleDetails}>
           <summary>{t('goals.schedule.table.caption')}</summary>
           <GoalScheduleTable assetCode={goal.assetCode} schedule={definition.schedule} />

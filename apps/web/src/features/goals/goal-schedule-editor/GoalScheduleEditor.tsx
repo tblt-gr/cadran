@@ -1,5 +1,5 @@
 import { previewGoalSchedule } from '@cadran/api-client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import {
@@ -43,18 +43,65 @@ function sumOfParts(parts: string[]): string {
   return sumDecimals(parts.map((part) => (isCanonicalUnsignedDecimal(part) ? part : '0')));
 }
 
+function displayPrecision(assetCode: string): number | null {
+  try {
+    return (
+      new Intl.NumberFormat('en-US', {
+        currency: assetCode,
+        style: 'currency',
+      }).resolvedOptions().maximumFractionDigits ?? null
+    );
+  } catch {
+    return null;
+  }
+}
+
+function hasDisplayPrecision(value: string, precision: number | null): boolean {
+  const fraction = value.split('.')[1] ?? '';
+
+  return isCanonicalUnsignedDecimal(value) && precision !== null && fraction.length <= precision;
+}
+
 export function GoalScheduleEditor({ assetCode, disabled, onChange, targetAmount, value }: Props) {
   const { t, i18n } = useTranslation();
   const [previewPending, setPreviewPending] = useState(false);
   const [previewError, setPreviewError] = useState<GoalErrorKind | null>(null);
+  const previewRequest = useRef(0);
   const targetValid = isCanonicalUnsignedDecimal(targetAmount);
-  const diff = targetValid ? subtractDecimals(targetAmount, sumOfParts(value.parts)) : null;
+  const precision = displayPrecision(assetCode);
+  const partsValid =
+    value.parts.length === 12 && value.parts.every((part) => hasDisplayPrecision(part, precision));
+  const diff =
+    targetValid && partsValid ? subtractDecimals(targetAmount, sumOfParts(value.parts)) : null;
+
+  useEffect(() => {
+    // A target change makes an in-flight preview inapplicable to the edited goal.
+    previewRequest.current += 1;
+    setPreviewPending(false);
+    setPreviewError(null);
+  }, [targetAmount]);
+
+  useEffect(
+    () => () => {
+      // The parent can remove this editor while retaining its draft schedule.
+      previewRequest.current += 1;
+    },
+    [],
+  );
+
+  function invalidatePreview() {
+    previewRequest.current += 1;
+    setPreviewPending(false);
+    setPreviewError(null);
+  }
 
   function setMode(mode: GoalScheduleMode) {
+    invalidatePreview();
     onChange({ mode, parts: value.parts });
   }
 
   function setPart(index: number, amount: string) {
+    invalidatePreview();
     const parts = [...value.parts];
     parts[index] = amount;
     onChange({ mode: value.mode, parts });
@@ -62,23 +109,34 @@ export function GoalScheduleEditor({ assetCode, disabled, onChange, targetAmount
 
   async function distributeLinearly() {
     if (!targetValid) return;
+    const request = ++previewRequest.current;
     setPreviewPending(true);
     setPreviewError(null);
-    const result = await previewGoalSchedule({
-      ...authApiOptions(),
-      query: { target: targetAmount, mode: 'LINEAR' },
-    });
-    setPreviewPending(false);
-    if (!result.response?.ok || !result.data) {
-      setPreviewError(goalErrorKind(goalRequestError(result), true));
-      return;
+    try {
+      const result = await previewGoalSchedule({
+        ...authApiOptions(),
+        query: { target: targetAmount, mode: 'LINEAR' },
+      });
+      if (request !== previewRequest.current) return;
+      if (!result.response?.ok || !result.data) {
+        setPreviewError(goalErrorKind(goalRequestError(result), true));
+        return;
+      }
+      const sorted = [...result.data.parts].sort((a, b) => a.monthIndex - b.monthIndex);
+      onChange({ mode: 'CUSTOM', parts: sorted.map((part) => part.amount) });
+    } catch (error) {
+      if (request === previewRequest.current) {
+        setPreviewError(goalErrorKind(error, true));
+      }
+    } finally {
+      if (request === previewRequest.current) {
+        setPreviewPending(false);
+      }
     }
-    const sorted = [...result.data.parts].sort((a, b) => a.monthIndex - b.monthIndex);
-    onChange({ mode: 'CUSTOM', parts: sorted.map((part) => part.amount) });
   }
 
   return (
-    <div>
+    <div className={styles.editor}>
       <fieldset className={styles.radios} disabled={disabled}>
         <legend>{t('goals.schedule.legend')}</legend>
         {(['LINEAR', 'CUSTOM'] as GoalScheduleMode[]).map((choice) => (
@@ -102,7 +160,7 @@ export function GoalScheduleEditor({ assetCode, disabled, onChange, targetAmount
               <label key={index}>
                 <span>{monthName(index, i18n.language)}</span>
                 <AmountInput
-                  invalid={false}
+                  invalid={!hasDisplayPrecision(value.parts[index] ?? '', precision)}
                   onChange={(amount) => setPart(index, amount)}
                   value={value.parts[index] ?? ''}
                   aria-label={t('goals.schedule.monthLabel', {
@@ -124,7 +182,11 @@ export function GoalScheduleEditor({ assetCode, disabled, onChange, targetAmount
                 previewPending ? 'goals.schedule.distributing' : 'goals.schedule.distributeLinear',
               )}
             </button>
-            {diff !== null ? (
+            {!partsValid ? (
+              <p className={styles.status} role="status">
+                {t('goals.schedule.incomplete')}
+              </p>
+            ) : diff !== null ? (
               <p
                 className={`${styles.status} ${isZeroDecimal(diff) ? styles.statusExact : ''}`}
                 role="status"

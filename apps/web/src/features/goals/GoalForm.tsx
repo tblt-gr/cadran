@@ -9,14 +9,14 @@ import type {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
-import { isCanonicalUnsignedDecimal } from '@/lib/decimal';
+import { formatAmount, isCanonicalUnsignedDecimal } from '@/lib/decimal';
 import { AmountInput } from './AmountInput';
 import {
   isValidPositiveRatioPercentage,
   percentageToRatio,
   ratioToPercentage,
 } from './goalDecimal';
-import type { GoalErrorKind } from './goalError';
+import type { GoalErrorKind, GoalScheduleMismatch } from './goalError';
 import {
   GoalScheduleEditor,
   type GoalScheduleValue,
@@ -36,10 +36,18 @@ interface Props {
   goal?: GoalSummary;
   pending: boolean;
   submitError: GoalErrorKind | null;
+  submitMismatch: GoalScheduleMismatch | null;
   onSubmit: (request: CreateGoalRequest | UpdateGoalRequest) => void;
 }
-export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }: Props) {
-  const { t } = useTranslation();
+export function GoalForm({
+  baseCurrency,
+  goal,
+  pending,
+  submitError,
+  submitMismatch,
+  onSubmit,
+}: Props) {
+  const { t, i18n } = useTranslation();
   const timeZone = useWorkspaceTimeZone();
   const version = goal?.currentVersion;
   const [label, setLabel] = useState(goal?.label ?? '');
@@ -119,6 +127,18 @@ export function GoalForm({ baseCurrency, goal, pending, submitError, onSubmit }:
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`goals.errors.${submitError}`)}
+          {submitError === 'schedule_sum_mismatch' && submitMismatch ? (
+            <>
+              {' '}
+              {t('goals.schedule.serverMismatch', {
+                difference: formatAmount(
+                  submitMismatch.difference,
+                  goal?.assetCode ?? baseCurrency,
+                  i18n.language,
+                ),
+              })}
+            </>
+          ) : null}
         </p>
       ) : null}
       <label>

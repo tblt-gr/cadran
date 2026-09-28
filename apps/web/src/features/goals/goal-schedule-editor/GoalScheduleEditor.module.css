@@ -1,3 +1,8 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
 .radios {
   display: flex;
   align-items: center;

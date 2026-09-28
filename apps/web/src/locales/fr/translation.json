@@ -2526,7 +2526,9 @@
       "distributeLinear": "Répartir linéairement",
       "distributing": "Répartition…",
       "distributeError": "Impossible de calculer la répartition linéaire.",
+      "incomplete": "Répartition incomplète ou invalide",
       "remaining": "Reste à répartir : {{amount}}",
+      "serverMismatch": "Écart retourné par le serveur : {{difference}}.",
       "exact": "Réparti exactement",
       "monthLabel": "Montant de {{month}}",
       "table": {

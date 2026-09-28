@@ -44,7 +44,9 @@ final readonly class BuildGoalSchedule
             return GoalSchedule::custom($target, array_map(DecimalValue::fromString(...), $input->parts), $precision);
         } catch (InvalidGoalSchedule $error) {
             throw new GoalInputError($error->errorCode, $error->getMessage(), $error->details);
-        } catch (MalformedDecimal|PrecisionExceeded $error) {
+        } catch (PrecisionExceeded $error) {
+            throw new GoalInputError('schedule_precision_exceeded', $error->getMessage());
+        } catch (MalformedDecimal $error) {
             throw new GoalInputError('invalid_goal_schedule', $error->getMessage());
         }
     }

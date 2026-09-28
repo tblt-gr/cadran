@@ -18,6 +18,8 @@ use Symfony\Component\Clock\MockClock;
 final class GoalScheduleControllerTest extends WebTestCase
 {
     private const string TODAY = '2026-09-14T09:12:04+00:00';
+    private const string LEGACY_GOAL = '00000000-0000-7000-8000-0000000000e8';
+    private const string LEGACY_VERSION = '00000000-0000-7000-8000-0000000000f8';
     private const string FOREIGN_GOAL = '00000000-0000-7000-8000-0000000000e9';
     private const string FOREIGN_VERSION = '00000000-0000-7000-8000-0000000000f9';
 
@@ -147,6 +149,15 @@ final class GoalScheduleControllerTest extends WebTestCase
         self::assertSame('0', $this->scalar('SELECT count(*) FROM budget_goals'));
     }
 
+    public function testACustomPartBeyondStoragePrecisionReturnsTheSchedulePrecisionError(): void
+    {
+        $this->create('2000', ['mode' => 'CUSTOM', 'parts' => ['0.0000000000000000000000001', '2000', ...array_fill(0, 10, '0')]]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('schedule_precision_exceeded', $this->decode()['code']);
+        self::assertSame('0', $this->scalar('SELECT count(*) FROM budget_goals'));
+    }
+
     public function testARollingGoalRefusesASchedule(): void
     {
         $this->requestJson('POST', '/api/v1/goals', ['label' => 'Rate', 'kind' => 'ROLLING_RATIO', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.1', 'startMonth' => '2026-09', 'schedule' => ['mode' => 'LINEAR']]);
@@ -200,6 +211,47 @@ final class GoalScheduleControllerTest extends WebTestCase
         self::assertCount(2, self::rows($updated['versions']));
         self::assertSame('1200', self::arr($updated['currentVersion'])['targetAmount']);
         self::assertSame('CUSTOM', self::arr(self::arr($updated['currentVersion'])['schedule'])['mode']);
+    }
+
+    public function testRenamingAPastYearGoalWithItsUnchangedLinearScheduleDoesNotCreateAVersion(): void
+    {
+        $this->insertLegacyOwnGoal('1200.00', 2, 2025, true);
+
+        $this->requestJson('PUT', '/api/v1/goals/'.self::LEGACY_GOAL, ['label' => 'Renamed past goal', 'schedule' => ['mode' => 'LINEAR'], 'version' => 1]);
+
+        self::assertResponseIsSuccessful();
+        $updated = $this->decode();
+        self::assertSame('Renamed past goal', $updated['label']);
+        self::assertSame(2, $updated['version']);
+        self::assertCount(1, self::rows($updated['versions']));
+        self::assertSame(1, self::arr($updated['currentVersion'])['versionNo']);
+        self::assertSame('12', $this->scalar('SELECT count(*) FROM budget_goal_schedule_parts WHERE goal_version_id = ?', [self::LEGACY_VERSION]));
+    }
+
+    public function testRenamingALegacyPrecisionTargetKeepsItsScheduleNull(): void
+    {
+        $this->insertLegacyOwnGoal('15000.125', 3, 2026, false);
+
+        $this->requestJson('PUT', '/api/v1/goals/'.self::LEGACY_GOAL, ['label' => 'Renamed legacy goal', 'schedule' => ['mode' => 'LINEAR'], 'version' => 1]);
+
+        self::assertResponseIsSuccessful();
+        $updated = $this->decode();
+        self::assertSame('Renamed legacy goal', $updated['label']);
+        self::assertCount(1, self::rows($updated['versions']));
+        self::assertNull(self::arr($updated['currentVersion'])['schedule']);
+        self::assertNull($this->connection->fetchOne('SELECT schedule_mode FROM budget_goal_versions WHERE id = ?', [self::LEGACY_VERSION]));
+        self::assertSame('0', $this->scalar('SELECT count(*) FROM budget_goal_schedule_parts WHERE goal_version_id = ?', [self::LEGACY_VERSION]));
+    }
+
+    public function testALegacyNullScheduleDoesNotHideAnInvalidCustomReplacement(): void
+    {
+        $this->insertLegacyOwnGoal('15000.125', 3, 2026, false);
+
+        $this->requestJson('PUT', '/api/v1/goals/'.self::LEGACY_GOAL, ['label' => 'Invalid replacement', 'schedule' => ['mode' => 'CUSTOM', 'parts' => array_fill(0, 11, '0')], 'version' => 1]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('schedule_part_count', $this->decode()['code']);
+        self::assertSame('Legacy', $this->connection->fetchOne('SELECT label FROM budget_goals WHERE id = ?', [self::LEGACY_GOAL]));
     }
 
     public function testAStaleEditWritesNoPartialSchedule(): void
@@ -314,6 +366,20 @@ final class GoalScheduleControllerTest extends WebTestCase
     {
         $this->connection->insert('budget_goals', ['id' => self::FOREIGN_GOAL, 'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE, 'label' => 'Foreign', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'state' => 'ACTIVE', 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID, 'closed_at' => null, 'version' => 1]);
         $this->connection->transactional(fn () => $this->insertVersion(self::FOREIGN_VERSION, 1, $partCount));
+    }
+
+    private function insertLegacyOwnGoal(string $target, int $targetScale, int $year, bool $withLinearSchedule): void
+    {
+        $this->connection->insert('budget_goals', ['id' => self::LEGACY_GOAL, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'label' => 'Legacy', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'state' => 'ACTIVE', 'created_at' => '2025-01-01 12:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID, 'closed_at' => null, 'version' => 1]);
+        $this->connection->transactional(function () use ($target, $targetScale, $year, $withLinearSchedule): void {
+            $this->connection->insert('budget_goal_versions', ['id' => self::LEGACY_VERSION, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'goal_id' => self::LEGACY_GOAL, 'version_no' => 1, 'effective_from' => sprintf('%d-01', $year), 'year' => $year, 'target_amount' => $target, 'target_scale' => $targetScale, 'ratio' => null, 'ratio_scale' => null, 'schedule_mode' => $withLinearSchedule ? 'LINEAR' : null, 'reason' => null, 'created_at' => '2025-01-01 12:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID]);
+            if (!$withLinearSchedule) {
+                return;
+            }
+            for ($month = 1; $month <= 12; ++$month) {
+                $this->connection->insert('budget_goal_schedule_parts', ['goal_version_id' => self::LEGACY_VERSION, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'month_index' => $month, 'amount' => '100.00', 'amount_scale' => 2]);
+            }
+        });
     }
 
     private function insertVersion(string $id, int $number, int $partCount): void
