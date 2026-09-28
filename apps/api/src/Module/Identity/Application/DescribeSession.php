@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Identity\Application;
 
+use App\Module\Foundation\Application\WorkspaceBaseCurrencyReader;
 use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 
 /**
@@ -17,6 +18,7 @@ final readonly class DescribeSession
         private AuthenticationUserRepository $users,
         private WorkspaceMembershipReader $memberships,
         private WorkspaceTimezoneReader $timezones,
+        private WorkspaceBaseCurrencyReader $currencies,
     ) {
     }
 
@@ -51,6 +53,7 @@ final readonly class DescribeSession
                     $membership->workspace->id,
                     $membership->role,
                     $this->timezones->timezone($membership->workspace),
+                    $this->currencies->currency($membership->workspace)->toString(),
                 ),
         );
     }

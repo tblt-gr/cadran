@@ -942,6 +942,126 @@ paths:
           $ref: '#/components/responses/CategoryOperationRefused'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/goals:
+    get:
+      operationId: listGoals
+      summary: List active or closed goals for one year
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: year
+          in: query
+          schema: { type: integer, minimum: 1900, maximum: 2999 }
+        - name: state
+          in: query
+          schema: { type: string, enum: [active, closed], default: active }
+      responses:
+        '200':
+          description: Goals visible in the selected year, bounded to 50.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GoalList' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    post:
+      operationId: createGoal
+      summary: Create an annual or rolling-ratio goal
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateGoalRequest' }
+      responses:
+        '201':
+          description: The goal and its first immutable definition version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GoalDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: readGoal
+      summary: Read one goal and its immutable definition history
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: The goal detail; rolling goals include the recomputed current reference income.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GoalDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    put:
+      operationId: updateGoal
+      summary: Edit a goal label or append its current-month definition
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateGoalRequest' }
+      responses:
+        '200':
+          description: The edited goal with its append-only definition history.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GoalDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/{id}/close:
+    post:
+      operationId: closeGoal
+      summary: Close an active goal with optimistic concurrency
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CloseGoalRequest' }
+      responses:
+        '200':
+          description: The closed goal, retained for historical reads.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GoalDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/budget-plans:
     get:
       operationId: listBudgetPlans
@@ -5288,6 +5408,202 @@ components:
     EmptyObject:
       type: object
       additionalProperties: false
+    GoalKind:
+      type: string
+      enum: [ANNUAL, ROLLING_RATIO]
+    GoalMetric:
+      type: string
+      enum:
+        [
+          NET_SAVINGS_TRANSFERS,
+          BUDGET_SURPLUS,
+          CATEGORY_SPENDING,
+          AXIS_SPENDING,
+          ACCOUNT_CONTRIBUTIONS,
+        ]
+    GoalDirection:
+      type: string
+      enum: [MINIMUM, CEILING]
+    GoalScopeType:
+      type: string
+      enum: [WORKSPACE, CATEGORY, AXIS, ACCOUNT]
+    GoalState:
+      type: string
+      enum: [ACTIVE, CLOSED]
+    GoalDecimal:
+      type: string
+      pattern: '^(0|[1-9]\d*)(\.\d{1,8})?$'
+    GoalScopeInput:
+      type: object
+      additionalProperties: false
+      required: [type, ref]
+      properties:
+        type: { $ref: '#/components/schemas/GoalScopeType' }
+        ref:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 64
+    GoalAmountInput:
+      type: object
+      additionalProperties: false
+      required: [value, assetCode]
+      properties:
+        value: { $ref: '#/components/schemas/GoalDecimal' }
+        assetCode: { type: string, minLength: 2, maxLength: 12, pattern: '^[A-Z][A-Z0-9]+$' }
+    CreateGoalRequest:
+      type: object
+      additionalProperties: false
+      required: [label, kind, metric, scope]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 80 }
+        kind: { $ref: '#/components/schemas/GoalKind' }
+        metric: { $ref: '#/components/schemas/GoalMetric' }
+        scope: { $ref: '#/components/schemas/GoalScopeInput' }
+        year: { type: [integer, 'null'], minimum: 1900, maximum: 2999 }
+        targetAmount:
+          oneOf:
+            - $ref: '#/components/schemas/GoalAmountInput'
+            - type: 'null'
+        ratio:
+          oneOf:
+            - $ref: '#/components/schemas/GoalDecimal'
+            - type: 'null'
+        startMonth: { type: [string, 'null'], pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+    UpdateGoalRequest:
+      type: object
+      additionalProperties: false
+      required: [label, version]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 80 }
+        targetAmount:
+          oneOf:
+            - $ref: '#/components/schemas/GoalAmountInput'
+            - type: 'null'
+        ratio:
+          oneOf:
+            - $ref: '#/components/schemas/GoalDecimal'
+            - type: 'null'
+        version: { type: integer, minimum: 1 }
+        metric:
+          description: Accepted only to return goal_identity_immutable; clients should omit it.
+          $ref: '#/components/schemas/GoalMetric'
+        scope:
+          description: Accepted only to return goal_identity_immutable; clients should omit it.
+          $ref: '#/components/schemas/GoalScopeInput'
+    CloseGoalRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version: { type: integer, minimum: 1 }
+    GoalScope:
+      type: object
+      additionalProperties: false
+      required: [type, label, archived]
+      properties:
+        type: { $ref: '#/components/schemas/GoalScopeType' }
+        id: { type: string, format: uuid }
+        axis:
+          {
+            type: string,
+            enum: [DISCRETIONARY, ESSENTIAL, FIXED, PERSONAL, PROFESSIONAL, VARIABLE],
+          }
+        label: { type: string, minLength: 1, maxLength: 100 }
+        archived: { type: boolean }
+    GoalVersion:
+      type: object
+      additionalProperties: false
+      required: [versionNo, effectiveFrom, year, targetAmount, ratio]
+      properties:
+        versionNo: { type: integer, minimum: 1, maximum: 50 }
+        effectiveFrom: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        year: { type: [integer, 'null'], minimum: 1900, maximum: 2999 }
+        targetAmount:
+          oneOf:
+            - $ref: '#/components/schemas/GoalDecimal'
+            - type: 'null'
+        ratio:
+          oneOf:
+            - $ref: '#/components/schemas/GoalDecimal'
+            - type: 'null'
+    GoalSummary:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          label,
+          kind,
+          metric,
+          direction,
+          scope,
+          assetCode,
+          state,
+          currentVersion,
+          version,
+          warnings,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 80 }
+        kind: { $ref: '#/components/schemas/GoalKind' }
+        metric: { $ref: '#/components/schemas/GoalMetric' }
+        direction: { $ref: '#/components/schemas/GoalDirection' }
+        scope: { $ref: '#/components/schemas/GoalScope' }
+        assetCode: { type: string, minLength: 2, maxLength: 12, pattern: '^[A-Z][A-Z0-9]+$' }
+        state: { $ref: '#/components/schemas/GoalState' }
+        currentVersion: { $ref: '#/components/schemas/GoalVersion' }
+        version: { type: integer, minimum: 1 }
+        warnings:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [REFERENCE_ARCHIVED] }
+    GoalList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/GoalSummary' }
+    GoalReferenceIncome:
+      type: object
+      additionalProperties: false
+      required: [month, value, usableMonths, windowStart, windowEnd, reason]
+      properties:
+        month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        value:
+          oneOf:
+            - { type: string, pattern: '^(0|[1-9]\d*)(\.\d{1,24})?$' }
+            - type: 'null'
+        usableMonths: { type: integer, minimum: 0, maximum: 12 }
+        windowStart: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        windowEnd: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        reason: { type: [string, 'null'], enum: [NO_REFERENCE_INCOME, null] }
+    GoalResolvedMonthlyTarget:
+      type: object
+      additionalProperties: false
+      required: [value, reason]
+      properties:
+        value:
+          oneOf:
+            - { type: string, pattern: '^(0|[1-9]\d*)(\.\d{1,24})?$' }
+            - type: 'null'
+        reason: { type: [string, 'null'], enum: [NO_REFERENCE_INCOME, null] }
+    GoalDetail:
+      allOf:
+        - $ref: '#/components/schemas/GoalSummary'
+        - type: object
+          required: [versions]
+          properties:
+            versions:
+              type: array
+              minItems: 1
+              maxItems: 50
+              items: { $ref: '#/components/schemas/GoalVersion' }
+            referenceIncome: { $ref: '#/components/schemas/GoalReferenceIncome' }
+            resolvedMonthlyTarget: { $ref: '#/components/schemas/GoalResolvedMonthlyTarget' }
     BudgetPeriodType:
       type: string
       enum: [MONTH, YEAR]
@@ -5642,6 +5958,7 @@ components:
         - id
         - role
         - timeZone
+        - baseCurrency
       properties:
         id:
           type: string
@@ -5657,6 +5974,12 @@ components:
           description: >-
             IANA timezone of the workspace, which decides its current day and
             month. The SPA reads this instead of assuming a fixed zone.
+        baseCurrency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: >-
+            ISO 4217 base currency of the workspace, operator-chosen at provisioning
+            time. The SPA reads this instead of assuming a fixed currency.
     LoginRequest:
       type: object
       additionalProperties: false

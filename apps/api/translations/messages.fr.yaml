@@ -477,3 +477,6 @@ api:
     metric_policy_activation_limit:
       title: "Historique d'activations plein"
       detail: "L'historique d'activations de la politique d'indicateurs a atteint sa limite."
+    goal_error:
+      title: 'Objectif indisponible'
+      detail: "La demande d'objectif ne peut pas être traitée."

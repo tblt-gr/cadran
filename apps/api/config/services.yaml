@@ -28,6 +28,10 @@ services:
   App\Module\Demo\Application\DemoActor:
     alias: App\Module\Demo\Infrastructure\TokenDemoActor
 
+  App\Module\Demo\Application\SeedDemoData:
+    arguments:
+      $createGoal: '@App\Module\Budget\Application\Goals\CreateGoal'
+
   # Session records in PostgreSQL (ADR-0024). The handler keeps its own
   # connection — it must survive a rolled-back business transaction — but takes
   # its parameters from the Doctrine connection, so it reaches the same database
