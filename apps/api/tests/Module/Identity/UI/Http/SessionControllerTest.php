@@ -202,7 +202,7 @@ final class SessionControllerTest extends WebTestCase
                 'authenticated' => true,
                 'setupRequired' => false,
                 'user' => ['id' => self::USER_ID, 'email' => self::EMAIL, 'displayName' => 'Owner'],
-                'workspace' => ['id' => self::WORKSPACE_ID, 'role' => 'OWNER', 'timeZone' => 'Europe/Paris'],
+                'workspace' => ['id' => self::WORKSPACE_ID, 'role' => 'OWNER', 'timeZone' => 'Europe/Paris', 'baseCurrency' => 'EUR'],
             ],
             $this->decode(),
         );

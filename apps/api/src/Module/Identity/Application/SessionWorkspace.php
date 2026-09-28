@@ -10,6 +10,7 @@ final readonly class SessionWorkspace
         public string $id,
         public string $role,
         public string $timeZone,
+        public string $baseCurrency,
     ) {
     }
 }

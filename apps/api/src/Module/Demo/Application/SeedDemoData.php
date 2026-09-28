@@ -19,6 +19,8 @@ use App\Module\Budget\Application\CreateBudgetPlan;
 use App\Module\Budget\Application\CreateBudgetPlanInput;
 use App\Module\Budget\Application\CreateBudgetTarget;
 use App\Module\Budget\Application\CreateBudgetTargetInput;
+use App\Module\Budget\Application\Goals\CreateGoal;
+use App\Module\Budget\Application\Goals\CreateGoalInput;
 use App\Module\Categories\Application\CreateCategory;
 use App\Module\Categories\Application\CreateCategoryInput;
 use App\Module\Transactions\Application\CreateRefund;
@@ -86,6 +88,7 @@ final readonly class SeedDemoData
         private CreateBudgetTarget $createTarget,
         private ActivateBudgetPlan $activatePlan,
         private ClockInterface $clock,
+        private CreateGoal $createGoal,
     ) {
     }
 
@@ -101,6 +104,7 @@ final readonly class SeedDemoData
         $categories = $this->categories();
         $accounts = $this->accounts();
         $plans = $this->budgets($categories, $months);
+        $this->goals($categories, $today);
         $this->recurrences($accounts['current']);
 
         $random = new DemoRandom(self::RANDOM_SEED);
@@ -267,6 +271,20 @@ final readonly class SeedDemoData
                 $current, $label, $counterparty, $amount, $tolerance, 'MONTHLY', $day, sprintf('%04d-01-%02d', self::START_YEAR, $day),
             ));
         }
+    }
+
+    /** @param array<string, string> $categories */
+    private function goals(array $categories, \DateTimeImmutable $today): void
+    {
+        $year = (int) $today->format('Y');
+        $this->createGoal->__invoke(new CreateGoalInput(
+            'Épargne annuelle', 'ANNUAL', 'NET_SAVINGS_TRANSFERS', 'WORKSPACE', null,
+            $year, '7200.00', self::ASSET, null, null,
+        ));
+        $this->createGoal->__invoke(new CreateGoalInput(
+            'Loisirs', 'ROLLING_RATIO', 'CATEGORY_SPENDING', 'CATEGORY', $categories['leisure'],
+            null, null, null, '0.05', sprintf('%04d-01', $year),
+        ));
     }
 
     /**

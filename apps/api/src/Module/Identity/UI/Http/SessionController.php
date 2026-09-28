@@ -113,6 +113,7 @@ final class SessionController
                     'id' => $view->workspace->id,
                     'role' => $view->workspace->role,
                     'timeZone' => $view->workspace->timeZone,
+                    'baseCurrency' => $view->workspace->baseCurrency,
                 ],
             ],
             headers: ['Cache-Control' => 'no-store'],

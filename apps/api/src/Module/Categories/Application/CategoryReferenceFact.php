@@ -13,6 +13,7 @@ final readonly class CategoryReferenceFact
         public string $label,
         public bool $archived,
         public array $ancestorIds,
+        public string $type = 'EXPENSE',
     ) {
     }
 }

@@ -33,6 +33,7 @@ final readonly class ReadCategoryReference
             $category->label,
             null !== $category->archivedAt,
             $this->ancestorsOf($workspace, $category),
+            $category->type->value,
         );
     }
 
