@@ -988,7 +988,43 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '422':
+          description: The goal or its monthly schedule is invalid; a sum mismatch carries the exact figures.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/schedule-preview:
+    get:
+      operationId: previewGoalSchedule
+      summary: Compute the linear monthly parts of an annual target without saving anything
+      description: >-
+        Parts 1 to 11 are the target divided by twelve, rounded HALF_UP at the display precision of
+        the workspace currency; December takes the exact residual so the parts sum to the target.
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: target
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/GoalDecimal' }
+        - name: mode
+          in: query
+          required: true
+          schema: { type: string, enum: [LINEAR] }
+      responses:
+        '200':
+          description: The twelve backend-computed parts with exact running totals.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GoalSchedulePreview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: The target is malformed, too small or finer than the currency precision.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/goals/{id}:
     parameters:
@@ -1032,7 +1068,11 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '422':
+          description: The goal or its monthly schedule is invalid; a sum mismatch carries the exact figures.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/goals/{id}/close:
     post:
@@ -5469,6 +5509,11 @@ components:
             - $ref: '#/components/schemas/GoalDecimal'
             - type: 'null'
         startMonth: { type: [string, 'null'], pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        schedule:
+          description: Monthly calendar of an annual goal; LINEAR when omitted. Refused on a rolling goal.
+          oneOf:
+            - $ref: '#/components/schemas/GoalScheduleInput'
+            - type: 'null'
     UpdateGoalRequest:
       type: object
       additionalProperties: false
@@ -5484,6 +5529,13 @@ components:
             - $ref: '#/components/schemas/GoalDecimal'
             - type: 'null'
         version: { type: integer, minimum: 1 }
+        schedule:
+          description: >-
+            New monthly calendar of an annual goal. When omitted, a linear schedule follows a changed
+            target; a custom one requires its twelve new parts with the new target.
+          oneOf:
+            - $ref: '#/components/schemas/GoalScheduleInput'
+            - type: 'null'
         metric:
           description: Accepted only to return goal_identity_immutable; clients should omit it.
           $ref: '#/components/schemas/GoalMetric'
@@ -5510,10 +5562,81 @@ components:
           }
         label: { type: string, minLength: 1, maxLength: 100 }
         archived: { type: boolean }
+    GoalScheduleInput:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      properties:
+        mode: { type: string, enum: [LINEAR, CUSTOM] }
+        parts:
+          description: Twelve parts, January first, for CUSTOM only; at most the currency display precision.
+          type: array
+          minItems: 12
+          maxItems: 12
+          items: { $ref: '#/components/schemas/GoalDecimal' }
+    GoalSchedulePart:
+      type: object
+      additionalProperties: false
+      required: [month, amount, cumulative]
+      properties:
+        month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        amount: { $ref: '#/components/schemas/GoalDecimal' }
+        cumulative:
+          description: Exact running total from January to this month.
+          $ref: '#/components/schemas/GoalDecimal'
+    GoalSchedule:
+      type: object
+      additionalProperties: false
+      required: [mode, parts]
+      properties:
+        mode: { type: string, enum: [LINEAR, CUSTOM] }
+        parts:
+          type: array
+          minItems: 12
+          maxItems: 12
+          items: { $ref: '#/components/schemas/GoalSchedulePart' }
+    GoalSchedulePreviewPart:
+      type: object
+      additionalProperties: false
+      required: [monthIndex, amount, cumulative]
+      properties:
+        monthIndex: { type: integer, minimum: 1, maximum: 12 }
+        amount: { $ref: '#/components/schemas/GoalDecimal' }
+        cumulative: { $ref: '#/components/schemas/GoalDecimal' }
+    GoalSchedulePreview:
+      type: object
+      additionalProperties: false
+      required: [mode, parts]
+      properties:
+        mode: { type: string, enum: [LINEAR] }
+        parts:
+          type: array
+          minItems: 12
+          maxItems: 12
+          items: { $ref: '#/components/schemas/GoalSchedulePreviewPart' }
+    GoalProblem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, detail, code]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        detail: { type: string }
+        code: { type: string }
+        expected:
+          description: Present with schedule_sum_mismatch; the annual target.
+          type: string
+        actual:
+          description: Present with schedule_sum_mismatch; the exact sum of the submitted parts.
+          type: string
+        difference:
+          description: Present with schedule_sum_mismatch; expected minus actual, signed.
+          type: string
     GoalVersion:
       type: object
       additionalProperties: false
-      required: [versionNo, effectiveFrom, year, targetAmount, ratio]
+      required: [versionNo, effectiveFrom, year, targetAmount, ratio, schedule]
       properties:
         versionNo: { type: integer, minimum: 1, maximum: 50 }
         effectiveFrom: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
@@ -5525,6 +5648,13 @@ components:
         ratio:
           oneOf:
             - $ref: '#/components/schemas/GoalDecimal'
+            - type: 'null'
+        schedule:
+          description: >-
+            Twelve monthly parts summing exactly to targetAmount; null for a rolling goal, or for a
+            pre-schedule annual version whose target could not be split (not calculable).
+          oneOf:
+            - $ref: '#/components/schemas/GoalSchedule'
             - type: 'null'
     GoalSummary:
       type: object

@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   updateGoal: vi.fn(),
   closeGoal: vi.fn(),
   readGoal: vi.fn(),
+  previewGoalSchedule: vi.fn(),
   listAccounts: vi.fn(),
   listCategories: vi.fn(),
   getSession: vi.fn(),
@@ -124,6 +125,12 @@ describe('GoalsPage', () => {
     expect(screen.queryByRole('button', { name: 'Actions de l’objectif « Épargne »' })).toBeNull();
     expect(screen.getByText('Année 2026')).toBeTruthy();
   });
+  it('shows a not-calculable annual schedule state when an older annual goal has no schedule', async () => {
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [goal] }));
+    renderPage();
+    expect(await screen.findByText('Aucun calendrier mensuel pour cet objectif.')).toBeTruthy();
+  });
   it('flags only the invalid field when an annual goal is submitted without a label', async () => {
     mockSession();
     api.listGoals.mockReturnValue(ok({ items: [] }));
@@ -134,6 +141,67 @@ describe('GoalsPage', () => {
     expect(screen.getByLabelText('Libellé').getAttribute('aria-invalid')).toBe('true');
     expect(screen.getByLabelText('Montant cible').getAttribute('aria-invalid')).toBeNull();
     expect(api.createGoal).not.toHaveBeenCalled();
+  });
+  it('surfaces the exact schedule difference returned by the server in the goal modal', async () => {
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [] }));
+    api.createGoal.mockReturnValue(
+      Promise.resolve({
+        error: {
+          type: '/problems/schedule_sum_mismatch',
+          title: 'Unprocessable',
+          status: 422,
+          detail: 'sum mismatch',
+          code: 'schedule_sum_mismatch',
+          expected: '2000.00',
+          actual: '1200.00',
+          difference: '800.00',
+        },
+        response: new Response(null, { status: 422 }),
+      }),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouvel objectif' }));
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Épargne' } });
+    fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '2000.00' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Personnalisé' }));
+    for (const input of screen.getAllByRole('textbox', { name: /Montant de / })) {
+      fireEvent.change(input, { target: { value: '100.00' } });
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'La somme des douze montants ne correspond pas exactement au montant cible. Écart retourné par le serveur : 800,00 €.',
+    );
+  });
+  it('does not restore a stale preview after switching an annual draft to rolling and back', async () => {
+    let resolvePreview: (value: unknown) => void;
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [] }));
+    api.previewGoalSchedule.mockReturnValue(new Promise((resolve) => (resolvePreview = resolve)));
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouvel objectif' }));
+    fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '2000.00' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Personnalisé' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Répartir linéairement' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Ratio glissant' }));
+    resolvePreview!({
+      data: {
+        mode: 'LINEAR',
+        parts: Array.from({ length: 12 }, (_, monthIndex) => ({
+          monthIndex: monthIndex + 1,
+          amount: '166.67',
+          cumulative: '0',
+        })),
+      },
+      response: new Response(null, { status: 200 }),
+    });
+    fireEvent.click(screen.getByRole('radio', { name: 'Annuel' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Personnalisé' }));
+
+    await waitFor(() =>
+      expect((screen.getByLabelText('Montant de janvier') as HTMLInputElement).value).toBe(''),
+    );
   });
   it('shows rolling reference income without coercing its exact amount to a number', async () => {
     mockSession();
@@ -261,6 +329,40 @@ describe('GoalsPage', () => {
         expect.objectContaining({ body: expect.objectContaining({ ratio: '0.30' }) }),
       ),
     );
+  });
+  it('renders the loaded annual schedule table in the edit modal', async () => {
+    mockSession();
+    const schedule = {
+      mode: 'LINEAR' as const,
+      parts: [{ month: '2026-01', amount: '166.67', cumulative: '166.67' }],
+    };
+    api.listGoals.mockReturnValue(ok({ items: [goal] }));
+    api.readGoal.mockReturnValue(
+      ok({ ...goal, currentVersion: { ...goal.currentVersion, schedule }, versions: [] }),
+    );
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+
+    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(screen.getByRole('rowheader', { name: 'janvier 2026' })).toBeTruthy();
+  });
+
+  it('renders a loaded annual goal without a schedule as not calculable in the edit modal', async () => {
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [goal] }));
+    api.readGoal.mockReturnValue(
+      ok({ ...goal, currentVersion: { ...goal.currentVersion, schedule: null }, versions: [] }),
+    );
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+
+    expect(await screen.findByText('Aucun calendrier mensuel pour cet objectif.')).toBeTruthy();
   });
   it('prefills the edit form from the latest version so a rename cannot revert a newer ratio', async () => {
     mockSession();

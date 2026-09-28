@@ -14,6 +14,7 @@ final readonly class UpdateGoalInput
         public ?string $targetAssetCode,
         public ?string $ratio,
         public bool $identitySubmitted,
+        public ?GoalScheduleInput $schedule = null,
     ) {
     }
 }

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Budget\UI\Http;
 
 use App\Module\Budget\Application\Goals\GoalDetailView;
+use App\Module\Budget\Application\Goals\GoalSchedulePartView;
+use App\Module\Budget\Application\Goals\GoalScheduleView;
 use App\Module\Budget\Application\Goals\GoalScopeView;
 use App\Module\Budget\Application\Goals\GoalSummaryView;
 use App\Module\Budget\Application\Goals\GoalVersionView;
@@ -39,6 +41,14 @@ final class GoalRepresentation
     /** @return array<string, mixed> */
     private static function version(GoalVersionView $version): array
     {
-        return ['versionNo' => $version->versionNo, 'effectiveFrom' => $version->effectiveFrom, 'year' => $version->year, 'targetAmount' => $version->targetAmount, 'ratio' => $version->ratio];
+        $schedule = null === $version->schedule ? null : ['mode' => $version->schedule->mode, 'parts' => array_map(static fn (GoalSchedulePartView $part): array => ['month' => $part->month, 'amount' => $part->amount, 'cumulative' => $part->cumulative], $version->schedule->parts)];
+
+        return ['versionNo' => $version->versionNo, 'effectiveFrom' => $version->effectiveFrom, 'year' => $version->year, 'targetAmount' => $version->targetAmount, 'ratio' => $version->ratio, 'schedule' => $schedule];
+    }
+
+    /** @return array<string, mixed> */
+    public static function preview(GoalScheduleView $schedule): array
+    {
+        return ['mode' => $schedule->mode, 'parts' => array_map(static fn (GoalSchedulePartView $part): array => ['monthIndex' => $part->monthIndex, 'amount' => $part->amount, 'cumulative' => $part->cumulative], $schedule->parts)];
     }
 }

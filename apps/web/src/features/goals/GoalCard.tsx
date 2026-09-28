@@ -6,6 +6,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
+import { GoalScheduleTable } from './goal-schedule-table/GoalScheduleTable';
 import { formatGoalMonth } from './goalMonth';
 import styles from './GoalsPage.module.css';
 
@@ -92,6 +93,12 @@ export function GoalCard({ goal, onEdit, onClose }: Props) {
             {t('goals.referenceArchived')}
           </StatusBadge>
         </div>
+      ) : null}
+      {goal.kind === 'ANNUAL' ? (
+        <details className={styles.scheduleDetails}>
+          <summary>{t('goals.schedule.table.caption')}</summary>
+          <GoalScheduleTable assetCode={goal.assetCode} schedule={definition.schedule} />
+        </details>
       ) : null}
     </article>
   );

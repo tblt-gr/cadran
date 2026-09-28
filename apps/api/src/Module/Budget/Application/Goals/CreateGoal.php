@@ -12,6 +12,7 @@ use App\Module\Budget\Domain\Goals\Goal;
 use App\Module\Budget\Domain\Goals\GoalKind;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalRepository;
+use App\Module\Budget\Domain\Goals\GoalScheduleMode;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
 use App\Module\Budget\Domain\Goals\GoalState;
 use App\Module\Budget\Domain\Goals\GoalVersion;
@@ -32,6 +33,7 @@ final readonly class CreateGoal
         private CallerWorkspaceContext $caller, private GoalRepository $goals, private GoalVersionRepository $versions,
         private ResolveGoalScope $scope, private WorkspaceBaseCurrencyReader $currencies, private WorkspaceCalendar $calendar,
         private UuidGenerator $uuid, private TransactionBoundary $transactions, private RecordAuditEvent $audit, private PresentGoal $present,
+        private BuildGoalSchedule $schedules,
     ) {
     }
 
@@ -86,9 +88,14 @@ final readonly class CreateGoal
                 if (null === $input->targetAssetCode || !AssetCode::fromString($input->targetAssetCode)->equals($currency)) {
                     throw new GoalInputError('unsupported_goal_currency', 'A goal target uses the workspace currency.');
                 }
-                $definition = GoalVersion::annual($this->uuid->generate(), $workspace, $goalId, 1, sprintf('%04d-01', $input->year), $input->year, DecimalValue::fromString($input->targetAmount), $now, $actorId);
+                $target = DecimalValue::fromString($input->targetAmount);
+                if ($target->compareTo(DecimalValue::zero()) <= 0) {
+                    throw new GoalInputError('invalid_goal_target', 'A goal target amount is positive.');
+                }
+                $schedule = ($this->schedules)($currency, $target, $input->schedule ?? new GoalScheduleInput(GoalScheduleMode::LINEAR->value, null));
+                $definition = GoalVersion::annual($this->uuid->generate(), $workspace, $goalId, 1, sprintf('%04d-01', $input->year), $input->year, $target, $schedule, $now, $actorId);
             } else {
-                if (null === $input->ratio || null === $input->startMonth || null !== $input->year || null !== $input->targetAmount) {
+                if (null === $input->ratio || null === $input->startMonth || null !== $input->year || null !== $input->targetAmount || null !== $input->schedule) {
                     throw new GoalInputError('invalid_goal_ratio', 'A rolling goal uses a ratio and start month only.');
                 }
                 CalendarMonth::fromString($input->startMonth);

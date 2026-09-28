@@ -2510,7 +2510,34 @@
       "conflict": "Cet objectif a changé. Actualisez puis réessayez.",
       "invalid": "Les données de l’objectif ne sont pas valides.",
       "network": "La demande a échoué. Réessayez.",
-      "unauthorized": "Votre session a expiré."
+      "unauthorized": "Votre session a expiré.",
+      "schedule_sum_mismatch": "La somme des douze montants ne correspond pas exactement au montant cible.",
+      "schedule_part_count": "Un calendrier personnalisé prend exactement douze montants mensuels.",
+      "schedule_negative_part": "Un montant mensuel doit être nul ou positif.",
+      "schedule_precision_exceeded": "Un montant mensuel dépasse la précision autorisée par la devise.",
+      "linear_schedule_impossible": "Ce montant cible est trop faible pour une répartition linéaire : utilisez le mode personnalisé.",
+      "invalid_goal_schedule": "Le calendrier mensuel de l’objectif n’est pas valide.",
+      "invalid_schedule_preview": "Impossible de calculer cet aperçu de répartition."
+    },
+    "schedule": {
+      "legend": "Calendrier mensuel",
+      "modeLinear": "Linéaire",
+      "modeCustom": "Personnalisé",
+      "distributeLinear": "Répartir linéairement",
+      "distributing": "Répartition…",
+      "distributeError": "Impossible de calculer la répartition linéaire.",
+      "incomplete": "Répartition incomplète ou invalide",
+      "remaining": "Reste à répartir : {{amount}}",
+      "serverMismatch": "Écart retourné par le serveur : {{difference}}.",
+      "exact": "Réparti exactement",
+      "monthLabel": "Montant de {{month}}",
+      "table": {
+        "caption": "Calendrier mensuel de l’objectif",
+        "month": "Mois",
+        "amount": "Montant",
+        "cumulative": "Cumul",
+        "empty": "Aucun calendrier mensuel pour cet objectif."
+      }
     }
   },
   "budget": {

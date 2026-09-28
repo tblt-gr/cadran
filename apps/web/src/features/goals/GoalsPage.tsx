@@ -21,7 +21,8 @@ import { CloseGoalDialog } from './CloseGoalDialog';
 import { GoalCard } from './GoalCard';
 import { GoalFilters, type GoalListState } from './GoalFilters';
 import { GoalForm } from './GoalForm';
-import { goalErrorKind, goalRequestError } from './goalError';
+import { GoalScheduleTable } from './goal-schedule-table/GoalScheduleTable';
+import { goalErrorKind, goalErrorMismatch, goalRequestError } from './goalError';
 import { ReferenceIncomeNote } from './ReferenceIncomeNote';
 import styles from './GoalsPage.module.css';
 
@@ -193,6 +194,12 @@ export function GoalsPage() {
           title={t(editor === 'create' ? 'goals.createTitle' : 'goals.editTitle')}
         >
           {detail.data ? <ReferenceIncomeNote goal={detail.data as GoalDetail} /> : null}
+          {latestDetail?.kind === 'ANNUAL' ? (
+            <GoalScheduleTable
+              assetCode={latestDetail.assetCode}
+              schedule={latestDetail.currentVersion.schedule}
+            />
+          ) : null}
           {editingSummary && !latestDetail && detail.isPending ? (
             <p className={styles.modalLoading} aria-busy="true" role="status">
               {t('goals.loading')}
@@ -209,6 +216,7 @@ export function GoalsPage() {
               onSubmit={(body) => save.mutate(body)}
               pending={save.isPending}
               submitError={goalErrorKind(save.error, save.isError)}
+              submitMismatch={goalErrorMismatch(save.error)}
             />
           )}
         </Modal>
