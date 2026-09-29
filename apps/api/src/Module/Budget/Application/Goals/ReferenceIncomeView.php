@@ -8,7 +8,10 @@ use App\Module\Foundation\Domain\DecimalValue;
 
 final readonly class ReferenceIncomeView
 {
-    /** @param list<array{month: string, reason: string}> $excluded */
+    /**
+     * @param list<array{month: string, reason: string}> $excluded
+     * @param list<int>                                  $metricPolicyVersions
+     */
     public function __construct(
         public string $month,
         public ?DecimalValue $value,
@@ -17,6 +20,7 @@ final readonly class ReferenceIncomeView
         public string $windowEnd,
         public ?string $reason,
         public array $excluded,
+        public array $metricPolicyVersions,
     ) {
     }
 }

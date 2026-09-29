@@ -3,6 +3,7 @@ import {
   createGoal,
   listGoals,
   readGoal,
+  readGoalStatus,
   updateGoal,
   type CreateGoalRequest,
   type GoalDetail,
@@ -17,32 +18,47 @@ import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { useWorkspaceBaseCurrency } from '@/features/auth/useWorkspaceBaseCurrency';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { CloseGoalDialog } from './CloseGoalDialog';
 import { GoalCard } from './GoalCard';
+import { GoalDetailModal } from './GoalDetailModal';
 import { GoalFilters, type GoalListState } from './GoalFilters';
 import { GoalForm } from './GoalForm';
 import { GoalScheduleTable } from './goal-schedule-table/GoalScheduleTable';
 import { goalErrorKind, goalErrorMismatch, goalRequestError } from './goalError';
 import { ReferenceIncomeNote } from './ReferenceIncomeNote';
 import styles from './GoalsPage.module.css';
+import { currentMonthIn } from './goalFormFields';
 
 type Editor = GoalSummary | 'create' | null;
-function currentYear() {
-  return new Date().getFullYear();
+function currentYear(timeZone: string) {
+  return Number.parseInt(currentMonthIn(timeZone).slice(0, 4), 10);
 }
 export function GoalsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [year, setYear] = useState(currentYear());
+  const timeZone = useWorkspaceTimeZone();
+  const workspaceMonth = currentMonthIn(timeZone);
+  const [year, setYear] = useState(() => currentYear(timeZone));
   const [state, setState] = useState<GoalListState>('active');
+  const [month, setMonth] = useState(workspaceMonth);
+  const [detailTarget, setDetailTarget] = useState<GoalSummary | null>(null);
   const [editor, setEditor] = useState<Editor>(null);
   const [closeTarget, setCloseTarget] = useState<GoalSummary | null>(null);
   const [saved, setSaved] = useState(false);
   const baseCurrency = useWorkspaceBaseCurrency();
+  // A future year has no elapsed month to send: the server then falls back to its own reference
+  // month rather than rejecting the whole list, and no month of it can be detailed yet.
+  const futureYear = year > currentYear(timeZone);
+  const listMonth = futureYear ? undefined : month;
   const goals = useQuery({
-    queryKey: ['goals', year, state],
+    queryKey: ['goals', year, listMonth, state],
     queryFn: async ({ signal }) => {
-      const result = await listGoals({ ...authApiOptions(), query: { year, state }, signal });
+      const result = await listGoals({
+        ...authApiOptions(),
+        query: { year, month: listMonth, state },
+        signal,
+      });
       if (!result.response?.ok || !result.data) throw goalRequestError(result);
       return result.data;
     },
@@ -55,6 +71,21 @@ export function GoalsPage() {
       const result = await readGoal({
         ...authApiOptions(),
         path: { id: (editor as GoalSummary).id },
+        signal,
+      });
+      if (!result.response?.ok || !result.data) throw goalRequestError(result);
+      return result.data;
+    },
+    retry: false,
+  });
+  const statusDetail = useQuery({
+    enabled: detailTarget !== null && !futureYear,
+    queryKey: ['goal-status', detailTarget?.id, month],
+    queryFn: async ({ signal }) => {
+      const result = await readGoalStatus({
+        ...authApiOptions(),
+        path: { id: detailTarget!.id },
+        query: { month },
         signal,
       });
       if (!result.response?.ok || !result.data) throw goalRequestError(result);
@@ -136,7 +167,24 @@ export function GoalsPage() {
         </button>
       </section>
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('goals.saved')}</Toast> : null}
-      <GoalFilters onStateChange={setState} onYearChange={setYear} state={state} year={year} />
+      <GoalFilters
+        currentMonth={workspaceMonth}
+        month={month}
+        onMonthChange={setMonth}
+        onStateChange={setState}
+        onYearChange={(nextYear) => {
+          setYear(nextYear);
+          setMonth(
+            nextYear === currentYear(timeZone)
+              ? workspaceMonth
+              : nextYear < currentYear(timeZone)
+                ? `${nextYear}-12`
+                : `${nextYear}-01`,
+          );
+        }}
+        state={state}
+        year={year}
+      />
       {goals.isPending ? (
         <section className={`card ${styles.state}`} aria-busy="true" role="status">
           <h3>{t('goals.loading')}</h3>
@@ -168,13 +216,13 @@ export function GoalsPage() {
         </section>
       ) : (
         <section className={styles.list} aria-label={t('goals.list')}>
-          <p className={styles.notice}>{t('goals.progressLater')}</p>
           <div className={styles.grid}>
             {items.map((goal) => (
               <GoalCard
                 goal={goal}
                 key={goal.id}
                 onClose={setCloseTarget}
+                onDetail={futureYear ? undefined : setDetailTarget}
                 onEdit={(target) => {
                   save.reset();
                   setEditor(target);
@@ -220,6 +268,33 @@ export function GoalsPage() {
             />
           )}
         </Modal>
+      ) : null}
+      {detailTarget ? (
+        statusDetail.isPending ? (
+          <Modal
+            close={() => setDetailTarget(null)}
+            eyebrow={t('goals.detailEyebrow')}
+            title={t('goals.detailTitle')}
+          >
+            <p className={styles.modalLoading} aria-busy="true" role="status">
+              {t('goals.loading')}
+            </p>
+          </Modal>
+        ) : statusDetail.data ? (
+          <GoalDetailModal
+            assetCode={detailTarget.assetCode}
+            close={() => setDetailTarget(null)}
+            status={statusDetail.data}
+          />
+        ) : (
+          <Modal
+            close={() => setDetailTarget(null)}
+            eyebrow={t('goals.detailEyebrow')}
+            title={t('goals.detailTitle')}
+          >
+            <p role="alert">{t('goals.error')}</p>
+          </Modal>
+        )
       ) : null}
       {closeTarget ? (
         <Modal

@@ -955,6 +955,10 @@ paths:
         - name: state
           in: query
           schema: { type: string, enum: [active, closed], default: active }
+        - name: month
+          in: query
+          description: Status month; defaults to the current workspace-local month, or December for a past year.
+          schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
       responses:
         '200':
           description: Goals visible in the selected year, bounded to 50.
@@ -964,6 +968,11 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: The requested status month is after the current workspace-local month.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
     post:
       operationId: createGoal
@@ -1101,6 +1110,39 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/{id}/status:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: readGoalStatus
+      summary: Calculate one goal's progress and status at a calendar month
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: year
+          in: query
+          description: Year the status month must belong to; defaults to the current workspace-local year.
+          schema: { type: integer, minimum: 1900, maximum: 2999 }
+        - name: month
+          in: query
+          description: Status month; defaults to the current workspace-local month, December for a past year, and January (a future month, hence 422) for a future year.
+          schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+      responses:
+        '200':
+          description: Status calculated from monthly reporting figures and the goal versions effective in each month.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GoalStatus' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: The requested month is after the current workspace-local month.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/budget-plans:
     get:
@@ -5672,6 +5714,7 @@ components:
           currentVersion,
           version,
           warnings,
+          status,
         ]
       properties:
         id: { type: string, format: uuid }
@@ -5688,6 +5731,10 @@ components:
           type: array
           uniqueItems: true
           items: { type: string, enum: [REFERENCE_ARCHIVED] }
+        status:
+          oneOf:
+            - $ref: '#/components/schemas/GoalStatusSummary'
+            - type: 'null'
     GoalList:
       type: object
       additionalProperties: false
@@ -5734,6 +5781,227 @@ components:
               items: { $ref: '#/components/schemas/GoalVersion' }
             referenceIncome: { $ref: '#/components/schemas/GoalReferenceIncome' }
             resolvedMonthlyTarget: { $ref: '#/components/schemas/GoalResolvedMonthlyTarget' }
+    GoalStatusMetricPolicy:
+      type: object
+      additionalProperties: false
+      required: [state, version, versions]
+      properties:
+        state: { type: string, enum: [NONE, SINGLE, MIXED] }
+        version: { type: [integer, 'null'], minimum: 1 }
+        versions:
+          type: array
+          uniqueItems: true
+          maxItems: 13
+          items: { type: integer, minimum: 1 }
+    GoalStatusReason:
+      type: [string, 'null']
+      enum:
+        [
+          MISSING_MONTH_VALUE,
+          MIXED_METRIC_POLICIES,
+          NO_REFERENCE_INCOME,
+          GOAL_NOT_STARTED,
+          REFERENCE_ARCHIVED,
+          FUTURE_MONTH,
+          null,
+        ]
+    GoalStatusValue:
+      type: [string, 'null']
+      pattern: '^-?(0|[1-9]\d*)(\.\d{1,24})?$'
+    GoalStatusMonth:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          month,
+          state,
+          value,
+          expectedPart,
+          cumulativeValue,
+          cumulativeExpected,
+          goalVersion,
+          policyVersion,
+        ]
+      properties:
+        month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        state: { type: string, enum: [COMPLETE, PROVISIONAL, NO_DATA, FUTURE] }
+        value: { $ref: '#/components/schemas/GoalStatusValue' }
+        expectedPart: { $ref: '#/components/schemas/GoalStatusValue' }
+        cumulativeValue: { $ref: '#/components/schemas/GoalStatusValue' }
+        cumulativeExpected: { $ref: '#/components/schemas/GoalStatusValue' }
+        goalVersion: { type: [integer, 'null'], minimum: 1, maximum: 50 }
+        policyVersion: { type: [integer, 'null'], minimum: 1 }
+    GoalStatusReferenceIncome:
+      type: object
+      additionalProperties: false
+      required: [value, usableMonths, windowStart, windowEnd]
+      properties:
+        value: { $ref: '#/components/schemas/GoalStatusValue' }
+        usableMonths: { type: integer, minimum: 0, maximum: 12 }
+        windowStart: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        windowEnd: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+    GoalAnnualStatus:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          goalId,
+          month,
+          kind,
+          direction,
+          goalVersion,
+          scheduleMode,
+          provisional,
+          metricPolicy,
+          target,
+          achieved,
+          expected,
+          gap,
+          remaining,
+          excess,
+          status,
+          progressRatio,
+          progressRatioDisplay,
+          reason,
+          quality,
+          months,
+        ]
+      properties:
+        goalId: { type: string, format: uuid }
+        month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        kind: { type: string, const: ANNUAL }
+        direction: { $ref: '#/components/schemas/GoalDirection' }
+        goalVersion: { type: [integer, 'null'], minimum: 1, maximum: 50 }
+        scheduleMode: { type: [string, 'null'], enum: [LINEAR, CUSTOM, null] }
+        provisional: { type: boolean }
+        metricPolicy: { $ref: '#/components/schemas/GoalStatusMetricPolicy' }
+        target: { $ref: '#/components/schemas/GoalStatusValue' }
+        achieved: { $ref: '#/components/schemas/GoalStatusValue' }
+        expected: { $ref: '#/components/schemas/GoalStatusValue' }
+        gap: { $ref: '#/components/schemas/GoalStatusValue' }
+        remaining: { $ref: '#/components/schemas/GoalStatusValue' }
+        excess: { $ref: '#/components/schemas/GoalStatusValue' }
+        status:
+          {
+            type: string,
+            enum: [REACHED, AHEAD, BEHIND, EXCEEDED, ON_TRACK, OVER_PACE, NOT_CALCULABLE],
+          }
+        progressRatio: { $ref: '#/components/schemas/GoalStatusValue' }
+        progressRatioDisplay: { $ref: '#/components/schemas/GoalStatusValue' }
+        reason: { $ref: '#/components/schemas/GoalStatusReason' }
+        quality: { type: string, enum: [COMPLETE, PROVISIONAL, PARTIAL, EMPTY] }
+        months:
+          description: Month-by-month detail required on the dedicated status endpoint.
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/GoalStatusMonth' }
+    GoalAnnualStatusSummary:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          goalId,
+          month,
+          kind,
+          direction,
+          goalVersion,
+          scheduleMode,
+          provisional,
+          metricPolicy,
+          target,
+          achieved,
+          expected,
+          gap,
+          remaining,
+          excess,
+          status,
+          progressRatio,
+          progressRatioDisplay,
+          reason,
+          quality,
+        ]
+      properties:
+        goalId: { type: string, format: uuid }
+        month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        kind: { type: string, const: ANNUAL }
+        direction: { $ref: '#/components/schemas/GoalDirection' }
+        goalVersion: { type: [integer, 'null'], minimum: 1, maximum: 50 }
+        scheduleMode: { type: [string, 'null'], enum: [LINEAR, CUSTOM, null] }
+        provisional: { type: boolean }
+        metricPolicy: { $ref: '#/components/schemas/GoalStatusMetricPolicy' }
+        target: { $ref: '#/components/schemas/GoalStatusValue' }
+        achieved: { $ref: '#/components/schemas/GoalStatusValue' }
+        expected: { $ref: '#/components/schemas/GoalStatusValue' }
+        gap: { $ref: '#/components/schemas/GoalStatusValue' }
+        remaining: { $ref: '#/components/schemas/GoalStatusValue' }
+        excess: { $ref: '#/components/schemas/GoalStatusValue' }
+        status:
+          {
+            type: string,
+            enum: [REACHED, AHEAD, BEHIND, EXCEEDED, ON_TRACK, OVER_PACE, NOT_CALCULABLE],
+          }
+        progressRatio: { $ref: '#/components/schemas/GoalStatusValue' }
+        progressRatioDisplay: { $ref: '#/components/schemas/GoalStatusValue' }
+        reason: { $ref: '#/components/schemas/GoalStatusReason' }
+        quality: { type: string, enum: [COMPLETE, PROVISIONAL, PARTIAL, EMPTY] }
+    GoalRollingStatus:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          goalId,
+          month,
+          kind,
+          direction,
+          goalVersion,
+          provisional,
+          metricPolicy,
+          ratio,
+          referenceIncome,
+          target,
+          actual,
+          gap,
+          status,
+          reason,
+          quality,
+        ]
+      properties:
+        goalId: { type: string, format: uuid }
+        month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        kind: { type: string, const: ROLLING_RATIO }
+        direction: { $ref: '#/components/schemas/GoalDirection' }
+        goalVersion: { type: [integer, 'null'], minimum: 1, maximum: 50 }
+        provisional: { type: boolean }
+        metricPolicy: { $ref: '#/components/schemas/GoalStatusMetricPolicy' }
+        ratio: { $ref: '#/components/schemas/GoalStatusValue' }
+        referenceIncome:
+          oneOf:
+            - $ref: '#/components/schemas/GoalStatusReferenceIncome'
+            - type: 'null'
+        target: { $ref: '#/components/schemas/GoalStatusValue' }
+        actual: { $ref: '#/components/schemas/GoalStatusValue' }
+        gap: { $ref: '#/components/schemas/GoalStatusValue' }
+        status: { type: string, enum: [MET, MISSED, WITHIN, OVER, NOT_CALCULABLE] }
+        reason: { $ref: '#/components/schemas/GoalStatusReason' }
+        quality: { type: string, enum: [COMPLETE, PROVISIONAL, PARTIAL, EMPTY] }
+    GoalStatus:
+      oneOf:
+        - $ref: '#/components/schemas/GoalAnnualStatus'
+        - $ref: '#/components/schemas/GoalRollingStatus'
+      discriminator:
+        propertyName: kind
+        mapping:
+          ANNUAL: '#/components/schemas/GoalAnnualStatus'
+          ROLLING_RATIO: '#/components/schemas/GoalRollingStatus'
+    GoalStatusSummary:
+      oneOf:
+        - $ref: '#/components/schemas/GoalAnnualStatusSummary'
+        - $ref: '#/components/schemas/GoalRollingStatus'
+      discriminator:
+        propertyName: kind
+        mapping:
+          ANNUAL: '#/components/schemas/GoalAnnualStatusSummary'
+          ROLLING_RATIO: '#/components/schemas/GoalRollingStatus'
     BudgetPeriodType:
       type: string
       enum: [MONTH, YEAR]

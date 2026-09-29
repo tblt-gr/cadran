@@ -20,9 +20,35 @@ final readonly class ReadMonthlyAccountTransferNet
 
     public function __invoke(WorkspaceScope $workspace, string $accountId, CalendarMonth $month): AccountTransferNet
     {
+        return $this->forAccounts($workspace, [$accountId], $month)[$accountId];
+    }
+
+    /**
+     * Reads the month's transfer pairs once and nets them for each account.
+     *
+     * @param list<string> $accountIds
+     *
+     * @return array<string, AccountTransferNet> keyed by account identifier
+     *
+     * @throws MonthlyTransactionScopeTooLarge when the month exceeds the bounded pair read
+     */
+    public function forAccounts(WorkspaceScope $workspace, array $accountIds, CalendarMonth $month): array
+    {
+        $pairs = ($this->transfers)($workspace, $month);
+        $nets = [];
+        foreach ($accountIds as $accountId) {
+            $nets[$accountId] = self::net($accountId, $pairs);
+        }
+
+        return $nets;
+    }
+
+    /** @param list<MonthlyTransferPairFact> $pairs */
+    private static function net(string $accountId, array $pairs): AccountTransferNet
+    {
         $net = DecimalValue::zero();
 
-        foreach (($this->transfers)($workspace, $month) as $pair) {
+        foreach ($pairs as $pair) {
             if ($pair->voided) {
                 continue;
             }

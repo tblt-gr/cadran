@@ -89,32 +89,32 @@
   color: var(--text-secondary);
   font-size: var(--font-size-label);
 }
-.facts {
-  display: flex;
-  flex-direction: column;
-  margin: auto var(--spacing-none) var(--spacing-none);
-  padding-top: var(--spacing-3);
-  border-top: var(--border-line-subtle);
-  color: var(--text-secondary);
-  font-size: var(--font-size-body);
-  gap: var(--spacing-1);
-}
-.facts dd {
-  margin: var(--spacing-none);
-}
 .cardHeading {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: flex-start;
-  justify-content: space-between;
   gap: var(--spacing-3);
 }
+.goalIdentity {
+  min-width: var(--spacing-none);
+}
 .goalCard h3 {
-  margin-top: var(--spacing-1);
-  font-size: var(--font-size-card-title);
+  margin: var(--spacing-none);
+  font-size: var(--font-size-kpi);
+  overflow-wrap: anywhere;
+}
+.goalIdentity .metric {
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+}
+.goalYear {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  white-space: nowrap;
 }
 .value {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--spacing-1);
 }
 .direction {
@@ -128,14 +128,116 @@
   line-height: var(--line-height-tight);
   letter-spacing: var(--letter-spacing-kpi);
 }
-.scheduleDetails {
-  padding-top: var(--spacing-3);
-  border-top: var(--border-line-subtle);
+.progress,
+.statusFacts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
 }
-.scheduleDetails summary {
+.progress {
+  gap: var(--spacing-3);
+}
+.progress label,
+.statusFacts dt,
+.progressFacts dt,
+.progressAmount span {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
-  cursor: pointer;
+}
+.progress label {
+  text-align: right;
+}
+.progressHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+.progressAmount {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-none);
+  gap: var(--spacing-1);
+}
+.progressAmount strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-metric);
+  font-weight: var(--font-weight-strong);
+  letter-spacing: var(--letter-spacing-kpi);
+}
+.progress meter {
+  width: 100%;
+  height: var(--spacing-3);
+}
+.progressFacts {
+  display: grid;
+  margin: var(--spacing-none);
+  gap: var(--spacing-2);
+}
+.progressFacts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-3);
+}
+.progressFacts dd {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-strong);
+  overflow-wrap: anywhere;
+}
+.statusHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+  gap: var(--spacing-2);
+}
+.statusActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+}
+.statusMonth {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.statusReason {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.statusFacts {
+  margin: var(--spacing-none);
+}
+.statusFacts dd {
+  margin: var(--spacing-none);
+  font-weight: var(--font-weight-strong);
+}
+.statusTableWrap {
+  overflow-x: auto;
+}
+.statusTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body);
+}
+.statusTable th,
+.statusTable td {
+  padding: var(--spacing-2);
+  border-bottom: var(--border-line-subtle);
+  text-align: right;
+  white-space: nowrap;
+}
+.statusTable th:first-child {
+  text-align: left;
 }
 .scheduleDetails table {
   margin-top: var(--spacing-3);

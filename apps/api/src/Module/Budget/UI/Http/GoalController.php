@@ -13,6 +13,7 @@ use App\Module\Budget\Application\Goals\GoalNotFound;
 use App\Module\Budget\Application\Goals\GoalScheduleInput;
 use App\Module\Budget\Application\Goals\ListGoals;
 use App\Module\Budget\Application\Goals\ReadGoal;
+use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\UpdateGoal;
 use App\Module\Budget\Application\Goals\UpdateGoalInput;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
@@ -34,14 +35,37 @@ final readonly class GoalController
             if (null !== $rawYear && 1 !== preg_match('/^[0-9]{4}$/D', $rawYear)) {
                 throw new GoalInputError('invalid_goal_query', 'A year is four digits.');
             }
-            $items = $list(null === $rawYear ? null : (int) $rawYear, $request->query->getString('state', 'active'));
+            $rawMonth = $request->query->get('month');
+            $items = $list(null === $rawYear ? null : (int) $rawYear, $request->query->getString('state', 'active'), $rawMonth);
         } catch (GoalInputError $error) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, $error->errorCode);
+            return $this->problem('future_goal_month' === $error->errorCode ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_BAD_REQUEST, $error->errorCode);
         } catch (WorkspaceAccessDenied) {
             return $this->forbidden();
         }
 
         return $this->envelope->json(['items' => array_map(GoalRepresentation::summary(...), $items)]);
+    }
+
+    #[Route('/api/v1/goals/{id}/status', name: 'api_v1_goals_status', methods: ['GET'])]
+    public function status(string $id, Request $request, ReadGoalStatus $read): Response
+    {
+        if (!$this->envelope->isIdentifier($id)) {
+            return $this->notFound();
+        }
+        try {
+            $rawYear = $request->query->get('year');
+            if (null !== $rawYear && 1 !== preg_match('/^[0-9]{4}$/D', $rawYear)) {
+                throw new GoalInputError('invalid_goal_query', 'A year is four digits.');
+            }
+
+            return $this->envelope->json(GoalRepresentation::status($read($id, $request->query->get('month'), null === $rawYear ? null : (int) $rawYear)));
+        } catch (GoalInputError $error) {
+            return $this->problem('future_goal_month' === $error->errorCode ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_BAD_REQUEST, $error->errorCode);
+        } catch (GoalNotFound) {
+            return $this->notFound();
+        } catch (WorkspaceAccessDenied) {
+            return $this->forbidden();
+        }
     }
 
     #[Route('/api/v1/goals', name: 'api_v1_goals_create', methods: ['POST'])]
