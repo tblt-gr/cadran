@@ -2,6 +2,8 @@ import type { GoalProblem } from '@cadran/api-client';
 
 export type GoalErrorKind =
   | 'conflict'
+  | 'emergency_fund_scope_too_large'
+  | 'invalid_emergency_fund_category'
   | 'invalid'
   | 'invalid_goal_schedule'
   | 'invalid_schedule_preview'
@@ -21,6 +23,8 @@ export interface GoalScheduleMismatch {
 
 /** Problem `code` values mapped straight to a display kind, ranked above the HTTP status. */
 const CODE_KINDS: Record<string, GoalErrorKind> = {
+  emergency_fund_scope_too_large: 'emergency_fund_scope_too_large',
+  invalid_emergency_fund_category: 'invalid_emergency_fund_category',
   invalid_goal_schedule: 'invalid_goal_schedule',
   invalid_schedule_preview: 'invalid_schedule_preview',
   linear_schedule_impossible: 'linear_schedule_impossible',

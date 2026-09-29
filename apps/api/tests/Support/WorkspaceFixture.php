@@ -145,6 +145,7 @@ final readonly class WorkspaceFixture
         // through ON DELETE CASCADE.
         $this->connection->executeStatement('DELETE FROM account_product_models');
         // Targets restrict plan deletion.
+        $this->connection->executeStatement('DELETE FROM budget_emergency_fund_policies');
         $this->connection->executeStatement('DELETE FROM budget_goal_versions');
         $this->connection->executeStatement('DELETE FROM budget_goals');
         $this->connection->executeStatement('DELETE FROM budget_targets');

@@ -19,6 +19,8 @@ interface CategoryPickerProps {
   error?: string | null;
   /** Kept out of the choices, typically the category the operation acts on. */
   excludeId?: string;
+  /** Narrows the offered choices beyond type and archival, for a host with its own eligibility rule. */
+  isEligible?: (category: Category) => boolean;
   label: string;
   /** Keeps the label for assistive technologies only, in a row whose columns speak for it. */
   labelHidden?: boolean;
@@ -67,6 +69,7 @@ export function CategoryPicker({
   emptyOptionLabel,
   error,
   excludeId,
+  isEligible,
   label,
   labelHidden = false,
   onChange,
@@ -125,7 +128,12 @@ export function CategoryPicker({
   const typeRank = (candidate: Category): number =>
     candidate.type === preferredType ? -1 : TYPE_ORDER.indexOf(candidate.type);
   const matches: CategoryChoice[] = (candidates.data?.items ?? [])
-    .filter((candidate: Category) => candidate.id !== excludeId && candidate.archivedAt === null)
+    .filter(
+      (candidate: Category) =>
+        candidate.id !== excludeId &&
+        candidate.archivedAt === null &&
+        (isEligible?.(candidate) ?? true),
+    )
     // Stable, so the server order is kept inside each type.
     .toSorted((first, second) => (type ? 0 : typeRank(first) - typeRank(second)))
     .map((candidate: Category) => ({

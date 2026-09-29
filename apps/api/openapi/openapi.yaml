@@ -1035,6 +1035,96 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/GoalProblem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/emergency-fund:
+    get:
+      operationId: readEmergencyFundCoverage
+      summary: Calculate how many months of essential expenses the eligible liquid assets cover
+      description: >-
+        covered months = eligible liquid assets / average monthly essential expenses of the reference
+        period; required amount = target months x that average; gap = liquid assets - required amount.
+        Eligible accounts are those flagged for the emergency fund, open and not archived on the as-of
+        date, valued by the net-worth rule. The reference never contains the as-of month. A figure that
+        cannot be computed is null with a reason, never zero or infinite.
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: asOf
+          in: query
+          description: Calendar day of the valuation; defaults to the workspace-local today.
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: The coverage with every eligible account and reference month it read.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmergencyFundCoverage' }
+        '400':
+          description: The as-of date is not a calendar day written YYYY-MM-DD.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '422':
+          description: >-
+            future_emergency_fund_as_of when the as-of date is after the workspace-local today;
+            emergency_fund_scope_too_large when the workspace holds more accounts, categories or
+            monthly movements than one coverage read scans.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/emergency-fund/policy:
+    get:
+      operationId: readEmergencyFundPolicy
+      summary: Read the emergency-fund policy of the calling workspace
+      description: Without a stored policy, the default one is returned at version 0.
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: The essential perimeter, reference period and target.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmergencyFundPolicy' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    put:
+      operationId: updateEmergencyFundPolicy
+      summary: Replace the emergency-fund policy of the calling workspace
+      description: >-
+        Saving at version 0 creates the policy. A listed category is an active expense category counted
+        in the budget; an unknown, foreign, income, unbudgeted or archived category is refused with one
+        and the same answer. A category archived after being listed may stay listed.
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateEmergencyFundPolicyRequest' }
+      responses:
+        '200':
+          description: The saved policy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmergencyFundPolicy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: >-
+            invalid_emergency_fund_policy, invalid_emergency_fund_category, too_many_emergency_fund_categories,
+            invalid_trailing_months or invalid_target_months.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/goals/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -5675,6 +5765,168 @@ components:
         difference:
           description: Present with schedule_sum_mismatch; expected minus actual, signed.
           type: string
+    EmergencyFundEssentialMode:
+      type: string
+      enum: [AXIS, CATEGORIES]
+    EmergencyFundReferenceMode:
+      type: string
+      enum: [PREVIOUS_YEAR, TRAILING_MONTHS]
+    EmergencyFundTargetMonths:
+      description: Months of essential expenses to cover, 0 to 60 with at most one decimal.
+      type: string
+      pattern: '^(0|[1-9]\d?)(\.\d)?$'
+    EmergencyFundPolicy:
+      type: object
+      additionalProperties: false
+      required:
+        [essentialMode, essentialCategories, referenceMode, trailingMonths, targetMonths, version]
+      properties:
+        essentialMode: { $ref: '#/components/schemas/EmergencyFundEssentialMode' }
+        essentialCategories:
+          description: Listed expense categories, empty in AXIS mode; each counts with its descendants.
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, label, archived]
+            properties:
+              id: { type: string, format: uuid }
+              label: { type: string }
+              archived: { type: boolean }
+        referenceMode: { $ref: '#/components/schemas/EmergencyFundReferenceMode' }
+        trailingMonths: { type: [integer, 'null'], minimum: 1, maximum: 24 }
+        targetMonths: { $ref: '#/components/schemas/EmergencyFundTargetMonths' }
+        version: { type: integer, minimum: 0 }
+    UpdateEmergencyFundPolicyRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [essentialMode, essentialCategoryIds, referenceMode, trailingMonths, targetMonths, version]
+      properties:
+        essentialMode: { $ref: '#/components/schemas/EmergencyFundEssentialMode' }
+        essentialCategoryIds:
+          description: Empty in AXIS mode; 1 to 50 distinct expense categories otherwise.
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        referenceMode: { $ref: '#/components/schemas/EmergencyFundReferenceMode' }
+        trailingMonths:
+          description: Null with PREVIOUS_YEAR; 1 to 24 with TRAILING_MONTHS.
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 24
+        targetMonths: { $ref: '#/components/schemas/EmergencyFundTargetMonths' }
+        version: { type: integer, minimum: 0 }
+    EmergencyFundCoverage:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          asOf,
+          liquidAssets,
+          reference,
+          targetMonths,
+          requiredAmount,
+          gap,
+          coveredMonths,
+          coveredMonthsDisplay,
+          reason,
+          quality,
+        ]
+      properties:
+        asOf: { type: string, format: date }
+        liquidAssets:
+          type: object
+          additionalProperties: false
+          required: [value, assetCode, reason, accounts]
+          properties:
+            value:
+              description: Sum of the signed valuations of the eligible accounts; null when any is missing or assets differ.
+              type: [string, 'null']
+            assetCode: { type: [string, 'null'] }
+            reason:
+              type: [string, 'null']
+              enum: [NO_ELIGIBLE_ACCOUNT, MISSING_VALUATION, MIXED_ASSETS, null]
+            accounts:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [id, label, value, assetCode, valuedOn, stale]
+                properties:
+                  id: { type: string, format: uuid }
+                  label: { type: string }
+                  value: { type: [string, 'null'] }
+                  assetCode: { type: [string, 'null'] }
+                  valuedOn: { type: [string, 'null'], format: date }
+                  stale:
+                    description: The valuation is more than 31 days older than the as-of date; it is still counted.
+                    type: boolean
+        reference:
+          type: object
+          additionalProperties: false
+          required:
+            [
+              start,
+              end,
+              usedMonths,
+              expectedMonths,
+              excludedMonths,
+              average,
+              averageReason,
+              assetCode,
+              months,
+            ]
+          properties:
+            start: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+            end: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+            usedMonths: { type: integer, minimum: 0, maximum: 24 }
+            expectedMonths: { type: integer, minimum: 1, maximum: 24 }
+            excludedMonths:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [month, reason]
+                properties:
+                  month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+                  reason: { type: string, enum: [NO_DATA, PROVISIONAL, FUTURE, NULL_VALUE] }
+            average: { type: [string, 'null'] }
+            averageReason:
+              type: [string, 'null']
+              description: NO_REFERENCE_MONTH, MISSING_MONTH_VALUE, MIXED_ASSETS or MIXED_METRIC_POLICIES.
+            assetCode:
+              description: Asset of the essential expenses; the average, required amount and gap are expressed in it. Null when no month carries an amount.
+              type: [string, 'null']
+            months:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [month, value]
+                properties:
+                  month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+                  value: { type: [string, 'null'] }
+        targetMonths: { $ref: '#/components/schemas/EmergencyFundTargetMonths' }
+        requiredAmount:
+          description: Target months x average, in reference.assetCode; known whenever the average is.
+          type: [string, 'null']
+        gap:
+          description: Liquid assets - required amount, in reference.assetCode; positive is a surplus, negative a shortfall. Null when either side is unknown or the two assets differ.
+          type: [string, 'null']
+        coveredMonths: { type: [string, 'null'] }
+        coveredMonthsDisplay:
+          description: Covered months rounded HALF_UP to one decimal.
+          type: [string, 'null']
+        reason:
+          description: >-
+            Why covered months is null (NO_ELIGIBLE_ACCOUNT, MISSING_VALUATION, MIXED_ASSETS,
+            NO_REFERENCE_MONTH, MISSING_MONTH_VALUE, MIXED_METRIC_POLICIES, ZERO_ESSENTIAL_EXPENSES,
+            NEGATIVE_ESSENTIAL_EXPENSES), or STALE_VALUATION when it is computed from a stale valuation.
+          type: [string, 'null']
+        quality: { type: string, enum: [COMPLETE, PARTIAL, NOT_CALCULABLE] }
     GoalVersion:
       type: object
       additionalProperties: false

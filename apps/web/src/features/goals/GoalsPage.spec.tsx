@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { GoalsPage } from './GoalsPage';
+import { coverageShortfall, defaultPolicy } from './emergency-fund/fixtures';
 
 const api = vi.hoisted(() => ({
   listGoals: vi.fn(),
@@ -15,6 +16,9 @@ const api = vi.hoisted(() => ({
   listAccounts: vi.fn(),
   listCategories: vi.fn(),
   getSession: vi.fn(),
+  readEmergencyFundCoverage: vi.fn(),
+  readEmergencyFundPolicy: vi.fn(),
+  updateEmergencyFundPolicy: vi.fn(),
 }));
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
@@ -73,6 +77,8 @@ describe('GoalsPage', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-15T10:00:00Z'));
+    api.readEmergencyFundCoverage.mockImplementation(() => ok(coverageShortfall));
+    api.readEmergencyFundPolicy.mockImplementation(() => ok(defaultPolicy));
   });
   afterEach(() => {
     cleanup();
