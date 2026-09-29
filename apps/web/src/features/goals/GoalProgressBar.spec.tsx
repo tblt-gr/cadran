@@ -30,11 +30,23 @@ const baseStatus: GoalAnnualStatus = {
 describe('GoalProgressBar', () => {
   afterEach(() => cleanup());
 
-  it('shows the expected-tick value as the true percentage, not multiplied a second time', () => {
-    render(<GoalProgressBar status={baseStatus} />);
+  it('shows the server-provided percentage without calculating a second percentage', () => {
+    render(<GoalProgressBar assetCode="EUR" status={baseStatus} />);
 
-    // 1500.03 / 2000 = 75.0015 %, rounded to two digits: 75,00 %.
-    expect(screen.getByText('Échéance attendue : 75,00 %')).toBeTruthy();
-    expect(screen.queryByText(/7\s?500,15\s?%/)).toBeNull();
+    expect(screen.getByText('75,00 % atteint')).toBeTruthy();
+    expect(screen.getByRole('meter')).toBeTruthy();
+    expect(screen.queryByText(/Repère à cette date/)).toBeNull();
+  });
+
+  it('shows the achieved amount, the expected amount, and what remains without repeating the target', () => {
+    render(<GoalProgressBar assetCode="EUR" status={baseStatus} />);
+
+    expect(screen.getByText(/1\s*500,00/)).toBeTruthy();
+    expect(screen.getByText('Cumul réalisé')).toBeTruthy();
+    expect(screen.queryByText(/2\s*000,00/)).toBeNull();
+    expect(screen.getByText('Objectif à cette date')).toBeTruthy();
+    expect(screen.getByText(/1\s*500,03/)).toBeTruthy();
+    expect(screen.getByText('Reste à atteindre')).toBeTruthy();
+    expect(screen.getByText('Reste à atteindre').parentElement?.textContent).toMatch(/500,00/);
   });
 });

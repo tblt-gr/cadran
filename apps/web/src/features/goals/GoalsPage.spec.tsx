@@ -155,15 +155,15 @@ describe('GoalsPage', () => {
       }),
     );
     renderPage();
-    expect(await screen.findByText('En avance')).toBeTruthy();
-    expect(screen.getByRole('meter')).toBeTruthy();
-    expect(screen.getByText('Provisoire')).toBeTruthy();
-    activateWithKeyboard(screen.getByRole('button', { name: 'Détail mensuel' }));
+    expect(await screen.findByLabelText('75,00 % atteint')).toBeTruthy();
+    expect(screen.getByText('En avance')).toBeTruthy();
+    expect(screen.getByText('Données provisoires')).toBeTruthy();
+    activateWithKeyboard(screen.getByRole('button', { name: 'Voir le détail mensuel' }));
     expect(await screen.findByRole('dialog', { name: 'Détail de l’objectif' })).toBeTruthy();
     expect((await screen.findByRole('link', { name: 'septembre 2026' })).getAttribute('href')).toBe(
       '/budget/2026-09',
     );
-    expect(screen.getByTitle('Valeur mensuelle manquante')).toBeTruthy();
+    expect(screen.getByTitle('Une valeur mensuelle est manquante')).toBeTruthy();
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
   });
   it('switches to closed goals and opens the close confirmation from the accessible action menu', async () => {
@@ -187,13 +187,13 @@ describe('GoalsPage', () => {
     renderPage();
     expect(await screen.findByText('Clôturé')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Actions de l’objectif « Épargne »' })).toBeNull();
-    expect(screen.getByText('Année 2026')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Épargne (2026)' })).toBeTruthy();
   });
-  it('shows a not-calculable annual schedule state when an older annual goal has no schedule', async () => {
+  it('does not duplicate the annual schedule outside the monthly detail', async () => {
     mockSession();
     api.listGoals.mockReturnValue(ok({ items: [goal] }));
     renderPage();
-    expect(await screen.findByText('Aucun calendrier mensuel pour cet objectif.')).toBeTruthy();
+    expect(screen.queryByText('Aucun calendrier mensuel pour cet objectif.')).toBeNull();
   });
   it('flags only the invalid field when an annual goal is submitted without a label', async () => {
     mockSession();
@@ -464,7 +464,7 @@ describe('GoalsPage', () => {
       }),
     );
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Détail mensuel' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail mensuel' }));
     expect(await screen.findByRole('dialog', { name: 'Détail de l’objectif' })).toBeTruthy();
     expect(await screen.findByRole('alert')).toHaveProperty(
       'textContent',
@@ -523,12 +523,12 @@ describe('GoalsPage', () => {
       ok({ items: query.year === 2027 ? [{ ...future, status }] : [{ ...goal, status }] }),
     );
     renderPage();
-    expect(await screen.findByRole('button', { name: 'Détail mensuel' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Voir le détail mensuel' })).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText('Année'), { target: { value: '2027' } });
 
     expect(await screen.findByText('Épargne 2027')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Détail mensuel' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Voir le détail mensuel' })).toBeNull();
     expect((screen.getByLabelText('Mois') as HTMLInputElement).disabled).toBe(true);
     expect(api.readGoalStatus).not.toHaveBeenCalled();
   });

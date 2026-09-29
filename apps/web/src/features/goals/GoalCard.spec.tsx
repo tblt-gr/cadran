@@ -49,8 +49,8 @@ function noop() {}
 describe('GoalCard', () => {
   afterEach(() => cleanup());
 
-  it("shows the reason as the status badge's next sibling when the status is not calculable", () => {
-    const { container } = render(
+  it('shows the reason immediately after the status heading when the status is not calculable', () => {
+    render(
       <GoalCard
         goal={{ ...baseGoal, status: notCalculableRollingStatus }}
         onClose={noop}
@@ -60,8 +60,10 @@ describe('GoalCard', () => {
     );
 
     expect(screen.getByText('Non calculable')).toBeTruthy();
-    const badge = container.querySelector('[class*="badge"]');
-    expect(badge?.nextElementSibling?.textContent).toBe('Politiques d’indicateur mixtes');
+    const heading = screen.getByText('Situation pour septembre 2026').parentElement;
+    expect(heading?.nextElementSibling?.textContent).toBe(
+      'Les politiques d’indicateurs diffèrent selon les mois',
+    );
   });
 
   it('never shows a bare zero or dash for a null value without its reason', () => {
@@ -75,7 +77,7 @@ describe('GoalCard', () => {
     );
 
     // The actual/target dashes each carry the reason as accessible text, not a silent '-'.
-    const reasons = screen.getAllByText('Politiques d’indicateur mixtes');
+    const reasons = screen.getAllByText('Les politiques d’indicateurs diffèrent selon les mois');
     expect(reasons.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -89,7 +91,7 @@ describe('GoalCard', () => {
       />,
     );
 
-    expect(screen.getByText('Mois évalué : janvier 2027')).toBeTruthy();
+    expect(screen.getByText('Situation pour janvier 2027')).toBeTruthy();
   });
 
   it('explains a future-month status with its own reason next to the evaluated month', () => {
@@ -105,11 +107,11 @@ describe('GoalCard', () => {
       />,
     );
 
-    expect(screen.getByText('Mois évalué : janvier 2027')).toBeTruthy();
-    expect(screen.getAllByText('Mois pas encore commencé').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Situation pour janvier 2027')).toBeTruthy();
+    expect(screen.getAllByText('Ce mois n’a pas encore commencé').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('labels a rolling minimum goal\'s second amount "Cible" rather than "Attendu"', () => {
+  it('labels a rolling minimum goal\'s second amount "Cible" rather than a cumulative expected amount', () => {
     const status: GoalStatus = {
       ...notCalculableRollingStatus,
       target: '750.00',
@@ -124,10 +126,10 @@ describe('GoalCard', () => {
     );
 
     expect(screen.getByText('Cible')).toBeTruthy();
-    expect(screen.queryByText('Attendu')).toBeNull();
+    expect(screen.queryByText('Objectif à cette date')).toBeNull();
   });
 
-  it('labels a rolling ceiling goal\'s second amount "Limite" rather than "Attendu"', () => {
+  it('labels a rolling ceiling goal\'s second amount "Limite" rather than a cumulative expected amount', () => {
     const status: GoalStatus = {
       ...notCalculableRollingStatus,
       direction: 'CEILING',
@@ -148,10 +150,10 @@ describe('GoalCard', () => {
     );
 
     expect(screen.getByText('Limite')).toBeTruthy();
-    expect(screen.queryByText('Attendu')).toBeNull();
+    expect(screen.queryByText('Objectif à cette date')).toBeNull();
   });
 
-  it('labels the annual excess row "Reste" instead of "Dépassement" when excess is not calculable', () => {
+  it('labels the annual remaining row "Reste à atteindre" when excess is not calculable', () => {
     const annualGoal: GoalSummary = {
       ...baseGoal,
       kind: 'ANNUAL',
@@ -188,8 +190,8 @@ describe('GoalCard', () => {
       <GoalCard goal={{ ...annualGoal, status }} onClose={noop} onDetail={noop} onEdit={noop} />,
     );
 
-    expect(screen.getByText('Reste')).toBeTruthy();
-    expect(screen.queryByText('Dépassement')).toBeNull();
+    expect(screen.getByText('Reste à atteindre')).toBeTruthy();
+    expect(screen.queryByText('Au-delà de l’objectif')).toBeNull();
   });
 
   it('offers the monthly detail of an annual goal only when a detail handler is provided', () => {
@@ -215,14 +217,30 @@ describe('GoalCard', () => {
       quality: 'COMPLETE',
       months: [],
     };
-    const annual: GoalSummary = { ...baseGoal, kind: 'ANNUAL', status };
-    const { rerender } = render(
+    const annual: GoalSummary = {
+      ...baseGoal,
+      kind: 'ANNUAL',
+      currentVersion: {
+        ...baseGoal.currentVersion,
+        year: 2026,
+        targetAmount: '12000',
+        ratio: null,
+      },
+      status,
+    };
+    const { container, rerender } = render(
       <GoalCard goal={annual} onClose={noop} onDetail={noop} onEdit={noop} />,
     );
-    expect(screen.getByRole('button', { name: 'Détail mensuel' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Voir le détail mensuel' })).toBeTruthy();
+    expect(screen.getByText('En avance')).toBeTruthy();
+    expect(
+      Array.from(container.querySelectorAll('strong.money')).filter((node) =>
+        node.textContent?.replace(/\s/g, '').startsWith('12000,00'),
+      ),
+    ).toHaveLength(1);
 
     rerender(<GoalCard goal={annual} onClose={noop} onEdit={noop} />);
-    expect(screen.queryByRole('button', { name: 'Détail mensuel' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Voir le détail mensuel' })).toBeNull();
   });
 
   it('offers no monthly detail for a rolling goal, which has no month-by-month breakdown', () => {
@@ -235,6 +253,6 @@ describe('GoalCard', () => {
       />,
     );
 
-    expect(screen.queryByRole('button', { name: 'Détail mensuel' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Voir le détail mensuel' })).toBeNull();
   });
 });

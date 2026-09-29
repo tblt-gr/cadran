@@ -6,7 +6,6 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
-import { GoalScheduleTable } from './goal-schedule-table/GoalScheduleTable';
 import { GoalProgressBar } from './GoalProgressBar';
 import { GoalStatusBadge } from './GoalStatusBadge';
 import { formatGoalMonth } from './goalMonth';
@@ -36,19 +35,25 @@ export function GoalCard({ goal, onEdit, onClose, onDetail }: Props) {
     : definition.ratio
       ? formatRatioPercentage(definition.ratio, i18n.language)
       : null;
-  const period =
-    goal.kind === 'ANNUAL' && definition.year !== null
-      ? t('goals.annualPeriod', { year: definition.year })
-      : t('goals.rollingPeriod', {
-          month: formatGoalMonth(definition.effectiveFrom, i18n.language),
-        });
   const closed = goal.state === 'CLOSED';
+  const status = goal.status;
   return (
     <article className={`card ${styles.goalCard}`}>
       <div className={styles.cardHeading}>
-        <div>
+        <div className={styles.goalIdentity}>
+          <h3
+            aria-label={
+              goal.kind === 'ANNUAL' && definition.year !== null
+                ? t('goals.titleWithYear', { label: goal.label, year: definition.year })
+                : undefined
+            }
+          >
+            <span>{goal.label}</span>
+            {goal.kind === 'ANNUAL' && definition.year !== null ? (
+              <span className={styles.goalYear}> ({definition.year})</span>
+            ) : null}
+          </h3>
           <p className={styles.metric}>{t(`goals.metrics.${goal.metric}`)}</p>
-          <h3>{goal.label}</h3>
         </div>
         {closed ? (
           <StatusBadge icon="archive" tone="info">
@@ -76,90 +81,9 @@ export function GoalCard({ goal, onEdit, onClose, onDetail }: Props) {
           />
         )}
       </div>
-      {goal.status ? (
-        <>
-          <p className={styles.statusMonth}>
-            {t('goals.statusMonth', { month: formatGoalMonth(goal.status.month, i18n.language) })}
-          </p>
-          <GoalStatusBadge status={goal.status} />
-          {goal.status.reason !== null ? (
-            <span className={styles.statusReason}>{t(`goals.reasons.${goal.status.reason}`)}</span>
-          ) : null}
-          {goal.status.kind === 'ANNUAL' ? <GoalProgressBar status={goal.status} /> : null}
-          <dl className={styles.statusFacts}>
-            <div>
-              <dt>{t('goals.achieved')}</dt>
-              <dd>
-                {(goal.status.kind === 'ANNUAL' ? goal.status.achieved : goal.status.actual) ===
-                null ? (
-                  <EmptyValue
-                    label={t(`goals.reasons.${goal.status.reason ?? 'MISSING_MONTH_VALUE'}`)}
-                  />
-                ) : (
-                  formatAmount(
-                    (goal.status.kind === 'ANNUAL' ? goal.status.achieved : goal.status.actual)!,
-                    goal.assetCode,
-                    i18n.language,
-                  )
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>
-                {goal.status.kind === 'ANNUAL'
-                  ? t('goals.expected')
-                  : t(goal.direction === 'CEILING' ? 'goals.limit' : 'goals.target')}
-              </dt>
-              <dd>
-                {(goal.status.kind === 'ANNUAL' ? goal.status.expected : goal.status.target) ===
-                null ? (
-                  <EmptyValue
-                    label={t(`goals.reasons.${goal.status.reason ?? 'MISSING_MONTH_VALUE'}`)}
-                  />
-                ) : (
-                  formatAmount(
-                    (goal.status.kind === 'ANNUAL' ? goal.status.expected : goal.status.target)!,
-                    goal.assetCode,
-                    i18n.language,
-                  )
-                )}
-              </dd>
-            </div>
-            {goal.status.kind === 'ANNUAL' ? (
-              <div>
-                <dt>{hasExcess(goal.status.excess) ? t('goals.excess') : t('goals.remaining')}</dt>
-                <dd>
-                  {(hasExcess(goal.status.excess) ? goal.status.excess : goal.status.remaining) ===
-                  null ? (
-                    <EmptyValue
-                      label={t(`goals.reasons.${goal.status.reason ?? 'MISSING_MONTH_VALUE'}`)}
-                    />
-                  ) : (
-                    formatAmount(
-                      (hasExcess(goal.status.excess) ? goal.status.excess : goal.status.remaining)!,
-                      goal.assetCode,
-                      i18n.language,
-                    )
-                  )}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-          {goal.status.provisional ? (
-            <StatusBadge icon="info" tone="warning">
-              {t('goals.provisional')}
-            </StatusBadge>
-          ) : null}
-          {goal.status.kind === 'ANNUAL' && onDetail ? (
-            <button className="secondary-action" onClick={() => onDetail(goal)} type="button">
-              {t('goals.details')}
-            </button>
-          ) : null}
-        </>
-      ) : null}
       <div className={styles.value}>
         <span className={styles.direction}>
-          {t(goal.direction === 'MINIMUM' ? 'goals.minimum' : 'goals.ceiling')}
+          {t(goal.direction === 'MINIMUM' ? 'goals.minimumToReach' : 'goals.ceilingNotToExceed')}
         </span>
         <strong className="money">
           {value === null ? (
@@ -169,30 +93,112 @@ export function GoalCard({ goal, onEdit, onClose, onDetail }: Props) {
           )}
         </strong>
       </div>
-      <dl className={styles.facts}>
-        <div>
-          <dt className="sr-only">{t('goals.kind')}</dt>
-          <dd>{period}</dd>
-        </div>
-        <div>
-          <dt className="sr-only">{t('goals.scope')}</dt>
-          <dd>
-            {t(`goals.scopeTypes.${goal.scope.type}`)} · {goal.scope.label}
-          </dd>
-        </div>
-      </dl>
+      {status ? (
+        <>
+          <div className={styles.statusHeading}>
+            <p className={styles.statusMonth}>
+              {t('goals.statusMonth', { month: formatGoalMonth(status.month, i18n.language) })}
+            </p>
+            <GoalStatusBadge status={status} />
+          </div>
+          {status.reason !== null ? (
+            <span className={styles.statusReason}>{t(`goals.reasons.${status.reason}`)}</span>
+          ) : null}
+          {status.kind === 'ANNUAL' && status.progressRatioDisplay !== null ? (
+            <GoalProgressBar assetCode={goal.assetCode} status={status} />
+          ) : null}
+          {status.kind !== 'ANNUAL' || status.progressRatioDisplay === null ? (
+            <dl className={styles.statusFacts}>
+              <div>
+                <dt>
+                  {t(status.kind === 'ANNUAL' ? 'goals.achievedToDate' : 'goals.achievedThisMonth')}
+                </dt>
+                <dd>
+                  {(status.kind === 'ANNUAL' ? status.achieved : status.actual) === null ? (
+                    <EmptyValue
+                      label={t(`goals.reasons.${status.reason ?? 'MISSING_MONTH_VALUE'}`)}
+                    />
+                  ) : (
+                    formatAmount(
+                      (status.kind === 'ANNUAL' ? status.achieved : status.actual)!,
+                      goal.assetCode,
+                      i18n.language,
+                    )
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>
+                  {status.kind === 'ANNUAL'
+                    ? t('goals.expectedToDate')
+                    : t(goal.direction === 'CEILING' ? 'goals.limit' : 'goals.target')}
+                </dt>
+                <dd>
+                  {(status.kind === 'ANNUAL' ? status.expected : status.target) === null ? (
+                    <EmptyValue
+                      label={t(`goals.reasons.${status.reason ?? 'MISSING_MONTH_VALUE'}`)}
+                    />
+                  ) : (
+                    formatAmount(
+                      (status.kind === 'ANNUAL' ? status.expected : status.target)!,
+                      goal.assetCode,
+                      i18n.language,
+                    )
+                  )}
+                </dd>
+              </div>
+              {status.kind === 'ANNUAL' ? (
+                <div>
+                  <dt>
+                    {t(
+                      hasExcess(status.excess)
+                        ? goal.direction === 'CEILING'
+                          ? 'goals.excessOverCeiling'
+                          : 'goals.excessOverTarget'
+                        : goal.direction === 'CEILING'
+                          ? 'goals.remainingBeforeCeiling'
+                          : 'goals.remainingToTarget',
+                    )}
+                  </dt>
+                  <dd>
+                    {(hasExcess(status.excess) ? status.excess : status.remaining) === null ? (
+                      <EmptyValue
+                        label={t(`goals.reasons.${status.reason ?? 'MISSING_MONTH_VALUE'}`)}
+                      />
+                    ) : (
+                      formatAmount(
+                        (hasExcess(status.excess) ? status.excess : status.remaining)!,
+                        goal.assetCode,
+                        i18n.language,
+                      )
+                    )}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
+          {status.provisional || (status.kind === 'ANNUAL' && onDetail) ? (
+            <div className={styles.statusActions}>
+              {status.provisional ? (
+                <StatusBadge icon="info" tone="warning">
+                  {t('goals.provisional')}
+                </StatusBadge>
+              ) : null}
+              {status.kind === 'ANNUAL' && onDetail ? (
+                <button className="secondary-action" onClick={() => onDetail(goal)} type="button">
+                  {t('goals.details')}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      ) : null}
       {goal.warnings.includes('REFERENCE_ARCHIVED') ? (
         <div>
           <StatusBadge icon="alert" tone="warning">
             {t('goals.referenceArchived')}
           </StatusBadge>
         </div>
-      ) : null}
-      {goal.kind === 'ANNUAL' ? (
-        <details className={styles.scheduleDetails}>
-          <summary>{t('goals.schedule.table.caption')}</summary>
-          <GoalScheduleTable assetCode={goal.assetCode} schedule={definition.schedule} />
-        </details>
       ) : null}
     </article>
   );
