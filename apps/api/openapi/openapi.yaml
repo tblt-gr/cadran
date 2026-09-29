@@ -5791,7 +5791,7 @@ components:
         versions:
           type: array
           uniqueItems: true
-          maxItems: 12
+          maxItems: 13
           items: { type: integer, minimum: 1 }
     GoalStatusReason:
       type: [string, 'null']

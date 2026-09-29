@@ -113,6 +113,8 @@ describe('GoalsPage', () => {
   });
   it('renders an accessible provisional status and opens its keyboard-usable monthly detail', async () => {
     mockSession();
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 360 });
     const status = {
       goalId: goal.id,
       month: '2026-09',
@@ -142,7 +144,7 @@ describe('GoalsPage', () => {
           {
             month: '2026-09',
             state: 'PROVISIONAL',
-            value: '1000',
+            value: null,
             expectedPart: '1000',
             cumulativeValue: '9000',
             cumulativeExpected: '9000',
@@ -161,6 +163,8 @@ describe('GoalsPage', () => {
     expect((await screen.findByRole('link', { name: 'septembre 2026' })).getAttribute('href')).toBe(
       '/budget/2026-09',
     );
+    expect(screen.getByTitle('Valeur mensuelle manquante')).toBeTruthy();
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
   });
   it('switches to closed goals and opens the close confirmation from the accessible action menu', async () => {
     mockSession();

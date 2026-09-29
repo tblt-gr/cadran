@@ -46,7 +46,7 @@ final readonly class ReadReferenceIncome
             }
             $income = $item->figures?->cells['cashIncome'] ?? null;
             if (MonthState::COMPLETE === $item->state && null !== $income?->value) {
-                $values[] = DecimalValue::fromString($income->value);
+                $values[] = $income->value;
                 $policyVersions[] = $item->figures->policyVersion;
                 continue;
             }
@@ -60,7 +60,10 @@ final readonly class ReadReferenceIncome
 
         return new ReferenceIncomeView(
             $month->key(),
-            ExactDecimal::divide(ExactDecimal::sum(...$values), DecimalValue::fromString((string) count($values))),
+            DecimalValue::fromString(ExactDecimal::divideForResponse(
+                array_reduce($values, static fn (string $sum, string $value): string => ExactDecimal::addForResponse($sum, $value), '0'),
+                (string) count($values),
+            )),
             count($values),
             $start->key(),
             $end->key(),

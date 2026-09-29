@@ -1,6 +1,6 @@
 import type { GoalAnnualStatus, GoalAnnualStatusSummary } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
+import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import styles from './GoalsPage.module.css';
 
 function scaled(value: string): bigint {
@@ -12,11 +12,16 @@ function scaled(value: string): bigint {
  * `formatRatioPercentage` and `progressRatioDisplay` already use, so it is never
  * mistaken for a value already expressed in percent.
  */
-function expectedRatio(expected: string, target: string): string | null {
+function expectedRatio(expected: string, target: string): { exact: string; marker: string } | null {
   const divisor = scaled(target);
   if (divisor <= 0n) return null;
   const scaledRatio = (scaled(expected) * 1000000n) / divisor;
-  return `${scaledRatio / 1000000n}.${(scaledRatio % 1000000n).toString().padStart(6, '0')}`;
+  const exact = `${scaledRatio / 1000000n}.${(scaledRatio % 1000000n).toString().padStart(6, '0')}`;
+  const clamped = scaledRatio < 0n ? 0n : scaledRatio > 1000000n ? 1000000n : scaledRatio;
+  return {
+    exact,
+    marker: `${clamped / 10000n}.${(clamped % 10000n).toString().padStart(4, '0')}`,
+  };
 }
 
 export function GoalProgressBar({
@@ -49,10 +54,12 @@ export function GoalProgressBar({
           <span
             aria-hidden="true"
             className={styles.expectedTick}
-            style={{ left: `${ratioToPercent(expected)}%` }}
+            style={{ left: `${expected.marker}%` }}
           />
           <span>
-            {t('goals.expectedTick', { value: formatRatioPercentage(expected, i18n.language) })}
+            {t('goals.expectedTick', {
+              value: formatRatioPercentage(expected.exact, i18n.language),
+            })}
           </span>
         </>
       ) : null}

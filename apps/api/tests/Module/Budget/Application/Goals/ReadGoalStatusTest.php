@@ -106,6 +106,22 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('1', $status->progressRatioDisplay);
     }
 
+    public function testAnnualMinimumIsReachedAtExactTargetEquality(): void
+    {
+        $months = [];
+        for ($index = 1; $index <= 8; ++$index) {
+            $months[] = self::month(2026, $index, MonthState::COMPLETE, 'netSavingsTransfers', '250.00');
+        }
+        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+
+        $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '2000.00')], $months)(self::GOAL_ID, '2026-08');
+
+        self::assertSame('2000.00', $status->achieved);
+        self::assertSame('REACHED', $status->status);
+        self::assertSame('0', $status->remaining);
+        self::assertSame('0', $status->excess);
+    }
+
     public function testAnnualResponseArithmeticMayExceedTheStorageIntegerWidth(): void
     {
         $maximum = '99999999999999999999999999';
@@ -122,6 +138,44 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('0', $status->excess);
         self::assertSame('-1.000000000000000000000000', $status->progressRatio);
         self::assertSame('0', $status->progressRatioDisplay);
+    }
+
+    public function testAnnualCumulativeAndAggregateMayExceedTheStorageIntegerWidth(): void
+    {
+        $maximum = '99999999999999999999999999';
+        $target = DecimalValue::fromString($maximum);
+        $schedule = GoalSchedule::custom($target, [$target, ...array_fill(0, 11, DecimalValue::zero())], 0);
+        $version = GoalVersion::annual(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-01', 2026, $target, $schedule, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $months = [
+            self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', $maximum),
+            self::month(2026, 2, MonthState::COMPLETE, 'netSavingsTransfers', $maximum),
+        ];
+
+        $status = $this->reader($goal, [$version], $months)(self::GOAL_ID, '2026-02');
+
+        self::assertSame('199999999999999999999999998', $status->achieved);
+        self::assertSame('199999999999999999999999998', $status->months[1]->cumulativeValue);
+        self::assertSame('REACHED', $status->status);
+        self::assertSame($maximum, $status->excess);
+        self::assertSame('2.000000000000000000000000', $status->progressRatio);
+        self::assertSame('1', $status->progressRatioDisplay);
+    }
+
+    public function testAnnualCeilingIsExceededAtOneThousandTwoHundredFiftyByNovember(): void
+    {
+        $months = [];
+        for ($index = 1; $index <= 11; ++$index) {
+            $months[] = self::month(2026, $index, MonthState::COMPLETE, 'axis:DISCRETIONARY', 11 === $index ? '250.00' : '100.00');
+        }
+        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
+
+        $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2026-11');
+
+        self::assertSame('1250.00', $status->achieved);
+        self::assertSame('EXCEEDED', $status->status);
+        self::assertSame('50.00', $status->excess);
+        self::assertSame('0', $status->remaining);
     }
 
     public function testAnnualStatusUsesEachMonthsEffectiveVersionAndReportsPartialData(): void
@@ -508,7 +562,7 @@ final class ReadGoalStatusTest extends TestCase
             }
         };
 
-        return new WorkspaceCalendar(new MockClock('2026-09-24T12:00:00+02:00'), $context, $timezones);
+        return new WorkspaceCalendar(new MockClock('2026-12-24T12:00:00+01:00'), $context, $timezones);
     }
 }
 

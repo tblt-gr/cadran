@@ -1,6 +1,7 @@
 import type { GoalAnnualStatus, GoalStatus } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAmount } from '@/lib/decimal';
 import { formatGoalMonth } from './goalMonth';
 import styles from './GoalsPage.module.css';
@@ -16,6 +17,9 @@ export function GoalDetailModal({
 }) {
   const { t, i18n } = useTranslation();
   const annual = status.kind === 'ANNUAL' ? (status as GoalAnnualStatus) : null;
+  const emptyCell = (
+    <EmptyValue label={t(`goals.reasons.${status.reason ?? 'MISSING_MONTH_VALUE'}`)} />
+  );
   return (
     <Modal close={close} eyebrow={t('goals.detailEyebrow')} title={t('goals.detailTitle')}>
       {annual?.months?.length ? (
@@ -43,22 +47,22 @@ export function GoalDetailModal({
                   <td>{t(`goals.statusTable.states.${month.state}`)}</td>
                   <td>
                     {month.value === null
-                      ? '—'
+                      ? emptyCell
                       : formatAmount(month.value, assetCode, i18n.language)}
                   </td>
                   <td>
                     {month.expectedPart === null
-                      ? '—'
+                      ? emptyCell
                       : formatAmount(month.expectedPart, assetCode, i18n.language)}
                   </td>
                   <td>
                     {month.cumulativeValue === null
-                      ? '—'
+                      ? emptyCell
                       : formatAmount(month.cumulativeValue, assetCode, i18n.language)}
                   </td>
                   <td>
                     {month.cumulativeExpected === null
-                      ? '—'
+                      ? emptyCell
                       : formatAmount(month.cumulativeExpected, assetCode, i18n.language)}
                   </td>
                 </tr>

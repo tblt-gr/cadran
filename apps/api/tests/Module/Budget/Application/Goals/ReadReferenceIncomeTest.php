@@ -52,6 +52,23 @@ final class ReadReferenceIncomeTest extends TestCase
         self::assertSame(0, $result->usableMonths);
     }
 
+    public function testReferenceIncomeSumMayExceedTheStorageIntegerWidthBeforeAveraging(): void
+    {
+        $maximum = '99999999999999999999999999';
+        $months = [
+            $this->month(new CalendarMonth(2026, 7), MonthState::COMPLETE, $maximum),
+            $this->month(new CalendarMonth(2026, 8), MonthState::COMPLETE, $maximum),
+        ];
+
+        $result = (new ReadReferenceIncome(new FixedGoalMonthSource($months)))(
+            WorkspaceScope::fromString('00000000-0000-7000-8000-0000000000a1'),
+            new CalendarMonth(2026, 9),
+        );
+
+        self::assertSame($maximum.'.000000000000000000000000', $result->value?->toString());
+        self::assertSame(2, $result->usableMonths);
+    }
+
     private function month(CalendarMonth $month, MonthState $state, ?string $cashIncome): AnnualMonth
     {
         $figures = null;

@@ -226,7 +226,7 @@ final readonly class ReadGoalStatus
         $values = [];
         $rows = [];
         $expectedTotal = '0';
-        $cumulativeActual = DecimalValue::zero();
+        $cumulativeActual = '0';
         $actualStarted = false;
         $actualMissing = false;
         $expectedMissing = false;
@@ -249,7 +249,7 @@ final readonly class ReadGoalStatus
                 if (null === $metric['value']) {
                     $actualMissing = true;
                 } elseif (!$actualMissing) {
-                    $cumulativeActual = ExactDecimal::add($cumulativeActual, $metric['value']);
+                    $cumulativeActual = ExactDecimal::addForResponse($cumulativeActual, $metric['value']->toString());
                     $actualStarted = true;
                 }
             }
@@ -258,22 +258,37 @@ final readonly class ReadGoalStatus
                 $item->state->value,
                 $metric['value']?->toString(),
                 $part?->toString(),
-                $actualMissing || !$actualStarted ? null : $cumulativeActual->toString(),
+                $actualMissing || !$actualStarted ? null : $cumulativeActual,
                 $expectedMissing ? null : $expectedTotal,
                 $version?->versionNo,
                 $item->figures?->policyVersion,
             );
         }
 
-        $aggregate = ReportAggregator::flow($values, IncompleteMonths::INCLUDE);
+        $qualityValues = array_map(static fn (MonthValue $value): MonthValue => new MonthValue(
+            $value->month,
+            $value->state,
+            null === $value->value ? null : DecimalValue::zero(),
+            $value->asset,
+            $value->reason,
+            $value->policyVersion,
+        ), $values);
+        $aggregate = ReportAggregator::flow($qualityValues, IncompleteMonths::INCLUDE);
         $policy = self::policy($values);
         $target = $selectedVersion?->targetAmount?->toString();
-        $achieved = $aggregate->total;
-        $achievedResponse = $achieved?->toString();
+        $achievedResponse = null;
+        if (null !== $aggregate->total) {
+            $achievedResponse = '0';
+            foreach ($values as $value) {
+                if ((MonthState::COMPLETE === $value->state || MonthState::PROVISIONAL === $value->state) && null !== $value->value) {
+                    $achievedResponse = ExactDecimal::addForResponse($achievedResponse, $value->value->toString());
+                }
+            }
+        }
         $reason = match (true) {
             null === $selectedVersion => 'GOAL_NOT_STARTED',
             AggregateReason::MIXED_METRIC_POLICIES === $aggregate->totalReason => 'MIXED_METRIC_POLICIES',
-            null === $achieved || $expectedMissing => 'MISSING_MONTH_VALUE',
+            null === $achievedResponse || $expectedMissing => 'MISSING_MONTH_VALUE',
             $archived => 'REFERENCE_ARCHIVED',
             default => null,
         };
@@ -510,7 +525,7 @@ final readonly class ReadGoalStatus
 
     private static function positiveForResponse(string $value): string
     {
-        return ExactDecimal::compareForResponse($value, '0') < 0 ? '0' : $value;
+        return ExactDecimal::compareForResponse($value, '0') <= 0 ? '0' : $value;
     }
 
     private static function clamp(string $ratio): string
