@@ -1,0 +1,194 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.card h3,
+.card p,
+.explain h3 {
+  margin: var(--spacing-none);
+}
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+.eyebrow {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+.covered {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-3);
+}
+.covered strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-kpi);
+  font-weight: var(--font-weight-strong);
+  letter-spacing: var(--letter-spacing-kpi);
+}
+.covered span,
+.hint,
+.reason,
+.empty p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+.empty {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.meter label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.meter meter {
+  width: 100%;
+  height: var(--spacing-3);
+}
+.facts {
+  display: grid;
+  margin: var(--spacing-none);
+  gap: var(--spacing-2);
+}
+.facts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-3);
+}
+.facts dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.facts dd {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-strong);
+  overflow-wrap: anywhere;
+}
+.explain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.summary {
+  margin: var(--spacing-2) var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+}
+.tableWrap {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body);
+}
+.table th,
+.table td {
+  padding: var(--spacing-2);
+  border-bottom: var(--border-line-subtle);
+  text-align: right;
+  white-space: nowrap;
+}
+.table th:first-child {
+  text-align: left;
+}
+.date {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.form > label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1-5);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.radios,
+.radios label {
+  display: flex;
+  gap: var(--spacing-3);
+}
+.radios {
+  flex-direction: column;
+  padding: var(--spacing-none);
+  border: var(--border-none);
+}
+.radios legend {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.radios label {
+  align-items: center;
+}
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.categories ul {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-2);
+  list-style: none;
+}
+.categories li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+.alert,
+.fieldError {
+  color: var(--negative);
+}
+.alert {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3);
+  border: var(--border-line-negative);
+  border-radius: var(--radius-control);
+  background: var(--negative-soft);
+}
+.fieldError {
+  font-size: var(--font-size-xs);
+}
+@media (max-width: 42rem) {
+  .actions,
+  .actions > * {
+    width: 100%;
+  }
+}

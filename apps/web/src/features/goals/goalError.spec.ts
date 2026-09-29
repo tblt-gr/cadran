@@ -2,6 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { goalErrorKind, goalErrorMismatch, goalRequestError, GoalRequestError } from './goalError';
 
 describe('goalRequestError', () => {
+  it.each(['invalid_emergency_fund_category', 'emergency_fund_scope_too_large'])(
+    'classifies %s by its code',
+    (code) => {
+      const error = goalRequestError({
+        response: new Response(null, { status: 422 }),
+        error: { type: `/problems/${code}`, title: 'x', status: 422, detail: 'x', code },
+      });
+      expect(error.kind).toBe(code);
+    },
+  );
+
   it('classifies a generic 422 as invalid when the problem carries no known code', () => {
     const error = goalRequestError({ response: new Response(null, { status: 422 }) });
     expect(error.kind).toBe('invalid');

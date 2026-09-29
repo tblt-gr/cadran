@@ -24,6 +24,7 @@ import { GoalCard } from './GoalCard';
 import { GoalDetailModal } from './GoalDetailModal';
 import { GoalFilters, type GoalListState } from './GoalFilters';
 import { GoalForm } from './GoalForm';
+import { EmergencyFundCard } from './emergency-fund/EmergencyFundCard';
 import { GoalScheduleTable } from './goal-schedule-table/GoalScheduleTable';
 import { goalErrorKind, goalErrorMismatch, goalRequestError } from './goalError';
 import { ReferenceIncomeNote } from './ReferenceIncomeNote';
@@ -166,6 +167,7 @@ export function GoalsPage() {
           {t('goals.add')}
         </button>
       </section>
+      <EmergencyFundCard />
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('goals.saved')}</Toast> : null}
       <GoalFilters
         currentMonth={workspaceMonth}

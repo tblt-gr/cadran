@@ -2576,7 +2576,9 @@
       "schedule_precision_exceeded": "Un montant mensuel dépasse la précision autorisée par la devise.",
       "linear_schedule_impossible": "Ce montant cible est trop faible pour une répartition linéaire : utilisez le mode personnalisé.",
       "invalid_goal_schedule": "Le calendrier mensuel de l’objectif n’est pas valide.",
-      "invalid_schedule_preview": "Impossible de calculer cet aperçu de répartition."
+      "invalid_schedule_preview": "Impossible de calculer cet aperçu de répartition.",
+      "invalid_emergency_fund_category": "Une catégorie choisie n’est pas éligible : seules les catégories de dépense actives et incluses au budget peuvent être retenues.",
+      "emergency_fund_scope_too_large": "L’espace contient trop de comptes ou de catégories pour calculer le fonds d’urgence."
     },
     "schedule": {
       "legend": "Calendrier mensuel",
@@ -2596,6 +2598,89 @@
         "amount": "Montant",
         "cumulative": "Cumul",
         "empty": "Aucun calendrier mensuel pour cet objectif."
+      }
+    },
+    "emergencyFund": {
+      "eyebrow": "Fonds d’urgence",
+      "title": "Couverture en mois de dépenses essentielles",
+      "loading": "Chargement du fonds d’urgence…",
+      "error": "Impossible de charger le fonds d’urgence",
+      "explain": "Voir le calcul",
+      "editPolicy": "Modifier la politique",
+      "empty": "Aucun compte n’est inclus dans le fonds d’urgence. Cochez cette option sur un compte pour l’y compter.",
+      "manageAccounts": "Gérer les comptes",
+      "months": "{{value}} mois",
+      "target": "objectif {{value}} mois",
+      "meterLabel": "{{value}} mois couverts sur {{target}}",
+      "notCalculable": "Non calculable",
+      "stale": "Ancienne valorisation",
+      "liquid": "Liquidités éligibles",
+      "required": "Montant requis",
+      "gap": "Écart à l’objectif",
+      "gapShortfall": "Il manque {{amount}}",
+      "gapSurplus": "Excédent de {{amount}}",
+      "gapReached": "Objectif atteint",
+      "missingValuation": "Sans valorisation",
+      "reasons": {
+        "NO_ELIGIBLE_ACCOUNT": "Aucun compte éligible.",
+        "MISSING_VALUATION": "Compte sans valorisation à cette date :",
+        "MIXED_ASSETS": "Les comptes éligibles portent des actifs différents : leur somme n’a pas de sens.",
+        "NO_REFERENCE_MONTH": "Aucun mois complet exploitable sur la période de référence.",
+        "MISSING_MONTH_VALUE": "Un mois de la période de référence n’a pas de valeur.",
+        "MIXED_METRIC_POLICIES": "Les mois de référence suivent des politiques d’indicateurs différentes.",
+        "ZERO_ESSENTIAL_EXPENSES": "Aucune dépense essentielle sur la période de référence : la couverture ne peut pas être calculée.",
+        "NEGATIVE_ESSENTIAL_EXPENSES": "Les dépenses essentielles de référence sont négatives : la couverture ne peut pas être calculée.",
+        "STALE_VALUATION": "Calculé avec une ancienne valorisation.",
+        "UNKNOWN": "Couverture non calculable."
+      },
+      "explainTitle": "Calcul du fonds d’urgence",
+      "accountsTitle": "Comptes éligibles",
+      "accountsCaption": "Comptes éligibles, valeur et date de valorisation",
+      "account": "Compte",
+      "value": "Valeur",
+      "valuedOn": "Valorisation au",
+      "monthsTitle": "Mois de référence",
+      "monthsCaption": "Dépenses essentielles par mois de référence",
+      "usedMonths": "{{used}} / {{expected}} mois utilisés",
+      "average": "moyenne {{amount}}",
+      "used": "Utilisé",
+      "excluded": "Exclu ({{reason}})",
+      "excludedReasons": {
+        "NO_DATA": "aucune donnée",
+        "PROVISIONAL": "provisoire",
+        "FUTURE": "à venir",
+        "NULL_VALUE": "non calculable"
+      },
+      "policyTitle": "Politique du fonds d’urgence",
+      "essentialMode": "Dépenses essentielles",
+      "essentialModes": {
+        "AXIS": "Axe « Essentiel »",
+        "CATEGORIES": "Catégories choisies"
+      },
+      "chosenCategories": "Catégories choisies",
+      "addCategory": "Ajouter une catégorie de dépense",
+      "removeCategory": "Retirer {{label}}",
+      "remove": "Retirer",
+      "categoryLimit": "Limite de 50 catégories atteinte.",
+      "descendantsHint": "Les sous-catégories sont incluses, sans double compte.",
+      "referenceMode": "Période de référence",
+      "referenceModes": {
+        "PREVIOUS_YEAR": "Année civile précédente",
+        "TRAILING_MONTHS": "Derniers mois complets"
+      },
+      "trailingMonths": "Nombre de mois (1 à 24)",
+      "targetMonths": "Objectif en mois (0 à 60, une décimale)",
+      "save": "Enregistrer",
+      "validation": {
+        "categories": "Choisissez de 1 à 50 catégories de dépense.",
+        "trailingMonths": "Saisissez un entier de 1 à 24.",
+        "targetMonths": "Saisissez un nombre de 0 à 60 avec au plus une décimale."
+      },
+      "errors": {
+        "conflict": "La politique a été modifiée ailleurs. Vos saisies sont conservées : enregistrez de nouveau pour les appliquer à la version actuelle.",
+        "invalid": "La politique est refusée : vérifiez les catégories et les valeurs saisies.",
+        "invalid_emergency_fund_category": "Une catégorie choisie n’est pas éligible : seules les catégories de dépense actives et incluses au budget peuvent être retenues.",
+        "emergency_fund_scope_too_large": "L’espace contient trop de comptes ou de catégories pour calculer le fonds d’urgence."
       }
     }
   },
