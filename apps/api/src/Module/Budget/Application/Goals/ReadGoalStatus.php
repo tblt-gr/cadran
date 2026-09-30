@@ -13,6 +13,7 @@ use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
+use App\Module\Budget\Domain\Goals\GoalVersionResolver;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Categories\Domain\Category;
 use App\Module\Foundation\Application\CallerWorkspace;
@@ -102,7 +103,7 @@ final readonly class ReadGoalStatus
      */
     public function future(Goal $goal, array $versions, CalendarMonth $month): GoalStatusView
     {
-        $version = self::versionAt($goal, $versions, $month);
+        $version = GoalVersionResolver::forMonth($versions, $month);
         $annual = GoalKind::ANNUAL === $goal->kind;
 
         return new GoalStatusView(
@@ -230,12 +231,12 @@ final readonly class ReadGoalStatus
         $actualStarted = false;
         $actualMissing = false;
         $expectedMissing = false;
-        $selectedVersion = self::versionAt($goal, $versions, $selected);
+        $selectedVersion = GoalVersionResolver::forMonth($versions, $selected);
 
         for ($index = 1; $index <= $selected->month; ++$index) {
             $month = new CalendarMonth($selected->year, $index);
             $item = $months[$month->key()] ?? new AnnualMonth($month, MonthState::NO_DATA, false, false, null);
-            $version = self::versionAt($goal, $versions, $month);
+            $version = GoalVersionResolver::forMonth($versions, $month);
             $metric = $this->metric($goal, $item, $categoryIds, $inputs);
             $values[] = new MonthValue($month, $item->state, $metric['value'], $goal->assetCode, $metric['reason'], $item->figures?->policyVersion);
 
@@ -331,7 +332,7 @@ final readonly class ReadGoalStatus
      */
     private function rolling(Goal $goal, array $versions, CalendarMonth $selected, bool $archived, array $categoryIds, GoalStatusInputs $inputs): GoalStatusView
     {
-        $version = self::versionAt($goal, $versions, $selected);
+        $version = GoalVersionResolver::forMonth($versions, $selected);
         $item = $inputs->months[$selected->key()] ?? new AnnualMonth($selected, MonthState::NO_DATA, false, false, null);
         $metric = $this->metric($goal, $item, $categoryIds, $inputs);
         $reference = $inputs->referenceIncome ?? throw new \LogicException('A rolling goal status reads its reference income.');
@@ -476,18 +477,6 @@ final readonly class ReadGoalStatus
         sort($ids, SORT_STRING);
 
         return $ids;
-    }
-
-    /** @param list<GoalVersion> $versions */
-    private static function versionAt(Goal $goal, array $versions, CalendarMonth $month): ?GoalVersion
-    {
-        foreach ($versions as $version) {
-            if ($version->effectiveFrom <= $month->key() && (GoalKind::ROLLING_RATIO === $goal->kind || $version->year === $month->year)) {
-                return $version;
-            }
-        }
-
-        return null;
     }
 
     /** @param list<MonthValue> $values */

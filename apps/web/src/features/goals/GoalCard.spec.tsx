@@ -1,6 +1,6 @@
 import type { GoalStatus, GoalSummary } from '@cadran/api-client';
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { GoalCard } from './GoalCard';
 
@@ -254,5 +254,21 @@ describe('GoalCard', () => {
     );
 
     expect(screen.queryByRole('button', { name: 'Voir le détail mensuel' })).toBeNull();
+  });
+
+  it('keeps the history action available after the goal is closed', () => {
+    const onHistory = vi.fn();
+    render(
+      <GoalCard
+        goal={{ ...baseGoal, state: 'CLOSED' }}
+        onClose={noop}
+        onEdit={noop}
+        onHistory={onHistory}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actions de l’objectif « Épargne »' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Historique de l’objectif « Épargne »' }));
+    expect(onHistory).toHaveBeenCalledOnce();
   });
 });

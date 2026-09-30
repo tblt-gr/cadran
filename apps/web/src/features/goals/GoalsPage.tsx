@@ -4,14 +4,17 @@ import {
   listGoals,
   readGoal,
   readGoalStatus,
+  listGoalVersions,
+  previewGoalCorrection,
   updateGoal,
   type CreateGoalRequest,
   type GoalDetail,
+  type GoalCorrectionPreview,
   type GoalSummary,
   type UpdateGoalRequest,
 } from '@cadran/api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
@@ -24,6 +27,8 @@ import { GoalCard } from './GoalCard';
 import { GoalDetailModal } from './GoalDetailModal';
 import { GoalFilters, type GoalListState } from './GoalFilters';
 import { GoalForm } from './GoalForm';
+import { CorrectionConfirmation } from './history/CorrectionConfirmation';
+import { GoalHistoryModal } from './history/GoalHistoryModal';
 import { EmergencyFundCard } from './emergency-fund/EmergencyFundCard';
 import { GoalScheduleTable } from './goal-schedule-table/GoalScheduleTable';
 import { goalErrorKind, goalErrorMismatch, goalRequestError } from './goalError';
@@ -46,7 +51,22 @@ export function GoalsPage() {
   const [detailTarget, setDetailTarget] = useState<GoalSummary | null>(null);
   const [editor, setEditor] = useState<Editor>(null);
   const [closeTarget, setCloseTarget] = useState<GoalSummary | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<GoalSummary | null>(null);
+  const formArea = useRef<HTMLDivElement>(null);
+  const wasConfirming = useRef(false);
+  const [correction, setCorrection] = useState<{
+    body: UpdateGoalRequest;
+    preview: GoalCorrectionPreview;
+  } | null>(null);
+  const [correctionConfirmed, setCorrectionConfirmed] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Leaving the confirmation step hands the focus back to the form it hid.
+  useEffect(() => {
+    if (correction === null && wasConfirming.current) {
+      formArea.current?.querySelector<HTMLInputElement>('input[type="month"]')?.focus();
+    }
+    wasConfirming.current = correction !== null;
+  }, [correction]);
   const baseCurrency = useWorkspaceBaseCurrency();
   // A future year has no elapsed month to send: the server then falls back to its own reference
   // month rather than rejecting the whole list, and no month of it can be detailed yet.
@@ -94,9 +114,32 @@ export function GoalsPage() {
     },
     retry: false,
   });
+  const history = useQuery({
+    enabled: historyTarget !== null,
+    queryKey: ['goal-versions', historyTarget?.id],
+    queryFn: async ({ signal }) => {
+      const result = await listGoalVersions({
+        ...authApiOptions(),
+        path: { id: historyTarget!.id },
+        signal,
+      });
+      if (!result.response?.ok || !result.data) throw goalRequestError(result);
+      return result.data;
+    },
+    retry: false,
+  });
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ['goals'] });
     void queryClient.invalidateQueries({ queryKey: ['goal'] });
+  };
+  // A refused version means another session changed the goal: reload it so the preserved draft is
+  // resubmitted against the current version instead of repeating the same conflict.
+  const reloadOnConflict = (error: unknown) => {
+    if (goalErrorKind(error, true) === 'conflict') {
+      void queryClient.invalidateQueries({ queryKey: ['goal'] });
+      void queryClient.invalidateQueries({ queryKey: ['goals'] });
+      void queryClient.invalidateQueries({ queryKey: ['goal-versions'] });
+    }
   };
   const save = useMutation({
     mutationFn: async (body: CreateGoalRequest | UpdateGoalRequest) => {
@@ -120,6 +163,30 @@ export function GoalsPage() {
       setSaved(true);
       await refresh();
     },
+    onError: reloadOnConflict,
+  });
+  const preview = useMutation({
+    mutationFn: async (body: UpdateGoalRequest) => {
+      const result = await withCsrfRetry(() =>
+        previewGoalCorrection({
+          ...authApiOptions(),
+          path: { id: (editor as GoalSummary).id },
+          body,
+        }),
+      );
+      if (!result.response?.ok || !result.data) throw goalRequestError(result);
+      return { body, preview: result.data };
+    },
+    onSuccess: (result) => {
+      // No month changes: there is no impact to confirm, so the label-only edit is saved directly.
+      if (result.preview.months.length === 0) {
+        save.mutate(result.body);
+        return;
+      }
+      setCorrectionConfirmed(false);
+      setCorrection(result);
+    },
+    onError: reloadOnConflict,
   });
   const close = useMutation({
     mutationFn: async (goal: GoalSummary) => {
@@ -227,8 +294,12 @@ export function GoalsPage() {
                 onDetail={futureYear ? undefined : setDetailTarget}
                 onEdit={(target) => {
                   save.reset();
+                  preview.reset();
+                  setCorrection(null);
+                  setCorrectionConfirmed(false);
                   setEditor(target);
                 }}
+                onHistory={setHistoryTarget}
               />
             ))}
           </div>
@@ -239,6 +310,9 @@ export function GoalsPage() {
           close={() => {
             setEditor(null);
             save.reset();
+            preview.reset();
+            setCorrection(null);
+            setCorrectionConfirmed(false);
           }}
           eyebrow={t(editor === 'create' ? 'goals.createEyebrow' : 'goals.editEyebrow')}
           title={t(editor === 'create' ? 'goals.createTitle' : 'goals.editTitle')}
@@ -255,21 +329,87 @@ export function GoalsPage() {
               {t('goals.loading')}
             </p>
           ) : (
-            <GoalForm
-              baseCurrency={baseCurrency}
-              goal={editor === 'create' ? undefined : (editingGoal ?? editor)}
-              key={
-                editor === 'create'
-                  ? 'create'
-                  : `${editor.id}-${latestDetail?.currentVersion.versionNo ?? editor.currentVersion.versionNo}`
-              }
-              onSubmit={(body) => save.mutate(body)}
-              pending={save.isPending}
-              submitError={goalErrorKind(save.error, save.isError)}
-              submitMismatch={goalErrorMismatch(save.error)}
-            />
+            <>
+              <div hidden={correction !== null} ref={formArea}>
+                <GoalForm
+                  baseCurrency={baseCurrency}
+                  firstEffectiveMonth={latestDetail?.versions.reduce(
+                    (first, item) => (item.effectiveFrom < first ? item.effectiveFrom : first),
+                    latestDetail.versions[0]?.effectiveFrom ??
+                      editingGoal?.currentVersion.effectiveFrom ??
+                      workspaceMonth,
+                  )}
+                  goal={editor === 'create' ? undefined : (editingGoal ?? editor)}
+                  key={
+                    editor === 'create'
+                      ? 'create'
+                      : `${editor.id}-${latestDetail ? 'detail' : 'summary'}`
+                  }
+                  onSubmit={(body) => {
+                    if (
+                      editor !== 'create' &&
+                      (body as UpdateGoalRequest).effectiveFrom! < workspaceMonth
+                    ) {
+                      preview.mutate(body as UpdateGoalRequest);
+                      return;
+                    }
+                    save.mutate(body);
+                  }}
+                  pending={save.isPending || preview.isPending}
+                  submitError={goalErrorKind(
+                    save.error ?? preview.error,
+                    save.isError || preview.isError,
+                  )}
+                  submitMismatch={goalErrorMismatch(save.error ?? preview.error)}
+                />
+              </div>
+              {correction ? (
+                <CorrectionConfirmation
+                  assetCode={(editor as GoalSummary).assetCode}
+                  confirmed={correctionConfirmed}
+                  error={save.isError ? (goalErrorKind(save.error, true) ?? 'network') : null}
+                  onBack={() => {
+                    setCorrection(null);
+                    setCorrectionConfirmed(false);
+                    save.reset();
+                    preview.reset();
+                  }}
+                  onConfirm={() => save.mutate(correction.body)}
+                  onConfirmedChange={setCorrectionConfirmed}
+                  pending={save.isPending}
+                  preview={correction.preview}
+                />
+              ) : null}
+            </>
           )}
         </Modal>
+      ) : null}
+      {historyTarget ? (
+        history.isPending ? (
+          <Modal
+            close={() => setHistoryTarget(null)}
+            eyebrow={t('goals.history.eyebrow')}
+            title={t('goals.history.title')}
+          >
+            <p className={styles.modalLoading} aria-busy="true" role="status">
+              {t('goals.loading')}
+            </p>
+          </Modal>
+        ) : history.data ? (
+          <GoalHistoryModal
+            assetCode={historyTarget.assetCode}
+            close={() => setHistoryTarget(null)}
+            items={history.data.items}
+          />
+        ) : (
+          <Modal
+            close={() => setHistoryTarget(null)}
+            eyebrow={t('goals.history.eyebrow')}
+            title={t('goals.history.title')}
+          >
+            <p role="alert">{t('goals.error')}</p>
+          </Modal>
+        )
       ) : null}
       {detailTarget ? (
         statusDetail.isPending ? (

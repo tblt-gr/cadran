@@ -24,13 +24,17 @@ final readonly class GoalVersion
         public ?string $reason,
         public \DateTimeImmutable $createdAt,
         public string $createdBy,
+        public bool $retroactive = false,
     ) {
         CalendarMonth::fromString($effectiveFrom);
         if ($versionNo < 1) {
             throw new InvalidGoal('A goal definition version number must be positive.');
         }
-        if (null !== $reason && mb_strlen($reason) > 200) {
-            throw new InvalidGoal('A goal definition reason contains at most 200 characters.');
+        if (null !== $reason && ($reason !== trim($reason) || mb_strlen($reason) < 3 || mb_strlen($reason) > 200)) {
+            throw new InvalidGoal('A correction reason contains between 3 and 200 trimmed characters.');
+        }
+        if ($retroactive !== (null !== $reason)) {
+            throw new InvalidGoal('Only a retroactive goal definition carries a correction reason.');
         }
         if (null !== $targetAmount) {
             self::positiveWithScale($targetAmount, 'target amount');
@@ -58,14 +62,14 @@ final readonly class GoalVersion
      * whose target could not be split linearly when it was migrated: its
      * monthly calendar is then not calculable rather than invented.
      */
-    public static function annual(string $id, WorkspaceScope $workspace, string $goalId, int $versionNo, string $effectiveFrom, int $year, DecimalValue $targetAmount, ?GoalSchedule $schedule, \DateTimeImmutable $createdAt, string $createdBy): self
+    public static function annual(string $id, WorkspaceScope $workspace, string $goalId, int $versionNo, string $effectiveFrom, int $year, DecimalValue $targetAmount, ?GoalSchedule $schedule, \DateTimeImmutable $createdAt, string $createdBy, bool $retroactive = false, ?string $reason = null): self
     {
-        return new self($id, $workspace, $goalId, $versionNo, $effectiveFrom, $year, $targetAmount, null, $schedule, null, $createdAt, $createdBy);
+        return new self($id, $workspace, $goalId, $versionNo, $effectiveFrom, $year, $targetAmount, null, $schedule, $reason, $createdAt, $createdBy, $retroactive);
     }
 
-    public static function rolling(string $id, WorkspaceScope $workspace, string $goalId, int $versionNo, string $effectiveFrom, DecimalValue $ratio, \DateTimeImmutable $createdAt, string $createdBy): self
+    public static function rolling(string $id, WorkspaceScope $workspace, string $goalId, int $versionNo, string $effectiveFrom, DecimalValue $ratio, \DateTimeImmutable $createdAt, string $createdBy, bool $retroactive = false, ?string $reason = null): self
     {
-        return new self($id, $workspace, $goalId, $versionNo, $effectiveFrom, null, null, $ratio, null, null, $createdAt, $createdBy);
+        return new self($id, $workspace, $goalId, $versionNo, $effectiveFrom, null, null, $ratio, null, $reason, $createdAt, $createdBy, $retroactive);
     }
 
     public function scheduleMode(): ?string

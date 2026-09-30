@@ -12,6 +12,8 @@ const api = vi.hoisted(() => ({
   closeGoal: vi.fn(),
   readGoal: vi.fn(),
   readGoalStatus: vi.fn(),
+  listGoalVersions: vi.fn(),
+  previewGoalCorrection: vi.fn(),
   previewGoalSchedule: vi.fn(),
   listAccounts: vi.fn(),
   listCategories: vi.fn(),
@@ -187,12 +189,12 @@ describe('GoalsPage', () => {
       await screen.findByRole('heading', { name: 'Aucun objectif clôturé pour cette année' }),
     ).toBeTruthy();
   });
-  it('marks a closed goal with a labelled badge instead of an inert action menu', async () => {
+  it('marks a closed goal and keeps its history action available', async () => {
     mockSession();
     api.listGoals.mockReturnValue(ok({ items: [{ ...goal, state: 'CLOSED' as const }] }));
     renderPage();
     expect(await screen.findByText('Clôturé')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Actions de l’objectif « Épargne »' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Actions de l’objectif « Épargne »' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Épargne (2026)' })).toBeTruthy();
   });
   it('does not duplicate the annual schedule outside the monthly detail', async () => {
@@ -698,5 +700,226 @@ describe('GoalsPage', () => {
         expect.objectContaining({ body: expect.objectContaining({ ratio: '0.40' }) }),
       ),
     );
+  });
+
+  it('updates only the label of a future annual goal', async () => {
+    mockSession();
+    const future = {
+      ...goal,
+      currentVersion: { ...goal.currentVersion, effectiveFrom: '2027-01', year: 2027 },
+    };
+    api.listGoals.mockReturnValue(ok({ items: [future] }));
+    api.readGoal.mockReturnValue(ok({ ...future, versions: [future.currentVersion] }));
+    api.updateGoal.mockReturnValue(ok({ ...future, label: 'Projet 2027' }));
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    fireEvent.change(await screen.findByLabelText('Libellé'), {
+      target: { value: 'Projet 2027' },
+    });
+    expect(screen.queryByLabelText('À partir de')).toBeNull();
+    expect(screen.queryByLabelText('Montant cible')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(api.updateGoal).toHaveBeenCalledWith(
+        expect.objectContaining({ body: { label: 'Projet 2027', version: 1 } }),
+      ),
+    );
+  });
+
+  it('updates only the label of a future rolling goal', async () => {
+    mockSession();
+    const future = {
+      ...goal,
+      kind: 'ROLLING_RATIO' as const,
+      currentVersion: {
+        ...goal.currentVersion,
+        effectiveFrom: '2027-01',
+        year: null,
+        targetAmount: null,
+        ratio: '0.20',
+      },
+    };
+    api.listGoals.mockReturnValue(ok({ items: [future] }));
+    api.readGoal.mockReturnValue(ok({ ...future, versions: [future.currentVersion] }));
+    api.updateGoal.mockReturnValue(ok({ ...future, label: 'Projet 2027' }));
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    fireEvent.change(await screen.findByLabelText('Libellé'), {
+      target: { value: 'Projet 2027' },
+    });
+    expect(screen.queryByLabelText('À partir de')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(api.updateGoal).toHaveBeenCalledWith(
+        expect.objectContaining({ body: { label: 'Projet 2027', version: 1 } }),
+      ),
+    );
+  });
+
+  it('shows a failed correction save and returns to the preserved draft for a new preview', async () => {
+    mockSession();
+    const version = {
+      ...goal.currentVersion,
+      effectiveFrom: '2026-01',
+      schedule: {
+        mode: 'LINEAR' as const,
+        parts: Array.from({ length: 12 }, (_, index) => ({
+          month: `2026-${String(index + 1).padStart(2, '0')}`,
+          amount: '1000.00',
+          cumulative: `${(index + 1) * 1000}.00`,
+        })),
+      },
+    };
+    api.listGoals.mockReturnValue(ok({ items: [{ ...goal, currentVersion: version }] }));
+    api.readGoal.mockReturnValue(ok({ ...goal, currentVersion: version, versions: [version] }));
+    api.previewGoalCorrection.mockReturnValue(
+      ok({
+        months: [
+          {
+            month: '2026-01',
+            before: { goalVersion: 1, expected: '1000.00', status: 'AHEAD' as const },
+            after: { goalVersion: 2, expected: '1250.00', status: 'AHEAD' as const },
+          },
+        ],
+      }),
+    );
+    api.updateGoal.mockReturnValue(
+      Promise.resolve({
+        error: {
+          type: '/problems/stale_goal_version',
+          title: 'Conflict',
+          status: 409,
+          detail: 'stale',
+          code: 'stale_goal_version',
+        },
+        response: new Response(null, { status: 409 }),
+      }),
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    fireEvent.change(await screen.findByLabelText('À partir de'), {
+      target: { value: '2026-01' },
+    });
+    fireEvent.change(screen.getByLabelText(/^Motif de la correction/), {
+      target: { value: 'Correction documentée' },
+    });
+    fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '15000.00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(await screen.findByText('Confirmer la correction historique')).toBeTruthy();
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: 'Confirmer la correction historique' }),
+    );
+    expect(
+      screen.getByText(/jusqu’à la prochaine version dont le mois d’effet est plus récent/),
+    ).toBeTruthy();
+    expect(screen.getByRole('table', { name: 'Impact mensuel de la correction' })).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText('J’ai vérifié l’impact de cette correction.'));
+    api.readGoal.mockReturnValue(
+      ok({ ...goal, version: 2, currentVersion: version, versions: [version] }),
+    );
+    activateWithKeyboard(screen.getByRole('button', { name: 'Confirmer la correction' }));
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      'Cet objectif a changé et a été rechargé. Vérifiez vos valeurs puis réessayez.',
+    );
+    await waitFor(() => expect(api.readGoal).toHaveBeenCalledTimes(2));
+    expect(
+      (screen.getByRole('button', { name: 'Confirmer la correction' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revenir et recalculer l’aperçu' }));
+    expect(document.activeElement).toBe(screen.getByLabelText('À partir de'));
+    expect((screen.getByLabelText('Montant cible') as HTMLInputElement).value).toBe('15000.00');
+    expect((screen.getByLabelText(/^Motif de la correction/) as HTMLTextAreaElement).value).toBe(
+      'Correction documentée',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.previewGoalCorrection).toHaveBeenCalledTimes(2));
+    expect(api.previewGoalCorrection.mock.calls[1]?.[0].body.version).toBe(2);
+  });
+
+  async function openRetroactiveCorrection() {
+    mockSession();
+    const version = {
+      ...goal.currentVersion,
+      effectiveFrom: '2026-01',
+      schedule: {
+        mode: 'LINEAR' as const,
+        parts: Array.from({ length: 12 }, (_, index) => ({
+          month: `2026-${String(index + 1).padStart(2, '0')}`,
+          amount: '1000.00',
+          cumulative: `${(index + 1) * 1000}.00`,
+        })),
+      },
+    };
+    api.listGoals.mockReturnValue(ok({ items: [{ ...goal, currentVersion: version }] }));
+    api.readGoal.mockReturnValue(ok({ ...goal, currentVersion: version, versions: [version] }));
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    fireEvent.change(await screen.findByLabelText('À partir de'), {
+      target: { value: '2026-01' },
+    });
+    fireEvent.change(screen.getByLabelText(/^Motif de la correction/), {
+      target: { value: 'Correction documentée' },
+    });
+    fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '15000.00' } });
+    return version;
+  }
+
+  it('reloads the goal after a stale preview so the next preview uses the current version', async () => {
+    const version = await openRetroactiveCorrection();
+    api.previewGoalCorrection.mockReturnValueOnce(
+      Promise.resolve({
+        error: {
+          type: '/problems/stale_goal_version',
+          title: 'Conflict',
+          status: 409,
+          detail: 'stale',
+          code: 'stale_goal_version',
+        },
+        response: new Response(null, { status: 409 }),
+      }),
+    );
+    api.previewGoalCorrection.mockReturnValue(ok({ months: [] }));
+    api.updateGoal.mockReturnValue(ok(goal));
+    api.readGoal.mockReturnValue(
+      ok({ ...goal, version: 2, currentVersion: version, versions: [version] }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('a été rechargé');
+    await waitFor(() => expect(api.readGoal).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.previewGoalCorrection).toHaveBeenCalledTimes(2));
+    expect(api.previewGoalCorrection.mock.calls[1]?.[0].body.version).toBe(2);
+  });
+
+  it('saves directly when the preview shows no month changing', async () => {
+    await openRetroactiveCorrection();
+    api.previewGoalCorrection.mockReturnValue(ok({ months: [] }));
+    api.updateGoal.mockReturnValue(ok(goal));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.updateGoal).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Confirmer la correction historique')).toBeNull();
   });
 });

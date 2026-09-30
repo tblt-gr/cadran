@@ -15,7 +15,6 @@ use App\Module\Budget\Application\Goals\ListGoals;
 use App\Module\Budget\Application\Goals\ReadGoal;
 use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\UpdateGoal;
-use App\Module\Budget\Application\Goals\UpdateGoalInput;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -123,12 +122,7 @@ final readonly class GoalController
             return $body;
         }
         try {
-            self::allowed($body, ['label', 'targetAmount', 'ratio', 'version', 'metric', 'scope', 'schedule'], ['label', 'version']);
-            $target = null === ($body['targetAmount'] ?? null) ? null : self::object($body['targetAmount']);
-            if (null !== $target) {
-                self::allowed($target, ['value', 'assetCode'], ['value', 'assetCode']);
-            }
-            $result = $update(new UpdateGoalInput($id, self::integer($body, 'version'), self::string($body, 'label'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), array_key_exists('metric', $body) || array_key_exists('scope', $body), self::schedule($body)));
+            $result = $update(GoalUpdateRequest::from($id, $body));
         } catch (GoalInputError $error) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode, $error->details);
         } catch (\UnexpectedValueException) {

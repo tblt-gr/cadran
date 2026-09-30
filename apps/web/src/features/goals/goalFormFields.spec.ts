@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { initialSchedule, scopeFor } from './goalFormFields';
+import { initialSchedule, monthsBefore, scopeFor } from './goalFormFields';
 
 describe('scopeFor', () => {
   it('maps each metric to its scope type', () => {
@@ -29,5 +29,14 @@ describe('initialSchedule', () => {
       },
     } as Parameters<typeof initialSchedule>[0];
     expect(initialSchedule(goal)).toEqual({ mode: 'CUSTOM', parts: Array(12).fill('10.00') });
+  });
+});
+
+describe('monthsBefore', () => {
+  it('walks back across year boundaries', () => {
+    expect(monthsBefore('2026-09', 0)).toBe('2026-09');
+    expect(monthsBefore('2026-09', 8)).toBe('2026-01');
+    expect(monthsBefore('2026-09', 9)).toBe('2025-12');
+    expect(monthsBefore('2026-09', 119)).toBe('2016-10');
   });
 });

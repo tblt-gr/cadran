@@ -15,6 +15,8 @@ final readonly class UpdateGoalInput
         public ?string $ratio,
         public bool $identitySubmitted,
         public ?GoalScheduleInput $schedule = null,
+        public ?string $effectiveFrom = null,
+        public ?string $reason = null,
     ) {
     }
 }
