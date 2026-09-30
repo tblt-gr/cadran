@@ -289,6 +289,21 @@
   display: flex;
   justify-content: flex-end;
 }
+.correctionConfirmation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.correctionConfirmation h3,
+.correctionConfirmation p {
+  margin: var(--spacing-none);
+}
+.confirmCheck {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  color: var(--text-secondary);
+}
 .reference {
   padding: var(--spacing-3);
   border: var(--border-line-subtle);

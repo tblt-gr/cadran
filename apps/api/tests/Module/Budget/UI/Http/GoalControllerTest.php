@@ -309,9 +309,13 @@ final class GoalControllerTest extends WebTestCase
         $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', $csrf->getValue());
         $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
         $id = $this->id($this->decode());
-        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Changed', 'targetAmount' => null, 'ratio' => null, 'version' => 99]);
+        $payload = ['label' => 'Changed', 'targetAmount' => ['value' => '13000.00', 'assetCode' => 'EUR'], 'ratio' => null, 'version' => 1];
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, $payload);
+        self::assertResponseIsSuccessful();
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, $payload);
         self::assertResponseStatusCodeSame(409);
         self::assertSame('stale_goal_version', $this->decode()['code']);
+        self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goal_versions WHERE goal_id = ?', [$id]));
     }
 
     public function testEveryForbiddenMetricScopePairIsRejectedBeforeReferenceLookup(): void
@@ -365,11 +369,8 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame('goal_version_limit', $this->decode()['code']);
     }
 
-    public function testEditingAnAnnualGoalNeverMovesItsVersionBeforeTheGoalsOwnFirstMonth(): void
+    public function testAFutureAnnualGoalDefinitionCannotBeEditedBeforeItsFirstMonth(): void
     {
-        // The goal's own first version starts 2027-01. Edited "now" (frozen at 2026-09), the
-        // new version must still take effect no earlier than the goal's own start, never at
-        // the edit's wall-clock month: every 2027 month must see the edited target, not v1.
         $this->requestJson('POST', '/api/v1/goals', ['label' => 'Future savings', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'year' => 2027, 'targetAmount' => ['value' => '12000.00', 'assetCode' => 'EUR']]);
         self::assertResponseStatusCodeSame(201);
         $goal = $this->decode();
@@ -377,24 +378,23 @@ final class GoalControllerTest extends WebTestCase
         $id = $this->id($goal);
 
         $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Future savings', 'targetAmount' => ['value' => '15000.00', 'assetCode' => 'EUR'], 'ratio' => null, 'version' => 1]);
-        self::assertResponseIsSuccessful();
-        $updated = $this->decode();
-        self::assertSame(2, self::arr($updated['currentVersion'])['versionNo']);
-        self::assertSame('2027-01', self::arr($updated['currentVersion'])['effectiveFrom']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('invalid_effective_month', $this->decode()['code']);
     }
 
-    public function testEditingARollingGoalThatStartsInTheFutureKeepsItOutOfTheCurrentYearsListing(): void
+    public function testAFutureRollingGoalDefinitionCannotBeEditedBeforeItsFirstMonth(): void
     {
         $this->requestJson('POST', '/api/v1/goals', ['label' => 'Future ratio', 'kind' => 'ROLLING_RATIO', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.20', 'startMonth' => '2027-01']);
         self::assertResponseStatusCodeSame(201);
         $id = $this->id($this->decode());
 
-        // Edited now (2026-09), the goal must not appear to start four months earlier than
-        // its owner chose: the new version still takes effect no earlier than 2027-01.
         $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Future ratio', 'ratio' => '0.25', 'targetAmount' => null, 'version' => 1]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('invalid_effective_month', $this->decode()['code']);
+
+        // A label-only edit carries no effective month and stays allowed before the first month.
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Future ratio renamed', 'version' => 1]);
         self::assertResponseIsSuccessful();
-        $updated = $this->decode();
-        self::assertSame('2027-01', self::arr($updated['currentVersion'])['effectiveFrom']);
 
         $this->client->request('GET', '/api/v1/goals?year=2026&state=active');
         self::assertResponseIsSuccessful();
@@ -409,7 +409,7 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame('2027-01', $status['month']);
         self::assertSame('NOT_CALCULABLE', $status['status']);
         self::assertSame('FUTURE_MONTH', $status['reason']);
-        self::assertSame('0.25', $status['ratio']);
+        self::assertSame('0.20', $status['ratio']);
         self::assertNull($status['target']);
         self::assertNull($status['actual']);
         self::assertNull($status['referenceIncome']);
@@ -423,7 +423,7 @@ final class GoalControllerTest extends WebTestCase
 
         $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Past savings', 'targetAmount' => ['value' => '9500.00', 'assetCode' => 'EUR'], 'ratio' => null, 'version' => 1]);
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('goal_year_elapsed', $this->decode()['code']);
+        self::assertSame('invalid_effective_month', $this->decode()['code']);
 
         // Renaming the same past goal, without changing its value, is still allowed.
         $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Past savings renamed', 'targetAmount' => ['value' => '9000.00', 'assetCode' => 'EUR'], 'ratio' => null, 'version' => 1]);
@@ -546,6 +546,251 @@ final class GoalControllerTest extends WebTestCase
         self::assertCount(1, self::items($renamed['versions']));
     }
 
+    public function testAFutureAnnualGoalCanBeRenamedWithoutSubmittingAFutureDefinitionMonth(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', [...$this->annualPayload(), 'year' => 2027]);
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Future project', 'version' => 1]);
+
+        self::assertResponseIsSuccessful();
+        $renamed = $this->decode();
+        self::assertSame('Future project', $renamed['label']);
+        self::assertSame(2, $renamed['version']);
+        self::assertCount(1, self::items($renamed['versions']));
+    }
+
+    public function testItPreviewsAndSavesARetroactiveCorrectionWithAppendOnlyHistory(): void
+    {
+        $this->clock->modify('2026-07-05T00:00:00+00:00');
+        $this->refreshCsrf();
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, [
+            'label' => 'Annual savings',
+            'targetAmount' => ['value' => '24000.00', 'assetCode' => 'EUR'],
+            'ratio' => null,
+            'version' => 1,
+        ]);
+        self::assertResponseIsSuccessful();
+
+        $this->clock->modify(self::TODAY);
+        $this->refreshCsrf();
+        $payload = [
+            'label' => 'Annual savings',
+            'targetAmount' => ['value' => '18000.00', 'assetCode' => 'EUR'],
+            'ratio' => null,
+            'version' => 2,
+            'effectiveFrom' => '2026-01',
+            'reason' => 'Correct the target recorded at creation.',
+        ];
+        $beforeRows = $this->scalar('SELECT count(*) FROM budget_goal_versions WHERE goal_id = ?', [$id]);
+        $beforeAudits = $this->scalar('SELECT count(*) FROM audit_events WHERE entity_id = ?', [$id]);
+
+        $this->requestJson('POST', '/api/v1/goals/'.$id.'/correction-preview', $payload);
+        self::assertResponseIsSuccessful();
+        $months = self::items($this->decode()['months']);
+        self::assertCount(9, $months);
+        self::assertSame('2026-01', self::arr($months[0])['month']);
+        self::assertSame(1, self::arr(self::arr($months[0])['before'])['goalVersion']);
+        self::assertSame('1000.00', self::arr(self::arr($months[0])['before'])['expected']);
+        self::assertSame(3, self::arr(self::arr($months[0])['after'])['goalVersion']);
+        self::assertSame('1500.00', self::arr(self::arr($months[0])['after'])['expected']);
+        self::assertSame('2026-06', self::arr($months[5])['month']);
+        self::assertSame(3, self::arr(self::arr($months[5])['after'])['goalVersion']);
+        self::assertSame('9000.00', self::arr(self::arr($months[5])['after'])['expected']);
+        self::assertSame('2026-07', self::arr($months[6])['month']);
+        self::assertSame(2, self::arr(self::arr($months[6])['after'])['goalVersion']);
+        self::assertSame('11000.00', self::arr(self::arr($months[6])['after'])['expected']);
+        self::assertSame('2026-09', self::arr($months[8])['month']);
+        self::assertSame('12000.00', self::arr(self::arr($months[8])['before'])['expected']);
+        self::assertSame(2, self::arr(self::arr($months[8])['after'])['goalVersion']);
+        self::assertSame('15000.00', self::arr(self::arr($months[8])['after'])['expected']);
+        self::assertSame($beforeRows, $this->scalar('SELECT count(*) FROM budget_goal_versions WHERE goal_id = ?', [$id]));
+        self::assertSame($beforeAudits, $this->scalar('SELECT count(*) FROM audit_events WHERE entity_id = ?', [$id]));
+
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, $payload);
+        self::assertResponseIsSuccessful();
+        self::assertSame(2, self::arr($this->decode()['currentVersion'])['versionNo']);
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/versions');
+        self::assertResponseIsSuccessful();
+        $items = self::items($this->decode()['items']);
+        self::assertCount(3, $items);
+        $correction = self::arr($items[0]);
+        self::assertSame(3, $correction['versionNo']);
+        self::assertTrue($correction['retroactive']);
+        self::assertSame($payload['reason'], $correction['reason']);
+        self::assertSame(WorkspaceFixture::OWNER_ID, self::arr($correction['createdBy'])['id']);
+        self::assertSame('Owner', self::arr($correction['createdBy'])['displayName']);
+        self::assertSame(['targetAmount', 'schedule'], array_column(self::items($correction['changes']), 'field'));
+        $targetChange = self::arr(self::items($correction['changes'])[0]);
+        self::assertSame('12000.00', $targetChange['before']);
+        self::assertSame('18000.00', $targetChange['after']);
+
+        $event = $this->connection->fetchAssociative('SELECT event_type, after_json::text AS payload FROM audit_events WHERE entity_id = ? ORDER BY occurred_at DESC LIMIT 1', [$id]);
+        self::assertIsArray($event);
+        self::assertSame('goal.corrected', $event['event_type']);
+        $eventPayload = $event['payload'] ?? null;
+        self::assertIsString($eventPayload);
+        self::assertStringContainsString('targetAmount,schedule', $eventPayload);
+        self::assertStringNotContainsString('18000', $eventPayload);
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?month=2026-06');
+        self::assertResponseIsSuccessful();
+        $june = $this->decode();
+        self::assertSame(3, $june['goalVersion']);
+        self::assertSame('9000.00', $june['expected']);
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?month=2026-07');
+        self::assertResponseIsSuccessful();
+        $july = $this->decode();
+        self::assertSame(2, $july['goalVersion']);
+        self::assertSame('11000.00', $july['expected']);
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?month=2026-09');
+        self::assertResponseIsSuccessful();
+        $september = $this->decode();
+        self::assertSame(2, $september['goalVersion']);
+        self::assertSame('15000.00', $september['expected']);
+    }
+
+    public function testRetroactiveCorrectionValidationAndWorkspaceIsolation(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        $id = $this->id($this->decode());
+        $base = ['label' => 'Annual savings', 'targetAmount' => ['value' => '13000.00', 'assetCode' => 'EUR'], 'ratio' => null, 'version' => 1];
+
+        $this->requestJson('POST', '/api/v1/goals/'.$id.'/correction-preview', [...$base, 'effectiveFrom' => '2026-01']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('correction_reason_required', $this->decode()['code']);
+
+        foreach (['2025-12', '2026-10', 'invalid'] as $month) {
+            $this->requestJson('PUT', '/api/v1/goals/'.$id, [...$base, 'effectiveFrom' => $month, 'reason' => 'A valid correction reason.']);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame('invalid_effective_month', $this->decode()['code']);
+        }
+
+        $foreign = '00000000-0000-7000-8000-0000000000e9';
+        $this->insertGoal($foreign, WorkspaceFixture::OTHER_WORKSPACE);
+        $this->client->request('GET', '/api/v1/goals/'.$foreign.'/versions');
+        self::assertResponseStatusCodeSame(404);
+        $this->requestJson('POST', '/api/v1/goals/'.$foreign.'/correction-preview', [...$base, 'effectiveFrom' => '2026-01', 'reason' => 'A valid correction reason.']);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testAnnualCorrectionPreviewStopsAtTheGoalYearEnd(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+        $this->clock->modify('2027-03-14T09:12:04+00:00');
+        $this->refreshCsrf();
+
+        $this->requestJson('POST', '/api/v1/goals/'.$id.'/correction-preview', [
+            'label' => 'Annual savings',
+            'targetAmount' => ['value' => '13000.00', 'assetCode' => 'EUR'],
+            'version' => 1,
+            'effectiveFrom' => '2026-01',
+            'reason' => 'Correct the original annual target.',
+        ]);
+
+        self::assertResponseIsSuccessful();
+        $months = self::items($this->decode()['months']);
+        self::assertCount(12, $months);
+        self::assertSame('2026-01', self::arr($months[0])['month']);
+        self::assertSame('2026-12', self::arr($months[11])['month']);
+    }
+
+    public function testRollingCorrectionSpanIsBoundedAtOneHundredTwentyMonthsForPreviewAndSave(): void
+    {
+        $rolling = static fn (string $start): array => ['label' => 'Old ratio', 'kind' => 'ROLLING_RATIO', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.30', 'startMonth' => $start];
+        $correction = static fn (string $from): array => ['label' => 'Old ratio', 'ratio' => '0.35', 'targetAmount' => null, 'version' => 1, 'effectiveFrom' => $from, 'reason' => 'Correct the original ratio.'];
+
+        // At 2026-09, 2016-09 is the 121st month and 2016-10 the 120th.
+        $this->requestJson('POST', '/api/v1/goals', $rolling('1900-01'));
+        self::assertResponseStatusCodeSame(201);
+        $tooOld = $this->id($this->decode());
+        $this->refreshCsrf();
+        foreach (['POST' => '/correction-preview', 'PUT' => ''] as $method => $suffix) {
+            $this->requestJson($method, '/api/v1/goals/'.$tooOld.$suffix, $correction('2016-09'));
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame('correction_span_exceeded', $this->decode()['code']);
+        }
+
+        $this->requestJson('POST', '/api/v1/goals/'.$tooOld.'/correction-preview', $correction('2016-10'));
+        self::assertResponseIsSuccessful();
+        self::assertCount(120, self::items($this->decode()['months']));
+    }
+
+    public function testConcurrentDefinitionUpdatesSerializeAndOnlyOneVersionIsAppended(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+        $barrier = sys_get_temp_dir().'/cadran-goal-update-'.bin2hex(random_bytes(8));
+        $processes = [];
+        $pipes = [];
+
+        try {
+            $this->connection->beginTransaction();
+            $this->connection->fetchOne(
+                'SELECT id FROM budget_goals WHERE workspace_id = ? AND id = ? FOR UPDATE',
+                [WorkspaceFixture::OWN_WORKSPACE, $id],
+            );
+            foreach (['13000.00', '14000.00'] as $worker => $amount) {
+                $workerPipes = [];
+                $process = proc_open(
+                    [PHP_BINARY, 'tests/Support/ConcurrentGoalUpdateWorker.php', $id, $amount, $barrier, (string) $worker],
+                    [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+                    $workerPipes,
+                    dirname(__DIR__, 5),
+                    null,
+                );
+                self::assertIsResource($process);
+                $processes[] = $process;
+                $pipes[] = $workerPipes;
+            }
+            $deadline = microtime(true) + 10;
+            while (2 !== count(glob($barrier.'.calling.*') ?: []) && microtime(true) < $deadline) {
+                usleep(1_000);
+            }
+            self::assertCount(2, glob($barrier.'.calling.*') ?: []);
+            usleep(50_000);
+            $this->connection->commit();
+
+            $outcomes = [];
+            foreach ($processes as $index => $process) {
+                $stdout = stream_get_contents($pipes[$index][1]);
+                $stderr = stream_get_contents($pipes[$index][2]);
+                self::assertSame(0, proc_close($process), $stderr);
+                $processes[$index] = null;
+                /** @var array{outcome: string} $response */
+                $response = json_decode($stdout, true, 512, JSON_THROW_ON_ERROR);
+                $outcomes[] = $response['outcome'];
+            }
+            sort($outcomes);
+            self::assertSame(['ok', 'stale_goal_version'], $outcomes);
+            self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goal_versions WHERE goal_id = ?', [$id]));
+            self::assertSame('2', $this->scalar('SELECT version FROM budget_goals WHERE id = ?', [$id]));
+        } finally {
+            foreach ($processes as $process) {
+                if (is_resource($process)) {
+                    proc_terminate($process);
+                    proc_close($process);
+                }
+            }
+            if ($this->connection->isTransactionActive()) {
+                $this->connection->rollBack();
+            }
+            foreach (glob($barrier.'.*') ?: [] as $file) {
+                unlink($file);
+            }
+        }
+    }
+
     /** @return array<string, mixed> */
     private function annualPayload(): array
     {
@@ -583,6 +828,23 @@ final class GoalControllerTest extends WebTestCase
     private function requestJson(string $method, string $uri, array $body): void
     {
         $this->client->request($method, $uri, server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], content: json_encode($body, JSON_THROW_ON_ERROR));
+    }
+
+    /** @param list<string> $parameters */
+    private function scalar(string $sql, array $parameters = []): string
+    {
+        $value = $this->connection->fetchOne($sql, $parameters);
+        self::assertIsScalar($value);
+
+        return (string) $value;
+    }
+
+    private function refreshCsrf(): void
+    {
+        $this->client->request('GET', '/api/v1/session');
+        $csrf = $this->client->getCookieJar()->get(SignedCsrfToken::COOKIE_NAME);
+        self::assertNotNull($csrf);
+        $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', $csrf->getValue());
     }
 
     /** @return array<string, mixed> */

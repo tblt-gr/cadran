@@ -15,7 +15,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(GoalVersionRepository::class)]
 final readonly class DbalGoalVersionRepository implements GoalVersionRepository
 {
-    private const string COLUMNS = 'id, workspace_id, goal_id, version_no, effective_from, year, target_amount, target_scale, ratio, ratio_scale, schedule_mode, reason, created_at, created_by';
+    private const string COLUMNS = 'id, workspace_id, goal_id, version_no, effective_from, year, target_amount, target_scale, ratio, ratio_scale, schedule_mode, retroactive, reason, created_at, created_by';
 
     public function __construct(private Connection $connection)
     {
@@ -37,7 +37,7 @@ final readonly class DbalGoalVersionRepository implements GoalVersionRepository
 
     public function add(GoalVersion $version): void
     {
-        $this->connection->insert('budget_goal_versions', ['id' => $version->id, 'workspace_id' => $version->workspace->id, ...GoalVersionRow::columns($version)]);
+        $this->connection->insert('budget_goal_versions', ['id' => $version->id, 'workspace_id' => $version->workspace->id, ...GoalVersionRow::columns($version)], ['retroactive' => ParameterType::BOOLEAN]);
         foreach ($version->schedule->parts ?? [] as $index => $part) {
             $this->connection->insert('budget_goal_schedule_parts', ['goal_version_id' => $version->id, 'workspace_id' => $version->workspace->id, 'month_index' => $index + 1, 'amount' => $part->toString(), 'amount_scale' => $part->scale()]);
         }

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\UI\Http;
 
+use App\Module\Budget\Application\Goals\GoalCorrectionPreviewMonthView;
+use App\Module\Budget\Application\Goals\GoalCorrectionPreviewStateView;
+use App\Module\Budget\Application\Goals\GoalCorrectionPreviewView;
 use App\Module\Budget\Application\Goals\GoalDetailView;
 use App\Module\Budget\Application\Goals\GoalSchedulePartView;
 use App\Module\Budget\Application\Goals\GoalScheduleView;
@@ -11,6 +14,9 @@ use App\Module\Budget\Application\Goals\GoalScopeView;
 use App\Module\Budget\Application\Goals\GoalStatusMonthView;
 use App\Module\Budget\Application\Goals\GoalStatusView;
 use App\Module\Budget\Application\Goals\GoalSummaryView;
+use App\Module\Budget\Application\Goals\GoalVersionChangeView;
+use App\Module\Budget\Application\Goals\GoalVersionHistoryItemView;
+use App\Module\Budget\Application\Goals\GoalVersionHistoryView;
 use App\Module\Budget\Application\Goals\GoalVersionView;
 
 final class GoalRepresentation
@@ -32,6 +38,35 @@ final class GoalRepresentation
         }
 
         return $result;
+    }
+
+    /** @return array<string, mixed> */
+    public static function correctionPreview(GoalCorrectionPreviewView $preview): array
+    {
+        return ['months' => array_map(static fn (GoalCorrectionPreviewMonthView $month): array => [
+            'month' => $month->month,
+            'before' => self::previewState($month->before),
+            'after' => self::previewState($month->after),
+        ], $preview->months)];
+    }
+
+    /** @return array<string, mixed> */
+    private static function previewState(GoalCorrectionPreviewStateView $state): array
+    {
+        return ['goalVersion' => $state->goalVersion, 'expected' => $state->expected, 'status' => $state->status];
+    }
+
+    /** @return array<string, mixed> */
+    public static function history(GoalVersionHistoryView $history): array
+    {
+        return ['items' => array_map(static fn (GoalVersionHistoryItemView $item): array => [
+            ...self::version($item->definition),
+            'retroactive' => $item->retroactive,
+            'reason' => $item->reason,
+            'createdAt' => $item->createdAt->format(DATE_ATOM),
+            'createdBy' => ['id' => $item->createdById, 'displayName' => $item->createdByDisplayName],
+            'changes' => array_map(static fn (GoalVersionChangeView $change): array => ['field' => $change->field, 'before' => $change->before, 'after' => $change->after], $item->changes),
+        ], $history->items)];
     }
 
     /** @return array<string, mixed> */

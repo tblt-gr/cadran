@@ -33,7 +33,21 @@ export function initialSchedule(goal?: GoalSummary): GoalScheduleValue {
 }
 
 export function currentMonthIn(timeZone: string): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit' })
-    .format(new Date())
-    .slice(0, 7);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  return `${year}-${month}`;
+}
+
+/** Mirrors the API bound on how far a rolling correction may reach back, the current month included. */
+export const MAX_CORRECTION_MONTHS = 120;
+
+/** The `YYYY-MM` month `count` months before `month`. */
+export function monthsBefore(month: string, count: number): string {
+  const index = Number(month.slice(0, 4)) * 12 + (Number(month.slice(5, 7)) - 1) - count;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
 }

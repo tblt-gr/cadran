@@ -998,7 +998,7 @@ paths:
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422':
-          description: The goal or its monthly schedule is invalid; a sum mismatch carries the exact figures.
+          description: The goal or its monthly schedule is invalid; a sum mismatch carries the exact figures. A rolling correction reaching back more than 120 months, current month included, is refused with correction_span_exceeded.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/GoalProblem' }
@@ -1145,7 +1145,7 @@ paths:
         '500': { $ref: '#/components/responses/InternalServerError' }
     put:
       operationId: updateGoal
-      summary: Edit a goal label or append its current-month definition
+      summary: Edit a goal label or append an effective-month definition
       tags: [Goals]
       security: [{ sessionCookie: [] }]
       parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
@@ -1172,6 +1172,61 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/GoalProblem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/{id}/correction-preview:
+    post:
+      operationId: previewGoalCorrection
+      summary: Preview every monthly impact of a goal definition without saving it
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateGoalRequest' }
+      responses:
+        '200':
+          description: >-
+            Before and after status from the proposed effective month through the workspace-local
+            current month, capped at an annual goal's year end. Each month selects the latest
+            effective definition, so a retroactive correction yields to an existing definition
+            with a later effective month.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GoalCorrectionPreview' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: correction_reason_required, invalid_effective_month, correction_span_exceeded (a rolling correction reaching back more than 120 months, current month included), or another invalid goal definition.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/{id}/versions:
+    get:
+      operationId: listGoalVersions
+      summary: List the append-only definition history of a goal
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: At most 50 definitions, newest version number first, with server-computed changes.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GoalVersionHistory' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/goals/{id}/close:
     post:
@@ -5661,6 +5716,17 @@ components:
             - $ref: '#/components/schemas/GoalDecimal'
             - type: 'null'
         version: { type: integer, minimum: 1 }
+        effectiveFrom:
+          description: >-
+            Defaults to the workspace-local current month. A past month makes the new definition
+            retroactive; it applies only until an existing definition with a later effective month.
+          type: [string, 'null']
+          pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+        reason:
+          description: Required with 3 to 200 trimmed characters when effectiveFrom is before the workspace-local current month.
+          type: [string, 'null']
+          minLength: 3
+          maxLength: 200
         schedule:
           description: >-
             New monthly calendar of an annual goal. When omitted, a linear schedule follows a changed
@@ -5950,6 +6016,118 @@ components:
           oneOf:
             - $ref: '#/components/schemas/GoalSchedule'
             - type: 'null'
+    GoalCorrectionPreviewState:
+      type: object
+      additionalProperties: false
+      required: [goalVersion, expected, status]
+      properties:
+        goalVersion: { type: [integer, 'null'], minimum: 1, maximum: 50 }
+        expected: { $ref: '#/components/schemas/GoalStatusValue' }
+        status:
+          type: string
+          enum:
+            [
+              REACHED,
+              AHEAD,
+              BEHIND,
+              EXCEEDED,
+              ON_TRACK,
+              OVER_PACE,
+              MET,
+              MISSED,
+              WITHIN,
+              OVER,
+              NOT_CALCULABLE,
+            ]
+    GoalCorrectionPreviewMonth:
+      type: object
+      additionalProperties: false
+      required: [month, before, after]
+      properties:
+        month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        before: { $ref: '#/components/schemas/GoalCorrectionPreviewState' }
+        after: { $ref: '#/components/schemas/GoalCorrectionPreviewState' }
+    GoalCorrectionPreview:
+      type: object
+      additionalProperties: false
+      required: [months]
+      properties:
+        months:
+          type: array
+          items: { $ref: '#/components/schemas/GoalCorrectionPreviewMonth' }
+    GoalVersionChangeValue:
+      oneOf:
+        - type: string
+        - type: array
+          minItems: 12
+          maxItems: 12
+          items: { $ref: '#/components/schemas/GoalDecimal' }
+        - type: 'null'
+    GoalVersionChange:
+      type: object
+      additionalProperties: false
+      required: [field, before, after]
+      properties:
+        field: { type: string, enum: [targetAmount, ratio, scheduleMode, schedule] }
+        before: { $ref: '#/components/schemas/GoalVersionChangeValue' }
+        after: { $ref: '#/components/schemas/GoalVersionChangeValue' }
+    GoalVersionAuthor:
+      type: object
+      additionalProperties: false
+      required: [id, displayName]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string, minLength: 1, maxLength: 100 }
+    GoalVersionHistoryItem:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          versionNo,
+          effectiveFrom,
+          year,
+          targetAmount,
+          ratio,
+          schedule,
+          retroactive,
+          reason,
+          createdAt,
+          createdBy,
+          changes,
+        ]
+      properties:
+        versionNo: { type: integer, minimum: 1, maximum: 50 }
+        effectiveFrom: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        year: { type: [integer, 'null'], minimum: 1900, maximum: 2999 }
+        targetAmount:
+          oneOf:
+            - $ref: '#/components/schemas/GoalDecimal'
+            - type: 'null'
+        ratio:
+          oneOf:
+            - $ref: '#/components/schemas/GoalDecimal'
+            - type: 'null'
+        schedule:
+          oneOf:
+            - $ref: '#/components/schemas/GoalSchedule'
+            - type: 'null'
+        retroactive: { type: boolean }
+        reason: { type: [string, 'null'], minLength: 3, maxLength: 200 }
+        createdAt: { type: string, format: date-time }
+        createdBy: { $ref: '#/components/schemas/GoalVersionAuthor' }
+        changes:
+          type: array
+          maxItems: 4
+          items: { $ref: '#/components/schemas/GoalVersionChange' }
+    GoalVersionHistory:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/GoalVersionHistoryItem' }
     GoalSummary:
       type: object
       additionalProperties: false

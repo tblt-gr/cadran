@@ -24,10 +24,11 @@ interface Props {
   goal: GoalSummary;
   onEdit: (goal: GoalSummary) => void;
   onClose: (goal: GoalSummary) => void;
+  onHistory?: (goal: GoalSummary) => void;
   /** Omitted when no month of the displayed year can be detailed yet (a future year). */
   onDetail?: (goal: GoalSummary) => void;
 }
-export function GoalCard({ goal, onEdit, onClose, onDetail }: Props) {
+export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) {
   const { t, i18n } = useTranslation();
   const definition = goal.currentVersion;
   const value = definition.targetAmount
@@ -59,27 +60,47 @@ export function GoalCard({ goal, onEdit, onClose, onDetail }: Props) {
           <StatusBadge icon="archive" tone="info">
             {t('goals.closedBadge')}
           </StatusBadge>
-        ) : (
+        ) : null}
+        {!closed || onHistory ? (
           <ActionMenu
             label={t('goals.actionsFor', { label: goal.label })}
             items={[
-              {
-                id: 'edit',
-                icon: 'edit',
-                label: t('goals.editGoal', { label: goal.label }),
-                text: t('goals.edit'),
-                onSelect: () => onEdit(goal),
-              },
-              {
-                id: 'close',
-                icon: 'archive',
-                label: t('goals.closeGoal', { label: goal.label }),
-                text: t('goals.close'),
-                onSelect: () => onClose(goal),
-              },
+              ...(!closed
+                ? [
+                    {
+                      id: 'edit',
+                      icon: 'edit' as const,
+                      label: t('goals.editGoal', { label: goal.label }),
+                      text: t('goals.edit'),
+                      onSelect: () => onEdit(goal),
+                    },
+                  ]
+                : []),
+              ...(onHistory
+                ? [
+                    {
+                      id: 'history',
+                      icon: 'calendar' as const,
+                      label: t('goals.history.openFor', { label: goal.label }),
+                      text: t('goals.history.open'),
+                      onSelect: () => onHistory(goal),
+                    },
+                  ]
+                : []),
+              ...(!closed
+                ? [
+                    {
+                      id: 'close',
+                      icon: 'archive' as const,
+                      label: t('goals.closeGoal', { label: goal.label }),
+                      text: t('goals.close'),
+                      onSelect: () => onClose(goal),
+                    },
+                  ]
+                : []),
             ]}
           />
-        )}
+        ) : null}
       </div>
       <div className={styles.value}>
         <span className={styles.direction}>

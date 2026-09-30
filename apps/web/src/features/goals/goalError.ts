@@ -2,10 +2,13 @@ import type { GoalProblem } from '@cadran/api-client';
 
 export type GoalErrorKind =
   | 'conflict'
+  | 'correction_span_exceeded'
+  | 'correction_reason_required'
   | 'emergency_fund_scope_too_large'
   | 'invalid_emergency_fund_category'
   | 'invalid'
   | 'invalid_goal_schedule'
+  | 'invalid_effective_month'
   | 'invalid_schedule_preview'
   | 'linear_schedule_impossible'
   | 'network'
@@ -23,9 +26,12 @@ export interface GoalScheduleMismatch {
 
 /** Problem `code` values mapped straight to a display kind, ranked above the HTTP status. */
 const CODE_KINDS: Record<string, GoalErrorKind> = {
+  correction_reason_required: 'correction_reason_required',
+  correction_span_exceeded: 'correction_span_exceeded',
   emergency_fund_scope_too_large: 'emergency_fund_scope_too_large',
   invalid_emergency_fund_category: 'invalid_emergency_fund_category',
   invalid_goal_schedule: 'invalid_goal_schedule',
+  invalid_effective_month: 'invalid_effective_month',
   invalid_schedule_preview: 'invalid_schedule_preview',
   linear_schedule_impossible: 'linear_schedule_impossible',
   schedule_negative_part: 'schedule_negative_part',

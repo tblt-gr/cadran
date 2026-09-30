@@ -8,27 +8,21 @@ use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
-use App\Module\Budget\Domain\Goals\GoalKind;
 use App\Module\Budget\Domain\Goals\GoalRepository;
-use App\Module\Budget\Domain\Goals\GoalScheduleMode;
 use App\Module\Budget\Domain\Goals\GoalState;
-use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
+use App\Module\Budget\Domain\Goals\GoalVersionResolver;
 use App\Module\Budget\Domain\Goals\InvalidGoal;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\Application\WorkspaceCalendar;
-use App\Module\Foundation\Domain\AssetCode;
-use App\Module\Foundation\Domain\DecimalValue;
-use App\Module\Foundation\Domain\UuidGenerator;
 
 final readonly class UpdateGoal
 {
     public function __construct(
         private CallerWorkspaceContext $caller, private GoalRepository $goals, private GoalVersionRepository $versions,
-        private WorkspaceCalendar $calendar, private UuidGenerator $uuid, private TransactionBoundary $transactions,
-        private RecordAuditEvent $audit, private PresentGoal $present, private BuildGoalSchedule $schedules,
+        private TransactionBoundary $transactions, private RecordAuditEvent $audit, private PresentGoal $present,
+        private BuildGoalRevision $revision,
     ) {
     }
 
@@ -54,9 +48,8 @@ final readonly class UpdateGoal
                 throw new GoalConflict('goal_closed', 'A closed goal cannot be edited.');
             }
             $existing = $this->versions->listByGoal($context->workspace, $current->id, 51);
-            $latest = $existing[0] ?? throw new \LogicException('A goal must have a definition.');
-            $first = $existing[array_key_last($existing)];
-            $definition = $this->definition($current, $latest, $first, $input, count($existing) + 1, $context->actorId);
+            $revision = ($this->revision)($current, $existing, $input, $context->actorId);
+            $definition = $revision->definition;
             $label = trim($input->label);
             if (null === $definition && $label === $current->label) {
                 return [$current, $existing];
@@ -72,138 +65,22 @@ final readonly class UpdateGoal
             if (!$this->goals->update($updated, $current->version)) {
                 throw new GoalConflict('stale_goal_version', 'This goal changed; reload and try again.');
             }
+            $previousDefinition = null;
             if (null !== $definition) {
+                $previousDefinition = GoalVersionResolver::forMonth($existing, CalendarMonth::fromString($definition->effectiveFrom));
                 $this->versions->add($definition);
                 array_unshift($existing, $definition);
             }
-            $changed = array_values(array_filter([$label === $current->label ? null : 'label', ...self::changedDefinitionFields($current->kind, $latest, $definition)]));
-            ($this->audit)(new AuditEventRecord($context->workspace, $context->actorId, GoalAuditEvents::UPDATED, GoalAuditEvents::ENTITY, $updated->id, AuditDiff::change(['version' => $current->version], ['version' => $updated->version, 'changedFields' => implode(',', $changed), 'definitionVersion' => $definition?->versionNo])));
+            $changed = array_values(array_filter([$label === $current->label ? null : 'label', ...$revision->changedFields]));
+            $event = true === $definition?->retroactive ? GoalAuditEvents::CORRECTED : GoalAuditEvents::UPDATED;
+            ($this->audit)(new AuditEventRecord($context->workspace, $context->actorId, $event, GoalAuditEvents::ENTITY, $updated->id, AuditDiff::change(
+                ['version' => $current->version, 'definitionVersion' => $previousDefinition?->versionNo],
+                array_filter(['version' => $updated->version, 'definitionVersion' => $definition?->versionNo, 'effectiveFrom' => $definition?->effectiveFrom, 'changedFields' => implode(',', $changed)], static fn (mixed $value): bool => null !== $value),
+            )));
 
             return [$updated, $existing];
         });
 
         return $this->present->detail($goal, $allVersions);
-    }
-
-    private function definition(\App\Module\Budget\Domain\Goals\Goal $goal, GoalVersion $latest, GoalVersion $first, UpdateGoalInput $input, int $number, string $actorId): ?GoalVersion
-    {
-        $now = $this->calendar->now();
-        $today = $this->calendar->today();
-        $currentMonth = CalendarMonth::containing($today)->key();
-        // Never earlier than the current month, and never earlier than the goal's own
-        // first version, so an edit cannot silently apply before the goal itself can.
-        $effectiveMonth = $currentMonth > $first->effectiveFrom ? $currentMonth : $first->effectiveFrom;
-        try {
-            if (GoalKind::ANNUAL === $goal->kind) {
-                return $this->annualDefinition($goal, $latest, $input, $number, $effectiveMonth, $now, $today, $actorId);
-            }
-            if (null !== $input->targetAmount || null !== $input->targetAssetCode || null !== $input->schedule) {
-                throw new GoalInputError('invalid_goal_ratio', 'A rolling goal cannot take a target amount or schedule.');
-            }
-            if (null === $input->ratio) {
-                return null;
-            }
-            $ratio = DecimalValue::fromString($input->ratio);
-            if (null !== $latest->ratio && 0 === $ratio->compareTo($latest->ratio)) {
-                return null;
-            }
-
-            return GoalVersion::rolling($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $ratio, $now, $actorId);
-        } catch (GoalInputError $exception) {
-            throw $exception;
-        } catch (InvalidGoal|\InvalidArgumentException|\DomainException $exception) {
-            throw new GoalInputError(GoalKind::ANNUAL === $goal->kind ? 'invalid_goal_target' : 'invalid_goal_ratio', $exception->getMessage());
-        }
-    }
-
-    /**
-     * A new annual version is written when the target or the schedule changes.
-     * A linear schedule follows a new target on its own; a custom one cannot be
-     * carried over, so a new target must come with its new parts.
-     */
-    private function annualDefinition(\App\Module\Budget\Domain\Goals\Goal $goal, GoalVersion $latest, UpdateGoalInput $input, int $number, string $effectiveMonth, \DateTimeImmutable $now, \DateTimeImmutable $today, string $actorId): ?GoalVersion
-    {
-        if (null !== $input->ratio) {
-            throw new GoalInputError('invalid_goal_target', 'An annual goal cannot take a ratio.');
-        }
-        $latestTarget = $latest->targetAmount ?? throw new \LogicException('An annual version carries a target amount.');
-        $target = $latestTarget;
-        if (null !== $input->targetAmount || null !== $input->targetAssetCode) {
-            if (null === $input->targetAmount || null === $input->targetAssetCode || !AssetCode::fromString($input->targetAssetCode)->equals($goal->assetCode)) {
-                throw new GoalInputError('unsupported_goal_currency', 'A goal target uses the workspace currency.');
-            }
-            $target = DecimalValue::fromString($input->targetAmount);
-        }
-        $targetChanged = 0 !== $target->compareTo($latestTarget);
-
-        // The form resubmits a schedule on every edit, including a bare rename. Build it
-        // speculatively so an unchanged (or still non-calculable) schedule short-circuits
-        // before the year and precision checks below, which only guard a real change.
-        $schedule = null;
-        $scheduleError = null;
-        if (null !== $input->schedule) {
-            try {
-                $schedule = ($this->schedules)($goal->assetCode, $target, $input->schedule);
-            } catch (GoalInputError $error) {
-                $scheduleError = $error;
-            }
-        }
-        if (!$targetChanged) {
-            if (null === $input->schedule) {
-                return null;
-            }
-            if (null !== $schedule && null !== $latest->schedule && $schedule->sameAs($latest->schedule)) {
-                return null;
-            }
-            // GOAL-001 could store an annual target that the later scheduling
-            // rule cannot represent. The form still resubmits LINEAR on a bare
-            // rename; keep that historical null instead of blocking the label.
-            // Any custom/malformed replacement remains an explicit error.
-            if (null !== $scheduleError
-                && null === $latest->schedule
-                && trim($input->label) !== $goal->label
-                && GoalScheduleMode::LINEAR->value === $input->schedule->mode
-                && null === $input->schedule->parts
-                && in_array($scheduleError->errorCode, ['schedule_precision_exceeded', 'linear_schedule_impossible'], true)
-            ) {
-                return null;
-            }
-        }
-        if (null !== $scheduleError) {
-            throw $scheduleError;
-        }
-        $year = $latest->year ?? throw new \LogicException('An annual version carries a year.');
-        if ($year < (int) $today->format('Y')) {
-            throw new GoalInputError('goal_year_elapsed', 'This goal\'s year has already ended; it can no longer be edited.');
-        }
-        if ($target->compareTo(DecimalValue::zero()) <= 0) {
-            throw new GoalInputError('invalid_goal_target', 'A goal target amount is positive.');
-        }
-        if (null === $input->schedule && GoalScheduleMode::CUSTOM === $latest->schedule?->mode) {
-            throw new GoalInputError('schedule_part_count', 'A custom schedule needs its twelve new parts when the target changes.');
-        }
-        $schedule ??= $this->schedules->linear($goal->assetCode, $target);
-
-        return GoalVersion::annual($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $year, $target, $schedule, $now, $actorId);
-    }
-
-    /** @return list<string> */
-    private static function changedDefinitionFields(GoalKind $kind, GoalVersion $latest, ?GoalVersion $definition): array
-    {
-        if (null === $definition) {
-            return [];
-        }
-        if (GoalKind::ROLLING_RATIO === $kind) {
-            return ['ratio'];
-        }
-        $fields = [];
-        if (null === $latest->targetAmount || null === $definition->targetAmount || 0 !== $definition->targetAmount->compareTo($latest->targetAmount)) {
-            $fields[] = 'targetAmount';
-        }
-        if (null === $latest->schedule || null === $definition->schedule || !$definition->schedule->sameAs($latest->schedule)) {
-            $fields[] = 'schedule';
-        }
-
-        return $fields;
     }
 }
