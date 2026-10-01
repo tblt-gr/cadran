@@ -23,6 +23,7 @@ use App\Module\Budget\Application\Goals\CreateGoal;
 use App\Module\Budget\Application\Goals\CreateGoalInput;
 use App\Module\Categories\Application\CreateCategory;
 use App\Module\Categories\Application\CreateCategoryInput;
+use App\Module\Foundation\Application\DemoDataContributor;
 use App\Module\Transactions\Application\CreateRefund;
 use App\Module\Transactions\Application\CreateRefundInput;
 use App\Module\Transactions\Application\CreateTransaction;
@@ -89,6 +90,8 @@ final readonly class SeedDemoData
         private ActivateBudgetPlan $activatePlan,
         private ClockInterface $clock,
         private CreateGoal $createGoal,
+        /** @var iterable<DemoDataContributor> */
+        private iterable $demoDataContributors,
     ) {
     }
 
@@ -101,6 +104,9 @@ final readonly class SeedDemoData
 
         $today = $this->clock->now()->setTimezone(new \DateTimeZone('UTC'))->setTime(0, 0);
         $months = $this->months($today);
+        foreach ($this->demoDataContributors as $contributor) {
+            $contributor->seed();
+        }
         $categories = $this->categories();
         $accounts = $this->accounts();
         $plans = $this->budgets($categories, $months);

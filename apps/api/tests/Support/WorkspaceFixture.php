@@ -116,6 +116,7 @@ final readonly class WorkspaceFixture
     public function reset(): void
     {
         $this->connection->executeStatement('TRUNCATE TABLE audit_events');
+        $this->connection->executeStatement('DELETE FROM portfolio_instruments');
         // Transactions restrict account and category deletion. Splits follow a
         // deleted transaction, but clearing both keeps reset order explicit.
         // Transfers restrict their own legs, so they clear before either.

@@ -1,0 +1,31 @@
+.field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-2);
+}
+.options {
+  position: absolute;
+  top: 100%;
+  right: var(--spacing-none);
+  left: var(--spacing-none);
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+  padding: var(--spacing-1);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface-2);
+  list-style: none;
+}
+.options li {
+  padding: var(--spacing-2);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.options li[aria-selected='true'] {
+  background: var(--bg-surface-1);
+}
+.options a {
+  color: var(--gold-300);
+}

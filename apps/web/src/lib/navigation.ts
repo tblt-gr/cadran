@@ -44,10 +44,10 @@ export const navigationItems: NavigationItem[] = [
     mobile: true,
   },
   {
-    href: '/portfolios/demo',
+    href: '/portfolios/instruments',
     icon: 'investments',
     labelKey: 'navigation.investments',
-    match: (path) => /^\/portfolios\/[^/]+$/.test(path) || /^\/life-insurance\/[^/]+$/.test(path),
+    match: (path) => path.startsWith('/portfolios') || /^\/life-insurance\/[^/]+$/.test(path),
   },
   {
     href: '/goals',
@@ -99,6 +99,7 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
   if (pathname === '/accounts/groups') return 'navigation.accountGroups';
   if (/^\/accounts\/(?!groups$)[^/]+$/.test(pathname)) return 'routes.accountDetail';
   if (/^\/life-insurance\/[^/]+$/.test(pathname)) return 'routes.lifeInsurance';
+  if (pathname === '/portfolios/instruments') return 'routes.instruments';
   if (/^\/reports\/annual\/\d{4}$/.test(pathname)) return 'routes.annualReport';
   if (pathname === '/reports/all-years') return 'routes.allYearsReport';
   if (/^\/budget\/plans\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';

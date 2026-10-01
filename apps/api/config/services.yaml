@@ -31,6 +31,11 @@ services:
   App\Module\Demo\Application\SeedDemoData:
     arguments:
       $createGoal: '@App\Module\Budget\Application\Goals\CreateGoal'
+      $demoDataContributors: !tagged_iterator cadran.demo_data_contributor
+
+  App\Module\Portfolio\Application\SeedDemoInstruments:
+    tags:
+      - cadran.demo_data_contributor
 
   # Session records in PostgreSQL (ADR-0024). The handler keeps its own
   # connection — it must survive a rolled-back business transaction — but takes
