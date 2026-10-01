@@ -19,6 +19,7 @@ use App\Module\Reporting\Application\MetricPolicyReference;
 use App\Module\Reporting\Application\MonthlyMetricView;
 use App\Module\Reporting\Application\MonthlyProjectionView;
 use App\Module\Reporting\Application\MonthlyProjector;
+use App\Module\Reporting\Application\ReadFirstDataMonth;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
 use App\Module\Transactions\Application\ReadFirstTransactionMonth;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -87,7 +88,7 @@ final class ReportingGoalMonthSourceTest extends TestCase
             $this->calendar(),
         );
 
-        return new ReportingGoalMonthSource($load, new ReadFirstTransactionMonth($transactions), new ReadFirstValuationMonth($snapshots));
+        return new ReportingGoalMonthSource($load, new ReadFirstDataMonth(new ReadFirstTransactionMonth($transactions), new ReadFirstValuationMonth($snapshots)));
     }
 
     private function calendar(): WorkspaceCalendar

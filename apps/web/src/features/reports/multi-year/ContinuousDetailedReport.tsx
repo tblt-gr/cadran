@@ -1,5 +1,4 @@
 import type { AnnualColumn, AnnualReport, MultiYearReport } from '@cadran/api-client';
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { AnnualCellValue } from '@/features/reports/annual/AnnualCellValue';
@@ -15,7 +14,6 @@ import {
 } from './multiYearDetailedAggregate';
 
 interface ContinuousDetailedReportProps {
-  actions?: ReactNode;
   annualReports: AnnualReport[];
   report: MultiYearReport;
 }
@@ -34,11 +32,7 @@ function selectedColumns(reports: AnnualReport[]): AnnualColumn[] {
  * One continuous presentation of monthly, server-supplied annual report rows. It deliberately
  * flattens display lists only: exact financial values remain owned by the annual responses.
  */
-export function ContinuousDetailedReport({
-  actions,
-  annualReports,
-  report,
-}: ContinuousDetailedReportProps) {
+export function ContinuousDetailedReport({ annualReports, report }: ContinuousDetailedReportProps) {
   const { t, i18n } = useTranslation();
   const columns = selectedColumns(annualReports);
   const rows = annualReports.flatMap((annualReport) =>
@@ -73,7 +67,6 @@ export function ContinuousDetailedReport({
           <h2 className={tableStyles.title} id={titleId}>
             {t('reports.multiYear.detailedCaption', { from: report.from, to: report.to })}
           </h2>
-          {actions ? <div className={tableStyles.actions}>{actions}</div> : null}
         </header>
         <div
           aria-label={t('reports.multiYear.detailedCaption', { from: report.from, to: report.to })}

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { AnnualCellValue } from './AnnualCellValue';
-import { SUMMARY_ROW_IDS, summaryFigure } from './annualColumns';
+import { SUMMARY_ROW_IDS, annualCellHref, summaryFigure } from './annualColumns';
 import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualMonthCards.module.css';
 
@@ -40,6 +40,7 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
                   <dd>
                     <AnnualCellValue
                       assetCode={column.assetCode}
+                      href={annualCellHref(column.id, row.month)}
                       kind={column.kind}
                       reason={row.cells[column.id]?.reason ?? null}
                       value={row.cells[column.id]?.value ?? null}

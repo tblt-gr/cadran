@@ -1,23 +1,19 @@
-import type { ReactNode } from 'react';
 import type { AnnualReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { AnnualCellValue } from './AnnualCellValue';
-import { SUMMARY_ROW_IDS, summaryFigure } from './annualColumns';
+import { SUMMARY_ROW_IDS, annualCellHref, summaryFigure } from './annualColumns';
 import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualReportTable.module.css';
 
 interface AnnualReportTableProps {
-  /** Table-level controls, shown to the right of the title. */
-  actions?: ReactNode;
   onExplain: (columnId: string) => void;
   titleId?: string;
   report: AnnualReport;
 }
 
 export function AnnualReportTable({
-  actions,
   onExplain,
   report,
   titleId = 'annual-table-title',
@@ -30,7 +26,6 @@ export function AnnualReportTable({
         <h2 className={styles.title} id={titleId}>
           {t('reports.annual.caption', { year: report.year })}
         </h2>
-        {actions ? <div className={styles.actions}>{actions}</div> : null}
       </header>
       <div className={styles.scroll}>
         <table aria-labelledby={titleId} className={styles.table}>
@@ -64,6 +59,7 @@ export function AnnualReportTable({
                       ) : (
                         <AnnualCellValue
                           assetCode={column.assetCode}
+                          href={annualCellHref(column.id, row.month)}
                           kind={column.kind}
                           reason={cell?.reason ?? null}
                           value={cell?.value ?? null}

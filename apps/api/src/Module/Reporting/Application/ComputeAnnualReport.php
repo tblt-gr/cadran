@@ -13,7 +13,6 @@ use App\Module\Reporting\Domain\Aggregation\AggregateReason;
 use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
 use App\Module\Reporting\Domain\Aggregation\ReportAggregator;
 use App\Module\Reporting\Domain\MetricPolicyRepository;
-use App\Module\Transactions\Application\ReadFirstTransactionMonth;
 
 /**
  * The per-year computation shared by the annual report and the multi-year report: resolves the
@@ -29,7 +28,7 @@ final readonly class ComputeAnnualReport
         private WorkspaceCalendar $calendar,
         private ReadAnnualPreferences $preferences,
         private ReadAnnualCatalogue $catalogue,
-        private ReadFirstTransactionMonth $firstTransactionMonth,
+        private ReadFirstDataMonth $firstDataMonth,
         private LoadAnnualMonths $loadMonths,
         private ResolveMetricPolicy $policies,
         private MetricPolicyRepository $policyRepository,
@@ -66,7 +65,7 @@ final readonly class ComputeAnnualReport
                 $columns[] = $column;
             }
         }
-        $first = ($this->firstTransactionMonth)($workspace);
+        $first = ($this->firstDataMonth)($workspace);
 
         return new ResolvedAnnualReportContext(
             $workspace,
@@ -134,7 +133,7 @@ final readonly class ComputeAnnualReport
             $incomplete = IncompleteMonths::tryFrom($incompleteMonths)
                 ?? throw new InvalidAnnualReportQuery('The incomplete-month setting is exclude or include.');
         }
-        $first = ($this->firstTransactionMonth)($workspace);
+        $first = ($this->firstDataMonth)($workspace);
 
         return new AnnualContext($workspace, $incomplete, null === $first ? null : CalendarMonth::fromString($first));
     }

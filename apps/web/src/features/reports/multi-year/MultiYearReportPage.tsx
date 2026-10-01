@@ -129,14 +129,6 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
       </section>
     );
   } else {
-    const tableActions = (
-      <AnnualTableActions
-        includeIncomplete={preferences.data?.incompleteMonths === 'include'}
-        onOpenColumns={() => setPickerOpen(true)}
-        onToggleIncomplete={toggleIncomplete}
-        saving={save.isPending || !preferences.data}
-      />
-    );
     content = (
       <>
         <YearRangeSelector
@@ -154,19 +146,21 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
           }}
           to={range?.to ?? report.data.to}
         />
+        <AnnualTableActions
+          includeIncomplete={preferences.data?.incompleteMonths === 'include'}
+          onOpenColumns={() => setPickerOpen(true)}
+          onToggleIncomplete={toggleIncomplete}
+          saving={save.isPending || !preferences.data}
+        />
         {display === 'compact' ? (
           <>
-            <MultiYearTable actions={tableActions} report={report.data} />
+            <MultiYearTable report={report.data} />
             <MultiYearCards report={report.data} />
             <MultiYearCharts report={report.data} />
           </>
         ) : (
           <>
-            <DetailedAnnualReports
-              actions={tableActions}
-              onReportsReady={setReportsReady}
-              report={report.data}
-            />
+            <DetailedAnnualReports onReportsReady={setReportsReady} report={report.data} />
             {detailedReports ? (
               <MultiYearCharts annualReports={detailedReports} report={report.data} />
             ) : null}

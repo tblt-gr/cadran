@@ -106,12 +106,16 @@ describe('AnnualReportPage', () => {
     expect(within(cards).getAllByText(/2\s?000,50/).length).toBeGreaterThan(0);
   });
 
-  it('renders values as plain text, never as links', async () => {
+  it('opens the source of each monthly cell, in the table and in the cards', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
-    expect(within(table).queryAllByRole('link')).toEqual([]);
+    const tableLinks = within(table).getAllByRole('link');
+    expect(tableLinks.length).toBeGreaterThan(0);
+    expect(tableLinks[0]!.getAttribute('href')).toBe('/reports?month=2026-01');
     const cards = screen.getByRole('list', { name: /mois de 2026/i });
-    expect(within(cards).queryAllByRole('link')).toEqual([]);
+    expect(within(cards).getAllByRole('link')[0]!.getAttribute('href')).toBe(
+      '/reports?month=2026-01',
+    );
   });
 
   it('shows no info button beside a value that is not calculable', async () => {
@@ -261,15 +265,17 @@ describe('AnnualReportPage', () => {
     }
   });
 
-  it('places the column and incomplete-month controls in the table header as icon buttons', async () => {
+  it('places the column and incomplete-month controls above the table, outside it', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
-    const header = screen.getByRole('heading', { name: 'Rapport annuel 2026' }).parentElement!;
-    const columns = within(header).getByRole('button', { name: 'Colonnes' });
+    const columns = screen.getByRole('button', { name: 'Colonnes' });
     expect(columns.classList.contains('icon-ghost')).toBe(true);
     expect(columns.getAttribute('title')).toBe('Colonnes');
-    expect(within(header).getByRole('button', { name: /mois incomplets/i })).toBeTruthy();
-    expect(table.parentElement?.contains(columns)).toBe(false);
+    expect(screen.getByRole('button', { name: /mois incomplets/i })).toBeTruthy();
+    expect(table.contains(columns)).toBe(false);
+    expect(
+      screen.getByRole('heading', { name: 'Rapport annuel 2026' }).parentElement?.contains(columns),
+    ).toBe(false);
   });
 
   it('opens the aggregate explanation from a summary cell', async () => {
