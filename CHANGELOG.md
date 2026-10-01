@@ -4,7 +4,41 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [0.4.0] - Unreleased
+## [0.5.0] - 2026-10-01
+
+### Added
+
+- Version the metric policy definitions: a policy defines which account kinds count as cash,
+  new versions are created and activated with an expected-version check and an audit trail, and
+  every report names the policy version it was computed with (RPT-006).
+- Aggregate report months exactly: totals, averages, medians, minimums and maximums are computed
+  on exact decimals, state which months were counted or excluded, and return an explicit reason
+  instead of zero when a figure cannot be calculated (RPT-005).
+- Build the annual monthly-summary report: twelve months of configurable columns with charts and
+  tabular alternatives, saved column and incomplete-month preferences, per-aggregate explanations
+  and a link from each monthly cell to its source (RPT-002).
+- Build the multi-year comparison report: one row per year over a bounded range with year-over-year
+  change, a detailed continuous view and accessible charts (RPT-003).
+- Create configurable savings and budget goals, annual or rolling, scoped to the workspace, a
+  category, an axis or an account (GOAL-001).
+- Distribute an annual goal into an exact monthly calendar that always sums to the target
+  (GOAL-003).
+- Calculate goal progress and status at a given date, with explicit non-calculable reasons
+  (GOAL-004).
+- Calculate the emergency-fund coverage goal from a versioned policy (GOAL-002).
+- Preserve goal history across changes: every revision is a new version, with a correction
+  preview and a version history (GOAL-005).
+
+### Fixed
+
+- Goals no longer relabel a figure denominated in another currency: it is reported as not
+  calculable (`MIXED_ASSETS`).
+- Reports and goals count account valuations when finding the first month with data, so a
+  workspace with balances but no transaction yet is no longer reported empty.
+- The annual and multi-year report controls stay reachable on narrow screens.
+- The demonstration seed works during the first days of a month.
+
+## [0.4.0] - 2026-09-25
 
 ### Added
 
