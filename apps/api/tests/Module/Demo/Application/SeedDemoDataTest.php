@@ -47,7 +47,7 @@ final class SeedDemoDataTest extends KernelTestCase
         $summary = $seed(WorkspaceFixture::OWNER_EMAIL);
 
         self::assertSame(3, $summary->accounts);
-        self::assertSame(5, $this->rows(
+        self::assertSame(13, $this->rows(
             'SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ?',
             [$workspace = WorkspaceFixture::OWN_WORKSPACE],
         ));
@@ -55,7 +55,7 @@ final class SeedDemoDataTest extends KernelTestCase
             "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND status = 'INACTIVE'",
             [$workspace],
         ));
-        self::assertSame(5, $this->rows(
+        self::assertSame(13, $this->rows(
             "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND source = 'MANUAL' AND reviewed_at IS NOT NULL",
             [$workspace],
         ));
