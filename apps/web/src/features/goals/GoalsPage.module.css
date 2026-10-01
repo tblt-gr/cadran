@@ -46,7 +46,10 @@
   gap: var(--spacing-3);
 }
 .toolbar {
-  justify-content: space-between;
+  justify-content: flex-start;
+}
+.toolbar fieldset {
+  margin-inline-start: var(--spacing-auto);
 }
 .toolbar fieldset,
 .radios {
@@ -324,6 +327,9 @@
   }
   .toolbar label {
     width: 100%;
+  }
+  .toolbar fieldset {
+    margin-inline-start: var(--spacing-none);
   }
   .grid {
     grid-template-columns: 1fr;
