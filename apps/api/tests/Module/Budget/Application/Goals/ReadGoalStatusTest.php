@@ -445,6 +445,35 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('AHEAD', $status->status);
     }
 
+    public function testAFigureInAnotherCurrencyThanTheGoalIsNotCalculable(): void
+    {
+        $month = new CalendarMonth(2026, 1);
+        $figures = new MonthFigures($month->key(), 1, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), [
+            'netSavingsTransfers' => new MonthlyMetricView('100.00', 'USD', null),
+        ], [], []);
+        $months = [new AnnualMonth($month, MonthState::COMPLETE, false, false, $figures)];
+        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+
+        $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2026-01');
+
+        self::assertNull($status->months[0]->value);
+        self::assertNull($status->achieved);
+        self::assertSame('NOT_CALCULABLE', $status->status);
+    }
+
+    public function testAnAccountTransferNetInAnotherCurrencyThanTheGoalIsNotCalculable(): void
+    {
+        $other = '00000000-0000-7000-8000-000000000302';
+        $pairs = ['2026-01' => [self::pair('00000000-0000-7000-8000-000000000401', $other, self::ACCOUNT_ID, '250.00', '2026-01-15', assetCode: 'USD')]];
+        $months = [self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', '0')];
+        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_ID);
+
+        $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months, transfers: new FixedTransferPairReader($pairs))(self::GOAL_ID, '2026-01');
+
+        self::assertNull($status->months[0]->value);
+        self::assertSame('NOT_CALCULABLE', $status->status);
+    }
+
     public function testAccountContributionsOfAnotherWorkspaceAreNeverRead(): void
     {
         $months = [self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', '0')];
@@ -530,9 +559,9 @@ final class ReadGoalStatusTest extends TestCase
         return new Category($id, $workspace, CategoryType::EXPENSE, 'Category', $parentId, null, null, [], true, 0, null === $parentId ? 1 : 2, 1, $now, $now, archivedAt: $archivedAt);
     }
 
-    private static function pair(string $transferId, string $source, string $target, string $amount, string $bookedOn, bool $voided = false): MonthlyTransferPairFact
+    private static function pair(string $transferId, string $source, string $target, string $amount, string $bookedOn, bool $voided = false, string $assetCode = 'EUR'): MonthlyTransferPairFact
     {
-        $asset = AssetCode::fromString('EUR');
+        $asset = AssetCode::fromString($assetCode);
 
         return new MonthlyTransferPairFact($transferId, null, null, $source, $target, DecimalValue::fromString('-'.$amount), DecimalValue::fromString($amount), $asset, $asset, 'BOOKED', 'BOOKED', $bookedOn, $bookedOn, $voided);
     }

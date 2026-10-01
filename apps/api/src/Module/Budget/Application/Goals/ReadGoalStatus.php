@@ -18,10 +18,12 @@ use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Categories\Domain\Category;
 use App\Module\Foundation\Application\CallerWorkspace;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Application\AnnualMonth;
+use App\Module\Reporting\Application\MonthlyMetricView;
 use App\Module\Reporting\Domain\Aggregation\AggregateReason;
 use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
@@ -167,7 +169,7 @@ final readonly class ReadGoalStatus
      * @param list<Goal>                 $goals
      * @param array<string, AnnualMonth> $months
      *
-     * @return array<string, array<string, array{value: ?DecimalValue, reason: ?string}>>
+     * @return array<string, array<string, array{value: ?DecimalValue, reason: ?string, asset: ?AssetCode}>>
      */
     private function accountTransfers(WorkspaceScope $workspace, CalendarMonth $selected, array $goals, array $months): array
     {
@@ -190,11 +192,11 @@ final readonly class ReadGoalStatus
             }
             try {
                 foreach ($this->accountTransfers->forAccounts($workspace, $accountIds, $month) as $accountId => $net) {
-                    $transfers[$month->key()][$accountId] = ['value' => $net->value, 'reason' => $net->reason?->value];
+                    $transfers[$month->key()][$accountId] = ['value' => $net->value, 'reason' => $net->reason?->value, 'asset' => $net->asset];
                 }
             } catch (MonthlyTransactionScopeTooLarge) {
                 foreach ($accountIds as $accountId) {
-                    $transfers[$month->key()][$accountId] = ['value' => null, 'reason' => 'TRANSFER_SCOPE_TOO_LARGE'];
+                    $transfers[$month->key()][$accountId] = ['value' => null, 'reason' => 'TRANSFER_SCOPE_TOO_LARGE', 'asset' => null];
                 }
             }
         }
@@ -400,7 +402,12 @@ final readonly class ReadGoalStatus
             return ['value' => null, 'reason' => $month->state->value];
         }
         if (GoalMetric::ACCOUNT_CONTRIBUTIONS === $goal->metric) {
-            return $inputs->accountTransfers[$month->month->key()][$goal->scopeRef ?? ''] ?? throw new \LogicException('An account goal status reads its preloaded transfer net.');
+            $net = $inputs->accountTransfers[$month->month->key()][$goal->scopeRef ?? ''] ?? throw new \LogicException('An account goal status reads its preloaded transfer net.');
+            if (null !== $net['asset'] && !$net['asset']->equals($goal->assetCode)) {
+                return ['value' => null, 'reason' => 'MIXED_ASSETS'];
+            }
+
+            return ['value' => $net['value'], 'reason' => $net['reason']];
         }
         if (GoalMetric::CATEGORY_SPENDING === $goal->metric) {
             $budgetExpenses = $month->figures?->cells['budgetExpenses'] ?? null;
@@ -427,6 +434,9 @@ final readonly class ReadGoalStatus
 
                     return ['value' => null, 'reason' => $category->reason ?? 'MISSING_MONTH_VALUE'];
                 }
+                if (!self::inCurrency($category, $goal)) {
+                    return ['value' => null, 'reason' => 'MIXED_ASSETS'];
+                }
                 $values[] = DecimalValue::fromString($category->value);
             }
 
@@ -445,7 +455,17 @@ final readonly class ReadGoalStatus
             return ['value' => null, 'reason' => $metric->reason ?? 'MISSING_MONTH_VALUE'];
         }
 
+        if (!self::inCurrency($metric, $goal)) {
+            return ['value' => null, 'reason' => 'MIXED_ASSETS'];
+        }
+
         return ['value' => DecimalValue::fromString($metric->value), 'reason' => $metric->reason];
+    }
+
+    /** A figure is only summed in the goal's currency when its own asset is that currency. */
+    private static function inCurrency(MonthlyMetricView $metric, Goal $goal): bool
+    {
+        return null === $metric->assetCode || AssetCode::fromString($metric->assetCode)->equals($goal->assetCode);
     }
 
     /** @return list<string> */

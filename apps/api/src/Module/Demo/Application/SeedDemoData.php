@@ -137,6 +137,9 @@ final readonly class SeedDemoData
             }
 
             foreach ([['savings', 6, $plan->savingsCents(), 'Virement épargne'], ['invest', 7, $plan->investmentCents(), 'Investissement mensuel']] as [$target, $day, $cents, $label]) {
+                if ($day > $cutoff) {
+                    continue;
+                }
                 $this->createTransfer->__invoke(new CreateTransferInput(
                     sourceAccountId: $accounts['current'],
                     targetAccountId: $accounts[$target],
@@ -308,8 +311,10 @@ final readonly class SeedDemoData
     private function pending(string $account, array $categories, \DateTimeImmutable $today): int
     {
         $count = 0;
+        // The previous month is already closed: early in a month, pending items stay in the open one.
+        $monthStart = $today->modify('first day of this month');
         foreach ([[2, 'groceries', 'CB SUPERMARCHE', 'Supermarche', -5480], [2, 'restaurants', 'CB RESTAURANT', 'Restaurant', -3250], [1, 'transport', 'CB STATION SERVICE', 'Station service', -5120], [0, 'leisure', 'CB CINEMA', 'Cinema', -2400]] as [$ago, $category, $label, $counterparty, $cents]) {
-            $this->createTransaction->__invoke($this->transaction($account, $categories[$category], $today->modify('-'.$ago.' days')->format('Y-m-d'), $cents, $label, $counterparty, 'CARD', 'PENDING'));
+            $this->createTransaction->__invoke($this->transaction($account, $categories[$category], max($monthStart, $today->modify('-'.$ago.' days'))->format('Y-m-d'), $cents, $label, $counterparty, 'CARD', 'PENDING'));
             ++$count;
         }
 

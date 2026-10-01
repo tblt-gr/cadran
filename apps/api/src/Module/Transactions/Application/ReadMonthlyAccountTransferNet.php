@@ -47,6 +47,7 @@ final readonly class ReadMonthlyAccountTransferNet
     private static function net(string $accountId, array $pairs): AccountTransferNet
     {
         $net = DecimalValue::zero();
+        $asset = null;
 
         foreach ($pairs as $pair) {
             if ($pair->voided) {
@@ -78,6 +79,11 @@ final readonly class ReadMonthlyAccountTransferNet
                 continue;
             }
 
+            if (null !== $asset && !$asset->equals($pair->sourceAsset)) {
+                return AccountTransferNet::missing(AccountTransferNetReason::MIXED_ASSETS);
+            }
+            $asset = $pair->sourceAsset;
+
             if ($accountId === $pair->sourceAccountId) {
                 $net = ExactDecimal::add($net, $pair->sourceAmount);
             }
@@ -86,6 +92,6 @@ final readonly class ReadMonthlyAccountTransferNet
             }
         }
 
-        return AccountTransferNet::value($net);
+        return AccountTransferNet::value($net, $asset);
     }
 }

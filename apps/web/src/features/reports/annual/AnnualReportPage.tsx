@@ -95,18 +95,13 @@ export function AnnualReportPage({ today, year }: AnnualReportPageProps) {
         {report.data.metricPolicy.state === 'MIXED' ? (
           <MixedPolicyBanner policy={report.data.metricPolicy} />
         ) : null}
-        <AnnualReportTable
-          actions={
-            <AnnualTableActions
-              includeIncomplete={preferences.data?.incompleteMonths === 'include'}
-              onOpenColumns={() => setPickerOpen(true)}
-              onToggleIncomplete={toggleIncomplete}
-              saving={save.isPending || !preferences.data}
-            />
-          }
-          onExplain={setExplained}
-          report={report.data}
+        <AnnualTableActions
+          includeIncomplete={preferences.data?.incompleteMonths === 'include'}
+          onOpenColumns={() => setPickerOpen(true)}
+          onToggleIncomplete={toggleIncomplete}
+          saving={save.isPending || !preferences.data}
         />
+        <AnnualReportTable onExplain={setExplained} report={report.data} />
         <AnnualMonthCards onExplain={setExplained} report={report.data} />
         <AnnualCharts report={report.data} />
         {explainedColumn ? (

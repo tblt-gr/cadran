@@ -1,5 +1,4 @@
 import type { MultiYearReport } from '@cadran/api-client';
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -10,11 +9,10 @@ import { multiYearYearNotes } from './multiYearYearNotes';
 import styles from './MultiYearTable.module.css';
 
 interface MultiYearTableProps {
-  actions?: ReactNode;
   report: MultiYearReport;
 }
 
-export function MultiYearTable({ actions, report }: MultiYearTableProps) {
+export function MultiYearTable({ report }: MultiYearTableProps) {
   const { t, i18n } = useTranslation();
 
   return (
@@ -23,7 +21,6 @@ export function MultiYearTable({ actions, report }: MultiYearTableProps) {
         <h2 className={styles.title} id="multi-year-table-title">
           {t('reports.multiYear.caption', { from: report.from, to: report.to })}
         </h2>
-        {actions ? <div>{actions}</div> : null}
       </header>
       <div className={styles.scroll}>
         <table aria-labelledby="multi-year-table-title" className={styles.table}>

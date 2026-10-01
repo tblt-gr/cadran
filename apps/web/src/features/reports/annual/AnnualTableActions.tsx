@@ -9,7 +9,7 @@ interface AnnualTableActionsProps {
   saving: boolean;
 }
 
-/** Column picker and incomplete-month switch as circular icon buttons, next to the table title. */
+/** Column picker and incomplete-month switch as circular icon buttons, above the table or the month cards, on every viewport. */
 export function AnnualTableActions({
   includeIncomplete,
   onOpenColumns,
