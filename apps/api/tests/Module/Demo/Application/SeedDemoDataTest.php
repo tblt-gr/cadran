@@ -47,8 +47,19 @@ final class SeedDemoDataTest extends KernelTestCase
         $summary = $seed(WorkspaceFixture::OWNER_EMAIL);
 
         self::assertSame(3, $summary->accounts);
+        self::assertSame(5, $this->rows(
+            'SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ?',
+            [$workspace = WorkspaceFixture::OWN_WORKSPACE],
+        ));
+        self::assertSame(1, $this->rows(
+            "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND status = 'INACTIVE'",
+            [$workspace],
+        ));
+        self::assertSame(5, $this->rows(
+            "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND source = 'MANUAL' AND reviewed_at IS NOT NULL",
+            [$workspace],
+        ));
         self::assertGreaterThan(0, $summary->transfers);
-        $workspace = WorkspaceFixture::OWN_WORKSPACE;
         // Both legs of every transfer cancel exactly, so transfers never move net worth.
         self::assertTrue($this->connection->fetchOne(
             "SELECT COALESCE(SUM(amount_value), 0) = 0 FROM transaction_transactions WHERE workspace_id = ? AND nature = 'TRANSFER'",

@@ -1,0 +1,21 @@
+.notice {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface-2);
+  gap: var(--spacing-3);
+}
+.notice h3,
+.notice ul {
+  margin: var(--spacing-none);
+}
+.notice ul {
+  padding-left: var(--spacing-4);
+  color: var(--text-secondary);
+}
+.actions {
+  display: flex;
+  gap: var(--spacing-3);
+}

@@ -1804,6 +1804,308 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/instruments:
+    get:
+      operationId: listInstruments
+      summary: List the calling workspace investment instruments
+      description: >-
+        Lists active instruments by default. Search matches a contained name,
+        ticker prefix or ISIN prefix without crossing the caller workspace.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 60
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, inactive, all]
+            default: active
+        - name: currencyCode
+          in: query
+          required: false
+          description: >-
+            Keeps only instruments quoted in this canonical uppercase asset
+            code. The filter applies before paging.
+          schema:
+            type: string
+            pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: One bounded page of workspace instruments.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstrumentPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '422':
+          description: The query, status or pagination is outside its bounds.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InstrumentProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createInstrument
+      summary: Create a reviewed manual investment instrument
+      description: >-
+        Creates a workspace instrument after validating its identifiers and
+        FIAT currency. Similar ticker or name candidates require an explicit
+        duplicate confirmation; an existing ISIN can never be overridden.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInstrumentRequest'
+      responses:
+        '201':
+          description: The reviewed manual instrument was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instrument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '409':
+          description: The ISIN exists, similar candidates need confirmation, or the 500-row limit is reached.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InstrumentProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: A field or identifier is invalid, missing or unsupported.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InstrumentProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/instruments/{id}:
+    get:
+      operationId: readInstrument
+      summary: Read one investment instrument
+      description: >-
+        Returns active and inactive instruments so historical operations stay
+        resolvable. Unknown, malformed and foreign identifiers answer the same 404.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/InstrumentId'
+      responses:
+        '200':
+          description: The instrument.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instrument'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      operationId: updateInstrument
+      summary: Update an investment instrument
+      description: >-
+        Replaces editable fields with optimistic versioning and marks the
+        result reviewed. ISIN, currency and precisions are immutable after the
+        first operation references the instrument.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/InstrumentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInstrumentRequest'
+      responses:
+        '200':
+          description: The updated reviewed instrument.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instrument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The version is stale, the ISIN exists, or similar candidates need confirmation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InstrumentProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: A field is invalid or an identity field is locked after first use.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InstrumentProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/instruments/{id}/deactivate:
+    post:
+      operationId: deactivateInstrument
+      summary: Deactivate an investment instrument
+      description: Removes the instrument from active lists without deleting history.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/InstrumentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstrumentVersionRequest'
+      responses:
+        '200':
+          description: The inactive instrument.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instrument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The version is stale or the instrument is already inactive.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InstrumentProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: The request payload is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InstrumentProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/instruments/{id}/reactivate:
+    post:
+      operationId: reactivateInstrument
+      summary: Reactivate an investment instrument
+      description: Returns an inactive instrument to the active list and picker.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/InstrumentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstrumentVersionRequest'
+      responses:
+        '200':
+          description: The active instrument.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instrument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The version is stale or the instrument is already active.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InstrumentProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: The request payload is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InstrumentProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts:
     get:
       operationId: listAccounts
@@ -5604,6 +5906,13 @@ components:
         prior safe response. Rejected with 403 if missing, altered, or expired.
       schema:
         type: string
+    InstrumentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -8163,6 +8472,306 @@ components:
           type: integer
           minimum: 0
           maximum: 32767
+        version:
+          type: integer
+          minimum: 1
+    InstrumentType:
+      type: string
+      enum: [EQUITY, ETF, FUND, BOND, OTHER]
+    InstrumentAssetClass:
+      type: string
+      enum: [EQUITY, BOND, MONEY_MARKET, REAL_ESTATE, COMMODITY, MIXED, OTHER]
+    InstrumentRegion:
+      type: string
+      enum: [FRANCE, EUROPE, NORTH_AMERICA, ASIA_PACIFIC, EMERGING, WORLD, OTHER]
+    InstrumentStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE]
+    InstrumentSource:
+      type: string
+      enum: [MANUAL, IMPORT]
+    Instrument:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - isin
+        - ticker
+        - venueMic
+        - instrumentType
+        - assetClass
+        - region
+        - currencyCode
+        - quantityPrecision
+        - pricePrecision
+        - source
+        - reviewed
+        - reviewedAt
+        - status
+        - used
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        isin:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z]{2}[A-Z0-9]{9}[0-9]$'
+            - type: 'null'
+        ticker:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z0-9][A-Z0-9.\-]{0,11}$'
+            - type: 'null'
+        venueMic:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z0-9]{4}$'
+            - type: 'null'
+        instrumentType:
+          $ref: '#/components/schemas/InstrumentType'
+        assetClass:
+          oneOf:
+            - $ref: '#/components/schemas/InstrumentAssetClass'
+            - type: 'null'
+        region:
+          oneOf:
+            - $ref: '#/components/schemas/InstrumentRegion'
+            - type: 'null'
+        currencyCode:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        quantityPrecision:
+          type: integer
+          minimum: 0
+          maximum: 12
+        pricePrecision:
+          type: integer
+          minimum: 0
+          maximum: 12
+        source:
+          $ref: '#/components/schemas/InstrumentSource'
+        reviewed:
+          type: boolean
+        reviewedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        status:
+          $ref: '#/components/schemas/InstrumentStatus'
+        used:
+          type: boolean
+        version:
+          type: integer
+          minimum: 1
+    InstrumentPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, perPage, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Instrument'
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 50
+        total:
+          type: integer
+          minimum: 0
+    InstrumentCandidate:
+      type: object
+      additionalProperties: false
+      required: [id, name, isin, ticker, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        isin:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z]{2}[A-Z0-9]{9}[0-9]$'
+            - type: 'null'
+        ticker:
+          oneOf:
+            - type: string
+              pattern: '^[A-Z0-9][A-Z0-9.\-]{0,11}$'
+            - type: 'null'
+        status:
+          $ref: '#/components/schemas/InstrumentStatus'
+    InstrumentProblem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, detail, code]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        code:
+          type: string
+          enum:
+            - invalid_instrument_query
+            - invalid_instrument_payload
+            - invalid_instrument_name
+            - invalid_instrument_isin
+            - invalid_instrument_ticker
+            - invalid_instrument_venue
+            - instrument_identifier_required
+            - invalid_instrument_type
+            - invalid_instrument_classification
+            - unsupported_instrument_currency
+            - invalid_instrument_precision
+            - instrument_identity_locked
+            - instrument_isin_exists
+            - instrument_duplicate_candidates
+            - instrument_limit_reached
+            - stale_instrument_version
+            - instrument_already_inactive
+            - instrument_already_active
+            - instrument_not_found
+            - instrument_forbidden
+            - instrument_payload_too_large
+        existingId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        candidates:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/InstrumentCandidate'
+    CreateInstrumentRequest:
+      type: object
+      additionalProperties: false
+      required: [name, instrumentType, currencyCode]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        isin:
+          oneOf:
+            - type: string
+              maxLength: 32
+            - type: 'null'
+        ticker:
+          oneOf:
+            - type: string
+              maxLength: 32
+            - type: 'null'
+        venueMic:
+          oneOf:
+            - type: string
+              maxLength: 16
+            - type: 'null'
+        instrumentType:
+          $ref: '#/components/schemas/InstrumentType'
+        assetClass:
+          oneOf:
+            - $ref: '#/components/schemas/InstrumentAssetClass'
+            - type: 'null'
+        region:
+          oneOf:
+            - $ref: '#/components/schemas/InstrumentRegion'
+            - type: 'null'
+        currencyCode:
+          type: string
+          minLength: 2
+          maxLength: 12
+        quantityPrecision:
+          type: integer
+          minimum: 0
+          maximum: 12
+          default: 6
+        pricePrecision:
+          type: integer
+          minimum: 0
+          maximum: 12
+          default: 4
+        confirmDuplicate:
+          type: boolean
+          default: false
+    UpdateInstrumentRequest:
+      type: object
+      additionalProperties: false
+      required: [name, instrumentType, currencyCode, version]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        isin:
+          oneOf:
+            - type: string
+              maxLength: 32
+            - type: 'null'
+        ticker:
+          oneOf:
+            - type: string
+              maxLength: 32
+            - type: 'null'
+        venueMic:
+          oneOf:
+            - type: string
+              maxLength: 16
+            - type: 'null'
+        instrumentType:
+          $ref: '#/components/schemas/InstrumentType'
+        assetClass:
+          oneOf:
+            - $ref: '#/components/schemas/InstrumentAssetClass'
+            - type: 'null'
+        region:
+          oneOf:
+            - $ref: '#/components/schemas/InstrumentRegion'
+            - type: 'null'
+        currencyCode:
+          type: string
+          minLength: 2
+          maxLength: 12
+        quantityPrecision:
+          type: integer
+          minimum: 0
+          maximum: 12
+        pricePrecision:
+          type: integer
+          minimum: 0
+          maximum: 12
+        confirmDuplicate:
+          type: boolean
+          default: false
+        version:
+          type: integer
+          minimum: 1
+    InstrumentVersionRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
         version:
           type: integer
           minimum: 1

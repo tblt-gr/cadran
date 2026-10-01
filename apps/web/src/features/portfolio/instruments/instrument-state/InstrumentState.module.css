@@ -1,0 +1,11 @@
+.state {
+  display: flex;
+  min-height: 14rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--spacing-4);
+}
+.state h3 {
+  margin: var(--spacing-none);
+}

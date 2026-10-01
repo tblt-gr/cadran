@@ -147,6 +147,69 @@ api:
     category_operation_refused:
       title: 'Opération de catégorie refusée'
       detail: "L'aperçu d'impact refuse cette opération. Le champ « blockers » en donne toutes les raisons."
+    invalid_instrument_query:
+      title: 'Requête d’instruments invalide'
+      detail: 'La recherche, le statut ou la pagination sort des limites autorisées.'
+    invalid_instrument_payload:
+      title: 'Corps d’instrument invalide'
+      detail: 'Le corps JSON ne contient pas exactement les champs attendus et leurs types.'
+    invalid_instrument_name:
+      title: 'Nom d’instrument invalide'
+      detail: 'Le nom doit contenir de 1 à 120 caractères de texte brut.'
+    invalid_instrument_isin:
+      title: 'ISIN invalide'
+      detail: 'L’ISIN doit respecter son format et son chiffre de contrôle.'
+    invalid_instrument_ticker:
+      title: 'Ticker invalide'
+      detail: 'Le ticker doit contenir de 1 à 12 lettres, chiffres, points ou tirets.'
+    invalid_instrument_venue:
+      title: 'Place de cotation invalide'
+      detail: 'La place de cotation doit être un MIC de quatre caractères.'
+    instrument_identifier_required:
+      title: 'Identifiant d’instrument requis'
+      detail: 'Renseignez un ISIN ou un ticker.'
+    invalid_instrument_type:
+      title: 'Type d’instrument invalide'
+      detail: 'Le type d’instrument n’est pas reconnu.'
+    invalid_instrument_classification:
+      title: 'Classification d’instrument invalide'
+      detail: 'La classe d’actifs ou la région n’est pas reconnue.'
+    unsupported_instrument_currency:
+      title: 'Devise d’instrument non prise en charge'
+      detail: 'La devise doit être une devise FIAT du référentiel.'
+    invalid_instrument_precision:
+      title: 'Précision d’instrument invalide'
+      detail: 'Chaque précision doit être comprise entre 0 et 12.'
+    instrument_identity_locked:
+      title: 'Identité d’instrument figée'
+      detail: 'L’ISIN, la devise et les précisions sont figés après la première opération.'
+    instrument_isin_exists:
+      title: 'ISIN déjà utilisé'
+      detail: 'Un instrument de cet espace porte déjà cet ISIN.'
+    instrument_duplicate_candidates:
+      title: 'Instruments similaires'
+      detail: 'Des instruments portent déjà ce ticker ou ce nom normalisé.'
+    instrument_limit_reached:
+      title: 'Limite d’instruments atteinte'
+      detail: 'Un espace de travail peut contenir au plus 500 instruments.'
+    stale_instrument_version:
+      title: 'Instrument modifié entre-temps'
+      detail: 'Rechargez l’instrument puis réappliquez la modification.'
+    instrument_already_inactive:
+      title: 'Instrument déjà inactif'
+      detail: 'Cet instrument est déjà inactif.'
+    instrument_already_active:
+      title: 'Instrument déjà actif'
+      detail: 'Cet instrument est déjà actif.'
+    instrument_not_found:
+      title: 'Instrument introuvable'
+      detail: 'Aucun instrument ne porte cet identifiant dans cet espace de travail.'
+    instrument_forbidden:
+      title: 'Instruments inaccessibles'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
+    instrument_payload_too_large:
+      title: 'Corps d’instrument trop volumineux'
+      detail: 'Le corps JSON dépasse la taille maximale autorisée.'
     invalid_budget_query:
       title: 'Requête de budgets invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'
