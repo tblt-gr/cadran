@@ -9,6 +9,7 @@ import { AccountRequestError, requestFailed, accountRequestError } from './accou
 import { AccountsPageModals } from './accounts-page-modals/AccountsPageModals';
 import { AccountFilters } from './account-filters/AccountFilters';
 import { AccountList } from './account-list/AccountList';
+import { AccountsPageSkeleton } from './AccountsPageSkeleton';
 import { AccountPagination } from './account-pagination/AccountPagination';
 import { AccountsState } from './accounts-state/AccountsState';
 import { useAccountsPageMutations } from './useAccountsPageMutations';
@@ -172,17 +173,11 @@ export function AccountsPage() {
         }}
       />
 
-      {accounts.isPending || accounts.isError || items.length === 0 ? (
+      {accounts.isPending ? (
+        <AccountsPageSkeleton status={t('accounts.loading')} />
+      ) : accounts.isError || items.length === 0 ? (
         <AccountsState
-          kind={
-            accounts.isPending
-              ? 'loading'
-              : unauthorized
-                ? 'unauthorized'
-                : accounts.isError
-                  ? 'error'
-                  : 'empty'
-          }
+          kind={unauthorized ? 'unauthorized' : accounts.isError ? 'error' : 'empty'}
           onCreate={() => openEditor('create')}
           onRetry={() => void accounts.refetch()}
         />

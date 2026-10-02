@@ -16,6 +16,7 @@ import {
 } from '@/features/accounts/accountError';
 import { PendingTransactionsTable } from './pending-transactions/PendingTransactionsTable';
 import { ReconciliationFigures } from './reconciliation-figures/ReconciliationFigures';
+import { ReconciliationPanelSkeleton } from './ReconciliationPanelSkeleton';
 import { ResolutionForm } from './resolution-form/ResolutionForm';
 import styles from './ReconciliationPanel.module.css';
 
@@ -148,9 +149,7 @@ export function ReconciliationPanel({ account, onReconciled }: ReconciliationPan
           {t('accounts.reconciliation.errors.invalid')}
         </p>
       ) : reading.data === undefined && reading.isPending ? (
-        <p className={styles.state} role="status">
-          {t('accounts.reconciliation.loading')}
-        </p>
+        <ReconciliationPanelSkeleton status={t('accounts.reconciliation.loading')} />
       ) : reading.isError ? (
         <div className={styles.alert} role="alert">
           <p>{t(`accounts.reconciliation.errors.${failureKey(reading.error)}`)}</p>

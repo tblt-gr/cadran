@@ -8,6 +8,7 @@ import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/Per
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { CategorizationTabs } from './categorization-tabs/CategorizationTabs';
 import { TransactionList } from './transaction-list/TransactionList';
+import { TransactionsPageSkeleton } from './TransactionsPageSkeleton';
 import { TransactionListFooter } from './transaction-list/TransactionListFooter';
 import { TransactionFilters } from './transaction-filters/TransactionFilters';
 import { TransactionModals } from './transaction-modals/TransactionModals';
@@ -197,14 +198,16 @@ export function TransactionsPage() {
         revision={filtersRevision}
       />
 
-      <p aria-live="polite" className="sr-only" role="status">
-        {impossible || transactions.isPending || (transactions.isError && !staleCursorError)
-          ? ''
-          : t('transactions.pagination.loadedCount', {
-              count: items.length,
-              sequence: loadSequence,
-            })}
-      </p>
+      {!impossible &&
+      !(transactions.isPending && transactions.data === undefined) &&
+      !(transactions.isError && !staleCursorError) ? (
+        <p aria-live="polite" className="sr-only" role="status">
+          {t('transactions.pagination.loadedCount', {
+            count: items.length,
+            sequence: loadSequence,
+          })}
+        </p>
+      ) : null}
 
       {impossible ? (
         <TransactionsState
@@ -213,12 +216,8 @@ export function TransactionsPage() {
           onResetFilters={resetAllFilters}
           onRetry={() => void transactions.refetch()}
         />
-      ) : transactions.isPending ? (
-        <TransactionsState
-          kind="loading"
-          onCreate={() => openEditor('create')}
-          onRetry={() => void transactions.refetch()}
-        />
+      ) : transactions.isPending && transactions.data === undefined ? (
+        <TransactionsPageSkeleton status={t('transactions.loading')} />
       ) : transactions.isError && !staleCursorError ? (
         <TransactionsState
           kind={unauthorized ? 'unauthorized' : 'error'}

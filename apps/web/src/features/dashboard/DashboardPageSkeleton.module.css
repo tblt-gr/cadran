@@ -1,0 +1,27 @@
+.amount {
+  width: 60%;
+  min-width: calc(var(--spacing-12) * 3);
+  height: var(--font-size-display);
+  margin-top: var(--spacing-3);
+}
+
+.delta {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-body);
+  margin-top: var(--spacing-2);
+}
+
+.badge {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--spacing-6);
+}
+
+.asOf {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-sm);
+}
+
+.chart {
+  align-self: end;
+  min-height: var(--chart-plot-height);
+}

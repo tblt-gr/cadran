@@ -1,27 +1,168 @@
 import { useTranslation } from 'react-i18next';
+import {
+  SkeletonBlock,
+  SkeletonChartArea,
+  SkeletonStatus,
+} from '@/components/ui/skeleton/Skeleton';
+import { AnnualTableActions } from '@/features/reports/annual/AnnualTableActions';
+import { ChartFrame } from '@/features/reports/annual/ChartFrame';
+import chartStyles from './MultiYearCharts.module.css';
+import { MULTI_YEAR_SUMMARY_ROW_IDS } from './multiYearSummary';
+import pageStyles from './MultiYearReportPage.module.css';
 import styles from './MultiYearSkeleton.module.css';
+import tableStyles from './MultiYearTable.module.css';
+import cardStyles from './MultiYearCards.module.css';
+import { YearRangeSelector } from './YearRangeSelector';
+
+const noop = () => undefined;
+
+/** The column set is the user's own choice: four placeholders stand for it until it is known. */
+const PLACEHOLDER_COLUMNS = [0, 1, 2, 3];
+
+/** The report shows at most the latest 15 years of a range. */
+const MAX_ROWS = 15;
+
+/** Years drawn when the range is not known yet (first visit, before the bounds answer). */
+const UNKNOWN_RANGE_YEARS = 3;
 
 interface MultiYearSkeletonProps {
-  /** Rows to draw, one per expected year of the requested (or default) range. */
-  years: number;
+  /** Current year of the workspace, the upper bound of the selector. */
+  currentYear: number;
+  /** The requested or default range once known, so the year labels can be real. */
+  range: { from: number; to: number } | null;
 }
 
-/** One placeholder row per expected year, per the spec's loading-state decision. */
-export function MultiYearSkeleton({ years }: MultiYearSkeletonProps) {
+function Cell() {
+  return <SkeletonBlock className={styles.cell} />;
+}
+
+/** Selector, caption, year labels and summary labels are static and real; columns and figures are pending. */
+export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps) {
   const { t } = useTranslation();
+  const count = range ? Math.min(range.to - range.from + 1, MAX_ROWS) : 0;
+  const years = range
+    ? Array.from({ length: count }, (_, index) => range.to - count + 1 + index)
+    : null;
+  const rows = years ?? Array.from({ length: UNKNOWN_RANGE_YEARS }, () => null);
 
   return (
-    <section aria-busy="true" className={`card ${styles.state}`} role="status">
-      <h2>{t('reports.loading')}</h2>
-      <table className={styles.table}>
-        <tbody>
-          {Array.from({ length: years }, (_, index) => (
-            <tr className={styles.row} key={index}>
-              <td />
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
+    <div aria-busy="true" className={pageStyles.page} data-testid="multi-year-report-skeleton">
+      <SkeletonStatus>{t('reports.loading')}</SkeletonStatus>
+      <fieldset className={styles.frozen} disabled>
+        <YearRangeSelector
+          display="compact"
+          from={range?.from ?? currentYear}
+          maxYear={currentYear}
+          minYear={range?.from ?? currentYear}
+          onChange={noop}
+          onDisplayChange={noop}
+          to={range?.to ?? currentYear}
+        />
+      </fieldset>
+      <AnnualTableActions
+        includeIncomplete={false}
+        onOpenColumns={noop}
+        onToggleIncomplete={noop}
+        saving
+      />
+      <section aria-hidden="true" className={`card ${tableStyles.wrap}`}>
+        <header className={tableStyles.header}>
+          <h2 className={tableStyles.title}>
+            {range ? (
+              t('reports.multiYear.caption', { from: range.from, to: range.to })
+            ) : (
+              <SkeletonBlock className={styles.cell} />
+            )}
+          </h2>
+        </header>
+        <div className={tableStyles.scroll}>
+          <table className={tableStyles.table}>
+            <thead>
+              <tr>
+                <th scope="col">{t('reports.multiYear.year')}</th>
+                <th scope="col">{t('reports.multiYear.policy')}</th>
+                {PLACEHOLDER_COLUMNS.map((column) => (
+                  <th key={column} scope="col">
+                    <Cell />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((year, index) => (
+                <tr key={year ?? index}>
+                  <th scope="row">{year ?? <Cell />}</th>
+                  <td>
+                    <Cell />
+                  </td>
+                  {PLACEHOLDER_COLUMNS.map((column) => (
+                    <td key={column}>
+                      <Cell />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              {MULTI_YEAR_SUMMARY_ROW_IDS.map((rowId) => (
+                <tr key={rowId}>
+                  <th colSpan={2} scope="row">
+                    {t(`reports.multiYear.summary.${rowId}`)}
+                  </th>
+                  {PLACEHOLDER_COLUMNS.map((column) => (
+                    <td key={column}>
+                      <Cell />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tfoot>
+          </table>
+        </div>
+      </section>
+      <ul aria-hidden="true" className={cardStyles.list}>
+        {rows.map((year, index) => (
+          <li className={`card ${cardStyles.card}`} key={year ?? index}>
+            <h3>{year ?? <Cell />}</h3>
+            <p>
+              <Cell />
+            </p>
+            <dl>
+              {PLACEHOLDER_COLUMNS.slice(0, 3).map((column) => (
+                <div key={column}>
+                  <dt>
+                    <Cell />
+                  </dt>
+                  <dd>
+                    <Cell />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </li>
+        ))}
+        <li className={`card ${cardStyles.card}`}>
+          <h3>{t('reports.multiYear.summary.average')}</h3>
+          <dl>
+            {MULTI_YEAR_SUMMARY_ROW_IDS.map((rowId) => (
+              <div key={rowId}>
+                <dt>{t(`reports.multiYear.summary.${rowId}`)}</dt>
+                <dd>
+                  <Cell />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </li>
+      </ul>
+      <div className={chartStyles.grid}>
+        <ChartFrame title={t('reports.multiYear.charts.flows')}>
+          <SkeletonChartArea />
+        </ChartFrame>
+        <ChartFrame title={t('reports.multiYear.charts.netWorth')}>
+          <SkeletonChartArea />
+        </ChartFrame>
+      </div>
+    </div>
   );
 }

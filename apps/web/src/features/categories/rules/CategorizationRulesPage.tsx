@@ -6,6 +6,7 @@ import { Toast } from '@/components/ui/toast/Toast';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { categorizationRuleErrorKind } from './categorizationRuleError';
 import { RuleAccountsNotice } from './rule-accounts/RuleAccountsNotice';
+import { CategorizationRulesPageSkeleton } from './CategorizationRulesPageSkeleton';
 import { RuleEditor } from './rule-editor/RuleEditor';
 import { useRuleEditor } from './rule-editor/useRuleEditor';
 import { RuleActivationDialog } from './rule-lifecycle/RuleActivationDialog';
@@ -167,15 +168,19 @@ export function CategorizationRulesPage() {
         </Modal>
       ) : null}
 
-      <RulesSection
-        canEdit={accounts.available}
-        onAddFirst={() => editorWorkflow.open('create')}
-        onArchive={archiveWorkflow.open}
-        onEdit={editorWorkflow.open}
-        onPreview={previewWorkflow.open}
-        onToggle={activationWorkflow.open}
-        rules={rules}
-      />
+      {rules.query.isPending && rules.query.data === undefined ? (
+        <CategorizationRulesPageSkeleton status={t('categorizationRules.loading')} />
+      ) : (
+        <RulesSection
+          canEdit={accounts.available}
+          onAddFirst={() => editorWorkflow.open('create')}
+          onArchive={archiveWorkflow.open}
+          onEdit={editorWorkflow.open}
+          onPreview={previewWorkflow.open}
+          onToggle={activationWorkflow.open}
+          rules={rules}
+        />
+      )}
     </div>
   );
 }

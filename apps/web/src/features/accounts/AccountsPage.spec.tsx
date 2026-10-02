@@ -302,11 +302,14 @@ function renderPage() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <AccountsPage />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <AccountsPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 async function openAccountActions(label: string) {
@@ -358,6 +361,32 @@ describe('AccountsPage', () => {
         allocation: [],
       }),
     );
+  });
+
+  it('replaces its one named cold-load skeleton and keeps accounts during a refetch', async () => {
+    let resolveAccounts: ((value: unknown) => void) | undefined;
+    api.listAccounts.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveAccounts = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('accounts-page-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveAccounts?.({
+      data: { items: [account], page: 1, perPage: 50, total: 1 },
+      response: new Response('{}', { status: 200 }),
+    });
+    expect(await screen.findByText(account.label)).toBeTruthy();
+    expect(screen.queryByTestId('accounts-page-skeleton')).toBeNull();
+
+    api.listAccounts.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    await waitFor(() => expect(api.listAccounts).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(account.label)).toBeTruthy();
+    expect(screen.queryByTestId('accounts-page-skeleton')).toBeNull();
   });
 
   afterEach(() => {

@@ -7,6 +7,7 @@ import { RecapPreferencesModal } from './recap-preferences/RecapPreferencesModal
 import { TotalsCard } from './totals-card/TotalsCard';
 import { useMonthlyRecap, useRecapPreferences } from './useMonthlyRecap';
 import { WealthCard } from './wealth-card/WealthCard';
+import { MonthlyRecapSkeleton } from './MonthlyRecapSkeleton';
 import styles from './MonthlyRecap.module.css';
 
 export function MonthlyRecap({ month }: { month: string }) {
@@ -16,12 +17,8 @@ export function MonthlyRecap({ month }: { month: string }) {
   const session = useSession();
   const [editingPreferences, setEditingPreferences] = useState(false);
   const owner = session.data?.workspace?.role === 'OWNER';
-  if (recap.isPending)
-    return (
-      <aside aria-busy="true" className={`card ${styles.state}`} role="status">
-        <h3>{t('budget.monthly.recap.loading')}</h3>
-      </aside>
-    );
+  if (recap.isPending && recap.data === undefined)
+    return <MonthlyRecapSkeleton status={t('budget.monthly.recap.loading')} />;
   if (recap.isError || !recap.data)
     return (
       <aside className={`card ${styles.state}`} role="alert">

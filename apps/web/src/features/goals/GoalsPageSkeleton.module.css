@@ -1,0 +1,31 @@
+.metric {
+  width: 30%;
+  height: var(--font-size-label);
+  margin-top: var(--spacing-1);
+}
+
+.menu {
+  width: var(--control-height);
+  height: var(--control-height);
+  border-radius: var(--radius-circle);
+}
+
+.direction {
+  width: 40%;
+  height: var(--font-size-label);
+}
+
+.amount {
+  width: 55%;
+  height: var(--font-size-metric);
+}
+
+.badge {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--spacing-6);
+}
+
+.progress {
+  width: 100%;
+  height: var(--spacing-8);
+}

@@ -60,17 +60,17 @@ function activateWithKeyboard(element: HTMLElement) {
   fireEvent.keyUp(element, { key: 'Enter' });
 }
 function renderPage() {
-  return render(
-    <QueryClientProvider
-      client={
-        new QueryClient({
-          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-        })
-      }
-    >
-      <GoalsPage />
-    </QueryClientProvider>,
-  );
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <GoalsPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 describe('GoalsPage', () => {
   // The page derives its default year and month from today's date, and the list mock mirrors a
@@ -98,6 +98,40 @@ describe('GoalsPage', () => {
       }),
     );
   }
+  it('replaces its one named cold-load skeleton and keeps goals during a refetch', async () => {
+    mockSession();
+    let resolveGoals: ((value: unknown) => void) | undefined;
+    api.listGoals.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveGoals = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('goals-skeleton')).toBeTruthy();
+    expect(screen.getByTestId('goals-skeleton').querySelectorAll('[role="status"]')).toHaveLength(
+      1,
+    );
+    resolveGoals?.(await ok({ items: [goal] }));
+    expect(await screen.findByText(goal.label)).toBeTruthy();
+    expect(screen.queryByTestId('goals-skeleton')).toBeNull();
+
+    api.listGoals.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['goals'] });
+    await waitFor(() => expect(api.listGoals).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(goal.label)).toBeTruthy();
+    expect(screen.queryByTestId('goals-skeleton')).toBeNull();
+  });
+
+  it('replaces the goals skeleton with an error state after a failed cold read', async () => {
+    mockSession();
+    api.listGoals.mockRejectedValue(new TypeError('offline'));
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByTestId('goals-skeleton')).toBeNull();
+  });
   it('shows the empty active state and creates an annual exact goal in the shared modal', async () => {
     mockSession();
     api.listGoals.mockReturnValue(ok({ items: [] }));

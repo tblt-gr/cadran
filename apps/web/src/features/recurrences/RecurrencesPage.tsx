@@ -9,6 +9,7 @@ import { CandidatesSection } from '@/features/recurrences/candidates-section/Can
 import { ConfirmedRecurrencesSection } from '@/features/recurrences/confirmed-recurrences-section/ConfirmedRecurrencesSection';
 import { OccurrenceTimeline } from '@/features/recurrences/occurrence-timeline/OccurrenceTimeline';
 import { RecurrenceEditor } from '@/features/recurrences/recurrence-editor/RecurrenceEditor';
+import { RecurrencesPageSkeleton } from './RecurrencesPageSkeleton';
 import type { Editor } from './recurrenceEditorState';
 import { useRecurrenceMutations } from './useRecurrenceMutations';
 import { useRecurrencesListing } from './useRecurrencesListing';
@@ -108,9 +109,7 @@ export function RecurrencesPage() {
         />
       ) : null}
       {loading ? (
-        <section aria-busy="true" className={`card ${styles.state}`} role="status">
-          <h3>{t('recurrences.loading')}</h3>
-        </section>
+        <RecurrencesPageSkeleton status={t('recurrences.loading')} />
       ) : hasError ? (
         <section className={`card ${styles.state}`} role="alert">
           <h3>{t('recurrences.error.title')}</h3>

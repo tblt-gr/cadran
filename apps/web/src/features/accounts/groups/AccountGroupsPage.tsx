@@ -30,6 +30,7 @@ import {
   groupRequestError,
 } from '@/features/accounts/groups/groupError';
 import { GroupsState } from '@/features/accounts/groups/groups-state/GroupsState';
+import { AccountGroupsPageSkeleton } from './AccountGroupsPageSkeleton';
 import { useNetWorth } from '@/features/dashboard/net-worth/useNetWorth';
 import styles from './AccountGroupsPage.module.css';
 
@@ -161,6 +162,10 @@ export function AccountGroupsPage() {
   const items = groups.data?.items ?? [];
   const totalPages = Math.max(1, Math.ceil((groups.data?.total ?? 0) / 50));
   const allocationRoots = (netWorth.data?.allocation ?? []).filter((entry) => entry.depth === 1);
+  const pagePending =
+    (groups.isPending && groups.data === undefined) ||
+    (netWorth.isPending && netWorth.data === undefined) ||
+    (accounts.isPending && accounts.data === undefined);
 
   if (groups.data && page > totalPages) {
     setPage(totalPages);
@@ -251,13 +256,8 @@ export function AccountGroupsPage() {
         </label>
       </div>
 
-      {groups.isPending ? (
-        <GroupsState
-          includeArchived={includeArchived}
-          kind="loading"
-          onCreate={() => openEditor('create')}
-          onRetry={() => void groups.refetch()}
-        />
+      {pagePending ? (
+        <AccountGroupsPageSkeleton status={t('accountGroups.loading')} />
       ) : groups.isError ? (
         <GroupsState
           includeArchived={includeArchived}

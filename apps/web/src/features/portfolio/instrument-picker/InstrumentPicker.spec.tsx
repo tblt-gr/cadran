@@ -30,8 +30,10 @@ const instrument: Instrument = {
   used: false,
   version: 1,
 };
-function renderPicker(onChange = vi.fn()) {
-  const query = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function renderPicker(
+  onChange = vi.fn(),
+  query = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+) {
   render(
     <QueryClientProvider client={query}>
       <InstrumentPicker currencyCode="EUR" label="Instrument" onChange={onChange} />
@@ -43,6 +45,34 @@ describe('InstrumentPicker', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+  it('shows the named skeleton until the initial picker response resolves', async () => {
+    let resolveRequest: ((value: unknown) => void) | undefined;
+    api.listInstruments.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve;
+        }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    renderPicker(vi.fn(), queryClient);
+    fireEvent.focus(screen.getByRole('combobox'));
+    expect(await screen.findByTestId('instrument-picker-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('instrument-picker-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveRequest?.({
+      data: { items: [instrument] },
+      response: new Response('{}', { status: 200 }),
+    });
+    expect(await screen.findByRole('option')).toBeTruthy();
+    expect(screen.queryByTestId('instrument-picker-skeleton')).toBeNull();
+
+    api.listInstruments.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['instrument-picker'] });
+    await waitFor(() => expect(api.listInstruments).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('option')).toBeTruthy();
+    expect(screen.queryByTestId('instrument-picker-skeleton')).toBeNull();
   });
   it('selects an active matching instrument with arrow keys and Enter', async () => {
     api.listInstruments.mockResolvedValue({

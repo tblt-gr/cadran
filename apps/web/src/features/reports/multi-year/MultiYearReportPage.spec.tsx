@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import {
@@ -33,14 +33,17 @@ function HeaderTitleProbe({ path }: { path: string }) {
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={client}>
-      <HeaderTitleProvider>
-        <MultiYearReportPage today="2026-09-24" />
-        <HeaderTitleProbe path="/reports/all-years" />
-      </HeaderTitleProvider>
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={client}>
+        <HeaderTitleProvider>
+          <MultiYearReportPage today="2026-09-24" />
+          <HeaderTitleProbe path="/reports/all-years" />
+        </HeaderTitleProvider>
+      </QueryClientProvider>,
+    ),
+    queryClient: client,
+  };
 }
 
 beforeEach(() => {
@@ -59,14 +62,24 @@ afterEach(() => {
 });
 
 describe('MultiYearReportPage', () => {
-  it('shows a skeleton status while the first load is pending', async () => {
+  it('replaces its one named cold-load skeleton and keeps the report during a refetch', async () => {
     let resolve!: (value: ReturnType<typeof ok<typeof multiYearReport>>) => void;
     api.readMultiYearReport.mockReturnValue(new Promise((r) => (resolve = r)));
-    renderPage();
-    const status = screen.getByRole('status');
-    expect(within(status).getAllByRole('row')).toHaveLength(1);
+    const { queryClient } = renderPage();
+    expect(screen.getByTestId('multi-year-report-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('multi-year-report-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(3);
     resolve(ok(multiYearReport));
     await screen.findByRole('table', { name: /pluriannuel/i });
+    expect(screen.queryByTestId('multi-year-report-skeleton')).toBeNull();
+
+    api.readMultiYearReport.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['multi-year-report'] });
+    await waitFor(() => expect(api.readMultiYearReport).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('table', { name: /pluriannuel/i })).toBeTruthy();
+    expect(screen.queryByTestId('multi-year-report-skeleton')).toBeNull();
   });
 
   it('publishes the selected year range as the shell header title', async () => {
@@ -82,9 +95,9 @@ describe('MultiYearReportPage', () => {
     api.readMultiYearReport.mockReturnValue(new Promise((r) => (resolveNext = r)));
     const fromSelect = screen.getByLabelText('Depuis') as HTMLSelectElement;
     fireEvent.change(fromSelect, { target: { value: '2025' } });
-    const status = await screen.findByRole('status');
+    await screen.findByRole('status');
     // Narrowed from 2025 to the previous to (2026): exactly two requested years.
-    expect(within(status).getAllByRole('row').length).toBe(2);
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(2);
     resolveNext(
       ok({ ...multiYearReport, from: 2025, to: 2026, years: multiYearReport.years.slice(1) }),
     );

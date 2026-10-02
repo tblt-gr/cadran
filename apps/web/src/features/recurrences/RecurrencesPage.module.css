@@ -100,6 +100,10 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.skeletonLine {
+  width: 100%;
+  height: var(--spacing-4);
+}
 
 .empty,
 .state {
@@ -129,4 +133,9 @@
   .candidates {
     grid-template-columns: 1fr;
   }
+}
+
+.skeletonBadge {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--spacing-6);
 }

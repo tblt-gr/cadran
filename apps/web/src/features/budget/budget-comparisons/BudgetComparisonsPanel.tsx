@@ -5,6 +5,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { budgetRequestError } from '@/features/budget/budgetError';
+import { BudgetComparisonsPanelSkeleton } from './BudgetComparisonsPanelSkeleton';
 import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import styles from './BudgetComparisonsPanel.module.css';
 
@@ -127,13 +128,8 @@ export function BudgetComparisonsPanel({ planId }: { planId: string }) {
     retry: false,
   });
 
-  if (comparisons.isPending) {
-    return (
-      <p className={styles.state} role="status">
-        {t('budget.comparisons.loading')}
-      </p>
-    );
-  }
+  if (comparisons.isPending && comparisons.data === undefined)
+    return <BudgetComparisonsPanelSkeleton status={t('budget.comparisons.loading')} />;
   if (comparisons.isError || comparisons.data === undefined) {
     return (
       <div className={styles.alert} role="alert">

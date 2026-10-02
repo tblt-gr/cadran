@@ -36,14 +36,17 @@ function HeaderTitleProbe({ path }: { path: string }) {
 
 function renderPage(year = 2026) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={client}>
-      <HeaderTitleProvider>
-        <AnnualReportPage today="2026-09-24" year={year} />
-        <HeaderTitleProbe path={`/reports/annual/${year}`} />
-      </HeaderTitleProvider>
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={client}>
+        <HeaderTitleProvider>
+          <AnnualReportPage today="2026-09-24" year={year} />
+          <HeaderTitleProbe path={`/reports/annual/${year}`} />
+        </HeaderTitleProvider>
+      </QueryClientProvider>,
+    ),
+    queryClient: client,
+  };
 }
 
 beforeEach(() => {
@@ -61,6 +64,31 @@ afterEach(() => {
 });
 
 describe('AnnualReportPage', () => {
+  it('replaces its one named cold-load skeleton and keeps the report during a refetch', async () => {
+    let resolveReport: ((value: unknown) => void) | undefined;
+    api.readAnnualReport.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveReport = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('annual-report-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('annual-report-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveReport?.(ok(annualReport));
+    expect(await screen.findByRole('table', { name: /rapport annuel 2026/i })).toBeTruthy();
+    expect(screen.queryByTestId('annual-report-skeleton')).toBeNull();
+
+    api.readAnnualReport.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['annual-report'] });
+    await waitFor(() => expect(api.readAnnualReport).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('table', { name: /rapport annuel 2026/i })).toBeTruthy();
+    expect(screen.queryByTestId('annual-report-skeleton')).toBeNull();
+  });
+
   it('lists every year from the current year down to the first data year, newest first', async () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport annuel 2026/i });

@@ -1,0 +1,113 @@
+.block {
+  display: block;
+  border-radius: var(--radius-card);
+  background: var(--gradient-skeleton);
+  background-size: var(--skeleton-background-size);
+  animation: shimmer var(--duration-skeleton-shimmer) linear infinite;
+}
+
+.text {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.line {
+  height: var(--spacing-3);
+}
+
+.lineShort {
+  width: 54%;
+}
+
+.lineMedium {
+  width: 78%;
+}
+
+.title {
+  width: 40%;
+  max-width: 100%;
+}
+
+.title_page {
+  height: var(--font-size-kpi);
+}
+
+.title_card {
+  height: var(--font-size-card-title);
+}
+
+.title_eyebrow {
+  width: 20%;
+  height: var(--font-size-xs);
+}
+
+.button {
+  width: calc(var(--spacing-12) * 2);
+  max-width: 100%;
+  height: var(--control-height);
+  border-radius: var(--radius-button);
+}
+
+.field {
+  display: grid;
+  gap: var(--spacing-1-5);
+}
+
+.fieldLabel {
+  width: 30%;
+  height: var(--font-size-label);
+}
+
+.fieldLabelText {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.fieldControl {
+  width: 100%;
+  height: var(--control-height);
+  border-radius: var(--radius-control);
+}
+
+.kpiCard {
+  display: grid;
+  min-height: var(--spacing-12);
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface-1);
+}
+
+.kpiLabel {
+  width: 54%;
+  height: var(--spacing-2);
+}
+
+.kpiValue {
+  width: 78%;
+  height: var(--spacing-6);
+}
+
+.chartArea {
+  width: 100%;
+  min-height: var(--chart-plot-height);
+}
+
+.tableCell {
+  min-width: var(--spacing-12);
+  min-height: var(--spacing-6);
+}
+
+@keyframes shimmer {
+  to {
+    background-position: var(--skeleton-background-position-end);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .block {
+    animation: none;
+  }
+}

@@ -50,23 +50,56 @@ function success<T>(data: T) {
   return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
 }
 function renderPage() {
-  return render(
-    <QueryClientProvider
-      client={
-        new QueryClient({
-          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-        })
-      }
-    >
-      <CategorizationRulesPage />
-    </QueryClientProvider>,
-  );
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <CategorizationRulesPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe('CategorizationRulesPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+  it('shows the named skeleton only during the initial rules request', async () => {
+    api.listAccounts.mockImplementation(() => success({ items: [] }));
+    let resolveRules: ((value: unknown) => void) | undefined;
+    api.listCategorizationRules.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRules = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+    expect(await screen.findByTestId('categorization-rules-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('categorization-rules-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveRules?.({
+      data: { items: [rule], page: 1, perPage: 100, total: 1 },
+      response: new Response('{}', { status: 200 }),
+    });
+    expect(await screen.findByText(rule.label)).toBeTruthy();
+    expect(screen.queryByTestId('categorization-rules-skeleton')).toBeNull();
+    api.listCategorizationRules.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['categorization-rules'] });
+    await waitFor(() => expect(api.listCategorizationRules).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(rule.label)).toBeTruthy();
+    expect(screen.queryByTestId('categorization-rules-skeleton')).toBeNull();
+  });
+  it('keeps an error distinct from the skeleton', async () => {
+    api.listAccounts.mockImplementation(() => success({ items: [] }));
+    api.listCategorizationRules.mockRejectedValue(new TypeError('offline'));
+    renderPage();
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByTestId('categorization-rules-skeleton')).toBeNull();
   });
   it('covers the empty state and opens the shared editor', async () => {
     api.listAccounts.mockImplementation(() => success({ items: [] }));

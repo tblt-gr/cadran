@@ -109,6 +109,8 @@ one branch protection requires.
 - Record durable decisions that affect several modules before implementation.
 - Document every formula with a numerical example and reference tests.
 - Handle loading, empty, error, and non-calculable states.
+- Draw a loading skeleton of the whole final page: static chrome (titles, labels, table headers,
+  buttons, links) stays real and only query-driven values are placeholder blocks.
 - Meet WCAG 2.2 AA with semantic HTML, keyboard access, focus management, contrast, and chart
   alternatives.
 

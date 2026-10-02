@@ -58,7 +58,8 @@ describe('AuthGate', () => {
 
     renderGate();
 
-    expect(screen.getByRole('status').textContent).toContain('Vérification de la session');
+    expect(screen.getByRole('navigation', { name: 'Navigation principale' })).toBeTruthy();
+    expect(screen.getByTestId('dashboard-skeleton')).toBeTruthy();
     expect(screen.queryByText('Espace authentifié')).toBeNull();
   });
 

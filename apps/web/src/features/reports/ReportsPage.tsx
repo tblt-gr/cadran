@@ -5,6 +5,7 @@ import { workspaceToday } from '@/lib/workspaceTime';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { ReportsTabs } from './ReportsTabs';
 import { MonthlyKpiTable } from './MonthlyKpiTable';
+import { ReportsPageSkeleton } from './ReportsPageSkeleton';
 import { MonthlyMonthNavigator, formatMonthLabel } from './MonthlyMonthNavigator';
 import styles from './ReportsPage.module.css';
 import { useMonthlyReport } from './useMonthlyReport';
@@ -27,11 +28,7 @@ export function ReportsPage() {
   );
   let content: ReactNode;
   if (report.isPending) {
-    content = (
-      <section className={`card ${styles.state}`} aria-busy="true" role="status">
-        <h2>{t('reports.loading')}</h2>
-      </section>
-    );
+    content = <ReportsPageSkeleton status={t('reports.loading')} />;
   } else if (report.isError) {
     const unauthorized = report.error.message === '401' || report.error.message === '403';
     content = (

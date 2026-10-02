@@ -19,13 +19,6 @@
   place-items: center;
 }
 
-.loadingMark {
-  border: var(--border-width-loading) solid var(--border-strong);
-  border-top-color: var(--gold-300);
-  border-radius: var(--radius-circle);
-  animation: spin var(--duration-loading-spin) linear infinite;
-}
-
 .errorMark {
   color: var(--negative);
   background: var(--negative-soft);
@@ -43,43 +36,9 @@
   line-height: var(--line-height-relaxed);
 }
 
-.skeletonStack {
-  display: grid;
-  width: min(100%, 36rem);
-  gap: var(--spacing-3);
-}
-
-.skeletonStack span {
-  display: block;
-  height: 0.75rem;
-  border-radius: var(--radius-full);
-  background: var(--bg-surface-2);
-}
-
-.skeletonStack span:nth-child(2) {
-  width: 78%;
-}
-
-.skeletonStack span:nth-child(3) {
-  width: 54%;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @media (max-width: 767px) {
   .state {
     min-height: calc(100svh - 13rem);
     padding: var(--spacing-6);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .loadingMark {
-    animation: none;
-    border-color: var(--gold-300);
   }
 }

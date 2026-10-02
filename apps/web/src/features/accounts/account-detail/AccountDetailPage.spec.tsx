@@ -155,11 +155,18 @@ function renderPage(accountId = account.id, search = '') {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <AccountDetailPage accountId={accountId} />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <AccountDetailPage accountId={accountId} />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
+}
+
+async function loaded() {
+  await waitFor(() => expect(screen.queryByTestId('account-detail-skeleton')).toBeNull());
 }
 
 describe('AccountDetailPage', () => {
@@ -178,6 +185,29 @@ describe('AccountDetailPage', () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('replaces its one named cold-load skeleton and keeps the account during a refetch', async () => {
+    let resolveAccount: ((value: unknown) => void) | undefined;
+    api.readAccount.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveAccount = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('account-detail-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveAccount?.({ data: account, response: new Response('{}', { status: 200 }) });
+    expect(await screen.findByRole('heading', { level: 2, name: account.label })).toBeTruthy();
+    expect(screen.queryByTestId('account-detail-skeleton')).toBeNull();
+
+    api.readAccount.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['account', account.id] });
+    await waitFor(() => expect(api.readAccount).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('heading', { level: 2, name: account.label })).toBeTruthy();
+    expect(screen.queryByTestId('account-detail-skeleton')).toBeNull();
   });
 
   it('opens the account named in Budget or Accounts and shows its identity and movements', async () => {
@@ -245,6 +275,7 @@ describe('AccountDetailPage', () => {
 
   it('opens the shared transaction modal with this account prefilled', async () => {
     renderPage();
+    await loaded();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle transaction' }));
 
@@ -256,6 +287,7 @@ describe('AccountDetailPage', () => {
 
   it('opens the shared transfer modal with this account selected as source', async () => {
     renderPage();
+    await loaded();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
 
@@ -269,6 +301,7 @@ describe('AccountDetailPage', () => {
   it('refuses a write against a closed period with the shared explanation', async () => {
     api.createTransaction.mockImplementation(() => problem(409, '/problems/period-closed'));
     renderPage();
+    await loaded();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle transaction' }));
     const dialog = await screen.findByRole('dialog');
@@ -282,6 +315,7 @@ describe('AccountDetailPage', () => {
 
   it('shows the applicable rules from the shared rules panel', async () => {
     renderPage();
+    await loaded();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir les règles' }));
 
@@ -293,6 +327,7 @@ describe('AccountDetailPage', () => {
 
   it('closes an open modal on Escape', async () => {
     renderPage();
+    await loaded();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle transaction' }));
     const dialog = await screen.findByRole('dialog');

@@ -48,17 +48,46 @@ function renderPage() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <CategoryPage />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <CategoryPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe('CategoryPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('replaces its one named cold-load skeleton and keeps categories during a refetch', async () => {
+    let resolveCategories: ((value: unknown) => void) | undefined;
+    api.listCategories.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCategories = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('category-page-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveCategories?.({
+      data: { items: [category], page: 1, perPage: 50, total: 1 },
+      response: new Response('{}', { status: 200 }),
+    });
+    expect(await screen.findByText(category.label)).toBeTruthy();
+    expect(screen.queryByTestId('category-page-skeleton')).toBeNull();
+
+    api.listCategories.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['categories'] });
+    await waitFor(() => expect(api.listCategories).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(category.label)).toBeTruthy();
+    expect(screen.queryByTestId('category-page-skeleton')).toBeNull();
   });
 
   it('covers the empty state and creates a bounded category', async () => {

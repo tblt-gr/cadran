@@ -2,6 +2,7 @@ import type { Account, CreateAccountRequest, UpdateAccountRequest } from '@cadra
 import { useTranslation } from 'react-i18next';
 import type { AccountOrigin } from '@/features/accounts/account-form/accountOrigin';
 import { AccountForm } from '@/features/accounts/account-form/AccountForm';
+import { AccountEditorSkeleton } from './AccountEditorSkeleton';
 import type { AccountErrorKind } from '@/features/accounts/accountError';
 import { useAccountProduct } from './useAccountProduct';
 import { useAccountProductModel } from './useAccountProductModel';
@@ -44,13 +45,14 @@ export function AccountEditor({
       ? { type: 'template', template: template.template }
       : null;
 
-  if (isPending) {
+  if (isPending && !catalogue.product && !template.template)
     return (
-      <p aria-busy="true" className={styles.state} role="status">
-        {t(account.productModelId ? 'accounts.editor.templateLoading' : 'accounts.editor.loading')}
-      </p>
+      <AccountEditorSkeleton
+        status={t(
+          account.productModelId ? 'accounts.editor.templateLoading' : 'accounts.editor.loading',
+        )}
+      />
     );
-  }
 
   return (
     <>

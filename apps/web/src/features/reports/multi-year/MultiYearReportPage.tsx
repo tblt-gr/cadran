@@ -25,8 +25,6 @@ interface MultiYearReportPageProps {
   today: string;
 }
 
-const MAX_SPAN_YEARS = 15;
-
 export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
   const { t } = useTranslation();
   const currentYear = Number(today.slice(0, 4));
@@ -89,8 +87,7 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
 
   let content: ReactNode;
   if (report.isPending) {
-    const years = range ? Math.min(range.to - range.from + 1, MAX_SPAN_YEARS) : 1;
-    content = <MultiYearSkeleton years={years} />;
+    content = <MultiYearSkeleton currentYear={currentYear} range={effectiveRange} />;
   } else if (report.isError && boundsForRangeError === null) {
     content = (
       <section className={`card ${styles.state}`} role="alert">

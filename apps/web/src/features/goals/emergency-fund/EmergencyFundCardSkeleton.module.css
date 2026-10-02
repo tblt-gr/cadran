@@ -1,0 +1,14 @@
+.covered {
+  width: 40%;
+  height: var(--font-size-metric);
+}
+
+.meter {
+  width: 100%;
+  height: var(--spacing-4);
+}
+
+.fact {
+  width: 70%;
+  height: var(--font-size-body);
+}

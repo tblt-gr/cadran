@@ -1,9 +1,11 @@
 import { listInstruments, type Instrument } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { InstrumentEditorModal } from './instrument-editor-modal/InstrumentEditorModal';
 import { InstrumentState } from './instrument-state/InstrumentState';
+import { InstrumentsPageSkeleton } from './InstrumentsPageSkeleton';
 import { InstrumentStatusModal } from './instrument-status-dialog/InstrumentStatusModal';
 import { InstrumentTable } from './instrument-table/InstrumentTable';
 import { instrumentRequestError } from './instrumentError';
@@ -23,6 +25,7 @@ function readUrlFilters(): { q: string; status: Status } {
 }
 
 export function InstrumentsPage() {
+  const { t } = useTranslation();
   const initial = readUrlFilters();
   const [editor, setEditor] = useState<Editor>(null);
   const [statusTarget, setStatusTarget] = useState<Instrument | null>(null);
@@ -128,8 +131,8 @@ export function InstrumentsPage() {
           ))}
         </div>
       </section>
-      {instruments.isPending ? (
-        <InstrumentState title="Chargement des instruments…" />
+      {instruments.isPending && instruments.data === undefined ? (
+        <InstrumentsPageSkeleton status={t('portfolio.instruments.loading')} />
       ) : instruments.isError ? (
         <InstrumentState
           error

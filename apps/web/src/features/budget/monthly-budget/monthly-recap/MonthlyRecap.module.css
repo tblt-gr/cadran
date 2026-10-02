@@ -24,3 +24,13 @@
 .policy {
   margin: var(--spacing-none);
 }
+
+.skeletonValue {
+  width: 80%;
+  height: var(--font-size-kpi);
+}
+
+.skeletonAmount {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-body);
+}

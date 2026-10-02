@@ -16,6 +16,7 @@ import { BudgetPlanForm } from './budget-plan-form/BudgetPlanForm';
 import { BudgetTargetForm } from './budget-target-form/BudgetTargetForm';
 import { budgetErrorKind, budgetRequestError, BudgetRequestError } from './budgetError';
 import { PlanDetail } from './plan-detail/PlanDetail';
+import { BudgetPageSkeleton } from './BudgetPageSkeleton';
 import { useBudgetPlanMutations } from './useBudgetPlanMutations';
 import styles from './BudgetPage.module.css';
 
@@ -69,12 +70,11 @@ export function BudgetPage({ planId }: { planId?: string }) {
       : detail.error instanceof BudgetRequestError
         ? detail.error
         : null;
-  if (plans.isPending || (planId && detail.isPending))
-    return (
-      <section className={`card ${styles.state}`} aria-busy="true" role="status">
-        <h2>{t('budget.loading')}</h2>
-      </section>
-    );
+  if (
+    (plans.isPending && plans.data === undefined) ||
+    (planId && detail.isPending && detail.data === undefined)
+  )
+    return <BudgetPageSkeleton detail={Boolean(planId)} status={t('budget.loading')} />;
   if (plans.isError || detail.isError)
     return (
       <section className={`card ${styles.state}`} role="alert">

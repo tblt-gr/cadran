@@ -7,6 +7,19 @@
   min-width: 0;
   gap: var(--spacing-4);
 }
+
+.skeletonKpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-3);
+}
+.skeletonTable {
+  width: 100%;
+  border-spacing: var(--spacing-2);
+}
+.skeletonTable td {
+  padding: var(--spacing-none);
+}
 .panel,
 .state {
   padding: var(--spacing-6);

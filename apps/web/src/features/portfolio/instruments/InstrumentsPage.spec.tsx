@@ -44,11 +44,14 @@ function renderPage() {
   const query = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={query}>
-      <InstrumentsPage />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={query}>
+        <InstrumentsPage />
+      </QueryClientProvider>,
+    ),
+    queryClient: query,
+  };
 }
 function problem(code: string, status = 409, extra: object = {}) {
   return Promise.resolve({
@@ -78,6 +81,48 @@ describe('InstrumentsPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+  it('replaces its one named cold-load skeleton and keeps instruments during a refetch', async () => {
+    api.listAssets.mockResolvedValue(
+      success({ items: [{ code: 'EUR', kind: 'FIAT' }], page: 1, perPage: 100, total: 1 }),
+    );
+    let resolveInstruments: ((value: unknown) => void) | undefined;
+    api.listInstruments.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveInstruments = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('instruments-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('instruments-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveInstruments?.(await success({ items: [instrument], page: 1, perPage: 20, total: 1 }));
+    expect(await screen.findByText(instrument.name)).toBeTruthy();
+    expect(screen.queryByTestId('instruments-skeleton')).toBeNull();
+
+    api.listInstruments.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['instruments'] });
+    await waitFor(() => expect(api.listInstruments).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(instrument.name)).toBeTruthy();
+    expect(screen.queryByTestId('instruments-skeleton')).toBeNull();
+  });
+
+  it('replaces the instruments skeleton with error and empty states', async () => {
+    api.listInstruments.mockRejectedValue(new TypeError('offline'));
+    const failed = renderPage();
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByTestId('instruments-skeleton')).toBeNull();
+
+    failed.unmount();
+    api.listInstruments.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 20, total: 0 }),
+    );
+    renderPage();
+    expect(await screen.findByText('Aucun instrument')).toBeTruthy();
+    expect(screen.queryByTestId('instruments-skeleton')).toBeNull();
   });
   it('validates the required name and identifier before creating', async () => {
     setup([]);

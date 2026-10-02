@@ -7,6 +7,7 @@ import { AggregateExplainModal } from './AggregateExplainModal';
 import { AnnualCharts } from './AnnualCharts';
 import { AnnualMonthCards } from './AnnualMonthCards';
 import { AnnualReportTable } from './AnnualReportTable';
+import { AnnualReportPageSkeleton } from './AnnualReportPageSkeleton';
 import { AnnualTableActions } from './AnnualTableActions';
 import { AnnualYearNavigator } from './AnnualYearNavigator';
 import { ColumnPickerModal } from './ColumnPickerModal';
@@ -56,11 +57,7 @@ export function AnnualReportPage({ today, year }: AnnualReportPageProps) {
 
   let content: ReactNode;
   if (report.isPending) {
-    content = (
-      <section aria-busy="true" className={`card ${styles.state}`} role="status">
-        <h2>{t('reports.loading')}</h2>
-      </section>
-    );
+    content = <AnnualReportPageSkeleton status={t('reports.loading')} year={year} />;
   } else if (report.isError) {
     const status = report.error instanceof AnnualRequestError ? report.error.status : 0;
     content = (

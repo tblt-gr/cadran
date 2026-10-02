@@ -60,13 +60,15 @@ function problem(status: number, code?: string) {
 }
 
 function renderPage() {
-  return render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
-      <MetricPolicyPage />
-    </QueryClientProvider>,
-  );
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <MetricPolicyPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe('MetricPolicyPage', () => {
@@ -75,17 +77,34 @@ describe('MetricPolicyPage', () => {
     vi.resetAllMocks();
   });
 
-  it('announces loading, then shows the active definition in plain language', async () => {
-    api.listMetricPolicies.mockReturnValue(ok(onlySystem));
-    renderPage();
+  it('replaces its one named cold-load skeleton and keeps the policy during a refetch', async () => {
+    let resolvePolicies: ((value: unknown) => void) | undefined;
+    api.listMetricPolicies.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvePolicies = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
 
-    expect(screen.getByRole('status').textContent).toContain('Chargement');
+    expect(screen.getByTestId('metric-policy-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('metric-policy-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolvePolicies?.(await ok(onlySystem));
     const card = await screen.findByRole('region', { name: 'Politique active' });
     expect(card.textContent).toContain('Version 1');
     expect(card.textContent).toContain('Définition de trésorerie');
     expect(card.textContent).toContain('Avantage salarié');
     expect(card.textContent).toContain('Solde budgétaire');
     expect(screen.getByRole('link', { name: 'Profil' })).toBeTruthy();
+    expect(screen.queryByTestId('metric-policy-skeleton')).toBeNull();
+
+    api.listMetricPolicies.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['metric-policies'] });
+    await waitFor(() => expect(api.listMetricPolicies).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('region', { name: 'Politique active' })).toBeTruthy();
+    expect(screen.queryByTestId('metric-policy-skeleton')).toBeNull();
   });
 
   it('shows an empty history message when only the built-in version exists', async () => {

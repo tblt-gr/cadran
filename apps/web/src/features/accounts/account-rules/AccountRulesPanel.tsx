@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { AccountRuleTable } from '@/features/accounts/account-rules/account-rule-table/AccountRuleTable';
+import { AccountRulesPanelSkeleton } from './AccountRulesPanelSkeleton';
 import { OverrideHistory } from '@/features/accounts/account-rules/override-history/OverrideHistory';
 import { YieldReading } from '@/features/accounts/account-rules/yield-reading/YieldReading';
 import { useAccountRuleOverrides } from '@/features/accounts/account-rules/useAccountRuleOverrides';
@@ -48,6 +49,10 @@ export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRu
   const outOfRange = failure?.kind === 'invalid';
   const retryable = !unauthorized && !outOfRange;
 
+  if (rules.isPending || overrides.isPending) {
+    return <AccountRulesPanelSkeleton status={t('accounts.rules.loading')} />;
+  }
+
   return (
     <div className={styles.panel}>
       <BusinessDateField onChange={setAsOf} today={today} value={asOf} />
@@ -62,11 +67,7 @@ export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRu
         </p>
       ) : null}
 
-      {rules.isPending ? (
-        <p aria-busy="true" className={styles.state} role="status">
-          {t('accounts.rules.loading')}
-        </p>
-      ) : rules.isError ? (
+      {rules.isError ? (
         <div className={styles.state} role="alert">
           <p>
             {t(
@@ -127,11 +128,7 @@ export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRu
       <section className={styles.history} aria-labelledby="account-override-history">
         <h3 id="account-override-history">{t('accounts.overrides.historyTitle')}</h3>
         <p className={styles.note}>{t('accounts.overrides.historyHint')}</p>
-        {overrides.isPending ? (
-          <p aria-busy="true" className={styles.note} role="status">
-            {t('accounts.overrides.historyLoading')}
-          </p>
-        ) : overrides.isError ? (
+        {overrides.isError ? (
           <p className={styles.note} role="alert">
             {t('accounts.overrides.historyError')}
           </p>

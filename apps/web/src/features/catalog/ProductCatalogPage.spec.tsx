@@ -102,11 +102,14 @@ function renderPage() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <ProductCatalogPage />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <ProductCatalogPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 function withoutNarrowSpaces(value: string) {
@@ -119,12 +122,29 @@ describe('ProductCatalogPage', () => {
     vi.clearAllMocks();
   });
 
-  it('announces that the catalogue is loading', () => {
-    api.listProducts.mockReturnValue(new Promise(() => {}));
+  it('replaces its one named cold-load skeleton and keeps products during a refetch', async () => {
+    let resolveProducts: ((value: unknown) => void) | undefined;
+    api.listProducts.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveProducts = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
 
-    renderPage();
+    expect(screen.getByTestId('product-catalog-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('product-catalog-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveProducts?.(await success(page([livretA])));
+    expect(await screen.findByRole('rowheader', { name: 'Plafond de dépôt' })).toBeTruthy();
+    expect(screen.queryByTestId('product-catalog-skeleton')).toBeNull();
 
-    expect(screen.getByRole('status').textContent).toContain('Chargement du catalogue');
+    api.listProducts.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['products'] });
+    await waitFor(() => expect(api.listProducts).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('rowheader', { name: 'Plafond de dépôt' })).toBeTruthy();
+    expect(screen.queryByTestId('product-catalog-skeleton')).toBeNull();
   });
 
   it('shows a regulatory value with its period, its verification and its official source', async () => {

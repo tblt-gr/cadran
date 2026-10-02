@@ -179,7 +179,8 @@ describe('App', () => {
     renderApp();
 
     expect(await screen.findByRole('navigation', { name: 'Navigation principale' })).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('Connexion à l’API');
+    expect(await screen.findByTestId('dashboard-skeleton')).toBeTruthy();
+    expect(screen.queryByText(/Le socle de l’application est prêt/)).toBeNull();
   });
 
   it.each([
@@ -202,7 +203,7 @@ describe('App', () => {
 
     renderApp();
 
-    expect(await screen.findByRole('heading', { name: title })).toBeTruthy();
+    expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
   });
 
   it('scaffolds application routes with client-side navigation', async () => {
@@ -210,6 +211,7 @@ describe('App', () => {
 
     renderApp();
     await screen.findByRole('heading', { name: 'Synthèse' });
+    await waitFor(() => expect(screen.queryByTestId('session-probe-skeleton')).toBeNull());
 
     fireEvent.click(screen.getAllByRole('link', { name: 'Transactions' })[0]);
 
