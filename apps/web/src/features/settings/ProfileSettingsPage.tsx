@@ -15,6 +15,7 @@ import {
 import { ownerProfileQueryKey, useOwnerProfile } from '@/features/settings/useOwnerProfile';
 import { ChangePasswordForm, type PasswordChange } from './change-password-form/ChangePasswordForm';
 import { DisplayNameForm } from './display-name-form/DisplayNameForm';
+import { ProfileSettingsPageSkeleton } from './ProfileSettingsPageSkeleton';
 import styles from './ProfileSettingsPage.module.css';
 
 type Saved = 'password' | 'profile';
@@ -90,10 +91,8 @@ export function ProfileSettingsPage() {
         <Toast onDismiss={() => setSaved(null)}>{t(`settings.saved.${saved}`)}</Toast>
       ) : null}
 
-      {profile.isPending ? (
-        <section className={`card ${styles.state}`} aria-busy="true" role="status">
-          <h2>{t('settings.loading')}</h2>
-        </section>
+      {profile.isPending && profile.data === undefined ? (
+        <ProfileSettingsPageSkeleton status={t('settings.loading')} />
       ) : profile.isError ? (
         <section className={`card ${styles.state}`} role="alert">
           <h2>{t(unauthorized ? 'settings.unauthorized.title' : 'settings.error.title')}</h2>

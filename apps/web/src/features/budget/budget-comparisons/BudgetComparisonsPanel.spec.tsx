@@ -1,6 +1,6 @@
 import type { BudgetComparisons } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { BudgetComparisonsPanel } from './BudgetComparisonsPanel';
@@ -48,19 +48,55 @@ const result = (overrides: Partial<BudgetComparisons> = {}): BudgetComparisons =
 });
 
 function mount() {
-  return render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
-      <BudgetComparisonsPanel planId="00000000-0000-7000-8000-000000000001" />
-    </QueryClientProvider>,
-  );
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <BudgetComparisonsPanel planId="00000000-0000-7000-8000-000000000001" />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe('BudgetComparisonsPanel', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('replaces its one named cold-load skeleton and keeps comparisons during a refetch', async () => {
+    let resolveComparisons: ((value: unknown) => void) | undefined;
+    api.readBudgetComparisons.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveComparisons = resolve;
+        }),
+    );
+    const { queryClient } = mount();
+
+    expect(screen.getByTestId('budget-comparisons-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveComparisons?.({ data: result(), response: new Response('{}', { status: 200 }) });
+    expect(await screen.findByText(/^42,50/)).toBeTruthy();
+    expect(screen.queryByTestId('budget-comparisons-skeleton')).toBeNull();
+
+    api.readBudgetComparisons.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['budget-comparisons'] });
+    await waitFor(() => expect(api.readBudgetComparisons).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(/^42,50/)).toBeTruthy();
+    expect(screen.queryByTestId('budget-comparisons-skeleton')).toBeNull();
+  });
+
+  it('replaces the skeleton with an error state after a failed cold read', async () => {
+    api.readBudgetComparisons.mockResolvedValue({
+      data: undefined,
+      response: new Response('{}', { status: 500 }),
+    });
+    mount();
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByTestId('budget-comparisons-skeleton')).toBeNull();
   });
 
   it('renders exact server figures, readable source evidence, applied policy and pending scope count', async () => {

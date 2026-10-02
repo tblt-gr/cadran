@@ -1,0 +1,22 @@
+.line {
+  width: 70%;
+  height: var(--font-size-label);
+  margin-top: var(--spacing-1);
+}
+
+.meta {
+  width: 40%;
+  height: var(--font-size-xs);
+  margin-top: var(--spacing-1);
+}
+
+.amount {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-body);
+}
+
+.icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  border-radius: var(--radius-circle);
+}

@@ -30,6 +30,8 @@ export interface RouteDefinition {
   pattern: RegExp;
   /** Whether the shell's global create/search actions apply to this route. Defaults to true. */
   globalActions?: boolean;
+  /** Pure redirect: nothing to preview while the session is still being checked. */
+  redirect?: boolean;
   render: (match: RegExpExecArray) => ReactNode;
 }
 
@@ -75,11 +77,13 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
     {
       pattern: /^\/categories$/,
       globalActions: false,
+      redirect: true,
       render: () => <RouteRedirect to="/transactions/categories" />,
     },
     {
       pattern: /^\/categories\/rules$/,
       globalActions: false,
+      redirect: true,
       render: () => <RouteRedirect to="/transactions/categories/rules" />,
     },
     { pattern: /^\/catalog$/, globalActions: false, render: () => <ProductCatalogPage /> },
@@ -97,6 +101,7 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
     {
       pattern: /^\/budget$/,
       globalActions: false,
+      redirect: true,
       render: () => (
         <BudgetRouteRedirect
           href={`/budget/${workspaceToday(new Date(), workspaceTimeZone).slice(0, 7)}`}
@@ -136,6 +141,7 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
     {
       pattern: new RegExp(`^/budget/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),
       globalActions: false,
+      redirect: true,
       render: (match) => <BudgetRouteRedirect href={`/budget/plans/${match[1]}`} />,
     },
     {

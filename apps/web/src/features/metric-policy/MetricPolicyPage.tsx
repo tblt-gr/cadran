@@ -7,6 +7,7 @@ import { CreateMetricPolicyModal } from './create-metric-policy-modal/CreateMetr
 import { ActiveMetricPolicyCard } from './ActiveMetricPolicyCard';
 import { MetricPolicyRequestError } from './metricPolicyError';
 import { MetricPolicyHistory } from './MetricPolicyHistory';
+import { MetricPolicyPageSkeleton } from './MetricPolicyPageSkeleton';
 import styles from './MetricPolicyPage.module.css';
 import { useMetricPolicies } from './useMetricPolicies';
 
@@ -39,10 +40,8 @@ export function MetricPolicyPage() {
         </button>
       </section>
 
-      {policies.isPending ? (
-        <section className={`card ${styles.state}`} aria-busy="true" role="status">
-          <h2>{t('metricPolicy.loading')}</h2>
-        </section>
+      {policies.isPending && policies.data === undefined ? (
+        <MetricPolicyPageSkeleton status={t('metricPolicy.loading')} />
       ) : policies.isError ? (
         <section className={`card ${styles.state}`} role="alert">
           <h2>{t(unauthorized ? 'metricPolicy.unauthorized' : 'metricPolicy.error')}</h2>

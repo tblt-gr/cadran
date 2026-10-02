@@ -1,6 +1,6 @@
 import type { MonthlyKpiExplanation, MonthlyProjection } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import {
@@ -126,6 +126,18 @@ const explanation: MonthlyKpiExplanation = {
 const success = <T,>(data: T) =>
   Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
 
+function renderPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <ReportsPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
+}
+
 describe('ReportsPage', () => {
   beforeEach(() => {
     api.readMultiYearReport.mockResolvedValue({
@@ -138,6 +150,31 @@ describe('ReportsPage', () => {
     cleanup();
     vi.resetAllMocks();
     window.history.replaceState({}, '', '/');
+  });
+
+  it('replaces its one named cold-load skeleton and keeps the report during a refetch', async () => {
+    let resolveReport: ((value: unknown) => void) | undefined;
+    api.readMonthlyProjection.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveReport = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('monthly-report-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('monthly-report-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveReport?.({ data: report, response: new Response('{}', { status: 200 }) });
+    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(screen.queryByTestId('monthly-report-skeleton')).toBeNull();
+
+    api.readMonthlyProjection.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['monthly-report'] });
+    await waitFor(() => expect(api.readMonthlyProjection).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.queryByTestId('monthly-report-skeleton')).toBeNull();
   });
 
   it('prints exact backend metrics, pending data and the server explanation without calculating', async () => {

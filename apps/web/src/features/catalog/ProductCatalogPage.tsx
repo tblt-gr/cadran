@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { ProductCard } from '@/features/catalog/product-card/ProductCard';
+import { ProductCatalogPageSkeleton } from './ProductCatalogPageSkeleton';
 import { todayInBrowser } from '@/lib/businessDay';
 import { formatCalendarDay } from '@/lib/decimal';
 import styles from './ProductCatalogPage.module.css';
@@ -78,10 +79,8 @@ export function ProductCatalogPage() {
         <BusinessDateField onChange={chooseBusinessDate} today={today} value={asOf} />
       </section>
 
-      {catalogue.isPending ? (
-        <section className={`card ${styles.state}`} aria-busy="true" role="status">
-          <h2>{t('catalog.loading')}</h2>
-        </section>
+      {catalogue.isPending && catalogue.data === undefined ? (
+        <ProductCatalogPageSkeleton status={t('catalog.loading')} />
       ) : catalogue.isError ? (
         <section className={`card ${styles.state}`} role="alert">
           <h2>{t(unauthorized ? 'catalog.unauthorized.title' : 'catalog.error.title')}</h2>

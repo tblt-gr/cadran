@@ -2,12 +2,12 @@ import { getFoundationStatus } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
+import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
 import { DashboardContextPanel } from '@/features/dashboard/context-panel/DashboardContextPanel';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { useDashboardHeader } from '@/features/dashboard/net-worth/useDashboardHeader';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
-import { FoundationLoadingState } from '@/features/foundation/FoundationLoadingState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from './AuthenticatedApp.routes';
@@ -55,7 +55,13 @@ export function AuthenticatedApp() {
   } else if (path !== '/') {
     content = <PlaceholderPage />;
   } else if (status.isPending) {
-    content = <FoundationLoadingState />;
+    // The probe gate has a final layout to reproduce: the dashboard in its own
+    // loading state, drawn without fetching until the API answers.
+    content = (
+      <FrozenQueries>
+        <DashboardPage />
+      </FrozenQueries>
+    );
   } else if (status.isError) {
     content = (
       <FoundationErrorState
@@ -67,12 +73,22 @@ export function AuthenticatedApp() {
   } else {
     content = <DashboardPage apiVersion={status.data.apiVersion} />;
   }
+  let contextPanel;
+  if (path === '/' && status.isSuccess) {
+    contextPanel = <DashboardContextPanel />;
+  } else if (path === '/' && status.isPending) {
+    contextPanel = (
+      <FrozenQueries>
+        <DashboardContextPanel />
+      </FrozenQueries>
+    );
+  }
   const showGlobalActions = matched ? (matched.route.globalActions ?? true) : true;
 
   return (
     <AppShell
       accountSlot={path === '/settings/profile' ? <LogoutButton /> : undefined}
-      contextPanel={path === '/' && status.isSuccess ? <DashboardContextPanel /> : undefined}
+      contextPanel={contextPanel}
       freshnessLabel={path === '/' ? dashboardHeader.freshnessLabel : undefined}
       headerDate={path === '/' ? dashboardHeader.headerDate : undefined}
       path={path}

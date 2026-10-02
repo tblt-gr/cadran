@@ -132,12 +132,19 @@ function renderDashboard() {
     defaultOptions: { queries: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <DashboardPage apiVersion="v1" />
-      <DashboardContextPanel />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <DashboardPage apiVersion="v1" />
+        <DashboardContextPanel />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
+}
+
+async function loaded() {
+  await waitFor(() => expect(screen.queryByTestId('dashboard-skeleton')).toBeNull());
 }
 
 describe('DashboardPage', () => {
@@ -146,11 +153,38 @@ describe('DashboardPage', () => {
     vi.resetAllMocks();
   });
 
+  it('replaces its one named cold-load skeleton and keeps data during a refetch', async () => {
+    let resolveNetWorth:
+      ((value: Awaited<ReturnType<typeof success<NetWorth>>>) => void) | undefined;
+    api.readNetWorth.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveNetWorth = resolve;
+        }),
+    );
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    const { queryClient } = renderDashboard();
+
+    const skeleton = screen.getByTestId('dashboard-skeleton');
+    expect(within(skeleton).getAllByRole('status')).toHaveLength(1);
+    resolveNetWorth?.(await success(netWorth));
+    await loaded();
+    expect(screen.getByRole('heading', { name: 'Patrimoine net' })).toBeTruthy();
+
+    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['net-worth'] });
+    await waitFor(() => expect(api.readNetWorth).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('heading', { name: 'Patrimoine net' })).toBeTruthy();
+    expect(screen.queryByTestId('dashboard-skeleton')).toBeNull();
+  });
+
   it('shows the backend total, delta and rate without recomputing them', async () => {
     api.readNetWorth.mockReturnValue(success(netWorth));
     api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
+    await loaded();
 
     const card = await screen.findByRole('heading', { name: 'Patrimoine net' });
     const section = card.closest('section');
@@ -175,6 +209,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
+    await loaded();
 
     const allocation = (await screen.findByRole('heading', { name: 'Allocation' })).closest(
       'section',
@@ -193,6 +228,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
+    await loaded();
 
     const allocation = (await screen.findByRole('heading', { name: 'Allocation' })).closest(
       'section',
@@ -206,6 +242,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
+    await loaded();
 
     await screen.findByRole('img', { name: /Évolution du patrimoine net/ });
 
@@ -228,6 +265,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
+    await loaded();
 
     fireEvent.click(await screen.findByText('Voir les données sous forme de tableau'));
     const table = screen.getByRole('table', { name: 'Évolution du patrimoine' });
@@ -250,6 +288,7 @@ describe('DashboardPage', () => {
     );
 
     renderDashboard();
+    await loaded();
 
     const chart = await screen.findByRole('img');
     expect(chart.querySelectorAll('circle')).toHaveLength(1);
@@ -269,6 +308,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
+    await loaded();
 
     const section = (await screen.findByRole('heading', { name: 'Patrimoine net' })).closest(
       'section',
@@ -300,6 +340,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
+    await loaded();
 
     const section = (await screen.findByRole('heading', { name: 'Patrimoine net' })).closest(
       'section',
@@ -325,6 +366,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
+    await loaded();
 
     const section = (await screen.findByRole('heading', { name: 'Patrimoine net' })).closest(
       'section',
@@ -351,6 +393,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
+    await loaded();
 
     const section = (await screen.findByRole('heading', { name: 'Patrimoine net' })).closest(
       'section',
@@ -372,6 +415,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(problem(500));
 
     renderDashboard();
+    await loaded();
 
     const panel = (await screen.findByRole('heading', { name: 'Qualité des données' })).closest(
       'aside',
@@ -385,6 +429,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(problem(403));
 
     renderDashboard();
+    await loaded();
 
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByText('Patrimoine inaccessible')).toBeTruthy();
@@ -396,6 +441,7 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(problem(500));
 
     renderDashboard();
+    await loaded();
 
     const retry = await screen.findByRole('button', { name: 'Réessayer' });
     api.readNetWorth.mockReturnValue(success(netWorth));

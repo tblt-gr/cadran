@@ -3,11 +3,12 @@ import { AllocationPanel } from './allocation-panel/AllocationPanel';
 import { DashboardState } from './dashboard-state/DashboardState';
 import { DashboardMetrics } from './metrics/DashboardMetrics';
 import { NetWorthCard } from './net-worth-card/NetWorthCard';
+import { DashboardPageSkeleton } from './DashboardPageSkeleton';
 import { netWorthErrorKind } from './net-worth/netWorthError';
 import { useNetWorth, useNetWorthHistory } from './net-worth/useNetWorth';
 import styles from './DashboardPage.module.css';
 
-export function DashboardPage({ apiVersion }: { apiVersion: string }) {
+export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
   const { t } = useTranslation();
   const netWorth = useNetWorth();
   const history = useNetWorthHistory();
@@ -18,7 +19,9 @@ export function DashboardPage({ apiVersion }: { apiVersion: string }) {
   return (
     <>
       <div className={styles.grid}>
-        {failure !== null || netWorth.data === undefined ? (
+        {netWorth.isPending && netWorth.data === undefined ? (
+          <DashboardPageSkeleton status={t('dashboard.netWorth.loading')} />
+        ) : failure !== null || netWorth.data === undefined ? (
           <DashboardState
             kind={failure ?? 'error'}
             onRetry={() => {
@@ -39,9 +42,11 @@ export function DashboardPage({ apiVersion }: { apiVersion: string }) {
         <DashboardMetrics />
       </div>
 
-      <p className="api-status sr-only" role="status">
-        {t('foundation.readyWithVersion', { version: apiVersion })}
-      </p>
+      {apiVersion === undefined ? null : (
+        <p className="api-status sr-only" role="status">
+          {t('foundation.readyWithVersion', { version: apiVersion })}
+        </p>
+      )}
     </>
   );
 }

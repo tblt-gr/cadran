@@ -25,6 +25,7 @@ import { ProductModelList } from './product-model-list/ProductModelList';
 import { ProductModelPagination } from './product-model-pagination/ProductModelPagination';
 import { ProductModelPeriodTable } from './product-model-periods/ProductModelPeriodTable';
 import { ProductModelsState } from './product-models-state/ProductModelsState';
+import { ProductModelsPageSkeleton } from './ProductModelsPageSkeleton';
 import {
   productModelErrorKind,
   productModelRequestError,
@@ -317,17 +318,11 @@ export function ProductModelsPage() {
         <span>{t('productModels.includeArchived')}</span>
       </label>
 
-      {models.isPending || models.isError || items.length === 0 ? (
+      {models.isPending && models.data === undefined ? (
+        <ProductModelsPageSkeleton status={t('productModels.loading')} />
+      ) : models.isError || items.length === 0 ? (
         <ProductModelsState
-          kind={
-            models.isPending
-              ? 'loading'
-              : unauthorized
-                ? 'unauthorized'
-                : models.isError
-                  ? 'error'
-                  : 'empty'
-          }
+          kind={unauthorized ? 'unauthorized' : models.isError ? 'error' : 'empty'}
           onCreate={() => openEditor('create')}
           onRetry={() => void models.refetch()}
         />

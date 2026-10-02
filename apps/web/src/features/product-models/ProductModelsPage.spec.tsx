@@ -98,11 +98,14 @@ function renderPage() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <ProductModelsPage />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <ProductModelsPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 async function openModelActions(name: string) {
@@ -396,16 +399,35 @@ describe('ProductModelsPage', () => {
     expect(screen.getByText(/30\s?000/)).toBeTruthy();
   });
 
-  it('covers the loading and error states of the list', async () => {
-    api.listProductModels.mockImplementation(() => new Promise(() => undefined));
-    renderPage();
-    expect(screen.getByRole('heading', { name: 'Chargement des modèles…' })).toBeTruthy();
+  it('replaces its one named cold-load skeleton and keeps models during a refetch', async () => {
+    let resolveModels: ((value: unknown) => void) | undefined;
+    api.listProductModels.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveModels = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+    expect(screen.getByTestId('product-models-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('product-models-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveModels?.(await success({ items: [model], page: 1, perPage: 20, total: 1 }));
+    expect(await screen.findByText(model.name)).toBeTruthy();
+    expect(screen.queryByTestId('product-models-skeleton')).toBeNull();
 
-    cleanup();
-    vi.clearAllMocks();
+    api.listProductModels.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['product-models'] });
+    await waitFor(() => expect(api.listProductModels).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(model.name)).toBeTruthy();
+    expect(screen.queryByTestId('product-models-skeleton')).toBeNull();
+  });
+
+  it('replaces the models skeleton with an error state after a failed cold read', async () => {
     api.listProductModels.mockImplementation(() => failure(500));
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Modèles indisponibles' })).toBeTruthy();
+    expect(screen.queryByTestId('product-models-skeleton')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
     expect(api.listProductModels).toHaveBeenCalledTimes(2);
   });

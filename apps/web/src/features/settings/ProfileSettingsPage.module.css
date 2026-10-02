@@ -82,3 +82,8 @@
     padding: var(--spacing-4);
   }
 }
+
+.skeletonValue {
+  width: 50%;
+  height: var(--font-size-body);
+}

@@ -273,11 +273,19 @@ function renderPage(periodKey = '2026-03') {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={client}>
-      <MonthlyBudgetPage periodKey={periodKey} today="2026-03-15" />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={client}>
+        <MonthlyBudgetPage periodKey={periodKey} today="2026-03-15" />
+      </QueryClientProvider>,
+    ),
+    queryClient: client,
+  };
+}
+
+async function loaded() {
+  await waitFor(() => expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull());
+  await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
 }
 
 describe('MonthlyBudgetPage', () => {
@@ -326,6 +334,71 @@ describe('MonthlyBudgetPage', () => {
     window.history.replaceState({}, '', '/');
   });
 
+  it('replaces its one named cold-load skeleton and keeps the ledger during a refetch', async () => {
+    let resolveLedger: ((value: unknown) => void) | undefined;
+    api.readMonthlyLedger.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveLedger = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('monthly-budget-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveLedger?.({ data: ledger, response: new Response('{}', { status: 200 }) });
+    expect(await screen.findByText('Salaire')).toBeTruthy();
+    expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
+
+    api.readMonthlyLedger.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
+    await waitFor(() => expect(api.readMonthlyLedger).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('heading', { name: 'Budget de mars 2026' })).toBeTruthy();
+    expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
+  });
+
+  it('replaces the recap skeleton and keeps the recap during a refetch', async () => {
+    let resolveRecap: ((value: unknown) => void) | undefined;
+    api.readMonthlyRecap.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRecap = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(await screen.findByTestId('monthly-recap-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('monthly-recap-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveRecap?.({ data: recap, response: new Response('{}', { status: 200 }) });
+    expect(await screen.findByText('Salaire')).toBeTruthy();
+    expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull();
+
+    api.readMonthlyRecap.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['monthly-recap'] });
+    await waitFor(() => expect(api.readMonthlyRecap).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Salaire')).toBeTruthy();
+    expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull();
+  });
+
+  it('replaces the recap skeleton with its error and empty states', async () => {
+    api.readMonthlyRecap.mockRejectedValue(new TypeError('offline'));
+    const failed = renderPage();
+    expect(
+      await screen.findByRole('heading', { name: 'Synthèse mensuelle indisponible' }),
+    ).toBeTruthy();
+    expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull();
+
+    failed.unmount();
+    api.readMonthlyRecap.mockReturnValue(ok({ ...recap, state: 'EMPTY' }));
+    renderPage();
+    expect(
+      await screen.findByText('Aucune donnée comptabilisée pour cette synthèse.'),
+    ).toBeTruthy();
+    expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull();
+  });
+
   it('renders exact zero, hides categories without movement and keeps every account', async () => {
     renderPage();
 
@@ -346,6 +419,7 @@ describe('MonthlyBudgetPage', () => {
 
   it('shows the backend-owned totals in the ledger panel headers', async () => {
     renderPage();
+    await loaded();
 
     const income = await screen.findByRole('region', { name: 'Revenus par catégorie' });
     const expense = screen.getByRole('region', { name: 'Dépenses par catégorie' });
@@ -387,6 +461,7 @@ describe('MonthlyBudgetPage', () => {
   it('shows the empty state of a panel whose categories all have no movement', async () => {
     api.readMonthlyLedger.mockReturnValue(ok({ ...ledger, incomeCategories: [] }));
     renderPage();
+    await loaded();
 
     const income = await screen.findByRole('region', { name: 'Revenus par catégorie' });
     expect(within(income).getByText('Aucune ligne active pour ce mois.')).toBeTruthy();
@@ -587,6 +662,7 @@ describe('MonthlyBudgetPage', () => {
     window.history.replaceState({}, '', '/budget/2026-03?axis=ESSENTIAL');
     api.readMonthlyLedger.mockReturnValue(ok({ ...ledger, axis: 'ESSENTIAL' as const }));
     renderPage();
+    await loaded();
 
     expect(((await screen.findByLabelText('Axe analytique')) as HTMLSelectElement).value).toBe(
       'ESSENTIAL',
@@ -618,6 +694,7 @@ describe('MonthlyBudgetPage', () => {
   it('adds a transaction from an empty panel header with no category preselected', async () => {
     api.readMonthlyLedger.mockReturnValue(ok({ ...ledger, expenseCategories: [] }));
     renderPage();
+    await loaded();
 
     const expense = await screen.findByRole('region', { name: 'Dépenses par catégorie' });
     expect(within(expense).getByText('Aucune ligne active pour ce mois.')).toBeTruthy();
@@ -632,6 +709,7 @@ describe('MonthlyBudgetPage', () => {
 
   it('opens the transaction modal from the header button', async () => {
     renderPage();
+    await loaded();
 
     await screen.findByRole('region', { name: 'Revenus par catégorie' });
     fireEvent.click(screen.getByRole('button', { name: 'Créer une transaction' }));
@@ -846,6 +924,7 @@ describe('MonthlyBudgetPage', () => {
       }),
     );
     renderPage();
+    await loaded();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Configurer l’affichage' }));
     const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
@@ -866,6 +945,7 @@ describe('MonthlyBudgetPage', () => {
       ok({ items: [archivedCategory], page: 1, perPage: 100, total: 1 }),
     );
     renderPage();
+    await loaded();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Configurer l’affichage' }));
     const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
@@ -906,6 +986,7 @@ describe('MonthlyBudgetPage', () => {
       Promise.resolve({ data: undefined, response: new Response('{}', { status: 409 }) }),
     );
     renderPage();
+    await loaded();
     fireEvent.click(await screen.findByRole('button', { name: 'Configurer l’affichage' }));
     const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Enregistrer' }));

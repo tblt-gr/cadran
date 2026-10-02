@@ -63,13 +63,15 @@ function session(role: 'OWNER' | null) {
 }
 
 function renderPanel() {
-  render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
-      <PeriodClosurePanel close={vi.fn()} initialPeriod="2026-08" />
-    </QueryClientProvider>,
-  );
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <PeriodClosurePanel close={vi.fn()} initialPeriod="2026-08" />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 beforeEach(() => {
@@ -82,6 +84,31 @@ afterEach(() => {
 });
 
 describe('PeriodClosurePanel', () => {
+  it('replaces its one named cold-load skeleton and keeps the status during a refetch', async () => {
+    let resolveStatus: ((value: unknown) => void) | undefined;
+    api.readPeriodStatus.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveStatus = resolve;
+        }),
+    );
+    const { queryClient } = renderPanel();
+
+    expect(screen.getByTestId('period-closure-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('period-closure-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveStatus?.(ok(status()));
+    expect(await screen.findByText('Mois ouvert')).toBeTruthy();
+    expect(screen.queryByTestId('period-closure-skeleton')).toBeNull();
+
+    api.readPeriodStatus.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['period-status'] });
+    await waitFor(() => expect(api.readPeriodStatus).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Mois ouvert')).toBeTruthy();
+    expect(screen.queryByTestId('period-closure-skeleton')).toBeNull();
+  });
+
   it('shows a loading state, then an error with retry', async () => {
     api.readPeriodStatus.mockResolvedValue(problem(500, 'about:blank'));
     renderPanel();

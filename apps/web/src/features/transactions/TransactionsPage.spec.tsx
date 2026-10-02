@@ -99,17 +99,49 @@ function renderPage() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <TransactionsPage />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <TransactionsPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe('TransactionsPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('replaces its sole cold-load status and keeps transactions during a refetch', async () => {
+    let resolveTransactions: ((value: unknown) => void) | undefined;
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveTransactions = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('transactions-page-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveTransactions?.({
+      data: { items: [transaction], nextCursor: null },
+      response: new Response('{}', { status: 200 }),
+    });
+    expect(await screen.findByText(transaction.rawLabel)).toBeTruthy();
+    expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull();
+
+    api.listTransactions.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    await waitFor(() => expect(api.listTransactions).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(transaction.rawLabel)).toBeTruthy();
+    expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull();
   });
 
   it('opens the monthly closure flow before the recurrence action', async () => {

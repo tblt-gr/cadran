@@ -7,8 +7,15 @@
   min-width: 0;
   gap: var(--spacing-4);
 }
+
 .state {
   display: grid;
   gap: var(--spacing-3);
   padding: var(--spacing-6);
+}
+
+.skeletonCell {
+  width: 70%;
+  min-width: var(--spacing-8);
+  height: var(--font-size-body);
 }

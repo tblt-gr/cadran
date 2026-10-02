@@ -2,6 +2,7 @@ import { listAccounts, type Account, type CreateTransactionRequest } from '@cadr
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AccountDetailPageSkeleton } from './AccountDetailPageSkeleton';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import {
@@ -116,11 +117,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   }
 
   if (account.isPending) {
-    return (
-      <section aria-busy="true" className={`card ${styles.routeState}`} role="status">
-        <h2>{t('accounts.detail.loading')}</h2>
-      </section>
-    );
+    return <AccountDetailPageSkeleton status={t('accounts.detail.loading')} />;
   }
 
   if (account.isError) {

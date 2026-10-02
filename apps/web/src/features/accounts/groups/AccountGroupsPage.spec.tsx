@@ -146,11 +146,14 @@ function renderPage() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <AccountGroupsPage />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <AccountGroupsPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 const livretAProduct = {
@@ -166,11 +169,54 @@ describe('AccountGroupsPage', () => {
     api.listProducts.mockImplementation(() =>
       success({ items: [], page: 1, perPage: 100, total: 0 }),
     );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
+    api.readNetWorth.mockImplementation(() => success(netWorth({ allocation: [] })));
   });
 
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('replaces its one named cold-load skeleton and keeps groups during a refetch', async () => {
+    let resolveGroups: ((value: unknown) => void) | undefined;
+    let resolveNetWorth: ((value: unknown) => void) | undefined;
+    api.listAccountGroups.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveGroups = resolve;
+        }),
+    );
+    api.readNetWorth.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveNetWorth = resolve;
+        }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('account-groups-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveGroups?.({
+      data: { items: [group], page: 1, perPage: 50, total: 1 },
+      response: new Response('{}', { status: 200 }),
+    });
+    expect(screen.getByTestId('account-groups-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveNetWorth?.(await success(netWorth()));
+    expect(await screen.findByText(group.label)).toBeTruthy();
+    expect(screen.queryByTestId('account-groups-skeleton')).toBeNull();
+
+    api.listAccountGroups.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['account-groups'] });
+    await waitFor(() => expect(api.listAccountGroups).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(group.label)).toBeTruthy();
+    expect(screen.queryByTestId('account-groups-skeleton')).toBeNull();
   });
 
   it('covers the empty state and creates a bounded group', async () => {
@@ -477,7 +523,7 @@ describe('AccountGroupsPage', () => {
     expect(legend.textContent).toContain(`42${NARROW}100,00${NBSP}€`);
   });
 
-  it('does not treat pending members or totals as an empty group', async () => {
+  it('keeps one page skeleton while member and total reads are initially pending', async () => {
     api.listAccountGroups.mockImplementation(() =>
       success({ items: [group], page: 1, perPage: 50, total: 1 }),
     );
@@ -485,12 +531,13 @@ describe('AccountGroupsPage', () => {
     api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
     renderPage();
 
-    expect(await screen.findByRole('row', { name: /Épargne/ })).toBeTruthy();
+    expect(await screen.findByTestId('account-groups-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
     expect(screen.queryByText('Aucun compte dans ce groupe')).toBeNull();
     expect(screen.queryByText('Non calculable')).toBeNull();
-    expect(screen.getByText('Chargement des comptes…')).toBeTruthy();
-    expect(screen.getByText('Chargement du total…')).toBeTruthy();
-    expect(screen.getByText('Chargement de l’allocation…')).toBeTruthy();
+    expect(screen.queryByText('Chargement des comptes…')).toBeNull();
+    expect(screen.queryByText('Chargement du total…')).toBeNull();
+    expect(screen.queryByText('Chargement de l’allocation…')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Treemap' })).toBeNull();
   });
 

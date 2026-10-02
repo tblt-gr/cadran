@@ -101,19 +101,65 @@ const archivedRecurrence: Recurrence = {
 };
 
 function renderPage() {
-  return render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
-      <RecurrencesPage />
-    </QueryClientProvider>,
-  );
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <RecurrencesPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe('RecurrencesPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('replaces its one named cold-load skeleton and keeps recurrences during a refetch', async () => {
+    let resolveRecurrences: ((value: unknown) => void) | undefined;
+    api.detectRecurrenceCandidates.mockImplementation(() => success({ items: [], partial: false }));
+    api.listRecurrences.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRecurrences = resolve;
+        }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('recurrences-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveRecurrences?.({
+      data: { items: [archivedRecurrence], page: 1, perPage: 100, total: 1 },
+      response: new Response('{}', { status: 200 }),
+    });
+    expect(await screen.findByText(archivedRecurrence.label)).toBeTruthy();
+    expect(screen.queryByTestId('recurrences-skeleton')).toBeNull();
+
+    api.listRecurrences.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['recurrences'] });
+    await waitFor(() => expect(api.listRecurrences).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(archivedRecurrence.label)).toBeTruthy();
+    expect(screen.queryByTestId('recurrences-skeleton')).toBeNull();
+  });
+
+  it('replaces the recurrences skeleton with an error state after a failed cold read', async () => {
+    api.detectRecurrenceCandidates.mockRejectedValue(new TypeError('offline'));
+    api.listRecurrences.mockImplementation(() =>
+      success({ items: [], page: 1, perPage: 100, total: 0 }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+    );
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Récurrences indisponibles' })).toBeTruthy();
+    expect(screen.queryByTestId('recurrences-skeleton')).toBeNull();
   });
 
   it('explains that a no-candidate scan leaves the books untouched', async () => {
@@ -176,6 +222,7 @@ describe('RecurrencesPage', () => {
       success({ items: [], page: 1, perPage: 100, total: 0 }),
     );
     renderPage();
+    await waitFor(() => expect(screen.queryByTestId('recurrences-skeleton')).toBeNull());
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir les récurrences archivées' }));
     expect(await screen.findByRole('heading', { name: 'Récurrences archivées' })).toBeTruthy();
@@ -207,6 +254,7 @@ describe('RecurrencesPage', () => {
       return success({ ...archivedRecurrence, archivedAt: null, version: 3 });
     });
     renderPage();
+    await waitFor(() => expect(screen.queryByTestId('recurrences-skeleton')).toBeNull());
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir les récurrences archivées' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Restaurer' }));

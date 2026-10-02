@@ -39,6 +39,12 @@
   --chart-area-fill: url(#wealth-chart-area);
   --gradient-cta: linear-gradient(135deg, var(--gold-200) 0%, var(--gold-500) 100%);
   --gradient-chart-fill: url(#wealth-chart-area);
+  --gradient-skeleton: linear-gradient(
+    90deg,
+    var(--bg-surface-2) 0%,
+    var(--bg-surface-hover) 50%,
+    var(--bg-surface-2) 100%
+  );
 
   /* Effects */
   --shadow-card: none;
@@ -59,6 +65,8 @@
   --toast-width: 22rem;
   --chart-plot-height: 13.75rem;
   --chart-plot-height-donut: 18rem;
+  --skeleton-background-size: 200% 100%;
+  --skeleton-background-position-end: 200% 0;
 
   /* Typography */
   --font-family-sans:
@@ -140,5 +148,6 @@
   --duration-medium: 200ms;
   --duration-chart-draw: 560ms;
   --duration-loading-spin: 900ms;
+  --duration-skeleton-shimmer: 900ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }

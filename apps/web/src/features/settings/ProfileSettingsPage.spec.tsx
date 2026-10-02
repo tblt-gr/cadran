@@ -47,11 +47,14 @@ function renderPage() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <ProfileSettingsPage />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <ProfileSettingsPage />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 async function renderLoadedPage() {
@@ -66,11 +69,29 @@ describe('ProfileSettingsPage', () => {
     vi.clearAllMocks();
   });
 
-  it('announces the loading state while the profile is being read', () => {
-    api.getOwnerProfile.mockReturnValue(new Promise(() => {}));
-    renderPage();
+  it('replaces its one named cold-load skeleton and keeps the profile during a refetch', async () => {
+    let resolveProfile: ((value: unknown) => void) | undefined;
+    api.getOwnerProfile.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveProfile = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
 
-    expect(screen.getByRole('status').textContent).toContain('Chargement du profil');
+    expect(screen.getByTestId('profile-settings-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('profile-settings-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveProfile?.(await success(profile));
+    expect(await screen.findByLabelText('Nom affiché')).toBeTruthy();
+    expect(screen.queryByTestId('profile-settings-skeleton')).toBeNull();
+
+    api.getOwnerProfile.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['owner-profile'] });
+    await waitFor(() => expect(api.getOwnerProfile).toHaveBeenCalledTimes(2));
+    expect(screen.getByLabelText('Nom affiché')).toBeTruthy();
+    expect(screen.queryByTestId('profile-settings-skeleton')).toBeNull();
   });
 
   it('offers a retry when the profile cannot be read', async () => {

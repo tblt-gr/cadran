@@ -1,8 +1,10 @@
 import { listInstruments, type Instrument } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { InstrumentPickerSkeleton } from './InstrumentPickerSkeleton';
 import styles from './InstrumentPicker.module.css';
 
 interface Props {
@@ -12,6 +14,7 @@ interface Props {
   value?: Instrument | null;
 }
 export function InstrumentPicker({ currencyCode, label, onChange, value = null }: Props) {
+  const { t } = useTranslation();
   const id = useId();
   const [text, setText] = useState(value?.name ?? '');
   const [query, setQuery] = useState('');
@@ -80,7 +83,9 @@ export function InstrumentPicker({ currencyCode, label, onChange, value = null }
         value={text}
       />
       <div aria-live="polite">
-        {open && result.isPending ? <p>Chargement…</p> : null}
+        {open && result.isPending && result.data === undefined ? (
+          <InstrumentPickerSkeleton status={t('portfolio.instrumentPicker.loading')} />
+        ) : null}
         {open && result.isError ? (
           <p role="alert">
             La recherche est indisponible.{' '}

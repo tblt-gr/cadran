@@ -27,6 +27,7 @@ import { GoalCard } from './GoalCard';
 import { GoalDetailModal } from './GoalDetailModal';
 import { GoalFilters, type GoalListState } from './GoalFilters';
 import { GoalForm } from './GoalForm';
+import { GoalsPageSkeleton } from './GoalsPageSkeleton';
 import { CorrectionConfirmation } from './history/CorrectionConfirmation';
 import { GoalHistoryModal } from './history/GoalHistoryModal';
 import { EmergencyFundCard } from './emergency-fund/EmergencyFundCard';
@@ -254,10 +255,8 @@ export function GoalsPage() {
         state={state}
         year={year}
       />
-      {goals.isPending ? (
-        <section className={`card ${styles.state}`} aria-busy="true" role="status">
-          <h3>{t('goals.loading')}</h3>
-        </section>
+      {goals.isPending && goals.data === undefined ? (
+        <GoalsPageSkeleton status={t('goals.loading')} />
       ) : goals.isError ? (
         <section className={`card ${styles.state}`} role="alert">
           <h3>{t(errorKind === 'unauthorized' ? 'goals.unauthorized' : 'goals.error')}</h3>

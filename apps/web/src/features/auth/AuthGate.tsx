@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/features/auth/auth-layout/AuthLayout';
 import { CreatePasswordForm } from '@/features/auth/create-password-form/CreatePasswordForm';
 import { LoginForm } from '@/features/auth/login-form/LoginForm';
+import { SessionProbeSkeleton } from '@/features/auth/session-probe-skeleton/SessionProbeSkeleton';
 import { useSession } from '@/features/auth/useSession';
 import styles from './AuthGate.module.css';
 
 /**
- * The authentication boundary. Nothing of the application shell renders until
- * the server reports an active session; first-run installs are routed to the
+ * The authentication boundary. No authenticated page or query runs until the
+ * server reports an active session (only an inert shell skeleton shows meanwhile); first-run installs are routed to the
  * password-setup screen instead of the login screen.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
@@ -17,11 +18,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const refetch = () => void session.refetch();
 
   if (session.isPending) {
-    return (
-      <AuthLayout>
-        <p role="status">{t('auth.loading')}</p>
-      </AuthLayout>
-    );
+    return <SessionProbeSkeleton />;
   }
 
   if (session.isError) {

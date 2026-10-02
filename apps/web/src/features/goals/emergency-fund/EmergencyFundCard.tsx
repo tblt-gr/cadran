@@ -9,6 +9,7 @@ import { formatFigure } from './formatFigure';
 import { formatMonths } from './formatMonths';
 import { goalErrorKind } from '@/features/goals/goalError';
 import { EmergencyFundExplainModal } from './EmergencyFundExplainModal';
+import { EmergencyFundCardSkeleton } from './EmergencyFundCardSkeleton';
 import { EmergencyFundPolicyModal } from './EmergencyFundPolicyModal';
 import styles from './EmergencyFund.module.css';
 import { useEmergencyFundCoverage } from './useEmergencyFund';
@@ -90,18 +91,8 @@ export function EmergencyFundCard() {
     </>
   );
 
-  if (query.isPending) {
-    return (
-      <section
-        aria-busy="true"
-        aria-labelledby="emergency-fund-title"
-        className={`card ${styles.card}`}
-        role="status"
-      >
-        <h3 id="emergency-fund-title">{t('goals.emergencyFund.loading')}</h3>
-      </section>
-    );
-  }
+  if (query.isPending && coverage === undefined)
+    return <EmergencyFundCardSkeleton status={t('goals.emergencyFund.loading')} />;
   if (!coverage) {
     const kind = goalErrorKind(query.error, query.isError);
     const unauthorized = kind === 'unauthorized';

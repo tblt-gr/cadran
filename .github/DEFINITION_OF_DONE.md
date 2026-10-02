@@ -67,6 +67,10 @@ inside the ticket, never deferred to a later "security phase".
 
 - Loading, empty, error, unauthorized, stale and non-calculable states are implemented
   wherever they apply.
+- Every screen or panel backed by a query draws a skeleton of its whole final page while its
+  data is pending. Static chrome (titles, labels, table headers, buttons, links) is real text
+  and real disabled controls; only query-driven values are placeholder blocks. On a full page
+  reload, the real page is previewed under frozen queries while the session is checked.
 - Responsive and keyboard behaviour, visible focus, semantic labels and WCAG 2.2 AA
   contrast are verified. Critical meaning never relies on colour alone.
 - Every chart has an accessible tabular alternative.

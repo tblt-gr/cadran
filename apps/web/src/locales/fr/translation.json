@@ -1424,6 +1424,14 @@
       "position": "Page {{page}} sur {{total}}"
     }
   },
+  "portfolio": {
+    "instrumentPicker": {
+      "loading": "Chargement des instruments disponibles…"
+    },
+    "instruments": {
+      "loading": "Chargement des instruments…"
+    }
+  },
   "productModels": {
     "eyebrow": "Référentiel de l’espace",
     "title": "Modèles de produits",

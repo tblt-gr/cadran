@@ -1,0 +1,31 @@
+.code {
+  width: 30%;
+  height: var(--font-size-label);
+  margin-top: var(--spacing-1);
+}
+
+.badge {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--spacing-6);
+}
+
+.figures {
+  width: 100%;
+  height: var(--spacing-12);
+}
+
+.field {
+  width: 70%;
+  height: var(--font-size-label);
+}
+
+.rules {
+  width: 100%;
+  height: var(--spacing-12);
+}
+
+.resolved {
+  width: 30%;
+  height: var(--font-size-label);
+  margin-bottom: var(--spacing-4);
+}

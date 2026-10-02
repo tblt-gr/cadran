@@ -138,11 +138,14 @@ const onWithdraw = vi.fn();
 function renderPanel() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <AccountRulesPanel account={account} onOverride={onOverride} onWithdraw={onWithdraw} />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <AccountRulesPanel account={account} onOverride={onOverride} onWithdraw={onWithdraw} />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe('AccountRulesPanel', () => {
@@ -153,6 +156,39 @@ describe('AccountRulesPanel', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('announces one skeleton until both cold reads resolve and retains rules on refetch', async () => {
+    let resolveRules: ((value: unknown) => void) | undefined;
+    let resolveOverrides: ((value: unknown) => void) | undefined;
+    api.readAccountRules.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRules = resolve;
+        }),
+    );
+    api.listAccountRuleOverrides.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveOverrides = resolve;
+        }),
+    );
+    const { queryClient } = renderPanel();
+
+    expect(screen.getByTestId('account-rules-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveRules?.(await success(passbook));
+    expect(screen.getByTestId('account-rules-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolveOverrides?.(await success(noOverrides));
+    expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
+    expect(screen.queryByTestId('account-rules-skeleton')).toBeNull();
+
+    api.readAccountRules.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['account-rules'] });
+    await waitFor(() => expect(api.readAccountRules).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Plafond de dépôt')).toBeTruthy();
+    expect(screen.queryByTestId('account-rules-skeleton')).toBeNull();
   });
 
   it('shows the ceiling with the measure it is checked against and the rate of the day', async () => {

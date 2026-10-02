@@ -97,3 +97,8 @@
   color: var(--negative);
   font-weight: var(--font-weight-bold);
 }
+
+.skeletonName {
+  width: 40%;
+  height: var(--font-size-body);
+}

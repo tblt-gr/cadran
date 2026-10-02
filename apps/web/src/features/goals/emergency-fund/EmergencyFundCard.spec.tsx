@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { EmergencyFundCard } from './EmergencyFundCard';
@@ -20,13 +20,15 @@ const ok = <T,>(data: T) =>
   Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
 
 function renderCard() {
-  return render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
-      <EmergencyFundCard />
-    </QueryClientProvider>,
-  );
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <EmergencyFundCard />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe('EmergencyFundCard', () => {
@@ -37,6 +39,31 @@ describe('EmergencyFundCard', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('replaces its one named cold-load skeleton and keeps coverage during a refetch', async () => {
+    let resolveCoverage: ((value: unknown) => void) | undefined;
+    api.readEmergencyFundCoverage.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCoverage = resolve;
+        }),
+    );
+    const { queryClient } = renderCard();
+
+    expect(screen.getByTestId('emergency-fund-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('emergency-fund-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveCoverage?.(await ok(coverageShortfall));
+    expect(await screen.findByText('4,9 mois')).toBeTruthy();
+    expect(screen.queryByTestId('emergency-fund-skeleton')).toBeNull();
+
+    api.readEmergencyFundCoverage.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['emergency-fund'] });
+    await waitFor(() => expect(api.readEmergencyFundCoverage).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('4,9 mois')).toBeTruthy();
+    expect(screen.queryByTestId('emergency-fund-skeleton')).toBeNull();
   });
 
   it('shows the covered months, target, required amount and the shortfall in words', async () => {

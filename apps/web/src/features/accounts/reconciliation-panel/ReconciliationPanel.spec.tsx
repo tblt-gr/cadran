@@ -64,15 +64,14 @@ function failure(status: number, type: string) {
 }
 
 function mount(onReconciled = vi.fn()) {
-  render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = render(
+    <QueryClientProvider client={queryClient}>
       <ReconciliationPanel account={account} onReconciled={onReconciled} />
     </QueryClientProvider>,
   );
 
-  return onReconciled;
+  return { ...view, onReconciled, queryClient };
 }
 
 describe('ReconciliationPanel', () => {
@@ -82,6 +81,31 @@ describe('ReconciliationPanel', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('replaces its one named cold-load skeleton and keeps reconciliation during a refetch', async () => {
+    let resolveReading: ((value: unknown) => void) | undefined;
+    api.readAccountReconciliation.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveReading = resolve;
+        }),
+    );
+    const { queryClient } = mount();
+
+    expect(screen.getByTestId('reconciliation-skeleton')).toBeTruthy();
+    expect(
+      screen.getByTestId('reconciliation-skeleton').querySelectorAll('[role="status"]'),
+    ).toHaveLength(1);
+    resolveReading?.(ok(view()));
+    expect(await screen.findByText(/Carte en attente/)).toBeTruthy();
+    expect(screen.queryByTestId('reconciliation-skeleton')).toBeNull();
+
+    api.readAccountReconciliation.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['account-reconciliation'] });
+    await waitFor(() => expect(api.readAccountReconciliation).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(/Carte en attente/)).toBeTruthy();
+    expect(screen.queryByTestId('reconciliation-skeleton')).toBeNull();
   });
 
   it('shows the exact figures, the signed discrepancy and the pending rows', async () => {
@@ -129,7 +153,7 @@ describe('ReconciliationPanel', () => {
     api.resolveAccountReconciliation.mockResolvedValue(
       ok(view({ reconciliationStatus: 'RECONCILED' })),
     );
-    const onReconciled = mount();
+    const { onReconciled } = mount();
     await screen.findByTestId('discrepancy');
 
     fireEvent.click(screen.getByRole('radio', { name: /Accepter l’écart/ }));

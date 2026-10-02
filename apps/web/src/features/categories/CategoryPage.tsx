@@ -19,6 +19,7 @@ import { CategoryForm } from './category-form/CategoryForm';
 import { CategoryLifecycleDialog } from './category-lifecycle/CategoryLifecycleDialog';
 import { useCategoryLifecycle } from './category-lifecycle/useCategoryLifecycle';
 import { CategoryList } from './category-list/CategoryList';
+import { CategoryPageSkeleton } from './CategoryPageSkeleton';
 import { CategoryRequestError, categoryErrorKind, categoryRequestError } from './categoryError';
 import styles from './CategoryPage.module.css';
 
@@ -199,9 +200,7 @@ export function CategoryPage() {
       </div>
 
       {categories.isPending ? (
-        <section className={`card ${styles.state}`} aria-busy="true" role="status">
-          <h2>{t('categories.loading')}</h2>
-        </section>
+        <CategoryPageSkeleton status={t('categories.loading')} />
       ) : categories.isError ? (
         <section className={`card ${styles.state}`} role="alert">
           <h2>{t(unauthorized ? 'categories.unauthorized.title' : 'categories.error.title')}</h2>

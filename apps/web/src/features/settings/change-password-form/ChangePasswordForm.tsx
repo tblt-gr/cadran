@@ -3,11 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { FormField } from '@/features/auth/form-field/FormField';
 import type { ProfileErrorKind } from '@/features/settings/profileError';
 import styles from './ChangePasswordForm.module.css';
+import { MAX_LENGTH, MIN_LENGTH } from './passwordLength';
 
 // Mirrors the ChangePasswordRequest bounds in the API contract. The server
 // stays the authority; this only spares an obvious round-trip.
-const MIN_LENGTH = 12;
-const MAX_LENGTH = 128;
 
 export interface PasswordChange {
   currentPassword: string;

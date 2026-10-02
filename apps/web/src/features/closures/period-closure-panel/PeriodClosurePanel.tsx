@@ -6,6 +6,7 @@ import { useSession } from '@/features/auth/useSession';
 import { ClosePeriodForm } from '@/features/closures/close-period-form/ClosePeriodForm';
 import { ReopenPeriodForm } from '@/features/closures/reopen-period-form/ReopenPeriodForm';
 import { usePeriodClosure } from '@/features/closures/usePeriodClosure';
+import { PeriodClosurePanelSkeleton } from './PeriodClosurePanelSkeleton';
 import styles from './PeriodClosurePanel.module.css';
 
 interface PeriodClosurePanelProps {
@@ -113,10 +114,8 @@ export function PeriodClosurePanel({
             </label>
           </div>
 
-          {status.isPending ? (
-            <p className={styles.state} role="status">
-              {t('closures.loading')}
-            </p>
+          {status.isPending && status.data === undefined ? (
+            <PeriodClosurePanelSkeleton status={t('closures.loading')} />
           ) : status.isError || data === undefined ? (
             <div className={styles.alert} role="alert">
               <p>{t('closures.errors.load')}</p>

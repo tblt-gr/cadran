@@ -58,11 +58,14 @@ function renderPage(
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   }),
 ) {
-  return render(
-    <QueryClientProvider client={client}>
-      <BudgetPage planId={planId} />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={client}>
+        <BudgetPage planId={planId} />
+      </QueryClientProvider>,
+    ),
+    queryClient: client,
+  };
 }
 describe('BudgetPage', () => {
   beforeEach(() => {
@@ -72,6 +75,31 @@ describe('BudgetPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+  it('replaces its one named cold-load skeleton and keeps plans during a refetch', async () => {
+    let resolvePlans: ((value: unknown) => void) | undefined;
+    api.listBudgetPlans.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvePlans = resolve;
+        }),
+    );
+    const { queryClient } = renderPage();
+
+    expect(screen.getByTestId('budget-page-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    resolvePlans?.({
+      data: { items: [plan], page: 1, perPage: 100, total: 1 },
+      response: new Response('{}', { status: 200 }),
+    });
+    expect(await screen.findByText(plan.period)).toBeTruthy();
+    expect(screen.queryByTestId('budget-page-skeleton')).toBeNull();
+
+    api.listBudgetPlans.mockImplementation(() => new Promise(() => undefined));
+    void queryClient.invalidateQueries({ queryKey: ['budget-plans'] });
+    await waitFor(() => expect(api.listBudgetPlans).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(plan.period)).toBeTruthy();
+    expect(screen.queryByTestId('budget-page-skeleton')).toBeNull();
   });
   it('shows an empty state and submits a monthly draft in the shared modal', async () => {
     api.listBudgetPlans.mockReturnValue(ok({ items: [], page: 1, perPage: 100, total: 0 }));
@@ -180,6 +208,7 @@ describe('BudgetPage', () => {
     );
     renderPage(plan.id);
 
+    await waitFor(() => expect(screen.queryByTestId('budget-page-skeleton')).toBeNull());
     fireEvent.click(await screen.findByRole('button', { name: 'Ajouter un objectif' }));
     const picker = screen.getByRole('combobox', { name: 'Périmètre' });
     expect(picker.getAttribute('aria-expanded')).toBe('false');
@@ -192,6 +221,7 @@ describe('BudgetPage', () => {
     api.listCategories.mockReturnValue(ok({ items: [], page: 1, perPage: 50, total: 0 }));
     renderPage(plan.id);
 
+    await waitFor(() => expect(screen.queryByTestId('budget-page-skeleton')).toBeNull());
     fireEvent.click(await screen.findByRole('button', { name: 'Ajouter un objectif' }));
     fireEvent.change(screen.getByLabelText('Type d’objectif'), { target: { value: 'RATIO' } });
     const ratio = screen.getByRole('textbox', { name: 'Ratio décimal' });

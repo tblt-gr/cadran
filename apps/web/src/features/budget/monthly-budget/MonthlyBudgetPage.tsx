@@ -15,6 +15,7 @@ import {
 } from './budget-creation-modals/BudgetCreationModals';
 import { LedgerPanels } from './ledger-panels/LedgerPanels';
 import { MonthNavigator } from './month-navigator/MonthNavigator';
+import { MonthlyBudgetPageSkeleton } from './MonthlyBudgetPageSkeleton';
 import { MovementEditModal } from './movement-edit-modal/MovementEditModal';
 import { MonthlyRecap } from './monthly-recap/MonthlyRecap';
 import styles from './MonthlyBudgetPage.module.css';
@@ -173,10 +174,8 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         month={month}
       />
 
-      {ledger.isPending ? (
-        <section aria-busy="true" className={`card ${styles.routeError}`} role="status">
-          <h2>{t('budget.monthly.loading')}</h2>
-        </section>
+      {ledger.isPending && ledger.data === undefined ? (
+        <MonthlyBudgetPageSkeleton status={t('budget.monthly.loading')} />
       ) : ledger.isError ? (
         <section className={`card ${styles.routeError}`} role="alert">
           <h2>{t('budget.monthly.error.title')}</h2>
