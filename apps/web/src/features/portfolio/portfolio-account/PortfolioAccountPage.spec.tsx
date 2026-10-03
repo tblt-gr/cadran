@@ -14,6 +14,7 @@ const api = vi.hoisted(() => ({
   listPortfolioOperations: vi.fn(),
   listPortfolioPositions: vi.fn(),
   listPortfolioTransferCandidates: vi.fn(),
+  listPortfolioValuations: vi.fn(),
   listProducts: vi.fn(),
   readPortfolioCash: vi.fn(),
   previewPortfolioOperation: vi.fn(),
@@ -109,6 +110,33 @@ describe('PortfolioAccountPage', () => {
     expect(screen.getByRole('columnheader', { name: 'Effet espèces' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
     expect(screen.getAllByRole('status')).toHaveLength(1);
+  });
+
+  it('shows the Valorisations layout, real chrome included, while the account loads', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=valuations`);
+    api.readAccount.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+
+    expect(screen.getByRole('link', { name: 'Valorisations' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Enregistrer une valorisation' }).matches(':disabled'),
+    ).toBe(true);
+    expect(screen.getByRole('columnheader', { name: 'Complétude' })).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+  });
+
+  it('opens the Valorisations tab after Espèces from ?tab=valuations', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=valuations`);
+    api.listPortfolioValuations.mockImplementation(() =>
+      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+    );
+    renderPage();
+
+    expect(await screen.findByText(/Aucune valorisation\. Enregistrez/)).toBeTruthy();
+    const tabs = screen.getAllByRole('link').map((link) => link.textContent);
+    expect(tabs.indexOf('Valorisations')).toBe(tabs.indexOf('Espèces') + 1);
   });
 
   it('opens the Espèces tab after Opérations from ?tab=cash', async () => {

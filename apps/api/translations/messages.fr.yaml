@@ -672,3 +672,51 @@ api:
     goal_error:
       title: 'Objectif indisponible'
       detail: "La demande d'objectif ne peut pas être traitée."
+    invalid_valuation_detail:
+      title: 'Type de valorisation invalide'
+      detail: 'Une valorisation est saisie en total (TOTAL) ou par ligne (POSITIONS).'
+    valuation_field_not_allowed:
+      title: 'Champ non autorisé'
+      detail: 'Ce champ n’est pas accepté pour ce type de valorisation.'
+    invalid_valuation_total:
+      title: 'Montant de valorisation invalide'
+      detail: 'Un montant de valorisation est un décimal positif ou nul, dans la précision de la devise du compte.'
+    invalid_valuation_date:
+      title: 'Date de valorisation invalide'
+      detail: 'La date doit être un jour réel, à partir de l’ouverture du compte et au plus tard aujourd’hui.'
+    valuation_price_entry_missing:
+      title: 'Prix manquant'
+      detail: 'Chaque titre détenu à cette date doit porter exactement une ligne de prix.'
+    unknown_valuation_instrument:
+      title: 'Titre non détenu'
+      detail: 'Ce titre n’est pas détenu par le compte à la date de valorisation.'
+    invalid_valuation_price:
+      title: 'Prix invalide'
+      detail: 'Un prix est vide ou strictement positif, en écriture décimale canonique.'
+    invalid_price_date:
+      title: 'Date de prix invalide'
+      detail: 'La date du prix est obligatoire avec un prix, et au plus tard à la date de valorisation.'
+    portfolio_account_valued_by_portfolio:
+      title: 'Compte valorisé par son portefeuille'
+      detail: 'Ce compte est valorisé par ses valorisations de portefeuille : un solde manuel ou un rapprochement n’y est pas possible.'
+    valuation_exists:
+      title: 'Valorisation déjà enregistrée'
+      detail: 'Une valorisation existe déjà à cette date : indiquez sa version pour la remplacer.'
+    stale_valuation_version:
+      title: 'Valorisation modifiée entre-temps'
+      detail: 'Rechargez la valorisation puis recommencez.'
+    valuation_limit_reached:
+      title: 'Limite de valorisations atteinte'
+      detail: 'Ce compte porte déjà le nombre maximal de valorisations actives.'
+    portfolio_valuation_conflict:
+      title: 'Valorisation en conflit'
+      detail: 'Une autre requête a modifié ces données : rechargez puis recommencez.'
+    invalid_valuation_query:
+      title: 'Requête de valorisations invalide'
+      detail: 'Les filtres de dates et de pagination doivent être valides.'
+    invalid_valuation_payload:
+      title: 'Corps de valorisation invalide'
+      detail: 'Le corps ne porte que des champs déclarés, du bon type.'
+    portfolio_valuation_not_found:
+      title: 'Valorisation introuvable'
+      detail: 'Aucune valorisation ne porte cet identifiant dans cet espace de travail.'

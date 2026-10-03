@@ -119,7 +119,10 @@ final readonly class SeedDemoData
         $plan = new DemoLedgerPlan($random);
         $balances = ['current' => 250000, 'savings' => 300000, 'invest' => 500000];
         foreach ($balances as $key => $cents) {
-            $this->snapshot($accounts[$key], self::OPENING_DAY, $cents);
+            // The portfolio account is valued by its valuations, never by a manual balance.
+            if ('invest' !== $key) {
+                $this->snapshot($accounts[$key], self::OPENING_DAY, $cents);
+            }
         }
         $this->portfolio->open($accounts['invest'], self::OPENING_DAY, $balances['invest'], self::RANDOM_SEED);
         $investmentMonth = 0;
@@ -128,6 +131,7 @@ final readonly class SeedDemoData
         $transfers = 0;
         $closed = 0;
         $created = [];
+        $closedTotal = count(array_filter($months, static fn (array $period): bool => (new \DateTimeImmutable(sprintf('%04d-%02d-01', $period[0], $period[1])))->modify('last day of this month') < $today));
         foreach ($months as [$year, $month]) {
             $first = new \DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month));
             $last = $first->modify('last day of this month');
@@ -183,12 +187,15 @@ final readonly class SeedDemoData
             $marketMove = $plan->marketPerMille();
             if ($isOpen) {
                 $transactions += $this->pending($accounts['current'], $categories, $today);
+                $this->portfolio->valueOpenMonth($accounts['invest'], $today);
 
                 continue;
             }
 
             $balances['invest'] = intdiv($balances['invest'] * (1000 + $marketMove), 1000);
-            $this->closeMonth($first, $last, $accounts, $balances);
+            // The last three closed months are valued line by line, the oldest of them with an aged price.
+            $valuation = $closed < $closedTotal - 3 ? 'TOTAL' : ($closed === $closedTotal - 3 ? 'POSITIONS_STALE' : 'POSITIONS');
+            $this->closeMonth($first, $last, $accounts, $balances, $valuation);
             ++$closed;
         }
 
@@ -398,14 +405,18 @@ final readonly class SeedDemoData
      * @param array<string, string> $accounts
      * @param array<string, int>    $balances
      */
-    private function closeMonth(\DateTimeImmutable $first, \DateTimeImmutable $last, array $accounts, array $balances): void
+    private function closeMonth(\DateTimeImmutable $first, \DateTimeImmutable $last, array $accounts, array $balances, string $valuation): void
     {
         foreach ($accounts as $key => $account) {
+            if ('invest' === $key) {
+                // A valuation publishes the figure the closing reads; there is no balance to compare with movements.
+                $this->portfolio->value($account, $last, $balances[$key], $valuation);
+
+                continue;
+            }
             $snapshot = $this->snapshot($account, $last->format('Y-m-d'), $balances[$key]);
-            // A market move leaves the ledger short of the observed value: the
-            // adjustment movement is what makes the valuation grow.
             $this->reconcile->__invoke($account, new ReconcileAccountBalanceInput(
-                $snapshot->id, $snapshot->version, $first->format('Y-m-d'), 'invest' === $key ? 'ADJUST' : 'MATCH',
+                $snapshot->id, $snapshot->version, $first->format('Y-m-d'), 'MATCH',
             ));
         }
         $this->closePeriod->__invoke(new ClosePeriodInput($first->format('Y-m')));

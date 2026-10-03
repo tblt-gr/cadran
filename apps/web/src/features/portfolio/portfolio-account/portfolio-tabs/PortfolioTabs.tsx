@@ -1,12 +1,13 @@
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './PortfolioTabs.module.css';
 
-export type PortfolioTab = 'positions' | 'operations' | 'cash';
+export type PortfolioTab = 'positions' | 'operations' | 'cash' | 'valuations';
 
 const tabs: { id: PortfolioTab; label: string }[] = [
   { id: 'positions', label: 'Positions' },
   { id: 'operations', label: 'Opérations' },
   { id: 'cash', label: 'Espèces' },
+  { id: 'valuations', label: 'Valorisations' },
 ];
 
 /** Tab list synced to `?tab=`; later tickets add their own tabs to this list. */

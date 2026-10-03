@@ -235,6 +235,21 @@ describe('AccountDetailPage', () => {
     expect(link.getAttribute('href')).toBe(`/portfolios/${account.id}`);
   });
 
+  it('replaces Rapprocher by a valuation link for a portfolio-mode account only', async () => {
+    renderPage();
+    await screen.findByRole('heading', { level: 2, name: 'Livret A Banque X' });
+    expect(screen.getByRole('button', { name: 'Rapprocher' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Valoriser le portefeuille' })).toBeNull();
+    cleanup();
+    api.readAccount.mockImplementation(() =>
+      success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
+    );
+    renderPage();
+    const link = await screen.findByRole('link', { name: 'Valoriser le portefeuille' });
+    expect(link.getAttribute('href')).toBe(`/portfolios/${account.id}?tab=valuations`);
+    expect(screen.queryByRole('button', { name: 'Rapprocher' })).toBeNull();
+  });
+
   it('discloses no account data for an unknown or foreign-workspace identifier', async () => {
     api.readAccount.mockImplementation(() => failure(404));
     renderPage('00000000-0000-7000-8000-000000000fff');

@@ -91,6 +91,29 @@ final readonly class AccountBalanceSnapshot
         );
     }
 
+    /** The figure stops answering with no replacement, as when a valuation is withdrawn; the row stays on the trail. */
+    public function withdrawn(\DateTimeImmutable $at): self
+    {
+        if (!$this->isActive()) {
+            throw new InvalidAccountBalanceSnapshot('A superseded snapshot cannot be withdrawn.');
+        }
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            accountId: $this->accountId,
+            asOf: $this->asOf,
+            amount: $this->amount,
+            source: $this->source,
+            reconciliationStatus: $this->reconciliationStatus,
+            comment: $this->comment,
+            version: $this->version + 1,
+            recordedAt: $this->recordedAt,
+            recordedBy: $this->recordedBy,
+            supersededAt: $at,
+        );
+    }
+
     /**
      * The figure is compared to the movements and accepted, as it stands or
      * after an explicit resolution. Only an active, still unreconciled row can

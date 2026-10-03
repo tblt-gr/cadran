@@ -856,6 +856,7 @@
         "addTransaction": "Nouvelle transaction",
         "addTransfer": "Nouveau virement",
         "openPortfolio": "Ouvrir le portefeuille",
+        "valuePortfolio": "Valoriser le portefeuille",
         "rules": "Voir les règles",
         "reconcile": "Rapprocher",
         "unavailable": {

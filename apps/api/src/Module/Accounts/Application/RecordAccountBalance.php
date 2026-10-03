@@ -8,6 +8,7 @@ use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountBalanceSnapshot;
 use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\AccountRepository;
+use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Accounts\Domain\ConflictingAccountBalanceSnapshot;
 use App\Module\Accounts\Domain\InvalidAccountBalanceSnapshot;
@@ -56,6 +57,10 @@ final readonly class RecordAccountBalance
 
             if (null !== $account->archivedAt) {
                 throw new AccountArchived('An archived account is read-only.');
+            }
+
+            if (AccountValuationMode::PORTFOLIO === $account->valuationMode) {
+                throw new PortfolioAccountValuedByPortfolio();
             }
 
             $snapshot = $this->submitted($account, $input, $context->actorId);

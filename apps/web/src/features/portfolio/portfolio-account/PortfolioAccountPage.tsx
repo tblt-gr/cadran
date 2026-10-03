@@ -3,6 +3,7 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
 import { CashTab } from '@/features/portfolio/cash/CashTab';
+import { ValuationsTab } from '@/features/portfolio/valuations/ValuationsTab';
 import { NotPortfolioState } from './operations/NotPortfolioState';
 import { OperationsTab } from './operations/OperationsTab';
 import { PositionsTab } from './positions/PositionsTab';
@@ -13,7 +14,7 @@ import { PortfolioTabs, type PortfolioTab } from './portfolio-tabs/PortfolioTabs
 import styles from './PortfolioAccountPage.module.css';
 
 /**
- * The portfolio page of one investment account. The tabs are Positions, Opérations and Espèces;
+ * The portfolio page of one investment account. The tabs are Positions, Opérations, Espèces and Valorisations;
  * every later portfolio capability adds its own tab to `PortfolioTabs`.
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
@@ -77,6 +78,8 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
           <PositionsTab accountId={accountId} />
         ) : active === 'cash' ? (
           <CashTab accountId={accountId} />
+        ) : active === 'valuations' ? (
+          <ValuationsTab account={current} />
         ) : (
           <OperationsTab
             account={current}

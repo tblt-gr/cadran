@@ -149,6 +149,27 @@ final class AccountBalanceSnapshotTest extends TestCase
         $original->supersededBy($replacement)->markReconciled();
     }
 
+    public function testWithdrawingSupersedesWithoutReplacementAndKeepsTheFigure(): void
+    {
+        $snapshot = $this->snapshot(amount: '3664.70');
+
+        $withdrawn = $snapshot->withdrawn(new \DateTimeImmutable('2026-09-04T08:00:00+00:00'));
+
+        self::assertFalse($withdrawn->isActive());
+        self::assertSame('2026-09-04T08:00:00+00:00', $withdrawn->supersededAt?->format('c'));
+        self::assertSame(2, $withdrawn->version);
+        self::assertSame('3664.70', $withdrawn->amount->value->toString());
+        self::assertTrue($snapshot->isActive());
+    }
+
+    public function testASupersededSnapshotCannotBeWithdrawn(): void
+    {
+        $superseded = $this->snapshot()->withdrawn(new \DateTimeImmutable('2026-09-04T08:00:00+00:00'));
+        $this->expectException(InvalidAccountBalanceSnapshot::class);
+
+        $superseded->withdrawn(new \DateTimeImmutable('2026-09-05T08:00:00+00:00'));
+    }
+
     private function snapshot(
         string $id = self::ID,
         string $amount = '230.5688',

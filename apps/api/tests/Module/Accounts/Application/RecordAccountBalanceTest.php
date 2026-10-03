@@ -10,13 +10,16 @@ use App\Module\Accounts\Application\AccountNotFound;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Application\InvalidAccountBalanceInput;
 use App\Module\Accounts\Application\PeriodClosed;
+use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
 use App\Module\Accounts\Application\RecordAccountBalance;
 use App\Module\Accounts\Application\RecordAccountBalanceInput;
 use App\Module\Accounts\Application\StaleAccountVersion;
 use App\Module\Accounts\Domain\Account;
+use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Accounts\Domain\PeriodClosureRepository;
 use App\Module\Audit\Application\RecordAuditEvent;
+use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\InvalidAmountInput;
 use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
@@ -140,6 +143,24 @@ final class RecordAccountBalanceTest extends TestCase
         $this->expectExceptionMessage('account unit');
 
         ($this->record())(AccountFixture::ID, $this->input(assetCode: 'USD'));
+    }
+
+    public function testAPortfolioModeAccountIsValuedByItsValuationsNotByAManualBalance(): void
+    {
+        $portfolio = AccountFixture::account(productCode: null, kind: AccountKind::PORTFOLIO, valuationMode: AccountValuationMode::PORTFOLIO);
+
+        $this->expectException(PortfolioAccountValuedByPortfolio::class);
+
+        ($this->record(account: $portfolio))(AccountFixture::ID, $this->input());
+    }
+
+    public function testASnapshotsModeAccountStillAcceptsAManualBalance(): void
+    {
+        $account = AccountFixture::account(productCode: null, kind: AccountKind::PORTFOLIO, valuationMode: AccountValuationMode::SNAPSHOTS);
+
+        $snapshot = ($this->record(account: $account))(AccountFixture::ID, $this->input());
+
+        self::assertTrue($snapshot->isActive());
     }
 
     public function testAForeignAccountIsNotFound(): void

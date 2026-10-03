@@ -116,6 +116,26 @@ final class SeedDemoDataTest extends KernelTestCase
         self::assertSame(0, $this->rows("SELECT COUNT(*) FROM transaction_transactions WHERE workspace_id = ? AND raw_label IN ('Achat initial', 'Droits de garde', 'Vente partielle')", [$workspace]));
     }
 
+    public function testTheDemoPortfolioIsValuedByItsValuationsInEveryState(): void
+    {
+        $seed = self::getContainer()->get(SeedDemoData::class);
+        self::assertInstanceOf(SeedDemoData::class, $seed);
+        $seed(WorkspaceFixture::OWNER_EMAIL);
+        $workspace = WorkspaceFixture::OWN_WORKSPACE;
+        $active = 'workspace_id = ? AND superseded_at IS NULL';
+
+        self::assertSame(0, $this->rows("SELECT COUNT(*) FROM account_balance_snapshots s JOIN account_financial_accounts a ON a.id = s.account_id WHERE s.workspace_id = ? AND a.valuation_mode = 'PORTFOLIO' AND s.source = 'MANUAL'", [$workspace]));
+        self::assertSame(3, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND detail = 'POSITIONS' AND completeness = 'COMPLETE'", [$workspace]));
+        self::assertGreaterThan(3, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND detail = 'TOTAL'", [$workspace]));
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND completeness = 'PARTIAL' AND total_value_value IS NULL", [$workspace]));
+        // A price keeps the date it was observed on: an instrument last priced long ago is honestly stale.
+        self::assertGreaterThanOrEqual(1, $this->rows("SELECT COUNT(DISTINCT s.valuation_id) FROM portfolio_position_snapshots s JOIN portfolio_valuations v ON v.id = s.valuation_id WHERE s.workspace_id = ? AND s.price_quality = 'STALE' AND v.completeness = 'COMPLETE'", [$workspace]));
+        self::assertSame(
+            $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND completeness = 'COMPLETE'", [$workspace]),
+            $this->rows("SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND source = 'CALCULATED' AND superseded_at IS NULL", [$workspace]),
+        );
+    }
+
     public function testASecondRunIsRefusedAndWritesNothing(): void
     {
         $seed = self::getContainer()->get(SeedDemoData::class);

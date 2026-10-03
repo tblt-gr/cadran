@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
+use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
@@ -92,6 +93,11 @@ final readonly class AccountReconciliationController
             );
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
             return $this->envelope->idempotencyProblem($exception);
+        } catch (PortfolioAccountValuedByPortfolio) {
+            return $this->envelope->problemWithExtensions(
+                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.portfolio_account_valued_by_portfolio',
+                ['code' => 'portfolio_account_valued_by_portfolio'], '/problems/portfolio-account-valued-by-portfolio',
+            );
         } catch (InvalidAccountReconciliation|InvalidTransactionInput|\UnexpectedValueException) {
             return $this->invalid();
         } catch (AccountReconciliationNotFound|TransactionNotFound) {

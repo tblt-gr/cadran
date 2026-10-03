@@ -30,6 +30,7 @@ final class AccountFixture
         ?string $productModelId = null,
         ?string $closedOn = null,
         ?string $archivedAt = null,
+        AccountValuationMode $valuationMode = AccountValuationMode::TRANSACTIONS,
     ): Account {
         $now = new \DateTimeImmutable('2026-09-03T10:00:00+00:00');
 
@@ -43,7 +44,7 @@ final class AccountFixture
             productModelId: $productModelId,
             institution: 'Banque X',
             maskedIdentifier: null,
-            valuationMode: AccountValuationMode::TRANSACTIONS,
+            valuationMode: $valuationMode,
             liquidityLevel: LiquidityLevel::IMMEDIATE,
             includeInNetWorth: true,
             includeInEmergencyFund: false,
