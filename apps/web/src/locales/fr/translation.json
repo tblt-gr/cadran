@@ -119,6 +119,7 @@
     "recurrences": "Récurrences",
     "categories": "Catégories",
     "instruments": "Instruments",
+    "portfolioAccount": "Portefeuille",
     "redirecting": "Redirection…",
     "notFound": "Page introuvable",
     "metricPolicy": "Politique d’indicateurs"
@@ -854,6 +855,7 @@
       "actions": {
         "addTransaction": "Nouvelle transaction",
         "addTransfer": "Nouveau virement",
+        "openPortfolio": "Ouvrir le portefeuille",
         "rules": "Voir les règles",
         "reconcile": "Rapprocher",
         "unavailable": {

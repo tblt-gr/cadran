@@ -41,6 +41,14 @@
       "markdown-it": "14.3.1",
       "smol-toml": "1.7.2",
       "undici": "7.29.1"
+    },
+    "patchedDependencies": {
+      "braces@3.0.3": "patches/braces@3.0.3.patch"
+    },
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
     }
   }
 }

@@ -1,0 +1,24 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.routeState {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-8);
+}
+.routeState h2,
+.routeState p {
+  margin: var(--spacing-none);
+}
+.routeState p {
+  color: var(--text-secondary);
+}
+.routeState a {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}

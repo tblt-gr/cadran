@@ -49,6 +49,11 @@ final class InstrumentPersistenceTest extends KernelTestCase
 
         self::assertSame($own->id, $this->repository->find(WorkspaceFixture::own(), $own->id)?->id);
         self::assertNull($this->repository->find(WorkspaceFixture::other(), $own->id));
+        self::assertSame([], $this->repository->findMany(WorkspaceFixture::own(), []));
+        self::assertSame([$own->id], array_map(
+            static fn (Instrument $instrument): string => $instrument->id,
+            $this->repository->findMany(WorkspaceFixture::own(), [$own->id, $other->id]),
+        ));
         self::assertSame([$own->id], array_map(
             static fn (Instrument $instrument): string => $instrument->id,
             $this->repository->list(WorkspaceFixture::own(), InstrumentStatus::ACTIVE, 'worl', null, 20, 0),

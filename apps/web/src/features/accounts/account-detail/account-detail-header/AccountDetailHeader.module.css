@@ -25,6 +25,12 @@
   text-decoration: none;
 }
 
+.actions a {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

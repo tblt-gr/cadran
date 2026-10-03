@@ -13,6 +13,8 @@ describe('AuthenticatedApp route table', () => {
       '/accounts',
       '/accounts/groups',
       '/accounts/00000000-0000-7000-8000-000000000001',
+      '/portfolios/instruments',
+      '/portfolios/00000000-0000-7000-8000-000000000001',
       '/transactions/categories',
       '/transactions/categories/rules',
       '/categories',
@@ -41,6 +43,13 @@ describe('AuthenticatedApp route table', () => {
     const matched = matchAuthenticatedRoute(routes, '/accounts/groups');
     // A false match here would send "groups" into AccountDetailPage as an id.
     expect(matched?.match[1]).toBeUndefined();
+  });
+
+  it('keeps /portfolios/instruments out of the portfolio account pattern', () => {
+    const matched = matchAuthenticatedRoute(routes, '/portfolios/instruments');
+    expect(matched?.match[1]).toBeUndefined();
+    const account = matchAuthenticatedRoute(routes, '/portfolios/abc');
+    expect(account?.match[1]).toBe('abc');
   });
 
   it('does not match the dashboard root or an unrelated path', () => {

@@ -12,6 +12,7 @@ use App\Module\Portfolio\Domain\InstrumentRepository;
 use App\Module\Portfolio\Domain\InstrumentStatus;
 use App\Module\Portfolio\Domain\Isin;
 use App\Module\Portfolio\Domain\Ticker;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
@@ -29,6 +30,20 @@ final readonly class DbalInstrumentRepository implements InstrumentRepository
     public function find(WorkspaceScope $workspace, string $id): ?Instrument
     {
         return $this->one($workspace, 'id = :id', ['workspace_id' => $workspace->id, 'id' => $id]);
+    }
+
+    public function findMany(WorkspaceScope $workspace, array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.self::COLUMNS.' FROM portfolio_instruments WHERE workspace_id = :workspace_id AND id IN (:ids)',
+            ['workspace_id' => $workspace->id, 'ids' => $ids],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        return array_map(static fn (array $row): Instrument => InstrumentRow::hydrate($row, $workspace), $rows);
     }
 
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Instrument

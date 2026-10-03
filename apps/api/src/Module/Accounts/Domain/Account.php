@@ -132,6 +132,13 @@ final readonly class Account
             throw new InvalidAccount('A used account cannot change model.');
         }
 
+        // Portfolio operations hang off a used PORTFOLIO account: leaving the mode would orphan them.
+        if (null !== $this->usedAt
+            && AccountValuationMode::PORTFOLIO === $this->valuationMode
+            && AccountValuationMode::PORTFOLIO !== $valuationMode) {
+            throw new InvalidAccount('A used portfolio account cannot change its valuation mode.');
+        }
+
         if (!$keepGrouping) {
             self::assertIncludedHasPrimaryGroup($includeInNetWorth, $primaryGroupId);
         } elseif ($includeInNetWorth && !$this->includeInNetWorth) {

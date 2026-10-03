@@ -11,7 +11,7 @@ interface Props {
   currencyCode: string;
   label: string;
   onChange: (instrument: Instrument | null) => void;
-  value?: Instrument | null;
+  value?: Pick<Instrument, 'name'> | null;
 }
 export function InstrumentPicker({ currencyCode, label, onChange, value = null }: Props) {
   const { t } = useTranslation();
@@ -82,7 +82,7 @@ export function InstrumentPicker({ currencyCode, label, onChange, value = null }
         role="combobox"
         value={text}
       />
-      <div aria-live="polite">
+      <div aria-live="polite" className={styles.status}>
         {open && result.isPending && result.data === undefined ? (
           <InstrumentPickerSkeleton status={t('portfolio.instrumentPicker.loading')} />
         ) : null}

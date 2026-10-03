@@ -2106,6 +2106,379 @@ paths:
                 $ref: '#/components/schemas/InstrumentProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/portfolio-operations:
+    get:
+      operationId: listPortfolioOperations
+      summary: List the operations of a portfolio account
+      description: >-
+        Ordered by trade date then sequence, newest first. Voided and replaced operations are
+        kept in the history and returned only with `includeVoided`. A closed or archived account
+        stays readable.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: from
+          in: query
+          required: false
+          description: 'First trade date kept, inclusive.'
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: 'Last trade date kept, inclusive. The range spans at most ten years.'
+          schema:
+            type: string
+            format: date
+        - name: type
+          in: query
+          required: false
+          description: 'Keeps only these operation types. Repeat the key for several.'
+          style: form
+          explode: true
+          schema:
+            type: array
+            maxItems: 13
+            items:
+              $ref: '#/components/schemas/PortfolioOperationType'
+        - name: instrumentId
+          in: query
+          required: false
+          description: 'Keeps operations whose instrument or counter instrument is this one.'
+          schema:
+            type: string
+            format: uuid
+        - name: includeVoided
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: 'One bounded page of operations.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'The account is not followed in portfolio mode, or a filter or pagination value is out of bounds.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: recordPortfolioOperation
+      summary: Record a portfolio operation
+      description: >-
+        Records one operation of the type matrix. The server derives the signed cash effect and, for a
+        buy or a sell, the rounding residual; the client never sends them. A gross amount further than
+        half a display unit from quantity x unit price is refused. Optional `Idempotency-Key` replays
+        the first answer (`Idempotency-Replayed: true`). A write that touches a closed period is refused
+        with `type: /problems/period-closed`.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioOperationRequest'
+      responses:
+        '201':
+          description: 'The operation was recorded, or the stored response was replayed.'
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The period is closed, the Idempotency-Key was reused or is in flight, the 10 000 active operations limit is reached, or the linked transfer leg already backs an active operation.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
+        '422':
+          description: 'A field, figure, date, instrument, linked transfer or the account eligibility is invalid. The problem `code` names the rule.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/portfolio-operations/preview:
+    post:
+      operationId: previewPortfolioOperation
+      summary: Preview the server-derived figures of an operation
+      description: >-
+        Applies the same rules as the creation and writes nothing: no operation, no idempotency key,
+        no first-use freeze.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioOperationRequest'
+      responses:
+        '200':
+          description: 'The cash effect, rounding residual and expected gross amount.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationPreview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'Same refusals as the creation, with the same problem codes.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/portfolio-operations/{id}:
+    get:
+      operationId: readPortfolioOperation
+      summary: Read one portfolio operation
+      description: >-
+        Unknown, malformed and foreign identifiers answer the same 404.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioOperationId'
+      responses:
+        '200':
+          description: 'The operation.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/portfolio-operations/{id}/void:
+    post:
+      operationId: voidPortfolioOperation
+      summary: Void a portfolio operation
+      description: >-
+        Keeps the row visible as voided and releases its linked transfer leg. The reason is required.
+        A voided or replaced operation cannot be voided again.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/PortfolioOperationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoidPortfolioOperationRequest'
+      responses:
+        '200':
+          description: 'The voided operation.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The version is stale, the operation is already voided or replaced, or the period is closed (`type: /problems/period-closed`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
+        '422':
+          description: 'The reason is missing or invalid, or the account is closed or archived.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/portfolio-operations/{id}/correct:
+    post:
+      operationId: correctPortfolioOperation
+      summary: Replace a portfolio operation by a corrected one
+      description: >-
+        Records the replacement and keeps the original as replaced, atomically. Any field, including the
+        type, may change. Optional `Idempotency-Key` replays the first answer. Both the original and the
+        new trade date must lie in open periods.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/PortfolioOperationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CorrectPortfolioOperationRequest'
+      responses:
+        '201':
+          description: 'The replacement operation.'
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The version is stale, the original is already voided or replaced, the period is closed, the Idempotency-Key was reused or is in flight, or the linked transfer leg is taken.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
+        '422':
+          description: 'The replacement is invalid, with the same problem codes as the creation.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/portfolio-transfer-candidates:
+    get:
+      operationId: listPortfolioTransferCandidates
+      summary: List the transfer legs a deposit or withdrawal could mirror
+      description: >-
+        The 50 most recent booked, non-voided transfer legs of the account in the requested direction,
+        that no active operation backs yet. Amounts are unsigned.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: direction
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [IN, OUT]
+      responses:
+        '200':
+          description: 'The candidate legs.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioTransferCandidates'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'The account is not followed in portfolio mode, or the direction is invalid.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts:
     get:
       operationId: listAccounts
@@ -5907,6 +6280,20 @@ components:
       schema:
         type: string
     InstrumentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PortfolioAccountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PortfolioOperationId:
       name: id
       in: path
       required: true
@@ -13486,6 +13873,408 @@ components:
         version:
           type: integer
           minimum: 1
+    PortfolioOperationType:
+      type: string
+      enum:
+        [
+          DEPOSIT,
+          WITHDRAWAL,
+          BUY,
+          SELL,
+          DIVIDEND,
+          INTEREST,
+          FEE,
+          TAX,
+          SECURITY_TRANSFER_IN,
+          SECURITY_TRANSFER_OUT,
+          SPLIT,
+          MERGER,
+          SPIN_OFF,
+        ]
+    PortfolioDecimal:
+      description: A canonical, non-negative decimal string. A native JSON number is refused.
+      type: string
+      pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+      examples:
+        - '230.5688'
+    PortfolioOperationInstrument:
+      type: object
+      additionalProperties: false
+      required: [id, name, isin, ticker, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        isin:
+          type: [string, 'null']
+        ticker:
+          type: [string, 'null']
+        status:
+          $ref: '#/components/schemas/InstrumentStatus'
+    PortfolioOperationRatio:
+      type: object
+      additionalProperties: false
+      required: [numerator, denominator]
+      properties:
+        numerator:
+          $ref: '#/components/schemas/PortfolioDecimal'
+        denominator:
+          $ref: '#/components/schemas/PortfolioDecimal'
+    PortfolioOperation:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          accountId,
+          type,
+          tradeDate,
+          settlementDate,
+          sequence,
+          instrument,
+          counterInstrument,
+          quantity,
+          unitPrice,
+          grossAmount,
+          fees,
+          taxes,
+          cashAmount,
+          costBasis,
+          counterQuantity,
+          ratio,
+          costAllocationRatio,
+          roundingResidual,
+          reference,
+          note,
+          linkedTransactionId,
+          state,
+          voidedAt,
+          voidReason,
+          voidKind,
+          correctsOperationId,
+          correctedByOperationId,
+          version,
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PortfolioOperationType'
+        tradeDate:
+          type: string
+          format: date
+        settlementDate:
+          type: [string, 'null']
+          format: date
+        sequence:
+          type: integer
+          minimum: 1
+        instrument:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOperationInstrument'
+            - type: 'null'
+        counterInstrument:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOperationInstrument'
+            - type: 'null'
+        quantity:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioDecimal'
+            - type: 'null'
+        unitPrice:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioDecimal'
+            - type: 'null'
+        grossAmount:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        fees:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        taxes:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        cashAmount:
+          description: The signed cash effect the server derived. Never sent by the client.
+          $ref: '#/components/schemas/DecimalAmount'
+        costBasis:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        counterQuantity:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioDecimal'
+            - type: 'null'
+        ratio:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOperationRatio'
+            - type: 'null'
+        costAllocationRatio:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioDecimal'
+            - type: 'null'
+        roundingResidual:
+          description: Gross amount minus quantity x unit price, exact, for a buy or a sell; null otherwise.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        reference:
+          type: [string, 'null']
+          maxLength: 64
+        note:
+          type: [string, 'null']
+          maxLength: 200
+        linkedTransactionId:
+          type: [string, 'null']
+          format: uuid
+        state:
+          type: string
+          enum: [ACTIVE, VOIDED]
+        voidedAt:
+          type: [string, 'null']
+          format: date-time
+        voidReason:
+          type: [string, 'null']
+          maxLength: 200
+        voidKind:
+          oneOf:
+            - type: string
+              enum: [VOIDED, REPLACED]
+            - type: 'null'
+        correctsOperationId:
+          type: [string, 'null']
+          format: uuid
+        correctedByOperationId:
+          type: [string, 'null']
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+    PortfolioOperationPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, perPage, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioOperation'
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+    PortfolioOperationRequest:
+      description: >-
+        The fields of the type matrix. A field the type does not carry is refused
+        with `operation_field_not_allowed`, a missing required one with
+        `operation_field_required`. The cash effect is never part of the request.
+      type: object
+      additionalProperties: false
+      required: [type, tradeDate]
+      properties:
+        type:
+          type: string
+          description: A `PortfolioOperationType`; `OTHER_CORPORATE_ACTION` is refused as unsupported.
+          maxLength: 40
+        tradeDate:
+          type: string
+          format: date
+        settlementDate:
+          type: [string, 'null']
+          format: date
+        instrumentId:
+          type: [string, 'null']
+          format: uuid
+        quantity:
+          type: [string, 'null']
+          maxLength: 64
+        unitPrice:
+          type: [string, 'null']
+          maxLength: 64
+        grossAmount:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        fees:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        taxes:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        costBasis:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        counterInstrumentId:
+          type: [string, 'null']
+          format: uuid
+        counterQuantity:
+          type: [string, 'null']
+          maxLength: 64
+        ratio:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [numerator, denominator]
+              properties:
+                numerator:
+                  type: string
+                  maxLength: 64
+                denominator:
+                  type: string
+                  maxLength: 64
+            - type: 'null'
+        costAllocationRatio:
+          type: [string, 'null']
+          maxLength: 64
+        reference:
+          type: [string, 'null']
+          maxLength: 64
+        note:
+          type: [string, 'null']
+          maxLength: 200
+        linkedTransactionId:
+          type: [string, 'null']
+          format: uuid
+    VoidPortfolioOperationRequest:
+      type: object
+      additionalProperties: false
+      required: [version, reason]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 200
+    CorrectPortfolioOperationRequest:
+      type: object
+      additionalProperties: false
+      required: [version, operation]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        reason:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 200
+        operation:
+          $ref: '#/components/schemas/PortfolioOperationRequest'
+    PortfolioOperationPreview:
+      type: object
+      additionalProperties: false
+      required: [cashAmount, roundingResidual, expectedGrossAmount]
+      properties:
+        cashAmount:
+          $ref: '#/components/schemas/DecimalAmount'
+        roundingResidual:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        expectedGrossAmount:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+    PortfolioTransferCandidate:
+      type: object
+      additionalProperties: false
+      required: [transactionId, bookedOn, amount, label]
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+        bookedOn:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        label:
+          type: [string, 'null']
+    PortfolioTransferCandidates:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/PortfolioTransferCandidate'
+    PortfolioOperationProblem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, detail, code]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        code:
+          type: string
+          enum:
+            - account_not_portfolio
+            - portfolio_account_inactive
+            - invalid_operation_type
+            - unsupported_operation_type
+            - operation_field_required
+            - operation_field_not_allowed
+            - invalid_operation_amount
+            - invalid_operation_quantity
+            - quantity_precision_exceeded
+            - price_precision_exceeded
+            - operation_asset_mismatch
+            - instrument_inactive
+            - instrument_currency_mismatch
+            - unknown_instrument
+            - invalid_corporate_action
+            - invalid_operation_date
+            - invalid_settlement_date
+            - operation_amount_mismatch
+            - linked_transfer_mismatch
+            - invalid_operation_text
+            - invalid_operation_payload
+            - invalid_operation_query
+            - portfolio_account_not_found
+            - portfolio_operation_not_found
+            - stale_operation_version
+            - operation_voided
+            - linked_transfer_taken
+            - operation_limit_reached
+            - portfolio_operation_conflict
+            - portfolio_forbidden
+            - portfolio_payload_too_large
+        field:
+          description: The matrix field named by `operation_field_required` and `operation_field_not_allowed`.
+          type: string
+        expectedGrossAmount:
+          description: Quantity x unit price, exact, on `operation_amount_mismatch`.
+          type: string
     DecimalAmount:
       description: >-
         A financial decimal. Every amount, quantity, price and rate travels as

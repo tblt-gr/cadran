@@ -11,6 +11,11 @@ overrides:
   smol-toml: 1.7.2
   undici: 7.29.1
 
+patchedDependencies:
+  braces@3.0.3:
+    hash: 67dd13b6ab8555234d6a313dddc38dacf44f436d1b735fe56c8551c531e91951
+    path: patches/braces@3.0.3.patch
+
 importers:
 
   .:
@@ -2701,7 +2706,7 @@ snapshots:
     dependencies:
       require-from-string: 2.0.2
 
-  braces@3.0.3:
+  braces@3.0.3(patch_hash=67dd13b6ab8555234d6a313dddc38dacf44f436d1b735fe56c8551c531e91951):
     dependencies:
       fill-range: 7.1.1
 
@@ -3408,7 +3413,7 @@ snapshots:
 
   micromatch@4.0.8:
     dependencies:
-      braces: 3.0.3
+      braces: 3.0.3(patch_hash=67dd13b6ab8555234d6a313dddc38dacf44f436d1b735fe56c8551c531e91951)
       picomatch: 2.3.2
 
   ms@2.1.3: {}
