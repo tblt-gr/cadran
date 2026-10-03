@@ -16,6 +16,7 @@ export function PositionsTabSkeleton({
   return (
     <div className={styles.tab}>
       <PositionsToolbar
+        hideDate
         asOf={today}
         disabled
         includeClosed={false}

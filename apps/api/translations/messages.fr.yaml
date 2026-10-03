@@ -276,6 +276,12 @@ api:
     invalid_operation_query:
       title: 'Requête d’opérations invalide'
       detail: 'Les filtres, la période (10 ans au plus) ou la pagination sortent des limites autorisées.'
+    invalid_as_of:
+      title: Date de portefeuille invalide
+      detail: Choisissez une date réelle au plus tard aujourd'hui.
+    invalid_allocation_by:
+      title: Répartition invalide
+      detail: Choisissez un regroupement disponible.
     invalid_position_query:
       title: 'Requête de positions invalide'
       detail: 'La date doit être un jour réel qui ne se situe pas dans le futur.'

@@ -6487,6 +6487,120 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/portfolios:
+    get:
+      operationId: listPortfolios
+      summary: List portfolio-mode accounts of the workspace
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Workspace-scoped exact values. Response uses no-store cache control.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOverviewList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Invalid query or bounded replay scope exceeded.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOverviewProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/portfolio-summary:
+    get:
+      operationId: readPortfolioSummary
+      summary: Read the dated portfolio dashboard
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Workspace-scoped exact values. Response uses no-store cache control.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOverviewSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Invalid query or bounded replay scope exceeded.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOverviewProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: asOf
+          in: query
+          required: false
+          description: Defaults to today in the workspace calendar. Future dates are refused; dates before opening return an empty state.
+          schema: &id001
+            type: string
+            format: date
+  /api/v1/accounts/{accountId}/portfolio-allocation:
+    get:
+      operationId: readPortfolioAllocation
+      summary: Read exact frozen valuation allocation
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Workspace-scoped exact values. Response uses no-store cache control.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOverviewAllocation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Invalid query or bounded replay scope exceeded.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOverviewProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: asOf
+          in: query
+          required: false
+          description: Defaults to today in the workspace calendar. Future dates are refused; dates before opening return an empty state.
+          schema: *id001
+        - name: by
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - INSTRUMENT
+              - ASSET_CLASS
+              - REGION
+              - CURRENCY
+            default: INSTRUMENT
 components:
   securitySchemes:
     sessionCookie:
@@ -6786,6 +6900,393 @@ components:
         examples:
           - '2026-09-02'
   schemas:
+    PortfolioOverviewValuation:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - valuedOn
+        - totalValue
+        - completeness
+        - detail
+        - ageDays
+        - stale
+      properties:
+        id:
+          type: string
+          format: uuid
+        valuedOn: &id003
+          type: string
+          format: date
+        totalValue: &id004
+          type:
+            - string
+            - 'null'
+          pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+        completeness:
+          type: string
+          enum:
+            - COMPLETE
+            - PARTIAL
+        detail:
+          type: string
+          enum:
+            - TOTAL
+            - POSITIONS
+        ageDays:
+          type: integer
+          minimum: 0
+        stale:
+          type: boolean
+    PortfolioOverviewAccount:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - label
+        - institution
+        - productCode
+        - assetCode
+        - status
+        - openedOn
+      properties:
+        id:
+          type: string
+          format: uuid
+        label: &id002
+          type: string
+        institution: &id001
+          type:
+            - string
+            - 'null'
+        productCode: *id001
+        assetCode: *id002
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - CLOSED
+            - ARCHIVED
+        openedOn: *id003
+    PortfolioOverviewPeriod:
+      type: object
+      additionalProperties: false
+      required:
+        - from
+        - to
+      properties:
+        from: *id003
+        to: *id003
+    PortfolioOverviewSource:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - id
+        - date
+      properties:
+        kind:
+          type: string
+          enum:
+            - OPERATION
+            - VALUATION
+        id:
+          type: string
+          format: uuid
+        date: *id003
+    PortfolioKpiExplanation:
+      type: object
+      additionalProperties: false
+      required:
+        - period
+        - quality
+        - reason
+        - sources
+        - truncatedSourceCount
+      properties:
+        period:
+          $ref: '#/components/schemas/PortfolioOverviewPeriod'
+        quality: *id002
+        reason: *id001
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioOverviewSource'
+          maxItems: 50
+        truncatedSourceCount:
+          type: integer
+          minimum: 0
+    PortfolioOverviewAccountCard:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - label
+        - institution
+        - productCode
+        - assetCode
+        - status
+        - latestValuation
+        - currentCash
+        - positionCount
+        - newerPartialValuation
+      properties:
+        newerPartialValuation:
+          description: A newer active PARTIAL observation when selected values come from an older COMPLETE valuation; null without fallback.
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOverviewValuation'
+            - type: 'null'
+        accountId:
+          type: string
+          format: uuid
+        label: *id002
+        institution: *id001
+        productCode: *id001
+        assetCode: *id002
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - CLOSED
+        latestValuation:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOverviewValuation'
+            - type: 'null'
+        currentCash: &id005
+          type: string
+          pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+        positionCount:
+          type: integer
+          minimum: 0
+    PortfolioOverviewList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - truncated
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioOverviewAccountCard'
+          maxItems: 50
+        truncated:
+          type: boolean
+    PortfolioOverviewSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - asOf
+        - account
+        - valuation
+        - totalValue
+        - cash
+        - unrealizedGain
+        - netDeposits
+        - costs
+        - reconciliation
+        - explanations
+        - newerPartialValuation
+      properties:
+        newerPartialValuation:
+          description: A newer active PARTIAL observation when selected values come from an older COMPLETE valuation; null without fallback.
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOverviewValuation'
+            - type: 'null'
+        asOf: *id003
+        account:
+          $ref: '#/components/schemas/PortfolioOverviewAccount'
+        valuation:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOverviewValuation'
+            - type: 'null'
+        totalValue: *id004
+        cash: *id005
+        unrealizedGain:
+          type: object
+          additionalProperties: false
+          required:
+            - value
+            - securitiesValue
+            - costBasis
+            - reason
+          properties:
+            value: *id004
+            securitiesValue: *id004
+            costBasis: *id004
+            reason:
+              type:
+                - string
+                - 'null'
+              enum:
+                - null
+                - NO_VALUATION
+                - PARTIAL_VALUATION
+                - UNKNOWN_LOT_COST
+        netDeposits:
+          type: object
+          additionalProperties: false
+          required:
+            - value
+            - deposits
+            - withdrawals
+            - from
+            - to
+          properties:
+            value: *id005
+            deposits: *id005
+            withdrawals: *id005
+            from: *id003
+            to: *id003
+        costs:
+          type: object
+          additionalProperties: false
+          required:
+            - fees
+            - taxes
+            - total
+            - from
+            - to
+          properties:
+            fees: *id005
+            taxes: *id005
+            total: *id005
+            from: *id003
+            to: *id003
+        reconciliation:
+          type: object
+          additionalProperties: false
+          required:
+            - status
+            - warnings
+          properties:
+            status:
+              type: string
+              enum:
+                - RECONCILED
+                - NEEDS_REVIEW
+            warnings:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - code
+                  - count
+                properties:
+                  code: *id002
+                  count:
+                    type: integer
+                    minimum: 1
+        explanations:
+          type: object
+          additionalProperties: false
+          required:
+            - TOTAL_VALUE
+            - UNREALIZED_GAIN
+            - CASH
+            - NET_DEPOSITS
+            - COSTS
+            - RECONCILIATION
+          properties:
+            TOTAL_VALUE:
+              $ref: '#/components/schemas/PortfolioKpiExplanation'
+            UNREALIZED_GAIN:
+              $ref: '#/components/schemas/PortfolioKpiExplanation'
+            CASH:
+              $ref: '#/components/schemas/PortfolioKpiExplanation'
+            NET_DEPOSITS:
+              $ref: '#/components/schemas/PortfolioKpiExplanation'
+            COSTS:
+              $ref: '#/components/schemas/PortfolioKpiExplanation'
+            RECONCILIATION:
+              $ref: '#/components/schemas/PortfolioKpiExplanation'
+      description: Latest active COMPLETE valuation on or before asOf, falling back to the latest PARTIAL only when no complete exists. A newer partial stays explicit and contributes reconciliation warnings and sources. Unrealized gain uses frozen average cost, COMPLETE only. Cash is derived at asOf; deposits and costs are year-to-date. Reconciliation excludes UNLINKED_EXTERNAL_FLOW and ROUNDING_RESIDUALS. Sources are limited to 50 per KPI.
+    PortfolioAllocationItem:
+      type: object
+      additionalProperties: false
+      required:
+        - key
+        - label
+        - value
+        - share
+      properties:
+        key: *id002
+        label: *id002
+        value: *id004
+        share: *id004
+    PortfolioOverviewAllocation:
+      type: object
+      additionalProperties: false
+      required:
+        - asOf
+        - by
+        - assetCode
+        - valuation
+        - total
+        - items
+        - slices
+        - reason
+        - newerPartialValuation
+      properties:
+        newerPartialValuation:
+          description: A newer active PARTIAL observation when selected values come from an older COMPLETE valuation; null without fallback.
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOverviewValuation'
+            - type: 'null'
+        asOf: *id003
+        by:
+          type: string
+          enum:
+            - INSTRUMENT
+            - ASSET_CLASS
+            - REGION
+            - CURRENCY
+        assetCode: *id002
+        valuation:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOverviewValuation'
+            - type: 'null'
+        total: *id004
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioAllocationItem'
+        slices:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioAllocationItem'
+          maxItems: 8
+        reason:
+          type:
+            - string
+            - 'null'
+          enum:
+            - null
+            - NO_VALUATION
+            - PARTIAL_VALUATION
+            - NOT_DETAILED
+            - NON_POSITIVE_TOTAL
+      description: Frozen position values of the selected latest COMPLETE valuation grouped with CASH and UNSPECIFIED; a newer partial observation is reported separately. Shares are exact scale-24 HALF_UP decimals. At most eight chart slices, smaller buckets merged as OTHERS; table retains every bucket. TOTAL has two unpriced-share lines and NOT_DETAILED.
+    PortfolioOverviewProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - code
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_as_of
+                - invalid_allocation_by
+                - portfolio_account_not_found
+                - account_not_portfolio
+                - cash_range_too_dense
+                - cash_amount_too_large
+                - position_would_go_negative
+                - corporate_action_without_position
+                - split_fraction_unsupported
     EmptyObject:
       type: object
       additionalProperties: false

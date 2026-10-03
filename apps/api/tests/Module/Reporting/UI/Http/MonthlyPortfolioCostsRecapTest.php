@@ -120,6 +120,17 @@ final class MonthlyPortfolioCostsRecapTest extends WebTestCase
         }
         self::assertSame('8.98', (string) $fees);
         self::assertSame('4.95', (string) $taxes);
+
+        $this->client->request('GET', '/api/v1/reports/monthly/recap?month=2026-04', server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful();
+        $april = self::map(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
+        $aprilCosts = self::map($april['portfolioCosts']);
+        $this->client->request('GET', '/api/v1/accounts/'.self::ACCOUNT.'/portfolio-summary?asOf=2026-04-30', server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful();
+        $summary = self::map(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
+        $summaryCosts = self::map($summary['costs']);
+        self::assertSame((string) self::amount($items[1]['fees'])->plus(self::amount($aprilCosts['totalFees'])), $summaryCosts['fees']);
+        self::assertSame((string) self::amount($items[1]['taxes'])->plus(self::amount($aprilCosts['totalTaxes'])), $summaryCosts['taxes']);
     }
 
     public function testAccountsInDifferentAssetsKeepTheirOwnItemsAndNeverAddUpToAZeroTotal(): void
@@ -171,7 +182,18 @@ final class MonthlyPortfolioCostsRecapTest extends WebTestCase
         $this->client->request('GET', '/api/v1/reports/monthly?month=2026-03', server: ['HTTP_ACCEPT' => 'application/json']);
         $projectionBefore = (string) $this->client->getResponse()->getContent();
 
+        $reportPaths = ['/api/v1/reports/annual/2026?incompleteMonths=include', '/api/v1/reports/multi-year?from=2026&to=2026&incompleteMonths=include'];
+        $reportBodies = [];
+        foreach ($reportPaths as $path) {
+            $this->client->request('GET', $path, server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseIsSuccessful();
+            $reportBodies[$path] = (string) $this->client->getResponse()->getContent();
+        }
+
         $this->recordReferenceSequence(self::ACCOUNT);
+        $this->record(self::ACCOUNT, ['type' => 'SPLIT', 'tradeDate' => '2026-03-08', 'instrumentId' => self::ETF, 'ratio' => ['numerator' => '2', 'denominator' => '1']]);
+        $this->record(self::ACCOUNT, ['type' => 'SECURITY_TRANSFER_OUT', 'tradeDate' => '2026-03-09', 'instrumentId' => self::ETF, 'quantity' => '1']);
+        $this->record(self::ACCOUNT, ['type' => 'SECURITY_TRANSFER_IN', 'tradeDate' => '2026-03-10', 'instrumentId' => self::ETF, 'quantity' => '1', 'costBasis' => $this->eur('200')]);
 
         $after = $this->recap();
         self::assertSame($before['totals'], $after['totals'], 'budget expenses, surplus and savings rate are unchanged');
@@ -179,6 +201,11 @@ final class MonthlyPortfolioCostsRecapTest extends WebTestCase
         self::assertNotSame($before['portfolioCosts'], $after['portfolioCosts'], 'only the costs block changes');
         $this->client->request('GET', '/api/v1/reports/monthly?month=2026-03', server: ['HTTP_ACCEPT' => 'application/json']);
         self::assertSame($projectionBefore, (string) $this->client->getResponse()->getContent());
+        foreach ($reportBodies as $path => $body) {
+            $this->client->request('GET', $path, server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseIsSuccessful();
+            self::assertSame($body, (string) $this->client->getResponse()->getContent(), $path);
+        }
     }
 
     private function recordReferenceSequence(string $account): void

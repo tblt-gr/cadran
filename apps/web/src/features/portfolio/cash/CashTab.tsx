@@ -21,11 +21,23 @@ const refusals: Record<string, string> = {
 };
 
 /** The Espèces tab: derived cash balance, period totals, warnings and running movements. */
-export function CashTab({ accountId }: { accountId: string }) {
+export function CashTab({
+  accountId,
+  asOf,
+  onAsOfChange,
+}: {
+  accountId: string;
+  asOf?: string;
+  onAsOfChange?: (date: string) => void;
+}) {
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);
-  const [range, setRange] = useState(() => ({ from: startOfYear(today), to: today }));
-  const cash = useCash(accountId, range.from, range.to);
+  const [range, setRange] = useState(() => ({
+    from: startOfYear(asOf ?? today),
+    to: asOf ?? today,
+  }));
+  const from = asOf && range.to !== asOf ? startOfYear(asOf) : range.from;
+  const cash = useCash(accountId, from, asOf ?? range.to);
   const refusal =
     cash.error instanceof OperationRequestError && cash.error.code
       ? refusals[cash.error.code]
@@ -33,7 +45,15 @@ export function CashTab({ accountId }: { accountId: string }) {
 
   return (
     <div className={styles.tab}>
-      <CashToolbar from={range.from} onChange={setRange} to={range.to} today={today} />
+      <CashToolbar
+        from={from}
+        to={asOf ?? range.to}
+        today={today}
+        onChange={(next) => {
+          setRange(next);
+          if (asOf && next.to !== asOf) onAsOfChange?.(next.to);
+        }}
+      />
       <p className={styles.note}>
         Les montants sont saisis dans la devise du compte ; le multi-devises n’est pas pris en
         charge.

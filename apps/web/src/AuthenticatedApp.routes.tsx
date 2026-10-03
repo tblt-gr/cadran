@@ -19,6 +19,7 @@ import { AnnualReportPage } from '@/features/reports/annual/AnnualReportPage';
 import { MultiYearReportPage } from '@/features/reports/multi-year/MultiYearReportPage';
 import { GoalsPage } from '@/features/goals/GoalsPage';
 import { InstrumentsPage } from '@/features/portfolio/instruments/InstrumentsPage';
+import { PortfoliosPage } from '@/features/portfolio/portfolios/PortfoliosPage';
 import { PortfolioAccountPage } from '@/features/portfolio/portfolio-account/PortfolioAccountPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { workspaceToday } from '@/lib/workspaceTime';
@@ -49,6 +50,7 @@ export interface RouteDefinition {
  */
 export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefinition[] {
   return [
+    { pattern: /^\/portfolios$/, globalActions: false, render: () => <PortfoliosPage /> },
     {
       pattern: /^\/portfolios\/instruments$/,
       globalActions: false,

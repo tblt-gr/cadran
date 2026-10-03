@@ -1,0 +1,22 @@
+.page {
+  display: grid;
+  gap: var(--spacing-6);
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+.header h2 {
+  margin: var(--spacing-none);
+}
+.header a {
+  text-decoration: none;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}

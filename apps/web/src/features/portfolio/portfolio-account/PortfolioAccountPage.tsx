@@ -1,4 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
+import { workspaceToday } from '@/lib/workspaceTime';
+import { clearPortfolioDetailSelection } from './portfolioDetailLocation';
+import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
@@ -19,18 +24,37 @@ import styles from './PortfolioAccountPage.module.css';
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const account = useAccountDetail(accountId);
+  const sourceReturnFocus = useRef<HTMLElement | null>(null);
+  const today = workspaceToday(new Date(), useWorkspaceTimeZone());
+  const [asOf, setAsOf] = useState(
+    () => new URLSearchParams(window.location.search).get('asOf') || today,
+  );
+  const changeDate = (date: string) => {
+    const url = clearPortfolioDetailSelection();
+    url.searchParams.set('asOf', date);
+    window.history.pushState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
   const [creating, setCreating] = useState(false);
   const [active, setActive] = useState<PortfolioTab>(() => activeTab());
 
   useEffect(() => {
-    const updateTab = () => setActive(activeTab());
+    const updateTab = () => {
+      setActive(activeTab());
+      setAsOf(new URLSearchParams(window.location.search).get('asOf') || today);
+    };
     window.addEventListener('popstate', updateTab);
     return () => window.removeEventListener('popstate', updateTab);
-  }, []);
+  }, [today]);
 
   if (account.isPending) {
     return (
-      <PortfolioAccountPageSkeleton accountId={accountId} status="Chargement du portefeuille…" />
+      <PortfolioAccountPageSkeleton
+        accountId={accountId}
+        asOf={asOf}
+        today={today}
+        status="Chargement du portefeuille…"
+      />
     );
   }
 
@@ -63,7 +87,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
 
   function openCreate() {
     if (active !== 'operations') {
-      window.history.pushState({}, '', `/portfolios/${accountId}?tab=operations`);
+      window.history.pushState({}, '', `/portfolios/${accountId}?tab=operations&asOf=${asOf}`);
       setActive('operations');
     }
     setCreating(true);
@@ -72,17 +96,27 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   return (
     <div className={styles.page}>
       <PortfolioAccountHeader account={current} accountId={accountId} onCreate={openCreate} />
-      <PortfolioTabs accountId={accountId} active={active} />
+      <BusinessDateField hint={null} label="Au" onChange={changeDate} today={today} value={asOf} />
+      {eligible ? (
+        <PortfolioOverview
+          accountId={accountId}
+          asOf={asOf}
+          sourceReturnFocus={sourceReturnFocus}
+        />
+      ) : null}
+      <PortfolioTabs accountId={accountId} active={active} asOf={asOf} />
       {eligible ? (
         active === 'positions' ? (
-          <PositionsTab accountId={accountId} />
+          <PositionsTab accountId={accountId} asOf={asOf} />
         ) : active === 'cash' ? (
-          <CashTab accountId={accountId} />
+          <CashTab accountId={accountId} asOf={asOf} onAsOfChange={changeDate} />
         ) : active === 'valuations' ? (
-          <ValuationsTab account={current} />
+          <ValuationsTab account={current} asOf={asOf} sourceReturnFocus={sourceReturnFocus} />
         ) : (
           <OperationsTab
             account={current}
+            asOf={asOf}
+            sourceReturnFocus={sourceReturnFocus}
             creating={creating}
             onCloseCreate={() => setCreating(false)}
             onCreate={openCreate}

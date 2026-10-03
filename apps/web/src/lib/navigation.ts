@@ -44,7 +44,7 @@ export const navigationItems: NavigationItem[] = [
     mobile: true,
   },
   {
-    href: '/portfolios/instruments',
+    href: '/portfolios',
     icon: 'investments',
     labelKey: 'navigation.investments',
     match: (path) => path.startsWith('/portfolios') || /^\/life-insurance\/[^/]+$/.test(path),
