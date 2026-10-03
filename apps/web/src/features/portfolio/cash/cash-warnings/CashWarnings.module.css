@@ -24,11 +24,6 @@
   flex-wrap: wrap;
   gap: var(--spacing-3);
 }
-.skeleton {
-  display: block;
-  width: 60%;
-  height: var(--font-size-body);
-}
 
 .infos summary {
   cursor: pointer;

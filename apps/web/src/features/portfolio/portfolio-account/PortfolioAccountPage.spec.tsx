@@ -107,6 +107,7 @@ describe('PortfolioAccountPage', () => {
       true,
     );
     expect(screen.getByRole('columnheader', { name: 'Effet espèces' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 

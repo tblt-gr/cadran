@@ -79,9 +79,12 @@ describe('CashTab', () => {
     expect(rows[3]?.textContent).toContain('+');
   });
 
-  it('states a clean ledger positively', async () => {
+  it('renders no warnings card while loading nor on a clean ledger', async () => {
     renderTab();
-    expect(await screen.findByText('Aucune anomalie d’espèces sur la période')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
+    await loaded();
+    expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
+    expect(screen.queryByText(/Aucune anomalie/)).toBeNull();
   });
 
   it('lists every warning with its count and links to the sources', async () => {
@@ -120,7 +123,6 @@ describe('CashTab', () => {
       await screen.findByText('2 virements entrants ne sont liés à aucun versement'),
     ).toBeTruthy();
     expect(screen.getByText(/Solde négatif à partir du 04\/02\/2026/)).toBeTruthy();
-    expect(screen.queryByText('Aucune anomalie d’espèces sur la période')).toBeNull();
     expect(screen.getByRole('link', { name: 'Achat du 06/01/2026' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Opération 2' })).toBeTruthy();
     const links = screen.getAllByRole('link').map((link) => link.getAttribute('href'));
@@ -173,11 +175,42 @@ describe('CashTab', () => {
     await loaded();
   });
 
-  it('keeps information rows in a collapsed disclosure and the positive badge without warnings', async () => {
+  it('drops information rows entirely when no warning-level item exists', async () => {
     api.readPortfolioCash.mockImplementation(() =>
       ok(
         cashFixture({
           warnings: [
+            {
+              code: 'UNLINKED_EXTERNAL_FLOW',
+              count: 2,
+              sourceIds: ['op-1', 'op-7'],
+              firstDate: null,
+              amount: null,
+            },
+          ],
+        }),
+      ),
+    );
+    renderTab();
+    await loaded();
+
+    expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
+    expect(screen.queryByText(/Informations \(/)).toBeNull();
+    expect(screen.queryByText(/sans virement lié/)).toBeNull();
+  });
+
+  it('keeps information rows in a collapsed disclosure next to a warning', async () => {
+    api.readPortfolioCash.mockImplementation(() =>
+      ok(
+        cashFixture({
+          warnings: [
+            {
+              code: 'NEGATIVE_CASH',
+              count: 1,
+              sourceIds: ['op-9'],
+              firstDate: '2026-02-04',
+              amount: null,
+            },
             {
               code: 'UNLINKED_EXTERNAL_FLOW',
               count: 2,
@@ -198,8 +231,7 @@ describe('CashTab', () => {
     );
     renderTab();
 
-    expect(await screen.findByText('Aucune anomalie d’espèces sur la période')).toBeTruthy();
-    const summary = screen.getByText('Informations (2)');
+    const summary = await screen.findByText('Informations (2)');
     const details = summary.closest('details') as HTMLDetailsElement;
     expect(details.open).toBe(false);
     fireEvent.click(summary);
@@ -208,7 +240,7 @@ describe('CashTab', () => {
     expect(within(details).getByText(/sans virement lié/)).toBeTruthy();
   });
 
-  it('lists warning-level rows outside the disclosure and drops the positive badge', async () => {
+  it('lists warning-level rows outside the disclosure', async () => {
     api.readPortfolioCash.mockImplementation(() =>
       ok(
         cashFixture({
@@ -228,7 +260,6 @@ describe('CashTab', () => {
 
     const row = await screen.findByText('1 virement entrant n’est lié à aucun versement');
     expect(row.closest('details')).toBeNull();
-    expect(screen.queryByText('Aucune anomalie d’espèces sur la période')).toBeNull();
     expect(screen.queryByText(/Informations \(/)).toBeNull();
   });
 
@@ -252,7 +283,7 @@ describe('CashTab', () => {
       );
       renderTab();
 
-      expect(await screen.findByText('Aucune anomalie d’espèces sur la période')).toBeTruthy();
+      await loaded();
       expect(screen.queryByText(/résidu d’arrondi/)).toBeNull();
       expect(screen.queryByText(/Informations \(/)).toBeNull();
     },

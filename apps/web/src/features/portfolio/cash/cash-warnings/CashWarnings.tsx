@@ -1,7 +1,6 @@
 import type { PortfolioCash, PortfolioCashWarning } from '@cadran/api-client';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { operationTypeLabel } from '@/features/portfolio/portfolio-account/operations/operation-type-label';
@@ -24,7 +23,7 @@ function operationLabel(cash: PortfolioCash, id: string, index: number): string 
     : `Opération ${index + 1}`;
 }
 
-/** One row per cash warning, never blocking; `null` renders the loading layout. */
+/** One row per cash warning, never blocking; rendered only once loaded data holds a warning-level item. */
 export function CashWarnings({
   accountId,
   cash,
@@ -65,29 +64,18 @@ export function CashWarnings({
     );
   }
 
+  if (cash === null || warnings.length === 0) return null;
+
   return (
     <section aria-labelledby={titleId} className={`card ${styles.panel}`}>
       <h3 id={titleId}>Contrôles d’espèces</h3>
-      {cash === null ? (
-        <SkeletonBlock className={styles.skeleton} />
-      ) : (
-        <>
-          {warnings.length === 0 ? (
-            <p className={styles.row}>
-              <StatusBadge tone="positive">Aucune anomalie</StatusBadge>
-              <span>Aucune anomalie d’espèces sur la période</span>
-            </p>
-          ) : (
-            <ul className={styles.list}>{warnings.map((warning) => row(warning, cash))}</ul>
-          )}
-          {infos.length > 0 ? (
-            <details className={styles.infos}>
-              <summary>{`Informations (${infos.length})`}</summary>
-              <ul className={styles.list}>{infos.map((warning) => row(warning, cash))}</ul>
-            </details>
-          ) : null}
-        </>
-      )}
+      <ul className={styles.list}>{warnings.map((warning) => row(warning, cash))}</ul>
+      {infos.length > 0 ? (
+        <details className={styles.infos}>
+          <summary>{`Informations (${infos.length})`}</summary>
+          <ul className={styles.list}>{infos.map((warning) => row(warning, cash))}</ul>
+        </details>
+      ) : null}
     </section>
   );
 }
