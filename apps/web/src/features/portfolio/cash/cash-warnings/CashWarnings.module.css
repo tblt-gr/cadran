@@ -29,3 +29,12 @@
   width: 60%;
   height: var(--font-size-body);
 }
+
+.infos summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.infos[open] summary {
+  margin-bottom: var(--spacing-3);
+}

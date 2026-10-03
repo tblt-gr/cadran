@@ -1,11 +1,5 @@
 import type { PortfolioCashWarning } from '@cadran/api-client';
-import {
-  compareDecimals,
-  formatAmount,
-  formatCalendarNumericDay,
-  isZeroDecimal,
-  roundDecimal,
-} from '@/lib/decimal';
+import { formatAmount, formatCalendarNumericDay, isZeroDecimal, roundDecimal } from '@/lib/decimal';
 
 type Code = PortfolioCashWarning['code'];
 
@@ -42,7 +36,9 @@ export function warningSentence(warning: PortfolioCashWarning, locale: string): 
     case 'NON_TRANSFER_TRANSACTION':
       return `${n} ${plural(n, 'transaction de revenu, dépense, remboursement ou frais enregistrée', 'transactions de revenu, dépense, remboursement ou frais enregistrées')} sur ce compte avant le suivi par portefeuille`;
     case 'ROUNDING_RESIDUALS': {
-      const total = warning.amount ? ` : ${residualTotal(warning.amount, locale)}` : '';
+      const total = warning.amount
+        ? ` : total ${formatAmount(warning.amount.value, warning.amount.assetCode, locale)}`
+        : '';
       return `${n} ${plural(n, 'opération avec un résidu d’arrondi', 'opérations avec un résidu d’arrondi')}${total}`;
     }
   }
@@ -59,16 +55,10 @@ function displayDigits(assetCode: string, locale: string): number {
   }
 }
 
-/** A non-zero residual is never shown as zero: below the display precision it is bounded instead. */
-function residualTotal(amount: { assetCode: string; value: string }, locale: string): string {
-  const digits = displayDigits(amount.assetCode, locale);
-  if (isZeroDecimal(amount.value) || !isZeroDecimal(roundDecimal(amount.value, digits))) {
-    return `total ${formatAmount(amount.value, amount.assetCode, locale)}`;
-  }
-  const step = digits === 0 ? '1' : `0.${'0'.repeat(digits - 1)}1`;
-  const bound = formatAmount(step, amount.assetCode, locale);
+/** A residual that rounds to zero at the display precision is not worth showing. */
+export function isHiddenWarning(warning: PortfolioCashWarning, locale: string): boolean {
+  if (warning.code !== 'ROUNDING_RESIDUALS' || !warning.amount) return false;
+  const digits = displayDigits(warning.amount.assetCode, locale);
 
-  return compareDecimals(amount.value, '0') < 0
-    ? `total inférieur à ${bound} en valeur absolue`
-    : `total inférieur à ${bound}`;
+  return isZeroDecimal(roundDecimal(warning.amount.value, digits));
 }

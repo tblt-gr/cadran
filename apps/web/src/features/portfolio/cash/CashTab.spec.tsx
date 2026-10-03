@@ -173,29 +173,88 @@ describe('CashTab', () => {
     await loaded();
   });
 
-  it.each([
-    ['0.004', /total inférieur à 0,01\s€$/],
-    ['-0.004', /total inférieur à 0,01\s€ en valeur absolue$/],
-    ['0.02', /total 0,02\s€$/],
-  ])('words a rounding residual of %s without showing a zero total', async (amount, wording) => {
+  it('keeps information rows in a collapsed disclosure and the positive badge without warnings', async () => {
     api.readPortfolioCash.mockImplementation(() =>
       ok(
         cashFixture({
           warnings: [
             {
+              code: 'UNLINKED_EXTERNAL_FLOW',
+              count: 2,
+              sourceIds: ['op-1', 'op-7'],
+              firstDate: null,
+              amount: null,
+            },
+            {
               code: 'ROUNDING_RESIDUALS',
               count: 1,
-              sourceIds: ['op-2'],
+              sourceIds: ['op-3'],
               firstDate: null,
-              amount: { value: amount, assetCode: 'EUR' },
+              amount: { value: '0.02', assetCode: 'EUR' },
             },
           ],
         }),
       ),
     );
     renderTab();
-    const sentence = await screen.findByText(/résidu d’arrondi/);
-    expect(sentence.textContent).toMatch(wording);
-    expect(sentence.textContent).not.toMatch(/0,00/);
+
+    expect(await screen.findByText('Aucune anomalie d’espèces sur la période')).toBeTruthy();
+    const summary = screen.getByText('Informations (2)');
+    const details = summary.closest('details') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    fireEvent.click(summary);
+    expect(details.open).toBe(true);
+    expect(within(details).getByText(/résidu d’arrondi : total 0,02\s€/)).toBeTruthy();
+    expect(within(details).getByText(/sans virement lié/)).toBeTruthy();
   });
+
+  it('lists warning-level rows outside the disclosure and drops the positive badge', async () => {
+    api.readPortfolioCash.mockImplementation(() =>
+      ok(
+        cashFixture({
+          warnings: [
+            {
+              code: 'UNLINKED_TRANSFER_IN',
+              count: 1,
+              sourceIds: ['tx-1'],
+              firstDate: null,
+              amount: null,
+            },
+          ],
+        }),
+      ),
+    );
+    renderTab();
+
+    const row = await screen.findByText('1 virement entrant n’est lié à aucun versement');
+    expect(row.closest('details')).toBeNull();
+    expect(screen.queryByText('Aucune anomalie d’espèces sur la période')).toBeNull();
+    expect(screen.queryByText(/Informations \(/)).toBeNull();
+  });
+
+  it.each(['0.004', '-0.004', '0', '-0.00'])(
+    'hides a rounding residual of %s that is zero at display precision, and its disclosure',
+    async (amount) => {
+      api.readPortfolioCash.mockImplementation(() =>
+        ok(
+          cashFixture({
+            warnings: [
+              {
+                code: 'ROUNDING_RESIDUALS',
+                count: 1,
+                sourceIds: ['op-2'],
+                firstDate: null,
+                amount: { value: amount, assetCode: 'EUR' },
+              },
+            ],
+          }),
+        ),
+      );
+      renderTab();
+
+      expect(await screen.findByText('Aucune anomalie d’espèces sur la période')).toBeTruthy();
+      expect(screen.queryByText(/résidu d’arrondi/)).toBeNull();
+      expect(screen.queryByText(/Informations \(/)).toBeNull();
+    },
+  );
 });
