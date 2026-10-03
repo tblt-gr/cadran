@@ -72,6 +72,8 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
     vi.fn(async (input: Request | string) => {
       const url = typeof input === 'string' ? input : input.url;
 
+      if (url.endsWith('/api/v1/portfolios')) return jsonResponse({ items: [], truncated: false });
+
       if (url.includes('/api/v1/session')) {
         return jsonResponse(authenticatedSession);
       }
@@ -190,7 +192,7 @@ describe('App', () => {
     ['/budget/plans', 'Plans budgétaires'],
     ['/accounts', 'Comptes'],
     ['/accounts/demo', 'Détail du compte'],
-    ['/portfolios/demo', 'Portefeuille'],
+    ['/portfolios', 'Investissements'],
     ['/life-insurance/demo', 'Assurance-vie'],
     ['/reports/annual/2026', 'Rapport annuel 2026'],
     ['/reports/all-years', 'Rapport pluriannuel'],

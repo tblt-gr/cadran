@@ -1,0 +1,41 @@
+.card {
+  grid-column: span 12;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+a.card:hover {
+  border-color: var(--border-strong);
+}
+.card h3,
+.card p,
+.card dl,
+.card dd {
+  margin: var(--spacing-none);
+}
+.card p,
+.card dt {
+  color: var(--text-secondary);
+}
+.card dl {
+  display: grid;
+  gap: var(--spacing-3);
+}
+.card dd {
+  font-size: var(--font-size-kpi);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) {
+  .card {
+    grid-column: span 6;
+  }
+}
+@media (min-width: 1200px) {
+  .card {
+    grid-column: span 4;
+  }
+}

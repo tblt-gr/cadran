@@ -29,7 +29,6 @@ export function PortfolioAccountHeader({
   return (
     <section aria-labelledby="portfolio-account-title" className={styles.intro}>
       <div>
-        <p className={styles.eyebrow}>Portefeuille</p>
         <h2 id="portfolio-account-title">
           {account ? account.label : <SkeletonBlock className={styles.title} />}
         </h2>

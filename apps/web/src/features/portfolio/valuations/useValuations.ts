@@ -9,14 +9,14 @@ import { valuationRequestError } from './valuationError';
 
 export const VALUATIONS_PER_PAGE = 24;
 
-export function useValuations(accountId: string, page: number) {
+export function useValuations(accountId: string, page: number, asOf?: string) {
   return useQuery({
-    queryKey: ['portfolio-valuations', accountId, page],
+    queryKey: ['portfolio-valuations', accountId, page, asOf],
     queryFn: async ({ signal }) => {
       const result = await listPortfolioValuations({
         ...authApiOptions(),
         path: { accountId },
-        query: { page, perPage: VALUATIONS_PER_PAGE },
+        query: { page, perPage: VALUATIONS_PER_PAGE, to: asOf },
         signal,
       });
       if (!result.response?.ok || !result.data) throw valuationRequestError(result);

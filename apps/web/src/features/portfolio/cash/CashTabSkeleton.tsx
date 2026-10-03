@@ -7,7 +7,7 @@ import { startOfYear } from './cashPeriod';
 import styles from './CashTab.module.css';
 
 /** Cold-load layout of the Espèces tab: the real chrome, every figure pending. */
-export function CashTabSkeleton() {
+export function CashTabSkeleton({ asOf }: { asOf?: string }) {
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);
 
@@ -15,10 +15,10 @@ export function CashTabSkeleton() {
     <div className={styles.tab}>
       <CashToolbar
         disabled
-        from={startOfYear(today)}
-        onChange={() => undefined}
-        to={today}
+        from={startOfYear(asOf ?? today)}
+        to={asOf ?? today}
         today={today}
+        onChange={() => undefined}
       />
       <p className={styles.note}>
         Les montants sont saisis dans la devise du compte ; le multi-devises n’est pas pris en

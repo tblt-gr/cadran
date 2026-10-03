@@ -24,6 +24,13 @@ interface AccountRepository
         ?AccountKind $kind = null,
     ): array;
 
+    /**
+     * Non-archived portfolio-mode accounts ordered by label, including closed history.
+     *
+     * @return list<Account>
+     */
+    public function listPortfolios(WorkspaceScope $workspace, int $limit): array;
+
     public function count(
         WorkspaceScope $workspace,
         bool $includeArchived,

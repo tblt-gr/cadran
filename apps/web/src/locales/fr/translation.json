@@ -1433,6 +1433,26 @@
     },
     "instruments": {
       "loading": "Chargement des instruments…"
+    },
+    "kpi": {
+      "TOTAL_VALUE": {
+        "formula": "Valeur totale = espèces + Σ (quantité × prix) de la valorisation retenue."
+      },
+      "UNREALIZED_GAIN": {
+        "formula": "Plus-value latente = valeur des titres − somme des prix de revient moyens connus de la valorisation complète."
+      },
+      "CASH": {
+        "formula": "Espèces = solde initial + entrées − sorties du registre espèces jusqu’à la date sélectionnée."
+      },
+      "NET_DEPOSITS": {
+        "formula": "Versements nets = versements − retraits du 1er janvier à la date sélectionnée."
+      },
+      "COSTS": {
+        "formula": "Frais et taxes = somme des frais + somme des taxes du 1er janvier à la date sélectionnée."
+      },
+      "RECONCILIATION": {
+        "formula": "Rapproché lorsque les alertes espèces, positions et valorisation sont absentes ; les flux externes non liés et les résidus d’arrondi restent informatifs."
+      }
     }
   },
   "productModels": {

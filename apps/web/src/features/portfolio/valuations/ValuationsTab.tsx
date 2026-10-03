@@ -1,5 +1,5 @@
 import type { Account, PortfolioValuationSummary } from '@cadran/api-client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
@@ -19,16 +19,32 @@ type Dialog =
   | null;
 
 /** The Valorisations tab: dated valuations of the account and the record, replace and withdraw modals. */
-export function ValuationsTab({ account }: { account: Account }) {
+export function ValuationsTab({
+  account,
+  asOf,
+  sourceReturnFocus,
+}: {
+  account: Account;
+  asOf?: string;
+  sourceReturnFocus?: RefObject<HTMLElement | null>;
+}) {
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('valuation'),
+  );
   const [stale, setStale] = useState(false);
-  const valuations = useValuations(account.id, page);
+  const valuations = useValuations(account.id, page, asOf);
   const total = valuations.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / VALUATIONS_PER_PAGE));
+
+  useEffect(() => {
+    const update = () => setDetailId(new URLSearchParams(window.location.search).get('valuation'));
+    window.addEventListener('popstate', update);
+    return () => window.removeEventListener('popstate', update);
+  }, []);
 
   useEffect(() => {
     if (total > 0 && page > totalPages) setPage(totalPages);
@@ -125,6 +141,11 @@ export function ValuationsTab({ account }: { account: Account }) {
       ) : null}
       {detailId ? (
         <ValuationDetailModal
+          returnFocus={
+            detailId === new URLSearchParams(window.location.search).get('valuation')
+              ? sourceReturnFocus
+              : undefined
+          }
           id={detailId}
           onClose={() => setDetailId(null)}
           onOpen={setDetailId}

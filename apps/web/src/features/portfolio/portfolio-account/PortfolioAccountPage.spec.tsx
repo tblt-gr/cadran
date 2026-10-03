@@ -3,8 +3,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { positionsValuationFixture } from '@/features/portfolio/valuations/valuationFixtures';
 import { cashFixture } from '@/features/portfolio/cash/cashFixtures';
 import { operationFixture } from './operations/operations-table/operationFixtures';
+import { summaryFixture, allocationFixture } from './overviewFixtures';
 import { PortfolioAccountPage } from './PortfolioAccountPage';
 
 const api = vi.hoisted(() => ({
@@ -17,6 +19,9 @@ const api = vi.hoisted(() => ({
   listPortfolioValuations: vi.fn(),
   listProducts: vi.fn(),
   readPortfolioCash: vi.fn(),
+  readPortfolioSummary: vi.fn(),
+  readPortfolioAllocation: vi.fn(),
+  readPortfolioValuation: vi.fn(),
   previewPortfolioOperation: vi.fn(),
   readAccount: vi.fn(),
   readPortfolioOperation: vi.fn(),
@@ -77,6 +82,8 @@ const deposit = operationFixture({ id: 'op-1', version: 4 });
 
 beforeEach(() => {
   window.history.replaceState({}, '', `/portfolios/${accountId}?tab=operations`);
+  api.readPortfolioSummary.mockImplementation(() => ok(summaryFixture()));
+  api.readPortfolioAllocation.mockImplementation(() => ok(allocationFixture()));
   api.readAccount.mockImplementation(() => ok(account));
   api.listProducts.mockImplementation(() => ok({ items: [], page: 1, perPage: 100, total: 0 }));
   api.listInstruments.mockImplementation(() => ok({ items: [], page: 1, perPage: 20, total: 0 }));
@@ -97,6 +104,79 @@ afterEach(() => {
 });
 
 describe('PortfolioAccountPage', () => {
+  it('propagates the selected date to every read and keeps it when switching tabs', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-03-10`);
+    api.readPortfolioCash.mockImplementation(() => ok(cashFixture()));
+    api.listPortfolioValuations.mockImplementation(() =>
+      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+    );
+    renderPage();
+    await screen.findByText('Aucune position à cette date');
+    fireEvent.change(screen.getByLabelText('Au'), { target: { value: '2026-02-28' } });
+    await waitFor(() =>
+      expect(api.readPortfolioSummary.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28'),
+    );
+    expect(api.readPortfolioAllocation.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28');
+    expect(api.listPortfolioPositions.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28');
+    fireEvent.click(screen.getByRole('link', { name: 'Opérations' }));
+    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
+    fireEvent.click(screen.getByRole('link', { name: 'Espèces' }));
+    await screen.findByRole('table', { name: 'Mouvements d’espèces' });
+    expect(api.readPortfolioCash.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
+    fireEvent.click(screen.getByRole('link', { name: 'Valorisations' }));
+    await screen.findByText(/Aucune valorisation\. Enregistrez/);
+    expect(api.listPortfolioValuations.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
+    expect(new URLSearchParams(window.location.search).get('asOf')).toBe('2026-02-28');
+  });
+  it('opens an operation source from its explanation and restores keyboard focus', async () => {
+    const summary = summaryFixture();
+    summary.explanations.CASH = {
+      ...summary.explanations.CASH,
+      sources: [{ kind: 'OPERATION', id: deposit.id, date: deposit.tradeDate }],
+    };
+    api.readPortfolioSummary.mockImplementation(() => ok(summary));
+    api.readPortfolioOperation.mockImplementation(() => ok(deposit));
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Expliquer : Espèces' }).matches(':disabled')).toBe(
+        false,
+      ),
+    );
+    const info = screen.getByRole('button', { name: 'Expliquer : Espèces' });
+    info.focus();
+    fireEvent.click(info);
+    fireEvent.click(screen.getByRole('button', { name: `Opération du ${deposit.tradeDate}` }));
+    expect(await screen.findByRole('dialog', { name: /Opération : Versement/ })).toBeTruthy();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(info));
+  });
+
+  it('opens the exact valuation source from a KPI explanation with one dialog', async () => {
+    api.listPortfolioValuations.mockImplementation(() =>
+      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+    );
+    api.readPortfolioValuation.mockImplementation(() =>
+      ok(positionsValuationFixture({ id: 'valuation-1' })),
+    );
+    renderPage();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Expliquer : Valeur totale' }).matches(':disabled'),
+      ).toBe(false),
+    );
+    const info = screen.getByRole('button', { name: 'Expliquer : Valeur totale' });
+    info.focus();
+    fireEvent.click(info);
+    fireEvent.click(screen.getByRole('button', { name: 'Valorisation du 2026-03-10' }));
+    expect(await screen.findByRole('dialog', { name: 'Valorisation du 10/03/2026' })).toBeTruthy();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(api.readPortfolioValuation.mock.calls.at(-1)![0].path.id).toBe('valuation-1');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(info));
+  });
+
   it('shows the Espèces layout, real chrome included, while the account loads', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=cash`);
     api.readAccount.mockImplementation(() => new Promise(() => undefined));
@@ -104,9 +184,8 @@ describe('PortfolioAccountPage', () => {
 
     expect(screen.getByRole('link', { name: 'Espèces' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('heading', { name: 'Solde espèces' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '12 derniers mois' }).matches(':disabled')).toBe(
-      true,
-    );
+    expect(screen.getByRole('heading', { name: 'Répartition' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Valeur totale' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Effet espèces' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
     expect(screen.getAllByRole('status')).toHaveLength(1);
@@ -157,7 +236,8 @@ describe('PortfolioAccountPage', () => {
     await screen.findByText('Aucune position à cette date');
     fireEvent.click(screen.getByRole('button', { name: 'Nouvelle opération' }));
 
-    expect(window.location.search).toBe('?tab=operations');
+    expect(new URLSearchParams(window.location.search).get('tab')).toBe('operations');
+    expect(new URLSearchParams(window.location.search).has('asOf')).toBe(true);
     expect(screen.getByRole('link', { name: 'Opérations' }).getAttribute('aria-current')).toBe(
       'page',
     );
@@ -173,7 +253,7 @@ describe('PortfolioAccountPage', () => {
 
     try {
       renderPage('Pacific/Auckland');
-      const loadingDate = screen.getByLabelText('Au') as HTMLInputElement;
+      const loadingDate = screen.getAllByLabelText('Au').at(-1) as HTMLInputElement;
       expect(loadingDate.value).toBe('2026-04-01');
 
       resolveAccount?.(await ok(account));
@@ -282,7 +362,7 @@ describe('PortfolioAccountPage', () => {
     renderPage();
     await screen.findByRole('table', { name: 'Opérations du portefeuille' });
     expect((screen.getByLabelText('Du') as HTMLInputElement).type).toBe('date');
-    expect((screen.getByLabelText('Au') as HTMLInputElement).type).toBe('date');
+    expect((screen.getAllByLabelText('Au').at(-1) as HTMLInputElement).type).toBe('date');
     expect(screen.queryByRole('button', { name: 'Effacer' })).toBeNull();
     fireEvent.change(screen.getByLabelText('Du'), { target: { value: '2026-01-01' } });
     await waitFor(() =>

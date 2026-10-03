@@ -51,6 +51,15 @@ final class InMemoryAccountRepository implements AccountRepository
         return array_slice($this->matching($workspace, $includeArchived, $includeClosed, $kind), $offset, $limit);
     }
 
+    public function listPortfolios(WorkspaceScope $workspace, int $limit): array
+    {
+        $items = array_values(array_filter($this->matching($workspace, false, true, AccountKind::PORTFOLIO),
+            static fn (Account $account): bool => \App\Module\Accounts\Domain\AccountValuationMode::PORTFOLIO === $account->valuationMode));
+        usort($items, static fn (Account $left, Account $right): int => strcasecmp($left->label, $right->label) ?: strcmp($left->id, $right->id));
+
+        return array_slice($items, 0, $limit);
+    }
+
     public function count(
         WorkspaceScope $workspace,
         bool $includeArchived,

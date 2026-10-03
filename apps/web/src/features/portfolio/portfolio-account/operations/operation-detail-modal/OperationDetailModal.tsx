@@ -1,5 +1,5 @@
 import type { PortfolioOperation } from '@cadran/api-client';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Modal } from '@/components/ui/modal/Modal';
@@ -28,10 +28,12 @@ export function OperationDetailModal({
   onClose,
   onOpenOperation,
   operation,
+  returnFocus,
 }: {
   onClose: () => void;
   onOpenOperation: (id: string) => void;
   operation: PortfolioOperation;
+  returnFocus?: RefObject<HTMLElement | null>;
 }) {
   const { i18n } = useTranslation();
   const locale = i18n.language;
@@ -50,6 +52,7 @@ export function OperationDetailModal({
 
   return (
     <Modal
+      returnFocus={returnFocus}
       close={onClose}
       eyebrow="Portefeuille"
       title={`Opération : ${operationTypeLabel(operation.type)}`}

@@ -1,3 +1,5 @@
+import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
+import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { OperationFilters } from './operations/operation-filters/OperationFilters';
 import { noFilters } from './operations/operation-filters/operationFilterValues';
 import { OperationsTableSkeleton } from './operations/OperationsTableSkeleton';
@@ -13,22 +15,36 @@ import styles from './PortfolioAccountPage.module.css';
 export function PortfolioAccountPageSkeleton({
   accountId,
   status,
+  asOf,
+  today,
 }: {
   accountId: string;
   status: string;
+  asOf: string;
+  today: string;
 }) {
   const active = activeTab();
   return (
     <div className={styles.page}>
       <PortfolioAccountHeader accountId={accountId} onCreate={() => undefined} />
-      <PortfolioTabs accountId={accountId} active={active} />
+      <fieldset disabled>
+        <BusinessDateField
+          hint={null}
+          label="Au"
+          onChange={() => undefined}
+          today={today}
+          value={asOf}
+        />
+      </fieldset>
+      <PortfolioOverview accountId={accountId} asOf={asOf} frozen />
+      <PortfolioTabs accountId={accountId} active={active} asOf={asOf} />
       {active === 'operations' ? (
         <>
           <OperationFilters currencyCode="" disabled onChange={() => undefined} value={noFilters} />
           <OperationsTableSkeleton status={status} />
         </>
       ) : active === 'cash' ? (
-        <CashTabSkeleton />
+        <CashTabSkeleton asOf={asOf} />
       ) : active === 'valuations' ? (
         <ValuationsTabSkeleton status={status} />
       ) : (

@@ -1,0 +1,51 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+.kpi {
+  grid-column: span 12;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.heading h3 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+.value {
+  font-size: var(--font-size-kpi);
+  font-weight: var(--font-weight-strong);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.valueSkeleton {
+  height: var(--font-size-kpi);
+  width: 65%;
+}
+.note {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+}
+.kpi ul {
+  margin: var(--spacing-none);
+  padding-left: var(--spacing-4);
+  color: var(--text-secondary);
+}
+@media (min-width: 768px) {
+  .kpi {
+    grid-column: span 6;
+  }
+}
+@media (min-width: 1200px) {
+  .kpi {
+    grid-column: span 4;
+  }
+}

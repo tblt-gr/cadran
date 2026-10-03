@@ -12,10 +12,17 @@ import { PositionsToolbar } from './PositionsToolbar';
 import { usePositions } from './usePositions';
 import styles from './PositionsTab.module.css';
 
-export function PositionsTab({ accountId }: { accountId: string }) {
+export function PositionsTab({
+  accountId,
+  asOf: selectedDate,
+}: {
+  accountId: string;
+  asOf?: string;
+}) {
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);
-  const [asOf, setAsOf] = useState(today);
+  const [localDate, setAsOf] = useState(today);
+  const asOf = selectedDate ?? localDate;
   const [includeClosed, setIncludeClosed] = useState(false);
   const [lots, setLots] = useState<PortfolioPosition | null>(null);
   const [reorderingDate, setReorderingDate] = useState<string | null>(null);
@@ -24,6 +31,7 @@ export function PositionsTab({ accountId }: { accountId: string }) {
   return (
     <div className={styles.tab}>
       <PositionsToolbar
+        hideDate={selectedDate !== undefined}
         asOf={asOf}
         includeClosed={includeClosed}
         onAsOfChange={setAsOf}
@@ -46,9 +54,9 @@ export function PositionsTab({ accountId }: { accountId: string }) {
         <OperationsState title="Aucune position à cette date">
           <a
             className="secondary-action"
-            href={`/portfolios/${accountId}?tab=operations`}
+            href={`/portfolios/${accountId}?tab=operations&asOf=${asOf}`}
             onClick={(event) =>
-              handleClientNavigation(event, `/portfolios/${accountId}?tab=operations`)
+              handleClientNavigation(event, `/portfolios/${accountId}?tab=operations&asOf=${asOf}`)
             }
           >
             Voir les opérations

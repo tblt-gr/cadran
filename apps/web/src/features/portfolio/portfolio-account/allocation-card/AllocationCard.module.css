@@ -1,0 +1,52 @@
+.card {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+.card h3,
+.card p {
+  margin: var(--spacing-none);
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+.controls [aria-pressed='true'] {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-strong);
+}
+.plot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-4);
+}
+.plotSkeleton {
+  height: var(--chart-plot-height-donut);
+}
+.tableScroll {
+  overflow-x: auto;
+}
+.tableScroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tableScroll th,
+.tableScroll td {
+  padding: var(--spacing-3);
+  border-bottom: var(--border-width-thin) solid var(--border-subtle);
+  text-align: right;
+  white-space: nowrap;
+}
+.tableScroll th:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--bg-surface-1);
+}
+@media (min-width: 768px) {
+  .plot {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+  }
+}

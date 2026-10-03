@@ -1,5 +1,5 @@
 import type { DecimalAmount, PortfolioValuation } from '@cadran/api-client';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Modal } from '@/components/ui/modal/Modal';
@@ -25,10 +25,12 @@ function Row({ children, label }: { children: ReactNode; label: string }) {
 /** One valuation read by id, superseded ones included; figures are shown exactly, never rounded. */
 export function ValuationDetailModal({
   id,
+  returnFocus,
   onClose,
   onOpen,
 }: {
   id: string;
+  returnFocus?: RefObject<HTMLElement | null>;
   onClose: () => void;
   onOpen: (id: string) => void;
 }) {
@@ -52,7 +54,7 @@ export function ValuationDetailModal({
     valuation ? render(valuation) : block;
 
   return (
-    <Modal close={onClose} eyebrow="Portefeuille" title={title}>
+    <Modal returnFocus={returnFocus} close={onClose} eyebrow="Portefeuille" title={title}>
       {query.isError ? (
         <div role="alert">
           <p className={styles.error}>La valorisation est indisponible.</p>
