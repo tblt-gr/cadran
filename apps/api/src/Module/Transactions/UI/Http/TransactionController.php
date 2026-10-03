@@ -13,6 +13,7 @@ use App\Module\Transactions\Application\IdempotentResponse;
 use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
+use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\ReadTransaction;
 use App\Module\Transactions\Application\StaleTransactionVersion;
 use App\Module\Transactions\Application\TransactionBelongsToRefund;
@@ -80,6 +81,8 @@ final readonly class TransactionController
             return $this->envelope->idempotencyProblem($exception);
         } catch (InvalidSplitsInput $exception) {
             return $this->envelope->invalidSplitsProblem($exception);
+        } catch (PortfolioAccountRequiresOperations $exception) {
+            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
         } catch (InvalidTransactionInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
         } catch (TransactionNotFound) {
@@ -127,6 +130,8 @@ final readonly class TransactionController
             $transaction = $updateTransaction($id, self::updateInput($payload));
         } catch (InvalidSplitsInput $exception) {
             return $this->envelope->invalidSplitsProblem($exception);
+        } catch (PortfolioAccountRequiresOperations $exception) {
+            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
         } catch (InvalidTransactionInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
         } catch (TransactionBelongsToTransfer $exception) {

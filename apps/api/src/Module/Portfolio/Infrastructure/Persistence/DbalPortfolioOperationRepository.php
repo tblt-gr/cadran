@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\Infrastructure\Persistence;
 
+use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Portfolio\Application\LinkedTransferTaken;
+use App\Module\Portfolio\Domain\AccountCosts;
 use App\Module\Portfolio\Domain\OperationFilters;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
@@ -130,6 +133,27 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
         }
 
         return $counts;
+    }
+
+    public function costsBetween(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT account_id, fees_value, fees_scale, taxes_value, taxes_scale FROM portfolio_operations
+             WHERE workspace_id = :workspace_id AND state = 'ACTIVE' AND trade_date >= :from_date AND trade_date <= :to_date ORDER BY account_id, trade_date, sequence, id",
+            ['workspace_id' => $workspace->id, 'from_date' => $from->format('Y-m-d'), 'to_date' => $to->format('Y-m-d')],
+        );
+        $fees = [];
+        $taxes = [];
+        foreach ($rows as $row) {
+            $accountId = PortfolioOperationRow::text($row['account_id']);
+            $fees[$accountId] = ExactDecimal::add($fees[$accountId] ?? DecimalValue::zero(), PortfolioOperationRow::storedDecimal($row, 'fees'));
+            $taxes[$accountId] = ExactDecimal::add($taxes[$accountId] ?? DecimalValue::zero(), PortfolioOperationRow::storedDecimal($row, 'taxes'));
+        }
+
+        return array_map(
+            static fn (string $accountId): AccountCosts => new AccountCosts($accountId, $fees[$accountId], $taxes[$accountId]),
+            array_keys($fees),
+        );
     }
 
     public function reorder(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $tradeDate, array $sequences): void

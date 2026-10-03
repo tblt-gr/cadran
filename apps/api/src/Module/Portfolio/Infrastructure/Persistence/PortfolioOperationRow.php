@@ -146,6 +146,12 @@ final class PortfolioOperationRow
         return [$name.'_value' => $value?->toString(), $name.'_scale' => $value?->scale()];
     }
 
+    /** @param array<string, mixed> $row a stored column pair that is never null: fees and taxes are stored as zero when absent */
+    public static function storedDecimal(array $row, string $name): DecimalValue
+    {
+        return self::decimal($row, $name) ?? DecimalValue::zero();
+    }
+
     /** @param array<string, mixed> $row */
     private static function decimal(array $row, string $name): ?DecimalValue
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Application;
 
 use App\Module\Accounts\Domain\Account;
+use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -69,6 +70,10 @@ final readonly class TransferLegFactory
             return null;
         }
 
+        if (AccountValuationMode::PORTFOLIO === $sourceAccount->valuationMode) {
+            // The fee leg is a FEE transaction: the portfolio fee belongs to a portfolio operation.
+            throw new PortfolioAccountRequiresOperations($sourceAccount->id);
+        }
         $fee = ($this->amountParser)($feeInput, '/fee');
         if (!$fee->value->isNegative()) {
             throw new InvalidTransferInput('A transfer fee must be a negative amount.');

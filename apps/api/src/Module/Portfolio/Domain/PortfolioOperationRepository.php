@@ -37,6 +37,14 @@ interface PortfolioOperationRepository
      */
     public function activeCountsForDays(WorkspaceScope $workspace, array $accountIds, array $tradeDates): array;
 
+    /**
+     * Fees and taxes of the active operations of every account of the workspace within an inclusive range, one entry per
+     * account holding at least one operation.
+     *
+     * @return list<AccountCosts>
+     */
+    public function costsBetween(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
+
     /** @param array<string, int> $sequences operation identifier => new sequence */
     public function reorder(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $tradeDate, array $sequences): void;
 

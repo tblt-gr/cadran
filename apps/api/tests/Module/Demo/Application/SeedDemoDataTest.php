@@ -103,6 +103,15 @@ final class SeedDemoDataTest extends KernelTestCase
         }
         self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'FEE' AND state = 'VOIDED' AND void_kind = 'VOIDED'", [$workspace]));
         self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'BUY' AND void_kind = 'REPLACED'", [$workspace]));
+        // One incoming transfer leg is deliberately left unlinked, and one withdrawal leaves the portfolio, so the cash view
+        // shows an UNLINKED_TRANSFER_IN warning and a Retraits total.
+        self::assertSame(1, $this->rows(
+            "SELECT COUNT(*) FROM transaction_transactions t JOIN account_financial_accounts a ON a.id = t.account_id AND a.workspace_id = t.workspace_id
+             WHERE t.workspace_id = ? AND a.valuation_mode = 'PORTFOLIO' AND t.nature = 'TRANSFER' AND t.amount_value > 0 AND t.voided_at IS NULL
+               AND NOT EXISTS (SELECT 1 FROM portfolio_operations o WHERE o.workspace_id = t.workspace_id AND o.linked_transaction_id = t.id AND o.state = 'ACTIVE')",
+            [$workspace],
+        ));
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'WITHDRAWAL' AND state = 'ACTIVE'", [$workspace]));
         // The demo never books a transaction for a buy, a sell or a fee of the portfolio.
         self::assertSame(0, $this->rows("SELECT COUNT(*) FROM transaction_transactions WHERE workspace_id = ? AND raw_label IN ('Achat initial', 'Droits de garde', 'Vente partielle')", [$workspace]));
     }

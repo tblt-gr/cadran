@@ -282,6 +282,18 @@ api:
     invalid_operation_version:
       title: 'Opération incohérente'
       detail: 'La version ou les marques d’annulation de l’opération sont incohérentes.'
+    invalid_cash_query:
+      title: 'Période d’espèces invalide'
+      detail: 'Les dates sont des jours réels, la fin ne précède pas le début et ne peut pas être dans le futur.'
+    cash_range_too_large:
+      title: 'Période d’espèces trop longue'
+      detail: 'La période ne peut pas dépasser 366 jours : réduisez-la.'
+    cash_range_too_dense:
+      title: 'Trop de mouvements d’espèces'
+      detail: 'La période compte plus de 2 000 mouvements : réduisez-la.'
+    cash_amount_too_large:
+      title: 'Montants trop grands'
+      detail: 'Les montants d’espèces sont trop grands pour être additionnés exactement.'
     portfolio_account_not_found:
       title: 'Compte introuvable'
       detail: 'Aucun compte ne porte cet identifiant dans cet espace de travail.'
@@ -579,6 +591,9 @@ api:
     refund_already_settled:
       title: 'Dépense déjà intégralement remboursée'
       detail: 'Aucun montant remboursable ne reste sur cette dépense.'
+    portfolio_account_requires_operations:
+      title: 'Compte suivi en mode portefeuille'
+      detail: 'Ce compte est valorisé par son portefeuille : enregistrez une opération de portefeuille plutôt qu’un revenu, une dépense, un remboursement ou des frais.'
     invalid_transfer:
       title: 'Virement invalide'
       detail: "Vérifiez les comptes, les montants, la date, l'état, le libellé et les frais du virement."

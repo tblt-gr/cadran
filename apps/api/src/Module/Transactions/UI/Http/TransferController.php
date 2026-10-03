@@ -13,6 +13,7 @@ use App\Module\Transactions\Application\IdempotentResponse;
 use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\InvalidTransferInput;
 use App\Module\Transactions\Application\InvalidTransferRule;
+use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\ReadTransfer;
 use App\Module\Transactions\Application\StaleTransferVersion;
 use App\Module\Transactions\Application\TransferConflict;
@@ -75,6 +76,8 @@ final readonly class TransferController
             return $this->envelope->idempotencyProblem($exception);
         } catch (InvalidTransferRule $exception) {
             return $this->envelope->invalidTransferRuleProblem($exception);
+        } catch (PortfolioAccountRequiresOperations $exception) {
+            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
         } catch (InvalidTransferInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transfer');
         } catch (TransferNotFound) {
@@ -132,6 +135,8 @@ final readonly class TransferController
             ));
         } catch (InvalidTransferRule $exception) {
             return $this->envelope->invalidTransferRuleProblem($exception);
+        } catch (PortfolioAccountRequiresOperations $exception) {
+            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
         } catch (InvalidTransferInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transfer');
         } catch (TransferNotFound) {

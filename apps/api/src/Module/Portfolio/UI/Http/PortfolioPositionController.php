@@ -6,13 +6,18 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Portfolio\Application\CashRangeTooDense;
+use App\Module\Portfolio\Application\CashRangeTooLarge;
+use App\Module\Portfolio\Application\InvalidCashQuery;
 use App\Module\Portfolio\Application\InvalidPositionQuery;
 use App\Module\Portfolio\Application\PortfolioAccountNotFound;
 use App\Module\Portfolio\Application\PortfolioInstrumentNotFound;
+use App\Module\Portfolio\Application\ReadPortfolioCash;
 use App\Module\Portfolio\Application\ReadPortfolioLots;
 use App\Module\Portfolio\Application\ReadPortfolioPositions;
 use App\Module\Portfolio\Application\ReorderPortfolioOperations;
 use App\Module\Portfolio\Application\StalePortfolioOperationOrder;
+use App\Module\Portfolio\Domain\Cash\CashReplayFailed;
 use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
 use App\Module\Portfolio\Domain\Positions\PositionReplayFailed;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -51,6 +56,22 @@ final readonly class PortfolioPositionController
         }
 
         return self::json(['asOf' => $view->asOf, 'items' => $view->items]);
+    }
+
+    #[Route('/api/v1/accounts/{accountId}/portfolio-cash', name: 'api_v1_portfolio_cash', methods: ['GET'])]
+    public function cash(string $accountId, Request $request, ReadPortfolioCash $read): Response
+    {
+        if (!self::identifier($accountId)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found');
+        }
+        try {
+            $query = $request->query->all();
+            $view = $read($accountId, self::cashScalar($query, 'from'), self::cashScalar($query, 'to'));
+        } catch (\Throwable $exception) {
+            return $this->failure($exception);
+        }
+
+        return self::json(PortfolioCashRepresentation::of($view));
     }
 
     #[Route('/api/v1/accounts/{accountId}/portfolio-positions/{instrumentId}/lots', name: 'api_v1_portfolio_position_lots', methods: ['GET'])]
@@ -112,6 +133,10 @@ final readonly class PortfolioPositionController
         return match (true) {
             $exception instanceof PositionReplayFailed => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
             $exception instanceof InvalidPortfolioOperation => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
+            $exception instanceof InvalidCashQuery => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_cash_query'),
+            $exception instanceof CashRangeTooLarge => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'cash_range_too_large'),
+            $exception instanceof CashRangeTooDense => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'cash_range_too_dense'),
+            $exception instanceof CashReplayFailed => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'cash_amount_too_large'),
             $exception instanceof InvalidPositionQuery => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_position_query'),
             $exception instanceof PortfolioAccountNotFound => $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found'),
             $exception instanceof PortfolioInstrumentNotFound => $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_instrument_not_found'),
@@ -158,6 +183,17 @@ final readonly class PortfolioPositionController
     private static function identifier(string $value): bool
     {
         return 1 === preg_match(self::UUID_PATTERN, $value);
+    }
+
+    /** @param array<string, mixed> $query */
+    private static function cashScalar(array $query, string $key): ?string
+    {
+        $value = $query[$key] ?? null;
+        if (null !== $value && !is_string($value)) {
+            throw new InvalidCashQuery('A query parameter is a single value.');
+        }
+
+        return $value;
     }
 
     /** @param array<string, mixed> $query */

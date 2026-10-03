@@ -1,7 +1,14 @@
 import type { Problem } from '@cadran/api-client';
 
 export type TransactionErrorKind =
-  'conflict' | 'invalid' | 'network' | 'periodClosed' | 'stale' | 'staleCursor' | 'unauthorized';
+  | 'conflict'
+  | 'invalid'
+  | 'network'
+  | 'periodClosed'
+  | 'portfolioOperationsRequired'
+  | 'stale'
+  | 'staleCursor'
+  | 'unauthorized';
 
 /**
  * A refused transaction request, classified by its RFC 9457 problem type
@@ -28,6 +35,9 @@ function classify(status: number, problemType: string | undefined): TransactionE
   }
   if (problemType === '/problems/period-closed') {
     return 'periodClosed';
+  }
+  if (problemType === '/problems/portfolio-account-requires-operations') {
+    return 'portfolioOperationsRequired';
   }
   if (problemType === '/problems/transaction-conflict') {
     return 'conflict';

@@ -50,6 +50,7 @@ use Symfony\Component\Clock\ClockInterface;
 final readonly class SeedDemoData
 {
     public const int START_YEAR = 2024;
+    private const int UNLINKED_TRANSFER_CENTS = 15_000;
     private const string ASSET = 'EUR';
     private const string OPENING_DAY = '2023-12-31';
     private const int RANDOM_SEED = 20260926;
@@ -162,9 +163,17 @@ final readonly class SeedDemoData
                     fee: null,
                 ));
                 if ('invest' === $target) {
+                    $index = $investmentMonth++;
                     $this->portfolio->investMonthly(
-                        $accounts['invest'], $transfer->target->id, $first->modify('+'.($day - 1).' days')->format('Y-m-d'), $cents, $investmentMonth++,
+                        $accounts['invest'], $transfer->target->id, $first->modify('+'.($day - 1).' days')->format('Y-m-d'), $cents, $index,
                     );
+                    if (SeedDemoPortfolio::UNLINKED_TRANSFER_MONTH === $index) {
+                        $balances = $this->unlinkedTransfer($accounts, $first->modify('+9 days'), $balances);
+                        ++$transfers;
+                    }
+                    if (SeedDemoPortfolio::WITHDRAWAL_MONTH === $index) {
+                        $balances['invest'] -= SeedDemoPortfolio::WITHDRAWAL_CENTS;
+                    }
                 }
                 $balances['current'] -= $cents;
                 $balances[$target] += $cents;
@@ -184,6 +193,34 @@ final readonly class SeedDemoData
         }
 
         return new DemoSeedSummary(count($accounts), count($categories), $transactions, $transfers, $closed, $plans);
+    }
+
+    /**
+     * A transfer into the portfolio that no deposit mirrors, so the cash view has an unlinked incoming leg to show.
+     *
+     * @param array<string, string> $accounts
+     * @param array<string, int>    $balances
+     *
+     * @return array<string, int> the balances after the transfer
+     */
+    private function unlinkedTransfer(array $accounts, \DateTimeImmutable $day, array $balances): array
+    {
+        $this->createTransfer->__invoke(new CreateTransferInput(
+            sourceAccountId: $accounts['current'],
+            targetAccountId: $accounts['invest'],
+            sourceAmount: ['value' => DemoCents::format(self::UNLINKED_TRANSFER_CENTS), 'assetCode' => self::ASSET],
+            targetAmount: ['value' => DemoCents::format(self::UNLINKED_TRANSFER_CENTS), 'assetCode' => self::ASSET],
+            state: 'BOOKED',
+            bookedOn: $day->format('Y-m-d'),
+            valueOn: null,
+            label: 'Virement complémentaire',
+            note: null,
+            fee: null,
+        ));
+        $balances['current'] -= self::UNLINKED_TRANSFER_CENTS;
+        $balances['invest'] += self::UNLINKED_TRANSFER_CENTS;
+
+        return $balances;
     }
 
     /** @return list<array{int, int}> [year, month] pairs, oldest first */

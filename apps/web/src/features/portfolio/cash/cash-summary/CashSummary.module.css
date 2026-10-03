@@ -1,0 +1,51 @@
+.panel {
+  display: grid;
+  gap: var(--spacing-4);
+}
+.panel h3,
+.panel h4,
+.balance,
+.explanation {
+  margin: var(--spacing-none);
+}
+.balance {
+  font-size: var(--font-size-kpi);
+}
+.balanceSkeleton {
+  display: block;
+  width: calc(var(--spacing-12) * 3);
+  height: var(--font-size-kpi);
+}
+.valueSkeleton {
+  display: block;
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-body);
+}
+.period h4 {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-2);
+}
+.explanation {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  margin: var(--spacing-none);
+  gap: var(--spacing-4);
+}
+.figures div {
+  display: grid;
+  gap: var(--spacing-1);
+}
+.figures dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.figures dd {
+  margin: var(--spacing-none);
+}

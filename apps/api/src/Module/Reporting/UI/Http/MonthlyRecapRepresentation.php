@@ -7,6 +7,9 @@ namespace App\Module\Reporting\UI\Http;
 use App\Module\Accounts\Application\NetWorthAllocationView;
 use App\Module\Accounts\Application\NetWorthAmountView;
 use App\Module\Accounts\Application\ShareView;
+use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Portfolio\Application\MonthlyPortfolioCostItem;
+use App\Module\Portfolio\Application\MonthlyPortfolioCosts;
 use App\Module\Reporting\Application\MonthlyAccountValueView;
 use App\Module\Reporting\Application\MonthlyMetricView;
 use App\Module\Reporting\Application\MonthlyRecapAccountView;
@@ -34,6 +37,30 @@ final class MonthlyRecapRepresentation
             'netWorth' => self::netWorth($view->netWorth),
             'totals' => self::totals($view->totals),
             'metricPolicy' => MetricPolicyRepresentation::reference($view->metricPolicy),
+            'portfolioCosts' => self::portfolioCosts($view->portfolioCosts),
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private static function portfolioCosts(?MonthlyPortfolioCosts $costs): ?array
+    {
+        if (null === $costs) {
+            return null;
+        }
+        $asset = $costs->assetCode;
+        $total = static fn (?DecimalValue $value): ?array => null === $value || null === $asset ? null : ['value' => $value->toString(), 'assetCode' => $asset];
+
+        return [
+            'items' => array_map(static fn (MonthlyPortfolioCostItem $item): array => [
+                'accountId' => $item->accountId,
+                'label' => $item->label,
+                'assetCode' => $item->assetCode,
+                'fees' => ['value' => $item->fees->toString(), 'assetCode' => $item->assetCode],
+                'taxes' => ['value' => $item->taxes->toString(), 'assetCode' => $item->assetCode],
+            ], $costs->items),
+            'totalFees' => $total($costs->totalFees),
+            'totalTaxes' => $total($costs->totalTaxes),
+            'assetCode' => $asset,
         ];
     }
 

@@ -7,8 +7,10 @@ namespace App\Module\Reporting\Application;
 use App\Module\Accounts\Application\NetWorthContributionView;
 use App\Module\Accounts\Application\NetWorthScopeTooLarge;
 use App\Module\Accounts\Application\ResolveNetWorthContributions;
+use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\NetWorthContribution;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Portfolio\Application\ReadMonthlyPortfolioCosts;
 use App\Module\Transactions\Application\ReadTransactionSummaries;
 
 /**
@@ -27,6 +29,7 @@ final readonly class ReadMonthlyRecap
         private ReadMonthlyProjection $projection,
         private ResolveNetWorthContributions $contributions,
         private ReadTransactionSummaries $transactionSummaries,
+        private ReadMonthlyPortfolioCosts $portfolioCosts,
     ) {
     }
 
@@ -70,6 +73,7 @@ final readonly class ReadMonthlyRecap
             netWorth: MonthlyRecapNetWorthView::of($projection->netWorth),
             totals: MonthlyRecapTotalsView::of($projection, $sourceTransactionsById),
             metricPolicy: $projection->metricPolicy,
+            portfolioCosts: ($this->portfolioCosts)($workspace, CalendarMonth::fromString($projection->month)),
         );
     }
 

@@ -1899,6 +1899,8 @@
       "stale": "Cette transaction a été modifiée ailleurs entre-temps. La liste vient d’être rechargée : rouvrez-la puis réappliquez votre modification.",
       "staleCursor": "La liste a changé pendant le chargement de cette page. Rechargez depuis le début pour continuer sans risquer un doublon ou un mouvement manquant.",
       "periodClosed": "Cette période est clôturée : la modification est refusée. Demandez à un propriétaire de rouvrir le mois concerné.",
+      "portfolioOperationsRequired": "Ce compte est suivi en mode portefeuille : enregistrez une opération de portefeuille.",
+      "portfolioOperationsLink": "Ouvrir le portefeuille",
       "invalid": "La transaction est invalide. Vérifiez le compte, le montant, la date et la catégorie.",
       "unauthorized": "Votre session a expiré. Reconnectez-vous.",
       "network": "L’enregistrement a échoué. Réessayez."
@@ -2870,6 +2872,16 @@
           "missingValuation": "Valorisation non disponible",
           "stale": "Valorisation vieille de {{days}} jours",
           "ineligible": "Hors patrimoine net"
+        },
+        "portfolioCosts": {
+          "title": "Coûts de portefeuille",
+          "subtitle": "Hors budget, déjà inclus dans la valeur des portefeuilles",
+          "account": "Compte",
+          "fees": "Frais",
+          "taxes": "Taxes",
+          "total": "Total",
+          "empty": "Aucun frais ni taxe ce mois-ci",
+          "mixedAssets": "Les comptes n’ont pas le même actif : aucun total n’est calculé."
         },
         "wealth": {
           "title": "Évolution du patrimoine",

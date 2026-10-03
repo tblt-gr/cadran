@@ -10,4 +10,18 @@ describe('transactionRequestError', () => {
 
     expect(error.kind).toBe('periodClosed');
   });
+
+  it('classifies a portfolio-mode account refusal apart from a generic invalid request', () => {
+    const error = transactionRequestError({
+      error: {
+        type: '/problems/portfolio-account-requires-operations',
+        status: 422,
+        title: 't',
+        detail: 'd',
+      },
+      response: { status: 422 } as Response,
+    });
+
+    expect(error.kind).toBe('portfolioOperationsRequired');
+  });
 });

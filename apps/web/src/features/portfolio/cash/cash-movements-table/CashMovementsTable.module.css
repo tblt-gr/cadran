@@ -1,0 +1,27 @@
+.panel {
+  padding: var(--spacing-none);
+}
+.scroll {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  padding: var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: top;
+}
+.table tbody th {
+  font-weight: var(--font-weight-normal);
+  white-space: nowrap;
+}
+.table th.number,
+.table td.number {
+  text-align: right;
+  white-space: nowrap;
+}

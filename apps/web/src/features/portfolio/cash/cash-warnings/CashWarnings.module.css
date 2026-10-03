@@ -1,0 +1,35 @@
+.panel {
+  display: grid;
+  gap: var(--spacing-4);
+}
+.panel h3 {
+  margin: var(--spacing-none);
+}
+.list {
+  display: grid;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-3);
+  list-style: none;
+}
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: var(--spacing-none);
+  gap: var(--spacing-3);
+}
+.sources {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.infos summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.infos[open] summary {
+  margin-bottom: var(--spacing-3);
+}

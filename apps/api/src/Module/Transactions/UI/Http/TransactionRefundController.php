@@ -14,6 +14,7 @@ use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\InvalidRefundRule;
 use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
+use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\ReadRefundable;
 use App\Module\Transactions\Application\RefundConflict;
 use App\Module\Transactions\Application\TransactionConflict;
@@ -91,6 +92,8 @@ final readonly class TransactionRefundController
             return $this->envelope->invalidRefundRuleProblem($exception);
         } catch (RefundConflict $exception) {
             return $this->envelope->refundConflictProblem($exception);
+        } catch (PortfolioAccountRequiresOperations $exception) {
+            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
         } catch (InvalidTransactionInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
         } catch (TransactionNotFound) {
