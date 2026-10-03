@@ -1,0 +1,33 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.state {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-8);
+}
+.state h3,
+.state p {
+  margin: var(--spacing-none);
+}
+.state a {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.notice {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-4);
+}

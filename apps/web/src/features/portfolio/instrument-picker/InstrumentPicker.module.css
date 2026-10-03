@@ -6,6 +6,12 @@
   font-size: var(--font-size-label);
   gap: var(--spacing-2);
 }
+.status:not(:has(*)) {
+  position: absolute;
+  width: var(--spacing-none);
+  height: var(--spacing-none);
+  overflow: hidden;
+}
 .options {
   position: absolute;
   top: 100%;

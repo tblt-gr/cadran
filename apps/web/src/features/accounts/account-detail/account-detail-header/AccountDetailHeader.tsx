@@ -46,6 +46,15 @@ export function AccountDetailHeader({
         </h2>
       </div>
       <div className={styles.actions}>
+        {account.kind === 'PORTFOLIO' && account.valuationMode === 'PORTFOLIO' ? (
+          <a
+            className="secondary-action"
+            href={`/portfolios/${account.id}`}
+            onClick={(event) => handleClientNavigation(event, `/portfolios/${account.id}`)}
+          >
+            {t('accounts.detail.actions.openPortfolio')}
+          </a>
+        ) : null}
         <button className="secondary-action" onClick={onOpenRules} type="button">
           {t('accounts.detail.actions.rules')}
         </button>

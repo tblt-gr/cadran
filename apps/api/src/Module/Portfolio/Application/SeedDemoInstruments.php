@@ -30,6 +30,10 @@ final readonly class SeedDemoInstruments implements DemoDataContributor
             ['Vanguard S&P 500 UCITS ETF USD Dist', 'IE00B3XXRP09', 'VUSA', 'XAMS', 'ETF', 'EQUITY', 'NORTH_AMERICA', false],
             ['Danone', 'FR0000120644', 'BN', 'XPAR', 'EQUITY', 'EQUITY', 'FRANCE', false],
             ['Lyxor MSCI World UCITS ETF C-EUR (fusionné)', 'FR0010315770', null, null, 'ETF', 'EQUITY', 'WORLD', true],
+            // The instruments the demo portfolio operations are recorded on; the last one has no class nor region on purpose.
+            ['ETF Monde Démo', 'FRDEMO000015', 'DMWLD', 'XPAR', 'ETF', 'EQUITY', 'WORLD', false],
+            ['Action Démo Industrie', 'FRDEMO000023', 'DMIND', 'XPAR', 'EQUITY', 'EQUITY', 'FRANCE', false],
+            ['Instrument sans classe Démo', 'FRDEMO000049', null, null, 'OTHER', null, null, false],
         ] as [$name, $isin, $ticker, $venue, $type, $class, $region, $closed]) {
             $instrument = $this->createInstrument->__invoke(new CreateInstrumentInput(
                 name: $name,

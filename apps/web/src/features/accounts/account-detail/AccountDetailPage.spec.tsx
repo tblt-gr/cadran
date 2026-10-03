@@ -222,6 +222,19 @@ describe('AccountDetailPage', () => {
     );
   });
 
+  it('links a portfolio-mode account to its portfolio page and no other account', async () => {
+    renderPage();
+    await screen.findByRole('heading', { level: 2, name: 'Livret A Banque X' });
+    expect(screen.queryByRole('link', { name: 'Ouvrir le portefeuille' })).toBeNull();
+    cleanup();
+    api.readAccount.mockImplementation(() =>
+      success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
+    );
+    renderPage();
+    const link = await screen.findByRole('link', { name: 'Ouvrir le portefeuille' });
+    expect(link.getAttribute('href')).toBe(`/portfolios/${account.id}`);
+  });
+
   it('discloses no account data for an unknown or foreign-workspace identifier', async () => {
     api.readAccount.mockImplementation(() => failure(404));
     renderPage('00000000-0000-7000-8000-000000000fff');

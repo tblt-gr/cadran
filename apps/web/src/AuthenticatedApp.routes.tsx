@@ -19,6 +19,7 @@ import { AnnualReportPage } from '@/features/reports/annual/AnnualReportPage';
 import { MultiYearReportPage } from '@/features/reports/multi-year/MultiYearReportPage';
 import { GoalsPage } from '@/features/goals/GoalsPage';
 import { InstrumentsPage } from '@/features/portfolio/instruments/InstrumentsPage';
+import { PortfolioAccountPage } from '@/features/portfolio/portfolio-account/PortfolioAccountPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { workspaceToday } from '@/lib/workspaceTime';
 
@@ -52,6 +53,11 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
       pattern: /^\/portfolios\/instruments$/,
       globalActions: false,
       render: () => <InstrumentsPage />,
+    },
+    {
+      pattern: /^\/portfolios\/(?!instruments$)([^/]+)$/,
+      globalActions: false,
+      render: (match) => <PortfolioAccountPage accountId={match[1]!} />,
     },
     { pattern: /^\/accounts$/, globalActions: false, render: () => <AccountsPage /> },
     {

@@ -21,4 +21,11 @@ describe('navigationItems', () => {
         ?.match('/settings/metric-policy'),
     ).toBe(true);
   });
+
+  it('titles a portfolio account page apart from the instruments page', () => {
+    expect(getRouteTitleKey('/portfolios/00000000-0000-7000-8000-000000000001')).toBe(
+      'routes.portfolioAccount',
+    );
+    expect(getRouteTitleKey('/portfolios/instruments')).toBe('routes.instruments');
+  });
 });

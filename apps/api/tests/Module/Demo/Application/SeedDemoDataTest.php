@@ -47,7 +47,7 @@ final class SeedDemoDataTest extends KernelTestCase
         $summary = $seed(WorkspaceFixture::OWNER_EMAIL);
 
         self::assertSame(3, $summary->accounts);
-        self::assertSame(13, $this->rows(
+        self::assertSame(16, $this->rows(
             'SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ?',
             [$workspace = WorkspaceFixture::OWN_WORKSPACE],
         ));
@@ -55,7 +55,7 @@ final class SeedDemoDataTest extends KernelTestCase
             "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND status = 'INACTIVE'",
             [$workspace],
         ));
-        self::assertSame(13, $this->rows(
+        self::assertSame(16, $this->rows(
             "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND source = 'MANUAL' AND reviewed_at IS NOT NULL",
             [$workspace],
         ));
@@ -74,6 +74,37 @@ final class SeedDemoDataTest extends KernelTestCase
             "SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND reconciliation_status = 'RECONCILED'",
             [$workspace],
         ));
+    }
+
+    public function testTheDemoPortfolioMirrorsEveryMonthlyInvestmentTransferAndShowsTheLifecycleCases(): void
+    {
+        $seed = self::getContainer()->get(SeedDemoData::class);
+        self::assertInstanceOf(SeedDemoData::class, $seed);
+        $seed(WorkspaceFixture::OWNER_EMAIL);
+        $workspace = WorkspaceFixture::OWN_WORKSPACE;
+
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM account_financial_accounts WHERE workspace_id = ? AND label = 'Compte-titres' AND valuation_mode = 'PORTFOLIO'", [$workspace]));
+
+        // The opening deposit equals the opening balance and is not linked to any leg.
+        self::assertSame('5000.00', $this->connection->fetchOne(
+            "SELECT trim(trailing '0' from gross_amount_value::text)||'00' FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'DEPOSIT' AND linked_transaction_id IS NULL AND state = 'ACTIVE'",
+            [$workspace],
+        ));
+        // Every monthly investment leg backs one linked deposit, bought into the same day.
+        $legs = $this->rows("SELECT COUNT(*) FROM transaction_transactions WHERE workspace_id = ? AND raw_label = 'Investissement mensuel' AND amount_value > 0", [$workspace]);
+        self::assertGreaterThan(0, $legs);
+        self::assertSame($legs, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'DEPOSIT' AND linked_transaction_id IS NOT NULL AND state = 'ACTIVE'", [$workspace]));
+        self::assertSame($legs, $this->rows(
+            "SELECT COUNT(*) FROM portfolio_operations d JOIN portfolio_operations b ON b.account_id = d.account_id AND b.trade_date = d.trade_date AND b.operation_type = 'BUY' AND b.reference = 'Investissement mensuel' WHERE d.workspace_id = ? AND d.linked_transaction_id IS NOT NULL",
+            [$workspace],
+        ));
+        foreach (['DIVIDEND', 'FEE', 'SELL', 'SPLIT'] as $type) {
+            self::assertGreaterThan(0, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = '$type' AND state = 'ACTIVE'", [$workspace]), $type);
+        }
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'FEE' AND state = 'VOIDED' AND void_kind = 'VOIDED'", [$workspace]));
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'BUY' AND void_kind = 'REPLACED'", [$workspace]));
+        // The demo never books a transaction for a buy, a sell or a fee of the portfolio.
+        self::assertSame(0, $this->rows("SELECT COUNT(*) FROM transaction_transactions WHERE workspace_id = ? AND raw_label IN ('Achat initial', 'Droits de garde', 'Vente partielle')", [$workspace]));
     }
 
     public function testASecondRunIsRefusedAndWritesNothing(): void

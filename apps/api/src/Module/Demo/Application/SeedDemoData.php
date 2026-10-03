@@ -90,6 +90,7 @@ final readonly class SeedDemoData
         private ActivateBudgetPlan $activatePlan,
         private ClockInterface $clock,
         private CreateGoal $createGoal,
+        private SeedDemoPortfolio $portfolio,
         /** @var iterable<DemoDataContributor> */
         private iterable $demoDataContributors,
     ) {
@@ -119,6 +120,8 @@ final readonly class SeedDemoData
         foreach ($balances as $key => $cents) {
             $this->snapshot($accounts[$key], self::OPENING_DAY, $cents);
         }
+        $this->portfolio->open($accounts['invest'], self::OPENING_DAY, $balances['invest'], self::RANDOM_SEED);
+        $investmentMonth = 0;
 
         $transactions = 0;
         $transfers = 0;
@@ -146,7 +149,7 @@ final readonly class SeedDemoData
                 if ($day > $cutoff) {
                     continue;
                 }
-                $this->createTransfer->__invoke(new CreateTransferInput(
+                $transfer = $this->createTransfer->__invoke(new CreateTransferInput(
                     sourceAccountId: $accounts['current'],
                     targetAccountId: $accounts[$target],
                     sourceAmount: ['value' => DemoCents::format($cents), 'assetCode' => self::ASSET],
@@ -158,6 +161,11 @@ final readonly class SeedDemoData
                     note: null,
                     fee: null,
                 ));
+                if ('invest' === $target) {
+                    $this->portfolio->investMonthly(
+                        $accounts['invest'], $transfer->target->id, $first->modify('+'.($day - 1).' days')->format('Y-m-d'), $cents, $investmentMonth++,
+                    );
+                }
                 $balances['current'] -= $cents;
                 $balances[$target] += $cents;
                 ++$transfers;
@@ -228,7 +236,7 @@ final readonly class SeedDemoData
         $savings = $group('Livrets', 1);
         $investments = $group('Investissements', 2);
 
-        $open = fn (string $label, string $kind, ?string $product, string $liquid, bool $emergency, string $group, string $institution): string => $this->createAccount->__invoke(new CreateAccountInput(
+        $open = fn (string $label, string $kind, ?string $product, string $liquid, bool $emergency, string $group, string $institution, string $valuationMode = 'TRANSACTIONS'): string => $this->createAccount->__invoke(new CreateAccountInput(
             label: $label,
             assetCode: self::ASSET,
             kind: $kind,
@@ -236,7 +244,7 @@ final readonly class SeedDemoData
             productModelId: null,
             institution: $institution,
             maskedIdentifier: null,
-            valuationMode: 'TRANSACTIONS',
+            valuationMode: $valuationMode,
             liquidityLevel: $liquid,
             includeInNetWorth: true,
             includeInEmergencyFund: $emergency,
@@ -248,7 +256,7 @@ final readonly class SeedDemoData
         return [
             'current' => $open('Compte courant', 'CURRENT', null, 'IMMEDIATE', false, $liquidity, 'Banque Démo'),
             'savings' => $open('Livret A', 'SAVINGS', 'FR_LIVRET_A', 'IMMEDIATE', true, $savings, 'Banque Démo'),
-            'invest' => $open('Compte-titres', 'PORTFOLIO', 'FR_CTO', 'MEDIUM_TERM', false, $investments, 'Courtier Démo'),
+            'invest' => $open('Compte-titres', 'PORTFOLIO', 'FR_CTO', 'MEDIUM_TERM', false, $investments, 'Courtier Démo', 'PORTFOLIO'),
         ];
     }
 

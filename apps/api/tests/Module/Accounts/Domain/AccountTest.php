@@ -176,6 +176,28 @@ final class AccountTest extends TestCase
         $this->reconfigured($account, kind: AccountKind::CURRENT);
     }
 
+    public function testAUsedPortfolioAccountCannotLeaveThePortfolioValuationMode(): void
+    {
+        $account = $this->account(kind: AccountKind::PORTFOLIO, valuationMode: AccountValuationMode::PORTFOLIO, usedAt: new \DateTimeImmutable(self::NOW), productCode: null);
+
+        try {
+            $this->reconfigured($account, valuationMode: AccountValuationMode::SNAPSHOTS);
+            self::fail('A used portfolio account keeps its valuation mode.');
+        } catch (InvalidAccount $exception) {
+            self::assertStringContainsString('valuation mode', $exception->getMessage());
+        }
+        self::assertSame(AccountValuationMode::PORTFOLIO, $this->reconfigured($account, label: 'Renamed')->valuationMode);
+    }
+
+    public function testAnUnusedPortfolioAccountAndAUsedSnapshotAccountMayStillSwitchMode(): void
+    {
+        $unused = $this->account(kind: AccountKind::PORTFOLIO, valuationMode: AccountValuationMode::PORTFOLIO, productCode: null);
+        self::assertSame(AccountValuationMode::SNAPSHOTS, $this->reconfigured($unused, valuationMode: AccountValuationMode::SNAPSHOTS)->valuationMode);
+
+        $snapshots = $this->account(kind: AccountKind::PORTFOLIO, valuationMode: AccountValuationMode::SNAPSHOTS, usedAt: new \DateTimeImmutable(self::NOW), productCode: null);
+        self::assertSame(AccountValuationMode::PORTFOLIO, $this->reconfigured($snapshots, valuationMode: AccountValuationMode::PORTFOLIO)->valuationMode);
+    }
+
     #[DataProvider('invalidInstitutions')]
     public function testItRejectsAnUnboundedOrExecutableInstitution(string $institution): void
     {
@@ -392,6 +414,7 @@ final class AccountTest extends TestCase
         ?\DateTimeImmutable $closedOn = null,
         ?ProductCode $productCode = null,
         ?string $productModelId = null,
+        ?AccountValuationMode $valuationMode = null,
     ): Account {
         return $account->reconfigure(
             label: $label ?? $account->label,
@@ -400,7 +423,7 @@ final class AccountTest extends TestCase
             productModelId: $productModelId ?? $account->productModelId,
             institution: $account->institution,
             maskedIdentifier: $account->maskedIdentifier,
-            valuationMode: $account->valuationMode,
+            valuationMode: $valuationMode ?? $account->valuationMode,
             liquidityLevel: $account->liquidityLevel,
             includeInNetWorth: $account->includeInNetWorth,
             includeInEmergencyFund: $account->includeInEmergencyFund,

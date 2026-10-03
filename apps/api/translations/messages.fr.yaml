@@ -210,6 +210,102 @@ api:
     instrument_payload_too_large:
       title: 'Corps d’instrument trop volumineux'
       detail: 'Le corps JSON dépasse la taille maximale autorisée.'
+    account_not_portfolio:
+      title: 'Compte non suivi en mode portefeuille'
+      detail: 'Ce compte n’est pas un compte-titres valorisé en mode portefeuille.'
+    portfolio_account_inactive:
+      title: 'Compte inactif'
+      detail: 'Le compte est clôturé ou archivé : aucune opération ne peut y être écrite.'
+    invalid_operation_type:
+      title: 'Type d’opération invalide'
+      detail: 'Le type d’opération n’est pas reconnu.'
+    unsupported_operation_type:
+      title: 'Type d’opération non pris en charge'
+      detail: 'Les autres opérations sur titres ne sont pas prises en charge dans cette version.'
+    operation_field_required:
+      title: 'Champ requis'
+      detail: 'Un champ obligatoire pour ce type d’opération est absent.'
+    operation_field_not_allowed:
+      title: 'Champ non autorisé'
+      detail: 'Ce champ ne s’applique pas à ce type d’opération.'
+    invalid_operation_amount:
+      title: 'Montant invalide'
+      detail: 'Chaque montant doit être une chaîne décimale canonique, positive (zéro accepté pour les frais et taxes), dans la précision de la devise.'
+    invalid_operation_quantity:
+      title: 'Quantité invalide'
+      detail: 'Une quantité est une chaîne décimale canonique strictement positive.'
+    quantity_precision_exceeded:
+      title: 'Précision de quantité dépassée'
+      detail: 'La quantité comporte plus de décimales que l’instrument n’en autorise.'
+    price_precision_exceeded:
+      title: 'Précision de prix dépassée'
+      detail: 'Le prix unitaire comporte plus de décimales que l’instrument n’en autorise.'
+    operation_asset_mismatch:
+      title: 'Devise différente de celle du compte'
+      detail: 'Chaque montant d’une opération est exprimé dans la devise du compte.'
+    instrument_inactive:
+      title: 'Instrument inactif'
+      detail: 'Réactivez l’instrument avant d’enregistrer une opération.'
+    instrument_currency_mismatch:
+      title: 'Devise d’instrument différente'
+      detail: 'L’instrument est coté dans une autre devise que le compte.'
+    unknown_instrument:
+      title: 'Instrument introuvable'
+      detail: 'Aucun instrument ne porte cet identifiant dans cet espace de travail.'
+    invalid_corporate_action:
+      title: 'Opération sur titres invalide'
+      detail: 'Vérifiez le ratio, l’instrument d’arrivée et la part de coût allouée.'
+    invalid_operation_date:
+      title: 'Date d’opération invalide'
+      detail: 'La date d’opération doit être un jour réel, entre l’ouverture du compte et aujourd’hui.'
+    invalid_settlement_date:
+      title: 'Date de règlement invalide'
+      detail: 'La date de règlement suit la date d’opération d’au plus 31 jours.'
+    operation_amount_mismatch:
+      title: 'Montant brut incohérent'
+      detail: 'Le montant brut s’écarte de quantité × prix unitaire de plus d’une demi-unité d’affichage de la devise.'
+    linked_transfer_mismatch:
+      title: 'Virement lié incompatible'
+      detail: 'Le virement doit être comptabilisé sur ce compte, avec le même sens, le même montant et la même date.'
+    invalid_operation_text:
+      title: 'Texte invalide'
+      detail: 'La référence (64 caractères), la note et le motif (200 caractères) sont du texte brut non vide.'
+    invalid_operation_payload:
+      title: 'Corps d’opération invalide'
+      detail: 'Le corps JSON ne contient pas exactement les champs attendus et leurs types.'
+    invalid_operation_query:
+      title: 'Requête d’opérations invalide'
+      detail: 'Les filtres, la période (10 ans au plus) ou la pagination sortent des limites autorisées.'
+    invalid_operation_version:
+      title: 'Opération incohérente'
+      detail: 'La version ou les marques d’annulation de l’opération sont incohérentes.'
+    portfolio_account_not_found:
+      title: 'Compte introuvable'
+      detail: 'Aucun compte ne porte cet identifiant dans cet espace de travail.'
+    portfolio_operation_not_found:
+      title: 'Opération introuvable'
+      detail: 'Aucune opération ne porte cet identifiant dans cet espace de travail.'
+    stale_operation_version:
+      title: 'Opération modifiée entre-temps'
+      detail: 'Rechargez l’opération puis recommencez.'
+    operation_voided:
+      title: 'Opération déjà annulée ou remplacée'
+      detail: 'Une opération annulée ou remplacée ne peut plus être modifiée ni annulée.'
+    linked_transfer_taken:
+      title: 'Virement déjà lié'
+      detail: 'Ce virement est déjà lié à une autre opération active.'
+    operation_limit_reached:
+      title: 'Limite d’opérations atteinte'
+      detail: 'Un compte peut porter au plus 10 000 opérations actives.'
+    portfolio_operation_conflict:
+      title: 'Conflit sur le portefeuille'
+      detail: 'Le compte ou un instrument a été modifié pendant l’écriture. Recommencez.'
+    portfolio_forbidden:
+      title: 'Portefeuille inaccessible'
+      detail: "Cette session n'est rattachée à aucun espace de travail."
+    portfolio_payload_too_large:
+      title: 'Corps d’opération trop volumineux'
+      detail: 'Le corps JSON dépasse la taille maximale autorisée.'
     invalid_budget_query:
       title: 'Requête de budgets invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'

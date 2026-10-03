@@ -11,6 +11,13 @@ interface InstrumentRepository
 {
     public function find(WorkspaceScope $workspace, string $id): ?Instrument;
 
+    /**
+     * @param list<string> $ids
+     *
+     * @return list<Instrument>
+     */
+    public function findMany(WorkspaceScope $workspace, array $ids): array;
+
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Instrument;
 
     public function findByIsin(WorkspaceScope $workspace, Isin $isin, ?string $excludingId = null): ?Instrument;

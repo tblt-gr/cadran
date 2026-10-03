@@ -1,0 +1,24 @@
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.dialog label {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-2);
+}
+.dialog textarea {
+  width: 100%;
+}
+.error {
+  margin: var(--spacing-none);
+  color: var(--negative);
+}
+@media (max-width: 42rem) {
+  .dialog > button {
+    width: 100%;
+  }
+}
