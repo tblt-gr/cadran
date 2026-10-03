@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Module\Demo\Application;
 
 use App\Module\Portfolio\Application\AmountInput;
+use App\Module\Portfolio\Application\BuildValuationDraft;
 use App\Module\Portfolio\Application\CorrectPortfolioOperation;
 use App\Module\Portfolio\Application\ListInstruments;
 use App\Module\Portfolio\Application\OperationInput;
+use App\Module\Portfolio\Application\PriceInput;
 use App\Module\Portfolio\Application\RecordPortfolioOperation;
+use App\Module\Portfolio\Application\RecordPortfolioValuation;
+use App\Module\Portfolio\Application\ValuationInput;
 use App\Module\Portfolio\Application\VoidPortfolioOperation;
 
 /**
@@ -42,6 +46,8 @@ final class SeedDemoPortfolio
         private readonly CorrectPortfolioOperation $correct,
         private readonly VoidPortfolioOperation $void,
         private readonly ListInstruments $listInstruments,
+        private readonly RecordPortfolioValuation $recordValuation,
+        private readonly BuildValuationDraft $draft,
     ) {
         $this->random = new DemoRandom(0);
     }
@@ -73,6 +79,56 @@ final class SeedDemoPortfolio
             self::WITHDRAWAL_MONTH => $this->withdrawal($accountId, $month.'18'),
             default => null,
         };
+    }
+
+    /**
+     * Records the valuation of a closed month. `TOTAL` states the statement total; the `POSITIONS` modes price each
+     * held line on the deterministic path, the stale one leaving every other line with a price older than five days.
+     *
+     * @param string $mode TOTAL, POSITIONS or POSITIONS_STALE
+     */
+    public function value(string $accountId, \DateTimeImmutable $day, int $totalCents, string $mode): void
+    {
+        if ('TOTAL' === $mode) {
+            ($this->recordValuation)($accountId, new ValuationInput(
+                $day->format('Y-m-d'), 'TOTAL', self::amount(DemoCents::format($totalCents)), null, null, null, null, null,
+            ));
+
+            return;
+        }
+        ($this->recordValuation)($accountId, $this->positionsValuation($accountId, $day, 'POSITIONS_STALE' === $mode ? 'stale' : 'current'));
+    }
+
+    /** The open month holds one partial valuation: a line left without a price shows no total and publishes nothing. */
+    public function valueOpenMonth(string $accountId, \DateTimeImmutable $today): void
+    {
+        ($this->recordValuation)($accountId, $this->positionsValuation($accountId, $today, 'partial'));
+    }
+
+    /** @param 'current'|'stale'|'partial' $pricing */
+    private function positionsValuation(string $accountId, \DateTimeImmutable $day, string $pricing): ValuationInput
+    {
+        $etf = $this->instrument(self::ETF);
+        $prices = [];
+        foreach ($this->draft->__invoke($accountId, $day->format('Y-m-d'))->positions as $position) {
+            $id = $position->instrument->id;
+            if ($id === $etf) {
+                $prices[] = 'partial' === $pricing
+                    ? new PriceInput($id, null, null)
+                    : new PriceInput($id, self::fixed($this->price, self::PRICE_SCALE), $day->format('Y-m-d'));
+
+                continue;
+            }
+            $known = $position->lastPrice?->toString() ?? '1.0000';
+            // The price keeps the date it was really observed on; the stale demo case is at least ten days old.
+            $date = $position->lastPriceDate ?? $day;
+            if ('stale' === $pricing && $date > $day->modify('-10 days')) {
+                $date = $day->modify('-10 days');
+            }
+            $prices[] = new PriceInput($id, $known, $date->format('Y-m-d'));
+        }
+
+        return new ValuationInput($day->format('Y-m-d'), 'POSITIONS', null, $prices, null, null, null, null);
     }
 
     private function incomeAndCosts(string $accountId, string $month): void

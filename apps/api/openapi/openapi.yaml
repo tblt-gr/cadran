@@ -2631,6 +2631,245 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/portfolio-valuations:
+    get:
+      operationId: listPortfolioValuations
+      summary: List the valuations of a portfolio account
+      description: >-
+        Active valuations, newest first. A superseded or withdrawn valuation leaves the list and stays
+        readable by identifier. A closed or archived account stays readable.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: from
+          in: query
+          required: false
+          description: 'First valuation date kept, inclusive.'
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: 'Last valuation date kept, inclusive.'
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 24
+      responses:
+        '200':
+          description: 'One page of valuation summaries.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'The filters are invalid, or the account is not followed in portfolio mode.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: recordPortfolioValuation
+      summary: Record a portfolio valuation
+      description: >-
+        Freezes a dated observation of the account, as a total (`TOTAL`) or one price per held
+        instrument (`POSITIONS`). Exact decimals, one active valuation per account and date: a second
+        one needs the current `version` and supersedes the first. A complete valuation publishes its
+        total to net worth; a partial one publishes nothing.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioValuationRequest'
+      responses:
+        '201':
+          description: 'The recorded valuation.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'A valuation exists for the date, the version is stale, the limit of 5 000 active valuations is reached, the idempotency key conflicts or the period is closed (`type: /problems/period-closed`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: 'The body breaks a valuation rule; `code` names it and `field` points at the offending member.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/portfolio-valuations/draft:
+    get:
+      operationId: readPortfolioValuationDraft
+      summary: Build the form of a valuation
+      description: >-
+        The positions held on the date with the last known price of each, taken from an earlier
+        valuation or from the unit price of a buy or a sell, and the cash derived from the operations.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: valuedOn
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'The draft.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationDraft'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'The date is invalid, or the account is inactive or not followed in portfolio mode.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/portfolio-valuations/{id}:
+    get:
+      operationId: readPortfolioValuation
+      summary: Read one portfolio valuation
+      description: >-
+        Superseded and withdrawn valuations are returned as read-only history. Unknown, malformed and
+        foreign identifiers answer the same 404.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioValuationId'
+      responses:
+        '200':
+          description: 'The valuation.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/portfolio-valuations/{id}/withdraw:
+    post:
+      operationId: withdrawPortfolioValuation
+      summary: Withdraw a portfolio valuation
+      description: >-
+        Supersedes the valuation without replacement and retires the figure it published to net worth.
+        The row stays in the history.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/PortfolioValuationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawPortfolioValuationRequest'
+      responses:
+        '200':
+          description: 'The withdrawn valuation.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The version is stale, the valuation is no longer active, or the period is closed (`type: /problems/period-closed`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: 'The body is invalid, or the account is inactive.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{accountId}/portfolio-transfer-candidates:
     get:
       operationId: listPortfolioTransferCandidates
@@ -3060,7 +3299,9 @@ paths:
         literal is kept exactly as submitted. A second active snapshot of the
         same day and source is refused unless the current version is presented,
         in which case the previous row is superseded and kept on the trail.
-        The author comes from the session.
+        The author comes from the session. An account valued in `PORTFOLIO` mode
+        refuses it with `422 portfolio_account_valued_by_portfolio`: it is valued
+        by its portfolio valuations.
       tags:
         - Accounts
       security:
@@ -5620,6 +5861,8 @@ paths:
       operationId: resolveAccountReconciliation
       summary: Reconcile an observed closing balance
       description: >-
+        An account valued in `PORTFOLIO` mode refuses it with
+        `422 portfolio_account_valued_by_portfolio`.
         `MATCH` requires a discrepancy of exactly zero (compared as decimals, so
         `1.10` equals `1.1`). `OVERRIDE` accepts a non-zero discrepancy as it
         stands and writes no transaction. `ADJUST` records one booked
@@ -6496,6 +6739,13 @@ components:
         format: uuid
     PortfolioAccountId:
       name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PortfolioValuationId:
+      name: id
       in: path
       required: true
       schema:
@@ -15281,3 +15531,388 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PeriodClosingBlocker'
+    PortfolioValuationDetail:
+      type: string
+      enum: [TOTAL, POSITIONS]
+    PortfolioValuationFlag:
+      type: string
+      enum:
+        [
+          STALE_PRICES,
+          CASH_DIFFERENCE,
+          OBSERVED_TOTAL_DIFFERENCE,
+          POSITIONS_CHANGED,
+          NEGATIVE_SECURITIES_VALUE,
+        ]
+    PortfolioPriceQuality:
+      type: string
+      enum: [CURRENT, STALE, MISSING, NOT_DETAILED]
+    PortfolioValuationPriceEntry:
+      type: object
+      additionalProperties: false
+      required: [instrumentId, price]
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        price:
+          description: 'Unit price, strictly positive and within the instrument price precision; null when unknown.'
+          type: [string, 'null']
+        priceDate:
+          description: 'Required with a price, on or before the valuation date.'
+          type: [string, 'null']
+          format: date
+    PortfolioValuationRequest:
+      type: object
+      additionalProperties: false
+      required: [valuedOn, detail]
+      properties:
+        valuedOn:
+          type: string
+          format: date
+        detail:
+          $ref: '#/components/schemas/PortfolioValuationDetail'
+        totalValue:
+          description: 'TOTAL only: the total value read on the statement, zero or more.'
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        prices:
+          description: 'POSITIONS only: exactly one entry per instrument held on the date.'
+          type: [array, 'null']
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/PortfolioValuationPriceEntry'
+        observedCash:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        observedTotal:
+          description: 'POSITIONS only: the statement total, compared with the computed one, never absorbed.'
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        note:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 200
+        version:
+          description: 'The current version of the active valuation of that date, required to supersede it.'
+          type: [integer, 'null']
+          minimum: 1
+    WithdrawPortfolioValuationRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+    PortfolioValuationInstrument:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        isin:
+          type: [string, 'null']
+        ticker:
+          type: [string, 'null']
+        status:
+          $ref: '#/components/schemas/InstrumentStatus'
+        quantityPrecision:
+          type: integer
+          minimum: 0
+          maximum: 12
+        pricePrecision:
+          type: integer
+          minimum: 0
+          maximum: 12
+    PortfolioValuationSummary:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          accountId,
+          valuedOn,
+          detail,
+          source,
+          totalValue,
+          cash,
+          securitiesValue,
+          completeness,
+          priceQuality,
+          flags,
+          version,
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        valuedOn:
+          type: string
+          format: date
+        detail:
+          $ref: '#/components/schemas/PortfolioValuationDetail'
+        source:
+          type: string
+          enum: [MANUAL, IMPORT]
+        totalValue:
+          description: 'Null when the valuation is partial: never zero by default.'
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        cash:
+          $ref: '#/components/schemas/DecimalAmount'
+        securitiesValue:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        completeness:
+          type: string
+          enum: [COMPLETE, PARTIAL]
+        priceQuality:
+          description: 'The worst quality among the positions.'
+          $ref: '#/components/schemas/PortfolioPriceQuality'
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioValuationFlag'
+        version:
+          type: integer
+          minimum: 1
+    PortfolioValuationPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, perPage, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioValuationSummary'
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+    PortfolioValuationPosition:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          instrument,
+          quantity,
+          unitPrice,
+          priceDate,
+          priceAgeDays,
+          priceQuality,
+          marketValue,
+          averageCostBasis,
+        ]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/PortfolioValuationInstrument'
+        quantity:
+          type: string
+        unitPrice:
+          type: [string, 'null']
+        priceDate:
+          type: [string, 'null']
+          format: date
+        priceAgeDays:
+          type: [integer, 'null']
+        priceQuality:
+          $ref: '#/components/schemas/PortfolioPriceQuality'
+        marketValue:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        averageCostBasis:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+    PortfolioValuation:
+      allOf:
+        - $ref: '#/components/schemas/PortfolioValuationSummary'
+        - type: object
+          required:
+            [
+              derivedCash,
+              cashSource,
+              cashDifference,
+              observedTotal,
+              observedTotalDifference,
+              tolerance,
+              note,
+              supersedesId,
+              supersededAt,
+              recordedAt,
+              positions,
+            ]
+          properties:
+            derivedCash:
+              $ref: '#/components/schemas/DecimalAmount'
+            cashSource:
+              type: string
+              enum: [DERIVED, OBSERVED]
+            cashDifference:
+              oneOf:
+                - $ref: '#/components/schemas/DecimalAmount'
+                - type: 'null'
+            observedTotal:
+              oneOf:
+                - $ref: '#/components/schemas/DecimalAmount'
+                - type: 'null'
+            observedTotalDifference:
+              description: 'Statement total minus computed total, exact.'
+              oneOf:
+                - $ref: '#/components/schemas/DecimalAmount'
+                - type: 'null'
+            tolerance:
+              description: '(priced positions + 1) x 0.5 x 10^-display precision of the account currency.'
+              $ref: '#/components/schemas/DecimalAmount'
+            note:
+              type: [string, 'null']
+            supersedesId:
+              type: [string, 'null']
+              format: uuid
+            supersededAt:
+              type: [string, 'null']
+              format: date-time
+            recordedAt:
+              type: string
+              format: date-time
+            positions:
+              type: array
+              items:
+                $ref: '#/components/schemas/PortfolioValuationPosition'
+    PortfolioValuationDraftPosition:
+      type: object
+      additionalProperties: false
+      required: [instrument, quantity, lastPrice, lastPriceDate, lastPriceOrigin]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/PortfolioValuationInstrument'
+        quantity:
+          type: string
+        lastPrice:
+          type: [string, 'null']
+        lastPriceDate:
+          type: [string, 'null']
+          format: date
+        lastPriceOrigin:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [kind, id, date]
+              properties:
+                kind:
+                  type: string
+                  enum: [VALUATION, OPERATION]
+                id:
+                  type: string
+                  format: uuid
+                date:
+                  type: string
+                  format: date
+            - type: 'null'
+    PortfolioValuationDraft:
+      type: object
+      additionalProperties: false
+      required: [valuedOn, derivedCash, suggestedDetail, lastTotal, currentValuation, positions]
+      properties:
+        valuedOn:
+          type: string
+          format: date
+        derivedCash:
+          $ref: '#/components/schemas/DecimalAmount'
+        suggestedDetail:
+          $ref: '#/components/schemas/PortfolioValuationDetail'
+        lastTotal:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [value, valuedOn]
+              properties:
+                value:
+                  $ref: '#/components/schemas/DecimalAmount'
+                valuedOn:
+                  type: string
+                  format: date
+            - type: 'null'
+        currentValuation:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [id, version]
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                version:
+                  type: integer
+                  minimum: 1
+            - type: 'null'
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioValuationDraftPosition'
+    PortfolioValuationProblem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, detail]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        code:
+          type: string
+          enum:
+            - invalid_valuation_detail
+            - valuation_field_not_allowed
+            - invalid_valuation_total
+            - invalid_valuation_date
+            - valuation_price_entry_missing
+            - unknown_valuation_instrument
+            - invalid_valuation_price
+            - price_precision_exceeded
+            - invalid_price_date
+            - operation_asset_mismatch
+            - invalid_valuation_query
+            - invalid_valuation_payload
+            - account_not_portfolio
+            - portfolio_account_inactive
+            - portfolio_account_not_found
+            - portfolio_valuation_not_found
+            - valuation_exists
+            - stale_valuation_version
+            - valuation_limit_reached
+            - portfolio_valuation_conflict
+            - cash_amount_too_large
+            - portfolio_forbidden
+            - portfolio_payload_too_large
+            - position_would_go_negative
+        field:
+          description: 'The member the code refers to, as a JSON pointer such as `/prices/0/price`.'
+          type: string

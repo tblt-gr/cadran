@@ -131,7 +131,7 @@ export function AccountList({
                     <ActionMenu
                       items={[
                         {
-                          disabled: !account.editable,
+                          disabled: !account.editable || account.valuationMode === 'PORTFOLIO',
                           icon: 'balance',
                           id: 'recordBalance',
                           label: t('accounts.list.recordBalanceOfAccount', {
@@ -143,6 +143,7 @@ export function AccountList({
                         {
                           disabled:
                             !account.editable ||
+                            account.valuationMode === 'PORTFOLIO' ||
                             account.valuation.snapshotId === null ||
                             account.valuation.reconciliationStatus !== 'UNRECONCILED',
                           icon: 'balance',

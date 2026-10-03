@@ -2,6 +2,7 @@ import { OperationFilters } from './operations/operation-filters/OperationFilter
 import { noFilters } from './operations/operation-filters/operationFilterValues';
 import { OperationsTableSkeleton } from './operations/OperationsTableSkeleton';
 import { CashTabSkeleton } from '@/features/portfolio/cash/CashTabSkeleton';
+import { ValuationsTabSkeleton } from '@/features/portfolio/valuations/ValuationsTabSkeleton';
 import { PositionsTabSkeleton } from './positions/PositionsTabSkeleton';
 import { PortfolioAccountHeader } from './portfolio-account-header/PortfolioAccountHeader';
 import { activeTab } from './portfolio-tabs/activeTab';
@@ -28,6 +29,8 @@ export function PortfolioAccountPageSkeleton({
         </>
       ) : active === 'cash' ? (
         <CashTabSkeleton />
+      ) : active === 'valuations' ? (
+        <ValuationsTabSkeleton status={status} />
       ) : (
         <PositionsTabSkeleton status={status} />
       )}

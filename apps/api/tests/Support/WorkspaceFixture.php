@@ -116,6 +116,8 @@ final readonly class WorkspaceFixture
     public function reset(): void
     {
         $this->connection->executeStatement('TRUNCATE TABLE audit_events');
+        $this->connection->executeStatement('DELETE FROM portfolio_position_snapshots');
+        $this->connection->executeStatement('DELETE FROM portfolio_valuations');
         $this->connection->executeStatement('DELETE FROM portfolio_operations');
         $this->connection->executeStatement('DELETE FROM portfolio_instruments');
         // Transactions restrict account and category deletion. Splits follow a

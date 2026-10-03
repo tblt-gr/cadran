@@ -7,6 +7,8 @@ namespace App\Module\Accounts\Application;
 use App\Module\Accounts\Domain\AccountBalanceSnapshot;
 use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\AccountRepository;
+use App\Module\Accounts\Domain\AccountValuationMode;
+use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\PeriodClosingCondition;
 use App\Module\Accounts\Domain\ReconciliationStatus;
@@ -21,6 +23,8 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  * An account counts as reconciled for the month when its latest active
  * snapshot on or before the last day falls inside the month and is reconciled.
  * A month with no snapshot at all is not reconciled: silence is not a match.
+ * A portfolio-mode account is reconciled when its latest snapshot of the month
+ * is a CALCULATED one, the figure its valuation publishes.
  */
 final readonly class AssessPeriodClosing
 {
@@ -51,6 +55,15 @@ final readonly class AssessPeriodClosing
         foreach ($accounts as $account) {
             $snapshot = $latest[$account->id] ?? null;
             $inMonth = null !== $snapshot && $snapshot->asOf >= $first;
+            if (AccountValuationMode::PORTFOLIO === $account->valuationMode) {
+                // Valued through its portfolio valuations: only a published CALCULATED figure of the month counts,
+                // and a valuation is not a balance to compare with movements.
+                if (!$inMonth || BalanceSnapshotSource::CALCULATED !== $snapshot->source) {
+                    ++$unreconciled;
+                }
+
+                continue;
+            }
             if (!$inMonth || ReconciliationStatus::RECONCILED !== $snapshot->reconciliationStatus) {
                 ++$unreconciled;
             }

@@ -26,6 +26,8 @@ export function AccountDetailHeader({
   onReconcile: () => void;
 }) {
   const { t } = useTranslation();
+  const valuedByPortfolio = account.kind === 'PORTFOLIO' && account.valuationMode === 'PORTFOLIO';
+  const valuationsHref = `/portfolios/${account.id}?tab=valuations`;
 
   return (
     <section aria-labelledby="account-detail-title" className={styles.intro}>
@@ -46,7 +48,7 @@ export function AccountDetailHeader({
         </h2>
       </div>
       <div className={styles.actions}>
-        {account.kind === 'PORTFOLIO' && account.valuationMode === 'PORTFOLIO' ? (
+        {valuedByPortfolio ? (
           <a
             className="secondary-action"
             href={`/portfolios/${account.id}`}
@@ -58,14 +60,24 @@ export function AccountDetailHeader({
         <button className="secondary-action" onClick={onOpenRules} type="button">
           {t('accounts.detail.actions.rules')}
         </button>
-        <button
-          className="secondary-action"
-          disabled={account.valuation.snapshotId === null}
-          onClick={onReconcile}
-          type="button"
-        >
-          {t('accounts.detail.actions.reconcile')}
-        </button>
+        {valuedByPortfolio ? (
+          <a
+            className="secondary-action"
+            href={valuationsHref}
+            onClick={(event) => handleClientNavigation(event, valuationsHref)}
+          >
+            {t('accounts.detail.actions.valuePortfolio')}
+          </a>
+        ) : (
+          <button
+            className="secondary-action"
+            disabled={account.valuation.snapshotId === null}
+            onClick={onReconcile}
+            type="button"
+          >
+            {t('accounts.detail.actions.reconcile')}
+          </button>
+        )}
         <button
           className="secondary-action"
           disabled={!creatable}

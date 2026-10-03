@@ -9,6 +9,7 @@ use App\Module\Accounts\Application\AccountBalanceConflict;
 use App\Module\Accounts\Application\AccountNotFound;
 use App\Module\Accounts\Application\InvalidAccountBalanceInput;
 use App\Module\Accounts\Application\ListAccountBalances;
+use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
 use App\Module\Accounts\Application\ReadAccountValuation;
 use App\Module\Accounts\Application\RecordAccountBalance;
 use App\Module\Accounts\Application\RecordAccountBalanceInput;
@@ -112,6 +113,8 @@ final readonly class AccountBalanceController
             ));
         } catch (AccountArchived) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);
+        } catch (PortfolioAccountValuedByPortfolio) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.portfolio_account_valued_by_portfolio', '/problems/portfolio-account-valued-by-portfolio', ['code' => 'portfolio_account_valued_by_portfolio']);
         } catch (InvalidAccountBalanceInput|\UnexpectedValueException) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_balance');
         } catch (AccountNotFound) {
@@ -160,13 +163,15 @@ final readonly class AccountBalanceController
         return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
     }
 
-    private function problem(int $status, string $translationKey, string $type = ApiProblem::TYPE_BLANK): JsonResponse
+    /** @param array<string, mixed> $extensions */
+    private function problem(int $status, string $translationKey, string $type = ApiProblem::TYPE_BLANK, array $extensions = []): JsonResponse
     {
         return ApiProblem::response(
             $status,
             $this->translator->trans($translationKey.'.title'),
             $this->translator->trans($translationKey.'.detail'),
             $type,
+            extensions: $extensions,
         );
     }
 }
