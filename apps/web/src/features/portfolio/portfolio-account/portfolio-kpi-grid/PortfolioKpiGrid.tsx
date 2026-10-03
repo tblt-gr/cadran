@@ -22,6 +22,10 @@ export function PortfolioKpiGrid({
   const money = (value: string | null) =>
     value === null ? 'Non calculable' : formatAmount(value, summary!.account.assetCode, 'fr');
   const gain = summary?.unrealizedGain.value;
+  const valueTones: Partial<Record<KpiCode, string>> = {
+    UNREALIZED_GAIN: gain == null ? '' : gain.startsWith('-') ? styles.negative : styles.positive,
+    CASH: summary?.cash.startsWith('-') ? styles.negative : '',
+  };
   const values: Record<KpiCode, string> | null = summary
     ? {
         TOTAL_VALUE: summary.totalValue === null ? 'Non valorisé' : money(summary.totalValue),
@@ -58,7 +62,7 @@ export function PortfolioKpiGrid({
               onClick={() => onExplain(code)}
             />
           </div>
-          <div className={styles.value}>
+          <div className={`${styles.value} ${valueTones[code] ?? ''}`}>
             {values ? (
               code === 'RECONCILIATION' ? (
                 <StatusBadge

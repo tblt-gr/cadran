@@ -21,10 +21,17 @@
   font-size: var(--font-size-card-title);
 }
 .value {
+  color: var(--text-primary);
   font-size: var(--font-size-kpi);
   font-weight: var(--font-weight-strong);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
+}
+.positive {
+  color: var(--positive);
+}
+.negative {
+  color: var(--negative);
 }
 .valueSkeleton {
   height: var(--font-size-kpi);
