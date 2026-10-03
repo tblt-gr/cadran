@@ -11,6 +11,7 @@ import {
   validateTransferValues,
   type TransferFormValues,
 } from './transferFormValues';
+import { TransactionSubmitError } from '@/features/transactions/submit-error/TransactionSubmitError';
 import formStyles from '@/features/transactions/transaction-form/TransactionForm.module.css';
 
 interface TransferFormProps {
@@ -77,9 +78,11 @@ export function TransferForm({
   return (
     <form className={formStyles.form} noValidate onSubmit={submit}>
       {submitError ? (
-        <p className={formStyles.alert} role="alert">
-          {t(`transactions.errors.${submitError}`)}
-        </p>
+        <TransactionSubmitError
+          accountId={values.sourceAccountId}
+          className={formStyles.alert}
+          kind={submitError}
+        />
       ) : null}
 
       <p>{t('transactions.transfer.notice')}</p>

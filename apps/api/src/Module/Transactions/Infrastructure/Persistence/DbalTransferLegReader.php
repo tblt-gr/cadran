@@ -10,6 +10,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Application\TransferLegFact;
 use App\Module\Transactions\Application\TransferLegReader;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
@@ -31,6 +32,20 @@ final readonly class DbalTransferLegReader implements TransferLegReader
         );
 
         return false === $row ? null : self::fact($row);
+    }
+
+    public function findMany(WorkspaceScope $workspace, array $transactionIds): array
+    {
+        if ([] === $transactionIds) {
+            return [];
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.self::COLUMNS." FROM transaction_transactions WHERE workspace_id = :workspace_id AND id IN (:ids) AND nature = 'TRANSFER'",
+            ['workspace_id' => $workspace->id, 'ids' => $transactionIds],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        return array_map(self::fact(...), $rows);
     }
 
     public function recent(WorkspaceScope $workspace, string $accountId, string $direction, int $limit): array

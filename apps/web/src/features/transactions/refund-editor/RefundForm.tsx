@@ -11,6 +11,7 @@ import {
 import { SplitEditor } from '@/features/transactions/split-editor/SplitEditor';
 import type { SplitRowValues } from '@/features/transactions/split-editor/SplitRow';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
+import { TransactionSubmitError } from '@/features/transactions/submit-error/TransactionSubmitError';
 import styles from './RefundForm.module.css';
 
 interface RefundFormProps {
@@ -110,9 +111,12 @@ export function RefundForm({
   return (
     <form className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
-        <p className={styles.alert} role="alert">
-          {submitErrorDetail ?? t(`transactions.errors.${submitError}`)}
-        </p>
+        <TransactionSubmitError
+          accountId={accountId}
+          className={styles.alert}
+          detail={submitErrorDetail}
+          kind={submitError}
+        />
       ) : null}
       <p className={styles.remaining}>
         <span>{t('transactions.refund.remaining')}</span>

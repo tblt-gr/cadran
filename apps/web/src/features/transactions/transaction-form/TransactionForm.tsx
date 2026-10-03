@@ -22,6 +22,7 @@ import {
   type TransactionFormValues,
 } from './transactionFormValues';
 import type { SavedCategory } from './transaction-category-field/TransactionCategoryField';
+import { TransactionSubmitError } from '@/features/transactions/submit-error/TransactionSubmitError';
 import styles from './TransactionForm.module.css';
 
 const NATURES: TransactionFormValues['nature'][] = ['EXPENSE', 'INCOME', 'FEE', 'ADJUSTMENT'];
@@ -113,9 +114,11 @@ export function TransactionForm({
   return (
     <form className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
-        <p className={styles.alert} role="alert">
-          {t(`transactions.errors.${submitError}`)}
-        </p>
+        <TransactionSubmitError
+          accountId={resolved.accountId}
+          className={styles.alert}
+          kind={submitError}
+        />
       ) : null}
 
       <div className={styles.fields}>

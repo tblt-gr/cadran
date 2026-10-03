@@ -11,6 +11,7 @@ use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\InvalidRefundRule;
 use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransferRule;
+use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\RefundConflict;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -137,6 +138,17 @@ final readonly class TransactionHttpEnvelope
             $this->translator->trans($key.'.title'),
             $this->translator->trans($key.'.detail'),
             '/problems/refund.'.$exception->ruleCode,
+        );
+    }
+
+    public function portfolioAccountRequiresOperationsProblem(PortfolioAccountRequiresOperations $exception): JsonResponse
+    {
+        return ApiProblem::response(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            $this->translator->trans('api.problem.portfolio_account_requires_operations.title'),
+            $this->translator->trans('api.problem.portfolio_account_requires_operations.detail'),
+            '/problems/portfolio-account-requires-operations',
+            extensions: ['code' => 'portfolio_account_requires_operations', 'accountId' => $exception->accountId],
         );
     }
 

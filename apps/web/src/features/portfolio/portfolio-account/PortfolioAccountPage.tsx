@@ -2,22 +2,24 @@ import { useEffect, useState } from 'react';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
+import { CashTab } from '@/features/portfolio/cash/CashTab';
 import { NotPortfolioState } from './operations/NotPortfolioState';
 import { OperationsTab } from './operations/OperationsTab';
 import { PositionsTab } from './positions/PositionsTab';
 import { PortfolioAccountHeader } from './portfolio-account-header/PortfolioAccountHeader';
 import { PortfolioAccountPageSkeleton } from './PortfolioAccountPageSkeleton';
-import { PortfolioTabs } from './portfolio-tabs/PortfolioTabs';
+import { activeTab } from './portfolio-tabs/activeTab';
+import { PortfolioTabs, type PortfolioTab } from './portfolio-tabs/PortfolioTabs';
 import styles from './PortfolioAccountPage.module.css';
 
 /**
- * The portfolio page of one investment account. This ticket ships the Opérations tab;
+ * The portfolio page of one investment account. The tabs are Positions, Opérations and Espèces;
  * every later portfolio capability adds its own tab to `PortfolioTabs`.
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const account = useAccountDetail(accountId);
   const [creating, setCreating] = useState(false);
-  const [active, setActive] = useState<'operations' | 'positions'>(() => activeTab());
+  const [active, setActive] = useState<PortfolioTab>(() => activeTab());
 
   useEffect(() => {
     const updateTab = () => setActive(activeTab());
@@ -73,6 +75,8 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
       {eligible ? (
         active === 'positions' ? (
           <PositionsTab accountId={accountId} />
+        ) : active === 'cash' ? (
+          <CashTab accountId={accountId} />
         ) : (
           <OperationsTab
             account={current}
@@ -86,10 +90,4 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
       )}
     </div>
   );
-}
-
-function activeTab(): 'operations' | 'positions' {
-  return new URLSearchParams(window.location.search).get('tab') === 'operations'
-    ? 'operations'
-    : 'positions';
 }

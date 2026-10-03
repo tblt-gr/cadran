@@ -6,6 +6,7 @@ namespace App\Module\Transactions\Application;
 
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountRepository;
+use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Categories\Domain\Category;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Categories\Domain\CategoryType;
@@ -248,6 +249,10 @@ final readonly class TransactionReferences
 
     private function assertAccountAndDates(Account $account, TransactionDraft $draft, \DateTimeImmutable $today): void
     {
+        if (AccountValuationMode::PORTFOLIO === $account->valuationMode
+            && in_array($draft->nature, [TransactionNature::INCOME, TransactionNature::EXPENSE, TransactionNature::REFUND, TransactionNature::FEE], true)) {
+            throw new PortfolioAccountRequiresOperations($account->id);
+        }
         if ($account->assetCode->toString() !== $draft->amount->asset->toString()) {
             throw new InvalidTransactionInput('The transaction asset must match its account asset.');
         }

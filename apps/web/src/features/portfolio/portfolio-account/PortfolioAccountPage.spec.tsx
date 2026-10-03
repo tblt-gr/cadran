@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { cashFixture } from '@/features/portfolio/cash/cashFixtures';
 import { operationFixture } from './operations/operations-table/operationFixtures';
 import { PortfolioAccountPage } from './PortfolioAccountPage';
 
@@ -14,6 +15,7 @@ const api = vi.hoisted(() => ({
   listPortfolioPositions: vi.fn(),
   listPortfolioTransferCandidates: vi.fn(),
   listProducts: vi.fn(),
+  readPortfolioCash: vi.fn(),
   previewPortfolioOperation: vi.fn(),
   readAccount: vi.fn(),
   readPortfolioOperation: vi.fn(),
@@ -94,6 +96,31 @@ afterEach(() => {
 });
 
 describe('PortfolioAccountPage', () => {
+  it('shows the Espèces layout, real chrome included, while the account loads', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=cash`);
+    api.readAccount.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+
+    expect(screen.getByRole('link', { name: 'Espèces' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('heading', { name: 'Solde espèces' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '12 derniers mois' }).matches(':disabled')).toBe(
+      true,
+    );
+    expect(screen.getByRole('columnheader', { name: 'Effet espèces' })).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+  });
+
+  it('opens the Espèces tab after Opérations from ?tab=cash', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=cash`);
+    api.readPortfolioCash.mockImplementation(() => ok(cashFixture()));
+    renderPage();
+
+    expect(await screen.findByRole('table', { name: 'Mouvements d’espèces' })).toBeTruthy();
+    const tabs = screen.getAllByRole('link').map((link) => link.textContent);
+    expect(tabs.indexOf('Espèces')).toBe(tabs.indexOf('Opérations') + 1);
+    expect(screen.getByRole('link', { name: 'Espèces' }).getAttribute('aria-current')).toBe('page');
+  });
+
   it('switches from the default positions tab before opening the global create action', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}`);
     renderPage();

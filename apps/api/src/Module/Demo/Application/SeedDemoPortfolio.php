@@ -21,6 +21,9 @@ use App\Module\Portfolio\Application\VoidPortfolioOperation;
  */
 final class SeedDemoPortfolio
 {
+    public const int UNLINKED_TRANSFER_MONTH = 3;
+    public const int WITHDRAWAL_MONTH = 4;
+    public const int WITHDRAWAL_CENTS = 10_000;
     private const string ASSET = 'EUR';
     private const string ETF = 'ETF Monde Démo';
     private const string STOCK = 'Action Démo Industrie';
@@ -67,6 +70,7 @@ final class SeedDemoPortfolio
             2 => $this->incomeAndCosts($accountId, $month),
             5 => $this->modifiedBuy($accountId, $month.'10'),
             8 => $this->split($accountId, $month.'12'),
+            self::WITHDRAWAL_MONTH => $this->withdrawal($accountId, $month.'18'),
             default => null,
         };
     }
@@ -96,6 +100,14 @@ final class SeedDemoPortfolio
             type: 'BUY', tradeDate: $day, instrumentId: $this->instrument(self::STOCK),
             quantity: self::fixed(6_000_000, self::QUANTITY_SCALE), unitPrice: self::fixed(532_000, self::PRICE_SCALE),
             grossAmount: self::amount('319.20'), reference: 'Saisie à corriger',
+        ));
+    }
+
+    /** Cash taken out of the portfolio and left unlinked: the history before a transfer was tracked is legitimate. */
+    private function withdrawal(string $accountId, string $day): void
+    {
+        ($this->record)($accountId, new OperationInput(
+            type: 'WITHDRAWAL', tradeDate: $day, grossAmount: self::amount(DemoCents::format(self::WITHDRAWAL_CENTS)), reference: 'Retrait',
         ));
     }
 

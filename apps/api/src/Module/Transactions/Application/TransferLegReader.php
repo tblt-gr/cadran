@@ -11,6 +11,13 @@ interface TransferLegReader
     public function find(WorkspaceScope $workspace, string $transactionId): ?TransferLegFact;
 
     /**
+     * @param list<string> $transactionIds
+     *
+     * @return list<TransferLegFact> the legs of the workspace among them, in no promised order
+     */
+    public function findMany(WorkspaceScope $workspace, array $transactionIds): array;
+
+    /**
      * Newest first. Only booked, non-voided legs of nature TRANSFER, with a positive amount for IN and a negative one for OUT.
      *
      * @param 'IN'|'OUT' $direction

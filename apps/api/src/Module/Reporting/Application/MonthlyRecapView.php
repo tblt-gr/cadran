@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Reporting\Application;
 
 use App\Module\Accounts\Application\NetWorthAllocationView;
+use App\Module\Portfolio\Application\MonthlyPortfolioCosts;
 
 final readonly class MonthlyRecapView
 {
@@ -26,6 +27,7 @@ final readonly class MonthlyRecapView
         public MonthlyRecapNetWorthView $netWorth,
         public MonthlyRecapTotalsView $totals,
         public MetricPolicyReference $metricPolicy,
+        public ?MonthlyPortfolioCosts $portfolioCosts = null,
     ) {
     }
 }

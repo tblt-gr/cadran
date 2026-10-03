@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/features/auth/useSession';
 import { AccountRecap } from './account-recap/AccountRecap';
+import { PortfolioCostsCard } from './portfolio-costs-card/PortfolioCostsCard';
 import { RecapPreferencesModal } from './recap-preferences/RecapPreferencesModal';
 import { TotalsCard } from './totals-card/TotalsCard';
 import { useMonthlyRecap, useRecapPreferences } from './useMonthlyRecap';
@@ -75,6 +76,7 @@ export function MonthlyRecap({ month }: { month: string }) {
         groups={data.groups}
         previousAsOf={data.previousAsOf}
       />
+      {data.portfolioCosts ? <PortfolioCostsCard costs={data.portfolioCosts} /> : null}
       {editingPreferences && preferences.data ? (
         <RecapPreferencesModal
           close={() => setEditingPreferences(false)}

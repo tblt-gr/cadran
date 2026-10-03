@@ -12,6 +12,7 @@ use App\Module\Transactions\Application\IdempotentResponse;
 use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
+use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\Reconciliation\ReconcileTransaction;
 use App\Module\Transactions\Application\StaleTransactionVersion;
 use App\Module\Transactions\Application\TransactionBelongsToRefund;
@@ -139,6 +140,8 @@ final readonly class TransactionLifecycleController
             return $this->envelope->idempotencyProblem($exception);
         } catch (InvalidSplitsInput $exception) {
             return $this->envelope->invalidSplitsProblem($exception);
+        } catch (PortfolioAccountRequiresOperations $exception) {
+            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
         } catch (InvalidTransactionInput) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
         } catch (TransactionBelongsToRefund $exception) {

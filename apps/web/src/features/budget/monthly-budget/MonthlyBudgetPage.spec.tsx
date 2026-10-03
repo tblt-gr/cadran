@@ -106,6 +106,7 @@ const recap = {
   provisional: true,
   state: 'PENDING' as const,
   quality: 'CURRENT' as const,
+  portfolioCosts: null,
   accounts: [
     {
       accountId,
@@ -856,6 +857,35 @@ describe('MonthlyBudgetPage', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('shows portfolio costs outside the budget only when the workspace has a portfolio account', async () => {
+    renderPage();
+    await loaded();
+    expect(screen.queryByRole('heading', { name: 'Coûts de portefeuille' })).toBeNull();
+    cleanup();
+
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        portfolioCosts: {
+          items: [
+            {
+              accountId,
+              label: 'PEA',
+              assetCode: 'EUR',
+              fees: { value: '8.98', assetCode: 'EUR' },
+              taxes: { value: '4.95', assetCode: 'EUR' },
+            },
+          ],
+          totalFees: { value: '8.98', assetCode: 'EUR' },
+          totalTaxes: { value: '4.95', assetCode: 'EUR' },
+          assetCode: 'EUR',
+        },
+      }),
+    );
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Coûts de portefeuille' })).toBeTruthy();
   });
 
   it('shows the metric policy version of the month next to the recap', async () => {
