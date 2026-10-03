@@ -76,6 +76,86 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
         ));
     }
 
+    public function activeForAccount(WorkspaceScope $workspace, string $accountId, ?\DateTimeImmutable $asOf = null): array
+    {
+        $parameters = ['workspace_id' => $workspace->id, 'account_id' => $accountId];
+        $date = '';
+        if (null !== $asOf) {
+            $date = ' AND trade_date <= :as_of';
+            $parameters['as_of'] = $asOf->format('Y-m-d');
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.PortfolioOperationRow::COLUMNS
+            ." FROM portfolio_operations WHERE workspace_id = :workspace_id AND account_id = :account_id AND state = 'ACTIVE'"
+            .$date.' ORDER BY trade_date, sequence, id',
+            $parameters,
+        );
+
+        return array_map(static fn (array $row): PortfolioOperation => PortfolioOperationRow::hydrate($row, $workspace), $rows);
+    }
+
+    public function activeOnDate(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $tradeDate): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.PortfolioOperationRow::COLUMNS
+            ." FROM portfolio_operations WHERE workspace_id = :workspace_id AND account_id = :account_id AND trade_date = :trade_date AND state = 'ACTIVE'"
+            .' ORDER BY sequence, id',
+            ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'trade_date' => $tradeDate->format('Y-m-d')],
+        );
+
+        return array_map(static fn (array $row): PortfolioOperation => PortfolioOperationRow::hydrate($row, $workspace), $rows);
+    }
+
+    public function activeCountsForDays(WorkspaceScope $workspace, array $accountIds, array $tradeDates): array
+    {
+        if ([] === $accountIds || [] === $tradeDates) {
+            return [];
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT account_id, trade_date, count(*) AS operation_count FROM portfolio_operations
+             WHERE workspace_id = :workspace_id AND state = 'ACTIVE' AND account_id IN (:account_ids) AND trade_date IN (:trade_dates)
+             GROUP BY account_id, trade_date",
+            [
+                'workspace_id' => $workspace->id,
+                'account_ids' => $accountIds,
+                'trade_dates' => array_map(static fn (\DateTimeImmutable $date): string => $date->format('Y-m-d'), $tradeDates),
+            ],
+            ['account_ids' => ArrayParameterType::STRING, 'trade_dates' => ArrayParameterType::STRING],
+        );
+        $counts = [];
+        foreach ($rows as $row) {
+            $accountId = PortfolioOperationRow::text($row['account_id']);
+            $tradeDate = PortfolioOperationRow::text($row['trade_date']);
+            $counts[$accountId.'|'.$tradeDate] = (int) PortfolioOperationRow::text($row['operation_count']);
+        }
+
+        return $counts;
+    }
+
+    public function reorder(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $tradeDate, array $sequences): void
+    {
+        if ([] === $sequences) {
+            return;
+        }
+        $parameters = ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'trade_date' => $tradeDate->format('Y-m-d'), 'ids' => array_keys($sequences)];
+        $types = ['ids' => ArrayParameterType::STRING];
+        // Active sequences are unique and positive. Move the selected day above the bounded active range before assigning 1..n.
+        $this->connection->executeStatement(
+            "UPDATE portfolio_operations SET sequence = sequence + :offset WHERE workspace_id = :workspace_id AND account_id = :account_id AND trade_date = :trade_date AND state = 'ACTIVE' AND id IN (:ids)",
+            [...$parameters, 'offset' => PortfolioOperation::MAX_ACTIVE_PER_ACCOUNT + 1],
+            [...$types, 'offset' => ParameterType::INTEGER],
+        );
+        foreach ($sequences as $id => $sequence) {
+            $this->connection->update('portfolio_operations', ['sequence' => $sequence], [
+                'workspace_id' => $workspace->id,
+                'account_id' => $accountId,
+                'trade_date' => $tradeDate->format('Y-m-d'),
+                'state' => 'ACTIVE',
+                'id' => $id,
+            ]);
+        }
+    }
+
     public function search(WorkspaceScope $workspace, string $accountId, OperationFilters $filters, int $limit, int $offset): array
     {
         [$where, $parameters, $types] = self::criteria($workspace, $accountId, $filters);

@@ -23,6 +23,23 @@ interface PortfolioOperationRepository
 
     public function countActive(WorkspaceScope $workspace, string $accountId): int;
 
+    /** @return list<PortfolioOperation> active operations ordered by trade date, sequence and identifier */
+    public function activeForAccount(WorkspaceScope $workspace, string $accountId, ?\DateTimeImmutable $asOf = null): array;
+
+    /** @return list<PortfolioOperation> active operations of one day ordered by sequence and identifier */
+    public function activeOnDate(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $tradeDate): array;
+
+    /**
+     * @param list<string>             $accountIds
+     * @param list<\DateTimeImmutable> $tradeDates
+     *
+     * @return array<string, int> keyed by "accountId|YYYY-MM-DD"
+     */
+    public function activeCountsForDays(WorkspaceScope $workspace, array $accountIds, array $tradeDates): array;
+
+    /** @param array<string, int> $sequences operation identifier => new sequence */
+    public function reorder(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $tradeDate, array $sequences): void;
+
     /**
      * Newest first: trade date, sequence, then identifier, all descending except the identifier.
      *

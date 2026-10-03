@@ -1,0 +1,47 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.content h3,
+.note,
+.fifoTotal,
+.errorState p {
+  margin: var(--spacing-none);
+}
+.note {
+  color: var(--text-secondary);
+}
+.scroll {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  padding: var(--spacing-2);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+.fifoTotal {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  gap: var(--spacing-2);
+}
+.totalSkeleton {
+  width: calc(var(--spacing-8) * 2);
+}
+.errorState {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.errorState p {
+  color: var(--negative);
+}

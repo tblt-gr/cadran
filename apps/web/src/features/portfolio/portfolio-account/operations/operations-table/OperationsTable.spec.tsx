@@ -24,6 +24,7 @@ describe('OperationsTable', () => {
         items={[buy, operationFixture()]}
         onDetail={vi.fn()}
         onEdit={vi.fn()}
+        onReorder={vi.fn()}
         onVoid={vi.fn()}
       />,
     );
@@ -61,6 +62,7 @@ describe('OperationsTable', () => {
         ]}
         onDetail={vi.fn()}
         onEdit={vi.fn()}
+        onReorder={vi.fn()}
         onVoid={vi.fn()}
       />,
     );
@@ -79,7 +81,15 @@ describe('OperationsTable', () => {
     const onDetail = vi.fn();
     const onEdit = vi.fn();
     const onVoid = vi.fn();
-    render(<OperationsTable items={[buy]} onDetail={onDetail} onEdit={onEdit} onVoid={onVoid} />);
+    render(
+      <OperationsTable
+        items={[buy]}
+        onDetail={onDetail}
+        onEdit={onEdit}
+        onReorder={vi.fn()}
+        onVoid={onVoid}
+      />,
+    );
     for (const [name, handler] of [
       ['Détail', onDetail],
       ['Modifier', onEdit],
@@ -89,5 +99,36 @@ describe('OperationsTable', () => {
       fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
       expect(handler).toHaveBeenCalledWith(buy);
     }
+  });
+
+  it('offers reordering only when the server reports at least two active operations that day', () => {
+    const onReorder = vi.fn();
+    const reorderable = { ...buy, activeDayOperationCount: 2 };
+    const { rerender } = render(
+      <OperationsTable
+        items={[{ ...buy, activeDayOperationCount: 1 }]}
+        onDetail={vi.fn()}
+        onEdit={vi.fn()}
+        onReorder={onReorder}
+        onVoid={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^Actions pour/ }));
+    expect(screen.queryByRole('button', { name: /^Réordonner la journée/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^Actions pour/ }));
+
+    rerender(
+      <OperationsTable
+        items={[reorderable]}
+        onDetail={vi.fn()}
+        onEdit={vi.fn()}
+        onReorder={onReorder}
+        onVoid={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getAllByRole('button', { name: /^Actions pour/ })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: /^Réordonner la journée/ }));
+    expect(onReorder).toHaveBeenCalledWith(reorderable);
   });
 });

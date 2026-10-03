@@ -39,12 +39,23 @@ final readonly class PortfolioOperationPresenter
             $instruments[$instrument->id] = self::instrument($instrument);
         }
         $replacements = $this->operations->replacementIds($workspace, array_map(static fn (PortfolioOperation $o): string => $o->id, $operations));
+        $accountIds = array_values(array_unique(array_map(static fn (PortfolioOperation $o): string => $o->accountId, $operations)));
+        $tradeDates = [];
+        foreach ($operations as $operation) {
+            $tradeDates[$operation->details->tradeDate->format('Y-m-d')] = $operation->details->tradeDate;
+        }
+        $activeDayCounts = $this->operations->activeCountsForDays($workspace, $accountIds, array_values($tradeDates));
 
-        return array_map(fn (PortfolioOperation $o): OperationView => $this->view($o, $instruments, $replacements[$o->id] ?? null), $operations);
+        return array_map(fn (PortfolioOperation $o): OperationView => $this->view(
+            $o,
+            $instruments,
+            $replacements[$o->id] ?? null,
+            $activeDayCounts[$o->accountId.'|'.$o->details->tradeDate->format('Y-m-d')] ?? 0,
+        ), $operations);
     }
 
     /** @param array<string, array{id: string, name: string, isin: string|null, ticker: string|null, status: string}> $instruments */
-    private function view(PortfolioOperation $operation, array $instruments, ?string $replacementId): OperationView
+    private function view(PortfolioOperation $operation, array $instruments, ?string $replacementId, int $activeDayOperationCount): OperationView
     {
         $details = $operation->details;
         $asset = $operation->assetCode->toString();
@@ -58,7 +69,7 @@ final readonly class PortfolioOperationPresenter
 
         return new OperationView(
             $operation->id, $operation->accountId, $details->type->value, $details->tradeDate->format('Y-m-d'),
-            $details->settlementDate?->format('Y-m-d'), $operation->sequence,
+            $details->settlementDate?->format('Y-m-d'), $operation->sequence, $activeDayOperationCount,
             null === $details->instrumentId ? null : ($instruments[$details->instrumentId] ?? null),
             null === $details->counterInstrumentId ? null : ($instruments[$details->counterInstrumentId] ?? null),
             $details->quantity?->toString(), $details->unitPrice?->toString(), $amount($details->grossAmount),

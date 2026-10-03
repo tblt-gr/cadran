@@ -1,0 +1,56 @@
+.panel {
+  padding: var(--spacing-none);
+}
+.scroll {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  padding: var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: top;
+}
+.number {
+  text-align: right;
+  white-space: nowrap;
+}
+.instrument {
+  min-width: 180px;
+  background: var(--bg-surface-1);
+}
+.instrument span,
+.instrument small {
+  display: block;
+}
+.instrument small {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-normal);
+}
+.unknown {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.warning {
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-none);
+  border: none;
+  background: var(--color-transparent);
+  cursor: pointer;
+}
+@media (max-width: 360px) {
+  .instrument {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+  thead .instrument {
+    z-index: 2;
+  }
+}

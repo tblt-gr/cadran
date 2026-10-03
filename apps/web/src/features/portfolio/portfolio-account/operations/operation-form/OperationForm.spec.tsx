@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { operationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { OperationForm } from './OperationForm';
 
 const api = vi.hoisted(() => ({
@@ -185,5 +186,58 @@ describe('OperationForm', () => {
   it('shows the server field errors next to the field', () => {
     renderForm({ fieldErrors: { grossAmount: 'Montant attendu : 2305.688.' } });
     expect(screen.getByText('Montant attendu : 2305.688.')).toBeTruthy();
+  });
+
+  it('resolves a negative-position refusal against the original edited instrument', () => {
+    const originalInstrument = {
+      id: 'original-instrument',
+      name: 'Action d’origine',
+      isin: null,
+      ticker: 'OLD',
+      status: 'ACTIVE' as const,
+    };
+    const operation = {
+      id: 'op-1',
+      accountId: 'acc-1',
+      type: 'BUY',
+      tradeDate: '2026-03-01',
+      settlementDate: null,
+      sequence: 1,
+      instrument: originalInstrument,
+      counterInstrument: null,
+      quantity: '1',
+      unitPrice: '10',
+      grossAmount: { value: '10', assetCode: 'EUR' },
+      fees: { value: '0', assetCode: 'EUR' },
+      taxes: { value: '0', assetCode: 'EUR' },
+      cashAmount: { value: '-10', assetCode: 'EUR' },
+      costBasis: null,
+      counterQuantity: null,
+      ratio: null,
+      costAllocationRatio: null,
+      roundingResidual: null,
+      reference: null,
+      note: null,
+      linkedTransactionId: null,
+      state: 'ACTIVE',
+      voidedAt: null,
+      voidReason: null,
+      voidKind: null,
+      correctsOperationId: null,
+      correctedByOperationId: null,
+      version: 1,
+    } as PortfolioOperation;
+    const saveError = operationRequestError({
+      error: {
+        code: 'position_would_go_negative',
+        instrumentId: originalInstrument.id,
+        tradeDate: '2026-03-01',
+      },
+      response: new Response('{}', { status: 422 }),
+    });
+
+    renderForm({ operation, saveError });
+
+    expect(screen.getByRole('alert').textContent).toContain('Action d’origine');
   });
 });

@@ -21,6 +21,7 @@ final class PortfolioOperationRepresentation
             'tradeDate' => $view->tradeDate,
             'settlementDate' => $view->settlementDate,
             'sequence' => $view->sequence,
+            'activeDayOperationCount' => $view->activeDayOperationCount,
             'instrument' => $view->instrument,
             'counterInstrument' => $view->counterInstrument,
             'quantity' => $view->quantity,

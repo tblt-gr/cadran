@@ -5,7 +5,10 @@ import type {
 } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { InstrumentPicker } from '@/features/portfolio/instrument-picker/InstrumentPicker';
-import { operationFieldErrors } from '@/features/portfolio/portfolio-account/operations/operationError';
+import {
+  operationFieldErrors,
+  operationSaveMessage,
+} from '@/features/portfolio/portfolio-account/operations/operationError';
 import {
   operationTypeLabel,
   operationTypes,
@@ -27,21 +30,21 @@ import styles from './OperationForm.module.css';
 
 interface Props {
   account: { id: string; assetCode: string };
-  error?: string;
   fieldErrors?: OperationFieldErrors;
   onSubmit: (request: PortfolioOperationRequest, reason: string | null) => void;
   operation?: PortfolioOperation;
   pending: boolean;
+  saveError?: unknown;
   today: string;
 }
 
 export function OperationForm({
   account,
-  error,
   fieldErrors = {},
   onSubmit,
   operation,
   pending,
+  saveError,
   today,
 }: Props) {
   const [values, setValues] = useState<OperationFormValues>(() =>
@@ -56,6 +59,12 @@ export function OperationForm({
     ...fieldErrors,
   };
   const type = values.type;
+  const saveMessage = operationSaveMessage(saveError, [
+    values.instrument,
+    values.counterInstrument,
+    operation?.instrument ?? null,
+    operation?.counterInstrument ?? null,
+  ]);
   const has = (field: Parameters<typeof hasField>[1]) => hasField(type, field);
 
   function set<K extends keyof OperationFormValues>(key: K, value: OperationFormValues[K]) {
@@ -81,9 +90,9 @@ export function OperationForm({
 
   return (
     <form className={styles.form} noValidate onSubmit={submit}>
-      {error ? (
+      {saveMessage ? (
         <p className={styles.alert} role="alert">
-          {error}
+          {saveMessage}
         </p>
       ) : null}
       <div className={styles.fields}>

@@ -21,6 +21,7 @@ use App\Module\Portfolio\Application\RecordPortfolioOperation;
 use App\Module\Portfolio\Application\StalePortfolioOperationVersion;
 use App\Module\Portfolio\Application\VoidPortfolioOperation;
 use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
+use App\Module\Portfolio\Domain\Positions\PositionReplayFailed;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
@@ -214,6 +215,11 @@ final readonly class PortfolioOperationController
     private function failure(\Throwable $exception): Response
     {
         return match (true) {
+            $exception instanceof PositionReplayFailed => $this->problem(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                $exception->problemCode,
+                $exception->extensions,
+            ),
             $exception instanceof InvalidPortfolioOperation => $this->problem(
                 'operation_voided' === $exception->problemCode ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY,
                 $exception->problemCode,

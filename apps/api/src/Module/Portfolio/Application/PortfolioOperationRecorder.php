@@ -28,6 +28,7 @@ final readonly class PortfolioOperationRecorder
         private InstrumentRepository $instruments,
         private UuidGenerator $uuid,
         private RecordAuditEvent $audit,
+        private ReconcilePortfolioPositions $reconcile,
     ) {
     }
 
@@ -58,6 +59,7 @@ final readonly class PortfolioOperationRecorder
             version: 1,
         );
         $this->operations->add($operation);
+        ($this->reconcile)($context->workspace, $account->id);
         ($this->audit)(new AuditEventRecord(
             $context->workspace, $context->actorId, PortfolioOperationAuditEvents::RECORDED,
             PortfolioOperationAuditEvents::ENTITY, $operation->id, PortfolioOperationAudit::recorded($operation, $originalOperationId),

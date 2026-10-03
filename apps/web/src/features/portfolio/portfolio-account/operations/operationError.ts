@@ -10,6 +10,8 @@ export class OperationRequestError extends Error {
   readonly type?: string;
   readonly field?: string;
   readonly expectedGrossAmount?: string;
+  readonly instrumentId?: string;
+  readonly tradeDate?: string;
 
   constructor(result: ResultLike) {
     super('Portfolio operation request failed.');
@@ -19,6 +21,8 @@ export class OperationRequestError extends Error {
     this.type = problem?.type;
     this.field = problem?.field;
     this.expectedGrossAmount = problem?.expectedGrossAmount;
+    this.instrumentId = problem?.instrumentId;
+    this.tradeDate = (problem as { tradeDate?: string } | undefined)?.tradeDate;
   }
 }
 
@@ -114,13 +118,20 @@ const messages: Record<string, string> = {
 };
 
 /** General message for a refused save; field-level refusals are shown next to their field. */
-export function operationSaveMessage(error: unknown): string | undefined {
+export function operationSaveMessage(
+  error: unknown,
+  instruments: ReadonlyArray<{ id: string; name: string } | null> = [],
+): string | undefined {
   if (!error) return undefined;
   if (!(error instanceof OperationRequestError) || error.status === 0) {
     return 'La connexion a échoué. Vérifiez votre connexion puis réessayez.';
   }
   if (error.type === '/problems/period-closed') {
     return 'Le mois concerné est clôturé. Rouvrez-le avant d’enregistrer cette opération.';
+  }
+  if (error.code === 'position_would_go_negative') {
+    const instrument = instruments.find((item) => item?.id === error.instrumentId)?.name;
+    return `Cette opération rendrait la position ${instrument ?? 'concernée'} négative le ${error.tradeDate ?? 'à cette date'}.`;
   }
   if (error.code && messages[error.code]) return messages[error.code];
   if (error.code && Object.keys(operationFieldErrors(error)).length > 0) return undefined;

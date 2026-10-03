@@ -12,6 +12,7 @@ import { useOperation } from './useOperation';
 import { OPERATIONS_PER_PAGE, useOperations } from './useOperations';
 import { OperationRequestError } from './operationError';
 import { VoidOperationModal } from './void-operation-dialog/VoidOperationModal';
+import { ReorderDayModal } from './reorder-day-modal/ReorderDayModal';
 import { todayInBrowser } from '@/lib/businessDay';
 import styles from './OperationsTab.module.css';
 
@@ -31,8 +32,9 @@ export function OperationsTab({
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<PortfolioOperation | null>(null);
   const [voiding, setVoiding] = useState<PortfolioOperation | null>(null);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(() => operationFromLocation());
   const [stale, setStale] = useState(false);
+  const [reordering, setReordering] = useState<PortfolioOperation | null>(null);
   const operations = useOperations(account.id, filters, page);
   const items = operations.data?.items ?? [];
   const total = operations.data?.total ?? 0;
@@ -44,6 +46,11 @@ export function OperationsTab({
   useEffect(() => {
     if (total > 0 && page > totalPages) setPage(totalPages);
   }, [page, total, totalPages]);
+  useEffect(() => {
+    const updateDetail = () => setDetailId(operationFromLocation());
+    window.addEventListener('popstate', updateDetail);
+    return () => window.removeEventListener('popstate', updateDetail);
+  }, []);
 
   const refusal = operations.error instanceof OperationRequestError ? operations.error : null;
   const filtered =
@@ -98,6 +105,7 @@ export function OperationsTab({
           onDetail={(item) => setDetailId(item.id)}
           onEdit={setEditing}
           onVoid={setVoiding}
+          onReorder={setReordering}
         />
       )}
       {operations.isSuccess && total > OPERATIONS_PER_PAGE ? (
@@ -149,6 +157,14 @@ export function OperationsTab({
           operation={voiding}
         />
       ) : null}
+      {reordering ? (
+        <ReorderDayModal
+          accountId={account.id}
+          onClose={() => setReordering(null)}
+          onSaved={() => void operations.refetch()}
+          tradeDate={reordering.tradeDate}
+        />
+      ) : null}
       {detailId && detail.data ? (
         <OperationDetailModal
           onClose={() => setDetailId(null)}
@@ -158,4 +174,8 @@ export function OperationsTab({
       ) : null}
     </div>
   );
+}
+
+function operationFromLocation() {
+  return new URLSearchParams(window.location.search).get('operation');
 }

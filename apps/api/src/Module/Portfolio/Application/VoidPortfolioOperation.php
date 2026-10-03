@@ -24,6 +24,7 @@ final readonly class VoidPortfolioOperation
         private AssertPeriodOpen $assertPeriodOpen,
         private TransactionBoundary $transactions,
         private RecordAuditEvent $audit,
+        private ReconcilePortfolioPositions $reconcile,
         private ClockInterface $clock,
     ) {
     }
@@ -47,6 +48,7 @@ final readonly class VoidPortfolioOperation
             if (!$this->operations->markVoided($voided, $version)) {
                 throw new StalePortfolioOperationVersion();
             }
+            ($this->reconcile)($context->workspace, $operation->accountId);
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, PortfolioOperationAuditEvents::VOIDED,
                 PortfolioOperationAuditEvents::ENTITY, $voided->id, PortfolioOperationAudit::voided($voided),
