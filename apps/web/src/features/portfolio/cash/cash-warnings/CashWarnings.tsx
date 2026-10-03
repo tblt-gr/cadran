@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { operationTypeLabel } from '@/features/portfolio/portfolio-account/operations/operation-type-label';
+import { formatCalendarNumericDay } from '@/lib/decimal';
 import { informativeCodes, sourceKind, warningSentence } from './cashWarningText';
 import styles from './CashWarnings.module.css';
 
@@ -13,6 +15,13 @@ function SourceLink({ href, children }: { children: string; href: string }) {
       {children}
     </a>
   );
+}
+
+function operationLabel(cash: PortfolioCash, id: string, index: number): string {
+  const movement = cash.movements.find((candidate) => candidate.operationId === id);
+  return movement
+    ? `${operationTypeLabel(movement.type)} du ${formatCalendarNumericDay(movement.tradeDate)}`
+    : `Opération ${index + 1}`;
 }
 
 /** One row per cash warning, never blocking; `null` renders the loading layout. */
@@ -51,7 +60,7 @@ export function CashWarnings({
                       href={`/portfolios/${accountId}?tab=operations&operation=${id}`}
                       key={id}
                     >
-                      {`Opération ${index + 1}`}
+                      {operationLabel(cash, id, index)}
                     </SourceLink>
                   ))}
                 </span>

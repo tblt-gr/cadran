@@ -99,14 +99,14 @@ describe('CashTab', () => {
             {
               code: 'NEGATIVE_CASH',
               count: 1,
-              sourceIds: ['op-9'],
+              sourceIds: ['op-2', 'op-9'],
               firstDate: '2026-02-04',
               amount: null,
             },
             {
               code: 'ROUNDING_RESIDUALS',
               count: 1,
-              sourceIds: ['op-2'],
+              sourceIds: ['op-3'],
               firstDate: null,
               amount: { value: '0.004', assetCode: 'EUR' },
             },
@@ -121,8 +121,11 @@ describe('CashTab', () => {
     ).toBeTruthy();
     expect(screen.getByText(/Solde négatif à partir du 04\/02\/2026/)).toBeTruthy();
     expect(screen.queryByText('Aucune anomalie d’espèces sur la période')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Achat du 06/01/2026' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Opération 2' })).toBeTruthy();
     const links = screen.getAllByRole('link').map((link) => link.getAttribute('href'));
     expect(links).toContain(`/portfolios/${accountId}?tab=operations&operation=op-9`);
+    expect(links).toContain(`/portfolios/${accountId}?tab=operations&operation=op-2`);
     expect(links).toContain(`/accounts/${accountId}?month=2026-03`);
   });
 
@@ -168,5 +171,31 @@ describe('CashTab', () => {
       ),
     ).toBeTruthy();
     await loaded();
+  });
+
+  it.each([
+    ['0.004', /total inférieur à 0,01\s€$/],
+    ['-0.004', /total inférieur à 0,01\s€ en valeur absolue$/],
+    ['0.02', /total 0,02\s€$/],
+  ])('words a rounding residual of %s without showing a zero total', async (amount, wording) => {
+    api.readPortfolioCash.mockImplementation(() =>
+      ok(
+        cashFixture({
+          warnings: [
+            {
+              code: 'ROUNDING_RESIDUALS',
+              count: 1,
+              sourceIds: ['op-2'],
+              firstDate: null,
+              amount: { value: amount, assetCode: 'EUR' },
+            },
+          ],
+        }),
+      ),
+    );
+    renderTab();
+    const sentence = await screen.findByText(/résidu d’arrondi/);
+    expect(sentence.textContent).toMatch(wording);
+    expect(sentence.textContent).not.toMatch(/0,00/);
   });
 });
