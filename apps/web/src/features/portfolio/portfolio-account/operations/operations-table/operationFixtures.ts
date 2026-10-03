@@ -9,6 +9,7 @@ export function operationFixture(overrides: Partial<PortfolioOperation> = {}): P
     tradeDate: '2026-03-01',
     settlementDate: null,
     sequence: 1,
+    activeDayOperationCount: 1,
     instrument: null,
     counterInstrument: null,
     quantity: null,

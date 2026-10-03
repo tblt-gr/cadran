@@ -1,0 +1,36 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.error,
+.errorState p {
+  margin: var(--spacing-none);
+  color: var(--negative);
+}
+.errorState {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-none);
+  padding-left: var(--spacing-6);
+  gap: var(--spacing-2);
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.label {
+  flex: 1;
+}
+.actions {
+  display: flex;
+  justify-content: end;
+  gap: var(--spacing-3);
+}

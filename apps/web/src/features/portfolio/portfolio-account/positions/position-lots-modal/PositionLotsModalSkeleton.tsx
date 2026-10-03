@@ -1,0 +1,59 @@
+import {
+  SkeletonBlock,
+  SkeletonStatus,
+  SkeletonTableRows,
+} from '@/components/ui/skeleton/Skeleton';
+import styles from './PositionLotsModal.module.css';
+
+const lotHeaders = [
+  'Acquis le',
+  'Origine',
+  'Quantité initiale',
+  'Quantité restante',
+  'Coût restant',
+  'Coût unitaire',
+];
+const movementHeaders = ['Date', 'Opération', 'Δ quantité', 'Δ coût'];
+
+/** Keeps the modal's final headings and tables stable during its cold read. */
+export function PositionLotsModalSkeleton() {
+  return (
+    <section aria-busy="true" data-testid="position-lots-skeleton">
+      <SkeletonStatus>Chargement des lots…</SkeletonStatus>
+      <h3>Lots ouverts</h3>
+      <div className={styles.scroll}>
+        <table aria-label="Lots ouverts" className={styles.table}>
+          <thead>
+            <tr>
+              {lotHeaders.map((header) => (
+                <th key={header} scope="col">
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <SkeletonTableRows columns={lotHeaders.length} rows={3} />
+        </table>
+      </div>
+      <div className={styles.fifoTotal}>
+        <span>Coût FIFO restant :</span>
+        <SkeletonBlock className={styles.totalSkeleton} />
+      </div>
+      <h3>Mouvements</h3>
+      <div className={styles.scroll}>
+        <table aria-label="Mouvements des lots" className={styles.table}>
+          <thead>
+            <tr>
+              {movementHeaders.map((header) => (
+                <th key={header} scope="col">
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <SkeletonTableRows columns={movementHeaders.length} rows={3} />
+        </table>
+      </div>
+    </section>
+  );
+}

@@ -101,6 +101,7 @@ final class PortfolioOperationControllerTest extends WebTestCase
         self::assertSame('BUY', $buy['type']);
         self::assertSame('2026-03-02', $buy['tradeDate']);
         self::assertSame(1, $buy['sequence']);
+        self::assertSame(1, $buy['activeDayOperationCount']);
         self::assertSame(['id' => self::ETF, 'name' => 'ETF Monde', 'isin' => 'IE00B4L5Y983', 'ticker' => null, 'status' => 'ACTIVE'], $buy['instrument']);
         self::assertSame('10', $buy['quantity']);
         self::assertSame('230.5688', $buy['unitPrice']);
@@ -114,7 +115,7 @@ final class PortfolioOperationControllerTest extends WebTestCase
         self::assertNull($buy['correctsOperationId']);
         self::assertNull($buy['correctedByOperationId']);
         self::assertSame(
-            ['id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version'],
+            ['id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'activeDayOperationCount', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version'],
             array_keys($buy),
         );
 
@@ -138,6 +139,7 @@ final class PortfolioOperationControllerTest extends WebTestCase
 
     public function testASellAndADividendDeriveTheirExactCashEffect(): void
     {
+        $this->record($this->buy(['quantity' => '4', 'unitPrice' => '250.10', 'grossAmount' => $this->eur('1000.40')]));
         $sell = $this->record([
             'type' => 'SELL', 'tradeDate' => '2026-03-04', 'instrumentId' => self::ETF, 'quantity' => '4', 'unitPrice' => '250.10',
             'grossAmount' => ['value' => '1000.40', 'assetCode' => 'EUR'], 'fees' => ['value' => '1.99', 'assetCode' => 'EUR'],
@@ -559,6 +561,11 @@ final class PortfolioOperationControllerTest extends WebTestCase
         self::assertSame(1, $page['page']);
         self::assertSame(50, $page['perPage']);
         self::assertSame(4, $page['total']);
+        $itemsById = array_column(self::items($page), null, 'id');
+        self::assertSame(2, $itemsById[self::string($first['id'])]['activeDayOperationCount']);
+        self::assertSame(2, $itemsById[self::string($second['id'])]['activeDayOperationCount']);
+        self::assertSame(1, $itemsById[self::string($deposit['id'])]['activeDayOperationCount']);
+        self::assertSame(1, $itemsById[self::string($stock['id'])]['activeDayOperationCount']);
 
         $this->get($this->path('?perPage=2&page=2'));
         self::assertSame([$second['id'], $first['id']], array_column(self::items($this->decode()), 'id'));
@@ -618,6 +625,150 @@ final class PortfolioOperationControllerTest extends WebTestCase
         $this->post($this->buy());
         self::assertResponseStatusCodeSame(403);
         self::assertSame(0, $this->rows('portfolio_operations'));
+    }
+
+    public function testPositionsAndLotsExposeTheReferenceReplayAtCurrentAndPastDates(): void
+    {
+        $this->record($this->buy(['tradeDate' => '2026-03-01', 'quantity' => '10', 'unitPrice' => '100', 'grossAmount' => $this->eur('1000.00'), 'fees' => $this->eur('2.00')]));
+        $second = $this->record($this->buy(['tradeDate' => '2026-03-02', 'quantity' => '5', 'unitPrice' => '120', 'grossAmount' => $this->eur('600.00'), 'fees' => $this->eur('1.00')]));
+        $this->record([
+            'type' => 'SELL', 'tradeDate' => '2026-03-03', 'instrumentId' => self::ETF, 'quantity' => '12', 'unitPrice' => '100',
+            'grossAmount' => $this->eur('1200.00'),
+        ]);
+
+        $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-positions');
+        self::assertResponseIsSuccessful();
+        $positions = $this->decode();
+        self::assertIsArray($positions['items']);
+        self::assertIsArray($positions['items'][0]);
+        /** @var array<string, mixed> $position */
+        $position = $positions['items'][0];
+        self::assertSame('3', $position['quantity']);
+        self::assertSame('360.600000000000000000000000', self::amountValue($position, 'fifoCostBasis'));
+        self::assertSame('320.600000000000000000000000', self::amountValue($position, 'averageCostBasis'));
+        self::assertSame('106.866666666666666666666667', self::amountValue($position, 'averageUnitCost'));
+        self::assertSame(1, $position['openLotCount']);
+
+        $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-positions?asOf=2026-03-02');
+        $historical = $this->decode();
+        self::assertIsArray($historical['items']);
+        self::assertIsArray($historical['items'][0]);
+        self::assertSame('15', $historical['items'][0]['quantity']);
+
+        $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-positions/'.self::ETF.'/lots');
+        $lots = $this->decode();
+        self::assertIsArray($lots['openLots']);
+        self::assertIsArray($lots['openLots'][0]);
+        self::assertIsArray($lots['movements']);
+        self::assertIsString($second['id']);
+        self::assertSame($second['id'].'#0', $lots['openLots'][0]['lotId']);
+        self::assertSame(4, count($lots['movements']));
+    }
+
+    public function testDerivedPositionTotalsMayExceedTheStoredDecimalWidth(): void
+    {
+        $maximum = '99999999999999999999999999.00';
+        $buy = $this->buy([
+            'quantity' => '1',
+            'unitPrice' => $maximum,
+            'grossAmount' => $this->eur($maximum),
+            'fees' => $this->eur('0'),
+        ]);
+        $this->record($buy);
+        $this->record($buy);
+
+        $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-positions');
+        self::assertResponseIsSuccessful();
+        $body = $this->decode();
+        self::assertIsArray($body['items']);
+        self::assertIsArray($body['items'][0]);
+        self::assertSame('2', $body['items'][0]['quantity']);
+        self::assertIsArray($body['items'][0]['averageCostBasis']);
+        self::assertSame('199999999999999999999999998.00', $body['items'][0]['averageCostBasis']['value']);
+    }
+
+    public function testAWriteThatWouldInvalidateHistoryRollsBackCreateVoidAndCorrection(): void
+    {
+        $this->post([
+            'type' => 'SELL', 'tradeDate' => '2026-03-01', 'instrumentId' => self::ETF, 'quantity' => '1', 'unitPrice' => '10',
+            'grossAmount' => $this->eur('10'),
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('position_would_go_negative', $this->decode()['code']);
+        self::assertSame(0, $this->rows('portfolio_operations'));
+
+        $buy = $this->record($this->buy(['quantity' => '4', 'unitPrice' => '10', 'grossAmount' => $this->eur('40'), 'fees' => $this->eur('0')]));
+        $this->record([
+            'type' => 'SELL', 'tradeDate' => '2026-03-03', 'instrumentId' => self::ETF, 'quantity' => '4', 'unitPrice' => '10',
+            'grossAmount' => $this->eur('40'),
+        ]);
+
+        $this->send('POST', '/api/v1/portfolio-operations/'.self::string($buy['id']).'/void', ['version' => 1, 'reason' => 'test']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('ACTIVE', $this->connection->fetchOne('SELECT state FROM portfolio_operations WHERE id = ?', [$buy['id']]));
+
+        $this->send('POST', '/api/v1/portfolio-operations/'.self::string($buy['id']).'/correct', [
+            'version' => 1,
+            'reason' => 'test',
+            'operation' => $this->buy(['quantity' => '3', 'unitPrice' => '10', 'grossAmount' => $this->eur('30'), 'fees' => $this->eur('0')]),
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(2, $this->rows('portfolio_operations'));
+        self::assertSame('ACTIVE', $this->connection->fetchOne('SELECT state FROM portfolio_operations WHERE id = ?', [$buy['id']]));
+    }
+
+    public function testReorderRequiresTheExactDaySetAndRollsBackAnInvalidHistory(): void
+    {
+        $buy = $this->record($this->buy(['tradeDate' => '2026-03-02', 'quantity' => '1', 'unitPrice' => '10', 'grossAmount' => $this->eur('10'), 'fees' => $this->eur('0')]));
+        $sell = $this->record([
+            'type' => 'SELL', 'tradeDate' => '2026-03-02', 'instrumentId' => self::ETF, 'quantity' => '1', 'unitPrice' => '10',
+            'grossAmount' => $this->eur('10'),
+        ]);
+
+        $this->send('PUT', $this->path('/order'), ['tradeDate' => '2026-03-02', 'operationIds' => [$buy['id']]]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('stale_operation_order', $this->decode()['code']);
+
+        $this->send('PUT', $this->path('/order'), ['tradeDate' => '2026-03-02', 'operationIds' => [$sell['id'], $buy['id']]]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('position_would_go_negative', $this->decode()['code']);
+        self::assertSame([$buy['id'], $sell['id']], $this->connection->fetchFirstColumn(
+            'SELECT id FROM portfolio_operations WHERE account_id = ? ORDER BY sequence', [self::ACCOUNT],
+        ));
+
+        $this->send('PUT', $this->path('/order'), ['tradeDate' => '2026-03-02', 'operationIds' => [$buy['id'], $sell['id']]]);
+        self::assertResponseIsSuccessful();
+        self::assertSame([$buy['id'], $sell['id']], $this->decode()['operationIds']);
+        self::assertSame('portfolio_operation.reordered', $this->connection->fetchOne("SELECT event_type FROM audit_events WHERE event_type = 'portfolio_operation.reordered'"));
+    }
+
+    public function testReorderAcceptsTheBoundedTenThousandIdentifierRequestSize(): void
+    {
+        $ids = [];
+        for ($index = 1; $index <= 10_000; ++$index) {
+            $ids[] = sprintf('00000000-0000-7000-8000-%012x', $index);
+        }
+
+        $this->send('PUT', $this->path('/order'), ['tradeDate' => '2026-03-02', 'operationIds' => $ids]);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('stale_operation_order', $this->decode()['code']);
+    }
+
+    public function testPositionReadsAreWorkspaceScopedAndRejectFutureDates(): void
+    {
+        $this->get('/api/v1/accounts/'.self::FOREIGN_ACCOUNT.'/portfolio-positions');
+        self::assertResponseStatusCodeSame(404);
+        $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-positions/'.self::FOREIGN_INSTRUMENT.'/lots');
+        self::assertResponseStatusCodeSame(404);
+        $this->send('PUT', '/api/v1/accounts/'.self::FOREIGN_ACCOUNT.'/portfolio-operations/order', [
+            'tradeDate' => '2026-03-02',
+            'operationIds' => ['00000000-0000-7000-8000-000000000001'],
+        ]);
+        self::assertResponseStatusCodeSame(404);
+        $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-positions?asOf=2099-01-01');
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('invalid_position_query', $this->decode()['code']);
     }
 
     public function testAnUsedPortfolioAccountCannotLeavePortfolioValuationMode(): void

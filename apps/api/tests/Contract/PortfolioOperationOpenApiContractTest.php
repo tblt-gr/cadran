@@ -47,9 +47,10 @@ final class PortfolioOperationOpenApiContractTest extends TestCase
 
         $operation = self::map($schemas['PortfolioOperation'] ?? null);
         self::assertSame(
-            ['id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version'],
+            ['id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'activeDayOperationCount', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version'],
             $operation['required'] ?? null,
         );
+        self::assertSame(10_000, self::map(self::map($operation['properties'] ?? null)['activeDayOperationCount'] ?? null)['maximum'] ?? null);
 
         $problem = self::map(self::map($schemas['PortfolioOperationProblem'] ?? null)['properties'] ?? null);
         $codes = self::map($problem['code'] ?? null)['enum'] ?? null;

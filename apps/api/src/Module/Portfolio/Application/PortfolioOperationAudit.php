@@ -27,6 +27,12 @@ final class PortfolioOperationAudit
         ]);
     }
 
+    /** @param list<string> $operationIds */
+    public static function reordered(string $accountId, array $operationIds): AuditDiff
+    {
+        return AuditDiff::change([], ['portfolioId' => $accountId, 'operationIds' => implode(',', $operationIds)]);
+    }
+
     /** @return array<string, string|null> */
     private static function subject(PortfolioOperation $operation): array
     {

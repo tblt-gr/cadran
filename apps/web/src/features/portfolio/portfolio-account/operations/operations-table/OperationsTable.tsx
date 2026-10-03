@@ -18,9 +18,10 @@ interface Props {
   onDetail: (operation: PortfolioOperation) => void;
   onEdit: (operation: PortfolioOperation) => void;
   onVoid: (operation: PortfolioOperation) => void;
+  onReorder: (operation: PortfolioOperation) => void;
 }
 
-export function OperationsTable({ items, onDetail, onEdit, onVoid }: Props) {
+export function OperationsTable({ items, onDetail, onEdit, onVoid, onReorder }: Props) {
   const { i18n } = useTranslation();
   const locale = i18n.language;
 
@@ -116,6 +117,17 @@ export function OperationsTable({ items, onDetail, onEdit, onVoid }: Props) {
                     <ActionMenu
                       label={`Actions pour l’opération ${label}`}
                       items={[
+                        ...(active && operation.activeDayOperationCount >= 2
+                          ? [
+                              {
+                                id: 'reorder',
+                                icon: 'move' as const,
+                                label: `Réordonner la journée du ${formatCalendarNumericDay(operation.tradeDate)}`,
+                                text: 'Réordonner la journée',
+                                onSelect: () => onReorder(operation),
+                              },
+                            ]
+                          : []),
                         {
                           id: 'detail',
                           icon: 'info',

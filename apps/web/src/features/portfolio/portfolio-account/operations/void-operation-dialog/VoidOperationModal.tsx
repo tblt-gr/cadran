@@ -54,7 +54,10 @@ export function VoidOperationModal({
   return (
     <Modal close={onClose} eyebrow="Portefeuille" title="Annuler l’opération">
       <VoidOperationDialog
-        error={operationSaveMessage(voidOperation.error)}
+        error={operationSaveMessage(voidOperation.error, [
+          operation.instrument,
+          operation.counterInstrument,
+        ])}
         onConfirm={(reason) => voidOperation.mutate(reason)}
         pending={voidOperation.isPending}
       />

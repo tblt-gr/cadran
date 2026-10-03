@@ -13,7 +13,6 @@ import {
   isStaleOperationError,
   operationFieldErrors,
   operationRequestError,
-  operationSaveMessage,
 } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { OperationForm } from './OperationForm';
 
@@ -94,11 +93,11 @@ export function OperationFormModal({
     >
       <OperationForm
         account={account}
-        error={operationSaveMessage(save.error)}
         fieldErrors={operationFieldErrors(save.error)}
         onSubmit={(request, reason) => save.mutate({ request, reason })}
         operation={operation}
         pending={save.isPending}
+        saveError={save.error}
         today={today}
       />
     </Modal>

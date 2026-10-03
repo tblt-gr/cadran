@@ -8,8 +8,10 @@ import { PortfolioAccountPage } from './PortfolioAccountPage';
 
 const api = vi.hoisted(() => ({
   correctPortfolioOperation: vi.fn(),
+  getSession: vi.fn(),
   listInstruments: vi.fn(),
   listPortfolioOperations: vi.fn(),
+  listPortfolioPositions: vi.fn(),
   listPortfolioTransferCandidates: vi.fn(),
   listProducts: vi.fn(),
   previewPortfolioOperation: vi.fn(),
@@ -44,10 +46,19 @@ function problem(status: number, body: object) {
 function page(items: PortfolioOperation[]) {
   return ok({ items, page: 1, perPage: 50, total: items.length });
 }
-function renderPage() {
+function renderPage(timeZone = 'Europe/Paris') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  const session = {
+    provisioned: true,
+    authenticated: true,
+    setupRequired: false,
+    user: { id: 'user-1', email: 'owner@example.test', displayName: 'Owner' },
+    workspace: { id: 'workspace-1', role: 'OWNER', timeZone, baseCurrency: 'EUR' },
+  };
+  client.setQueryData(['session'], session);
+  api.getSession.mockImplementation(() => ok(session));
   return render(
     <QueryClientProvider client={client}>
       <PortfolioAccountPage accountId={accountId} />
@@ -62,7 +73,7 @@ function openAction(name: string) {
 const deposit = operationFixture({ id: 'op-1', version: 4 });
 
 beforeEach(() => {
-  window.history.replaceState({}, '', `/portfolios/${accountId}`);
+  window.history.replaceState({}, '', `/portfolios/${accountId}?tab=operations`);
   api.readAccount.mockImplementation(() => ok(account));
   api.listProducts.mockImplementation(() => ok({ items: [], page: 1, perPage: 100, total: 0 }));
   api.listInstruments.mockImplementation(() => ok({ items: [], page: 1, perPage: 20, total: 0 }));
@@ -75,6 +86,7 @@ beforeEach(() => {
     }),
   );
   api.listPortfolioOperations.mockImplementation(() => page([deposit]));
+  api.listPortfolioPositions.mockImplementation(() => ok({ asOf: '2026-03-10', items: [] }));
 });
 afterEach(() => {
   cleanup();
@@ -82,6 +94,40 @@ afterEach(() => {
 });
 
 describe('PortfolioAccountPage', () => {
+  it('switches from the default positions tab before opening the global create action', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}`);
+    renderPage();
+
+    await screen.findByText('Aucune position à cette date');
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle opération' }));
+
+    expect(window.location.search).toBe('?tab=operations');
+    expect(screen.getByRole('link', { name: 'Opérations' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+    expect(await screen.findByRole('dialog', { name: 'Nouvelle opération' })).toBeTruthy();
+  });
+
+  it('uses the workspace day in the positions loading toolbar and live query', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-03-31T22:30:00Z'));
+    window.history.replaceState({}, '', `/portfolios/${accountId}`);
+    let resolveAccount: ((value: unknown) => void) | undefined;
+    api.readAccount.mockImplementation(() => new Promise((done) => (resolveAccount = done)));
+
+    try {
+      renderPage('Pacific/Auckland');
+      const loadingDate = screen.getByLabelText('Au') as HTMLInputElement;
+      expect(loadingDate.value).toBe('2026-04-01');
+
+      resolveAccount?.(await ok(account));
+      expect(await screen.findByText('Aucune position à cette date')).toBeTruthy();
+      expect(api.listPortfolioPositions.mock.calls.at(-1)![0].query.asOf).toBe('2026-04-01');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows the real page chrome with a disabled action while loading, then the operations', async () => {
     let resolve: ((value: unknown) => void) | undefined;
     api.readAccount.mockImplementation(() => new Promise((done) => (resolve = done)));
@@ -143,6 +189,20 @@ describe('PortfolioAccountPage', () => {
     expect(await screen.findByText('Aucune opération')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la première opération' }));
     expect(await screen.findByRole('dialog', { name: 'Nouvelle opération' })).toBeTruthy();
+  });
+
+  it('offers day reordering when a sibling operation is hidden from the current list', async () => {
+    const operation = operationFixture({
+      id: 'op-reorderable',
+      activeDayOperationCount: 2,
+    });
+    api.listPortfolioOperations.mockImplementation(() => page([operation]));
+    renderPage();
+
+    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    expect(api.listPortfolioOperations).toHaveBeenCalledTimes(1);
+    openAction('Réordonner la journée');
+    expect(screen.getByRole('dialog', { name: /Réordonner la journée/ })).toBeTruthy();
   });
 
   it('shows an error state and retries', async () => {

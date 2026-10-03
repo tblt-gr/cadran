@@ -276,6 +276,9 @@ api:
     invalid_operation_query:
       title: 'Requête d’opérations invalide'
       detail: 'Les filtres, la période (10 ans au plus) ou la pagination sortent des limites autorisées.'
+    invalid_position_query:
+      title: 'Requête de positions invalide'
+      detail: 'La date doit être un jour réel qui ne se situe pas dans le futur.'
     invalid_operation_version:
       title: 'Opération incohérente'
       detail: 'La version ou les marques d’annulation de l’opération sont incohérentes.'
@@ -285,9 +288,24 @@ api:
     portfolio_operation_not_found:
       title: 'Opération introuvable'
       detail: 'Aucune opération ne porte cet identifiant dans cet espace de travail.'
+    portfolio_instrument_not_found:
+      title: 'Instrument introuvable'
+      detail: 'Aucun instrument ne porte cet identifiant dans cet espace de travail.'
     stale_operation_version:
       title: 'Opération modifiée entre-temps'
       detail: 'Rechargez l’opération puis recommencez.'
+    stale_operation_order:
+      title: 'Ordre des opérations périmé'
+      detail: 'La liste des opérations de cette journée a changé. Rechargez-la puis recommencez.'
+    position_would_go_negative:
+      title: 'Position négative'
+      detail: 'Cette opération rendrait une position négative. Vérifiez la quantité ou l’ordre de la journée.'
+    split_fraction_unsupported:
+      title: 'Fraction de titre non prise en charge'
+      detail: 'Enregistrez la vente de la fraction avant d’appliquer ce ratio.'
+    corporate_action_without_position:
+      title: 'Position absente'
+      detail: 'Cette opération sur titres exige une position ouverte sur l’instrument.'
     operation_voided:
       title: 'Opération déjà annulée ou remplacée'
       detail: 'Une opération annulée ou remplacée ne peut plus être modifiée ni annulée.'

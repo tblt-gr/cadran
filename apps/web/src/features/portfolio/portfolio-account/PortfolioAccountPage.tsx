@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
 import { NotPortfolioState } from './operations/NotPortfolioState';
 import { OperationsTab } from './operations/OperationsTab';
+import { PositionsTab } from './positions/PositionsTab';
 import { PortfolioAccountHeader } from './portfolio-account-header/PortfolioAccountHeader';
 import { PortfolioAccountPageSkeleton } from './PortfolioAccountPageSkeleton';
 import { PortfolioTabs } from './portfolio-tabs/PortfolioTabs';
@@ -16,6 +17,13 @@ import styles from './PortfolioAccountPage.module.css';
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const account = useAccountDetail(accountId);
   const [creating, setCreating] = useState(false);
+  const [active, setActive] = useState<'operations' | 'positions'>(() => activeTab());
+
+  useEffect(() => {
+    const updateTab = () => setActive(activeTab());
+    window.addEventListener('popstate', updateTab);
+    return () => window.removeEventListener('popstate', updateTab);
+  }, []);
 
   if (account.isPending) {
     return (
@@ -50,24 +58,38 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const current = account.data;
   const eligible = current.kind === 'PORTFOLIO' && current.valuationMode === 'PORTFOLIO';
 
+  function openCreate() {
+    if (active !== 'operations') {
+      window.history.pushState({}, '', `/portfolios/${accountId}?tab=operations`);
+      setActive('operations');
+    }
+    setCreating(true);
+  }
+
   return (
     <div className={styles.page}>
-      <PortfolioAccountHeader
-        account={current}
-        accountId={accountId}
-        onCreate={() => setCreating(true)}
-      />
-      <PortfolioTabs accountId={accountId} active="operations" />
+      <PortfolioAccountHeader account={current} accountId={accountId} onCreate={openCreate} />
+      <PortfolioTabs accountId={accountId} active={active} />
       {eligible ? (
-        <OperationsTab
-          account={current}
-          creating={creating}
-          onCloseCreate={() => setCreating(false)}
-          onCreate={() => setCreating(true)}
-        />
+        active === 'positions' ? (
+          <PositionsTab accountId={accountId} />
+        ) : (
+          <OperationsTab
+            account={current}
+            creating={creating}
+            onCloseCreate={() => setCreating(false)}
+            onCreate={openCreate}
+          />
+        )
       ) : (
         <NotPortfolioState accountId={accountId} />
       )}
     </div>
   );
+}
+
+function activeTab(): 'operations' | 'positions' {
+  return new URLSearchParams(window.location.search).get('tab') === 'operations'
+    ? 'operations'
+    : 'positions';
 }

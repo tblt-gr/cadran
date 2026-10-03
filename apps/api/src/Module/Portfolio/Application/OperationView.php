@@ -28,6 +28,7 @@ final readonly class OperationView
         public string $tradeDate,
         public ?string $settlementDate,
         public int $sequence,
+        public int $activeDayOperationCount,
         public ?array $instrument,
         public ?array $counterInstrument,
         public ?string $quantity,
