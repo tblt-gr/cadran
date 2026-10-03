@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
+import { clearPortfolioDetailSelection } from './portfolioDetailLocation';
 import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
@@ -29,10 +30,10 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
     () => new URLSearchParams(window.location.search).get('asOf') || today,
   );
   const changeDate = (date: string) => {
-    const params = new URLSearchParams(window.location.search);
-    params.set('asOf', date);
-    window.history.pushState({}, '', `${window.location.pathname}?${params}`);
-    setAsOf(date);
+    const url = clearPortfolioDetailSelection();
+    url.searchParams.set('asOf', date);
+    window.history.pushState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
   const [creating, setCreating] = useState(false);
   const [active, setActive] = useState<PortfolioTab>(() => activeTab());

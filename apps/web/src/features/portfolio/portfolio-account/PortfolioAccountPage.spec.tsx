@@ -104,6 +104,93 @@ afterEach(() => {
 });
 
 describe('PortfolioAccountPage', () => {
+  it.each([
+    ['operation', 'Escape'],
+    ['operation', 'button'],
+    ['valuation', 'Escape'],
+    ['valuation', 'button'],
+  ] as const)(
+    'dismisses a deliberate %s deep link with %s without reopening it after refresh',
+    async (kind, closing) => {
+      window.history.replaceState(
+        { kept: true },
+        '',
+        `/portfolios/${accountId}?tab=${kind === 'operation' ? 'operations' : 'valuations'}&asOf=2026-03-10&operation=${deposit.id}&valuation=valuation-1&filter=kept#sources`,
+      );
+      api.listPortfolioValuations.mockImplementation(() =>
+        ok({ items: [], page: 1, perPage: 24, total: 0 }),
+      );
+      api.readPortfolioOperation.mockImplementation(() => ok(deposit));
+      api.readPortfolioValuation.mockImplementation(() =>
+        ok(positionsValuationFixture({ id: 'valuation-1' })),
+      );
+      const view = renderPage();
+      await screen.findByRole('dialog', {
+        name: kind === 'operation' ? /Opération : Versement/ : 'Valorisation du 10/03/2026',
+      });
+      const entries = window.history.length;
+      if (closing === 'Escape') fireEvent.keyDown(document, { key: 'Escape' });
+      else fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      const params = new URLSearchParams(window.location.search);
+      expect(params.has('operation')).toBe(false);
+      expect(params.has('valuation')).toBe(false);
+      expect(params.get('tab')).toBe(kind === 'operation' ? 'operations' : 'valuations');
+      expect(params.get('asOf')).toBe('2026-03-10');
+      expect(params.get('filter')).toBe('kept');
+      expect(window.location.hash).toBe('#sources');
+      expect(window.history.length).toBe(entries);
+      expect(window.history.state).toEqual({ kept: true });
+      fireEvent(window, new PopStateEvent('popstate'));
+      expect(screen.queryByRole('dialog')).toBeNull();
+      view.unmount();
+      renderPage();
+      await screen.findByRole('heading', { name: 'PEA Démo' });
+      expect(screen.queryByRole('dialog')).toBeNull();
+    },
+  );
+  it.each(['operation', 'valuation'] as const)(
+    'clears stale %s selectors when changing Au and keeps browser back coherent',
+    async (kind) => {
+      const tab = kind === 'operation' ? 'operations' : 'valuations';
+      window.history.replaceState(
+        {},
+        '',
+        `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10&operation=${deposit.id}&valuation=valuation-1&filter=kept#sources`,
+      );
+      api.listPortfolioValuations.mockImplementation(() =>
+        ok({ items: [], page: 1, perPage: 24, total: 0 }),
+      );
+      api.readPortfolioOperation.mockImplementation(() => ok(deposit));
+      api.readPortfolioValuation.mockImplementation(() =>
+        ok(positionsValuationFixture({ id: 'valuation-1' })),
+      );
+      const view = renderPage();
+      await screen.findByRole('dialog', {
+        name: kind === 'operation' ? /Opération : Versement/ : 'Valorisation du 10/03/2026',
+      });
+      fireEvent.change(screen.getAllByLabelText('Au')[0]!, { target: { value: '2026-03-09' } });
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      const params = new URLSearchParams(window.location.search);
+      expect(params.has('operation')).toBe(false);
+      expect(params.has('valuation')).toBe(false);
+      expect(params.get('asOf')).toBe('2026-03-09');
+      expect(params.get('tab')).toBe(tab);
+      expect(params.get('filter')).toBe('kept');
+      expect(window.location.hash).toBe('#sources');
+      window.history.back();
+      await waitFor(() =>
+        expect(new URLSearchParams(window.location.search).get('asOf')).toBe('2026-03-10'),
+      );
+      expect(new URLSearchParams(window.location.search).has(kind)).toBe(false);
+      expect(screen.queryByRole('dialog')).toBeNull();
+      view.unmount();
+      renderPage();
+      await screen.findByRole('heading', { name: 'PEA Démo' });
+      expect(screen.queryByRole('dialog')).toBeNull();
+    },
+  );
+
   it('keeps dated complete values while explicitly warning about a newer partial valuation', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-10-03&tab=operations`);
     const summary = summaryFixture();

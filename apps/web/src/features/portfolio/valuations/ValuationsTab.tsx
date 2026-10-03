@@ -1,3 +1,4 @@
+import { clearPortfolioDetailSelection } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import type { Account, PortfolioValuationSummary } from '@cadran/api-client';
 import { useEffect, useState, type RefObject } from 'react';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
@@ -147,7 +148,10 @@ export function ValuationsTab({
               : undefined
           }
           id={detailId}
-          onClose={() => setDetailId(null)}
+          onClose={() => {
+            clearPortfolioDetailSelection();
+            setDetailId(null);
+          }}
           onOpen={setDetailId}
         />
       ) : null}
