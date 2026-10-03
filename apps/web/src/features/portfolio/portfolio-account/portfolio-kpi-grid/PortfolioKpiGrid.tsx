@@ -2,7 +2,7 @@ import type { PortfolioOverviewSummary } from '@cadran/api-client';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { formatAmount } from '@/lib/decimal';
+import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
 import {
   kpiLabels,
   reasonLabels,
@@ -79,7 +79,9 @@ export function PortfolioKpiGrid({
           </div>
           <p className={styles.note}>
             {code === 'UNREALIZED_GAIN'
-              ? 'au prix de revient moyen'
+              ? summary?.valuation
+                ? `au ${formatCalendarNumericDay(summary.valuation.valuedOn)}, au prix de revient moyen`
+                : 'au prix de revient moyen'
               : code === 'NET_DEPOSITS' || code === 'COSTS'
                 ? `Du ${asOf.slice(0, 4)}-01-01 au ${asOf}`
                 : code === 'TOTAL_VALUE' && summary?.valuation

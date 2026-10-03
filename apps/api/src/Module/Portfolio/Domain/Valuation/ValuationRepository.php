@@ -15,8 +15,8 @@ interface ValuationRepository
 
     public function findActive(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $valuedOn): ?Valuation;
 
-    /** The latest active valuation strictly before a day, optionally the latest one that has a total. */
-    public function latestActiveBefore(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $day, bool $withTotalOnly = false): ?Valuation;
+    /** The latest active valuation strictly before a day, optionally restricted to known totals or an explicit completeness. */
+    public function latestActiveBefore(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $day, bool $withTotalOnly = false, ?ValuationCompleteness $completeness = null): ?Valuation;
 
     public function add(Valuation $valuation): void;
 

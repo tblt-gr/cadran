@@ -7029,7 +7029,13 @@ components:
         - latestValuation
         - currentCash
         - positionCount
+        - newerPartialValuation
       properties:
+        newerPartialValuation:
+          description: A newer active PARTIAL observation when selected values come from an older COMPLETE valuation; null without fallback.
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOverviewValuation'
+            - type: 'null'
         accountId:
           type: string
           format: uuid
@@ -7080,7 +7086,13 @@ components:
         - costs
         - reconciliation
         - explanations
+        - newerPartialValuation
       properties:
+        newerPartialValuation:
+          description: A newer active PARTIAL observation when selected values come from an older COMPLETE valuation; null without fallback.
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOverviewValuation'
+            - type: 'null'
         asOf: *id003
         account:
           $ref: '#/components/schemas/PortfolioOverviewAccount'
@@ -7189,7 +7201,7 @@ components:
               $ref: '#/components/schemas/PortfolioKpiExplanation'
             RECONCILIATION:
               $ref: '#/components/schemas/PortfolioKpiExplanation'
-      description: Latest active valuation on or before asOf. Unrealized gain uses frozen average cost, COMPLETE only. Cash is derived at asOf; deposits and costs are year-to-date. Reconciliation excludes UNLINKED_EXTERNAL_FLOW and ROUNDING_RESIDUALS. Sources are limited to 50 per KPI.
+      description: Latest active COMPLETE valuation on or before asOf, falling back to the latest PARTIAL only when no complete exists. A newer partial stays explicit and contributes reconciliation warnings and sources. Unrealized gain uses frozen average cost, COMPLETE only. Cash is derived at asOf; deposits and costs are year-to-date. Reconciliation excludes UNLINKED_EXTERNAL_FLOW and ROUNDING_RESIDUALS. Sources are limited to 50 per KPI.
     PortfolioAllocationItem:
       type: object
       additionalProperties: false
@@ -7215,7 +7227,13 @@ components:
         - items
         - slices
         - reason
+        - newerPartialValuation
       properties:
+        newerPartialValuation:
+          description: A newer active PARTIAL observation when selected values come from an older COMPLETE valuation; null without fallback.
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOverviewValuation'
+            - type: 'null'
         asOf: *id003
         by:
           type: string
@@ -7249,7 +7267,7 @@ components:
             - PARTIAL_VALUATION
             - NOT_DETAILED
             - NON_POSITIVE_TOTAL
-      description: Frozen position values grouped with CASH and UNSPECIFIED. Shares are exact scale-24 HALF_UP decimals. At most eight chart slices, smaller buckets merged as OTHERS; table retains every bucket. TOTAL has two unpriced-share lines and NOT_DETAILED.
+      description: Frozen position values of the selected latest COMPLETE valuation grouped with CASH and UNSPECIFIED; a newer partial observation is reported separately. Shares are exact scale-24 HALF_UP decimals. At most eight chart slices, smaller buckets merged as OTHERS; table retains every bucket. TOTAL has two unpriced-share lines and NOT_DETAILED.
     PortfolioOverviewProblem:
       allOf:
         - $ref: '#/components/schemas/Problem'

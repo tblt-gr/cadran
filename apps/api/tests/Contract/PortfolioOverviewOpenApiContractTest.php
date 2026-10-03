@@ -28,6 +28,11 @@ final class PortfolioOverviewOpenApiContractTest extends TestCase
             }
         }
         $schemas = self::map(self::map($document['components'])['schemas']);
+        foreach (['PortfolioOverviewAccountCard', 'PortfolioOverviewSummary', 'PortfolioOverviewAllocation'] as $schema) {
+            $properties = self::map(self::map($schemas[$schema])['properties']);
+            self::assertArrayHasKey('newerPartialValuation', $properties);
+            self::assertSame([['$ref' => '#/components/schemas/PortfolioOverviewValuation'], ['type' => 'null']], self::map($properties['newerPartialValuation'])['oneOf']);
+        }
         $summary = self::map(self::map($schemas['PortfolioOverviewSummary'])['properties']);
         self::assertSame(['string', 'null'], self::map($summary['totalValue'])['type']);
         self::assertSame('string', self::map($summary['cash'])['type']);

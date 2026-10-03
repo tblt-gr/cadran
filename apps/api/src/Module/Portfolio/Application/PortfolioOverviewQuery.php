@@ -10,6 +10,7 @@ use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
+use App\Module\Portfolio\Domain\Valuation\ValuationCompleteness;
 use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
 use App\Module\Portfolio\Domain\Valuation\ValuationRules;
 
@@ -28,7 +29,7 @@ final readonly class PortfolioOverviewQuery
     ) {
     }
 
-    /** @return array{Account, \DateTimeImmutable, ?ValuationView} */
+    /** @return array{Account, \DateTimeImmutable, ?ValuationView, ?ValuationView} */
     public function __invoke(string $accountId, ?string $literal): array
     {
         $workspace = $this->caller->resolveContext()->workspace;
@@ -40,9 +41,26 @@ final readonly class PortfolioOverviewQuery
         if ($this->operations->countActive($workspace, $accountId) > PortfolioOperation::MAX_ACTIVE_PER_ACCOUNT) {
             throw new CashRangeTooDense('The portfolio history exceeds its read bound.');
         }
-        $valuation = $asOf < $account->openedOn ? null : $this->valuations->latestActiveBefore($workspace, $accountId, $asOf->modify('+1 day'));
+        if ($asOf < $account->openedOn) {
+            return [$account, $asOf, null, null];
+        }
+        $dayAfter = $asOf->modify('+1 day');
+        $latest = $this->valuations->latestActiveBefore($workspace, $accountId, $dayAfter);
+        if (null === $latest || $latest->valuedOn < $account->openedOn) {
+            return [$account, $asOf, null, null];
+        }
+        $selected = $latest;
+        $newerPartial = null;
+        if (ValuationCompleteness::PARTIAL === $latest->completeness) {
+            $complete = $this->valuations->latestActiveBefore($workspace, $accountId, $dayAfter, completeness: ValuationCompleteness::COMPLETE);
+            if (null !== $complete && $complete->valuedOn >= $account->openedOn) {
+                $selected = $complete;
+                $newerPartial = $latest;
+            }
+        }
+        $views = $this->presenter->present($workspace, null === $newerPartial ? [$selected] : [$selected, $newerPartial]);
 
-        return [$account, $asOf, null === $valuation ? null : $this->presenter->present($workspace, [$valuation])[0]];
+        return [$account, $asOf, $views[0], $views[1] ?? null];
     }
 
     /** @return array{id: string, valuedOn: string, totalValue: ?string, completeness: string, detail: string, ageDays: int, stale: bool}|null */

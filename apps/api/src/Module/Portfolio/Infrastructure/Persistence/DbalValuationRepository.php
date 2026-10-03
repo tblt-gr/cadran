@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\Infrastructure\Persistence;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Portfolio\Domain\Valuation\ObservedPrice;
 use App\Module\Portfolio\Domain\Valuation\Valuation;
+use App\Module\Portfolio\Domain\Valuation\ValuationCompleteness;
 use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
@@ -37,12 +38,17 @@ final readonly class DbalValuationRepository implements ValuationRepository
         ], false);
     }
 
-    public function latestActiveBefore(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $day, bool $withTotalOnly = false): ?Valuation
+    public function latestActiveBefore(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $day, bool $withTotalOnly = false, ?ValuationCompleteness $completeness = null): ?Valuation
     {
+        $parameters = ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'day' => $day->format('Y-m-d')];
+        if (null !== $completeness) {
+            $parameters['completeness'] = $completeness->value;
+        }
         $rows = $this->connection->fetchAllAssociative(
             'SELECT '.ValuationRow::COLUMNS.' FROM portfolio_valuations WHERE workspace_id = :workspace_id AND account_id = :account_id'
-            .' AND superseded_at IS NULL AND valued_on < :day'.($withTotalOnly ? ' AND total_value_value IS NOT NULL' : '').' ORDER BY valued_on DESC LIMIT 1',
-            ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'day' => $day->format('Y-m-d')],
+            .' AND superseded_at IS NULL AND valued_on < :day'.($withTotalOnly ? ' AND total_value_value IS NOT NULL' : '')
+            .(null === $completeness ? '' : ' AND completeness = :completeness').' ORDER BY valued_on DESC LIMIT 1',
+            $parameters,
         );
 
         return [] === $rows ? null : $this->withPositions($workspace, $rows)[0];

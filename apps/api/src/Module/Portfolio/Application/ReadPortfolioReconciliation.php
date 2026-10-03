@@ -28,7 +28,7 @@ final readonly class ReadPortfolioReconciliation
      *
      * @return list<array{code: string, count: int}>
      */
-    public function __invoke(Account $account, \DateTimeImmutable $asOf, array $operations, ?ValuationView $valuation): array
+    public function __invoke(Account $account, \DateTimeImmutable $asOf, array $operations, ?ValuationView $valuation, ?ValuationView $newerPartial = null): array
     {
         if ($asOf < $account->openedOn) {
             return [];
@@ -55,15 +55,19 @@ final readonly class ReadPortfolioReconciliation
                 $counts['ORDER_DEPENDENT_DAY'] = ($counts['ORDER_DEPENDENT_DAY'] ?? 0) + count($position->orderDependentDates);
             }
         }
-        foreach (null === $valuation ? [] : $valuation->flags as $flag) {
-            $counts[$flag->value] = ($counts[$flag->value] ?? 0) + 1;
+        $observations = null === $valuation ? [] : [$valuation];
+        if (null !== $newerPartial) {
+            $observations[] = $newerPartial;
         }
-        if (null !== $valuation) {
-            if ('PARTIAL' === $valuation->valuation->completeness->value) {
+        foreach ($observations as $observation) {
+            foreach ($observation->flags as $flag) {
+                $counts[$flag->value] = ($counts[$flag->value] ?? 0) + 1;
+            }
+            if ('PARTIAL' === $observation->valuation->completeness->value) {
                 $counts['PARTIAL_VALUATION'] = 1;
             }
-            if (PortfolioOverviewQuery::valuation($valuation, $asOf)['stale'] ?? false) {
-                $counts['STALE_VALUATION'] = 1;
+            if (PortfolioOverviewQuery::valuation($observation, $asOf)['stale'] ?? false) {
+                $counts['STALE_VALUATION'] = ($counts['STALE_VALUATION'] ?? 0) + 1;
             }
         }
         ksort($counts);

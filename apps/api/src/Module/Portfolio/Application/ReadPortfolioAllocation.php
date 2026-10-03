@@ -18,7 +18,7 @@ final readonly class ReadPortfolioAllocation
     /** @return array<string, mixed> */
     public function __invoke(string $accountId, ?string $asOfLiteral, ?string $byLiteral): array
     {
-        [$account, $asOf, $view] = ($this->query)($accountId, $asOfLiteral);
+        [$account, $asOf, $view, $newerPartial] = ($this->query)($accountId, $asOfLiteral);
         $by = $byLiteral ?? 'INSTRUMENT';
         if (!in_array($by, ['INSTRUMENT', 'ASSET_CLASS', 'REGION', 'CURRENCY'], true)) {
             throw new InvalidPortfolioOperation('The allocation grouping is invalid.', 'invalid_allocation_by');
@@ -59,7 +59,8 @@ final readonly class ReadPortfolioAllocation
         }
 
         return ['asOf' => $asOf->format('Y-m-d'), 'by' => $by, 'assetCode' => $account->assetCode->toString(),
-            'valuation' => PortfolioOverviewQuery::valuation($view, $asOf), 'total' => $valuation?->totalValue?->toString(),
+            'valuation' => PortfolioOverviewQuery::valuation($view, $asOf),
+            'newerPartialValuation' => PortfolioOverviewQuery::valuation($newerPartial, $asOf), 'total' => $valuation?->totalValue?->toString(),
             'items' => $items, 'slices' => $slices, 'reason' => $reason];
     }
 }

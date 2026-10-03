@@ -50,3 +50,15 @@
     align-items: center;
   }
 }
+
+.valuationDate {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  color: var(--text-secondary);
+}
+.dateSkeleton {
+  height: var(--font-size-body);
+  width: 8rem;
+}

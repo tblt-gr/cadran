@@ -25,12 +25,14 @@ final class PortfolioExplanation
     /**
      * @param list<array{kind: string, id: string, date: string}> $sources
      *
-     * @return array<string, mixed>
+     * @return array{period: array{from: string, to: string}, quality: string, reason: ?string, sources: list<array{kind: string, id: string, date: string}>, truncatedSourceCount: int}
      */
     public static function of(string $from, string $to, string $quality, ?string $reason, array $sources): array
     {
         // Source previews are bounded, while their omitted count stays exact.
-        usort($sources, static fn (array $left, array $right): int => [$right['date'], $left['kind'], $left['id']] <=> [$left['date'], $right['kind'], $right['id']]);
+        // Keep the selected and newer partial observations visible even when operation previews are truncated.
+        usort($sources, static fn (array $left, array $right): int => (('VALUATION' === $left['kind'] ? 0 : 1) <=> ('VALUATION' === $right['kind'] ? 0 : 1))
+            ?: [$right['date'], $left['id']] <=> [$left['date'], $right['id']]);
 
         return ['period' => ['from' => $from, 'to' => $to], 'quality' => $quality, 'reason' => $reason,
             'sources' => array_slice($sources, 0, self::MAX_SOURCES), 'truncatedSourceCount' => max(0, count($sources) - self::MAX_SOURCES)];

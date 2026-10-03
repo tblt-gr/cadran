@@ -30,7 +30,7 @@ final readonly class ListPortfolios
         $today = $this->calendar->today();
         $items = [];
         foreach (array_slice($accounts, 0, 50) as $account) {
-            [, , $view] = ($this->query)($account->id, null);
+            [, , $view, $newerPartial] = ($this->query)($account->id, null);
             $count = 0;
             foreach (($this->positions)($workspace, $account->id, $today)->positions as $position) {
                 if (!$position->quantity->isZero()) {
@@ -40,6 +40,7 @@ final readonly class ListPortfolios
             $items[] = ['accountId' => $account->id, 'label' => $account->label, 'institution' => $account->institution,
                 'productCode' => $account->productCode, 'assetCode' => $account->assetCode, 'status' => $account->status,
                 'latestValuation' => PortfolioOverviewQuery::valuation($view, $today),
+                'newerPartialValuation' => PortfolioOverviewQuery::valuation($newerPartial, $today),
                 'currentCash' => CashLedger::replay([], $this->operations->activeForAccount($workspace, $account->id, $today))->closingBalance->toString(),
                 'positionCount' => $count];
         }

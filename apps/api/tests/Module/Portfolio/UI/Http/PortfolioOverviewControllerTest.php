@@ -128,11 +128,6 @@ final class PortfolioOverviewControllerTest extends WebTestCase
     {
         self::assertSame('NO_VALUATION', self::map($this->overview('summary', '2026-01-01')['unrealizedGain'])['reason']);
         self::assertSame('NO_VALUATION', $this->overview('allocation', '2026-01-01')['reason']);
-        $this->recordPositions('2026-01-31', []);
-        $zero = $this->overview('allocation', '2026-01-31');
-        self::assertSame('NON_POSITIVE_TOTAL', $zero['reason']);
-        self::assertSame([], $zero['slices']);
-        self::assertNull(self::map(self::items($zero)[0])['share']);
         $this->seedHoldings();
         $this->recordPositions('2026-03-31', [
             ['instrumentId' => self::ETF, 'price' => null, 'priceDate' => null],
@@ -141,9 +136,19 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         self::assertSame('PARTIAL_VALUATION', self::map($this->overview('summary', '2026-03-31')['unrealizedGain'])['reason']);
         self::assertNull($this->overview('summary', '2026-03-31')['totalValue']);
         self::assertSame('PARTIAL_VALUATION', $this->overview('allocation', '2026-03-31')['reason']);
+        self::assertNull($this->overview('summary', '2026-03-31')['newerPartialValuation']);
+        self::assertNull($this->overview('allocation', '2026-03-31')['newerPartialValuation']);
         $this->record(['type' => 'SECURITY_TRANSFER_IN', 'tradeDate' => '2026-04-01', 'instrumentId' => self::ETF, 'quantity' => '1']);
         $this->recordTotal('2026-04-30', '4000.00');
         self::assertSame('UNKNOWN_LOT_COST', self::map($this->overview('summary', '2026-04-30')['unrealizedGain'])['reason']);
+        $partial = $this->recordPositions('2026-05-31', [
+            ['instrumentId' => self::ETF, 'price' => null, 'priceDate' => null],
+            ['instrumentId' => self::STOCK, 'price' => '52.30', 'priceDate' => '2026-05-31'],
+        ]);
+        $summary = $this->overview('summary', '2026-05-31');
+        self::assertSame('UNKNOWN_LOT_COST', self::map($summary['unrealizedGain'])['reason']);
+        self::assertNull(self::map($summary['unrealizedGain'])['value']);
+        self::assertSame($partial['id'], self::map($summary['newerPartialValuation'])['id']);
     }
 
     public function testReconciliationIncludesPriorYearTransferWarningsButExcludesPresentationWarnings(): void
@@ -273,6 +278,96 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         self::assertSame('1000000000000000000000000000.000000000000000000000000', self::map($items[0])['share']);
         self::assertSame('-9999999999999999999999999.99', self::map($items[1])['value']);
         self::assertSame('-999999999999999999999999999.000000000000000000000000', self::map($items[1])['share']);
+    }
+
+    public function testACompleteValuationRemainsVisibleWhenANewerObservationIsPartial(): void
+    {
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-09-01', 'grossAmount' => $this->eur('3000.00')]);
+        $this->record(['type' => 'BUY', 'tradeDate' => '2026-09-02', 'instrumentId' => self::ETF, 'quantity' => '10', 'unitPrice' => '235.00', 'grossAmount' => $this->eur('2350.00')]);
+        $complete = $this->recordPositions('2026-09-30', [['instrumentId' => self::ETF, 'price' => '247.1421', 'priceDate' => '2026-09-30']]);
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-10-01', 'grossAmount' => $this->eur('25.00')]);
+        $this->record(['type' => 'BUY', 'tradeDate' => '2026-10-01', 'instrumentId' => self::ETF, 'quantity' => '1', 'unitPrice' => '240.00', 'grossAmount' => $this->eur('240.00')]);
+        $partial = $this->recordPositions('2026-10-03', [['instrumentId' => self::ETF, 'price' => null, 'priceDate' => null]], ['observedCash' => $this->eur('445.00')]);
+        $summary = $this->overview('summary', '2026-10-03');
+        self::assertSame('3121.421', $summary['totalValue']);
+        self::assertSame('121.421', self::map($summary['unrealizedGain'])['value']);
+        self::assertSame('435.00', $summary['cash'], 'cash stays current while valuation figures stay frozen');
+        self::assertSame($complete['id'], self::map($summary['valuation'])['id']);
+        self::assertSame(3, self::map($summary['valuation'])['ageDays']);
+        self::assertSame($partial['id'], self::map($summary['newerPartialValuation'])['id']);
+        $codes = self::map($summary['reconciliation'])['warnings'];
+        self::assertIsList($codes);
+        self::assertContains('PARTIAL_VALUATION', array_column($codes, 'code'));
+        self::assertContains('CASH_DIFFERENCE', array_column($codes, 'code'));
+        $explanations = self::map($summary['explanations']);
+        $totalSources = self::map($explanations['TOTAL_VALUE'])['sources'];
+        self::assertIsList($totalSources);
+        self::assertSame($complete['id'], self::map($totalSources[0])['id']);
+        $reconciliationSources = self::map($explanations['RECONCILIATION'])['sources'];
+        self::assertIsList($reconciliationSources);
+        self::assertContains($complete['id'], array_column($reconciliationSources, 'id'));
+        self::assertContains($partial['id'], array_column($reconciliationSources, 'id'));
+        $allocation = $this->overview('allocation', '2026-10-03');
+        self::assertNull($allocation['reason']);
+        self::assertSame($complete['id'], self::map($allocation['valuation'])['id']);
+        self::assertSame($partial['id'], self::map($allocation['newerPartialValuation'])['id']);
+        self::assertSame('2471.421', self::map(self::items($allocation)[0])['value']);
+        self::assertNull($this->overview('summary', '2026-10-02')['newerPartialValuation']);
+        self::assertNull($this->overview('summary', '2026-09-29')['valuation']);
+        $this->get('/api/v1/portfolios');
+        self::assertResponseIsSuccessful();
+        $card = self::map(self::items($this->decode())[0]);
+        self::assertSame($complete['id'], self::map($card['latestValuation'])['id']);
+        self::assertSame($partial['id'], self::map($card['newerPartialValuation'])['id']);
+        $newComplete = $this->recordTotal('2026-10-03', '4000.00', ['version' => $partial['version']]);
+        $summary = $this->overview('summary', '2026-10-03');
+        self::assertSame($newComplete['id'], self::map($summary['valuation'])['id']);
+        self::assertNull($summary['newerPartialValuation']);
+        self::assertSame('4000.00', $summary['totalValue']);
+        $this->send('POST', '/api/v1/portfolio-valuations/'.self::string($newComplete['id']).'/withdraw', ['version' => 1]);
+        self::assertResponseIsSuccessful();
+        self::assertSame($complete['id'], self::map($this->overview('summary', '2026-10-03')['valuation'])['id']);
+        self::assertNull($this->overview('summary', '2026-10-03')['newerPartialValuation'], 'superseded partial and withdrawn complete stay excluded');
+    }
+
+    public function testFallbackAgeUsesTheCompleteDateAndNeverUsesFutureOrPreOpeningObservations(): void
+    {
+        $this->seedHoldings();
+        $complete = $this->recordPositions('2026-08-31', [
+            ['instrumentId' => self::ETF, 'price' => '231.4521', 'priceDate' => '2026-08-31'],
+            ['instrumentId' => self::STOCK, 'price' => '52.30', 'priceDate' => '2026-08-31'],
+        ]);
+        $partial = $this->recordPositions('2026-10-03', [
+            ['instrumentId' => self::ETF, 'price' => null, 'priceDate' => null],
+            ['instrumentId' => self::STOCK, 'price' => '52.30', 'priceDate' => '2026-08-31'],
+        ]);
+        $future = $this->recordTotal('2026-10-02', '9999.00');
+        $this->connection->update('portfolio_valuations', ['valued_on' => '2026-10-04'], ['id' => $future['id']]);
+        $summary = $this->overview('summary', '2026-10-03');
+        self::assertSame($complete['id'], self::map($summary['valuation'])['id']);
+        self::assertSame(33, self::map($summary['valuation'])['ageDays']);
+        self::assertTrue(self::map($summary['valuation'])['stale']);
+        $warnings = self::map($summary['reconciliation'])['warnings'];
+        self::assertIsList($warnings);
+        self::assertContains('STALE_VALUATION', array_column($warnings, 'code'));
+        self::assertContains('STALE_PRICES', array_column($warnings, 'code'), 'latest partial price flags remain visible');
+        self::assertContains('PARTIAL_VALUATION', array_column($warnings, 'code'));
+        $this->connection->update('portfolio_valuations', ['valued_on' => '2025-12-31'], ['id' => $complete['id']]);
+        $summary = $this->overview('summary', '2026-10-03');
+        self::assertSame($partial['id'], self::map($summary['valuation'])['id'], 'pre-opening complete is not a fallback');
+        self::assertNull($summary['totalValue']);
+        self::assertNull($summary['newerPartialValuation']);
+        self::assertSame('PARTIAL_VALUATION', self::map($summary['unrealizedGain'])['reason']);
+        self::assertSame('PARTIAL_VALUATION', $this->overview('allocation', '2026-10-03')['reason']);
+    }
+
+    public function testZeroDetailedValuationHasNoAllocationShares(): void
+    {
+        $this->recordPositions('2026-01-31', []);
+        $zero = $this->overview('allocation', '2026-01-31');
+        self::assertSame('NON_POSITIVE_TOTAL', $zero['reason']);
+        self::assertSame([], $zero['slices']);
+        self::assertNull(self::map(self::items($zero)[0])['share']);
     }
 
     public function testHistoryBeyondTheWriteBoundIsRejectedBeforeAnyReplay(): void

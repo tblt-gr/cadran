@@ -24,7 +24,7 @@ final readonly class ReadPortfolioSummary
     /** @return array<string, mixed> */
     public function __invoke(string $accountId, ?string $asOfLiteral): array
     {
-        [$account, $asOf, $view] = ($this->query)($accountId, $asOfLiteral);
+        [$account, $asOf, $view, $newerPartial] = ($this->query)($accountId, $asOfLiteral);
         $operations = $asOf < $account->openedOn ? [] : $this->operations->activeForAccount($account->workspace, $accountId, $asOf);
         $from = $asOf->setDate((int) $asOf->format('Y'), 1, 1)->format('Y-m-d');
         $to = $asOf->format('Y-m-d');
@@ -32,10 +32,12 @@ final readonly class ReadPortfolioSummary
         $cash = CashLedger::replay([], $operations)->closingBalance;
         $totals = CashLedger::replay([], $range)->totals;
         $valuation = PortfolioOverviewQuery::valuation($view, $asOf);
+        $partialMetadata = PortfolioOverviewQuery::valuation($newerPartial, $asOf);
         $gain = self::gain($view);
-        $warnings = ($this->reconcile)($account, $asOf, $operations, $view);
+        $warnings = ($this->reconcile)($account, $asOf, $operations, $view, $newerPartial);
         $status = [] === $warnings ? 'RECONCILED' : 'NEEDS_REVIEW';
         $valuationSources = null === $valuation ? [] : [['kind' => 'VALUATION', 'id' => $valuation['id'], 'date' => $valuation['valuedOn']]];
+        $partialSources = null === $partialMetadata ? [] : [['kind' => 'VALUATION', 'id' => $partialMetadata['id'], 'date' => $partialMetadata['valuedOn']]];
         $valuationReason = match (true) {
             null === $valuation => 'NO_VALUATION',
             'PARTIAL' === $valuation['completeness'] => 'PARTIAL_VALUATION',
@@ -57,6 +59,7 @@ final readonly class ReadPortfolioSummary
             'account' => ['id' => $accountId, 'label' => $account->label, 'institution' => $account->institution,
                 'productCode' => $accountView->productCode, 'assetCode' => $accountView->assetCode, 'status' => $accountView->status, 'openedOn' => $accountView->openedOn],
             'valuation' => $valuation,
+            'newerPartialValuation' => $partialMetadata,
             'totalValue' => $view?->valuation->totalValue?->toString(),
             'cash' => $cash->toString(),
             'unrealizedGain' => $gain,
@@ -71,7 +74,7 @@ final readonly class ReadPortfolioSummary
                 'CASH' => PortfolioExplanation::of($accountView->openedOn, $to, 'DERIVED', null, $allSources),
                 'NET_DEPOSITS' => PortfolioExplanation::of($from, $to, 'DERIVED', null, PortfolioExplanation::operations($deposits)),
                 'COSTS' => PortfolioExplanation::of($from, $to, 'DERIVED', null, PortfolioExplanation::operations($costs)),
-                'RECONCILIATION' => PortfolioExplanation::of($accountView->openedOn, $to, $status, null, [...$valuationSources, ...$allSources]),
+                'RECONCILIATION' => PortfolioExplanation::of($accountView->openedOn, $to, $status, null, [...$valuationSources, ...$partialSources, ...$allSources]),
             ],
         ];
     }

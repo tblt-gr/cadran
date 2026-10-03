@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, cleanup } from '@testing-library/react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import '@/i18n';
+import { summaryFixture } from '@/features/portfolio/portfolio-account/overviewFixtures';
 import { PortfoliosPage } from './PortfoliosPage';
 const api = vi.hoisted(() => ({ listPortfolios: vi.fn() }));
 vi.mock('@cadran/api-client', async (original) => ({
@@ -22,6 +23,43 @@ function renderPage() {
   );
 }
 describe('PortfoliosPage', () => {
+  it('dates retained complete values and warns about the newer partial observation', async () => {
+    const valuation = { ...summaryFixture().valuation!, valuedOn: '2026-09-30' };
+    api.listPortfolios.mockResolvedValue({
+      data: {
+        items: [
+          {
+            accountId: 'account-1',
+            label: 'PEA',
+            institution: null,
+            productCode: null,
+            assetCode: 'EUR',
+            status: 'ACTIVE',
+            latestValuation: valuation,
+            newerPartialValuation: {
+              ...valuation,
+              valuedOn: '2026-10-03',
+              completeness: 'PARTIAL',
+              totalValue: null,
+            },
+            currentCash: '100',
+            positionCount: 1,
+          },
+        ],
+        truncated: false,
+      },
+      response: new Response('{}'),
+    });
+    renderPage();
+    expect(
+      await screen.findByText(
+        'Valorisation du 03/10/2026 partielle : dernières valeurs complètes du 30/09/2026 affichées.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('au 2026-09-30')).toBeTruthy();
+    expect(screen.getByText(/3\s000,42/)).toBeTruthy();
+  });
+
   it('keeps real title and navigation during loading', () => {
     api.listPortfolios.mockImplementation(() => new Promise(() => undefined));
     renderPage();
@@ -52,6 +90,7 @@ describe('PortfoliosPage', () => {
             assetCode: 'EUR',
             status: 'ACTIVE',
             latestValuation: null,
+            newerPartialValuation: null,
             currentCash: '100',
             positionCount: 0,
           },

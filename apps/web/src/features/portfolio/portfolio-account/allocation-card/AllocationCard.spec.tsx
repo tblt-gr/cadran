@@ -5,6 +5,28 @@ import { AllocationCard } from './AllocationCard';
 import { allocationFixture } from '@/features/portfolio/portfolio-account/overviewFixtures';
 afterEach(cleanup);
 describe('AllocationCard', () => {
+  it('dates the complete observation actually used, rather than the selected day', () => {
+    const allocation = allocationFixture();
+    allocation.asOf = '2026-10-03';
+    allocation.valuation = { ...allocation.valuation!, valuedOn: '2026-09-30' };
+    allocation.newerPartialValuation = {
+      ...allocation.valuation,
+      valuedOn: '2026-10-03',
+      completeness: 'PARTIAL',
+      totalValue: null,
+    };
+    render(<AllocationCard allocation={allocation} by="INSTRUMENT" onByChange={vi.fn()} />);
+    expect(screen.getByText('30/09/2026', { selector: 'time' }).getAttribute('dateTime')).toBe(
+      '2026-09-30',
+    );
+    expect(screen.queryByText('03/10/2026', { selector: 'time' })).toBeNull();
+    expect(
+      screen.getByText(
+        'Valorisation du 03/10/2026 partielle : dernières valeurs complètes du 30/09/2026 affichées.',
+      ),
+    ).toBeTruthy();
+  });
+
   it.each([
     {
       total: '99',

@@ -1,4 +1,5 @@
 import type { PortfolioOverviewAccountCard } from '@cadran/api-client';
+import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -61,6 +62,12 @@ export function PortfolioAccountCard({
                 : 'Valorisation complète'}
           </StatusBadge>
         </>
+      ) : null}
+      {account ? (
+        <ValuationFallbackNotice
+          selected={account.latestValuation}
+          newerPartial={account.newerPartialValuation}
+        />
       ) : null}
       {account ? <p>{account.positionCount} positions</p> : <SkeletonBlock />}
     </>

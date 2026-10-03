@@ -1,4 +1,5 @@
 import { useState, type RefObject } from 'react';
+import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import {
   usePortfolioSummary,
@@ -29,6 +30,12 @@ export function PortfolioOverview({
   const error = summary.error instanceof OperationRequestError ? summary.error : null;
   return (
     <>
+      {summary.data ? (
+        <ValuationFallbackNotice
+          selected={summary.data.valuation}
+          newerPartial={summary.data.newerPartialValuation}
+        />
+      ) : null}
       {summary.data?.valuation?.stale ? (
         <StatusBadge tone="warning">{`Valorisation ancienne (${summary.data.valuation.ageDays} jours)`}</StatusBadge>
       ) : null}
@@ -78,6 +85,7 @@ export function PortfolioOverview({
           by={by}
           onByChange={setBy}
           disabled={frozen}
+          showFallbackNotice={!summary.data}
         />
       )}
       {explaining && summary.data ? (

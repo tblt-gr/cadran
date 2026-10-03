@@ -104,6 +104,77 @@ afterEach(() => {
 });
 
 describe('PortfolioAccountPage', () => {
+  it('keeps dated complete values while explicitly warning about a newer partial valuation', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-10-03&tab=operations`);
+    const summary = summaryFixture();
+    summary.asOf = '2026-10-03';
+    summary.valuation = { ...summary.valuation!, valuedOn: '2026-09-30' };
+    summary.newerPartialValuation = {
+      ...summary.valuation,
+      id: 'partial-1',
+      valuedOn: '2026-10-03',
+      completeness: 'PARTIAL',
+      totalValue: null,
+    };
+    summary.reconciliation = {
+      status: 'NEEDS_REVIEW',
+      warnings: [{ code: 'PARTIAL_VALUATION', count: 1 }],
+    };
+    summary.explanations.TOTAL_VALUE = {
+      ...summary.explanations.TOTAL_VALUE,
+      period: { from: '2026-09-30', to: '2026-09-30' },
+      sources: [{ kind: 'VALUATION', id: summary.valuation.id, date: '2026-09-30' }],
+    };
+    api.readPortfolioSummary.mockImplementation(() => ok(summary));
+    api.readPortfolioAllocation.mockImplementation(() =>
+      ok({
+        ...allocationFixture(),
+        asOf: summary.asOf,
+        valuation: summary.valuation,
+        newerPartialValuation: summary.newerPartialValuation,
+      }),
+    );
+    renderPage();
+    expect(
+      await screen.findByText(
+        'Valorisation du 03/10/2026 partielle : dernières valeurs complètes du 30/09/2026 affichées.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(/Gain \+121,42/)).toBeTruthy();
+    expect(screen.getByText('au 30/09/2026, au prix de revient moyen')).toBeTruthy();
+    expect(screen.getByText('30/09/2026', { selector: 'time' })).toBeTruthy();
+    expect(screen.getByText('À vérifier (1)')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Valeur totale' }));
+    expect(screen.getByText('Du 2026-09-30 au 2026-09-30')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Valorisation du 2026-09-30' })).toBeTruthy();
+  });
+  it('retains explicit non-calculable states when only a partial valuation exists', async () => {
+    const summary = summaryFixture();
+    summary.valuation = { ...summary.valuation!, completeness: 'PARTIAL', totalValue: null };
+    summary.totalValue = null;
+    summary.unrealizedGain = {
+      value: null,
+      securitiesValue: null,
+      costBasis: null,
+      reason: 'PARTIAL_VALUATION',
+    };
+    api.readPortfolioSummary.mockImplementation(() => ok(summary));
+    api.readPortfolioAllocation.mockImplementation(() =>
+      ok({ ...allocationFixture(), valuation: summary.valuation, reason: 'PARTIAL_VALUATION' }),
+    );
+    renderPage();
+    expect(await screen.findByText('Non valorisé')).toBeTruthy();
+    expect(
+      screen.getByText('Valorisation partielle : la répartition n’est pas calculable'),
+    ).toBeTruthy();
+    expect(screen.queryByText(/dernières valeurs complètes/)).toBeNull();
+  });
+  it('shows no newer-partial warning when the server reports none for a past date', async () => {
+    renderPage();
+    await screen.findByText(/Gain/);
+    expect(screen.queryByText(/dernières valeurs complètes/)).toBeNull();
+  });
+
   it('propagates the selected date to every read and keeps it when switching tabs', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-03-10`);
     api.readPortfolioCash.mockImplementation(() => ok(cashFixture()));

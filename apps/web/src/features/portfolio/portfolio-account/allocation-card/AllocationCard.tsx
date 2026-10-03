@@ -1,8 +1,14 @@
 import type { PortfolioOverviewAllocation } from '@cadran/api-client';
+import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
 import { AllocationLegend } from '@/components/ui/charts/allocation-legend/AllocationLegend';
 import { DonutPlot } from '@/components/ui/charts/donut-chart/DonutPlot';
 import { SkeletonBlock, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
-import { compareDecimals, decimalRatioForGeometry, formatAmount } from '@/lib/decimal';
+import {
+  compareDecimals,
+  decimalRatioForGeometry,
+  formatAmount,
+  formatCalendarNumericDay,
+} from '@/lib/decimal';
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
 import type { AllocationBy } from '@/features/portfolio/usePortfolioOverview';
 import { reasonLabels } from '@/features/portfolio/portfolio-account/overviewLabels';
@@ -18,11 +24,13 @@ export function AllocationCard({
   by,
   onByChange,
   disabled = false,
+  showFallbackNotice = true,
 }: {
   allocation: PortfolioOverviewAllocation | null;
   by: AllocationBy;
   onByChange: (by: AllocationBy) => void;
   disabled?: boolean;
+  showFallbackNotice?: boolean;
 }) {
   const money = (value: string | null) =>
     value === null ? 'Non calculable' : formatAmount(value, allocation!.assetCode, 'fr');
@@ -43,6 +51,24 @@ export function AllocationCard({
       data-testid={!allocation ? 'portfolio-allocation-skeleton' : undefined}
     >
       <h3 id="portfolio-allocation-title">Répartition</h3>
+      <div className={styles.valuationDate}>
+        <span>Valorisation retenue :</span>
+        {!allocation ? (
+          <SkeletonBlock className={styles.dateSkeleton} />
+        ) : allocation.valuation ? (
+          <time dateTime={allocation.valuation.valuedOn}>
+            {formatCalendarNumericDay(allocation.valuation.valuedOn)}
+          </time>
+        ) : (
+          <span>aucune à cette date</span>
+        )}
+      </div>
+      {showFallbackNotice && allocation ? (
+        <ValuationFallbackNotice
+          selected={allocation.valuation}
+          newerPartial={allocation.newerPartialValuation}
+        />
+      ) : null}
       <div className={styles.controls} role="group" aria-label="Regrouper la répartition">
         {choices.map((choice) => (
           <button

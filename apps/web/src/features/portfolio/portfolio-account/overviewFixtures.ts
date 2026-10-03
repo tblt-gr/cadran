@@ -8,6 +8,7 @@ export function summaryFixture(): PortfolioOverviewSummary {
     truncatedSourceCount: 0,
   };
   return {
+    newerPartialValuation: null,
     asOf: '2026-03-10',
     account: {
       id: 'account-1',
@@ -56,6 +57,7 @@ export function summaryFixture(): PortfolioOverviewSummary {
 }
 export function allocationFixture(): PortfolioOverviewAllocation {
   return {
+    newerPartialValuation: null,
     asOf: '2026-03-10',
     by: 'INSTRUMENT',
     assetCode: 'EUR',
