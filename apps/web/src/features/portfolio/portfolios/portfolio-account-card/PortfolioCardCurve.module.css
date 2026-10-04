@@ -1,0 +1,7 @@
+.placeholder {
+  height: var(--chart-plot-height);
+}
+.note {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+}

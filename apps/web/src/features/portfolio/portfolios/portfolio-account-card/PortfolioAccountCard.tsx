@@ -1,94 +1,41 @@
 import type { PortfolioOverviewAccountCard } from '@cadran/api-client';
-import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAmount } from '@/lib/decimal';
+import { PortfolioCardCurve } from './PortfolioCardCurve';
 import styles from './PortfolioAccountCard.module.css';
+
+/** Title, type, latest total and curve; the title is the link, so the curve stays hoverable and focusable. */
 export function PortfolioAccountCard({
   account,
 }: {
   account: PortfolioOverviewAccountCard | null;
 }) {
-  const href = account ? `/portfolios/${account.accountId}` : undefined;
-  const content = (
-    <>
-      <h3>{account ? account.label : <SkeletonBlock />}</h3>
-      {account ? (
-        <p>{[account.institution, account.productCode].filter(Boolean).join(' · ')}</p>
-      ) : (
+  if (!account) {
+    return (
+      <article aria-hidden="true" className={`card ${styles.card}`}>
         <SkeletonBlock />
-      )}
-      <dl>
-        <div>
-          <dt>Valeur totale</dt>
-          <dd>
-            {account ? (
-              account.latestValuation?.totalValue == null ? (
-                'Non valorisé'
-              ) : (
-                formatAmount(account.latestValuation.totalValue, account.assetCode, 'fr')
-              )
-            ) : (
-              <SkeletonBlock />
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>Espèces</dt>
-          <dd>
-            {account ? (
-              formatAmount(account.currentCash, account.assetCode, 'fr')
-            ) : (
-              <SkeletonBlock />
-            )}
-          </dd>
-        </div>
-      </dl>
-      {account?.latestValuation ? (
-        <>
-          <p>au {account.latestValuation.valuedOn}</p>
-          <StatusBadge
-            tone={
-              account.latestValuation.stale || account.latestValuation.completeness === 'PARTIAL'
-                ? 'warning'
-                : 'positive'
-            }
-          >
-            {account.latestValuation.completeness === 'PARTIAL'
-              ? 'Valorisation partielle'
-              : account.latestValuation.stale
-                ? `Valorisation ancienne (${account.latestValuation.ageDays} jours)`
-                : 'Valorisation complète'}
-          </StatusBadge>
-        </>
-      ) : null}
-      {account && account.dueMonths.length > 0 ? (
-        <StatusBadge icon="alert" tone="warning">
-          Fin de mois à saisir
-        </StatusBadge>
-      ) : null}
-      {account ? (
-        <ValuationFallbackNotice
-          selected={account.latestValuation}
-          newerPartial={account.newerPartialValuation}
-        />
-      ) : null}
-      {account ? <p>{account.positionCount} positions</p> : <SkeletonBlock />}
-    </>
-  );
-  return account ? (
-    <a
-      aria-label={`Ouvrir le portefeuille ${account.label}`}
-      className={`card ${styles.card}`}
-      href={href}
-      onClick={(event) => handleClientNavigation(event, href!)}
-    >
-      {content}
-    </a>
-  ) : (
-    <article aria-hidden="true" className={`card ${styles.card}`}>
-      {content}
+        <SkeletonBlock />
+        <SkeletonBlock />
+        <SkeletonBlock className={styles.curve} />
+      </article>
+    );
+  }
+  const href = `/portfolios/${account.accountId}`;
+  const total = account.latestValuation?.totalValue;
+
+  return (
+    <article className={`card ${styles.card}`}>
+      <h3>
+        <a href={href} onClick={(event) => handleClientNavigation(event, href)}>
+          {account.label}
+        </a>
+      </h3>
+      <p>{account.productCode ?? 'Compte d’investissement'}</p>
+      <p className={styles.value}>
+        {total == null ? 'Non valorisé' : formatAmount(total, account.assetCode, 'fr')}
+      </p>
+      <PortfolioCardCurve accountId={account.accountId} assetCode={account.assetCode} />
     </article>
   );
 }

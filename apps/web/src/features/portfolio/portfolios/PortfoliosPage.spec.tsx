@@ -1,14 +1,24 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, cleanup } from '@testing-library/react';
-import { afterEach, describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import '@/i18n';
 import { summaryFixture } from '@/features/portfolio/portfolio-account/overviewFixtures';
+import { historyFixture } from '@/features/portfolio/portfolio-account/value-history-card/valueHistoryFixtures';
 import { PortfoliosPage } from './PortfoliosPage';
-const api = vi.hoisted(() => ({ listPortfolios: vi.fn() }));
+const api = vi.hoisted(() => ({
+  listPortfolios: vi.fn(),
+  readPortfolioValuationHistory: vi.fn(),
+}));
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
   ...api,
 }));
+beforeEach(() => {
+  api.readPortfolioValuationHistory.mockResolvedValue({
+    data: historyFixture(),
+    response: new Response('{}'),
+  });
+});
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -23,26 +33,21 @@ function renderPage() {
   );
 }
 describe('PortfoliosPage', () => {
-  it('dates retained complete values and warns about the newer partial observation', async () => {
+  it('shows title, type, latest total and the curve of one account', async () => {
     const valuation = { ...summaryFixture().valuation!, valuedOn: '2026-09-30' };
     api.listPortfolios.mockResolvedValue({
       data: {
         items: [
           {
             accountId: 'account-1',
-            label: 'PEA',
-            institution: null,
-            productCode: null,
+            label: 'Mon PEA',
+            institution: 'Courtier',
+            productCode: 'PEA',
             assetCode: 'EUR',
             status: 'ACTIVE',
             latestValuation: valuation,
             dueMonths: [],
-            newerPartialValuation: {
-              ...valuation,
-              valuedOn: '2026-10-03',
-              completeness: 'PARTIAL',
-              totalValue: null,
-            },
+            newerPartialValuation: null,
             currentCash: '100',
             positionCount: 1,
           },
@@ -52,13 +57,12 @@ describe('PortfoliosPage', () => {
       response: new Response('{}'),
     });
     renderPage();
-    expect(
-      await screen.findByText(
-        'Valorisation du 03/10/2026 partielle : dernières valeurs complètes du 30/09/2026 affichées.',
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText('au 2026-09-30')).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Mon PEA' })).toBeTruthy();
+    expect(screen.getByText('PEA')).toBeTruthy();
     expect(screen.getByText(/3\s000,42/)).toBeTruthy();
+    expect(await screen.findByRole('group', { name: 'Valeur totale en EUR' })).toBeTruthy();
+    expect(api.readPortfolioValuationHistory).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Espèces')).toBeNull();
   });
 
   it('keeps real title and navigation during loading', () => {
@@ -79,7 +83,7 @@ describe('PortfoliosPage', () => {
       '/accounts',
     );
   });
-  it('shows a valued account and keeps the whole card one link', async () => {
+  it('shows an unvalued account without a curve', async () => {
     api.listPortfolios.mockResolvedValue({
       data: {
         items: [
@@ -101,42 +105,21 @@ describe('PortfoliosPage', () => {
       },
       response: new Response('{}'),
     });
+    api.readPortfolioValuationHistory.mockResolvedValue({
+      data: historyFixture({ points: [] }),
+      response: new Response('{}'),
+    });
     renderPage();
-    expect(
-      (await screen.findByRole('link', { name: 'Ouvrir le portefeuille PEA' })).getAttribute(
-        'href',
-      ),
-    ).toBe('/portfolios/account-1');
+    expect((await screen.findByRole('link', { name: 'PEA' })).getAttribute('href')).toBe(
+      '/portfolios/account-1',
+    );
     expect(screen.getByText('Non valorisé')).toBeTruthy();
+    expect(await screen.findByText('Aucune valorisation.')).toBeTruthy();
   });
   it.each([403, 500])('shows the %s state with recovery', async (status) => {
     api.listPortfolios.mockResolvedValue({ response: new Response('{}', { status }) });
     renderPage();
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeTruthy();
-  });
-
-  it('badges an account that still owes a month-end valuation', async () => {
-    const valuation = { ...summaryFixture().valuation!, valuedOn: '2026-09-30' };
-    const card = (accountId: string, label: string, dueMonths: string[]) => ({
-      accountId,
-      label,
-      institution: null,
-      productCode: null,
-      assetCode: 'EUR',
-      status: 'ACTIVE',
-      latestValuation: valuation,
-      newerPartialValuation: null,
-      dueMonths,
-      currentCash: '100',
-      positionCount: 1,
-    });
-    api.listPortfolios.mockResolvedValue({
-      data: { items: [card('a', 'PEA', ['2026-09']), card('b', 'CTO', [])], truncated: false },
-      response: new Response('{}'),
-    });
-    renderPage();
-    await screen.findByText('PEA');
-    expect(screen.getAllByText('Fin de mois à saisir')).toHaveLength(1);
   });
 });
