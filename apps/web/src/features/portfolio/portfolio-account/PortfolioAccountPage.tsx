@@ -9,6 +9,7 @@ import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
+import { AllocationTab } from './allocation-tab/AllocationTab';
 import { CashTab } from '@/features/portfolio/cash/CashTab';
 import { PerformanceTab } from '@/features/portfolio/performance/performance-tab/PerformanceTab';
 import { ValuationsTab } from '@/features/portfolio/valuations/ValuationsTab';
@@ -22,7 +23,7 @@ import { PortfolioTabs, type PortfolioTab } from './portfolio-tabs/PortfolioTabs
 import styles from './PortfolioAccountPage.module.css';
 
 /**
- * The portfolio page of one investment account. The tabs are Positions, Opérations, Espèces and Valorisations;
+ * The portfolio page of one investment account. The tabs are Performance, Espèces, Positions, Opérations, Valorisations and Répartition;
  * every later portfolio capability adds its own tab to `PortfolioTabs`.
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
@@ -113,6 +114,8 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
       {eligible ? (
         active === 'positions' ? (
           <PositionsTab accountId={accountId} asOf={asOf} />
+        ) : active === 'allocation' ? (
+          <AllocationTab accountId={accountId} asOf={asOf} />
         ) : active === 'cash' ? (
           <CashTab accountId={accountId} asOf={asOf} onAsOfChange={changeDate} />
         ) : active === 'valuations' ? (

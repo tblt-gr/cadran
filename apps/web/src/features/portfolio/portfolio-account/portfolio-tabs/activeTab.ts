@@ -1,9 +1,16 @@
 import type { PortfolioTab } from './PortfolioTabs';
 
-/** The tab named by `?tab=`; Positions is the default. */
+const known: readonly PortfolioTab[] = [
+  'performance',
+  'cash',
+  'positions',
+  'operations',
+  'valuations',
+  'allocation',
+];
+
+/** The tab named by `?tab=`; Performance is the default. */
 export function activeTab(): PortfolioTab {
   const tab = new URLSearchParams(window.location.search).get('tab');
-  return tab === 'operations' || tab === 'cash' || tab === 'valuations' || tab === 'performance'
-    ? tab
-    : 'positions';
+  return known.find((id) => id === tab) ?? 'performance';
 }

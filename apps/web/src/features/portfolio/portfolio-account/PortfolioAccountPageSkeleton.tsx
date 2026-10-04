@@ -8,6 +8,7 @@ import { CashTabSkeleton } from '@/features/portfolio/cash/CashTabSkeleton';
 import { PerformanceTabSkeleton } from '@/features/portfolio/performance/performance-tab/PerformanceTabSkeleton';
 import { performanceYear } from '@/features/portfolio/performance/performance-tab/performanceYear';
 import { ValuationsTabSkeleton } from '@/features/portfolio/valuations/ValuationsTabSkeleton';
+import { AllocationTab } from './allocation-tab/AllocationTab';
 import { PositionsTabSkeleton } from './positions/PositionsTabSkeleton';
 import { PortfolioAccountHeader } from './portfolio-account-header/PortfolioAccountHeader';
 import { activeTab } from './portfolio-tabs/activeTab';
@@ -55,10 +56,12 @@ export function PortfolioAccountPageSkeleton({
         <CashTabSkeleton asOf={asOf} />
       ) : active === 'valuations' ? (
         <ValuationsTabSkeleton status={status} />
-      ) : active === 'performance' ? (
-        <PerformanceTabSkeleton year={performanceYear(asOf)} />
-      ) : (
+      ) : active === 'allocation' ? (
+        <AllocationTab accountId={accountId} asOf={asOf} frozen />
+      ) : active === 'positions' ? (
         <PositionsTabSkeleton status={status} />
+      ) : (
+        <PerformanceTabSkeleton year={performanceYear(asOf)} />
       )}
     </div>
   );

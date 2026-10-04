@@ -236,7 +236,6 @@ describe('PortfolioAccountPage', () => {
     ).toBeTruthy();
     expect(screen.getByText(/Gain \+121,42/)).toBeTruthy();
     expect(screen.getByText('au 30/09/2026, au prix de revient moyen')).toBeTruthy();
-    expect(screen.getByText('30/09/2026', { selector: 'time' })).toBeTruthy();
     expect(screen.getByText('À vérifier (1)')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Valeur totale' }));
     expect(screen.getByText('Du 2026-09-30 au 2026-09-30')).toBeTruthy();
@@ -258,9 +257,6 @@ describe('PortfolioAccountPage', () => {
     );
     renderPage();
     expect(await screen.findByText('Non valorisé')).toBeTruthy();
-    expect(
-      screen.getByText('Valorisation partielle : la répartition n’est pas calculable'),
-    ).toBeTruthy();
     expect(screen.queryByText(/dernières valeurs complètes/)).toBeNull();
   });
   it('shows no newer-partial warning when the server reports none for a past date', async () => {
@@ -296,7 +292,7 @@ describe('PortfolioAccountPage', () => {
   });
 
   it('propagates the selected date to every read and keeps it when switching tabs', async () => {
-    window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-03-10`);
+    window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-03-10&tab=positions`);
     api.readPortfolioCash.mockImplementation(() => ok(cashFixture()));
     api.listPortfolioValuations.mockImplementation(() =>
       ok({ items: [], page: 1, perPage: 24, total: 0 }),
@@ -307,8 +303,12 @@ describe('PortfolioAccountPage', () => {
     await waitFor(() =>
       expect(api.readPortfolioSummary.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28'),
     );
-    expect(api.readPortfolioAllocation.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28');
     expect(api.listPortfolioPositions.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28');
+    fireEvent.click(screen.getByRole('link', { name: 'Répartition' }));
+    await screen.findByRole('heading', { name: 'Répartition' });
+    await waitFor(() =>
+      expect(api.readPortfolioAllocation.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28'),
+    );
     fireEvent.click(screen.getByRole('link', { name: 'Opérations' }));
     await screen.findByRole('table', { name: 'Opérations du portefeuille' });
     expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
@@ -375,7 +375,6 @@ describe('PortfolioAccountPage', () => {
 
     expect(screen.getByRole('link', { name: 'Espèces' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('heading', { name: 'Solde espèces' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Répartition' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Valeur totale' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Effet espèces' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
@@ -397,7 +396,43 @@ describe('PortfolioAccountPage', () => {
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 
-  it('opens the Valorisations tab after Espèces from ?tab=valuations', async () => {
+  it('orders the tabs and opens Performance by default', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}`);
+    renderPage();
+
+    await screen.findByRole('link', { name: 'Répartition' });
+    const nav = screen.getByRole('navigation', { name: 'Sections du portefeuille' });
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([
+      'Performance',
+      'Espèces',
+      'Positions',
+      'Opérations',
+      'Valorisations',
+      'Répartition',
+    ]);
+    expect(
+      within(nav).getByRole('link', { name: 'Performance' }).getAttribute('aria-current'),
+    ).toBe('page');
+  });
+
+  it('shows the allocation in its own tab and retries when it fails', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=allocation`);
+    api.readPortfolioAllocation.mockImplementationOnce(() => problem(500, {}));
+    renderPage();
+
+    expect(await screen.findByText('La répartition est indisponible')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+    expect(await screen.findByRole('heading', { name: 'Répartition' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Répartition' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+  });
+
+  it('opens the Valorisations tab from ?tab=valuations', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=valuations`);
     api.listPortfolioValuations.mockImplementation(() =>
       ok({ items: [], page: 1, perPage: 24, total: 0 }),
@@ -405,23 +440,22 @@ describe('PortfolioAccountPage', () => {
     renderPage();
 
     expect(await screen.findByText(/Aucune valorisation\. Enregistrez/)).toBeTruthy();
-    const tabs = screen.getAllByRole('link').map((link) => link.textContent);
-    expect(tabs.indexOf('Valorisations')).toBe(tabs.indexOf('Espèces') + 1);
+    expect(screen.getByRole('link', { name: 'Valorisations' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
   });
 
-  it('opens the Espèces tab after Opérations from ?tab=cash', async () => {
+  it('opens the Espèces tab from ?tab=cash', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=cash`);
     api.readPortfolioCash.mockImplementation(() => ok(cashFixture()));
     renderPage();
 
     expect(await screen.findByRole('table', { name: 'Mouvements d’espèces' })).toBeTruthy();
-    const tabs = screen.getAllByRole('link').map((link) => link.textContent);
-    expect(tabs.indexOf('Espèces')).toBe(tabs.indexOf('Opérations') + 1);
     expect(screen.getByRole('link', { name: 'Espèces' }).getAttribute('aria-current')).toBe('page');
   });
 
-  it('switches from the default positions tab before opening the global create action', async () => {
-    window.history.replaceState({}, '', `/portfolios/${accountId}`);
+  it('switches from the positions tab before opening the global create action', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
     renderPage();
 
     await screen.findByText('Aucune position à cette date');
@@ -438,7 +472,7 @@ describe('PortfolioAccountPage', () => {
   it('uses the workspace day in the positions loading toolbar and live query', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-03-31T22:30:00Z'));
-    window.history.replaceState({}, '', `/portfolios/${accountId}`);
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
     let resolveAccount: ((value: unknown) => void) | undefined;
     api.readAccount.mockImplementation(() => new Promise((done) => (resolveAccount = done)));
 
