@@ -29,3 +29,8 @@
   color: var(--info);
   background: var(--info-soft);
 }
+
+.neutral {
+  color: var(--text-secondary);
+  background: var(--bg-surface-2);
+}

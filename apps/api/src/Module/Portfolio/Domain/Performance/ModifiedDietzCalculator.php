@@ -69,12 +69,14 @@ final class ModifiedDietzCalculator
         }
 
         $average = self::display($denominator->proportion(CalculatedDecimal::one(), $period, self::DISPLAY_SCALE, RoundingMode::HALF_UP));
+        $gainText = PerformanceAmount::canonical($gain, $displayPrecision);
+        $denominatorText = PerformanceAmount::canonical($denominator, $displayPrecision);
         $reason = self::guard($denominator, $invested, $period);
         if (null !== $reason) {
-            return new ModifiedDietz(null, $average, $reason, $weights, $count, [new PerformanceFinding($reason)], $warnings);
+            return new ModifiedDietz(null, $average, $reason, $weights, $count, [new PerformanceFinding($reason)], $warnings, $gainText, $denominatorText);
         }
 
-        return new ModifiedDietz($gain->proportion($period, $denominator, self::SCALE, RoundingMode::HALF_EVEN), $average, null, $weights, $count, [], $warnings);
+        return new ModifiedDietz($gain->proportion($period, $denominator, self::SCALE, RoundingMode::HALF_EVEN), $average, null, $weights, $count, [], $warnings, $gainText, $denominatorText);
     }
 
     /** Guards on the exact average capital A = denominator / T, compared without dividing: A < ratio x invested. */

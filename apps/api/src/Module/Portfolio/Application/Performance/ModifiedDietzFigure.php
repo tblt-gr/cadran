@@ -23,6 +23,8 @@ final readonly class ModifiedDietzFigure
         public array $weights,
         public int $weightCount,
         public ?array $months,
+        public ?string $gain = null,
+        public ?string $denominatorTimesDays = null,
     ) {
     }
 }

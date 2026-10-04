@@ -1,7 +1,7 @@
 import { Icon, type IconName } from '@/components/ui/icon/Icon';
 import styles from './StatusBadge.module.css';
 
-type StatusTone = 'info' | 'negative' | 'positive' | 'warning';
+type StatusTone = 'info' | 'negative' | 'neutral' | 'positive' | 'warning';
 
 interface StatusBadgeProps {
   children: string;

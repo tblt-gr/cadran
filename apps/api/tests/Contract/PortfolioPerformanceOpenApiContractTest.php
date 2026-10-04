@@ -67,6 +67,28 @@ final class PortfolioPerformanceOpenApiContractTest extends TestCase
         foreach (['NO_SIGN_CHANGE', 'NO_ROOT_IN_RANGE', 'MULTIPLE_ROOTS', 'NO_CONVERGENCE', 'TOO_MANY_FLOWS'] as $code) {
             self::assertContains($code, $reasonCodes);
         }
+        $inputs = [
+            'PortfolioGainFigure' => ['startValue', 'endValue', 'netFlows'],
+            'PortfolioModifiedDietzFigure' => ['startValue', 'gain', 'periodDays', 'denominatorTimesDays', 'averageCapital', 'minCapitalRatio'],
+            'PortfolioTimeWeightedFigure' => ['breakpointCount', 'subperiodCount'],
+            'PortfolioMoneyWeightedFigure' => ['workingScale', 'stopWidth', 'maxIterations', 'searchRange', 'flowDayCount'],
+        ];
+        foreach ($inputs as $name => $keys) {
+            $figureSchema = self::map($schemas[$name]);
+            foreach (['methodVersion', 'costPolicy', 'inputs', 'freshness'] as $field) {
+                self::assertContains($field, self::list($figureSchema['required']), $name.' requires '.$field);
+            }
+            $figureInputs = self::map(self::map($figureSchema['properties'])['inputs']);
+            self::assertSame($keys, self::list($figureInputs['required']), $name.' inputs');
+            self::assertFalse($figureInputs['additionalProperties']);
+            self::assertSame(['PERF-1'], self::map(self::map($figureSchema['properties'])['methodVersion'])['enum']);
+            self::assertSame('#/components/schemas/PortfolioPerformanceFreshness', self::map(self::map($figureSchema['properties'])['freshness'])['$ref']);
+        }
+        $freshness = self::map($schemas['PortfolioPerformanceFreshness']);
+        self::assertSame(['start', 'end'], $freshness['required']);
+        $anchor = self::map($schemas['PortfolioAnchorFreshness']);
+        self::assertSame(['date', 'ageDays', 'priceQuality'], $anchor['required']);
+        self::assertSame(['CURRENT', 'STALE', 'NOT_DETAILED', null], self::list(self::map(self::map($anchor['properties'])['priceQuality'])['enum']));
         $problem = self::map(self::map(self::list(self::map($schemas['PortfolioPerformanceProblem'])['allOf'])[1])['properties']);
         foreach (['invalid_performance_scope', 'invalid_performance_period', 'account_not_portfolio', 'performance_range_too_dense'] as $code) {
             self::assertContains($code, self::list(self::map($problem['code'])['enum']));

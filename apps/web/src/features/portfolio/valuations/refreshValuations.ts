@@ -6,6 +6,7 @@ export function refreshValuations(client: QueryClient, accountId: string) {
     client.invalidateQueries({ queryKey: ['portfolio-summary', accountId] }),
     client.invalidateQueries({ queryKey: ['portfolio-allocation', accountId] }),
     client.invalidateQueries({ queryKey: ['portfolio-valuation-history', accountId] }),
+    client.invalidateQueries({ queryKey: ['portfolio-performance', accountId] }),
     client.invalidateQueries({ queryKey: ['portfolios'] }),
     client.invalidateQueries({ queryKey: ['portfolio-valuations', accountId] }),
     client.invalidateQueries({ queryKey: ['portfolio-valuation'] }),

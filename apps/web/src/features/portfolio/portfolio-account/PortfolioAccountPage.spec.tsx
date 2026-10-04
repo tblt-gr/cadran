@@ -7,6 +7,7 @@ import { positionsValuationFixture } from '@/features/portfolio/valuations/valua
 import { cashFixture } from '@/features/portfolio/cash/cashFixtures';
 import { operationFixture } from './operations/operations-table/operationFixtures';
 import { summaryFixture, allocationFixture } from './overviewFixtures';
+import { performanceFixture } from '@/features/portfolio/performance/performanceFixtures';
 import { historyFixture } from './value-history-card/valueHistoryFixtures';
 import { PortfolioAccountPage } from './PortfolioAccountPage';
 
@@ -21,6 +22,7 @@ const api = vi.hoisted(() => ({
   listProducts: vi.fn(),
   readPortfolioCash: vi.fn(),
   readPortfolioSummary: vi.fn(),
+  readPortfolioPerformance: vi.fn(),
   readPortfolioAllocation: vi.fn(),
   readPortfolioValuationHistory: vi.fn(),
   readPortfolioValuation: vi.fn(),
@@ -87,6 +89,7 @@ beforeEach(() => {
   window.history.replaceState({}, '', `/portfolios/${accountId}?tab=operations`);
   api.readPortfolioSummary.mockImplementation(() => ok(summaryFixture()));
   api.readPortfolioAllocation.mockImplementation(() => ok(allocationFixture()));
+  api.readPortfolioPerformance.mockImplementation(() => ok(performanceFixture()));
   api.readPortfolioValuationHistory.mockImplementation(() => ok(historyFixture()));
   api.readAccount.mockImplementation(() => ok(account));
   api.listProducts.mockImplementation(() => ok({ items: [], page: 1, perPage: 100, total: 0 }));
@@ -630,6 +633,21 @@ describe('PortfolioAccountPage', () => {
     expect(call.body.version).toBe(4);
     expect(call.body.reason).toBeNull();
     expect(call.body.operation.grossAmount.value).toBe('1200');
+  });
+
+  it('shows the performance of the year and refreshes it after an operation changes', async () => {
+    api.voidPortfolioOperation.mockImplementation(() => ok(deposit));
+    renderPage();
+    expect(await screen.findByRole('heading', { name: "Performance de l'année" })).toBeTruthy();
+    await screen.findByText('+250,00 €');
+    const before = api.readPortfolioPerformance.mock.calls.length;
+    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    openAction('Annuler');
+    fireEvent.change(await screen.findByLabelText('Motif'), { target: { value: 'Doublon' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler l’opération' }));
+    await waitFor(() =>
+      expect(api.readPortfolioPerformance.mock.calls.length).toBeGreaterThan(before),
+    );
   });
 
   it('voids an operation with a required reason', async () => {

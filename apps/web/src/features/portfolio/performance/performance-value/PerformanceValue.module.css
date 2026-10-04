@@ -1,0 +1,55 @@
+.figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.heading h3 {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+.value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  color: var(--text-primary);
+  font-size: var(--font-size-kpi);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: var(--font-weight-strong);
+  letter-spacing: var(--letter-spacing-kpi);
+  line-height: var(--line-height-tight);
+  overflow-wrap: anywhere;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+.positive {
+  color: var(--positive);
+}
+.negative {
+  color: var(--negative);
+}
+.unit {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-card);
+}
+.secondary {
+  display: flex;
+  align-items: baseline;
+  font-size: var(--font-size-body);
+  gap: var(--spacing-1);
+}
+.valueSkeleton {
+  display: block;
+  width: 7rem;
+  max-width: 100%;
+  height: 1em;
+}
