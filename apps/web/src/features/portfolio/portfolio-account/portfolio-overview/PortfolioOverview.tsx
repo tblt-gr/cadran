@@ -7,7 +7,6 @@ import { OperationsState } from '@/features/portfolio/portfolio-account/operatio
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { PortfolioKpiGrid } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/PortfolioKpiGrid';
 import { PortfolioKpiExplanationModal } from '@/features/portfolio/portfolio-account/kpi-explanation-modal/PortfolioKpiExplanationModal';
-import { PerformanceCard } from '@/features/portfolio/portfolio-account/performance-card/PerformanceCard';
 import type { KpiCode } from '@/features/portfolio/portfolio-account/overviewLabels';
 
 /** Summary first, then the value history. The allocation lives in its own tab. */
@@ -86,13 +85,6 @@ export function PortfolioOverview({
           }}
         />
       )}
-      <PerformanceCard
-        accountId={accountId}
-        asOf={asOf}
-        frozen={frozen}
-        onSource={openSource}
-        sourceReturnFocus={sourceReturnFocus}
-      />
       {history}
       {explaining && summary.data ? (
         <PortfolioKpiExplanationModal

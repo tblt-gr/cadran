@@ -669,21 +669,6 @@ describe('PortfolioAccountPage', () => {
     expect(call.body.operation.grossAmount.value).toBe('1200');
   });
 
-  it('shows the performance of the year and refreshes it after an operation changes', async () => {
-    api.voidPortfolioOperation.mockImplementation(() => ok(deposit));
-    renderPage();
-    expect(await screen.findByRole('heading', { name: "Performance de l'année" })).toBeTruthy();
-    await screen.findByText('+250,00 €');
-    const before = api.readPortfolioPerformance.mock.calls.length;
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
-    openAction('Annuler');
-    fireEvent.change(await screen.findByLabelText('Motif'), { target: { value: 'Doublon' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Annuler l’opération' }));
-    await waitFor(() =>
-      expect(api.readPortfolioPerformance.mock.calls.length).toBeGreaterThan(before),
-    );
-  });
-
   it('voids an operation with a required reason', async () => {
     api.voidPortfolioOperation.mockImplementation(() => ok(deposit));
     renderPage();
