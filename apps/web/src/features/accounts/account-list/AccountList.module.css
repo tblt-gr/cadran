@@ -62,3 +62,8 @@
 .panel tbody tr:last-child td {
   border-bottom: var(--border-none);
 }
+
+.shareSkeleton {
+  width: calc(var(--spacing-12) + var(--spacing-4));
+  height: var(--spacing-4);
+}

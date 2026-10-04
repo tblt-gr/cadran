@@ -627,6 +627,32 @@ final class PortfolioOperationControllerTest extends WebTestCase
         self::assertSame(0, $this->rows('portfolio_operations'));
     }
 
+    public function testVoidCorrectAndReorderRequireTheCsrfToken(): void
+    {
+        $first = $this->record($this->buy(['tradeDate' => '2026-03-02']));
+        $second = $this->record($this->buy(['tradeDate' => '2026-03-02']));
+        $id = self::string($first['id']);
+        $before = $this->connection->fetchAllAssociative('SELECT id, state, version, sequence FROM portfolio_operations ORDER BY id');
+
+        foreach (['invalid', null] as $token) {
+            if (null === $token) {
+                $this->client->getCookieJar()->clear();
+                $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', '');
+            } else {
+                $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', $token);
+            }
+            $this->send('POST', '/api/v1/portfolio-operations/'.$id.'/void', ['version' => 1, 'reason' => 'Doublon']);
+            self::assertResponseStatusCodeSame(403, 'void');
+            $this->send('POST', '/api/v1/portfolio-operations/'.$id.'/correct', ['version' => 1, 'operation' => $this->buy()]);
+            self::assertResponseStatusCodeSame(403, 'correct');
+            $this->send('PUT', $this->path('/order'), ['tradeDate' => '2026-03-02', 'operationIds' => [$second['id'], $first['id']]]);
+            self::assertResponseStatusCodeSame(403, 'reorder');
+        }
+
+        self::assertSame($before, $this->connection->fetchAllAssociative('SELECT id, state, version, sequence FROM portfolio_operations ORDER BY id'));
+        self::assertSame(0, $this->rows("audit_events WHERE event_type IN ('portfolio_operation.voided', 'portfolio_operation.corrected', 'portfolio_operation.reordered')"));
+    }
+
     public function testPositionsAndLotsExposeTheReferenceReplayAtCurrentAndPastDates(): void
     {
         $this->record($this->buy(['tradeDate' => '2026-03-01', 'quantity' => '10', 'unitPrice' => '100', 'grossAmount' => $this->eur('1000.00'), 'fees' => $this->eur('2.00')]));

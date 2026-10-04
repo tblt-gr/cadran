@@ -44,4 +44,20 @@ describe('OccurrenceTimeline', () => {
 
     expect(await screen.findAllByText(/Mois clôturé/)).toHaveLength(1);
   });
+
+  it('keeps the table headers as text over a skeleton while the occurrences load', () => {
+    api.listRecurrenceOccurrences.mockReturnValue(new Promise(() => undefined));
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <OccurrenceTimeline close={() => {}} recurrence={recurrence} />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByTestId('occurrence-timeline-skeleton').getAttribute('aria-busy')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('columnheader', { name: 'Montant attendu' })).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('heading', { name: 'Loyer' })).toBeTruthy();
+  });
 });

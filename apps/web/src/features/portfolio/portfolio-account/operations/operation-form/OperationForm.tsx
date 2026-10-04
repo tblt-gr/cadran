@@ -4,7 +4,6 @@ import type {
   PortfolioOperationType,
 } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
-import { InstrumentPicker } from '@/features/portfolio/instrument-picker/InstrumentPicker';
 import {
   operationFieldErrors,
   operationSaveMessage,
@@ -16,7 +15,9 @@ import {
 import { LinkedTransferField } from './LinkedTransferField';
 import { OperationDecimalField } from './OperationDecimalField';
 import { OperationField } from './OperationField';
+import { OperationInstrumentField } from './operation-instrument-field/OperationInstrumentField';
 import { OperationPreviewLine } from './OperationPreviewLine';
+import { OperationRatioFields } from './operation-ratio-fields/OperationRatioFields';
 import { hasField } from './operationMatrix';
 import {
   buildOperationRequest,
@@ -127,19 +128,13 @@ export function OperationForm({
           />
         </OperationField>
         {has('instrument') ? (
-          <div className={styles.picker}>
-            <InstrumentPicker
-              currencyCode={account.assetCode}
-              label="Instrument"
-              onChange={(item) => set('instrument', item ? { id: item.id, name: item.name } : null)}
-              value={values.instrument}
-            />
-            {errors.instrument ? (
-              <small className={styles.error} role="alert">
-                {errors.instrument}
-              </small>
-            ) : null}
-          </div>
+          <OperationInstrumentField
+            currencyCode={account.assetCode}
+            error={errors.instrument}
+            label="Instrument"
+            onChange={(item) => set('instrument', item)}
+            value={values.instrument}
+          />
         ) : null}
         {decimal('quantity', 'Quantité')}
         {decimal('unitPrice', 'Prix unitaire')}
@@ -156,21 +151,13 @@ export function OperationForm({
           />
         ) : null}
         {has('counterInstrument') ? (
-          <div className={styles.picker}>
-            <InstrumentPicker
-              currencyCode={account.assetCode}
-              label="Instrument reçu"
-              onChange={(item) =>
-                set('counterInstrument', item ? { id: item.id, name: item.name } : null)
-              }
-              value={values.counterInstrument}
-            />
-            {errors.counterInstrument ? (
-              <small className={styles.error} role="alert">
-                {errors.counterInstrument}
-              </small>
-            ) : null}
-          </div>
+          <OperationInstrumentField
+            currencyCode={account.assetCode}
+            error={errors.counterInstrument}
+            label="Instrument reçu"
+            onChange={(item) => set('counterInstrument', item)}
+            value={values.counterInstrument}
+          />
         ) : null}
         {has('counterQuantity') ? (
           <OperationDecimalField
@@ -181,24 +168,13 @@ export function OperationForm({
           />
         ) : null}
         {has('ratio') ? (
-          <fieldset className={styles.ratio}>
-            <legend>Ratio de division</legend>
-            <OperationDecimalField
-              label="Numérateur du ratio"
-              onChange={(value) => set('ratioNumerator', value)}
-              value={values.ratioNumerator}
-            />
-            <OperationDecimalField
-              label="Dénominateur du ratio"
-              onChange={(value) => set('ratioDenominator', value)}
-              value={values.ratioDenominator}
-            />
-            {errors.ratio ? (
-              <small className={styles.error} role="alert">
-                {errors.ratio}
-              </small>
-            ) : null}
-          </fieldset>
+          <OperationRatioFields
+            denominator={values.ratioDenominator}
+            error={errors.ratio}
+            numerator={values.ratioNumerator}
+            onDenominatorChange={(value) => set('ratioDenominator', value)}
+            onNumeratorChange={(value) => set('ratioNumerator', value)}
+          />
         ) : null}
         {has('costAllocationRatio') ? (
           <OperationDecimalField

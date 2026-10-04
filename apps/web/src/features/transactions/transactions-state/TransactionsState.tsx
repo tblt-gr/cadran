@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './TransactionsState.module.css';
 
 export type TransactionsStateKind =
-  'loading' | 'error' | 'unauthorized' | 'empty' | 'queueEmpty' | 'impossible';
+  'error' | 'unauthorized' | 'empty' | 'queueEmpty' | 'impossible';
 
 interface TransactionsStateProps {
   /** Hides the empty state's create action where creation is not available (a closed or archived account). */
@@ -21,14 +21,6 @@ export function TransactionsState({
   onRetry,
 }: TransactionsStateProps) {
   const { t } = useTranslation();
-
-  if (kind === 'loading') {
-    return (
-      <section aria-busy="true" className={`card ${styles.state}`} role="status">
-        <h2>{t('transactions.loading')}</h2>
-      </section>
-    );
-  }
 
   if (kind === 'empty') {
     return (

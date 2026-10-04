@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { latestValuationDay } from '@/features/dashboard/net-worth/latestValuationDay';
 import { useNetWorth } from '@/features/dashboard/net-worth/useNetWorth';
@@ -13,13 +14,13 @@ export function DashboardContextPanel() {
   const netWorth = useNetWorth();
 
   let tone: FreshnessTone = 'warning';
-  let badge: string;
-  let description: string;
+  const pending = netWorth.isPending;
+  let badge = '';
+  let description = '';
 
-  if (netWorth.isPending) {
+  // While pending, the badge and the detail are skeleton blocks; the static chrome stays real text.
+  if (pending) {
     tone = 'info';
-    badge = t('dashboard.netWorth.loading');
-    description = t('states.loading.title');
   } else if (netWorth.isError || netWorth.data === undefined) {
     // An outage is not a missing valuation. Saying so would hide a server
     // failure behind a data-quality warning.
@@ -43,7 +44,14 @@ export function DashboardContextPanel() {
           <h2 id="quality-title">{t('dashboard.quality.title')}</h2>
           <p>{t('dashboard.quality.description')}</p>
         </div>
-        <StatusBadge tone={tone}>{badge}</StatusBadge>
+        {pending ? (
+          <>
+            <SkeletonStatus>{t('dashboard.netWorth.loading')}</SkeletonStatus>
+            <SkeletonBlock className={styles.badgeSkeleton} data-testid="context-panel-skeleton" />
+          </>
+        ) : (
+          <StatusBadge tone={tone}>{badge}</StatusBadge>
+        )}
       </div>
 
       <section className={styles.item}>
@@ -52,7 +60,14 @@ export function DashboardContextPanel() {
         </div>
         <div>
           <h3>{t('states.stale.title')}</h3>
-          <p>{description}</p>
+          {pending ? (
+            <SkeletonBlock
+              className={styles.descriptionSkeleton}
+              data-testid="context-panel-skeleton"
+            />
+          ) : (
+            <p>{description}</p>
+          )}
         </div>
       </section>
 

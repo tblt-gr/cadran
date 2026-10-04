@@ -153,6 +153,17 @@ describe('DashboardPage', () => {
     vi.resetAllMocks();
   });
 
+  it('keeps the quality panel title as text and holds its badge and detail with skeleton blocks', () => {
+    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
+    api.readNetWorthHistory.mockImplementation(() => new Promise(() => undefined));
+    renderDashboard();
+
+    const panel = screen.getByRole('complementary');
+    expect(within(panel).getByRole('heading', { name: 'Qualité des données' })).toBeTruthy();
+    expect(within(panel).getAllByTestId('context-panel-skeleton').length).toBeGreaterThan(0);
+    expect(within(panel).queryByText('Chargement…')).toBeNull();
+  });
+
   it('replaces its one named cold-load skeleton and keeps data during a refetch', async () => {
     let resolveNetWorth:
       ((value: Awaited<ReturnType<typeof success<NetWorth>>>) => void) | undefined;

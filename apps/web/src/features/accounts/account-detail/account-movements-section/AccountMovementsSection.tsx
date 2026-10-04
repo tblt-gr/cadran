@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { TransactionListFooter } from '@/features/transactions/transaction-list/TransactionListFooter';
 import { TransactionsState } from '@/features/transactions/transactions-state/TransactionsState';
 import { formatCalendarMonth } from '@/lib/decimal';
+import { AccountMovementsTableSkeleton } from '@/features/accounts/account-detail/account-movements/AccountMovementsTableSkeleton';
 import { AccountMovementsTable } from '@/features/accounts/account-detail/account-movements/AccountMovementsTable';
 import styles from './AccountMovementsSection.module.css';
 
@@ -62,12 +63,7 @@ export function AccountMovementsSection({
       </div>
 
       {transactions.isPending ? (
-        <TransactionsState
-          canCreate={canCreate}
-          kind="loading"
-          onCreate={onCreate}
-          onRetry={() => void transactions.refetch()}
-        />
+        <AccountMovementsTableSkeleton />
       ) : transactions.isError && !staleCursorError ? (
         <TransactionsState
           canCreate={canCreate}

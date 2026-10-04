@@ -394,6 +394,18 @@ describe('AccountsPage', () => {
     vi.clearAllMocks();
   });
 
+  it('holds the share column with skeleton blocks while the net worth read is pending', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+    );
+    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+
+    expect(await screen.findByText(account.label)).toBeTruthy();
+    expect(screen.getAllByTestId('account-share-skeleton')).toHaveLength(1);
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+  });
+
   it('covers the empty state and creates an account described by hand', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [], page: 1, perPage: 50, total: 0 }),

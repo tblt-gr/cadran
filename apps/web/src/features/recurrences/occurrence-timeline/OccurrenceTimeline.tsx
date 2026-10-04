@@ -2,6 +2,7 @@ import { listRecurrenceOccurrences, type Recurrence } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { formatAmount, formatCalendarDay } from '@/lib/decimal';
@@ -34,8 +35,35 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
         eyebrow={t('recurrences.occurrences.eyebrow')}
         title={t('recurrences.occurrences.title', { label: recurrence.label })}
       >
-        <section aria-busy="true" className={`card ${styles.state}`} role="status">
-          <h3>{t('recurrences.occurrences.loading')}</h3>
+        <section
+          aria-busy="true"
+          className={styles.panel}
+          data-testid="occurrence-timeline-skeleton"
+        >
+          <SkeletonStatus>{t('recurrences.occurrences.loading')}</SkeletonStatus>
+          <div className={styles.heading}>
+            <div>
+              <p>{t('recurrences.occurrences.eyebrow')}</p>
+              <h3>{recurrence.label}</h3>
+            </div>
+            <span>{t('recurrences.occurrences.readOnly')}</span>
+          </div>
+          <div className={styles.tableScroll}>
+            <table>
+              <caption className="sr-only">
+                {t('recurrences.occurrences.caption', { label: recurrence.label })}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">{t('recurrences.occurrences.date')}</th>
+                  <th scope="col">{t('recurrences.fields.amount')}</th>
+                  <th scope="col">{t('recurrences.occurrences.status')}</th>
+                  <th scope="col">{t('recurrences.occurrences.match')}</th>
+                </tr>
+              </thead>
+              <SkeletonTableRows columns={4} rows={4} />
+            </table>
+          </div>
         </section>
       </Modal>
     );

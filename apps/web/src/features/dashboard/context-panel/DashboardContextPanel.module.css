@@ -110,3 +110,13 @@
     border: var(--border-none);
   }
 }
+
+.badgeSkeleton {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--spacing-6);
+}
+
+.descriptionSkeleton {
+  width: 100%;
+  height: var(--spacing-4);
+}
