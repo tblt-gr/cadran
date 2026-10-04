@@ -63,6 +63,11 @@ export function PortfolioAccountCard({
           </StatusBadge>
         </>
       ) : null}
+      {account && account.dueMonths.length > 0 ? (
+        <StatusBadge icon="alert" tone="warning">
+          Fin de mois à saisir
+        </StatusBadge>
+      ) : null}
       {account ? (
         <ValuationFallbackNotice
           selected={account.latestValuation}

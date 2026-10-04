@@ -12,6 +12,8 @@ use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 
 final readonly class ListPortfolios
 {
+    public const int MAX_ACCOUNTS = 50;
+
     public function __construct(
         private CallerWorkspaceContext $caller,
         private ListPortfolioAccounts $accounts,
@@ -19,6 +21,7 @@ final readonly class ListPortfolios
         private PortfolioOverviewQuery $query,
         private PortfolioOperationRepository $operations,
         private ReconcilePortfolioPositions $positions,
+        private PortfolioDueMonths $dueMonths,
     ) {
     }
 
@@ -28,8 +31,10 @@ final readonly class ListPortfolios
         $workspace = $this->caller->resolveContext()->workspace;
         $accounts = ($this->accounts)($workspace);
         $today = $this->calendar->today();
+        $shown = array_slice($accounts, 0, self::MAX_ACCOUNTS);
+        $due = ($this->dueMonths)($workspace, $shown, $today);
         $items = [];
-        foreach (array_slice($accounts, 0, 50) as $account) {
+        foreach ($shown as $account) {
             [, , $view, $newerPartial] = ($this->query)($account->id, null);
             $count = 0;
             foreach (($this->positions)($workspace, $account->id, $today)->positions as $position) {
@@ -42,9 +47,9 @@ final readonly class ListPortfolios
                 'latestValuation' => PortfolioOverviewQuery::valuation($view, $today),
                 'newerPartialValuation' => PortfolioOverviewQuery::valuation($newerPartial, $today),
                 'currentCash' => CashLedger::replay([], $this->operations->activeForAccount($workspace, $account->id, $today))->closingBalance->toString(),
-                'positionCount' => $count];
+                'positionCount' => $count, 'dueMonths' => $due[$account->id] ?? []];
         }
 
-        return ['items' => $items, 'truncated' => count($accounts) > 50];
+        return ['items' => $items, 'truncated' => count($accounts) > self::MAX_ACCOUNTS];
     }
 }

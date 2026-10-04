@@ -1,6 +1,6 @@
 import type { Account, PortfolioOperation } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { positionsValuationFixture } from '@/features/portfolio/valuations/valuationFixtures';
@@ -22,6 +22,7 @@ const api = vi.hoisted(() => ({
   readPortfolioSummary: vi.fn(),
   readPortfolioAllocation: vi.fn(),
   readPortfolioValuation: vi.fn(),
+  readPortfolioValuationDraft: vi.fn(),
   previewPortfolioOperation: vi.fn(),
   readAccount: vi.fn(),
   readPortfolioOperation: vi.fn(),
@@ -260,6 +261,32 @@ describe('PortfolioAccountPage', () => {
     renderPage();
     await screen.findByText(/Gain/);
     expect(screen.queryByText(/dernières valeurs complètes/)).toBeNull();
+  });
+
+  it('shows one reminder per due month and opens the valuation modal from it', async () => {
+    api.readPortfolioSummary.mockImplementation(() =>
+      ok({ ...summaryFixture(), dueMonths: ['2026-02', '2026-03'] }),
+    );
+    api.listPortfolioValuations.mockImplementation(() =>
+      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+    );
+    api.readPortfolioValuationDraft.mockImplementation(() =>
+      ok({
+        valuedOn: '2026-02-28',
+        derivedCash: { value: '100', assetCode: 'EUR' },
+        suggestedDetail: 'TOTAL',
+        lastTotal: null,
+        currentValuation: null,
+        positions: [],
+      }),
+    );
+    renderPage();
+    expect(await screen.findByText('Valorisation de fin février à saisir')).toBeTruthy();
+    expect(screen.getByText('Valorisation de fin mars à saisir')).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('link', { name: 'Saisir la valorisation' })[0]!);
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByText(/Espèces calculées/);
+    expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-02-28');
   });
 
   it('propagates the selected date to every read and keeps it when switching tabs', async () => {

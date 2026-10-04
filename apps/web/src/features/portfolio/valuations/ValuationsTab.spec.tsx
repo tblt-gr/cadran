@@ -9,12 +9,14 @@ import {
   totalValuationFixture,
   valuationPageFixture,
 } from './valuationFixtures';
+import { summaryFixture } from '@/features/portfolio/portfolio-account/overviewFixtures';
 import { ValuationsTab } from './ValuationsTab';
 import { ValuationPositionsTable } from './valuation-detail-modal/ValuationPositionsTable';
 
 const api = vi.hoisted(() => ({
   getSession: vi.fn(),
   listPortfolioValuations: vi.fn(),
+  readPortfolioSummary: vi.fn(),
   readPortfolioValuation: vi.fn(),
   readPortfolioValuationDraft: vi.fn(),
   recordPortfolioValuation: vi.fn(),
@@ -80,7 +82,11 @@ async function openRecordModal() {
   return dialog;
 }
 
+const withDue = (dueMonths: string[]) =>
+  api.readPortfolioSummary.mockImplementation(() => ok({ ...summaryFixture(), dueMonths }));
+
 beforeEach(() => {
+  withDue([]);
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-03-10T10:00:00Z') });
   api.listPortfolioValuations.mockImplementation(() => ok(valuationPageFixture()));
   api.readPortfolioValuationDraft.mockImplementation(() => ok(draftFixture()));
@@ -88,8 +94,69 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  window.history.replaceState({}, '', '/');
   vi.useRealTimers();
   vi.clearAllMocks();
+});
+
+describe('ValuationsTab month end', () => {
+  it('opens the draft of the chosen due month on its last day', async () => {
+    withDue(['2026-01', '2026-02']);
+    api.readPortfolioValuationDraft.mockImplementation(() =>
+      ok(draftFixture({ valuedOn: '2026-02-28', suggestedDetail: 'POSITIONS' })),
+    );
+    renderTab();
+    await loaded();
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: 'Valoriser une fin de mois' }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(false),
+    );
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Janvier 2026',
+      'Février 2026',
+    ]);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Mois à valoriser' }), {
+      target: { value: '2026-02' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Valoriser une fin de mois' }));
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByText(/Espèces calculées/);
+    expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-02-28');
+    expect(
+      (within(dialog).getByRole('radio', { name: 'Détail par ligne' }) as HTMLInputElement).checked,
+    ).toBe(true);
+  });
+
+  it('opens the modal from a valid deep link and not from a non-due month', async () => {
+    window.history.replaceState({}, '', '/portfolios/acc-1?tab=valuations&monthEnd=2026-02');
+    withDue(['2026-02']);
+    renderTab();
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByText(/Espèces calculées/);
+    expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-02-28');
+    expect(
+      (within(dialog).getByRole('radio', { name: 'Valeur totale' }) as HTMLInputElement).checked,
+    ).toBe(true);
+    expect(window.location.search).toBe('?tab=valuations');
+    cleanup();
+
+    window.history.replaceState({}, '', '/portfolios/acc-1?tab=valuations&monthEnd=2026-03');
+    renderTab();
+    await loaded();
+    await waitFor(() => expect(api.readPortfolioSummary).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(window.location.search).toBe('?tab=valuations'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('ignores a malformed deep link month', async () => {
+    window.history.replaceState({}, '', '/portfolios/acc-1?tab=valuations&monthEnd=abc');
+    withDue(['2026-02']);
+    renderTab();
+    await loaded();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
 });
 
 describe('ValuationsTab', () => {

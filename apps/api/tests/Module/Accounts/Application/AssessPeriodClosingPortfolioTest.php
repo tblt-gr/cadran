@@ -55,21 +55,22 @@ final class AssessPeriodClosingPortfolioTest extends TestCase
     {
         $blockers = $this->assess($this->quietFacts(), []);
 
-        self::assertSame([PeriodClosingCondition::UNRECONCILED_ACCOUNT], array_map(static fn (PeriodClosingBlocker $blocker): PeriodClosingCondition => $blocker->condition, $blockers));
+        self::assertSame([PeriodClosingCondition::MISSING_PORTFOLIO_VALUATION], array_map(static fn (PeriodClosingBlocker $blocker): PeriodClosingCondition => $blocker->condition, $blockers));
     }
 
     public function testAManualHistoricalBalanceInTheMonthDoesNotReconcileAPortfolioAccount(): void
     {
         $blockers = $this->assess($this->quietFacts(), [$this->snapshot(BalanceSnapshotSource::MANUAL, '2026-08-31', ReconciliationStatus::RECONCILED)]);
 
-        self::assertSame([PeriodClosingCondition::UNRECONCILED_ACCOUNT], array_map(static fn (PeriodClosingBlocker $blocker): PeriodClosingCondition => $blocker->condition, $blockers));
+        self::assertSame([PeriodClosingCondition::MISSING_PORTFOLIO_VALUATION], array_map(static fn (PeriodClosingBlocker $blocker): PeriodClosingCondition => $blocker->condition, $blockers));
     }
 
     public function testAValuationOfAnEarlierMonthDoesNotReconcileTheMonth(): void
     {
         $blockers = $this->assess($this->quietFacts(), [$this->snapshot(BalanceSnapshotSource::CALCULATED, '2026-07-31', ReconciliationStatus::RECONCILED)]);
 
-        self::assertCount(1, $blockers);
+        self::assertSame([PeriodClosingCondition::MISSING_PORTFOLIO_VALUATION], array_map(static fn (PeriodClosingBlocker $blocker): PeriodClosingCondition => $blocker->condition, $blockers));
+        self::assertSame(1, $blockers[0]->count);
     }
 
     /**

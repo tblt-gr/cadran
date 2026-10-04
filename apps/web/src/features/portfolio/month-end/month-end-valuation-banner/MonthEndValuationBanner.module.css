@@ -1,0 +1,38 @@
+.banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+}
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+.action {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.error {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+}
+.skeleton {
+  width: 16rem;
+  max-width: 100%;
+  height: 1.75rem;
+}
+@media (max-width: 42rem) {
+  .line {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .action {
+    justify-content: center;
+  }
+}

@@ -6,7 +6,12 @@ import styles from './ValuationsTab.module.css';
 export function ValuationsTabSkeleton({ status }: { status: string }) {
   return (
     <div className={styles.tab}>
-      <ValuationsToolbar disabled onCreate={() => undefined} />
+      <ValuationsToolbar
+        disabled
+        dueMonths={null}
+        onCreate={() => undefined}
+        onMonthEnd={() => undefined}
+      />
       <ValuationsTableSkeleton status={status} />
     </div>
   );

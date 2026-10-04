@@ -62,12 +62,12 @@ function session(role: 'OWNER' | null) {
   );
 }
 
-function renderPanel() {
+function renderPanel(close = vi.fn()) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
     ...render(
       <QueryClientProvider client={queryClient}>
-        <PeriodClosurePanel close={vi.fn()} initialPeriod="2026-08" />
+        <PeriodClosurePanel close={close} initialPeriod="2026-08" />
       </QueryClientProvider>,
     ),
     queryClient,
@@ -218,6 +218,41 @@ describe('PeriodClosurePanel', () => {
               PENDING_TRANSACTIONS: 'Carte différée',
             },
           },
+        }),
+      ),
+    );
+  });
+
+  it('labels the missing portfolio valuation and links to the portfolios', async () => {
+    api.readPeriodStatus.mockResolvedValue(
+      ok(status({ blockers: [{ condition: 'MISSING_PORTFOLIO_VALUATION', count: 2 }] })),
+    );
+    api.closePeriod.mockResolvedValue(ok(closure, 201));
+    const close = vi.fn();
+    renderPanel(close);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Clôturer le mois' }));
+    const dialog = await screen.findByRole('dialog', { name: /Clôturer/ });
+    expect(
+      within(dialog).getByRole('group', {
+        name: 'Je confirme clôturer avec 2 portefeuille(s) sans valorisation de fin de mois.',
+      }),
+    ).toBeTruthy();
+    const link = within(dialog).getByRole('link', { name: 'Voir les portefeuilles' });
+    expect(link.getAttribute('href')).toBe('/portfolios');
+    fireEvent.click(link);
+    expect(window.location.pathname).toBe('/portfolios');
+    expect(close).toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole('checkbox'));
+    fireEvent.change(within(dialog).getByLabelText(/Motif.*valorisation/i), {
+      target: { value: 'Relevé en attente' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmer la clôture' }));
+    await waitFor(() =>
+      expect(api.closePeriod).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { overrides: { MISSING_PORTFOLIO_VALUATION: 'Relevé en attente' } },
         }),
       ),
     );

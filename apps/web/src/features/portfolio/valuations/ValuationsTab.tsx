@@ -4,6 +4,8 @@ import { useEffect, useState, type RefObject } from 'react';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
+import { lastDayOfMonth, parseMonthEnd } from '@/features/portfolio/month-end/monthEnd';
+import { usePortfolioSummary } from '@/features/portfolio/usePortfolioOverview';
 import { ValuationDetailModal } from './valuation-detail-modal/ValuationDetailModal';
 import { ValuationModal } from './valuation-modal/ValuationModal';
 import { ValuationsTable } from './valuations-table/ValuationsTable';
@@ -14,12 +16,16 @@ import { VALUATIONS_PER_PAGE, useValuations } from './useValuations';
 import styles from './ValuationsTab.module.css';
 
 type Dialog =
-  | { kind: 'record' }
+  | { kind: 'record'; valuedOn?: string }
   | { kind: 'replace'; valuation: PortfolioValuationSummary }
   | { kind: 'withdraw'; valuation: PortfolioValuationSummary }
   | null;
 
 /** The Valorisations tab: dated valuations of the account and the record, replace and withdraw modals. */
+function requestedMonthEnd(): string | null {
+  return parseMonthEnd(new URLSearchParams(window.location.search).get('monthEnd'));
+}
+
 export function ValuationsTab({
   account,
   asOf,
@@ -37,15 +43,38 @@ export function ValuationsTab({
     new URLSearchParams(window.location.search).get('valuation'),
   );
   const [stale, setStale] = useState(false);
+  const [monthEnd, setMonthEnd] = useState(requestedMonthEnd);
   const valuations = useValuations(account.id, page, asOf);
+  const summary = usePortfolioSummary(account.id, asOf ?? today);
+  const dueMonths = summary.isSuccess ? summary.data.dueMonths : null;
   const total = valuations.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / VALUATIONS_PER_PAGE));
 
   useEffect(() => {
-    const update = () => setDetailId(new URLSearchParams(window.location.search).get('valuation'));
+    const update = () => {
+      setDetailId(new URLSearchParams(window.location.search).get('valuation'));
+      setMonthEnd(requestedMonthEnd());
+    };
     window.addEventListener('popstate', update);
     return () => window.removeEventListener('popstate', update);
   }, []);
+
+  // The deep link is consumed once the due months are known: a due month opens its draft,
+  // any other month leaves the tab alone. Clearing it keeps a closed modal from reopening.
+  useEffect(() => {
+    if (monthEnd === null || dueMonths === null) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('monthEnd');
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+    setMonthEnd(null);
+    if (dueMonths.includes(monthEnd)) {
+      setDialog({ kind: 'record', valuedOn: lastDayOfMonth(monthEnd) });
+    }
+  }, [dueMonths, monthEnd]);
 
   useEffect(() => {
     if (total > 0 && page > totalPages) setPage(totalPages);
@@ -55,7 +84,9 @@ export function ValuationsTab({
     <div className={styles.tab}>
       <ValuationsToolbar
         disabled={account.status !== 'ACTIVE'}
+        dueMonths={dueMonths}
         onCreate={() => setDialog({ kind: 'record' })}
+        onMonthEnd={(month) => setDialog({ kind: 'record', valuedOn: lastDayOfMonth(month) })}
       />
       {stale ? (
         <p className={styles.notice} role="status">
@@ -112,6 +143,7 @@ export function ValuationsTab({
       {dialog?.kind === 'record' || dialog?.kind === 'replace' ? (
         <ValuationModal
           account={account}
+          initialDate={dialog.kind === 'record' ? dialog.valuedOn : undefined}
           onClose={() => setDialog(null)}
           onSaved={(saved) => {
             setDialog(null);

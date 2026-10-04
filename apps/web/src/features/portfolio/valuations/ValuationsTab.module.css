@@ -10,6 +10,12 @@
   flex-wrap: wrap;
   gap: var(--spacing-4);
 }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+}
 .note {
   margin: var(--spacing-none);
   color: var(--text-secondary);
@@ -26,4 +32,15 @@
   color: var(--text-secondary);
   font-size: var(--font-size-label);
   gap: var(--spacing-4);
+}
+@media (max-width: 42rem) {
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .actions > button {
+    justify-content: center;
+    width: 100%;
+  }
 }

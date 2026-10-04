@@ -39,12 +39,15 @@ export function ValuationModal({
   account,
   onClose,
   onSaved,
+  initialDate,
   onStale,
   replacing,
   today,
 }: {
   account: Pick<Account, 'id' | 'assetCode'>;
   onClose: () => void;
+  /** Skips the date step: the draft opens at once on this date (a due month end). */
+  initialDate?: string;
   onSaved: (valuation: PortfolioValuation) => void;
   onStale: () => void;
   /** The row the user clicked: its version, not the draft's, is the one to supersede. */
@@ -52,8 +55,10 @@ export function ValuationModal({
   today: string;
 }) {
   const client = useQueryClient();
-  const [valuedOn, setValuedOn] = useState(replacing?.valuedOn ?? today);
-  const [confirmed, setConfirmed] = useState<string | null>(replacing?.valuedOn ?? null);
+  const [valuedOn, setValuedOn] = useState(replacing?.valuedOn ?? initialDate ?? today);
+  const [confirmed, setConfirmed] = useState<string | null>(
+    replacing?.valuedOn ?? initialDate ?? null,
+  );
   const draft = useValuationDraft(account.id, confirmed);
   const attempt = useRef<{ body: string; key: string } | null>(null);
   const save = useMutation({

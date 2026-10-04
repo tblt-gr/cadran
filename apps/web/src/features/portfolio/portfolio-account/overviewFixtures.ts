@@ -8,6 +8,7 @@ export function summaryFixture(): PortfolioOverviewSummary {
     truncatedSourceCount: 0,
   };
   return {
+    dueMonths: [],
     newerPartialValuation: null,
     asOf: '2026-03-10',
     account: {
