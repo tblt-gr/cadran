@@ -25,6 +25,7 @@ final class PeriodClosureControllerTest extends WebTestCase
 {
     private const string ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
+    private const string PORTFOLIO_ACCOUNT = '00000000-0000-7000-8000-0000000000d4';
     private const string OPENING = '00000000-0000-7000-8000-0000000000b1';
     private const string CLOSING = '00000000-0000-7000-8000-0000000000b2';
 
@@ -144,6 +145,36 @@ final class PeriodClosureControllerTest extends WebTestCase
         foreach (['5.25', '250.50', '80.25', '12.00', '1165', 'CB TEST'] as $sensitive) {
             self::assertStringNotContainsString($sensitive, $trail);
         }
+    }
+
+    public function testAPortfolioAccountWithoutValuationRaisesItsOwnConditionAndItsOverrideIsAudited(): void
+    {
+        $this->seedAccount(self::PORTFOLIO_ACCOUNT, WorkspaceFixture::OWN_WORKSPACE);
+        $this->connection->executeStatement("UPDATE account_financial_accounts SET kind = 'PORTFOLIO', valuation_mode = 'PORTFOLIO' WHERE id = ?", [self::PORTFOLIO_ACCOUNT]);
+
+        $blockers = $this->call('GET', '/api/v1/periods/2026-04')['blockers'];
+        self::assertIsArray($blockers);
+        self::assertContains(['condition' => 'MISSING_PORTFOLIO_VALUATION', 'count' => 1], $blockers);
+        self::assertContains(['condition' => 'UNRECONCILED_ACCOUNT', 'count' => 1], $blockers, 'only the current account stays unreconciled');
+
+        $this->call('PUT', '/api/v1/periods/2026-04/closure', ['overrides' => [
+            'UNRECONCILED_ACCOUNT' => 'Statement not received yet',
+            'UNEXPLAINED_DISCREPANCY' => 'Bank fee to identify',
+            'PENDING_TRANSACTIONS' => 'Card hold expires next week',
+        ]]);
+        self::assertResponseStatusCodeSame(409);
+
+        $this->call('PUT', '/api/v1/periods/2026-04/closure', ['overrides' => [
+            'UNRECONCILED_ACCOUNT' => 'Statement not received yet',
+            'UNEXPLAINED_DISCREPANCY' => 'Bank fee to identify',
+            'PENDING_TRANSACTIONS' => 'Card hold expires next week',
+            'MISSING_PORTFOLIO_VALUATION' => 'Broker statement arrives Monday',
+        ]]);
+        self::assertResponseStatusCodeSame(201);
+        $trail = $this->connection->fetchOne("SELECT after_json::text FROM audit_events WHERE event_type = 'account_period_closure.closed'");
+        self::assertIsString($trail);
+        self::assertStringContainsString('MISSING_PORTFOLIO_VALUATION', $trail);
+        self::assertStringContainsString('Broker statement arrives Monday', $trail);
     }
 
     public function testAConfirmationMustNameARealBlockingConditionWithAReason(): void

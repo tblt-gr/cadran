@@ -3,6 +3,7 @@ import { BusinessDateField } from '@/components/ui/business-date-field/BusinessD
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { clearPortfolioDetailSelection } from './portfolioDetailLocation';
+import { MonthEndValuationBanner } from '@/features/portfolio/month-end/month-end-valuation-banner/MonthEndValuationBanner';
 import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
@@ -96,6 +97,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   return (
     <div className={styles.page}>
       <PortfolioAccountHeader account={current} accountId={accountId} onCreate={openCreate} />
+      {eligible ? <MonthEndValuationBanner accountId={accountId} asOf={asOf} /> : null}
       <BusinessDateField hint={null} label="Au" onChange={changeDate} today={today} value={asOf} />
       {eligible ? (
         <PortfolioOverview

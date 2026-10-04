@@ -1,0 +1,21 @@
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+.field select {
+  min-width: 10rem;
+  max-width: 100%;
+}
+@media (max-width: 42rem) {
+  .picker {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .picker > * {
+    justify-content: center;
+    width: 100%;
+  }
+}

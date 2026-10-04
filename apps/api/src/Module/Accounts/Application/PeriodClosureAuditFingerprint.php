@@ -37,6 +37,7 @@ final class PeriodClosureAuditFingerprint
                 $fingerprint[match ($condition) {
                     PeriodClosingCondition::UNRECONCILED_ACCOUNT->value => 'reasonUnreconciled',
                     PeriodClosingCondition::UNEXPLAINED_DISCREPANCY->value => 'reasonDiscrepancy',
+                    PeriodClosingCondition::MISSING_PORTFOLIO_VALUATION->value => 'reasonValuation',
                     default => 'reasonPending',
                 }] = $reason;
             }

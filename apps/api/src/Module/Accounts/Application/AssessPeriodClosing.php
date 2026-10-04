@@ -24,7 +24,8 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  * snapshot on or before the last day falls inside the month and is reconciled.
  * A month with no snapshot at all is not reconciled: silence is not a match.
  * A portfolio-mode account is reconciled when its latest snapshot of the month
- * is a CALCULATED one, the figure its valuation publishes.
+ * is a CALCULATED one, the figure its valuation publishes; otherwise it raises
+ * its own condition rather than counting as an unreconciled balance.
  */
 final readonly class AssessPeriodClosing
 {
@@ -51,6 +52,7 @@ final readonly class AssessPeriodClosing
 
         $latest = $this->snapshots->findLatestForAccounts($workspace, array_map(static fn ($account): string => $account->id, $accounts), $last);
         $unreconciled = 0;
+        $missingValuation = 0;
         $toCompare = [];
         foreach ($accounts as $account) {
             $snapshot = $latest[$account->id] ?? null;
@@ -59,7 +61,7 @@ final readonly class AssessPeriodClosing
                 // Valued through its portfolio valuations: only a published CALCULATED figure of the month counts,
                 // and a valuation is not a balance to compare with movements.
                 if (!$inMonth || BalanceSnapshotSource::CALCULATED !== $snapshot->source) {
-                    ++$unreconciled;
+                    ++$missingValuation;
                 }
 
                 continue;
@@ -76,6 +78,7 @@ final readonly class AssessPeriodClosing
             PeriodClosingCondition::UNRECONCILED_ACCOUNT->value => $unreconciled,
             PeriodClosingCondition::UNEXPLAINED_DISCREPANCY->value => self::discrepancies($this->facts, $workspace, $toCompare, $first),
             PeriodClosingCondition::PENDING_TRANSACTIONS->value => $this->facts->pendingTransactionCount($workspace, $first, $last),
+            PeriodClosingCondition::MISSING_PORTFOLIO_VALUATION->value => $missingValuation,
         ];
 
         $blockers = [];

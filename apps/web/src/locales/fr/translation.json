@@ -1820,6 +1820,11 @@
       "PENDING_TRANSACTIONS": {
         "confirm": "Je confirme clôturer avec {{count}} transaction en attente.",
         "reason": "Motif : transactions en attente"
+      },
+      "MISSING_PORTFOLIO_VALUATION": {
+        "confirm": "Je confirme clôturer avec {{count}} portefeuille(s) sans valorisation de fin de mois.",
+        "reason": "Motif : valorisation de portefeuille manquante",
+        "link": "Voir les portefeuilles"
       }
     },
     "close": {

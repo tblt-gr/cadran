@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Application;
 
 use App\Module\Accounts\Application\AccountView;
+use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Portfolio\Domain\Cash\CashLedger;
 use App\Module\Portfolio\Domain\OperationType;
@@ -18,6 +19,8 @@ final readonly class ReadPortfolioSummary
         private PortfolioOverviewQuery $query,
         private PortfolioOperationRepository $operations,
         private ReadPortfolioReconciliation $reconcile,
+        private PortfolioDueMonths $dueMonths,
+        private CallerWorkspaceContext $caller,
     ) {
     }
 
@@ -53,11 +56,14 @@ final readonly class ReadPortfolioSummary
         $deposits = array_values(array_filter($range, static fn (PortfolioOperation $operation): bool => in_array($operation->details->type, [OperationType::DEPOSIT, OperationType::WITHDRAWAL], true)));
         $costs = array_values(array_filter($range, static fn (PortfolioOperation $operation): bool => (null !== $operation->details->fees && !ExactDecimal::isZero($operation->details->fees)) || (null !== $operation->details->taxes && !ExactDecimal::isZero($operation->details->taxes))));
         $accountView = AccountView::fromAccount($account);
+        $workspace = $this->caller->resolveContext()->workspace;
+        $dueMonths = ($this->dueMonths)($workspace, [$accountView], $this->dueMonths->today($workspace))[$accountId] ?? [];
 
         return [
             'asOf' => $to,
             'account' => ['id' => $accountId, 'label' => $account->label, 'institution' => $account->institution,
                 'productCode' => $accountView->productCode, 'assetCode' => $accountView->assetCode, 'status' => $accountView->status, 'openedOn' => $accountView->openedOn],
+            'dueMonths' => $dueMonths,
             'valuation' => $valuation,
             'newerPartialValuation' => $partialMetadata,
             'totalValue' => $view?->valuation->totalValue?->toString(),

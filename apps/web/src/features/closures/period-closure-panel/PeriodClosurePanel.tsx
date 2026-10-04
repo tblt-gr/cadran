@@ -88,6 +88,7 @@ export function PeriodClosurePanel({
           error={close.error}
           failed={close.isError}
           onBack={() => setDialog(null)}
+          onNavigate={closeModal}
           onSubmit={(body) => close.mutate(body)}
           pending={close.isPending}
         />

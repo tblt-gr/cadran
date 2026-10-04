@@ -42,4 +42,13 @@ interface ValuationRepository
      * @return list<ObservedPrice>
      */
     public function observedPrices(WorkspaceScope $workspace, string $accountId, array $instrumentIds, \DateTimeImmutable $onOrBefore): array;
+
+    /**
+     * The `YYYY-MM` keys of the months holding an active COMPLETE valuation, per account, between two days inclusive.
+     *
+     * @param list<string> $accountIds
+     *
+     * @return array<string, list<string>>
+     */
+    public function completeMonths(WorkspaceScope $workspace, array $accountIds, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
 }

@@ -6516,6 +6516,28 @@ paths:
                 $ref: '#/components/schemas/PortfolioOverviewProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/portfolio-valuation-reminders:
+    get:
+      operationId: listPortfolioValuationReminders
+      summary: List the month-end portfolio valuations still to enter
+      description: Computed on every read in the workspace time zone from accounts, valuations and closures; at most 650 items (50 accounts over a 13-month window, so never truncated), oldest month first.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Caller workspace only. Response uses no-store cache control.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationReminders'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{accountId}/portfolio-summary:
     get:
       operationId: readPortfolioSummary
@@ -7016,6 +7038,45 @@ components:
         truncatedSourceCount:
           type: integer
           minimum: 0
+    PortfolioDueMonth:
+      type: string
+      pattern: ^[0-9]{4}-(0[1-9]|1[0-2])$
+    PortfolioValuationReminder:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - accountLabel
+        - month
+        - valuationDate
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        accountLabel:
+          type: string
+        month:
+          $ref: '#/components/schemas/PortfolioDueMonth'
+        valuationDate:
+          description: Last day of the month, the date the valuation form opens on.
+          type: string
+          format: date
+    PortfolioValuationReminders:
+      type: object
+      additionalProperties: false
+      required:
+        - today
+        - items
+      properties:
+        today:
+          description: The workspace calendar day the reminders are computed for.
+          type: string
+          format: date
+        items:
+          type: array
+          maxItems: 650
+          items:
+            $ref: '#/components/schemas/PortfolioValuationReminder'
     PortfolioOverviewAccountCard:
       type: object
       additionalProperties: false
@@ -7030,7 +7091,14 @@ components:
         - currentCash
         - positionCount
         - newerPartialValuation
+        - dueMonths
       properties:
+        dueMonths:
+          description: Months still owed a complete month-end valuation, oldest first, computed on every read.
+          type: array
+          maxItems: 13
+          items:
+            $ref: '#/components/schemas/PortfolioDueMonth'
         newerPartialValuation:
           description: A newer active PARTIAL observation when selected values come from an older COMPLETE valuation; null without fallback.
           oneOf:
@@ -7087,7 +7155,14 @@ components:
         - reconciliation
         - explanations
         - newerPartialValuation
+        - dueMonths
       properties:
+        dueMonths:
+          description: Months still owed a complete month-end valuation, oldest first, computed on every read.
+          type: array
+          maxItems: 13
+          items:
+            $ref: '#/components/schemas/PortfolioDueMonth'
         newerPartialValuation:
           description: A newer active PARTIAL observation when selected values come from an older COMPLETE valuation; null without fallback.
           oneOf:
@@ -15879,6 +15954,7 @@ components:
         - UNRECONCILED_ACCOUNT
         - UNEXPLAINED_DISCREPANCY
         - PENDING_TRANSACTIONS
+        - MISSING_PORTFOLIO_VALUATION
     PeriodClosingBlocker:
       description: One failing condition and how many items raise it. Never an amount or a label.
       type: object
@@ -15990,6 +16066,10 @@ components:
               minLength: 1
               maxLength: 200
             PENDING_TRANSACTIONS:
+              type: string
+              minLength: 1
+              maxLength: 200
+            MISSING_PORTFOLIO_VALUATION:
               type: string
               minLength: 1
               maxLength: 200

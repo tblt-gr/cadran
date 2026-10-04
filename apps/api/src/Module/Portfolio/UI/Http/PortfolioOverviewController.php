@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
+use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Portfolio\Application\CashRangeTooDense;
 use App\Module\Portfolio\Application\ListPortfolios;
 use App\Module\Portfolio\Application\PortfolioAccountNotFound;
+use App\Module\Portfolio\Application\ReadMonthEndValuationReminders;
 use App\Module\Portfolio\Application\ReadPortfolioAllocation;
 use App\Module\Portfolio\Application\ReadPortfolioSummary;
 use App\Module\Portfolio\Domain\Cash\CashReplayFailed;
@@ -31,6 +33,12 @@ final readonly class PortfolioOverviewController
     public function list(ListPortfolios $list): Response
     {
         return $this->execute($list(...));
+    }
+
+    #[Route('/api/v1/portfolio-valuation-reminders', name: 'api_v1_portfolio_valuation_reminders', methods: ['GET'])]
+    public function reminders(CallerWorkspaceContext $caller, ReadMonthEndValuationReminders $read): Response
+    {
+        return $this->execute(static fn (): array => $read($caller->resolveContext()->workspace));
     }
 
     #[Route('/api/v1/accounts/{accountId}/portfolio-summary', name: 'api_v1_portfolio_summary', methods: ['GET'])]

@@ -36,6 +36,7 @@ describe('PortfoliosPage', () => {
             assetCode: 'EUR',
             status: 'ACTIVE',
             latestValuation: valuation,
+            dueMonths: [],
             newerPartialValuation: {
               ...valuation,
               valuedOn: '2026-10-03',
@@ -90,6 +91,7 @@ describe('PortfoliosPage', () => {
             assetCode: 'EUR',
             status: 'ACTIVE',
             latestValuation: null,
+            dueMonths: [],
             newerPartialValuation: null,
             currentCash: '100',
             positionCount: 0,
@@ -112,5 +114,29 @@ describe('PortfoliosPage', () => {
     renderPage();
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeTruthy();
+  });
+
+  it('badges an account that still owes a month-end valuation', async () => {
+    const valuation = { ...summaryFixture().valuation!, valuedOn: '2026-09-30' };
+    const card = (accountId: string, label: string, dueMonths: string[]) => ({
+      accountId,
+      label,
+      institution: null,
+      productCode: null,
+      assetCode: 'EUR',
+      status: 'ACTIVE',
+      latestValuation: valuation,
+      newerPartialValuation: null,
+      dueMonths,
+      currentCash: '100',
+      positionCount: 1,
+    });
+    api.listPortfolios.mockResolvedValue({
+      data: { items: [card('a', 'PEA', ['2026-09']), card('b', 'CTO', [])], truncated: false },
+      response: new Response('{}'),
+    });
+    renderPage();
+    await screen.findByText('PEA');
+    expect(screen.getAllByText('Fin de mois à saisir')).toHaveLength(1);
   });
 });

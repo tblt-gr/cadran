@@ -98,6 +98,25 @@ final readonly class DbalValuationRepository implements ValuationRepository
         return (int) ValuationRow::text($this->connection->fetchOne('SELECT count(*) FROM portfolio_valuations WHERE workspace_id = :workspace_id'.$where, $parameters));
     }
 
+    public function completeMonths(WorkspaceScope $workspace, array $accountIds, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        if ([] === $accountIds) {
+            return [];
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT DISTINCT account_id, to_char(valued_on, 'YYYY-MM') AS month FROM portfolio_valuations WHERE workspace_id = :workspace_id"
+            ." AND account_id IN (:account_ids) AND superseded_at IS NULL AND completeness = 'COMPLETE' AND valued_on >= :from AND valued_on <= :to",
+            ['workspace_id' => $workspace->id, 'account_ids' => $accountIds, 'from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')],
+            ['account_ids' => ArrayParameterType::STRING],
+        );
+        $months = [];
+        foreach ($rows as $row) {
+            $months[ValuationRow::text($row['account_id'] ?? null)][] = ValuationRow::text($row['month'] ?? null);
+        }
+
+        return $months;
+    }
+
     public function observedPrices(WorkspaceScope $workspace, string $accountId, array $instrumentIds, \DateTimeImmutable $onOrBefore): array
     {
         if ([] === $instrumentIds) {

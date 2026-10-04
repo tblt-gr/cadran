@@ -9,6 +9,7 @@ import {
   periodClosureErrorKind,
   type PeriodClosureErrorKind,
 } from '@/features/closures/periodClosureError';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './ClosePeriodForm.module.css';
 
 interface ClosePeriodFormProps {
@@ -16,6 +17,8 @@ interface ClosePeriodFormProps {
   error: unknown;
   failed: boolean;
   onBack: () => void;
+  /** Called after a link leaves for another page, so the closing modal can dismiss itself. */
+  onNavigate?: () => void;
   onSubmit: (body: ClosePeriodRequest) => void;
   pending: boolean;
 }
@@ -29,6 +32,7 @@ export function ClosePeriodForm({
   error,
   failed,
   onBack,
+  onNavigate,
   onSubmit,
   pending,
 }: ClosePeriodFormProps) {
@@ -85,6 +89,17 @@ export function ClosePeriodForm({
                 />
                 <span>{t(`closures.conditions.${condition}.confirm`, { count })}</span>
               </label>
+              {condition === 'MISSING_PORTFOLIO_VALUATION' ? (
+                <a
+                  className={styles.link}
+                  href="/portfolios"
+                  onClick={(event) => {
+                    if (handleClientNavigation(event, '/portfolios')) onNavigate?.();
+                  }}
+                >
+                  {t('closures.conditions.MISSING_PORTFOLIO_VALUATION.link')}
+                </a>
+              ) : null}
               {confirmed.has(condition) ? (
                 <label className={styles.reason}>
                   <span>{t(`closures.conditions.${condition}.reason`)}</span>
