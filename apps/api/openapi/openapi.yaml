@@ -7638,6 +7638,11 @@ components:
             - NEGATIVE_SECURITIES_VALUE
             - PERIOD_IN_PROGRESS
             - DECOMPOSITION_RESIDUAL
+            - NO_INVESTED_CAPITAL
+            - NON_POSITIVE_DENOMINATOR
+            - DENOMINATOR_TOO_SMALL
+            - MONTH_NOT_CALCULABLE
+            - TOO_MANY_PERIODS
         dates:
           type: array
           maxItems: 20
@@ -7754,6 +7759,147 @@ components:
           $ref: '#/components/schemas/PortfolioPerformanceAmount'
         decomposition:
           $ref: '#/components/schemas/PortfolioGainDecomposition'
+    PortfolioModifiedDietzRate:
+      description: >-
+        Six-decimal rate as a decimal string (0.023499 reads 2.3499 %); null when the return cannot be calculated.
+      type:
+        - string
+        - 'null'
+      pattern: ^-?[0-9]+\.[0-9]{6}$
+    PortfolioModifiedDietzWeight:
+      type: object
+      additionalProperties: false
+      required:
+        - operationId
+        - date
+        - amount
+        - remainingDays
+        - weight
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+          pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+        remainingDays:
+          type: string
+          pattern: ^[0-9]+$
+        weight:
+          type: string
+          pattern: ^[0-9]+\.[0-9]{6}$
+    PortfolioModifiedDietzMonth:
+      type: object
+      additionalProperties: false
+      required:
+        - month
+        - value
+        - quality
+        - reasons
+      properties:
+        month:
+          type: string
+          pattern: ^[0-9]{4}-(0[1-9]|1[0-2])$
+        value:
+          $ref: '#/components/schemas/PortfolioModifiedDietzRate'
+        quality:
+          $ref: '#/components/schemas/PortfolioModifiedDietzQuality'
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioPerformanceReason'
+    PortfolioModifiedDietzQuality:
+      description: An approximation by construction, so never EXACT.
+      type: string
+      enum:
+        - APPROXIMATION
+        - DEGRADED
+        - NOT_CALCULABLE
+    PortfolioModifiedDietzFigure:
+      type: object
+      additionalProperties: false
+      required:
+        - value
+        - method
+        - quality
+        - reasons
+        - from
+        - to
+        - days
+        - sources
+        - sourceCount
+        - averageCapital
+        - minCapitalRatio
+        - weights
+        - weightCount
+        - months
+      properties:
+        value:
+          $ref: '#/components/schemas/PortfolioModifiedDietzRate'
+        method:
+          type: string
+          enum:
+            - MODIFIED_DIETZ
+        quality:
+          $ref: '#/components/schemas/PortfolioModifiedDietzQuality'
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioPerformanceReason'
+        from:
+          type:
+            - string
+            - 'null'
+          format: date
+        to:
+          type:
+            - string
+            - 'null'
+          format: date
+        days:
+          type:
+            - integer
+            - 'null'
+          minimum: 1
+        sources:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/PortfolioOverviewSource'
+        sourceCount:
+          type: integer
+          minimum: 0
+        averageCapital:
+          description: Exact denominator divided by the period length, six decimals; MONTH only.
+          type:
+            - string
+            - 'null'
+          pattern: ^-?[0-9]+\.[0-9]{6}$
+        minCapitalRatio:
+          description: Smallest accepted average capital as a share of the capital put to work.
+          type: string
+          enum:
+            - '0.10'
+        weights:
+          description: The first 100 external flows with the share of the period each was invested; MONTH only.
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/PortfolioModifiedDietzWeight'
+        weightCount:
+          type: integer
+          minimum: 0
+        months:
+          description: The monthly returns chained by YEAR and INCEPTION; null for MONTH or when no month list could be built.
+          oneOf:
+            - type: array
+              maxItems: 600
+              items:
+                $ref: '#/components/schemas/PortfolioModifiedDietzMonth'
+            - type: 'null'
     PortfolioPerformance:
       type: object
       additionalProperties: false
@@ -7770,6 +7916,7 @@ components:
         - flowCount
         - netFlows
         - gain
+        - modifiedDietz
       properties:
         accountId:
           type: string
@@ -7814,6 +7961,8 @@ components:
           $ref: '#/components/schemas/PortfolioPerformanceAmount'
         gain:
           $ref: '#/components/schemas/PortfolioGainFigure'
+        modifiedDietz:
+          $ref: '#/components/schemas/PortfolioModifiedDietzFigure'
     PortfolioPerformanceProblem:
       allOf:
         - $ref: '#/components/schemas/Problem'

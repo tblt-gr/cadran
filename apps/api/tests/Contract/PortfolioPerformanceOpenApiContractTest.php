@@ -29,7 +29,7 @@ final class PortfolioPerformanceOpenApiContractTest extends TestCase
         $schemas = self::map(self::map($document['components'])['schemas']);
         $performance = self::map($schemas['PortfolioPerformance']);
         self::assertSame(
-            ['accountId', 'assetCode', 'scope', 'period', 'methodVersion', 'costPolicy', 'start', 'end', 'flows', 'flowCount', 'netFlows', 'gain'],
+            ['accountId', 'assetCode', 'scope', 'period', 'methodVersion', 'costPolicy', 'start', 'end', 'flows', 'flowCount', 'netFlows', 'gain', 'modifiedDietz'],
             $performance['required'],
         );
         self::assertSame(100, self::map(self::map($performance['properties'])['flows'])['maxItems']);
@@ -41,6 +41,19 @@ final class PortfolioPerformanceOpenApiContractTest extends TestCase
         $decomposition = self::map(self::map($schemas['PortfolioGainDecomposition'])['properties']);
         foreach (['realized', 'unrealizedChange', 'income', 'fees', 'taxes', 'corporateActionCash', 'capitalizedCosts', 'residual'] as $component) {
             self::assertArrayHasKey($component, $decomposition);
+        }
+        $reasonCodes = self::list(self::map(self::map(self::map($schemas['PortfolioPerformanceReason'])['properties'])['code'])['enum']);
+        foreach (['NO_INVESTED_CAPITAL', 'NON_POSITIVE_DENOMINATOR', 'DENOMINATOR_TOO_SMALL', 'MONTH_NOT_CALCULABLE', 'TOO_MANY_PERIODS'] as $code) {
+            self::assertContains($code, $reasonCodes);
+        }
+        self::assertSame('#/components/schemas/PortfolioModifiedDietzFigure', self::map(self::map($performance['properties'])['modifiedDietz'])['$ref']);
+        $dietz = self::map($schemas['PortfolioModifiedDietzFigure']);
+        self::assertSame(['MODIFIED_DIETZ'], self::map(self::map($dietz['properties'])['method'])['enum']);
+        self::assertNotContains('EXACT', self::list(self::map($schemas['PortfolioModifiedDietzQuality'])['enum']));
+        self::assertSame(100, self::map(self::map($dietz['properties'])['weights'])['maxItems']);
+        self::assertSame(600, self::map(self::list(self::map(self::map($dietz['properties'])['months'])['oneOf'])[0])['maxItems']);
+        foreach (['value', 'averageCapital', 'minCapitalRatio', 'weights', 'weightCount', 'months'] as $field) {
+            self::assertContains($field, self::list($dietz['required']));
         }
         $problem = self::map(self::map(self::list(self::map($schemas['PortfolioPerformanceProblem'])['allOf'])[1])['properties']);
         foreach (['invalid_performance_scope', 'invalid_performance_period', 'account_not_portfolio', 'performance_range_too_dense'] as $code) {

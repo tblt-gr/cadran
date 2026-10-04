@@ -66,7 +66,12 @@ final class PortfolioPerformanceDemoTest extends WebTestCase
         self::assertContains($plainGain['quality'], ['EXACT', 'DEGRADED']);
 
         $stale = $this->month("SELECT to_char(MAX(v.valued_on), 'YYYY-MM') FROM portfolio_valuations v JOIN portfolio_position_snapshots s ON s.valuation_id = v.id WHERE v.workspace_id = ? AND v.account_id = ? AND v.superseded_at IS NULL AND v.completeness = 'COMPLETE' AND s.price_quality = 'STALE'");
-        $staleGain = self::map($this->performance($stale)['gain']);
+        $stalePerformance = $this->performance($stale);
+        $staleGain = self::map($stalePerformance['gain']);
+        $staleDietz = self::map($stalePerformance['modifiedDietz']);
+        self::assertNotNull($staleDietz['value']);
+        self::assertSame('DEGRADED', $staleDietz['quality']);
+        self::assertContains('STALE_PRICES', array_column(self::list($staleDietz['reasons']), 'code'));
         self::assertNotNull($staleGain['value']);
         self::assertContains('STALE_PRICES', array_column(self::list($staleGain['reasons']), 'code'));
         self::assertSame('DEGRADED', $staleGain['quality']);
