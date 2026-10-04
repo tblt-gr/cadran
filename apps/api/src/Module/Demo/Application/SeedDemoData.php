@@ -171,6 +171,9 @@ final readonly class SeedDemoData
                     $this->portfolio->investMonthly(
                         $accounts['invest'], $transfer->target->id, $first->modify('+'.($day - 1).' days')->format('Y-m-d'), $cents, $index,
                     );
+                    if (!$isOpen && $closed === $closedTotal - 1) {
+                        $this->portfolio->value($accounts['invest'], $first->modify('+6 days'), $balances['invest'] + $cents, 'TOTAL');
+                    }
                     if (SeedDemoPortfolio::UNLINKED_TRANSFER_MONTH === $index) {
                         $balances = $this->unlinkedTransfer($accounts, $first->modify('+9 days'), $balances);
                         ++$transfers;

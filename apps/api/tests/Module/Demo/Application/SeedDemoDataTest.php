@@ -82,7 +82,12 @@ final class SeedDemoDataTest extends KernelTestCase
         ));
         // Three accounts per closed month were reconciled before closing.
         self::assertSame(3 * $summary->closedMonths, $this->rows(
-            "SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND reconciliation_status = 'RECONCILED'",
+            "SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND reconciliation_status = 'RECONCILED' AND as_of = (date_trunc('month', as_of) + interval '1 month - 1 day')::date",
+            [$workspace],
+        ));
+        // The extra end-of-day deposit observation also publishes a reconciled calculated snapshot.
+        self::assertSame(1, $this->rows(
+            "SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND source = 'CALCULATED' AND reconciliation_status = 'RECONCILED' AND superseded_at IS NULL AND as_of = (date_trunc('month', current_date) - interval '1 month' + interval '6 days')::date",
             [$workspace],
         ));
     }

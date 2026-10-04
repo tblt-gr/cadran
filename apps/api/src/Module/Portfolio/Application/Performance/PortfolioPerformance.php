@@ -9,6 +9,7 @@ use App\Module\Portfolio\Domain\Performance\PerformanceFinding;
 use App\Module\Portfolio\Domain\Performance\PerformancePeriod;
 use App\Module\Portfolio\Domain\Performance\PerformanceQuality;
 use App\Module\Portfolio\Domain\Performance\PeriodAnchor;
+use App\Module\Portfolio\Domain\Performance\TimeWeightedReturn;
 
 /** The read model of the performance of one account over one period. */
 final readonly class PortfolioPerformance
@@ -37,6 +38,7 @@ final readonly class PortfolioPerformance
         public array $sources,
         public int $sourceCount,
         public ModifiedDietzFigure $modifiedDietz,
+        public TimeWeightedReturn $timeWeighted,
     ) {
     }
 }
