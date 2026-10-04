@@ -6,4 +6,4 @@ if ! command -v git >/dev/null 2>&1; then
   exit 1
 fi
 
-git ls-files --cached --others --exclude-standard -z -- '*.md' | xargs -0 pnpm exec markdownlint-cli2
+git ls-files --cached --others --exclude-standard -z -- '*.md' | xargs -0 pnpm exec markdownlint

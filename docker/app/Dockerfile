@@ -6,8 +6,6 @@ WORKDIR /workspace
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/api-client/package.json packages/api-client/package.json
-# The lockfile hashes patchedDependencies from this directory during install.
-COPY patches patches
 
 RUN corepack enable \
     && corepack prepare pnpm@10.32.1 --activate \
