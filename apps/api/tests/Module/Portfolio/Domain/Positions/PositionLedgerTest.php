@@ -224,6 +224,70 @@ final class PositionLedgerTest extends TestCase
         self::assertSame(['2026-01-01'], $result->positions[self::ETF]->orderDependentDates);
     }
 
+    #[Test]
+    public function itReadsTheHeldQuantitiesAtSeveralDaysFromOneReplay(): void
+    {
+        $at = (new PositionLedger())->quantitiesAt([
+            $this->operation('03', OperationType::SELL, '2026-03-10', 1, self::ETF, '4', gross: '400.00'),
+            $this->operation('01', OperationType::BUY, '2026-01-02', 1, self::ETF, '10', gross: '1000.00'),
+            $this->operation('02', OperationType::BUY, '2026-02-02', 1, self::STOCK, '0.5', gross: '50.00'),
+        ], [self::ETF => 6, self::STOCK => 6], [
+            new \DateTimeImmutable('2026-03-10'),
+            new \DateTimeImmutable('2026-01-01'),
+            new \DateTimeImmutable('2026-02-02'),
+        ]);
+
+        self::assertSame([], $at['2026-01-01'] ?? null, 'before any operation nothing is held');
+        self::assertSame([self::ETF => '10', self::STOCK => '0.5'], self::strings($at['2026-02-02']), 'the day itself is included');
+        self::assertSame([self::ETF => '6', self::STOCK => '0.5'], self::strings($at['2026-03-10']));
+    }
+
+    #[Test]
+    public function itMarksOnlyTheDaysFromTheFirstFailingOperationOnAsUnreadable(): void
+    {
+        $at = (new PositionLedger())->quantitiesAt([
+            $this->operation('01', OperationType::BUY, '2026-01-02', 1, self::ETF, '1', gross: '100.00'),
+            $this->operation('02', OperationType::SELL, '2026-02-03', 1, self::ETF, '2', gross: '40.00'),
+        ], [self::ETF => 6], [new \DateTimeImmutable('2026-01-31'), new \DateTimeImmutable('2026-02-03'), new \DateTimeImmutable('2026-03-31')]);
+
+        self::assertSame([self::ETF => '1'], self::strings($at['2026-01-31']));
+        self::assertNull($at['2026-02-03']);
+        self::assertNull($at['2026-03-31']);
+    }
+
+    #[Test]
+    public function itAgreesWithAPrefixReplayAtEveryDay(): void
+    {
+        $operations = [
+            $this->operation('01', OperationType::BUY, '2026-01-02', 1, self::ETF, '10', gross: '1000.00'),
+            $this->operation('02', OperationType::BUY, '2026-01-02', 2, self::ETF, '2.5', gross: '100.00'),
+            $this->operation('03', OperationType::SELL, '2026-01-20', 1, self::ETF, '12', gross: '1400.00'),
+        ];
+        $ledger = new PositionLedger();
+        foreach (['2026-01-02', '2026-01-10', '2026-01-20', '2026-02-01'] as $day) {
+            $prefix = array_values(array_filter($operations, static fn (PortfolioOperation $operation): bool => $operation->details->tradeDate->format('Y-m-d') <= $day));
+            $expected = [];
+            foreach ($ledger->replay($prefix, [self::ETF => 6])->positions as $id => $position) {
+                if (!$position->quantity->isZero()) {
+                    $expected[$id] = $position->quantity->toString();
+                }
+            }
+            self::assertSame($expected, self::strings($ledger->quantitiesAt($operations, [self::ETF => 6], [new \DateTimeImmutable($day)])[$day]), $day);
+        }
+    }
+
+    /**
+     * @param array<string, \App\Module\Foundation\Domain\CalculatedDecimal>|null $quantities
+     *
+     * @return array<string, string>
+     */
+    private static function strings(?array $quantities): array
+    {
+        self::assertNotNull($quantities);
+
+        return array_map(static fn ($quantity): string => $quantity->toString(), $quantities);
+    }
+
     /** @param array{string, string}|null $ratio */
     private function operation(
         string $suffix,

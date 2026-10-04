@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\UI\Http;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Portfolio\Application\DraftPosition;
 use App\Module\Portfolio\Application\ValuationDraftView;
+use App\Module\Portfolio\Application\ValuationHistory;
 use App\Module\Portfolio\Application\ValuationPage;
 use App\Module\Portfolio\Application\ValuationView;
 use App\Module\Portfolio\Domain\Instrument;
@@ -24,6 +25,33 @@ final class ValuationRepresentation
             'page' => $page->page,
             'perPage' => $page->perPage,
             'total' => $page->total,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public static function history(ValuationHistory $history): array
+    {
+        return [
+            'from' => $history->from?->format('Y-m-d'),
+            'to' => $history->to->format('Y-m-d'),
+            'assetCode' => $history->assetCode,
+            'truncated' => $history->truncated,
+            'points' => array_map(static function (ValuationView $view): array {
+                $valuation = $view->valuation;
+                $asset = $valuation->assetCode->toString();
+
+                return [
+                    'valuationId' => $valuation->id,
+                    'valuedOn' => $valuation->valuedOn->format('Y-m-d'),
+                    'detail' => $valuation->detail->value,
+                    'totalValue' => self::amount($valuation->totalValue, $asset),
+                    'securitiesValue' => self::amount($valuation->securitiesValue, $asset),
+                    'cash' => self::amount($valuation->cash, $asset),
+                    'completeness' => $valuation->completeness->value,
+                    'priceQuality' => $valuation->priceQuality()->value,
+                    'flags' => array_map(static fn (ValuationFlag $flag): string => $flag->value, $view->flags),
+                ];
+            }, $history->points),
         ];
     }
 

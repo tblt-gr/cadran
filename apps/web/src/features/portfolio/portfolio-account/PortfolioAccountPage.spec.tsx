@@ -7,6 +7,7 @@ import { positionsValuationFixture } from '@/features/portfolio/valuations/valua
 import { cashFixture } from '@/features/portfolio/cash/cashFixtures';
 import { operationFixture } from './operations/operations-table/operationFixtures';
 import { summaryFixture, allocationFixture } from './overviewFixtures';
+import { historyFixture } from './value-history-card/valueHistoryFixtures';
 import { PortfolioAccountPage } from './PortfolioAccountPage';
 
 const api = vi.hoisted(() => ({
@@ -21,6 +22,7 @@ const api = vi.hoisted(() => ({
   readPortfolioCash: vi.fn(),
   readPortfolioSummary: vi.fn(),
   readPortfolioAllocation: vi.fn(),
+  readPortfolioValuationHistory: vi.fn(),
   readPortfolioValuation: vi.fn(),
   readPortfolioValuationDraft: vi.fn(),
   previewPortfolioOperation: vi.fn(),
@@ -85,6 +87,7 @@ beforeEach(() => {
   window.history.replaceState({}, '', `/portfolios/${accountId}?tab=operations`);
   api.readPortfolioSummary.mockImplementation(() => ok(summaryFixture()));
   api.readPortfolioAllocation.mockImplementation(() => ok(allocationFixture()));
+  api.readPortfolioValuationHistory.mockImplementation(() => ok(historyFixture()));
   api.readAccount.mockImplementation(() => ok(account));
   api.listProducts.mockImplementation(() => ok({ items: [], page: 1, perPage: 100, total: 0 }));
   api.listInstruments.mockImplementation(() => ok({ items: [], page: 1, perPage: 20, total: 0 }));
@@ -463,7 +466,13 @@ describe('PortfolioAccountPage', () => {
         screen.getByRole('link', { name: 'Gérer les instruments' }) as HTMLAnchorElement
       ).getAttribute('href'),
     ).toBe('/portfolios/instruments');
-    expect(screen.getAllByRole('columnheader', { name: 'Date' })).toHaveLength(1);
+    expect(
+      within(screen.getByTestId('operations-skeleton')).getAllByRole('columnheader', {
+        name: 'Date',
+      }),
+    ).toHaveLength(1);
+    expect(screen.getByRole('heading', { name: 'Évolution de la valeur' })).toBeTruthy();
+    expect(screen.getByTestId('value-history-skeleton')).toBeTruthy();
     resolve?.(await ok(account));
     expect(await screen.findByRole('heading', { name: 'PEA Démo' })).toBeTruthy();
     expect(await screen.findByRole('table', { name: 'Opérations du portefeuille' })).toBeTruthy();

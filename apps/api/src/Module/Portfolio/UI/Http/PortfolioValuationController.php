@@ -7,10 +7,12 @@ namespace App\Module\Portfolio\UI\Http;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Portfolio\Application\BuildValuationDraft;
+use App\Module\Portfolio\Application\InvalidHistoryRange;
 use App\Module\Portfolio\Application\InvalidValuationQuery;
 use App\Module\Portfolio\Application\ListPortfolioValuations;
 use App\Module\Portfolio\Application\PortfolioAccountNotFound;
 use App\Module\Portfolio\Application\ReadPortfolioValuation;
+use App\Module\Portfolio\Application\ReadPortfolioValuationHistory;
 use App\Module\Portfolio\Application\RecordPortfolioValuation;
 use App\Module\Portfolio\Application\ValuationConflict;
 use App\Module\Portfolio\Application\ValuationNotFound;
@@ -57,6 +59,27 @@ final readonly class PortfolioValuationController
         }
 
         return self::json(ValuationRepresentation::page($page));
+    }
+
+    #[Route('/api/v1/accounts/{accountId}/portfolio-valuation-history', name: 'api_v1_portfolio_valuation_history', methods: ['GET'])]
+    public function history(string $accountId, Request $request, ReadPortfolioValuationHistory $read): Response
+    {
+        if (!self::identifier($accountId)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
+        }
+        try {
+            $query = $request->query->all();
+            foreach (['from', 'to'] as $key) {
+                if (isset($query[$key]) && !is_string($query[$key])) {
+                    throw new InvalidHistoryRange('A query parameter is a single value.');
+                }
+            }
+            $history = $read($accountId, self::scalar($query, 'from'), self::scalar($query, 'to'));
+        } catch (\Throwable $exception) {
+            return $this->failure($exception);
+        }
+
+        return self::json(ValuationRepresentation::history($history));
     }
 
     #[Route('/api/v1/accounts/{accountId}/portfolio-valuations/draft', name: 'api_v1_portfolio_valuations_draft', methods: ['GET'])]
@@ -149,6 +172,7 @@ final readonly class PortfolioValuationController
             $exception instanceof CashReplayFailed => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'cash_amount_too_large'),
             $exception instanceof InvalidPortfolioOperation => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
             $exception instanceof \UnexpectedValueException => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_valuation_payload'),
+            $exception instanceof InvalidHistoryRange => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_history_range'),
             $exception instanceof InvalidValuationQuery => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_valuation_query'),
             $exception instanceof PortfolioAccountNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND),
             $exception instanceof ValuationNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::VALUATION_NOT_FOUND),

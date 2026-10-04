@@ -1,0 +1,32 @@
+.scroll {
+  overflow-x: auto;
+}
+.scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.scroll th,
+.scroll td {
+  padding: var(--spacing-3);
+  border-bottom: var(--border-width-thin) solid var(--border-subtle);
+  text-align: right;
+  white-space: nowrap;
+}
+.scroll th:first-child,
+.scroll td:last-child {
+  text-align: left;
+}
+.scroll tbody th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--bg-surface-1);
+}
+.gap {
+  color: var(--text-muted);
+}
+.quality {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}

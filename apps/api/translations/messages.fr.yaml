@@ -720,6 +720,9 @@ api:
     invalid_valuation_query:
       title: 'Requête de valorisations invalide'
       detail: 'Les filtres de dates et de pagination doivent être valides.'
+    invalid_history_range:
+      title: "Période d'historique invalide"
+      detail: "La période doit utiliser des dates valides, finir au plus tard aujourd'hui et ne pas finir avant son début."
     invalid_valuation_payload:
       title: 'Corps de valorisation invalide'
       detail: 'Le corps ne porte que des champs déclarés, du bon type.'

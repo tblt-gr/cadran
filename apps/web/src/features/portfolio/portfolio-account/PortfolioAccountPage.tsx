@@ -4,6 +4,7 @@ import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { clearPortfolioDetailSelection } from './portfolioDetailLocation';
 import { MonthEndValuationBanner } from '@/features/portfolio/month-end/month-end-valuation-banner/MonthEndValuationBanner';
+import { ValueHistoryCard } from './value-history-card/ValueHistoryCard';
 import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
@@ -106,6 +107,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
           sourceReturnFocus={sourceReturnFocus}
         />
       ) : null}
+      {eligible ? <ValueHistoryCard accountId={accountId} asOf={asOf} /> : null}
       <PortfolioTabs accountId={accountId} active={active} asOf={asOf} />
       {eligible ? (
         active === 'positions' ? (

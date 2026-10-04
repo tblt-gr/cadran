@@ -6,7 +6,6 @@ namespace App\Module\Portfolio\Application;
 
 use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
-use App\Module\Portfolio\Domain\Positions\PositionReplayFailed;
 use App\Module\Portfolio\Domain\Valuation\Valuation;
 
 /**
@@ -19,19 +18,31 @@ final readonly class PositionsChangedDetector
     {
     }
 
-    public function changed(WorkspaceScope $workspace, Valuation $valuation): bool
+    /**
+     * One replay of the account's operations serves every valuation, whatever their number.
+     *
+     * @param list<Valuation> $valuations active valuations of the account
+     *
+     * @return array<string, bool> valuation identifier => the positions changed since
+     */
+    public function changedAmong(WorkspaceScope $workspace, string $accountId, array $valuations): array
     {
-        try {
-            $replayed = ($this->reconcile)($workspace, $valuation->accountId, $valuation->valuedOn)->positions;
-        } catch (PositionReplayFailed) {
-            return true;
+        if ([] === $valuations) {
+            return [];
         }
-        $current = [];
-        foreach ($replayed as $instrumentId => $position) {
-            if (!$position->quantity->isZero()) {
-                $current[$instrumentId] = $position->quantity;
-            }
+        $held = $this->reconcile->quantitiesAt($workspace, $accountId, array_map(static fn (Valuation $valuation): \DateTimeImmutable => $valuation->valuedOn, $valuations));
+        $changed = [];
+        foreach ($valuations as $valuation) {
+            $current = $held[$valuation->valuedOn->format('Y-m-d')] ?? null;
+            $changed[$valuation->id] = null === $current || self::differs($valuation, $current);
         }
+
+        return $changed;
+    }
+
+    /** @param array<string, CalculatedDecimal> $current non-zero replayed quantities by instrument */
+    private static function differs(Valuation $valuation, array $current): bool
+    {
         $frozen = [];
         foreach ($valuation->positions as $snapshot) {
             $frozen[$snapshot->instrumentId] = $snapshot;

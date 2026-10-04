@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\Application;
 
+use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Portfolio\Domain\InstrumentRepository;
+use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 use App\Module\Portfolio\Domain\Positions\PositionLedger;
 use App\Module\Portfolio\Domain\Positions\PositionLedgerResult;
@@ -22,6 +24,31 @@ final readonly class ReconcilePortfolioPositions
     public function __invoke(WorkspaceScope $workspace, string $accountId, ?\DateTimeImmutable $asOf = null): PositionLedgerResult
     {
         $operations = $this->operations->activeForAccount($workspace, $accountId, $asOf);
+
+        return $this->ledger->replay($operations, $this->precisions($workspace, $operations));
+    }
+
+    /**
+     * The non-zero quantities held at the end of each day from a single read and replay of the account's operations.
+     *
+     * @param list<\DateTimeImmutable> $days
+     *
+     * @return array<string, array<string, CalculatedDecimal>|null> keyed by `Y-m-d`, null from the first operation that cannot be replayed
+     */
+    public function quantitiesAt(WorkspaceScope $workspace, string $accountId, array $days): array
+    {
+        $operations = $this->operations->activeForAccount($workspace, $accountId);
+
+        return $this->ledger->quantitiesAt($operations, $this->precisions($workspace, $operations), $days);
+    }
+
+    /**
+     * @param list<PortfolioOperation> $operations
+     *
+     * @return array<string, int>
+     */
+    private function precisions(WorkspaceScope $workspace, array $operations): array
+    {
         $ids = [];
         foreach ($operations as $operation) {
             foreach ([$operation->details->instrumentId, $operation->details->counterInstrumentId] as $id) {
@@ -38,6 +65,6 @@ final readonly class ReconcilePortfolioPositions
             throw new \LogicException('An active portfolio operation refers to a missing workspace instrument.');
         }
 
-        return $this->ledger->replay($operations, $precisions);
+        return $precisions;
     }
 }
