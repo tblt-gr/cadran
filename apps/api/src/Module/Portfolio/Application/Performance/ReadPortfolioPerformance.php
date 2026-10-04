@@ -33,6 +33,7 @@ final readonly class ReadPortfolioPerformance
         private TotalGainCalculator $calculator,
         private ComputeModifiedDietz $modifiedDietz,
         private ComputeTimeWeightedReturn $timeWeighted,
+        private ComputeMoneyWeightedReturn $moneyWeighted,
     ) {
     }
 
@@ -74,6 +75,7 @@ final readonly class ReadPortfolioPerformance
             count($flows), array_slice($sources, 0, PortfolioExplanation::MAX_SOURCES), count($sources),
             ($this->modifiedDietz)($workspace, $account, $period, $data, $today),
             ($this->timeWeighted)($workspace, $account->id, $period->scope, $data),
+            ($this->moneyWeighted)($data, $blocking, $warnings),
         );
     }
 

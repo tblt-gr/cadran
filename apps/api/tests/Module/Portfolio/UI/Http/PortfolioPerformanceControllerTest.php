@@ -68,6 +68,24 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testMoneyWeightedUsesInvestorFlowsForEveryScope(): void
+    {
+        $this->seedReferenceMonth();
+        foreach ([['MONTH', '2026-03'], ['YEAR', '2026'], ['INCEPTION', null]] as [$scope, $period]) {
+            $figure = self::map($this->performance($scope, $period)['moneyWeighted']);
+            self::assertSame('MWR', $figure['method']);
+            self::assertSame($figure['annualizedRate'], $figure['value']);
+            self::assertNotNull($figure['value']);
+            self::assertNotNull($figure['periodRate']);
+            self::assertIsInt($figure['iterations']);
+            self::assertSame(40, self::map($figure['inputs'])['workingScale']);
+        }
+        $month = self::map($this->performance('MONTH', '2026-03')['moneyWeighted']);
+        self::assertTrue($month['shortPeriod']);
+        self::assertSame(31, $month['days']);
+        self::assertSame(4, $month['cashFlowCount']);
+    }
+
     public function testTheReferenceMonthIsExactAndFullyDecomposed(): void
     {
         $this->seedReferenceMonth();
@@ -469,10 +487,12 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
         self::assertStringNotContainsString('Voisin', (string) $this->client->getResponse()->getContent());
         self::assertStringNotContainsString('modifiedDietz', (string) $this->client->getResponse()->getContent());
+        self::assertStringNotContainsString('moneyWeighted', (string) $this->client->getResponse()->getContent());
         foreach (['MONTH&period=2026-03', 'YEAR&period=2026'] as $query) {
             $this->get('/api/v1/accounts/'.self::FOREIGN_ACCOUNT.'/portfolio-performance?scope='.$query);
             self::assertResponseStatusCodeSame(404);
             self::assertStringNotContainsString('modifiedDietz', (string) $this->client->getResponse()->getContent());
+            self::assertStringNotContainsString('moneyWeighted', (string) $this->client->getResponse()->getContent());
         }
 
         $this->get('/api/v1/accounts/00000000-0000-7000-8000-0000000000ff/portfolio-performance?scope=INCEPTION');

@@ -9,6 +9,7 @@ use App\Module\Portfolio\Application\Performance\PortfolioPerformance;
 use App\Module\Portfolio\Application\PortfolioExplanation;
 use App\Module\Portfolio\Domain\Cash\PortfolioCostPolicy;
 use App\Module\Portfolio\Domain\Performance\ModifiedDietzCalculator;
+use App\Module\Portfolio\Domain\Performance\MoneyWeightedReturnSolver;
 use App\Module\Portfolio\Domain\Performance\PerformanceAmount;
 use App\Module\Portfolio\Domain\Performance\PerformanceFinding;
 use App\Module\Portfolio\Domain\Performance\PerformanceMethod;
@@ -65,6 +66,46 @@ final class PortfolioPerformanceRepresentation
             ],
             'modifiedDietz' => self::modifiedDietz($performance),
             'timeWeighted' => self::timeWeighted($performance),
+            'moneyWeighted' => self::moneyWeighted($performance),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function moneyWeighted(PortfolioPerformance $performance): array
+    {
+        $figure = $performance->moneyWeighted;
+        $start = $performance->start;
+        $end = $performance->end;
+        $days = null === $start || null === $end ? null : (int) $start->date->diff($end->date)->format('%a');
+
+        return [
+            'value' => $figure->annualizedRate,
+            'annualizedRate' => $figure->annualizedRate,
+            'periodRate' => $figure->periodRate,
+            'method' => 'MWR',
+            'quality' => $figure->quality->value,
+            'reasons' => self::reasons($figure->findings),
+            'from' => $start?->date->format('Y-m-d'),
+            'to' => $end?->date->format('Y-m-d'),
+            'days' => $days,
+            'shortPeriod' => null !== $days && $days < 365,
+            'sources' => $performance->sources,
+            'sourceCount' => $performance->sourceCount,
+            'iterations' => $figure->iterations,
+            'cashFlows' => $figure->cashFlows,
+            'cashFlowCount' => $figure->cashFlowCount,
+            'formula' => 'sum(CF_i * x^(D - day_i)) = 0; annualizedRate = x^365 - 1; periodRate = x^D - 1',
+            'inputs' => [
+                'workingScale' => MoneyWeightedReturnSolver::WORKING_SCALE,
+                'stopWidth' => MoneyWeightedReturnSolver::STOP_WIDTH,
+                'minDailyFactor' => MoneyWeightedReturnSolver::MIN_FACTOR,
+                'maxDailyFactor' => MoneyWeightedReturnSolver::MAX_FACTOR,
+                'maxIterations' => MoneyWeightedReturnSolver::MAX_ITERATIONS,
+                'maxFlowDays' => MoneyWeightedReturnSolver::MAX_FLOWS,
+                'workingRounding' => 'HALF_EVEN',
+                'rateScale' => 6,
+                'rateRounding' => 'HALF_UP',
+            ],
         ];
     }
 

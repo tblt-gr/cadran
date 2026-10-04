@@ -36,7 +36,8 @@ RUN composer install \
     --no-scripts \
     --optimize-autoloader \
     --prefer-dist \
-    --ignore-platform-req=php
+    --ignore-platform-req=php \
+    --ignore-platform-req=ext-bcmath
 
 FROM dunglas/frankenphp:1.12.7-php8.5-bookworm@sha256:d502c4823f75f7738b463919ae993a6a4c7ccccab034e3e3020d3b9d042ec83e AS runtime
 
@@ -48,7 +49,7 @@ RUN apt-get update \
         libssh2-1 \
         linux-libc-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && install-php-extensions pdo_pgsql \
+    && install-php-extensions pdo_pgsql bcmath \
     && setcap -r /usr/local/bin/frankenphp \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && mkdir -p /app/apps/api/var /app/apps/web/dist /data /config \

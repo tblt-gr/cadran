@@ -31,9 +31,16 @@ enum PerformanceReason: string
     case ZERO_START_VALUE = 'ZERO_START_VALUE';
     case TOO_MANY_SUBPERIODS = 'TOO_MANY_SUBPERIODS';
 
+    case NO_SIGN_CHANGE = 'NO_SIGN_CHANGE';
+    case NO_ROOT_IN_RANGE = 'NO_ROOT_IN_RANGE';
+    case MULTIPLE_ROOTS = 'MULTIPLE_ROOTS';
+    case NO_CONVERGENCE = 'NO_CONVERGENCE';
+    case TOO_MANY_FLOWS = 'TOO_MANY_FLOWS';
+
     public function isBlocking(): bool
     {
         return in_array($this, [
+            self::NO_SIGN_CHANGE, self::NO_ROOT_IN_RANGE, self::MULTIPLE_ROOTS, self::NO_CONVERGENCE, self::TOO_MANY_FLOWS,
             self::NO_START_VALUATION, self::NO_END_VALUATION, self::START_VALUATION_PARTIAL,
             self::END_VALUATION_PARTIAL, self::UNVALUED_SECURITY_TRANSFER, self::NO_INVESTED_CAPITAL,
             self::MISSING_FLOW_VALUATION, self::STALE_FLOW_VALUATION, self::ZERO_START_VALUE, self::TOO_MANY_SUBPERIODS,
