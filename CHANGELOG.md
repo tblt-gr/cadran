@@ -4,6 +4,43 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-10-04
+
+### Added
+
+- Manage investment instruments: ISIN validation, duplicate detection, deactivation instead of
+  deletion, bounded search and a picker (PTF-001).
+- Show a layout-faithful skeleton on every data-backed screen, built with one shared primitive and
+  reused for the page preview shown while the session is checked (UI-005).
+- Record exact portfolio operations with decimal quantities and prices, atomic corrections and
+  voids, linked transfers, idempotent writes and a live preview (PTF-004).
+- Reconcile positions and tax lots from operations, with first-in first-out and average cost,
+  splits, merges and a guard against negative positions (PTF-002).
+- Reconcile portfolio cash, fees and taxes, with named warnings and a monthly costs card kept out
+  of the budget (PTF-005).
+- Record portfolio valuations and position snapshots, with total or per-line entry, price quality,
+  superseding and a flag when the history changed after a valuation (PTF-006).
+- Build the investment account page: key figures with their explanation, dated allocation and the
+  operations, positions, cash and valuations tabs (PTF-007).
+- Prompt and prefill the month-end portfolio valuation, and warn when closing a period without it
+  (PTF-008).
+- Chart the portfolio value over time with the shared curve, a period control, a table alternative
+  and explicit gaps for partial valuations (PTF-009).
+- Show on the portfolio list the unrealized gain and its performance since the start (gain over
+  cost basis, computed on the server), the value curve of each account and a total of all
+  investments with the date of its oldest valuation.
+
+### Changed
+
+- The portfolio list cards are reduced to the account name, institution, latest total, gain and
+  curve.
+- The application header stays fixed while the page scrolls.
+
+### Fixed
+
+- The portfolio page no longer shows its title twice, and its `Instruments` button keeps its
+  height.
+
 ## [0.5.0] - 2026-10-01
 
 ### Added
