@@ -61,7 +61,12 @@ final class PortfolioPerformanceDemoTest extends WebTestCase
     public function testTheDemoAccountShowsCalculableStaleWithdrawalAndOpenPartialMonths(): void
     {
         $plain = $this->month("SELECT to_char(MIN(valued_on), 'YYYY-MM') FROM portfolio_valuations WHERE workspace_id = ? AND account_id = ? AND superseded_at IS NULL AND completeness = 'COMPLETE' AND detail = 'TOTAL' AND valued_on > (SELECT MIN(valued_on) FROM portfolio_valuations WHERE workspace_id = ? AND account_id = ? AND superseded_at IS NULL)");
-        $plainGain = self::map($this->performance($plain)['gain']);
+        $plainBody = $this->performance($plain);
+        $plainGain = self::map($plainBody['gain']);
+        $money = self::map($plainBody['moneyWeighted']);
+        self::assertTrue($money['shortPeriod']);
+        self::assertNotNull($money['periodRate']);
+        self::assertSame($money['annualizedRate'], $money['value']);
         self::assertNotNull($plainGain['value']);
         self::assertContains($plainGain['quality'], ['EXACT', 'DEGRADED']);
 

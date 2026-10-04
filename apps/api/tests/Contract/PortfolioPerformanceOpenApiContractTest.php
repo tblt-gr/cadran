@@ -29,7 +29,7 @@ final class PortfolioPerformanceOpenApiContractTest extends TestCase
         $schemas = self::map(self::map($document['components'])['schemas']);
         $performance = self::map($schemas['PortfolioPerformance']);
         self::assertSame(
-            ['accountId', 'assetCode', 'scope', 'period', 'methodVersion', 'costPolicy', 'start', 'end', 'flows', 'flowCount', 'netFlows', 'gain', 'modifiedDietz', 'timeWeighted'],
+            ['accountId', 'assetCode', 'scope', 'period', 'methodVersion', 'costPolicy', 'start', 'end', 'flows', 'flowCount', 'netFlows', 'gain', 'modifiedDietz', 'timeWeighted', 'moneyWeighted'],
             $performance['required'],
         );
         self::assertSame(100, self::map(self::map($performance['properties'])['flows'])['maxItems']);
@@ -59,6 +59,12 @@ final class PortfolioPerformanceOpenApiContractTest extends TestCase
         self::assertSame(['TWR'], self::map(self::map($twr['properties'])['method'])['enum']);
         self::assertSame(400, self::map(self::map($twr['properties'])['subperiods'])['maxItems']);
         foreach (['MISSING_FLOW_VALUATION', 'STALE_FLOW_VALUATION', 'ZERO_START_VALUE', 'TOO_MANY_SUBPERIODS'] as $code) {
+            self::assertContains($code, $reasonCodes);
+        }
+        $mwr = self::map($schemas['PortfolioMoneyWeightedFigure']);
+        self::assertSame(['MWR'], self::map(self::map($mwr['properties'])['method'])['enum']);
+        self::assertSame(100, self::map(self::map($mwr['properties'])['cashFlows'])['maxItems']);
+        foreach (['NO_SIGN_CHANGE', 'NO_ROOT_IN_RANGE', 'MULTIPLE_ROOTS', 'NO_CONVERGENCE', 'TOO_MANY_FLOWS'] as $code) {
             self::assertContains($code, $reasonCodes);
         }
         $problem = self::map(self::map(self::list(self::map($schemas['PortfolioPerformanceProblem'])['allOf'])[1])['properties']);

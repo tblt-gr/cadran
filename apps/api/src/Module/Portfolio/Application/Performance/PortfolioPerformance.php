@@ -39,6 +39,7 @@ final readonly class PortfolioPerformance
         public int $sourceCount,
         public ModifiedDietzFigure $modifiedDietz,
         public TimeWeightedReturn $timeWeighted,
+        public MoneyWeightedFigure $moneyWeighted,
     ) {
     }
 }
