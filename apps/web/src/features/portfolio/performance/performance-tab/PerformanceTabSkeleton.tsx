@@ -1,6 +1,7 @@
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { PerformanceIndexChart } from './performance-index-chart/PerformanceIndexChart';
+import { PerformanceValueChart } from './performance-value-chart/PerformanceValueChart';
 import { PerformanceMonthCards } from './performance-month-cards/PerformanceMonthCards';
 import { PerformanceMonthTable } from './performance-month-table/PerformanceMonthTable';
 import { PerformanceSummary } from './performance-summary/PerformanceSummary';
@@ -14,13 +15,8 @@ export function PerformanceTabSkeleton({ year }: { year: number }) {
     <div aria-busy="true" className={styles.tab} data-testid="performance-skeleton">
       <SkeletonStatus>Chargement de la performance…</SkeletonStatus>
       <YearNavigator bounds={null} onChange={() => undefined} year={year} />
-      <PerformanceSummary
-        inceptionPerformance={null}
-        onExplain={() => undefined}
-        year={year}
-        yearPerformance={null}
-      />
-      <PerformanceIndexChart annual={null} />
+      <PerformanceSummary onExplain={() => undefined} year={year} yearPerformance={null} />
+      <PerformanceValueChart annual={null} year={year} />
       {narrow ? (
         <PerformanceMonthCards annual={null} onExplain={() => undefined} year={year} />
       ) : (
@@ -28,6 +24,7 @@ export function PerformanceTabSkeleton({ year }: { year: number }) {
           <PerformanceMonthTable annual={null} onExplain={() => undefined} year={year} />
         </section>
       )}
+      <PerformanceIndexChart annual={null} />
     </div>
   );
 }
