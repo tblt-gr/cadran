@@ -33,7 +33,9 @@ final readonly class SeedDemoInstruments implements DemoDataContributor
             // The instruments the demo portfolio operations are recorded on; the last one has no class nor region on purpose.
             ['ETF Monde Démo', 'FRDEMO000015', 'DMWLD', 'XPAR', 'ETF', 'EQUITY', 'WORLD', false],
             ['Action Démo Industrie', 'FRDEMO000023', 'DMIND', 'XPAR', 'EQUITY', 'EQUITY', 'FRANCE', false],
+            ['Fonds Obligataire Démo', 'FRDEMO000031', null, null, 'FUND', 'BOND', 'EUROPE', false],
             ['Instrument sans classe Démo', 'FRDEMO000049', null, null, 'OTHER', null, null, false],
+            ['Ancien fonds Démo', 'FRDEMO000056', null, null, 'FUND', 'MIXED', 'EUROPE', true],
         ] as [$name, $isin, $ticker, $venue, $type, $class, $region, $closed]) {
             $instrument = $this->createInstrument->__invoke(new CreateInstrumentInput(
                 name: $name,

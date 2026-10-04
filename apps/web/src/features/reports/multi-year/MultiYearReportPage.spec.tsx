@@ -301,6 +301,7 @@ describe('MultiYearReportPage', () => {
 
     expect(screen.getByRole('navigation', { name: /type de rapport/i })).toBeTruthy();
     expect((await screen.findAllByRole('status')).length).toBe(1);
+    expect(screen.getByTestId('detailed-reports-skeleton').getAttribute('aria-busy')).toBe('true');
   });
 
   it('shows one policy warning before the continuous chronology when the selected years differ', async () => {

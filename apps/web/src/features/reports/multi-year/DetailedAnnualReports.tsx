@@ -2,8 +2,10 @@ import type { AnnualReport, MultiYearReport } from '@cadran/api-client';
 import { useQueries } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import { AnnualRequestError } from '@/features/reports/annual/useAnnualReport';
 import { annualReportQueryOptions } from '@/features/reports/annual/useAnnualReport';
+import tableStyles from '@/features/reports/annual/AnnualReportTable.module.css';
 import { ContinuousDetailedReport } from './ContinuousDetailedReport';
 import styles from './DetailedAnnualReports.module.css';
 
@@ -27,9 +29,23 @@ export function DetailedAnnualReports({ onReportsReady, report }: DetailedAnnual
 
   if (results.some((result) => result.isPending)) {
     return (
-      <section aria-busy="true" className={`card ${styles.state}`} role="status">
+      <section
+        aria-busy="true"
+        className={`card ${styles.state}`}
+        data-testid="detailed-reports-skeleton"
+      >
+        <SkeletonStatus>{t('reports.loading')}</SkeletonStatus>
         <h2>{t('reports.multiYear.detailedCaption', { from: report.from, to: report.to })}</h2>
-        <p>{t('reports.loading')}</p>
+        <div className={styles.tableScroll}>
+          <table className={tableStyles.table}>
+            <thead>
+              <tr>
+                <th scope="col">{t('reports.annual.month')}</th>
+              </tr>
+            </thead>
+            <SkeletonTableRows columns={6} rows={12} />
+          </table>
+        </div>
       </section>
     );
   }

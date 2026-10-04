@@ -1,6 +1,7 @@
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
@@ -48,6 +49,9 @@ export function AccountList({
 
   return (
     <div className={`card ${styles.panel}`}>
+      {netWorth.isPending ? (
+        <SkeletonStatus>{t('accountGroups.list.shareLoading')}</SkeletonStatus>
+      ) : null}
       <div className={styles.tableScroll}>
         <table>
           <caption className="sr-only">{t('accounts.list.caption')}</caption>
@@ -115,7 +119,10 @@ export function AccountList({
                   </td>
                   <td>
                     {netWorth.isPending ? (
-                      t('accountGroups.list.shareLoading')
+                      <SkeletonBlock
+                        className={styles.shareSkeleton}
+                        data-testid="account-share-skeleton"
+                      />
                     ) : share === undefined ? null : (
                       <ShareCell share={share} />
                     )}

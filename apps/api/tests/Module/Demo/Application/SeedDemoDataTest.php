@@ -47,18 +47,29 @@ final class SeedDemoDataTest extends KernelTestCase
         $summary = $seed(WorkspaceFixture::OWNER_EMAIL);
 
         self::assertSame(3, $summary->accounts);
-        self::assertSame(16, $this->rows(
+        self::assertSame(18, $this->rows(
             'SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ?',
             [$workspace = WorkspaceFixture::OWN_WORKSPACE],
         ));
-        self::assertSame(1, $this->rows(
+        self::assertSame(2, $this->rows(
             "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND status = 'INACTIVE'",
             [$workspace],
         ));
-        self::assertSame(16, $this->rows(
+        self::assertSame(18, $this->rows(
             "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND source = 'MANUAL' AND reviewed_at IS NOT NULL",
             [$workspace],
         ));
+        self::assertSame(
+            [
+                ['Ancien fonds Démo', 'FRDEMO000056', null, 'FUND', 'MIXED', 'EUROPE', 'INACTIVE'],
+                ['Fonds Obligataire Démo', 'FRDEMO000031', null, 'FUND', 'BOND', 'EUROPE', 'ACTIVE'],
+            ],
+            array_map(array_values(...), $this->connection->fetchAllAssociative(
+                "SELECT name, isin, ticker, instrument_type, asset_class, region, status FROM portfolio_instruments
+                 WHERE workspace_id = ? AND isin IN ('FRDEMO000031', 'FRDEMO000056') ORDER BY name",
+                [$workspace],
+            )),
+        );
         self::assertGreaterThan(0, $summary->transfers);
         // Both legs of every transfer cancel exactly, so transfers never move net worth.
         self::assertTrue($this->connection->fetchOne(

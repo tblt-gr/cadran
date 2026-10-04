@@ -7,9 +7,17 @@ import type {
   UpdateInstrumentRequest,
 } from '@cadran/api-client';
 import { useState } from 'react';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { useReferenceAssets } from '@/hooks/use-reference-assets';
 import type { InstrumentFieldErrors } from '@/features/portfolio/instruments/instrumentError';
+import { InstrumentIsinField } from './isin-field/InstrumentIsinField';
+import { InstrumentPrecisionField } from './precision-field/InstrumentPrecisionField';
+import { InstrumentSelectField } from './select-field/InstrumentSelectField';
+import {
+  instrumentClasses,
+  instrumentRegions,
+  instrumentTypes,
+  validPrecision,
+} from './instrumentOptions';
 import styles from './InstrumentForm.module.css';
 
 interface Props {
@@ -19,37 +27,6 @@ interface Props {
   error?: string;
   fieldErrors?: InstrumentFieldErrors;
   onSubmit: (body: CreateInstrumentRequest | UpdateInstrumentRequest) => void;
-}
-
-const types = [
-  ['EQUITY', 'Action'],
-  ['ETF', 'ETF'],
-  ['FUND', 'Fonds (OPCVM)'],
-  ['BOND', 'Obligation'],
-  ['OTHER', 'Autre'],
-] as const;
-const classes = [
-  ['EQUITY', 'Actions'],
-  ['BOND', 'Obligations'],
-  ['MONEY_MARKET', 'Monétaire'],
-  ['REAL_ESTATE', 'Immobilier'],
-  ['COMMODITY', 'Matières premières'],
-  ['MIXED', 'Diversifié'],
-  ['OTHER', 'Autre'],
-] as const;
-const regions = [
-  ['FRANCE', 'France'],
-  ['EUROPE', 'Europe'],
-  ['NORTH_AMERICA', 'Amérique du Nord'],
-  ['ASIA_PACIFIC', 'Asie-Pacifique'],
-  ['EMERGING', 'Pays émergents'],
-  ['WORLD', 'Monde'],
-  ['OTHER', 'Autre'],
-] as const;
-
-const PRECISION_MESSAGE = 'La précision doit être comprise entre 0 et 12.';
-function validPrecision(value: string) {
-  return /^\d{1,2}$/.test(value) && Number(value) <= 12;
 }
 
 export function InstrumentForm({
@@ -80,7 +57,6 @@ export function InstrumentForm({
     (!isin.trim() && !ticker.trim()) ||
     !validPrecision(quantityPrecision) ||
     !validPrecision(pricePrecision);
-  const existingHref = `/portfolios/instruments?q=${encodeURIComponent(isin.trim())}&status=all`;
   const fiat = (assets.data?.items ?? []).filter((asset) => asset.kind === 'FIAT');
 
   function optional(value: string) {
@@ -128,32 +104,13 @@ export function InstrumentForm({
           />
           {showErrors && name.trim() === '' ? <small>Le nom est obligatoire.</small> : null}
         </label>
-        <label>
-          <span>ISIN</span>
-          <input
-            aria-describedby={existingInstrumentId ? 'existing-instrument' : undefined}
-            aria-invalid={existingInstrumentId ? true : undefined}
-            disabled={locked}
-            maxLength={12}
-            onChange={(e) => setIsin(e.target.value.toUpperCase())}
-            value={isin}
-          />
-          {existingInstrumentId ? (
-            <small id="existing-instrument">
-              Cet ISIN existe déjà.{' '}
-              <a
-                href={existingHref}
-                onClick={(event) => handleClientNavigation(event, existingHref)}
-              >
-                Voir l’instrument existant
-              </a>
-            </small>
-          ) : fieldErrors.isin ? (
-            <small>{fieldErrors.isin}</small>
-          ) : locked ? (
-            <small>Figé après la première opération</small>
-          ) : null}
-        </label>
+        <InstrumentIsinField
+          error={fieldErrors.isin}
+          existingInstrumentId={existingInstrumentId}
+          locked={locked}
+          onChange={setIsin}
+          value={isin}
+        />
         <label>
           <span>Ticker</span>
           <input
@@ -176,20 +133,26 @@ export function InstrumentForm({
           />
           {fieldErrors.venueMic ? <small>{fieldErrors.venueMic}</small> : null}
         </label>
-        <Select
+        <InstrumentSelectField
           label="Type"
-          options={types}
+          options={instrumentTypes}
           onChange={(value) => setType(value as InstrumentType)}
           value={instrumentType}
         />
-        <Select
+        <InstrumentSelectField
           label="Classe d'actifs"
           nullable
-          options={classes}
+          options={instrumentClasses}
           onChange={setClass}
           value={assetClass}
         />
-        <Select label="Région" nullable options={regions} onChange={setRegion} value={region} />
+        <InstrumentSelectField
+          label="Région"
+          nullable
+          options={instrumentRegions}
+          onChange={setRegion}
+          value={region}
+        />
         <label>
           <span>Devise</span>
           <select
@@ -205,32 +168,20 @@ export function InstrumentForm({
           </select>
           {locked ? <small>Figé après la première opération</small> : null}
         </label>
-        <label>
-          <span>Précision des quantités</span>
-          <input
-            disabled={locked}
-            inputMode="numeric"
-            onChange={(e) => setQuantityPrecision(e.target.value)}
-            value={quantityPrecision}
-          />
-          {showErrors && !validPrecision(quantityPrecision) ? (
-            <small>{PRECISION_MESSAGE}</small>
-          ) : null}
-          {locked ? <small>Figé après la première opération</small> : null}
-        </label>
-        <label>
-          <span>Précision des prix</span>
-          <input
-            disabled={locked}
-            inputMode="numeric"
-            onChange={(e) => setPricePrecision(e.target.value)}
-            value={pricePrecision}
-          />
-          {showErrors && !validPrecision(pricePrecision) ? (
-            <small>{PRECISION_MESSAGE}</small>
-          ) : null}
-          {locked ? <small>Figé après la première opération</small> : null}
-        </label>
+        <InstrumentPrecisionField
+          label="Précision des quantités"
+          locked={locked}
+          onChange={setQuantityPrecision}
+          showErrors={showErrors}
+          value={quantityPrecision}
+        />
+        <InstrumentPrecisionField
+          label="Précision des prix"
+          locked={locked}
+          onChange={setPricePrecision}
+          showErrors={showErrors}
+          value={pricePrecision}
+        />
       </div>
       <div className={styles.actions}>
         <button className="primary-action" disabled={pending || assets.isError} type="submit">
@@ -238,33 +189,5 @@ export function InstrumentForm({
         </button>
       </div>
     </form>
-  );
-}
-
-function Select({
-  label,
-  options,
-  onChange,
-  value,
-  nullable = false,
-}: {
-  label: string;
-  options: readonly (readonly [string, string])[];
-  onChange: (value: string) => void;
-  value: string;
-  nullable?: boolean;
-}) {
-  return (
-    <label>
-      <span>{label}</span>
-      <select onChange={(e) => onChange(e.target.value)} value={value}>
-        {nullable ? <option value="">Non renseignée</option> : null}
-        {options.map(([id, text]) => (
-          <option key={id} value={id}>
-            {text}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }

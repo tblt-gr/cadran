@@ -188,6 +188,29 @@ final class PositionLedgerTest extends TestCase
     }
 
     #[Test]
+    public function itRefusesACorporateActionOnAnInstrumentWithoutAPosition(): void
+    {
+        $cases = [
+            'split' => $this->operation('01', OperationType::SPLIT, '2026-01-02', 1, self::ETF, ratio: ['2', '1']),
+            'merger' => $this->operation('01', OperationType::MERGER, '2026-01-02', 1, self::ETF, counter: self::STOCK, counterQuantity: '3'),
+            'spin-off' => $this->operation('01', OperationType::SPIN_OFF, '2026-01-02', 1, self::ETF, counter: self::STOCK, counterQuantity: '3', allocation: '0.1'),
+        ];
+        foreach ($cases as $name => $operation) {
+            try {
+                (new PositionLedger())->replay([$operation], [self::ETF => 6, self::STOCK => 6]);
+                self::fail("Expected the $name replay to fail.");
+            } catch (PositionReplayFailed $failure) {
+                self::assertSame('corporate_action_without_position', $failure->problemCode, $name);
+                self::assertSame([
+                    'operationId' => $operation->id,
+                    'tradeDate' => '2026-01-02',
+                    'instrumentId' => self::ETF,
+                ], $failure->extensions, $name);
+            }
+        }
+    }
+
+    #[Test]
     public function itRejectsASplitFractionOutsideTheInstrumentPrecision(): void
     {
         $split = $this->operation('02', OperationType::SPLIT, '2026-01-02', 1, self::ETF, ratio: ['1', '3']);

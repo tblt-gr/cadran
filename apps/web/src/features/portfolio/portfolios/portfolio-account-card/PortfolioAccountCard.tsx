@@ -5,9 +5,10 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAmount } from '@/lib/decimal';
 import { UnrealizedGain } from '@/features/portfolio/portfolios/unrealized-gain/UnrealizedGain';
 import { PortfolioCardCurve } from './PortfolioCardCurve';
+import { ValuationQuality } from './valuation-quality/ValuationQuality';
 import styles from './PortfolioAccountCard.module.css';
 
-/** Name, institution, latest total, unrealized gain and curve; the name is the link, so the curve stays hoverable and focusable. */
+/** Name, institution, latest total, unrealized gain, valuation quality and curve; the name is the link, so the curve stays hoverable and focusable. */
 export function PortfolioAccountCard({
   account,
 }: {
@@ -16,6 +17,8 @@ export function PortfolioAccountCard({
   if (!account) {
     return (
       <article aria-hidden="true" className={`card ${styles.card}`}>
+        <SkeletonBlock />
+        <SkeletonBlock />
         <SkeletonBlock />
         <SkeletonBlock />
         <SkeletonBlock />
@@ -50,6 +53,7 @@ export function PortfolioAccountCard({
           value={gain.value}
         />
       </p>
+      <ValuationQuality account={account} />
       <PortfolioCardCurve accountId={account.accountId} assetCode={account.assetCode} />
     </article>
   );

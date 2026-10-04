@@ -1,0 +1,22 @@
+.ratio {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  gap: var(--spacing-4);
+}
+.ratio legend {
+  padding: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.error {
+  color: var(--negative);
+}
+@media (max-width: 42rem) {
+  .ratio {
+    grid-template-columns: 1fr;
+  }
+}

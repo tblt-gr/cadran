@@ -86,4 +86,63 @@ describe('PortfolioAccountCard', () => {
     );
     expect(screen.getAllByText('Coût d’acquisition inconnu').length).toBeGreaterThan(0);
   });
+
+  it('shows the valuation date and a complete quality badge', () => {
+    renderCard(accountCardFixture());
+    expect(screen.getByText('au 30/09/2026')).toBeTruthy();
+    expect(screen.getByText('Valorisation complète')).toBeTruthy();
+    expect(screen.queryByText('Fin de mois à saisir')).toBeNull();
+  });
+
+  it('flags a partial valuation', () => {
+    const base = accountCardFixture();
+    renderCard(
+      accountCardFixture({
+        latestValuation: { ...base.latestValuation!, completeness: 'PARTIAL' },
+      }),
+    );
+    expect(screen.getByText('Valorisation partielle')).toBeTruthy();
+  });
+
+  it('flags a stale valuation with its age', () => {
+    const base = accountCardFixture();
+    renderCard(
+      accountCardFixture({
+        latestValuation: { ...base.latestValuation!, stale: true, ageDays: 45 },
+      }),
+    );
+    expect(screen.getByText('Valorisation ancienne (45 jours)')).toBeTruthy();
+  });
+
+  it('shows the fallback notice when a newer partial valuation exists', () => {
+    const base = accountCardFixture();
+    renderCard(
+      accountCardFixture({
+        newerPartialValuation: {
+          ...base.latestValuation!,
+          id: 'valuation-2',
+          valuedOn: '2026-10-02',
+          completeness: 'PARTIAL',
+        },
+      }),
+    );
+    expect(screen.getByText('Valorisation partielle plus récente')).toBeTruthy();
+  });
+
+  it('shows the month-end badge when months are due', () => {
+    renderCard(accountCardFixture({ dueMonths: ['2026-09'] }));
+    expect(screen.getByText('Fin de mois à saisir')).toBeTruthy();
+  });
+
+  it('keeps cash and position count out of the card', () => {
+    renderCard(accountCardFixture());
+    expect(screen.queryByText('1 positions')).toBeNull();
+    expect(screen.queryByText('Espèces')).toBeNull();
+  });
+
+  it('renders a hidden skeleton without a valuation line', () => {
+    const { container } = renderCard(null);
+    expect(container.querySelector('article[aria-hidden="true"]')).toBeTruthy();
+    expect(screen.queryByText(/^au /)).toBeNull();
+  });
 });

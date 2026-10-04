@@ -274,11 +274,7 @@ export function AccountGroupsPage() {
         />
       ) : (
         <>
-          {netWorth.isPending ? (
-            <section className={`card ${styles.allocation}`} aria-busy="true" role="status">
-              {t('accountGroups.list.allocationLoading')}
-            </section>
-          ) : netWorth.isError ? (
+          {netWorth.isError ? (
             <section className={`card ${styles.allocation}`} role="alert">
               {t('accountGroups.list.allocationUnavailable')}
             </section>

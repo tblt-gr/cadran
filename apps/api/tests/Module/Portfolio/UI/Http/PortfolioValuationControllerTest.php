@@ -656,6 +656,18 @@ final class PortfolioValuationControllerTest extends WebTestCase
         self::assertSame(0, $this->rows('portfolio_valuations'));
     }
 
+    public function testWithdrawingRequiresTheCsrfToken(): void
+    {
+        $valuation = $this->recordTotal('2026-03-31', '10.00');
+        $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', 'invalid');
+
+        $this->send('POST', '/api/v1/portfolio-valuations/'.self::string($valuation['id']).'/withdraw', ['version' => $valuation['version']]);
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame(0, $this->rows('portfolio_valuations', 'withdrawn'));
+        self::assertSame(0, $this->rows('audit_events', "event_type = 'portfolio_valuation.withdrawn'"));
+    }
+
     public function testAnonymousCallersAreRefused(): void
     {
         $this->client->request('DELETE', '/api/v1/session', server: ['HTTP_ACCEPT' => 'application/json']);

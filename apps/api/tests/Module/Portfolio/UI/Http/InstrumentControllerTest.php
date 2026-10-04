@@ -8,6 +8,7 @@ use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -129,6 +130,45 @@ final class InstrumentControllerTest extends WebTestCase
         $this->request('POST', '/api/v1/instruments', $this->payload(['isin' => 'IE00B4L5Y983', 'currencyCode' => 'BTC']));
         self::assertResponseStatusCodeSame(422);
         self::assertSame('unsupported_instrument_currency', $this->decode()['code']);
+    }
+
+    /** @return iterable<string, array{array<string, mixed>, string}> */
+    public static function invalidFieldProvider(): iterable
+    {
+        yield 'ticker with a space' => [['ticker' => 'WL D'], 'invalid_instrument_ticker'];
+        yield 'ticker too long' => [['ticker' => 'ABCDEFGHIJKLM'], 'invalid_instrument_ticker'];
+        yield 'ticker starting with a dot' => [['ticker' => '.WLD'], 'invalid_instrument_ticker'];
+        yield 'venue too short' => [['venueMic' => 'XPA'], 'invalid_instrument_venue'];
+        yield 'venue with a symbol' => [['venueMic' => 'XP-R'], 'invalid_instrument_venue'];
+        yield 'unknown type' => [['instrumentType' => 'CRYPTO'], 'invalid_instrument_type'];
+        yield 'lowercase type' => [['instrumentType' => 'etf'], 'invalid_instrument_type'];
+        yield 'unknown class' => [['assetClass' => 'GOLD'], 'invalid_instrument_classification'];
+        yield 'unknown region' => [['region' => 'MARS'], 'invalid_instrument_classification'];
+        yield 'quantity precision above twelve' => [['quantityPrecision' => 13], 'invalid_instrument_precision'];
+        yield 'negative price precision' => [['pricePrecision' => -1], 'invalid_instrument_precision'];
+    }
+
+    /** @param array<string, mixed> $override */
+    #[DataProvider('invalidFieldProvider')]
+    public function testAnInvalidFieldIsRefusedWithItsStableCodeAndWritesNothing(array $override, string $code): void
+    {
+        $this->request('POST', '/api/v1/instruments', $this->payload($override));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame($code, $this->decode()['code']);
+        self::assertSame(0, $this->connection->fetchOne('SELECT count(*) FROM portfolio_instruments'));
+    }
+
+    public function testAnInvalidFieldOnEditIsRefusedWithItsStableCode(): void
+    {
+        $created = $this->create();
+
+        $this->request('PUT', '/api/v1/instruments/'.self::string($created['id']), [
+            ...$this->writeBody($created), 'ticker' => 'WL D', 'version' => 1,
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('invalid_instrument_ticker', $this->decode()['code']);
     }
 
     public function testVersionLockBoundsCsrfAndWorkspaceIsolationAreEnforced(): void
