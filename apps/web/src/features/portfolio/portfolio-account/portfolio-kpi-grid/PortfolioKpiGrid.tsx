@@ -23,12 +23,15 @@ export function PortfolioKpiGrid({
   asOf,
   onExplain,
   qualifiers,
+  footer,
 }: {
   summary: PortfolioOverviewSummary | null;
   asOf: string;
   onExplain: (code: KpiCode) => void;
   /** Valuation notices shown under the total value they qualify. */
   qualifiers?: ReactNode;
+  /** A section closing the panel, such as the since-opening performance. */
+  footer?: ReactNode;
 }) {
   const money = (value: string | null) =>
     value === null ? 'Non calculable' : formatAmount(value, summary!.account.assetCode, 'fr');
@@ -117,6 +120,7 @@ export function PortfolioKpiGrid({
           </ul>
         </div>
       ) : null}
+      {footer}
     </section>
   );
 }

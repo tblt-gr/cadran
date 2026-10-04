@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { usePortfolioSummary } from '@/features/portfolio/usePortfolioOverview';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
+import { SinceOpeningFigures } from '@/features/portfolio/performance/since-opening-figures/SinceOpeningFigures';
 import { PortfolioKpiGrid } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/PortfolioKpiGrid';
 import { PortfolioKpiExplanationModal } from '@/features/portfolio/portfolio-account/kpi-explanation-modal/PortfolioKpiExplanationModal';
 import type { KpiCode } from '@/features/portfolio/portfolio-account/overviewLabels';
@@ -75,6 +76,7 @@ export function PortfolioOverview({
       ) : (
         <PortfolioKpiGrid
           asOf={asOf}
+          footer={<SinceOpeningFigures accountId={accountId} frozen={frozen} />}
           qualifiers={qualifiers}
           summary={summary.data ?? null}
           onExplain={(code) => {

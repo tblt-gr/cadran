@@ -1,0 +1,18 @@
+.card {
+  padding: var(--spacing-4);
+}
+.figure {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-none);
+  gap: var(--spacing-3);
+}
+.figure h3 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+.description {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}

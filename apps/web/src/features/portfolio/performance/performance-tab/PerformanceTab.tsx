@@ -7,6 +7,7 @@ import { OperationRequestError } from '@/features/portfolio/portfolio-account/op
 import type { ExplainTarget } from './explainTarget';
 import { MonthExplanation } from './MonthExplanation';
 import { PerformanceIndexChart } from './performance-index-chart/PerformanceIndexChart';
+import { PerformanceValueChart } from './performance-value-chart/PerformanceValueChart';
 import { PerformanceMonthCards } from './performance-month-cards/PerformanceMonthCards';
 import { PerformanceMonthTable } from './performance-month-table/PerformanceMonthTable';
 import { PerformanceSummary } from './performance-summary/PerformanceSummary';
@@ -23,7 +24,6 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
   const narrow = useMediaQuery('(max-width: 767px)');
   const annual = useAnnualPerformance(accountId, year);
   const yearPerformance = usePortfolioPerformance(accountId, 'YEAR', String(year));
-  const inception = usePortfolioPerformance(accountId, 'INCEPTION', undefined);
 
   useEffect(() => {
     const update = () => setYear(performanceYear(asOf));
@@ -75,23 +75,17 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
 
   const data = annual.data;
   const withoutValuation = data.yearTotal.startValue === null && data.yearTotal.endValue === null;
-  const explained =
-    explaining?.kind === 'year'
-      ? yearPerformance.data
-      : explaining?.kind === 'inception'
-        ? inception.data
-        : undefined;
+  const explained = explaining?.kind === 'year' ? yearPerformance.data : undefined;
 
   return (
     <div className={styles.tab}>
       <YearNavigator bounds={data.availableYears} onChange={changeYear} year={year} />
       <PerformanceSummary
-        inceptionPerformance={inception.data ?? null}
         onExplain={setExplaining}
         year={year}
         yearPerformance={yearPerformance.data ?? null}
       />
-      <PerformanceIndexChart annual={data} />
+      <PerformanceValueChart annual={data} year={year} />
       {withoutValuation ? (
         <p className={`card ${styles.notice}`}>Aucune valorisation pour cette année</p>
       ) : null}
@@ -102,6 +96,7 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
           <PerformanceMonthTable annual={data} onExplain={setExplaining} />
         </section>
       )}
+      <PerformanceIndexChart annual={data} />
       {explaining?.kind === 'month' ? (
         <MonthExplanation
           accountId={accountId}

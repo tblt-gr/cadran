@@ -41,32 +41,22 @@ function Row({
   );
 }
 
-/** The year and since-opening figures, from the `YEAR` and `INCEPTION` responses of the performance endpoint. */
+/** The year figures, from the `YEAR` response of the performance endpoint; the since-opening ones sit in the page summary. */
 export function PerformanceSummary({
   year,
   yearPerformance,
-  inceptionPerformance,
   onExplain,
 }: {
   year: number;
   yearPerformance: PortfolioPerformance | null;
-  inceptionPerformance: PortfolioPerformance | null;
   onExplain: (target: ExplainTarget) => void;
 }) {
   return (
-    <div className={styles.summary}>
-      <Row
-        onExplain={onExplain}
-        performance={yearPerformance}
-        target={(figure) => ({ kind: 'year', figure })}
-        title={`Année ${year}`}
-      />
-      <Row
-        onExplain={onExplain}
-        performance={inceptionPerformance}
-        target={(figure) => ({ kind: 'inception', figure })}
-        title="Depuis l'ouverture"
-      />
-    </div>
+    <Row
+      onExplain={onExplain}
+      performance={yearPerformance}
+      target={(figure) => ({ kind: 'year', figure })}
+      title={`Année ${year}`}
+    />
   );
 }

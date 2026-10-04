@@ -62,6 +62,7 @@ describe('PerformanceTab', () => {
     expect(screen.getByRole('button', { name: 'Année précédente' }).hasAttribute('disabled')).toBe(
       true,
     );
+    expect(screen.getByRole('heading', { name: 'Évolution de la valeur 2026' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Rendement chaîné (base 100)' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Valeur début' })).toBeTruthy();
 
@@ -70,7 +71,7 @@ describe('PerformanceTab', () => {
       expect.objectContaining({ path: { accountId }, query: { year: '2026' } }),
     );
     expect(screen.getByRole('heading', { name: 'Année 2026' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: "Depuis l'ouverture" })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: "Depuis l'ouverture" })).toBeNull();
     expect(screen.getByRole('table', { name: 'Performance par mois' })).toBeTruthy();
   });
 
