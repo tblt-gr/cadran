@@ -27,6 +27,7 @@ export function VoidOperationModal({
       client.invalidateQueries({ queryKey: ['portfolio-allocation', operation.accountId] }),
       client.invalidateQueries({ queryKey: ['portfolio-valuation-history', operation.accountId] }),
       client.invalidateQueries({ queryKey: ['portfolio-performance', operation.accountId] }),
+      client.invalidateQueries({ queryKey: ['portfolio-performance-annual', operation.accountId] }),
       client.invalidateQueries({ queryKey: ['portfolios'] }),
       client.invalidateQueries({ queryKey: ['portfolio-operations', operation.accountId] }),
       client.invalidateQueries({ queryKey: ['portfolio-operation', operation.id] }),

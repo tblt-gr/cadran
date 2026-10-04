@@ -16,7 +16,7 @@ final readonly class PortfolioPerformance
 {
     /**
      * @param list<PerformanceFinding>                                                      $findings     blocking reasons first, then warnings
-     * @param list<array{operationId: string, type: string, date: string, amount: ?string}> $flows        the first ReadPortfolioPerformance::MAX_FLOWS external flows
+     * @param list<array{operationId: string, type: string, date: string, amount: ?string}> $flows        the first ComputePortfolioPerformance::MAX_FLOWS external flows
      * @param list<array{kind: string, id: string, date: string}>                           $sources      the first PortfolioExplanation::MAX_SOURCES sources, anchors first
      * @param array<string, PerformanceExplanation>                                         $explanations by PerformanceMethod value
      */
@@ -42,6 +42,8 @@ final readonly class PortfolioPerformance
         public TimeWeightedReturn $timeWeighted,
         public MoneyWeightedFigure $moneyWeighted,
         public array $explanations,
+        public ?string $deposits = null,
+        public ?string $withdrawals = null,
     ) {
     }
 }

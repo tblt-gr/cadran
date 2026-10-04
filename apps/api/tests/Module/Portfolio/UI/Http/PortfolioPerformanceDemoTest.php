@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Portfolio\UI\Http;
 
 use App\Module\Demo\Application\SeedDemoData;
+use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Tests\Support\WorkspaceFixture;
@@ -106,6 +107,39 @@ final class PortfolioPerformanceDemoTest extends WebTestCase
         self::assertSame(2, $missing['missingCount'], 'The preceding stale anchor and the missing deposit-day valuation are both counted.');
         $missingReasons = array_values(array_filter(self::list($missing['reasons']), static fn (array $reason): bool => 'MISSING_FLOW_VALUATION' === $reason['code']));
         self::assertSame([$previous.'-07'], $missingReasons[0]['dates']);
+    }
+
+    public function testTheDemoYearDepositsAndWithdrawalsEqualTheCashTotalsBetweenItsAnchors(): void
+    {
+        $year = (int) $this->month("SELECT to_char(MAX(valued_on), 'YYYY') FROM portfolio_valuations WHERE workspace_id = ? AND account_id = ? AND superseded_at IS NULL AND completeness = 'COMPLETE'");
+        $account = $this->account();
+
+        $this->client->request('GET', '/api/v1/accounts/'.$account.'/portfolio-performance/annual?year='.$year, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful((string) $this->client->getResponse()->getContent());
+        $annual = self::map(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
+        $line = self::map($annual['yearTotal']);
+        self::assertIsString($line['from']);
+        self::assertIsString($line['to']);
+        $from = (new \DateTimeImmutable($line['from']))->modify('+1 day')->format('Y-m-d');
+
+        $this->client->request('GET', '/api/v1/accounts/'.$account.'/portfolio-cash?from='.$from.'&to='.$line['to'], server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful((string) $this->client->getResponse()->getContent());
+        $totals = self::map(self::map(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR))['totals']);
+
+        foreach (['deposits', 'withdrawals'] as $key) {
+            self::assertIsString($line[$key]);
+            self::assertSame(0, ExactDecimal::compareForResponse($line[$key], self::text(self::map($totals[$key])['value'])), $key);
+        }
+        $months = self::list($annual['months']);
+        self::assertCount(12, $months);
+        self::assertContains('CALCULATED', array_column($months, 'status'));
+    }
+
+    private static function text(mixed $value): string
+    {
+        self::assertIsString($value);
+
+        return $value;
     }
 
     /** @param array<string, mixed> $body */

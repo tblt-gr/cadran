@@ -23,6 +23,19 @@ describe('PerformanceValue', () => {
     expect(screen.getByText('Exact')).toBeTruthy();
   });
 
+  it('signs a rate below one percent', () => {
+    const fixture = performanceFixture();
+    render(
+      <PerformanceValue
+        context={accountContext}
+        figure={{ ...fixture.timeWeighted, value: '0.0061' }}
+        label="TWR exact"
+        onExplain={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('+0,61 %')).toBeTruthy();
+  });
+
   it('shows a loss with its minus sign and a gain as an amount', () => {
     const fixture = performanceFixture();
     const view = render(

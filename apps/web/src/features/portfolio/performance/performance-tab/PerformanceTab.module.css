@@ -1,0 +1,24 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.panel {
+  padding: var(--spacing-none);
+}
+.notice {
+  margin: var(--spacing-none);
+  padding: var(--spacing-4);
+  color: var(--text-secondary);
+}
+.state {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-8);
+}
+.state h3,
+.state p {
+  margin: var(--spacing-none);
+}

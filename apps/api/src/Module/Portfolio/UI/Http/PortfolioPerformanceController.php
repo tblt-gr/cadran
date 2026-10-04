@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\UI\Http;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Portfolio\Application\Performance\PerformanceRangeTooDense;
+use App\Module\Portfolio\Application\Performance\ReadPortfolioAnnualPerformance;
 use App\Module\Portfolio\Application\Performance\ReadPortfolioPerformance;
 use App\Module\Portfolio\Application\PortfolioAccountNotFound;
 use App\Module\Portfolio\Domain\Cash\CashReplayFailed;
@@ -27,10 +28,24 @@ final readonly class PortfolioPerformanceController
     #[Route('/api/v1/accounts/{accountId}/portfolio-performance', name: 'api_v1_portfolio_performance', methods: ['GET'])]
     public function performance(string $accountId, Request $request, ReadPortfolioPerformance $read): Response
     {
+        return $this->respond(static fn (): array => PortfolioPerformanceRepresentation::of(
+            $read(self::identifier($accountId), self::scalar($request, 'scope', 'invalid_performance_scope'), self::scalar($request, 'period', 'invalid_performance_period')),
+        ));
+    }
+
+    #[Route('/api/v1/accounts/{accountId}/portfolio-performance/annual', name: 'api_v1_portfolio_performance_annual', methods: ['GET'])]
+    public function annual(string $accountId, Request $request, ReadPortfolioAnnualPerformance $read): Response
+    {
+        return $this->respond(static fn (): array => PortfolioAnnualPerformanceRepresentation::of(
+            $read(self::identifier($accountId), self::scalar($request, 'year', 'invalid_performance_period')),
+        ));
+    }
+
+    /** @param \Closure(): array<string, mixed> $body */
+    private function respond(\Closure $body): Response
+    {
         try {
-            $response = new JsonResponse(PortfolioPerformanceRepresentation::of(
-                $read(self::identifier($accountId), self::scalar($request, 'scope', 'invalid_performance_scope'), self::scalar($request, 'period', 'invalid_performance_period')),
-            ));
+            $response = new JsonResponse($body());
             $response->headers->set('Cache-Control', 'no-store');
 
             return $response;
