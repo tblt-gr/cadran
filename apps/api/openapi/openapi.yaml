@@ -6672,6 +6672,58 @@ paths:
               - REGION
               - CURRENCY
             default: INSTRUMENT
+  /api/v1/accounts/{accountId}/portfolio-performance:
+    get:
+      operationId: readPortfolioPerformance
+      summary: Read the total gain of a portfolio account over a period
+      description: >-
+        Gain of a month, a year or the whole life of the account, bounded by two
+        complete valuations, net of signed external flows and decomposed into
+        realized gain, change in unrealized gain, income, fees, taxes and residual.
+        Computed on read, never stored. Response uses no-store cache control.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Workspace-scoped exact figures; a missing input yields a null value with reasons, never zero.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioPerformance'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Invalid scope or period, account not followed in portfolio mode, or the bounded operation scope exceeded.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioPerformanceProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: scope
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - MONTH
+              - YEAR
+              - INCEPTION
+        - name: period
+          in: query
+          required: false
+          description: YYYY-MM for MONTH, YYYY for YEAR, absent for INCEPTION. A period after the current month or year, or before the month of the account opening, is refused.
+          schema:
+            type: string
+            pattern: ^[0-9]{4}(-(0[1-9]|1[0-2]))?$
 components:
   securitySchemes:
     sessionCookie:
@@ -7480,6 +7532,302 @@ components:
                 - portfolio_account_not_found
                 - account_not_portfolio
                 - cash_range_too_dense
+                - cash_amount_too_large
+                - position_would_go_negative
+                - corporate_action_without_position
+                - split_fraction_unsupported
+    PortfolioPerformanceAmount:
+      description: Exact decimal string in the account asset; null when the figure cannot be calculated.
+      type:
+        - string
+        - 'null'
+      pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+    PortfolioPerformanceAnchor:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - valuationId
+        - date
+        - totalValue
+        - detail
+        - flags
+      properties:
+        kind:
+          type: string
+          enum:
+            - VALUATION
+            - OPENING
+        valuationId:
+          type:
+            - string
+            - 'null'
+          format: uuid
+        date:
+          type: string
+          format: date
+        totalValue:
+          type: string
+          pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+        detail:
+          type:
+            - string
+            - 'null'
+          enum:
+            - TOTAL
+            - POSITIONS
+            - null
+        flags:
+          type: array
+          items:
+            type: string
+            enum:
+              - STALE_PRICES
+              - CASH_DIFFERENCE
+              - OBSERVED_TOTAL_DIFFERENCE
+              - POSITIONS_CHANGED
+              - NEGATIVE_SECURITIES_VALUE
+    PortfolioPerformanceFlow:
+      type: object
+      additionalProperties: false
+      required:
+        - operationId
+        - type
+        - date
+        - amount
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum:
+            - DEPOSIT
+            - WITHDRAWAL
+            - SECURITY_TRANSFER_IN
+            - SECURITY_TRANSFER_OUT
+        date:
+          type: string
+          format: date
+        amount:
+          description: Signed amount in the account asset; null for a security transfer, which has no value.
+          type:
+            - string
+            - 'null'
+          pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+    PortfolioPerformanceReason:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - dates
+      properties:
+        code:
+          type: string
+          enum:
+            - NO_START_VALUATION
+            - NO_END_VALUATION
+            - START_VALUATION_PARTIAL
+            - END_VALUATION_PARTIAL
+            - UNVALUED_SECURITY_TRANSFER
+            - UNKNOWN_LOT_COST
+            - STALE_PRICES
+            - CASH_DIFFERENCE
+            - OBSERVED_TOTAL_DIFFERENCE
+            - POSITIONS_CHANGED
+            - NEGATIVE_SECURITIES_VALUE
+            - PERIOD_IN_PROGRESS
+            - DECOMPOSITION_RESIDUAL
+        dates:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            format: date
+    PortfolioGainDecomposition:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - reason
+        - realized
+        - unrealizedChange
+        - income
+        - fees
+        - taxes
+        - corporateActionCash
+        - capitalizedCosts
+        - residual
+      properties:
+        status:
+          type: string
+          enum:
+            - COMPLETE
+            - UNAVAILABLE
+        reason:
+          type:
+            - string
+            - 'null'
+        realized:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        unrealizedChange:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        income:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        fees:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        taxes:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        corporateActionCash:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        capitalizedCosts:
+          description: Fees and taxes capitalized into the acquisition cost of purchases; informative, never added to the components.
+          type:
+            - string
+            - 'null'
+          pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+        residual:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+    PortfolioGainFigure:
+      type: object
+      additionalProperties: false
+      required:
+        - value
+        - method
+        - quality
+        - reasons
+        - from
+        - to
+        - days
+        - sources
+        - sourceCount
+        - startValue
+        - endValue
+        - netFlows
+        - decomposition
+      properties:
+        value:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        method:
+          type: string
+          enum:
+            - TOTAL_GAIN
+        quality:
+          type: string
+          enum:
+            - EXACT
+            - APPROXIMATION
+            - DEGRADED
+            - NOT_CALCULABLE
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioPerformanceReason'
+        from:
+          type:
+            - string
+            - 'null'
+          format: date
+        to:
+          type:
+            - string
+            - 'null'
+          format: date
+        days:
+          type:
+            - integer
+            - 'null'
+          minimum: 1
+        sources:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/PortfolioOverviewSource'
+        sourceCount:
+          type: integer
+          minimum: 0
+        startValue:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        endValue:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        netFlows:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        decomposition:
+          $ref: '#/components/schemas/PortfolioGainDecomposition'
+    PortfolioPerformance:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - assetCode
+        - scope
+        - period
+        - methodVersion
+        - costPolicy
+        - start
+        - end
+        - flows
+        - flowCount
+        - netFlows
+        - gain
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        assetCode:
+          type: string
+        scope:
+          type: string
+          enum:
+            - MONTH
+            - YEAR
+            - INCEPTION
+        period:
+          type:
+            - string
+            - 'null'
+        methodVersion:
+          type: string
+          enum:
+            - PERF-1
+        costPolicy:
+          type: string
+          enum:
+            - NET_OF_FEES_AND_TAXES
+        start:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioPerformanceAnchor'
+            - type: 'null'
+        end:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioPerformanceAnchor'
+            - type: 'null'
+        flows:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/PortfolioPerformanceFlow'
+        flowCount:
+          type: integer
+          minimum: 0
+        netFlows:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        gain:
+          $ref: '#/components/schemas/PortfolioGainFigure'
+    PortfolioPerformanceProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - code
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_performance_scope
+                - invalid_performance_period
+                - account_not_portfolio
+                - performance_range_too_dense
                 - cash_amount_too_large
                 - position_would_go_negative
                 - corporate_action_without_position

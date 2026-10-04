@@ -1,0 +1,71 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Contract;
+
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\Yaml\Yaml;
+
+final class PortfolioPerformanceOpenApiContractTest extends TestCase
+{
+    public function testThePerformanceReadContractIsBoundedExactAndNeverZeroByDefault(): void
+    {
+        $document = self::map(Yaml::parseFile(dirname(__DIR__, 2).'/openapi/openapi.yaml'));
+        $get = self::map(self::map(self::map($document['paths'])['/api/v1/accounts/{accountId}/portfolio-performance'])['get']);
+        self::assertSame('readPortfolioPerformance', $get['operationId']);
+        self::assertSame([['sessionCookie' => []]], $get['security']);
+        $responses = $get['responses'];
+        self::assertIsArray($responses);
+        foreach (['200', '401', '403', '404', '422', '500'] as $status) {
+            self::assertArrayHasKey((int) $status, $responses);
+        }
+        $parameters = $get['parameters'];
+        self::assertIsArray($parameters);
+        $scope = self::map($parameters[1]);
+        self::assertSame(['scope', 'query', true], [$scope['name'], $scope['in'], $scope['required']]);
+        self::assertSame(['MONTH', 'YEAR', 'INCEPTION'], self::map($scope['schema'])['enum']);
+
+        $schemas = self::map(self::map($document['components'])['schemas']);
+        $performance = self::map($schemas['PortfolioPerformance']);
+        self::assertSame(
+            ['accountId', 'assetCode', 'scope', 'period', 'methodVersion', 'costPolicy', 'start', 'end', 'flows', 'flowCount', 'netFlows', 'gain'],
+            $performance['required'],
+        );
+        self::assertSame(100, self::map(self::map($performance['properties'])['flows'])['maxItems']);
+        $figure = self::map($schemas['PortfolioGainFigure']);
+        self::assertSame(50, self::map(self::map($figure['properties'])['sources'])['maxItems']);
+        self::assertContains('decomposition', self::list($figure['required']));
+        $amount = self::map($schemas['PortfolioPerformanceAmount']);
+        self::assertSame(['string', 'null'], $amount['type']);
+        $decomposition = self::map(self::map($schemas['PortfolioGainDecomposition'])['properties']);
+        foreach (['realized', 'unrealizedChange', 'income', 'fees', 'taxes', 'corporateActionCash', 'capitalizedCosts', 'residual'] as $component) {
+            self::assertArrayHasKey($component, $decomposition);
+        }
+        $problem = self::map(self::map(self::list(self::map($schemas['PortfolioPerformanceProblem'])['allOf'])[1])['properties']);
+        foreach (['invalid_performance_scope', 'invalid_performance_period', 'account_not_portfolio', 'performance_range_too_dense'] as $code) {
+            self::assertContains($code, self::list(self::map($problem['code'])['enum']));
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private static function map(mixed $value): array
+    {
+        self::assertIsArray($value);
+        $result = [];
+        foreach ($value as $key => $item) {
+            self::assertIsString($key);
+            $result[$key] = $item;
+        }
+
+        return $result;
+    }
+
+    /** @return list<mixed> */
+    private static function list(mixed $value): array
+    {
+        self::assertIsArray($value);
+
+        return array_values($value);
+    }
+}

@@ -23,8 +23,12 @@ final readonly class ReconcilePortfolioPositions
 
     public function __invoke(WorkspaceScope $workspace, string $accountId, ?\DateTimeImmutable $asOf = null): PositionLedgerResult
     {
-        $operations = $this->operations->activeForAccount($workspace, $accountId, $asOf);
+        return $this->replayOf($workspace, $this->operations->activeForAccount($workspace, $accountId, $asOf));
+    }
 
+    /** @param list<PortfolioOperation> $operations already read active operations of the account */
+    public function replayOf(WorkspaceScope $workspace, array $operations): PositionLedgerResult
+    {
         return $this->ledger->replay($operations, $this->precisions($workspace, $operations));
     }
 

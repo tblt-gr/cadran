@@ -33,7 +33,9 @@ final class PositionLedger
         }
 
         $positions = [];
+        $released = [];
         foreach ($states as $instrumentId => $state) {
+            $released += $state->released;
             $quantity = $state->poolQuantity;
             $fifoCost = self::lotCost($state->lots);
             $averageCost = $state->poolCost;
@@ -54,7 +56,7 @@ final class PositionLedger
             );
         }
 
-        return new PositionLedgerResult($positions, $movements);
+        return new PositionLedgerResult($positions, $movements, $released);
     }
 
     /**
@@ -220,10 +222,12 @@ final class PositionLedger
             $remaining = $remaining->subtract($consumed);
         }
         $poolQuantity = $state->poolQuantity;
+        $state->released[$operation->id] = null;
         if (null !== $state->poolCost) {
             $relief = 0 === $quantity->compareTo($poolQuantity)
                 ? $state->poolCost
                 : $state->poolCost->proportion($quantity, $poolQuantity, DecimalValue::MAX_SCALE, RoundingMode::HALF_EVEN);
+            $state->released[$operation->id] = $relief;
             $state->poolCost = $state->poolCost->subtract($relief);
         }
         $state->poolQuantity = $poolQuantity->subtract($quantity);
