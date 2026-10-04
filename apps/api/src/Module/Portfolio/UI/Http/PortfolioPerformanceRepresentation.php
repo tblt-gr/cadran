@@ -6,12 +6,15 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Portfolio\Application\Performance\PortfolioPerformance;
+use App\Module\Portfolio\Application\PortfolioExplanation;
 use App\Module\Portfolio\Domain\Cash\PortfolioCostPolicy;
 use App\Module\Portfolio\Domain\Performance\ModifiedDietzCalculator;
 use App\Module\Portfolio\Domain\Performance\PerformanceAmount;
 use App\Module\Portfolio\Domain\Performance\PerformanceFinding;
 use App\Module\Portfolio\Domain\Performance\PerformanceMethod;
+use App\Module\Portfolio\Domain\Performance\PerformanceQuality;
 use App\Module\Portfolio\Domain\Performance\PeriodAnchor;
+use App\Module\Portfolio\Domain\Performance\TimeWeightedReturnCalculator;
 
 final class PortfolioPerformanceRepresentation
 {
@@ -61,6 +64,39 @@ final class PortfolioPerformanceRepresentation
                 ],
             ],
             'modifiedDietz' => self::modifiedDietz($performance),
+            'timeWeighted' => self::timeWeighted($performance),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function timeWeighted(PortfolioPerformance $performance): array
+    {
+        $figure = $performance->timeWeighted;
+        $start = $performance->start;
+        $end = $performance->end;
+
+        $sources = $performance->sources;
+        $known = array_column($sources, 'id');
+        foreach ($figure->anchors as $anchor) {
+            if (null !== $anchor->valuationId && !in_array($anchor->valuationId, $known, true)) {
+                $sources[] = ['kind' => 'VALUATION', 'id' => $anchor->valuationId, 'date' => $anchor->date->format('Y-m-d')];
+                $known[] = $anchor->valuationId;
+            }
+        }
+
+        return [
+            'value' => null === $figure->rate ? null : TimeWeightedReturnCalculator::display($figure->rate),
+            'method' => 'TWR',
+            'quality' => PerformanceQuality::of(PerformanceQuality::EXACT, null === $figure->rate, [] !== $figure->warnings)->value,
+            'reasons' => self::reasons([...$figure->blocking, ...$figure->warnings]),
+            'from' => $start?->date->format('Y-m-d'),
+            'to' => $end?->date->format('Y-m-d'),
+            'days' => null === $start || null === $end ? null : (int) $start->date->diff($end->date)->format('%a'),
+            'sources' => array_slice($sources, 0, PortfolioExplanation::MAX_SOURCES),
+            'sourceCount' => $performance->sourceCount + count($sources) - count($performance->sources),
+            'subperiods' => $figure->subperiods,
+            'subperiodCount' => $figure->subperiodCount,
+            'missingCount' => $figure->missingCount,
         ];
     }
 

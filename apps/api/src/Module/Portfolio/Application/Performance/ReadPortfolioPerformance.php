@@ -32,6 +32,7 @@ final readonly class ReadPortfolioPerformance
         private ReconcilePortfolioPositions $reconcile,
         private TotalGainCalculator $calculator,
         private ComputeModifiedDietz $modifiedDietz,
+        private ComputeTimeWeightedReturn $timeWeighted,
     ) {
     }
 
@@ -72,6 +73,7 @@ final readonly class ReadPortfolioPerformance
             array_map(static fn (PortfolioOperation $operation): array => self::flow($operation, $precision), array_slice($flows, 0, self::MAX_FLOWS)),
             count($flows), array_slice($sources, 0, PortfolioExplanation::MAX_SOURCES), count($sources),
             ($this->modifiedDietz)($workspace, $account, $period, $data, $today),
+            ($this->timeWeighted)($workspace, $account->id, $period->scope, $data),
         );
     }
 

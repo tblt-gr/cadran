@@ -29,7 +29,7 @@ final class PortfolioPerformanceOpenApiContractTest extends TestCase
         $schemas = self::map(self::map($document['components'])['schemas']);
         $performance = self::map($schemas['PortfolioPerformance']);
         self::assertSame(
-            ['accountId', 'assetCode', 'scope', 'period', 'methodVersion', 'costPolicy', 'start', 'end', 'flows', 'flowCount', 'netFlows', 'gain', 'modifiedDietz'],
+            ['accountId', 'assetCode', 'scope', 'period', 'methodVersion', 'costPolicy', 'start', 'end', 'flows', 'flowCount', 'netFlows', 'gain', 'modifiedDietz', 'timeWeighted'],
             $performance['required'],
         );
         self::assertSame(100, self::map(self::map($performance['properties'])['flows'])['maxItems']);
@@ -54,6 +54,12 @@ final class PortfolioPerformanceOpenApiContractTest extends TestCase
         self::assertSame(600, self::map(self::list(self::map(self::map($dietz['properties'])['months'])['oneOf'])[0])['maxItems']);
         foreach (['value', 'averageCapital', 'minCapitalRatio', 'weights', 'weightCount', 'months'] as $field) {
             self::assertContains($field, self::list($dietz['required']));
+        }
+        $twr = self::map($schemas['PortfolioTimeWeightedFigure']);
+        self::assertSame(['TWR'], self::map(self::map($twr['properties'])['method'])['enum']);
+        self::assertSame(400, self::map(self::map($twr['properties'])['subperiods'])['maxItems']);
+        foreach (['MISSING_FLOW_VALUATION', 'STALE_FLOW_VALUATION', 'ZERO_START_VALUE', 'TOO_MANY_SUBPERIODS'] as $code) {
+            self::assertContains($code, $reasonCodes);
         }
         $problem = self::map(self::map(self::list(self::map($schemas['PortfolioPerformanceProblem'])['allOf'])[1])['properties']);
         foreach (['invalid_performance_scope', 'invalid_performance_period', 'account_not_portfolio', 'performance_range_too_dense'] as $code) {

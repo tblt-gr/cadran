@@ -88,6 +88,21 @@ final class PortfolioPerformanceDemoTest extends WebTestCase
         self::assertSame('END_VALUATION_PARTIAL', self::map(self::list($partial['reasons'])[0])['code']);
     }
 
+    public function testDemoShowsExactLatestClosedMonthAndMissingEarlierFlowValuations(): void
+    {
+        $latest = $this->month("SELECT to_char(MAX(valued_on), 'YYYY-MM') FROM portfolio_valuations WHERE workspace_id = ? AND account_id = ? AND superseded_at IS NULL AND completeness = 'COMPLETE'");
+        $exact = self::map($this->performance($latest)['timeWeighted']);
+        self::assertNotNull($exact['value'], json_encode($exact['reasons'], JSON_THROW_ON_ERROR));
+        self::assertSame('EXACT', $exact['quality']);
+        $previous = (new \DateTimeImmutable($latest.'-01'))->modify('-1 month')->format('Y-m');
+        $missing = self::map($this->performance($previous)['timeWeighted']);
+        self::assertNull($missing['value']);
+        self::assertContains('MISSING_FLOW_VALUATION', array_column(self::list($missing['reasons']), 'code'));
+        self::assertSame(2, $missing['missingCount'], 'The preceding stale anchor and the missing deposit-day valuation are both counted.');
+        $missingReasons = array_values(array_filter(self::list($missing['reasons']), static fn (array $reason): bool => 'MISSING_FLOW_VALUATION' === $reason['code']));
+        self::assertSame([$previous.'-07'], $missingReasons[0]['dates']);
+    }
+
     /** @param array<string, mixed> $body */
     private function send(string $method, string $uri, array $body): void
     {

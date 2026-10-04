@@ -104,6 +104,33 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         self::assertSame(8, $gain['sourceCount'], 'two anchors and six operations');
     }
 
+    public function testTimeWeightedReturnRequiresActiveFlowDayValuations(): void
+    {
+        $this->seedReferenceMonth();
+        $missing = self::map($this->performance('MONTH', '2026-03')['timeWeighted']);
+        self::assertNull($missing['value']);
+        self::assertSame(2, $missing['missingCount']);
+        self::assertSame(['2026-03-10', '2026-03-25'], self::map(self::items2($missing['reasons'])[0])['dates']);
+        $this->recordTotal('2026-03-10', '11100.00');
+        $this->recordTotal('2026-03-25', '10950.00');
+        $body = $this->performance('MONTH', '2026-03');
+        $twr = self::map($body['timeWeighted']);
+        self::assertSame(['0.023815', 'EXACT', 'TWR', 3, 0], [$twr['value'], $twr['quality'], $twr['method'], $twr['subperiodCount'], $twr['missingCount']]);
+        self::assertSame('0.023499', self::map($body['modifiedDietz'])['value']);
+        $superseded = $this->recordTotal('2026-03-25', '10950.00', ['version' => 1]);
+        $this->connection->executeStatement('UPDATE portfolio_valuations SET superseded_at = now() WHERE workspace_id = ?::uuid AND id = ?::uuid', [WorkspaceFixture::OWN_WORKSPACE, $superseded['id']]);
+        $missing = self::map($this->performance('MONTH', '2026-03')['timeWeighted']);
+        self::assertNull($missing['value']);
+        self::assertSame(1, $missing['missingCount']);
+        $this->recordTotal('2026-03-25', '10950.00');
+        self::assertSame('0.023815', self::map($this->performance('MONTH', '2026-03')['timeWeighted'])['value']);
+        foreach (['YEAR', 'INCEPTION'] as $scope) {
+            $figure = self::map($this->performance($scope, 'YEAR' === $scope ? '2026' : null)['timeWeighted']);
+            self::assertSame('TWR', $figure['method']);
+            self::assertArrayHasKey('subperiods', $figure);
+        }
+    }
+
     public function testConsecutiveMonthsShareTheirBoundaryAnchor(): void
     {
         $this->seedReferenceMonth();

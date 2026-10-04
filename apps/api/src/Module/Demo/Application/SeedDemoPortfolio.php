@@ -120,8 +120,8 @@ final class SeedDemoPortfolio
                 continue;
             }
             $known = $position->lastPrice?->toString() ?? '1.0000';
-            // The price keeps the date it was really observed on; the stale demo case is at least ten days old.
-            $date = $position->lastPriceDate ?? $day;
+            // Fresh demo statements observe the unchanged non-ETF prices again; the stale case keeps their age.
+            $date = 'current' === $pricing ? $day : ($position->lastPriceDate ?? $day);
             if ('stale' === $pricing && $date > $day->modify('-10 days')) {
                 $date = $day->modify('-10 days');
             }

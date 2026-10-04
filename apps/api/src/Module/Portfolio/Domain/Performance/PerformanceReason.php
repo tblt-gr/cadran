@@ -26,11 +26,17 @@ enum PerformanceReason: string
     case MONTH_NOT_CALCULABLE = 'MONTH_NOT_CALCULABLE';
     case TOO_MANY_PERIODS = 'TOO_MANY_PERIODS';
 
+    case MISSING_FLOW_VALUATION = 'MISSING_FLOW_VALUATION';
+    case STALE_FLOW_VALUATION = 'STALE_FLOW_VALUATION';
+    case ZERO_START_VALUE = 'ZERO_START_VALUE';
+    case TOO_MANY_SUBPERIODS = 'TOO_MANY_SUBPERIODS';
+
     public function isBlocking(): bool
     {
         return in_array($this, [
             self::NO_START_VALUATION, self::NO_END_VALUATION, self::START_VALUATION_PARTIAL,
             self::END_VALUATION_PARTIAL, self::UNVALUED_SECURITY_TRANSFER, self::NO_INVESTED_CAPITAL,
+            self::MISSING_FLOW_VALUATION, self::STALE_FLOW_VALUATION, self::ZERO_START_VALUE, self::TOO_MANY_SUBPERIODS,
             self::NON_POSITIVE_DENOMINATOR, self::DENOMINATOR_TOO_SMALL, self::MONTH_NOT_CALCULABLE, self::TOO_MANY_PERIODS,
         ], true);
     }

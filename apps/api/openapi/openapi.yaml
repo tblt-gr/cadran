@@ -7643,6 +7643,10 @@ components:
             - DENOMINATOR_TOO_SMALL
             - MONTH_NOT_CALCULABLE
             - TOO_MANY_PERIODS
+            - MISSING_FLOW_VALUATION
+            - STALE_FLOW_VALUATION
+            - ZERO_START_VALUE
+            - TOO_MANY_SUBPERIODS
         dates:
           type: array
           maxItems: 20
@@ -7900,6 +7904,91 @@ components:
               items:
                 $ref: '#/components/schemas/PortfolioModifiedDietzMonth'
             - type: 'null'
+    PortfolioTimeWeightedFigure:
+      type: object
+      additionalProperties: false
+      required:
+        - value
+        - method
+        - quality
+        - reasons
+        - from
+        - to
+        - days
+        - sources
+        - sourceCount
+        - subperiods
+        - subperiodCount
+        - missingCount
+      properties:
+        value:
+          $ref: '#/components/schemas/PortfolioModifiedDietzRate'
+        method:
+          type: string
+          enum:
+            - TWR
+        quality:
+          type: string
+          enum: [EXACT, DEGRADED, NOT_CALCULABLE]
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioPerformanceReason'
+        from:
+          type:
+            - string
+            - 'null'
+          format: date
+        to:
+          type:
+            - string
+            - 'null'
+          format: date
+        days:
+          type:
+            - integer
+            - 'null'
+          minimum: 1
+        sources:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/PortfolioOverviewSource'
+        sourceCount:
+          type: integer
+          minimum: 0
+        subperiods:
+          description: First 400 subperiods, in chronological order. Processing is limited to 2000.
+          type: array
+          maxItems: 400
+          items:
+            $ref: '#/components/schemas/PortfolioTimeWeightedSubperiod'
+        subperiodCount:
+          type: integer
+          minimum: 0
+        missingCount:
+          description: Exact count of distinct missing or stale required valuation dates.
+          type: integer
+          minimum: 0
+    PortfolioTimeWeightedSubperiod:
+      type: object
+      additionalProperties: false
+      required: [from, to, startValue, endValue, flow, value]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        startValue:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        endValue:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        flow:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        value:
+          $ref: '#/components/schemas/PortfolioModifiedDietzRate'
     PortfolioPerformance:
       type: object
       additionalProperties: false
@@ -7917,6 +8006,7 @@ components:
         - netFlows
         - gain
         - modifiedDietz
+        - timeWeighted
       properties:
         accountId:
           type: string
@@ -7963,6 +8053,8 @@ components:
           $ref: '#/components/schemas/PortfolioGainFigure'
         modifiedDietz:
           $ref: '#/components/schemas/PortfolioModifiedDietzFigure'
+        timeWeighted:
+          $ref: '#/components/schemas/PortfolioTimeWeightedFigure'
     PortfolioPerformanceProblem:
       allOf:
         - $ref: '#/components/schemas/Problem'

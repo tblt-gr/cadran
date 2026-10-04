@@ -11,17 +11,21 @@ use App\Module\Foundation\Domain\RoundingMode;
 final class ReturnChain
 {
     public const int MAX_PERIODS = 600;
+    public const int MAX_SUBPERIODS = 2000;
     private const int SCALE = 24;
 
     /**
      * @param list<CalculatedDecimal> $returns unrounded period returns, oldest first
      *
-     * @throws ReturnChainTooLong when more than MAX_PERIODS returns are chained
+     * @throws ReturnChainTooLong when more than the supplied bounded limit are chained (600 monthly periods by default)
      */
-    public static function chain(array $returns): CalculatedDecimal
+    public static function chain(array $returns, int $limit = self::MAX_PERIODS): CalculatedDecimal
     {
-        if (count($returns) > self::MAX_PERIODS) {
-            throw new ReturnChainTooLong('A return chain holds at most '.self::MAX_PERIODS.' periods.');
+        if ($limit < 1 || $limit > self::MAX_SUBPERIODS) {
+            throw new \InvalidArgumentException('The chain limit must be between 1 and '.self::MAX_SUBPERIODS.'.');
+        }
+        if (count($returns) > $limit) {
+            throw new ReturnChainTooLong('A return chain holds at most '.$limit.' periods.');
         }
         $growth = CalculatedDecimal::one();
         foreach ($returns as $return) {
