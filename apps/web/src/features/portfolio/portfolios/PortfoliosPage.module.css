@@ -1,18 +1,15 @@
 .page {
   display: grid;
+  /* The shell stretches the page to the viewport: rows keep their content height instead of sharing the spare space. */
+  align-content: start;
   gap: var(--spacing-6);
 }
-.header {
+.toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-4);
+  align-items: flex-start;
+  justify-content: flex-end;
 }
-.header h2 {
-  margin: var(--spacing-none);
-}
-.header a {
+.toolbar a {
   text-decoration: none;
 }
 .grid {

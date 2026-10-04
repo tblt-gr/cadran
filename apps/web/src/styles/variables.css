@@ -57,6 +57,7 @@
   --sidebar-width-collapsed: 4.75rem;
   --header-height: 5rem;
   --header-height-mobile: 6.25rem;
+  --z-header: 20;
   --control-height: 2.25rem;
   --modal-width: 44rem;
   --navigation-link-height: 2.875rem;

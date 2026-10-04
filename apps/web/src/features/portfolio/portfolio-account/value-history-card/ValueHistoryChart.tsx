@@ -2,7 +2,7 @@ import type { PortfolioValuationHistoryPoint } from '@cadran/api-client';
 import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/CurveChart';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
-import { formatCalendarNumericDay } from '@/lib/decimal';
+import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
 import { detailLabel, summaryQualityLabel } from '@/features/portfolio/valuations/valuationLabels';
 import { exactAmount, missingReason, pointWarnings } from './valueHistoryLabels';
 
@@ -15,6 +15,9 @@ function tooltipDetail(point: PortfolioValuationHistoryPoint): string {
   ].join(' · ');
 }
 
+/** `exact` keeps every stored digit (account page); `display` rounds to two decimals (cards). */
+export type HistoryAmountFormat = 'exact' | 'display';
+
 /**
  * One point per valuation: the server strings are placed as is and a valuation without total
  * breaks the line instead of falling to zero.
@@ -23,14 +26,21 @@ export function ValueHistoryChart({
   assetCode,
   locale,
   points,
+  amountFormat = 'exact',
 }: {
+  amountFormat?: HistoryAmountFormat;
   assetCode: string;
   locale: string;
   points: PortfolioValuationHistoryPoint[];
 }) {
   const curvePoints: CurvePoint[] = points.map((point) => {
     const date = formatCalendarNumericDay(point.valuedOn);
-    const total = point.totalValue === null ? null : exactAmount(point.totalValue, locale);
+    const total =
+      point.totalValue === null
+        ? null
+        : amountFormat === 'display'
+          ? formatAmount(point.totalValue.value, point.totalValue.assetCode, locale)
+          : exactAmount(point.totalValue, locale);
     return {
       axisLabel: date,
       geometryValue: point.totalValue?.value ?? null,

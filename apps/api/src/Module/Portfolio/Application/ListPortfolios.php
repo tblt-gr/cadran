@@ -34,6 +34,7 @@ final readonly class ListPortfolios
         $shown = array_slice($accounts, 0, self::MAX_ACCOUNTS);
         $due = ($this->dueMonths)($workspace, $shown, $today);
         $items = [];
+        $figures = [];
         foreach ($shown as $account) {
             [, , $view, $newerPartial] = ($this->query)($account->id, null);
             $count = 0;
@@ -42,14 +43,20 @@ final readonly class ListPortfolios
                     ++$count;
                 }
             }
+            $gain = PortfolioUnrealizedGain::of($view);
+            $figures[] = ['assetCode' => $account->assetCode, 'totalValue' => $view?->valuation->totalValue?->toString(),
+                'gain' => $gain['value'], 'costBasis' => $gain['costBasis'],
+                'valuedOn' => $view?->valuation->valuedOn->format('Y-m-d'), 'newerPartial' => null !== $newerPartial];
             $items[] = ['accountId' => $account->id, 'label' => $account->label, 'institution' => $account->institution,
                 'productCode' => $account->productCode, 'assetCode' => $account->assetCode, 'status' => $account->status,
                 'latestValuation' => PortfolioOverviewQuery::valuation($view, $today),
                 'newerPartialValuation' => PortfolioOverviewQuery::valuation($newerPartial, $today),
                 'currentCash' => CashLedger::replay([], $this->operations->activeForAccount($workspace, $account->id, $today))->closingBalance->toString(),
-                'positionCount' => $count, 'dueMonths' => $due[$account->id] ?? []];
+                'positionCount' => $count, 'unrealizedGain' => ['value' => $gain['value'], 'costBasis' => $gain['costBasis'],
+                    'performance' => PortfolioUnrealizedGain::performance($gain['value'], $gain['costBasis']), 'reason' => $gain['reason']],
+                'dueMonths' => $due[$account->id] ?? []];
         }
 
-        return ['items' => $items, 'truncated' => count($accounts) > self::MAX_ACCOUNTS];
+        return ['items' => $items, 'total' => PortfolioTotal::of($figures), 'truncated' => count($accounts) > self::MAX_ACCOUNTS];
     }
 }

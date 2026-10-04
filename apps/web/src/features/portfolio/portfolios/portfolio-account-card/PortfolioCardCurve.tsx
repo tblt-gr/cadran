@@ -27,5 +27,12 @@ export function PortfolioCardCurve({
     return <p className={styles.note}>Aucune valorisation.</p>;
   }
 
-  return <ValueHistoryChart assetCode={assetCode} locale="fr" points={history.data.points} />;
+  return (
+    <ValueHistoryChart
+      amountFormat="display"
+      assetCode={assetCode}
+      locale="fr"
+      points={history.data.points}
+    />
+  );
 }

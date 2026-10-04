@@ -26,6 +26,9 @@
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
+.card .gain {
+  font-size: var(--font-size-body);
+}
 .curve {
   height: var(--chart-plot-height);
 }

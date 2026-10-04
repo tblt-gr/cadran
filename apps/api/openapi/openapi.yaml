@@ -7141,7 +7141,30 @@ components:
         - positionCount
         - newerPartialValuation
         - dueMonths
+        - unrealizedGain
       properties:
+        unrealizedGain:
+          description: Unrealized gain of the latest complete valuation with its performance (gain over cost, 6 decimals, ratio 0.0732 = 7.32 %); every member is null when not calculable, never zero.
+          type: object
+          additionalProperties: false
+          required:
+            - value
+            - costBasis
+            - performance
+            - reason
+          properties:
+            value: *id004
+            costBasis: *id004
+            performance: *id004
+            reason:
+              type:
+                - string
+                - 'null'
+              enum:
+                - null
+                - NO_VALUATION
+                - PARTIAL_VALUATION
+                - UNKNOWN_LOT_COST
         dueMonths:
           description: Months still owed a complete month-end valuation, oldest first, computed on every read.
           type: array
@@ -7180,8 +7203,58 @@ components:
       additionalProperties: false
       required:
         - items
+        - total
         - truncated
       properties:
+        total:
+          description: Sum over the shown active accounts, one asset only; gain, cost and performance are null unless every valued account has a computable gain.
+          type: object
+          additionalProperties: false
+          required:
+            - assetCode
+            - totalValue
+            - unrealizedGain
+            - costBasis
+            - performance
+            - valuedAccounts
+            - unvaluedAccounts
+            - oldestValuedOn
+            - partialNewerAccounts
+            - reason
+          properties:
+            assetCode:
+              type:
+                - string
+                - 'null'
+            totalValue: *id004
+            unrealizedGain: *id004
+            costBasis: *id004
+            performance: *id004
+            valuedAccounts:
+              type: integer
+              minimum: 0
+            unvaluedAccounts:
+              type: integer
+              minimum: 0
+            oldestValuedOn:
+              description: Oldest valuation date among the valued accounts, null when none is valued.
+              type:
+                - string
+                - 'null'
+              format: date
+            partialNewerAccounts:
+              description: Valued accounts whose displayed complete valuation has a newer partial observation.
+              type: integer
+              minimum: 0
+            reason:
+              type:
+                - string
+                - 'null'
+              enum:
+                - null
+                - MIXED_ASSETS
+                - NO_VALUATION
+                - INCOMPLETE_GAIN
         items:
           type: array
           items:

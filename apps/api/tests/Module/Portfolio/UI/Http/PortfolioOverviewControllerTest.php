@@ -384,6 +384,128 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         }
     }
 
+    public function testTheListCarriesEachGainAndAWorkspaceScopedTotal(): void
+    {
+        $this->get('/api/v1/portfolios');
+        $empty = self::map($this->decode()['total']);
+        self::assertSame('NO_VALUATION', $empty['reason']);
+        self::assertSame(0, $empty['valuedAccounts']);
+        self::assertSame(1, $empty['unvaluedAccounts']);
+        self::assertNull($empty['totalValue']);
+        self::assertNull(self::map(self::map(self::items($this->decode())[0])['unrealizedGain'])['performance']);
+
+        $this->seedHoldings();
+        $this->recordPositions('2026-03-31', [
+            ['instrumentId' => self::ETF, 'price' => '240.00', 'priceDate' => '2026-03-31'],
+            ['instrumentId' => self::STOCK, 'price' => '52.30', 'priceDate' => '2026-03-31'],
+        ]);
+        $this->postValuation($this->totalBody('2026-03-31', '1000.00'), account: self::FOREIGN_ACCOUNT);
+        $this->get('/api/v1/portfolios');
+        $list = $this->decode();
+        $gain = self::map(self::map(self::items($list)[0])['unrealizedGain']);
+        self::assertNotNull($gain['value']);
+        $total = self::map($list['total']);
+        self::assertSame('EUR', $total['assetCode']);
+        self::assertSame(1, $total['valuedAccounts']);
+        self::assertSame(0, $total['unvaluedAccounts']);
+        self::assertSame(self::map(self::map(self::items($list)[0])['latestValuation'])['totalValue'], $total['totalValue']);
+        self::assertSame($gain['value'], $total['unrealizedGain']);
+        self::assertSame($gain['costBasis'], $total['costBasis']);
+        self::assertSame($gain['performance'], $total['performance']);
+        self::assertFalse($list['truncated']);
+    }
+
+    public function testTwoValuedAccountsSumAndExposeTheOldestDate(): void
+    {
+        $second = '00000000-0000-7000-8000-0000000000e1';
+        $this->portfolio->account($second, label: 'PEA');
+        $this->seedHoldings();
+        $this->recordPositions('2026-03-31', [
+            ['instrumentId' => self::ETF, 'price' => '240.00', 'priceDate' => '2026-03-31'],
+            ['instrumentId' => self::STOCK, 'price' => '52.30', 'priceDate' => '2026-03-31'],
+        ]);
+        $this->postValuation($this->totalBody('2026-02-28', '1000.00'), account: $second);
+        self::assertResponseStatusCodeSame(201);
+        $this->get('/api/v1/portfolios');
+        $list = $this->decode();
+        $items = self::items($list);
+        self::assertCount(2, $items);
+        $first = self::map(self::map($items[0])['latestValuation']);
+        $other = self::map(self::map($items[1])['latestValuation']);
+        $total = self::map($list['total']);
+        self::assertSame(2, $total['valuedAccounts']);
+        self::assertSame(0, $total['unvaluedAccounts']);
+        self::assertSame(\Brick\Math\BigDecimal::of(self::string($first['totalValue']))->plus(self::string($other['totalValue']))->toScale(2)->__toString(), $total['totalValue']);
+        self::assertSame('2026-02-28', $total['oldestValuedOn']);
+        self::assertSame(0, $total['partialNewerAccounts']);
+        self::assertNull($total['reason']);
+        self::assertNotNull($total['unrealizedGain']);
+        self::assertNotNull($total['costBasis']);
+    }
+
+    public function testMixedAssetsNullTheWholeTotal(): void
+    {
+        $this->portfolio->account('00000000-0000-7000-8000-0000000000e2', label: 'Crypto', assetCode: 'BTC');
+        $this->postValuation($this->totalBody('2026-03-31', '1000.00'));
+        self::assertResponseStatusCodeSame(201);
+        $this->get('/api/v1/portfolios');
+        $total = self::map($this->decode()['total']);
+        self::assertSame('MIXED_ASSETS', $total['reason']);
+        self::assertNull($total['assetCode']);
+        self::assertNull($total['totalValue']);
+        self::assertNull($total['oldestValuedOn']);
+        self::assertSame(1, $total['valuedAccounts']);
+    }
+
+    public function testAPartialOnlyAccountIsUnvaluedAndANewerPartialIsCounted(): void
+    {
+        $this->seedHoldings();
+        $this->recordPositions('2026-03-31', [
+            ['instrumentId' => self::ETF, 'price' => null, 'priceDate' => null],
+            ['instrumentId' => self::STOCK, 'price' => '52.30', 'priceDate' => '2026-03-31'],
+        ]);
+        $this->get('/api/v1/portfolios');
+        $total = self::map($this->decode()['total']);
+        self::assertSame('NO_VALUATION', $total['reason']);
+        self::assertSame(0, $total['valuedAccounts']);
+        self::assertSame(1, $total['unvaluedAccounts']);
+        self::assertNull($total['oldestValuedOn']);
+
+        $this->recordTotal('2026-04-30', '4000.00');
+        $this->recordPositions('2026-05-31', [
+            ['instrumentId' => self::ETF, 'price' => null, 'priceDate' => null],
+            ['instrumentId' => self::STOCK, 'price' => '52.30', 'priceDate' => '2026-05-31'],
+        ]);
+        $this->get('/api/v1/portfolios');
+        $total = self::map($this->decode()['total']);
+        self::assertSame('4000.00', $total['totalValue']);
+        self::assertSame('2026-04-30', $total['oldestValuedOn']);
+        self::assertSame(1, $total['partialNewerAccounts']);
+    }
+
+    public function testAnotherWorkspaceValuedAccountIsAbsentFromItemsAndTotal(): void
+    {
+        $this->postValuation($this->totalBody('2026-03-31', '9999.00'), account: self::FOREIGN_ACCOUNT);
+        self::assertResponseStatusCodeSame(404, 'the caller cannot value a foreign account');
+        $foreign = '00000000-0000-7000-8000-0000000000e3';
+        $this->portfolio->account($foreign, label: 'Voisin 2');
+        $this->postValuation($this->totalBody('2026-03-31', '9999.00'), account: $foreign);
+        self::assertResponseStatusCodeSame(201);
+        $this->connection->beginTransaction();
+        $this->connection->executeStatement('SET session_replication_role = replica');
+        $this->connection->update('portfolio_valuations', ['workspace_id' => WorkspaceFixture::OTHER_WORKSPACE], ['account_id' => $foreign]);
+        $this->connection->update('account_financial_accounts', ['workspace_id' => WorkspaceFixture::OTHER_WORKSPACE], ['id' => $foreign]);
+        $this->connection->executeStatement('SET session_replication_role = DEFAULT');
+        $this->connection->commit();
+        $this->get('/api/v1/portfolios');
+        $list = $this->decode();
+        self::assertSame([self::ACCOUNT], array_column(self::items($list), 'accountId'));
+        $total = self::map($list['total']);
+        self::assertSame(0, $total['valuedAccounts']);
+        self::assertNull($total['totalValue']);
+        self::assertStringNotContainsString('9999', (string) $this->client->getResponse()->getContent());
+    }
+
     /** @return array<string, mixed> */
     private function overview(string $endpoint, string $asOf, string $extra = ''): array
     {

@@ -40,6 +40,9 @@ final class PortfolioOverviewOpenApiContractTest extends TestCase
         self::assertSame(50, self::map($explanation['sources'])['maxItems']);
         $list = self::map(self::map($schemas['PortfolioOverviewList'])['properties']);
         self::assertSame(50, self::map($list['items'])['maxItems']);
+        self::assertSame(['assetCode', 'totalValue', 'unrealizedGain', 'costBasis', 'performance', 'valuedAccounts', 'unvaluedAccounts', 'oldestValuedOn', 'partialNewerAccounts', 'reason'], self::map($list['total'])['required']);
+        $card = self::map(self::map($schemas['PortfolioOverviewAccountCard'])['properties']);
+        self::assertSame(['value', 'costBasis', 'performance', 'reason'], self::map($card['unrealizedGain'])['required']);
         $allocation = self::map(self::map($schemas['PortfolioOverviewAllocation'])['properties']);
         self::assertSame(8, self::map($allocation['slices'])['maxItems']);
     }
