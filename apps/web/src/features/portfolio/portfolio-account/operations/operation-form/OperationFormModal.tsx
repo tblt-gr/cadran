@@ -75,6 +75,7 @@ export function OperationFormModal({
         client.invalidateQueries({ queryKey: ['portfolio-allocation', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolio-valuation-history', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolio-performance', account.id] }),
+        client.invalidateQueries({ queryKey: ['portfolio-performance-annual', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolios'] }),
         client.invalidateQueries({ queryKey: ['portfolio-operations', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolio-operation'] }),

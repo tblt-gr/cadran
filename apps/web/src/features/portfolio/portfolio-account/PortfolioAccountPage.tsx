@@ -10,6 +10,7 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
 import { CashTab } from '@/features/portfolio/cash/CashTab';
+import { PerformanceTab } from '@/features/portfolio/performance/performance-tab/PerformanceTab';
 import { ValuationsTab } from '@/features/portfolio/valuations/ValuationsTab';
 import { NotPortfolioState } from './operations/NotPortfolioState';
 import { OperationsTab } from './operations/OperationsTab';
@@ -116,6 +117,8 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
           <CashTab accountId={accountId} asOf={asOf} onAsOfChange={changeDate} />
         ) : active === 'valuations' ? (
           <ValuationsTab account={current} asOf={asOf} sourceReturnFocus={sourceReturnFocus} />
+        ) : active === 'performance' ? (
+          <PerformanceTab accountId={accountId} asOf={asOf} />
         ) : (
           <OperationsTab
             account={current}

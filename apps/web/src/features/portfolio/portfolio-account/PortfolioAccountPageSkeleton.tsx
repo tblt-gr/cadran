@@ -5,6 +5,8 @@ import { OperationFilters } from './operations/operation-filters/OperationFilter
 import { noFilters } from './operations/operation-filters/operationFilterValues';
 import { OperationsTableSkeleton } from './operations/OperationsTableSkeleton';
 import { CashTabSkeleton } from '@/features/portfolio/cash/CashTabSkeleton';
+import { PerformanceTabSkeleton } from '@/features/portfolio/performance/performance-tab/PerformanceTabSkeleton';
+import { performanceYear } from '@/features/portfolio/performance/performance-tab/performanceYear';
 import { ValuationsTabSkeleton } from '@/features/portfolio/valuations/ValuationsTabSkeleton';
 import { PositionsTabSkeleton } from './positions/PositionsTabSkeleton';
 import { PortfolioAccountHeader } from './portfolio-account-header/PortfolioAccountHeader';
@@ -53,6 +55,8 @@ export function PortfolioAccountPageSkeleton({
         <CashTabSkeleton asOf={asOf} />
       ) : active === 'valuations' ? (
         <ValuationsTabSkeleton status={status} />
+      ) : active === 'performance' ? (
+        <PerformanceTabSkeleton year={performanceYear(asOf)} />
       ) : (
         <PositionsTabSkeleton status={status} />
       )}

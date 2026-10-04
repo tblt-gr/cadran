@@ -23,13 +23,13 @@ export type PerformanceFigure =
   | PortfolioMoneyWeightedFigure;
 
 /** Server text with an explicit sign; the sign is never left to the colour alone. */
-function signed(text: string): { text: string; tone: string } {
+export function signed(text: string): { text: string; tone: string } {
   if (text.startsWith('-')) return { text, tone: styles.negative };
-  if (/^0(?:[,.]0+)?(?!\d)/.test(text)) return { text, tone: '' };
+  if (/^0(?:[,.]0+)?(?![\d,.])/.test(text)) return { text, tone: '' };
   return { text: `+${text}`, tone: styles.positive };
 }
 
-function Rate({ ratio, unit }: { ratio: string; unit?: string }) {
+export function Rate({ ratio, unit }: { ratio: string; unit?: string }) {
   const { text, tone } = signed(formatRatioPercentage(ratio, 'fr'));
   return (
     <span className={tone}>

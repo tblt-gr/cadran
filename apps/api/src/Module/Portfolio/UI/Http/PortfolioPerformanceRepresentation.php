@@ -60,18 +60,55 @@ final class PortfolioPerformanceRepresentation
         ];
     }
 
+    /**
+     * One line of the annual table, taken from the same representation as the single-period endpoint so both agree.
+     *
+     * @return array<string, mixed>
+     */
+    public static function line(PortfolioPerformance $performance): array
+    {
+        $gain = self::envelope($performance, PerformanceMethod::TOTAL_GAIN);
+        $decomposition = $performance->decomposition;
+        $dietz = self::envelope($performance, PerformanceMethod::MODIFIED_DIETZ);
+        $twr = self::envelope($performance, PerformanceMethod::TWR);
+        $mwr = self::envelope($performance, PerformanceMethod::MWR);
+        $twrRate = $performance->timeWeighted->rate;
+
+        return [
+            'from' => $gain['from'], 'to' => $gain['to'],
+            'startValue' => $performance->startValue, 'endValue' => $performance->endValue,
+            'deposits' => $performance->deposits, 'withdrawals' => $performance->withdrawals, 'netFlows' => $performance->netFlows,
+            'gain' => $performance->gain,
+            'realized' => $decomposition->realized, 'unrealizedChange' => $decomposition->unrealizedChange,
+            'income' => $decomposition->income, 'fees' => $decomposition->fees, 'taxes' => $decomposition->taxes,
+            'gainQuality' => $gain['quality'], 'gainReasons' => $gain['reasons'],
+            'modifiedDietz' => ['value' => $performance->modifiedDietz->value, 'quality' => $dietz['quality'], 'reasons' => $dietz['reasons']],
+            'timeWeighted' => ['value' => null === $twrRate ? null : TimeWeightedReturnCalculator::display($twrRate), 'quality' => $twr['quality'], 'reasons' => $twr['reasons']],
+            'moneyWeighted' => [
+                'annualizedRate' => $performance->moneyWeighted->annualizedRate, 'periodRate' => $performance->moneyWeighted->periodRate,
+                'shortPeriod' => self::shortPeriod($performance), 'quality' => $mwr['quality'], 'reasons' => $mwr['reasons'],
+            ],
+        ];
+    }
+
+    private static function shortPeriod(PortfolioPerformance $performance): bool
+    {
+        $days = $performance->explanations[PerformanceMethod::MWR->value]->days;
+
+        return null !== $days && $days < 365;
+    }
+
     /** @return array<string, mixed> */
     private static function moneyWeighted(PortfolioPerformance $performance): array
     {
         $figure = $performance->moneyWeighted;
-        $days = $performance->explanations[PerformanceMethod::MWR->value]->days;
 
         return [
             'value' => $figure->annualizedRate,
             'annualizedRate' => $figure->annualizedRate,
             'periodRate' => $figure->periodRate,
             ...self::envelope($performance, PerformanceMethod::MWR),
-            'shortPeriod' => null !== $days && $days < 365,
+            'shortPeriod' => self::shortPeriod($performance),
             'iterations' => $figure->iterations,
             'cashFlows' => $figure->cashFlows,
             'cashFlowCount' => $figure->cashFlowCount,

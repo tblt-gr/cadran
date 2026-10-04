@@ -34,16 +34,29 @@ final readonly class PerformancePeriodBuilder
     }
 
     /**
+     * The active history of the account, read once and bounded; a series of periods shares it through `build`.
+     *
+     * @return list<PortfolioOperation>
+     *
+     * @throws PerformanceRangeTooDense
+     */
+    public function history(WorkspaceScope $workspace, Account $account): array
+    {
+        if ($this->operations->countActive($workspace, $account->id) > self::MAX_OPERATIONS) {
+            throw new PerformanceRangeTooDense('The portfolio history exceeds the performance read bound.');
+        }
+
+        return $this->operations->activeForAccount($workspace, $account->id);
+    }
+
+    /**
      * @param list<PortfolioOperation>|null $loadedHistory the account history already read and bounded for this request,
      *                                                     which a series of periods shares instead of reloading it
      */
     public function build(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, ?array $loadedHistory = null): PerformancePeriodData
     {
-        if (null === $loadedHistory && $this->operations->countActive($workspace, $account->id) > self::MAX_OPERATIONS) {
-            throw new PerformanceRangeTooDense('The portfolio history exceeds the performance read bound.');
-        }
+        $history = $loadedHistory ?? $this->history($workspace, $account);
         $precision = ($this->assets->findByCode($account->assetCode) ?? throw new \LogicException('An account asset is missing from the reference.'))->precision->display;
-        $history = $loadedHistory ?? $this->operations->activeForAccount($workspace, $account->id);
         $blocking = [];
 
         $startValuation = null;
