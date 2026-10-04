@@ -1,5 +1,8 @@
 import type { PortfolioOverviewAllocation } from '@cadran/api-client';
 import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
+import { useState } from 'react';
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
+import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
 import { AllocationLegend } from '@/components/ui/charts/allocation-legend/AllocationLegend';
 import { DonutPlot } from '@/components/ui/charts/donut-chart/DonutPlot';
 import { SkeletonBlock, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
@@ -34,6 +37,7 @@ export function AllocationCard({
 }) {
   const money = (value: string | null) =>
     value === null ? 'Non calculable' : formatAmount(value, allocation!.assetCode, 'fr');
+  const [tableOpen, setTableOpen] = useState(false);
   const label = (key: string, text: string) => (key === 'UNSPECIFIED' ? 'Non renseignée' : text);
   // A signed allocation stays useful in the table but cannot be represented by a donut.
   const signedShares =
@@ -43,6 +47,37 @@ export function AllocationCard({
         item.share !== null &&
         (compareDecimals(item.share, '0') < 0 || compareDecimals(item.share, '1') > 0),
     );
+  // Without a chart the table is the only reading of the allocation, so it stays open.
+  const charted = !allocation || (!allocation.reason && !signedShares);
+  const table = (
+    <div className={styles.tableScroll}>
+      <table>
+        <caption className="sr-only">Répartition détaillée, toutes les lignes</caption>
+        <thead>
+          <tr>
+            <th scope="col">Libellé</th>
+            <th scope="col">Valeur</th>
+            <th scope="col">Part</th>
+          </tr>
+        </thead>
+        {!allocation ? (
+          <SkeletonTableRows columns={3} rows={3} />
+        ) : (
+          <tbody>
+            {allocation.items.map((item) => (
+              <tr key={item.key}>
+                <th scope="row">{label(item.key, item.label)}</th>
+                <td className="money">{money(item.value)}</td>
+                <td className="money">
+                  {item.share === null ? 'Non calculable' : formatRatioPercentage(item.share, 'fr')}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        )}
+      </table>
+    </div>
+  );
   return (
     <section
       className={`card ${styles.card}`}
@@ -50,18 +85,20 @@ export function AllocationCard({
       aria-busy={!allocation}
       data-testid={!allocation ? 'portfolio-allocation-skeleton' : undefined}
     >
-      <h3 id="portfolio-allocation-title">Répartition</h3>
-      <div className={styles.valuationDate}>
-        <span>Valorisation retenue :</span>
-        {!allocation ? (
-          <SkeletonBlock className={styles.dateSkeleton} />
-        ) : allocation.valuation ? (
-          <time dateTime={allocation.valuation.valuedOn}>
-            {formatCalendarNumericDay(allocation.valuation.valuedOn)}
-          </time>
-        ) : (
-          <span>aucune à cette date</span>
-        )}
+      <div className={styles.header}>
+        <h3 id="portfolio-allocation-title">Répartition</h3>
+        <div className={styles.valuationDate}>
+          <span>Valorisation retenue :</span>
+          {!allocation ? (
+            <SkeletonBlock className={styles.dateSkeleton} />
+          ) : allocation.valuation ? (
+            <time dateTime={allocation.valuation.valuedOn}>
+              {formatCalendarNumericDay(allocation.valuation.valuedOn)}
+            </time>
+          ) : (
+            <span>aucune à cette date</span>
+          )}
+        </div>
       </div>
       {showFallbackNotice && allocation ? (
         <ValuationFallbackNotice
@@ -69,20 +106,13 @@ export function AllocationCard({
           newerPartial={allocation.newerPartialValuation}
         />
       ) : null}
-      <div className={styles.controls} role="group" aria-label="Regrouper la répartition">
-        {choices.map((choice) => (
-          <button
-            aria-pressed={by === choice.value}
-            className="secondary-action"
-            disabled={disabled}
-            key={choice.value}
-            type="button"
-            onClick={() => onByChange(choice.value)}
-          >
-            {choice.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        disabled={disabled}
+        label="Regrouper la répartition"
+        onChange={onByChange}
+        options={choices}
+        value={by}
+      />
       {!allocation ? (
         <SkeletonBlock className={styles.plotSkeleton} />
       ) : allocation.reason ? (
@@ -120,35 +150,22 @@ export function AllocationCard({
           />
         </div>
       )}
-      <div className={styles.tableScroll}>
-        <table>
-          <caption className="sr-only">Répartition détaillée, toutes les lignes</caption>
-          <thead>
-            <tr>
-              <th scope="col">Libellé</th>
-              <th scope="col">Valeur</th>
-              <th scope="col">Part</th>
-            </tr>
-          </thead>
-          {!allocation ? (
-            <SkeletonTableRows columns={3} rows={3} />
-          ) : (
-            <tbody>
-              {allocation.items.map((item) => (
-                <tr key={item.key}>
-                  <th scope="row">{label(item.key, item.label)}</th>
-                  <td className="money">{money(item.value)}</td>
-                  <td className="money">
-                    {item.share === null
-                      ? 'Non calculable'
-                      : formatRatioPercentage(item.share, 'fr')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          )}
-        </table>
-      </div>
+      {allocation && allocation.items.length === 0 ? null : charted ? (
+        <Disclosure
+          meta={
+            allocation
+              ? `${allocation.items.length} ${allocation.items.length > 1 ? 'lignes' : 'ligne'}`
+              : undefined
+          }
+          onToggle={setTableOpen}
+          open={tableOpen}
+          title="Toutes les lignes"
+        >
+          {table}
+        </Disclosure>
+      ) : (
+        table
+      )}
     </section>
   );
 }

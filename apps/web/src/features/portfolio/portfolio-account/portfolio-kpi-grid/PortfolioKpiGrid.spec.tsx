@@ -62,4 +62,24 @@ describe('PortfolioKpiGrid', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Valeur totale' }));
     expect(explain).toHaveBeenCalledWith('TOTAL_VALUE');
   });
+  it('leads with the total value and dates only the indicators dated otherwise', () => {
+    render(<PortfolioKpiGrid summary={summaryFixture()} asOf="2026-03-10" onExplain={vi.fn()} />);
+    const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
+    expect(headings[0]).toBe('Valeur totale');
+    expect(headings).toContain('Versements nets 2026');
+    expect(headings).toContain('Frais et taxes 2026');
+    expect(screen.getAllByText('Du 01/01/2026 au 10/03/2026')).toHaveLength(2);
+    expect(screen.queryByText('au 2026-03-10')).toBeNull();
+  });
+  it('shows valuation qualifiers under the total value', () => {
+    render(
+      <PortfolioKpiGrid
+        summary={summaryFixture()}
+        asOf="2026-03-10"
+        onExplain={vi.fn()}
+        qualifiers={<span>Valorisation ancienne (12 jours)</span>}
+      />,
+    );
+    expect(screen.getByText('Valorisation ancienne (12 jours)')).toBeTruthy();
+  });
 });

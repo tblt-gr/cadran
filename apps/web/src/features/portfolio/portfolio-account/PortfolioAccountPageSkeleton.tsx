@@ -28,7 +28,7 @@ export function PortfolioAccountPageSkeleton({
   return (
     <div className={styles.page}>
       <PortfolioAccountHeader accountId={accountId} onCreate={() => undefined} />
-      <fieldset disabled>
+      <fieldset className={styles.frozenField} disabled>
         <BusinessDateField
           hint={null}
           label="Au"
@@ -37,8 +37,12 @@ export function PortfolioAccountPageSkeleton({
           value={asOf}
         />
       </fieldset>
-      <PortfolioOverview accountId={accountId} asOf={asOf} frozen />
-      <ValueHistoryCardSkeleton />
+      <PortfolioOverview
+        accountId={accountId}
+        asOf={asOf}
+        frozen
+        history={<ValueHistoryCardSkeleton />}
+      />
       <PortfolioTabs accountId={accountId} active={active} asOf={asOf} />
       {active === 'operations' ? (
         <>

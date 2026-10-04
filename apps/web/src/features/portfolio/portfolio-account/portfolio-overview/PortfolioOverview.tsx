@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react';
+import { useState, type ReactNode, type RefObject } from 'react';
 import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import {
@@ -12,15 +12,21 @@ import { PortfolioKpiGrid } from '@/features/portfolio/portfolio-account/portfol
 import { PortfolioKpiExplanationModal } from '@/features/portfolio/portfolio-account/kpi-explanation-modal/PortfolioKpiExplanationModal';
 import { AllocationCard } from '@/features/portfolio/portfolio-account/allocation-card/AllocationCard';
 import type { KpiCode } from '@/features/portfolio/portfolio-account/overviewLabels';
+import styles from './PortfolioOverview.module.css';
+
+/** Summary first, then the value history beside the allocation it ends on. */
 export function PortfolioOverview({
   accountId,
   asOf,
   frozen = false,
+  history,
   sourceReturnFocus,
 }: {
   accountId: string;
   asOf: string;
   frozen?: boolean;
+  /** The value history card, laid out beside the allocation. */
+  history: ReactNode;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
   const [by, setBy] = useState<AllocationBy>('INSTRUMENT');
@@ -28,20 +34,27 @@ export function PortfolioOverview({
   const summary = usePortfolioSummary(accountId, asOf, !frozen);
   const allocation = usePortfolioAllocation(accountId, asOf, by, !frozen);
   const error = summary.error instanceof OperationRequestError ? summary.error : null;
-  return (
-    <>
-      {summary.data ? (
+  const valuation = summary.data?.valuation;
+  const qualifiers =
+    summary.data &&
+    (valuation?.stale ||
+      valuation?.completeness === 'PARTIAL' ||
+      summary.data.newerPartialValuation) ? (
+      <>
+        {valuation?.stale ? (
+          <StatusBadge tone="warning">{`Valorisation ancienne (${valuation.ageDays} jours)`}</StatusBadge>
+        ) : null}
+        {valuation?.completeness === 'PARTIAL' ? (
+          <StatusBadge tone="warning">Valorisation partielle</StatusBadge>
+        ) : null}
         <ValuationFallbackNotice
           selected={summary.data.valuation}
           newerPartial={summary.data.newerPartialValuation}
         />
-      ) : null}
-      {summary.data?.valuation?.stale ? (
-        <StatusBadge tone="warning">{`Valorisation ancienne (${summary.data.valuation.ageDays} jours)`}</StatusBadge>
-      ) : null}
-      {summary.data?.valuation?.completeness === 'PARTIAL' ? (
-        <StatusBadge tone="warning">Valorisation partielle</StatusBadge>
-      ) : null}
+      </>
+    ) : null;
+  return (
+    <>
       {summary.isError ? (
         <OperationsState
           error
@@ -60,6 +73,7 @@ export function PortfolioOverview({
       ) : (
         <PortfolioKpiGrid
           asOf={asOf}
+          qualifiers={qualifiers}
           summary={summary.data ?? null}
           onExplain={(code) => {
             if (sourceReturnFocus)
@@ -69,25 +83,28 @@ export function PortfolioOverview({
           }}
         />
       )}
-      {allocation.isError ? (
-        <OperationsState error title="La répartition est indisponible">
-          <button
-            className="secondary-action"
-            type="button"
-            onClick={() => void allocation.refetch()}
-          >
-            Réessayer
-          </button>
-        </OperationsState>
-      ) : (
-        <AllocationCard
-          allocation={allocation.data ?? null}
-          by={by}
-          onByChange={setBy}
-          disabled={frozen}
-          showFallbackNotice={!summary.data}
-        />
-      )}
+      <div className={styles.charts}>
+        {history}
+        {allocation.isError ? (
+          <OperationsState error title="La répartition est indisponible">
+            <button
+              className="secondary-action"
+              type="button"
+              onClick={() => void allocation.refetch()}
+            >
+              Réessayer
+            </button>
+          </OperationsState>
+        ) : (
+          <AllocationCard
+            allocation={allocation.data ?? null}
+            by={by}
+            onByChange={setBy}
+            disabled={frozen}
+            showFallbackNotice={!summary.data}
+          />
+        )}
+      </div>
       {explaining && summary.data ? (
         <PortfolioKpiExplanationModal
           code={explaining}

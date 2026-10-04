@@ -65,6 +65,7 @@ describe('AllocationCard', () => {
     );
     expect(screen.queryByRole('list', { name: 'Légende de la répartition' })).toBeNull();
     expect(screen.getByRole('rowheader', { name: 'Espèces' })).toBeTruthy();
+    expect(screen.getByRole('table', { name: /toutes les lignes/ }).closest('details')).toBeNull();
     expect(screen.getByText(values.percentage)).toBeTruthy();
     expect(screen.getByText(values.amount)).toBeTruthy();
   });
@@ -82,7 +83,9 @@ describe('AllocationCard', () => {
   it('uses server shares and retains a complete table alternative and grouping controls', () => {
     const change = vi.fn();
     render(<AllocationCard allocation={allocationFixture()} by="INSTRUMENT" onByChange={change} />);
-    expect(screen.getByRole('table', { name: /toutes les lignes/ })).toBeTruthy();
+    const table = screen.getByRole('table', { name: /toutes les lignes/ });
+    expect((table.closest('details') as HTMLDetailsElement).open).toBe(false);
+    expect(screen.getByText('Toutes les lignes').closest('summary')).toBeTruthy();
     expect(screen.getByRole('rowheader', { name: 'Non renseignée' })).toBeTruthy();
     expect(screen.getAllByText('75,00 %').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Région' }));

@@ -1,5 +1,5 @@
+import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
 import { HISTORY_PERIODS, type HistoryPeriod } from './valueHistoryRange';
-import styles from './ValueHistoryCard.module.css';
 
 export function PeriodControl({
   disabled = false,
@@ -11,19 +11,12 @@ export function PeriodControl({
   value: HistoryPeriod;
 }) {
   return (
-    <div className={styles.controls} role="group" aria-label="Période">
-      {HISTORY_PERIODS.map((period) => (
-        <button
-          aria-pressed={value === period.value}
-          className="secondary-action"
-          disabled={disabled}
-          key={period.value}
-          onClick={() => onChange(period.value)}
-          type="button"
-        >
-          {period.label}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl
+      disabled={disabled}
+      label="Période"
+      onChange={onChange}
+      options={HISTORY_PERIODS}
+      value={value}
+    />
   );
 }

@@ -1,20 +1,32 @@
 .card {
   display: grid;
+  align-content: start;
   gap: var(--spacing-4);
   min-width: 0;
+  container-type: inline-size;
 }
 .card h3,
 .card p {
   margin: var(--spacing-none);
 }
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
+.card h3 {
+  font-size: var(--font-size-card-title);
 }
-.controls [aria-pressed='true'] {
-  background: var(--bg-surface-hover);
-  border-color: var(--border-strong);
+.header {
+  display: grid;
+  gap: var(--spacing-1);
+}
+.valuationDate {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-1);
+}
+.dateSkeleton {
+  height: var(--font-size-body);
+  width: 8rem;
 }
 .plot {
   display: grid;
@@ -44,21 +56,9 @@
   left: 0;
   background: var(--bg-surface-1);
 }
-@media (min-width: 768px) {
+@container (min-width: 30rem) {
   .plot {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
   }
-}
-
-.valuationDate {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
-  color: var(--text-secondary);
-}
-.dateSkeleton {
-  height: var(--font-size-body);
-  width: 8rem;
 }
