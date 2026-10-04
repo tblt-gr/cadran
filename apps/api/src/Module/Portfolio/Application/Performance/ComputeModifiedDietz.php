@@ -45,7 +45,7 @@ final readonly class ComputeModifiedDietz
 
             return self::figure(
                 $result->rate, [...$result->blocking, ...$data->warnings, ...$result->warnings], $result->weights,
-                $result->averageCapital, $result->weightCount, null, [] !== $result->blocking,
+                $result->averageCapital, $result->weightCount, null, [] !== $result->blocking, gain: $result->gain, denominatorTimesDays: $result->denominatorTimesDays,
             );
         }
 
@@ -144,10 +144,10 @@ final readonly class ComputeModifiedDietz
      * @param list<array{operationId: string, date: string, amount: string, remainingDays: string, weight: string}>            $weights
      * @param list<array{month: string, value: ?string, quality: PerformanceQuality, findings: list<PerformanceFinding>}>|null $months
      */
-    private static function figure(?CalculatedDecimal $rate, array $findings, array $weights, ?string $averageCapital, int $weightCount, ?array $months, bool $blocked): ModifiedDietzFigure
+    private static function figure(?CalculatedDecimal $rate, array $findings, array $weights, ?string $averageCapital, int $weightCount, ?array $months, bool $blocked, ?string $gain = null, ?string $denominatorTimesDays = null): ModifiedDietzFigure
     {
         $quality = PerformanceQuality::of(PerformanceQuality::APPROXIMATION, $blocked, [] !== $findings);
 
-        return new ModifiedDietzFigure(self::display($rate), $quality, $findings, $averageCapital, $weights, $weightCount, $months);
+        return new ModifiedDietzFigure(self::display($rate), $quality, $findings, $averageCapital, $weights, $weightCount, $months, $gain, $denominatorTimesDays);
     }
 }

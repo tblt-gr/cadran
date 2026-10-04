@@ -7702,6 +7702,44 @@ components:
           pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
         residual:
           $ref: '#/components/schemas/PortfolioPerformanceAmount'
+    PortfolioAnchorFreshness:
+      type: object
+      additionalProperties: false
+      description: Age of a period anchor against the workspace today, and the quality of its prices. Informative only; it never changes a value or a quality.
+      required:
+        - date
+        - ageDays
+        - priceQuality
+      properties:
+        date:
+          type: string
+          format: date
+        ageDays:
+          description: Days from the anchor date to the workspace today; 0 for an anchor dated after today.
+          type: integer
+          minimum: 0
+        priceQuality:
+          description: null for the empty opening account, which has no prices.
+          enum:
+            - CURRENT
+            - STALE
+            - NOT_DETAILED
+            - null
+    PortfolioPerformanceFreshness:
+      type: object
+      additionalProperties: false
+      required:
+        - start
+        - end
+      properties:
+        start:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioAnchorFreshness'
+            - type: 'null'
+        end:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioAnchorFreshness'
+            - type: 'null'
     PortfolioGainFigure:
       type: object
       additionalProperties: false
@@ -7719,6 +7757,10 @@ components:
         - endValue
         - netFlows
         - decomposition
+        - methodVersion
+        - costPolicy
+        - inputs
+        - freshness
       properties:
         value:
           $ref: '#/components/schemas/PortfolioPerformanceAmount'
@@ -7768,6 +7810,28 @@ components:
           $ref: '#/components/schemas/PortfolioPerformanceAmount'
         decomposition:
           $ref: '#/components/schemas/PortfolioGainDecomposition'
+        methodVersion:
+          type: string
+          enum:
+            - PERF-1
+        costPolicy:
+          type: string
+          enum:
+            - NET_OF_FEES_AND_TAXES
+        freshness:
+          $ref: '#/components/schemas/PortfolioPerformanceFreshness'
+        inputs:
+          type: object
+          additionalProperties: false
+          description: Values the gain is made of; null when the period has no anchor to read them from.
+          required: [startValue, endValue, netFlows]
+          properties:
+            startValue:
+              $ref: '#/components/schemas/PortfolioPerformanceAmount'
+            endValue:
+              $ref: '#/components/schemas/PortfolioPerformanceAmount'
+            netFlows:
+              $ref: '#/components/schemas/PortfolioPerformanceAmount'
     PortfolioModifiedDietzRate:
       description: >-
         Six-decimal rate as a decimal string (0.023499 reads 2.3499 %); null when the return cannot be calculated.
@@ -7845,6 +7909,10 @@ components:
         - weights
         - weightCount
         - months
+        - methodVersion
+        - costPolicy
+        - inputs
+        - freshness
       properties:
         value:
           $ref: '#/components/schemas/PortfolioModifiedDietzRate'
@@ -7909,6 +7977,42 @@ components:
               items:
                 $ref: '#/components/schemas/PortfolioModifiedDietzMonth'
             - type: 'null'
+        methodVersion:
+          type: string
+          enum:
+            - PERF-1
+        costPolicy:
+          type: string
+          enum:
+            - NET_OF_FEES_AND_TAXES
+        freshness:
+          $ref: '#/components/schemas/PortfolioPerformanceFreshness'
+        inputs:
+          type: object
+          additionalProperties: false
+          description: Named values of the Modified Dietz formula of one month. Every field except minCapitalRatio is null for YEAR and INCEPTION, which chain monthly returns, and when the month cannot be calculated.
+          required:
+            [startValue, gain, periodDays, denominatorTimesDays, averageCapital, minCapitalRatio]
+          properties:
+            startValue:
+              $ref: '#/components/schemas/PortfolioPerformanceAmount'
+            gain:
+              $ref: '#/components/schemas/PortfolioPerformanceAmount'
+            periodDays:
+              type:
+                - integer
+                - 'null'
+              minimum: 1
+            denominatorTimesDays:
+              $ref: '#/components/schemas/PortfolioPerformanceAmount'
+            averageCapital:
+              type:
+                - string
+                - 'null'
+            minCapitalRatio:
+              type: string
+              enum:
+                - '0.10'
     PortfolioMoneyWeightedFigure:
       type: object
       additionalProperties: false
@@ -7929,7 +8033,10 @@ components:
         - cashFlows
         - cashFlowCount
         - formula
+        - methodVersion
+        - costPolicy
         - inputs
+        - freshness
       properties:
         value:
           $ref: '#/components/schemas/PortfolioModifiedDietzRate'
@@ -7996,21 +8103,20 @@ components:
           minimum: 0
         formula:
           type: string
+        methodVersion:
+          type: string
+          enum:
+            - PERF-1
+        costPolicy:
+          type: string
+          enum:
+            - NET_OF_FEES_AND_TAXES
+        freshness:
+          $ref: '#/components/schemas/PortfolioPerformanceFreshness'
         inputs:
           type: object
           additionalProperties: false
-          required:
-            [
-              workingScale,
-              stopWidth,
-              minDailyFactor,
-              maxDailyFactor,
-              maxIterations,
-              maxFlowDays,
-              workingRounding,
-              rateScale,
-              rateRounding,
-            ]
+          required: [workingScale, stopWidth, maxIterations, searchRange, flowDayCount]
           properties:
             workingScale:
               type: integer
@@ -8018,27 +8124,22 @@ components:
             stopWidth:
               type: string
               const: '0.000000000000001'
-            minDailyFactor:
-              type: string
-              const: '0.98'
-            maxDailyFactor:
-              type: string
-              const: '1.01'
             maxIterations:
               type: integer
               const: 100
-            maxFlowDays:
+            searchRange:
+              description: Smallest and largest daily growth factor searched.
+              type: array
+              minItems: 2
+              maxItems: 2
+              prefixItems:
+                - type: string
+                  const: '0.98'
+                - type: string
+                  const: '1.01'
+            flowDayCount:
               type: integer
-              const: 500
-            workingRounding:
-              type: string
-              const: HALF_EVEN
-            rateScale:
-              type: integer
-              const: 6
-            rateRounding:
-              type: string
-              const: HALF_UP
+              minimum: 0
     PortfolioTimeWeightedFigure:
       type: object
       additionalProperties: false
@@ -8055,6 +8156,10 @@ components:
         - subperiods
         - subperiodCount
         - missingCount
+        - methodVersion
+        - costPolicy
+        - inputs
+        - freshness
       properties:
         value:
           $ref: '#/components/schemas/PortfolioModifiedDietzRate'
@@ -8105,6 +8210,28 @@ components:
           description: Exact count of distinct missing or stale required valuation dates.
           type: integer
           minimum: 0
+        methodVersion:
+          type: string
+          enum:
+            - PERF-1
+        costPolicy:
+          type: string
+          enum:
+            - NET_OF_FEES_AND_TAXES
+        freshness:
+          $ref: '#/components/schemas/PortfolioPerformanceFreshness'
+        inputs:
+          type: object
+          additionalProperties: false
+          required: [breakpointCount, subperiodCount]
+          properties:
+            breakpointCount:
+              description: Dates that split the period, the start anchor included; 0 when the period was not split.
+              type: integer
+              minimum: 0
+            subperiodCount:
+              type: integer
+              minimum: 0
     PortfolioTimeWeightedSubperiod:
       type: object
       additionalProperties: false

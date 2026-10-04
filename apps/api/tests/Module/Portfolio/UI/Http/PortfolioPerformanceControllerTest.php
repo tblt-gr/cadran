@@ -13,6 +13,8 @@ use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\Clock\MockClock;
 
 final class PortfolioPerformanceControllerTest extends WebTestCase
 {
@@ -32,6 +34,11 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
     {
         WorkspaceFixture::requireDatabase();
         $this->client = self::createClient();
+        if ('testEveryFigureExposesItsMethodInputsAndFreshness' === $this->name()) {
+            // The kernel must keep one container for the frozen clock to reach the request, which the query-count test cannot tolerate.
+            $this->client->disableReboot();
+            self::getContainer()->set(ClockInterface::class, new MockClock('2026-10-04T12:00:00+00:00'));
+        }
         $connection = self::getContainer()->get(Connection::class);
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
@@ -68,6 +75,83 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testEveryFigureExposesItsMethodInputsAndFreshness(): void
+    {
+        $this->seedReferenceMonth();
+        $performance = $this->performance('MONTH', '2026-03');
+
+        $expected = [
+            'gain' => ['TOTAL_GAIN', ['startValue' => '10000.00', 'endValue' => '11050.00', 'netFlows' => '800.00']],
+            'modifiedDietz' => ['MODIFIED_DIETZ', ['startValue' => '10000.00', 'gain' => '250.00', 'periodDays' => 31, 'denominatorTimesDays' => '329800.00', 'averageCapital' => '10638.709677', 'minCapitalRatio' => '0.10']],
+            'timeWeighted' => ['TWR', ['breakpointCount' => 4, 'subperiodCount' => 3]],
+            'moneyWeighted' => ['MWR', ['workingScale' => 40, 'stopWidth' => '0.000000000000001', 'maxIterations' => 100, 'searchRange' => ['0.98', '1.01'], 'flowDayCount' => 4]],
+        ];
+        foreach ($expected as $key => [$method, $inputs]) {
+            $figure = self::map($performance[$key]);
+            self::assertSame([$method, 'PERF-1', 'NET_OF_FEES_AND_TAXES'], [$figure['method'], $figure['methodVersion'], $figure['costPolicy']], $key);
+            self::assertSame($inputs, $figure['inputs'], $key);
+            self::assertSame(['2026-02-28', '2026-03-31', 31], [$figure['from'], $figure['to'], $figure['days']], $key);
+            $freshness = self::map($figure['freshness']);
+            $start = self::map($freshness['start']);
+            $end = self::map($freshness['end']);
+            self::assertSame(['2026-02-28', 'CURRENT'], [$start['date'], $start['priceQuality']], $key);
+            self::assertSame(['2026-03-31', 'CURRENT'], [$end['date'], $end['priceQuality']], $key);
+            self::assertSame([218, 187], [$start['ageDays'], $end['ageDays']], $key);
+            self::assertArrayHasKey('sources', $figure);
+        }
+    }
+
+    public function testAYearOrTheWholeLifeHasNoApplicableModifiedDietzInputs(): void
+    {
+        $this->seedReferenceMonth();
+
+        foreach ([['YEAR', '2026'], ['INCEPTION', null]] as [$scope, $period]) {
+            $dietz = self::map($this->performance($scope, $period)['modifiedDietz']);
+            self::assertNotNull($dietz['value'], $scope);
+            self::assertSame(
+                ['startValue' => null, 'gain' => null, 'periodDays' => null, 'denominatorTimesDays' => null, 'averageCapital' => null, 'minCapitalRatio' => '0.10'],
+                $dietz['inputs'],
+                $scope,
+            );
+        }
+    }
+
+    public function testFreshnessReportsStaleAndNotDetailedAnchors(): void
+    {
+        $this->seedReferenceMonth();
+        $this->recordPositions('2026-04-30', [['instrumentId' => self::ETF, 'price' => '102.10', 'priceDate' => '2026-03-31']]);
+        $stale = self::map(self::map($this->performance('MONTH', '2026-04')['modifiedDietz'])['freshness']);
+        self::assertSame('STALE', self::map($stale['end'])['priceQuality']);
+
+        $this->recordTotal('2026-05-31', '11200.00');
+        $total = self::map(self::map($this->performance('MONTH', '2026-05')['gain'])['freshness']);
+        self::assertSame(['STALE', 'NOT_DETAILED'], [self::map($total['start'])['priceQuality'] ?? null, self::map($total['end'])['priceQuality']]);
+    }
+
+    public function testAnAccountWithoutValuationKeepsInputsAndNoEndFreshness(): void
+    {
+        $performance = $this->performance('MONTH', '2026-03');
+
+        foreach (['gain', 'modifiedDietz', 'timeWeighted', 'moneyWeighted'] as $key) {
+            $figure = self::map($performance[$key]);
+            self::assertNull($figure['value'], $key);
+            $freshness = self::map($figure['freshness']);
+            self::assertNull(self::map($freshness['start'])['priceQuality'], $key.' opening anchor');
+            self::assertNull($freshness['end'], $key);
+            self::assertIsArray($figure['inputs'], $key);
+            self::assertSame('PERF-1', $figure['methodVersion'], $key);
+        }
+        self::assertSame(['startValue' => '0.00', 'endValue' => null, 'netFlows' => null], self::map($performance['gain'])['inputs']);
+        self::assertNull(self::map(self::map($performance['modifiedDietz'])['inputs'])['gain']);
+    }
+
+    public function testTheOpeningAnchorHasNoPriceQuality(): void
+    {
+        $this->seedReferenceMonth();
+        $freshness = self::map(self::map($this->performance('MONTH', '2026-02')['gain'])['freshness']);
+        self::assertNull(self::map($freshness['start'])['priceQuality']);
+    }
+
     public function testMoneyWeightedUsesInvestorFlowsForEveryScope(): void
     {
         $this->seedReferenceMonth();
@@ -79,6 +163,7 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
             self::assertNotNull($figure['periodRate']);
             self::assertIsInt($figure['iterations']);
             self::assertSame(40, self::map($figure['inputs'])['workingScale']);
+            self::assertSame($figure['cashFlowCount'], self::map($figure['inputs'])['flowDayCount']);
         }
         $month = self::map($this->performance('MONTH', '2026-03')['moneyWeighted']);
         self::assertTrue($month['shortPeriod']);

@@ -6,14 +6,11 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Portfolio\Application\Performance\PortfolioPerformance;
-use App\Module\Portfolio\Application\PortfolioExplanation;
 use App\Module\Portfolio\Domain\Cash\PortfolioCostPolicy;
 use App\Module\Portfolio\Domain\Performance\ModifiedDietzCalculator;
-use App\Module\Portfolio\Domain\Performance\MoneyWeightedReturnSolver;
 use App\Module\Portfolio\Domain\Performance\PerformanceAmount;
 use App\Module\Portfolio\Domain\Performance\PerformanceFinding;
 use App\Module\Portfolio\Domain\Performance\PerformanceMethod;
-use App\Module\Portfolio\Domain\Performance\PerformanceQuality;
 use App\Module\Portfolio\Domain\Performance\PeriodAnchor;
 use App\Module\Portfolio\Domain\Performance\TimeWeightedReturnCalculator;
 
@@ -40,14 +37,7 @@ final class PortfolioPerformanceRepresentation
             'netFlows' => $performance->netFlows,
             'gain' => [
                 'value' => $performance->gain,
-                'method' => 'TOTAL_GAIN',
-                'quality' => $performance->quality->value,
-                'reasons' => array_map(static fn (PerformanceFinding $finding): array => ['code' => $finding->code->value, 'dates' => $finding->dates], $performance->findings),
-                'from' => $start?->date->format('Y-m-d'),
-                'to' => $end?->date->format('Y-m-d'),
-                'days' => null === $start || null === $end ? null : (int) $start->date->diff($end->date)->format('%a'),
-                'sources' => $performance->sources,
-                'sourceCount' => $performance->sourceCount,
+                ...self::envelope($performance, PerformanceMethod::TOTAL_GAIN),
                 'startValue' => $performance->startValue,
                 'endValue' => $performance->endValue,
                 'netFlows' => $performance->netFlows,
@@ -74,38 +64,18 @@ final class PortfolioPerformanceRepresentation
     private static function moneyWeighted(PortfolioPerformance $performance): array
     {
         $figure = $performance->moneyWeighted;
-        $start = $performance->start;
-        $end = $performance->end;
-        $days = null === $start || null === $end ? null : (int) $start->date->diff($end->date)->format('%a');
+        $days = $performance->explanations[PerformanceMethod::MWR->value]->days;
 
         return [
             'value' => $figure->annualizedRate,
             'annualizedRate' => $figure->annualizedRate,
             'periodRate' => $figure->periodRate,
-            'method' => 'MWR',
-            'quality' => $figure->quality->value,
-            'reasons' => self::reasons($figure->findings),
-            'from' => $start?->date->format('Y-m-d'),
-            'to' => $end?->date->format('Y-m-d'),
-            'days' => $days,
+            ...self::envelope($performance, PerformanceMethod::MWR),
             'shortPeriod' => null !== $days && $days < 365,
-            'sources' => $performance->sources,
-            'sourceCount' => $performance->sourceCount,
             'iterations' => $figure->iterations,
             'cashFlows' => $figure->cashFlows,
             'cashFlowCount' => $figure->cashFlowCount,
             'formula' => 'sum(CF_i * x^(D - day_i)) = 0; annualizedRate = x^365 - 1; periodRate = x^D - 1',
-            'inputs' => [
-                'workingScale' => MoneyWeightedReturnSolver::WORKING_SCALE,
-                'stopWidth' => MoneyWeightedReturnSolver::STOP_WIDTH,
-                'minDailyFactor' => MoneyWeightedReturnSolver::MIN_FACTOR,
-                'maxDailyFactor' => MoneyWeightedReturnSolver::MAX_FACTOR,
-                'maxIterations' => MoneyWeightedReturnSolver::MAX_ITERATIONS,
-                'maxFlowDays' => MoneyWeightedReturnSolver::MAX_FLOWS,
-                'workingRounding' => 'HALF_EVEN',
-                'rateScale' => 6,
-                'rateRounding' => 'HALF_UP',
-            ],
         ];
     }
 
@@ -113,28 +83,10 @@ final class PortfolioPerformanceRepresentation
     private static function timeWeighted(PortfolioPerformance $performance): array
     {
         $figure = $performance->timeWeighted;
-        $start = $performance->start;
-        $end = $performance->end;
-
-        $sources = $performance->sources;
-        $known = array_column($sources, 'id');
-        foreach ($figure->anchors as $anchor) {
-            if (null !== $anchor->valuationId && !in_array($anchor->valuationId, $known, true)) {
-                $sources[] = ['kind' => 'VALUATION', 'id' => $anchor->valuationId, 'date' => $anchor->date->format('Y-m-d')];
-                $known[] = $anchor->valuationId;
-            }
-        }
 
         return [
             'value' => null === $figure->rate ? null : TimeWeightedReturnCalculator::display($figure->rate),
-            'method' => 'TWR',
-            'quality' => PerformanceQuality::of(PerformanceQuality::EXACT, null === $figure->rate, [] !== $figure->warnings)->value,
-            'reasons' => self::reasons([...$figure->blocking, ...$figure->warnings]),
-            'from' => $start?->date->format('Y-m-d'),
-            'to' => $end?->date->format('Y-m-d'),
-            'days' => null === $start || null === $end ? null : (int) $start->date->diff($end->date)->format('%a'),
-            'sources' => array_slice($sources, 0, PortfolioExplanation::MAX_SOURCES),
-            'sourceCount' => $performance->sourceCount + count($sources) - count($performance->sources),
+            ...self::envelope($performance, PerformanceMethod::TWR),
             'subperiods' => $figure->subperiods,
             'subperiodCount' => $figure->subperiodCount,
             'missingCount' => $figure->missingCount,
@@ -145,19 +97,10 @@ final class PortfolioPerformanceRepresentation
     private static function modifiedDietz(PortfolioPerformance $performance): array
     {
         $figure = $performance->modifiedDietz;
-        $start = $performance->start;
-        $end = $performance->end;
 
         return [
             'value' => $figure->value,
-            'method' => 'MODIFIED_DIETZ',
-            'quality' => $figure->quality->value,
-            'reasons' => self::reasons($figure->findings),
-            'from' => $start?->date->format('Y-m-d'),
-            'to' => $end?->date->format('Y-m-d'),
-            'days' => null === $start || null === $end ? null : (int) $start->date->diff($end->date)->format('%a'),
-            'sources' => $performance->sources,
-            'sourceCount' => $performance->sourceCount,
+            ...self::envelope($performance, PerformanceMethod::MODIFIED_DIETZ),
             'averageCapital' => $figure->averageCapital,
             'minCapitalRatio' => ModifiedDietzCalculator::DIETZ_MIN_CAPITAL_RATIO,
             'weights' => $figure->weights,
@@ -166,6 +109,31 @@ final class PortfolioPerformanceRepresentation
                 static fn (array $month): array => ['month' => $month['month'], 'value' => $month['value'], 'quality' => $month['quality']->value, 'reasons' => self::reasons($month['findings'])],
                 $figure->months,
             ),
+        ];
+    }
+
+    /**
+     * The explanation every figure shares, all taken from the one calculator result that produced the value.
+     *
+     * @return array<string, mixed>
+     */
+    private static function envelope(PortfolioPerformance $performance, PerformanceMethod $method): array
+    {
+        $explanation = $performance->explanations[$method->value];
+
+        return [
+            'method' => $explanation->method->value,
+            'methodVersion' => $explanation->methodVersion,
+            'costPolicy' => $explanation->costPolicy,
+            'from' => $explanation->from,
+            'to' => $explanation->to,
+            'days' => $explanation->days,
+            'inputs' => $explanation->inputs,
+            'freshness' => $explanation->freshness,
+            'quality' => $explanation->quality->value,
+            'reasons' => self::reasons($explanation->findings),
+            'sources' => $explanation->sources,
+            'sourceCount' => $explanation->sourceCount,
         ];
     }
 

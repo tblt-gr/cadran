@@ -1,3 +1,4 @@
+import type { PortfolioOverviewSource } from '@cadran/api-client';
 import { useState, type ReactNode, type RefObject } from 'react';
 import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -10,6 +11,7 @@ import { OperationsState } from '@/features/portfolio/portfolio-account/operatio
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { PortfolioKpiGrid } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/PortfolioKpiGrid';
 import { PortfolioKpiExplanationModal } from '@/features/portfolio/portfolio-account/kpi-explanation-modal/PortfolioKpiExplanationModal';
+import { PerformanceCard } from '@/features/portfolio/portfolio-account/performance-card/PerformanceCard';
 import { AllocationCard } from '@/features/portfolio/portfolio-account/allocation-card/AllocationCard';
 import type { KpiCode } from '@/features/portfolio/portfolio-account/overviewLabels';
 import styles from './PortfolioOverview.module.css';
@@ -53,6 +55,15 @@ export function PortfolioOverview({
         />
       </>
     ) : null;
+  const openSource = (source: PortfolioOverviewSource) => {
+    const params = new URLSearchParams({
+      asOf,
+      tab: source.kind === 'OPERATION' ? 'operations' : 'valuations',
+      [source.kind === 'OPERATION' ? 'operation' : 'valuation']: source.id,
+    });
+    window.history.pushState({}, '', `/portfolios/${accountId}?${params}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
   return (
     <>
       {summary.isError ? (
@@ -83,6 +94,13 @@ export function PortfolioOverview({
           }}
         />
       )}
+      <PerformanceCard
+        accountId={accountId}
+        asOf={asOf}
+        frozen={frozen}
+        onSource={openSource}
+        sourceReturnFocus={sourceReturnFocus}
+      />
       <div className={styles.charts}>
         {history}
         {allocation.isError ? (
@@ -112,13 +130,7 @@ export function PortfolioOverview({
           onClose={() => setExplaining(null)}
           onSource={(source) => {
             setExplaining(null);
-            const params = new URLSearchParams({
-              asOf,
-              tab: source.kind === 'OPERATION' ? 'operations' : 'valuations',
-              [source.kind === 'OPERATION' ? 'operation' : 'valuation']: source.id,
-            });
-            window.history.pushState({}, '', `/portfolios/${accountId}?${params}`);
-            window.dispatchEvent(new PopStateEvent('popstate'));
+            openSource(source);
           }}
         />
       ) : null}
