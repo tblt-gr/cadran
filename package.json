@@ -26,7 +26,7 @@
     "@commitlint/config-conventional": "^21.2.0",
     "@redocly/cli": "^2.49.0",
     "lefthook": "^2.1.10",
-    "markdownlint-cli2": "^0.23.2",
+    "markdownlint-cli": "^0.49.1",
     "prettier": "^3.3.3"
   },
   "engines": {
@@ -41,14 +41,6 @@
       "markdown-it": "14.3.1",
       "smol-toml": "1.7.2",
       "undici": "7.29.1"
-    },
-    "patchedDependencies": {
-      "braces@3.0.3": "patches/braces@3.0.3.patch"
-    },
-    "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-vfj7-8cjw-p6xm"
-      ]
     }
   }
 }
