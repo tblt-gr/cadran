@@ -71,6 +71,32 @@ final class PositionLedgerTest extends TestCase
     }
 
     #[Test]
+    public function itReportsTheAverageCostReleasedByASell(): void
+    {
+        $result = (new PositionLedger())->replay([
+            $this->operation('01', OperationType::BUY, '2026-01-02', 1, self::ETF, '15', gross: '1603.00'),
+            $this->operation('02', OperationType::SELL, '2026-01-03', 1, self::ETF, '12', gross: '1400.00'),
+        ], [self::ETF => 6]);
+
+        self::assertSame('1282.400000000000000000000000', $result->averageCostReleased['00000000-0000-7000-8000-000000000002']?->toString());
+        self::assertArrayNotHasKey('00000000-0000-7000-8000-000000000001', $result->averageCostReleased);
+    }
+
+    #[Test]
+    public function itReportsNullReleasedCostWhileThePoolIsUnknown(): void
+    {
+        $result = (new PositionLedger())->replay([
+            $this->operation('01', OperationType::SECURITY_TRANSFER_IN, '2026-01-02', 1, self::ETF, '4'),
+            $this->operation('02', OperationType::SELL, '2026-01-03', 1, self::ETF, '1', gross: '40.00'),
+            $this->operation('03', OperationType::SECURITY_TRANSFER_OUT, '2026-01-04', 1, self::ETF, '1'),
+        ], [self::ETF => 6]);
+
+        self::assertArrayHasKey('00000000-0000-7000-8000-000000000002', $result->averageCostReleased);
+        self::assertNull($result->averageCostReleased['00000000-0000-7000-8000-000000000002']);
+        self::assertNull($result->averageCostReleased['00000000-0000-7000-8000-000000000003']);
+    }
+
+    #[Test]
     public function itRejectsTheFirstNegativeHoldingWithIdentifiersOnly(): void
     {
         $sell = $this->operation('02', OperationType::SELL, '2026-01-03', 1, self::ETF, '1', gross: '40.00');

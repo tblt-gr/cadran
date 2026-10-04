@@ -294,6 +294,15 @@ api:
     cash_range_too_large:
       title: 'Période d’espèces trop longue'
       detail: 'La période ne peut pas dépasser 366 jours : réduisez-la.'
+    invalid_performance_scope:
+      title: 'Portée de performance invalide'
+      detail: 'Choisissez la portée MONTH, YEAR ou INCEPTION.'
+    invalid_performance_period:
+      title: 'Période de performance invalide'
+      detail: 'Choisissez un mois (AAAA-MM) ou une année (AAAA) échus ou en cours, postérieurs à l’ouverture du compte.'
+    performance_range_too_dense:
+      title: 'Trop d’opérations pour calculer la performance'
+      detail: 'Le compte compte plus de 5 000 opérations actives : la performance n’est pas calculée.'
     cash_range_too_dense:
       title: 'Trop de mouvements d’espèces'
       detail: 'La période compte plus de 2 000 mouvements : réduisez-la.'

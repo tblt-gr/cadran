@@ -16,6 +16,9 @@ final class LedgerState
     public ?\DateTimeImmutable $first = null;
     public ?\DateTimeImmutable $last = null;
 
+    /** @var array<string, ?CalculatedDecimal> operation identifier => average-pool cost removed by that disposal */
+    public array $released = [];
+
     public function __construct()
     {
         $this->poolQuantity = CalculatedDecimal::zero();
