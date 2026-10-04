@@ -63,7 +63,7 @@ final class TotalGainCalculator
     }
 
     /** @return list<PerformanceFinding> */
-    private static function anchorWarnings(PeriodAnchor $start, PeriodAnchor $end): array
+    public static function anchorWarnings(PeriodAnchor $start, PeriodAnchor $end): array
     {
         $dates = [];
         foreach ([$start, $end] as $anchor) {

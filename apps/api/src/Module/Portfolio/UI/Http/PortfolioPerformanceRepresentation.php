@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\UI\Http;
 use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Portfolio\Application\Performance\PortfolioPerformance;
 use App\Module\Portfolio\Domain\Cash\PortfolioCostPolicy;
+use App\Module\Portfolio\Domain\Performance\ModifiedDietzCalculator;
 use App\Module\Portfolio\Domain\Performance\PerformanceAmount;
 use App\Module\Portfolio\Domain\Performance\PerformanceFinding;
 use App\Module\Portfolio\Domain\Performance\PerformanceMethod;
@@ -59,7 +60,46 @@ final class PortfolioPerformanceRepresentation
                     'residual' => $decomposition->residual,
                 ],
             ],
+            'modifiedDietz' => self::modifiedDietz($performance),
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function modifiedDietz(PortfolioPerformance $performance): array
+    {
+        $figure = $performance->modifiedDietz;
+        $start = $performance->start;
+        $end = $performance->end;
+
+        return [
+            'value' => $figure->value,
+            'method' => 'MODIFIED_DIETZ',
+            'quality' => $figure->quality->value,
+            'reasons' => self::reasons($figure->findings),
+            'from' => $start?->date->format('Y-m-d'),
+            'to' => $end?->date->format('Y-m-d'),
+            'days' => null === $start || null === $end ? null : (int) $start->date->diff($end->date)->format('%a'),
+            'sources' => $performance->sources,
+            'sourceCount' => $performance->sourceCount,
+            'averageCapital' => $figure->averageCapital,
+            'minCapitalRatio' => ModifiedDietzCalculator::DIETZ_MIN_CAPITAL_RATIO,
+            'weights' => $figure->weights,
+            'weightCount' => $figure->weightCount,
+            'months' => null === $figure->months ? null : array_map(
+                static fn (array $month): array => ['month' => $month['month'], 'value' => $month['value'], 'quality' => $month['quality']->value, 'reasons' => self::reasons($month['findings'])],
+                $figure->months,
+            ),
+        ];
+    }
+
+    /**
+     * @param list<PerformanceFinding> $findings
+     *
+     * @return list<array{code: string, dates: list<string>}>
+     */
+    private static function reasons(array $findings): array
+    {
+        return array_map(static fn (PerformanceFinding $finding): array => ['code' => $finding->code->value, 'dates' => $finding->dates], $findings);
     }
 
     /** @return array<string, mixed>|null */

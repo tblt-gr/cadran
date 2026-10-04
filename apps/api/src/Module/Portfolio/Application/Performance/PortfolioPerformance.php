@@ -36,6 +36,7 @@ final readonly class PortfolioPerformance
         public int $flowCount,
         public array $sources,
         public int $sourceCount,
+        public ModifiedDietzFigure $modifiedDietz,
     ) {
     }
 }

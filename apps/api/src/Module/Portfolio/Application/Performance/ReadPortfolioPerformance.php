@@ -31,6 +31,7 @@ final readonly class ReadPortfolioPerformance
         private PerformancePeriodBuilder $builder,
         private ReconcilePortfolioPositions $reconcile,
         private TotalGainCalculator $calculator,
+        private ComputeModifiedDietz $modifiedDietz,
     ) {
     }
 
@@ -70,6 +71,7 @@ final readonly class ReadPortfolioPerformance
             $total->decomposition ?? GainDecomposition::unavailable($blocking[0]->code ?? null),
             array_map(static fn (PortfolioOperation $operation): array => self::flow($operation, $precision), array_slice($flows, 0, self::MAX_FLOWS)),
             count($flows), array_slice($sources, 0, PortfolioExplanation::MAX_SOURCES), count($sources),
+            ($this->modifiedDietz)($workspace, $account, $period, $data, $today),
         );
     }
 

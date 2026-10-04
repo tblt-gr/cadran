@@ -8,6 +8,7 @@ use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Tests\Support\PortfolioFixture;
 use App\Tests\Support\WorkspaceFixture;
+use Doctrine\Bundle\DoctrineBundle\Middleware\BacktraceDebugDataHolder;
 use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -257,6 +258,138 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         self::assertSame('2026-04-30', self::map($life['end'])['date']);
     }
 
+    public function testTheReferenceMonthGivesItsModifiedDietzReturnAndWeights(): void
+    {
+        $this->seedReferenceMonth();
+
+        $dietz = self::map($this->performance('MONTH', '2026-03')['modifiedDietz']);
+
+        self::assertSame(['0.023499', 'MODIFIED_DIETZ', 'APPROXIMATION', []], [$dietz['value'], $dietz['method'], $dietz['quality'], $dietz['reasons']]);
+        self::assertSame(['2026-02-28', '2026-03-31', 31], [$dietz['from'], $dietz['to'], $dietz['days']]);
+        self::assertSame(['10638.709677', '0.10', 2, null], [$dietz['averageCapital'], $dietz['minCapitalRatio'], $dietz['weightCount'], $dietz['months']]);
+        $weights = self::items2($dietz['weights']);
+        self::assertSame(['2026-03-10', '1000.00', '21', '0.677419'], [self::map($weights[0])['date'], self::map($weights[0])['amount'], self::map($weights[0])['remainingDays'], self::map($weights[0])['weight']]);
+        self::assertSame(['-200.00', '6', '0.193548'], [self::map($weights[1])['amount'], self::map($weights[1])['remainingDays'], self::map($weights[1])['weight']]);
+    }
+
+    public function testAYearChainsItsMonthsAndListsThem(): void
+    {
+        $this->seedReferenceMonth();
+        $this->recordTotal('2026-04-30', '11100.00');
+
+        $dietz = self::map($this->performance('YEAR', '2026')['modifiedDietz']);
+
+        self::assertSame(['0.050112', 'DEGRADED'], [$dietz['value'], $dietz['quality']], 'the year is still in progress');
+        $months = array_map(static fn (mixed $month): array => [self::map($month)['month'], self::map($month)['value']], self::items2($dietz['months']));
+        self::assertSame([['2026-02', '0.021380'], ['2026-03', '0.023499'], ['2026-04', '0.004525']], $months);
+        self::assertSame([], $dietz['weights']);
+        self::assertSame(0, $dietz['weightCount']);
+        self::assertNull($dietz['averageCapital']);
+    }
+
+    public function testTheWholeLifeChainsFromTheOpeningMonth(): void
+    {
+        $this->seedReferenceMonth();
+        $this->recordTotal('2026-04-30', '11100.00');
+
+        $dietz = self::map($this->performance('INCEPTION', null)['modifiedDietz']);
+
+        self::assertSame('0.050112', $dietz['value']);
+        self::assertCount(3, self::items2($dietz['months']));
+    }
+
+    public function testAMonthThatCannotBeCalculatedMakesTheYearNullWithItsMonths(): void
+    {
+        $this->seedReferenceMonth();
+        $this->connection->executeStatement("DELETE FROM portfolio_position_snapshots WHERE valuation_id IN (SELECT id FROM portfolio_valuations WHERE valued_on = '2026-03-31')");
+        $this->connection->executeStatement("DELETE FROM portfolio_valuations WHERE valued_on = '2026-03-31'");
+        $this->recordTotal('2026-04-30', '11100.00');
+
+        $dietz = self::map($this->performance('YEAR', '2026')['modifiedDietz']);
+
+        self::assertNull($dietz['value']);
+        self::assertSame('NOT_CALCULABLE', $dietz['quality']);
+        self::assertSame([['code' => 'MONTH_NOT_CALCULABLE', 'dates' => ['2026-03', '2026-04']], ['code' => 'PERIOD_IN_PROGRESS', 'dates' => ['2026-04-30']]], $dietz['reasons']);
+        $months = self::items2($dietz['months']);
+        self::assertSame(['2026-02', '0.021380'], [self::map($months[0])['month'], self::map($months[0])['value']]);
+        self::assertNull(self::map($months[1])['value']);
+        self::assertSame('NOT_CALCULABLE', self::map($months[1])['quality']);
+    }
+
+    public function testADepositLateInTheMonthGivesNoReturnBecauseTheCapitalIsTooSmall(): void
+    {
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-03-29', 'grossAmount' => $this->eur('1000.00')]);
+        $this->recordTotal('2026-03-31', '1010.00');
+
+        $dietz = self::map($this->performance('MONTH', '2026-03')['modifiedDietz']);
+
+        self::assertNull($dietz['value']);
+        self::assertSame('NOT_CALCULABLE', $dietz['quality']);
+        self::assertSame([['code' => 'DENOMINATOR_TOO_SMALL', 'dates' => []]], $dietz['reasons']);
+        self::assertSame('64.516129', $dietz['averageCapital']);
+    }
+
+    public function testAnInheritedBlockingReasonMakesTheReturnNull(): void
+    {
+        $this->seedReferenceMonth();
+        $this->recordTotal('2026-04-30', '11100.00');
+
+        $dietz = self::map($this->performance('MONTH', '2026-05')['modifiedDietz']);
+
+        self::assertNull($dietz['value']);
+        self::assertSame([['code' => 'NO_END_VALUATION', 'dates' => ['2026-05-31']]], $dietz['reasons']);
+        self::assertSame([], $dietz['weights']);
+    }
+
+    public function testAPriceOfAnAnchorThatIsStaleDegradesTheReturnButKeepsIt(): void
+    {
+        $this->seedReferenceMonth();
+        $this->recordPositions('2026-04-30', [['instrumentId' => self::ETF, 'price' => '102.10', 'priceDate' => '2026-03-31']]);
+
+        $dietz = self::map($this->performance('MONTH', '2026-04')['modifiedDietz']);
+
+        self::assertNotNull($dietz['value']);
+        self::assertSame('DEGRADED', $dietz['quality']);
+        self::assertSame('STALE_PRICES', self::map(self::items2($dietz['reasons'])[0])['code']);
+    }
+
+    public function testAWholeLifeOfMoreThanSixHundredMonthsIsRefusedWithoutMonthlyWork(): void
+    {
+        $this->connection->executeStatement("UPDATE account_financial_accounts SET opened_on = '1970-01-01' WHERE id = ?", [self::ACCOUNT]);
+        $this->seedOperations(1, '1970-01-01');
+        $this->recordTotal('2026-03-31', '1.00');
+
+        $dietz = self::map($this->performance('INCEPTION', null)['modifiedDietz']);
+
+        self::assertNull($dietz['value']);
+        self::assertSame([['code' => 'TOO_MANY_PERIODS', 'dates' => []]], $dietz['reasons']);
+        self::assertNull($dietz['months']);
+    }
+
+    public function testALongWholeLifeKeepsTheWorkPerMonthBounded(): void
+    {
+        $this->connection->executeStatement("UPDATE account_financial_accounts SET opened_on = '2016-01-01' WHERE id = ?", [self::ACCOUNT]);
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2016-03-15', 'grossAmount' => $this->eur('1000.00')]);
+        $months = 0;
+        for ($day = new \DateTimeImmutable('2016-03-31'); $day <= new \DateTimeImmutable('2026-03-31'); $day = $day->modify('last day of next month')) {
+            $this->recordTotal($day->format('Y-m-d'), '1000.00');
+            ++$months;
+        }
+        $holder = self::getContainer()->get('doctrine.debug_data_holder');
+        self::assertInstanceOf(BacktraceDebugDataHolder::class, $holder);
+        $holder->reset();
+
+        $dietz = self::map($this->performance('INCEPTION', null)['modifiedDietz']);
+
+        self::assertSame('0.000000', $dietz['value']);
+        self::assertCount($months, self::items2($dietz['months']));
+        $queries = array_merge(...array_values($holder->getData()));
+        $operationReads = count(array_filter($queries, static fn (array $query): bool => is_string($query['sql']) && str_contains($query['sql'], 'FROM portfolio_operations')));
+        self::assertLessThanOrEqual(5, $operationReads, 'the history is read once, not once per month');
+        // Each month resolves two anchors with a bounded number of valuation reads: the cost grows linearly, never per history size.
+        self::assertLessThanOrEqual(12 * $months + 20, count($queries));
+    }
+
     public function testFlowsAreTruncatedAtOneHundredWithTheExactCount(): void
     {
         $this->seedOperations(101, '2026-03-10');
@@ -308,6 +441,12 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         $this->get('/api/v1/accounts/'.self::FOREIGN_ACCOUNT.'/portfolio-performance?scope=INCEPTION');
         self::assertResponseStatusCodeSame(404);
         self::assertStringNotContainsString('Voisin', (string) $this->client->getResponse()->getContent());
+        self::assertStringNotContainsString('modifiedDietz', (string) $this->client->getResponse()->getContent());
+        foreach (['MONTH&period=2026-03', 'YEAR&period=2026'] as $query) {
+            $this->get('/api/v1/accounts/'.self::FOREIGN_ACCOUNT.'/portfolio-performance?scope='.$query);
+            self::assertResponseStatusCodeSame(404);
+            self::assertStringNotContainsString('modifiedDietz', (string) $this->client->getResponse()->getContent());
+        }
 
         $this->get('/api/v1/accounts/00000000-0000-7000-8000-0000000000ff/portfolio-performance?scope=INCEPTION');
         self::assertResponseStatusCodeSame(404);
