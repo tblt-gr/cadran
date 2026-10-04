@@ -1,3 +1,4 @@
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import {
   SkeletonChartArea,
   SkeletonStatus,
@@ -8,7 +9,7 @@ import { VALUE_HISTORY_COLUMNS } from './ValueHistoryTable';
 import tableStyles from './ValueHistoryTable.module.css';
 import styles from './ValueHistoryCard.module.css';
 
-/** The card's real title, period control and table header; only the chart and the values are blocks. */
+/** The card's real title, period control and table toggle; only the chart and the values are blocks. */
 export function ValueHistoryCardSkeleton({ status }: { status?: string }) {
   return (
     <section
@@ -23,20 +24,22 @@ export function ValueHistoryCardSkeleton({ status }: { status?: string }) {
         <PeriodControl disabled onChange={() => undefined} value="24" />
       </div>
       <SkeletonChartArea />
-      <div className={tableStyles.scroll}>
-        <table>
-          <thead>
-            <tr>
-              {VALUE_HISTORY_COLUMNS.map((text) => (
-                <th key={text} scope="col">
-                  {text}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <SkeletonTableRows columns={VALUE_HISTORY_COLUMNS.length} rows={4} />
-        </table>
-      </div>
+      <Disclosure onToggle={() => undefined} open={false} title="Voir le tableau">
+        <div className={tableStyles.scroll}>
+          <table>
+            <thead>
+              <tr>
+                {VALUE_HISTORY_COLUMNS.map((text) => (
+                  <th key={text} scope="col">
+                    {text}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <SkeletonTableRows columns={VALUE_HISTORY_COLUMNS.length} rows={4} />
+          </table>
+        </div>
+      </Disclosure>
     </section>
   );
 }

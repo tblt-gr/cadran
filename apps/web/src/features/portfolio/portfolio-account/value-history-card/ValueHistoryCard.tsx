@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { useTranslation } from 'react-i18next';
 import { PeriodControl } from './PeriodControl';
@@ -17,6 +18,7 @@ function periodFromUrl(): HistoryPeriod {
 export function ValueHistoryCard({ accountId, asOf }: { accountId: string; asOf: string }) {
   const { i18n } = useTranslation();
   const [period, setPeriod] = useState<HistoryPeriod>(periodFromUrl);
+  const [tableOpen, setTableOpen] = useState(false);
   const history = useValueHistory(accountId, asOf, historyFrom(asOf, period));
 
   useEffect(() => {
@@ -78,7 +80,14 @@ export function ValueHistoryCard({ accountId, asOf }: { accountId: string; asOf:
               Seules les 240 dernières valorisations sont affichées.
             </p>
           ) : null}
-          <ValueHistoryTable locale={i18n.language} points={data.points} />
+          <Disclosure
+            meta={`${data.points.length} ${data.points.length > 1 ? 'valorisations' : 'valorisation'}`}
+            onToggle={setTableOpen}
+            open={tableOpen}
+            title="Voir le tableau"
+          >
+            <ValueHistoryTable locale={i18n.language} points={data.points} />
+          </Disclosure>
         </>
       )}
     </section>

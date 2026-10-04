@@ -1,5 +1,6 @@
 .card {
   display: grid;
+  align-content: start;
   gap: var(--spacing-4);
   min-width: 0;
 }
@@ -7,21 +8,15 @@
 .card p {
   margin: var(--spacing-none);
 }
+.card h3 {
+  font-size: var(--font-size-card-title);
+}
 .header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-3);
-}
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
-}
-.controls [aria-pressed='true'] {
-  background: var(--bg-surface-hover);
-  border-color: var(--border-strong);
 }
 .notice {
   color: var(--text-secondary);

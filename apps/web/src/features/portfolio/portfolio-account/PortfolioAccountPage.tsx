@@ -104,10 +104,10 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
         <PortfolioOverview
           accountId={accountId}
           asOf={asOf}
+          history={<ValueHistoryCard accountId={accountId} asOf={asOf} />}
           sourceReturnFocus={sourceReturnFocus}
         />
       ) : null}
-      {eligible ? <ValueHistoryCard accountId={accountId} asOf={asOf} /> : null}
       <PortfolioTabs accountId={accountId} active={active} asOf={asOf} />
       {eligible ? (
         active === 'positions' ? (
