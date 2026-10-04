@@ -169,6 +169,14 @@
   line-height: var(--line-height-tight);
 }
 
+.tooltipDetail {
+  display: block;
+  margin-top: var(--spacing-1);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+}
+
 .grid {
   fill: none;
   stroke: var(--chart-grid);

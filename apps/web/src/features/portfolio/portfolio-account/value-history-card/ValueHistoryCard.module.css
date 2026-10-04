@@ -1,0 +1,28 @@
+.card {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+.card h3,
+.card p {
+  margin: var(--spacing-none);
+}
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+.controls [aria-pressed='true'] {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-strong);
+}
+.notice {
+  color: var(--text-secondary);
+}

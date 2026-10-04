@@ -29,52 +29,7 @@ final class PositionLedger
         $directions = $this->directions($operations);
 
         foreach ($operations as $operation) {
-            if (!$operation->isActive()) {
-                continue;
-            }
-            $details = $operation->details;
-            if (null !== $details->instrumentId) {
-                $states[$details->instrumentId] ??= new LedgerState();
-                $states[$details->instrumentId]->last = $details->tradeDate;
-            }
-            if (null !== $details->counterInstrumentId) {
-                $states[$details->counterInstrumentId] ??= new LedgerState();
-                $states[$details->counterInstrumentId]->last = $details->tradeDate;
-            }
-
-            match ($details->type) {
-                OperationType::BUY => $this->acquire(
-                    $states, $movements, $operation, self::required($details->instrumentId),
-                    self::calculated(self::requiredDecimal($details->quantity)),
-                    self::acquisitionCost($details->grossAmount, $details->fees, $details->taxes),
-                ),
-                OperationType::SECURITY_TRANSFER_IN => $this->acquire(
-                    $states, $movements, $operation, self::required($details->instrumentId),
-                    self::calculated(self::requiredDecimal($details->quantity)), self::nullableCalculated($details->costBasis),
-                ),
-                OperationType::SELL, OperationType::SECURITY_TRANSFER_OUT => $this->dispose(
-                    $states, $movements, $operation, self::required($details->instrumentId),
-                    self::calculated(self::requiredDecimal($details->quantity)),
-                ),
-                OperationType::SPLIT => $this->split(
-                    $states, $movements, $operation, self::required($details->instrumentId),
-                    $quantityPrecisions[self::required($details->instrumentId)] ?? 0,
-                ),
-                OperationType::MERGER => $this->merge(
-                    $states, $movements, $operation, self::required($details->instrumentId),
-                    self::required($details->counterInstrumentId),
-                    self::calculated(self::requiredDecimal($details->counterQuantity)),
-                    $quantityPrecisions[self::required($details->counterInstrumentId)] ?? 0,
-                ),
-                OperationType::SPIN_OFF => $this->spinOff(
-                    $states, $movements, $operation, self::required($details->instrumentId),
-                    self::required($details->counterInstrumentId),
-                    self::calculated(self::requiredDecimal($details->counterQuantity)),
-                    self::calculated(self::requiredDecimal($details->costAllocationRatio)),
-                    $quantityPrecisions[self::required($details->counterInstrumentId)] ?? 0,
-                ),
-                default => null,
-            };
+            $this->apply($states, $movements, $operation, $quantityPrecisions);
         }
 
         $positions = [];
@@ -100,6 +55,112 @@ final class PositionLedger
         }
 
         return new PositionLedgerResult($positions, $movements);
+    }
+
+    /**
+     * The non-zero quantities held at the end of each given day, from one pass over the operations in date order.
+     * A day is null from the first operation that cannot be replayed.
+     *
+     * @param list<PortfolioOperation> $operations
+     * @param array<string, int>       $quantityPrecisions instrument id => decimal places
+     * @param list<\DateTimeImmutable> $days
+     *
+     * @return array<string, array<string, CalculatedDecimal>|null> keyed by `Y-m-d`
+     */
+    public function quantitiesAt(array $operations, array $quantityPrecisions, array $days): array
+    {
+        usort($operations, self::compareOperations(...));
+        $pending = array_values(array_unique(array_map(static fn (\DateTimeImmutable $day): string => $day->format('Y-m-d'), $days)));
+        sort($pending);
+        /** @var array<string, LedgerState> $states */
+        $states = [];
+        /** @var array<string, list<LotMovement>> $movements */
+        $movements = [];
+        $result = [];
+        $held = static function () use (&$states): array {
+            $quantities = [];
+            foreach ($states as $instrumentId => $state) {
+                if (!$state->poolQuantity->isZero()) {
+                    $quantities[$instrumentId] = $state->poolQuantity;
+                }
+            }
+
+            return $quantities;
+        };
+
+        try {
+            foreach ($operations as $operation) {
+                $tradeDay = $operation->details->tradeDate->format('Y-m-d');
+                while ([] !== $pending && $pending[0] < $tradeDay) {
+                    $result[array_shift($pending)] = $held();
+                }
+                $this->apply($states, $movements, $operation, $quantityPrecisions);
+            }
+            foreach ($pending as $day) {
+                $result[$day] = $held();
+            }
+        } catch (PositionReplayFailed) {
+            foreach ($pending as $day) {
+                $result[$day] = null;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, LedgerState>       $states
+     * @param array<string, list<LotMovement>> $movements
+     * @param array<string, int>               $quantityPrecisions
+     */
+    private function apply(array &$states, array &$movements, PortfolioOperation $operation, array $quantityPrecisions): void
+    {
+        if (!$operation->isActive()) {
+            return;
+        }
+        $details = $operation->details;
+        if (null !== $details->instrumentId) {
+            $states[$details->instrumentId] ??= new LedgerState();
+            $states[$details->instrumentId]->last = $details->tradeDate;
+        }
+        if (null !== $details->counterInstrumentId) {
+            $states[$details->counterInstrumentId] ??= new LedgerState();
+            $states[$details->counterInstrumentId]->last = $details->tradeDate;
+        }
+
+        match ($details->type) {
+            OperationType::BUY => $this->acquire(
+                $states, $movements, $operation, self::required($details->instrumentId),
+                self::calculated(self::requiredDecimal($details->quantity)),
+                self::acquisitionCost($details->grossAmount, $details->fees, $details->taxes),
+            ),
+            OperationType::SECURITY_TRANSFER_IN => $this->acquire(
+                $states, $movements, $operation, self::required($details->instrumentId),
+                self::calculated(self::requiredDecimal($details->quantity)), self::nullableCalculated($details->costBasis),
+            ),
+            OperationType::SELL, OperationType::SECURITY_TRANSFER_OUT => $this->dispose(
+                $states, $movements, $operation, self::required($details->instrumentId),
+                self::calculated(self::requiredDecimal($details->quantity)),
+            ),
+            OperationType::SPLIT => $this->split(
+                $states, $movements, $operation, self::required($details->instrumentId),
+                $quantityPrecisions[self::required($details->instrumentId)] ?? 0,
+            ),
+            OperationType::MERGER => $this->merge(
+                $states, $movements, $operation, self::required($details->instrumentId),
+                self::required($details->counterInstrumentId),
+                self::calculated(self::requiredDecimal($details->counterQuantity)),
+                $quantityPrecisions[self::required($details->counterInstrumentId)] ?? 0,
+            ),
+            OperationType::SPIN_OFF => $this->spinOff(
+                $states, $movements, $operation, self::required($details->instrumentId),
+                self::required($details->counterInstrumentId),
+                self::calculated(self::requiredDecimal($details->counterQuantity)),
+                self::calculated(self::requiredDecimal($details->costAllocationRatio)),
+                $quantityPrecisions[self::required($details->counterInstrumentId)] ?? 0,
+            ),
+            default => null,
+        };
     }
 
     /**

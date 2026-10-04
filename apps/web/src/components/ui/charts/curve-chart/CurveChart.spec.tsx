@@ -66,4 +66,12 @@ describe('CurveChart', () => {
 
     expect(screen.queryAllByRole('button')).toHaveLength(0);
   });
+
+  it('shows optional detail lines in the tooltip only', () => {
+    renderChart(points.map((point) => ({ ...point, tooltipDetail: `note ${point.key}` })));
+
+    expect(screen.queryByText('note 3')).toBeNull();
+    act(() => screen.getByRole('button', { name: 'mars, 300 €' }).focus());
+    expect(screen.getByRole('tooltip').textContent).toContain('note 3');
+  });
 });

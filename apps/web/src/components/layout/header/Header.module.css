@@ -1,5 +1,9 @@
 .header {
+  position: sticky;
+  z-index: var(--z-header);
+  top: 0;
   display: flex;
+  background: var(--bg-shell);
   align-items: center;
   justify-content: space-between;
   min-height: var(--header-height);

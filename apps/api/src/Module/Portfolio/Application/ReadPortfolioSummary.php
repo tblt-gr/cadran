@@ -9,7 +9,6 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Portfolio\Domain\Cash\CashLedger;
 use App\Module\Portfolio\Domain\OperationType;
-use App\Module\Portfolio\Domain\Overview\OverviewFigures;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 
@@ -36,7 +35,7 @@ final readonly class ReadPortfolioSummary
         $totals = CashLedger::replay([], $range)->totals;
         $valuation = PortfolioOverviewQuery::valuation($view, $asOf);
         $partialMetadata = PortfolioOverviewQuery::valuation($newerPartial, $asOf);
-        $gain = self::gain($view);
+        $gain = PortfolioUnrealizedGain::of($view);
         $warnings = ($this->reconcile)($account, $asOf, $operations, $view, $newerPartial);
         $status = [] === $warnings ? 'RECONCILED' : 'NEEDS_REVIEW';
         $valuationSources = null === $valuation ? [] : [['kind' => 'VALUATION', 'id' => $valuation['id'], 'date' => $valuation['valuedOn']]];
@@ -83,32 +82,5 @@ final readonly class ReadPortfolioSummary
                 'RECONCILIATION' => PortfolioExplanation::of($accountView->openedOn, $to, $status, null, [...$valuationSources, ...$partialSources, ...$allSources]),
             ],
         ];
-    }
-
-    /** @return array{value: ?string, securitiesValue: ?string, costBasis: ?string, reason: ?string} */
-    private static function gain(?ValuationView $view): array
-    {
-        $valuation = $view?->valuation;
-        $securities = $valuation?->securitiesValue?->toString();
-        $reason = match (true) {
-            null === $valuation => 'NO_VALUATION',
-            'PARTIAL' === $valuation->completeness->value => 'PARTIAL_VALUATION',
-            default => null,
-        };
-        $costs = array_map(static fn ($position): ?string => $position->averageCostBasis?->toString(), null === $valuation ? [] : $valuation->positions);
-        $value = null === $reason && null !== $securities ? OverviewFigures::gain($securities, $costs) : null;
-        if (null === $value && null === $reason) {
-            $reason = 'UNKNOWN_LOT_COST';
-        }
-
-        $costBasis = null;
-        if (null !== $value) {
-            $costBasis = '0';
-            foreach ($costs as $cost) {
-                $costBasis = ExactDecimal::addForResponse($costBasis, $cost ?? throw new \LogicException('A computed gain has known costs.'));
-            }
-        }
-
-        return ['value' => $value, 'securitiesValue' => $securities, 'costBasis' => $costBasis, 'reason' => $reason];
     }
 }

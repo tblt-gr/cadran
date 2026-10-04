@@ -1,0 +1,13 @@
+.figures {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-2);
+  font-variant-numeric: tabular-nums;
+}
+.gain {
+  color: var(--positive);
+}
+.loss {
+  color: var(--negative);
+}

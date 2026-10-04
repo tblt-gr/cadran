@@ -1,4 +1,5 @@
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
+import { ValueHistoryCardSkeleton } from './value-history-card/ValueHistoryCardSkeleton';
 import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { OperationFilters } from './operations/operation-filters/OperationFilters';
 import { noFilters } from './operations/operation-filters/operationFilterValues';
@@ -37,6 +38,7 @@ export function PortfolioAccountPageSkeleton({
         />
       </fieldset>
       <PortfolioOverview accountId={accountId} asOf={asOf} frozen />
+      <ValueHistoryCardSkeleton />
       <PortfolioTabs accountId={accountId} active={active} asOf={asOf} />
       {active === 'operations' ? (
         <>

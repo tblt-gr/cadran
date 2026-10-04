@@ -53,6 +53,35 @@ final class PortfolioValuationOpenApiContractTest extends TestCase
         self::assertSame(['STALE_PRICES', 'CASH_DIFFERENCE', 'OBSERVED_TOTAL_DIFFERENCE', 'POSITIONS_CHANGED', 'NEGATIVE_SECURITIES_VALUE'], $flags);
     }
 
+    public function testTheHistoryRouteIsDocumentedAsAReadOnlyBoundedSeries(): void
+    {
+        $document = self::map(Yaml::parseFile(dirname(__DIR__, 2).'/openapi/openapi.yaml'));
+        $paths = self::map($document['paths'] ?? null);
+        $operation = self::map(self::map($paths['/api/v1/accounts/{accountId}/portfolio-valuation-history'] ?? null)['get'] ?? null);
+        self::assertSame('readPortfolioValuationHistory', $operation['operationId'] ?? null);
+        self::assertStringNotContainsString('CsrfToken', json_encode($operation['parameters'] ?? null, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $responses = $operation['responses'] ?? null;
+        self::assertIsArray($responses);
+        foreach ([200, 401, 403, 404, 422] as $status) {
+            self::assertArrayHasKey($status, $responses);
+        }
+
+        $schemas = self::map(self::map($document['components'] ?? null)['schemas'] ?? null);
+        $history = self::map($schemas['PortfolioValuationHistory'] ?? null);
+        self::assertFalse($history['additionalProperties'] ?? true);
+        self::assertSame(['from', 'to', 'assetCode', 'truncated', 'points'], $history['required'] ?? null);
+        $point = self::map($schemas['PortfolioValuationHistoryPoint'] ?? null);
+        self::assertFalse($point['additionalProperties'] ?? true);
+        self::assertSame(
+            ['valuationId', 'valuedOn', 'detail', 'totalValue', 'securitiesValue', 'cash', 'completeness', 'priceQuality', 'flags'],
+            $point['required'] ?? null,
+        );
+        self::assertSame(240, self::map(self::map($history['properties'] ?? null)['points'] ?? null)['maxItems'] ?? null);
+        $codes = self::map(self::map(self::map($schemas['PortfolioValuationProblem'] ?? null)['properties'] ?? null)['code'] ?? null)['enum'] ?? null;
+        self::assertIsArray($codes);
+        self::assertContains('invalid_history_range', $codes);
+    }
+
     /** @return array<string, mixed> */
     private static function map(mixed $value): array
     {

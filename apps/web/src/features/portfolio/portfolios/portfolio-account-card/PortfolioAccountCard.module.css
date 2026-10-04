@@ -5,29 +5,32 @@
   gap: var(--spacing-3);
   min-width: 0;
   color: var(--text-primary);
-  text-decoration: none;
-}
-a.card:hover {
-  border-color: var(--border-strong);
 }
 .card h3,
-.card p,
-.card dl,
-.card dd {
+.card p {
   margin: var(--spacing-none);
 }
-.card p,
-.card dt {
+.card h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+.card h3 a:hover {
+  text-decoration: underline;
+}
+.card p {
   color: var(--text-secondary);
 }
-.card dl {
-  display: grid;
-  gap: var(--spacing-3);
-}
-.card dd {
+.card .value {
+  color: var(--text-primary);
   font-size: var(--font-size-kpi);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
+}
+.card .gain {
+  font-size: var(--font-size-body);
+}
+.curve {
+  height: var(--chart-plot-height);
 }
 @media (min-width: 768px) {
   .card {

@@ -38,11 +38,12 @@ final readonly class PortfolioValuationPresenter
             $instruments[$instrument->id] = $instrument;
         }
 
+        $changed = $this->changedIdentifiers($workspace, $valuations);
         $views = [];
         foreach ($valuations as $valuation) {
             $precision = ($this->assets->findByCode($valuation->assetCode) ?? throw new \LogicException('A valuation asset is missing from the reference.'))->precision->display;
             $flags = $valuation->flags($precision);
-            if ($valuation->isActive() && $this->changed->changed($workspace, $valuation)) {
+            if ($changed[$valuation->id] ?? false) {
                 $flags[] = ValuationFlag::POSITIONS_CHANGED;
                 usort($flags, static fn (ValuationFlag $left, ValuationFlag $right): int => array_search($left, ValuationFlag::cases(), true) <=> array_search($right, ValuationFlag::cases(), true));
             }
@@ -50,5 +51,26 @@ final readonly class PortfolioValuationPresenter
         }
 
         return $views;
+    }
+
+    /**
+     * @param list<Valuation> $valuations
+     *
+     * @return array<string, bool> active valuation identifier => its positions changed, one replay per account
+     */
+    private function changedIdentifiers(WorkspaceScope $workspace, array $valuations): array
+    {
+        $byAccount = [];
+        foreach ($valuations as $valuation) {
+            if ($valuation->isActive()) {
+                $byAccount[$valuation->accountId][] = $valuation;
+            }
+        }
+        $changed = [];
+        foreach ($byAccount as $accountId => $active) {
+            $changed += $this->changed->changedAmong($workspace, (string) $accountId, $active);
+        }
+
+        return $changed;
     }
 }

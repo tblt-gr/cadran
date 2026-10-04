@@ -1,6 +1,7 @@
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { usePortfolios } from '@/features/portfolio/usePortfolioOverview';
+import { PortfolioTotalCard } from './portfolio-total-card/PortfolioTotalCard';
 import { PortfolioAccountCard } from './portfolio-account-card/PortfolioAccountCard';
 import styles from './PortfoliosPage.module.css';
 export function PortfoliosPage() {
@@ -10,8 +11,7 @@ export function PortfoliosPage() {
     [401, 403].includes(portfolios.error.status);
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h2>Investissements</h2>
+      <div className={styles.toolbar}>
         <a
           className="secondary-action"
           href="/portfolios/instruments"
@@ -19,7 +19,7 @@ export function PortfoliosPage() {
         >
           Instruments
         </a>
-      </header>
+      </div>
       {portfolios.isError ? (
         <section className="card" role="alert">
           <h3>
@@ -45,6 +45,7 @@ export function PortfoliosPage() {
           <p className="sr-only" role="status">
             Chargement des investissements…
           </p>
+          <PortfolioTotalCard total={null} />
           <div className={styles.grid} aria-busy="true" data-testid="portfolios-skeleton">
             {[0, 1, 2].map((key) => (
               <PortfolioAccountCard account={null} key={key} />
@@ -67,6 +68,7 @@ export function PortfoliosPage() {
         </section>
       ) : (
         <>
+          <PortfolioTotalCard total={portfolios.data.total} />
           <div className={styles.grid}>
             {portfolios.data.items.map((account) => (
               <PortfolioAccountCard account={account} key={account.accountId} />

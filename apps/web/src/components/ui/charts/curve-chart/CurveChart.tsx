@@ -18,6 +18,8 @@ export interface CurvePoint {
   geometryValue: string | null;
   /** Heading of the hover tooltip. */
   tooltipTitle: ReactNode;
+  /** Optional lines under the figure in the tooltip only, e.g. quality notes. */
+  tooltipDetail?: ReactNode;
   /** The exact figure, or an empty-value marker, shown on the axis and in the tooltip. */
   value: ReactNode;
 }
@@ -239,6 +241,9 @@ export function CurveChart({ label, points, timeAxisLabel, valueAxisLabel }: Cur
             >
               <span className={styles.tooltipTitle}>{hover.point.tooltipTitle}</span>
               <span className={styles.tooltipValue}>{hover.point.value}</span>
+              {hover.point.tooltipDetail ? (
+                <span className={styles.tooltipDetail}>{hover.point.tooltipDetail}</span>
+              ) : null}
             </div>
           </>
         )}

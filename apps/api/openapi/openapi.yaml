@@ -2631,6 +2631,55 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/portfolio-valuation-history:
+    get:
+      operationId: readPortfolioValuationHistory
+      summary: Read the valuation series of a portfolio account
+      description: >-
+        One point per active valuation (a superseded or withdrawn valuation is absent), oldest first, with the
+        figures exactly as stored. A point whose total is not computable has `totalValue: null`: it is never
+        zero. At most 240 points are returned, the most recent ones, and `truncated` is true when older
+        points exist inside the range. `to` defaults to today and cannot be in the future; `from` omitted
+        means since the first valuation. A closed or archived account stays readable.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: from
+          in: query
+          required: false
+          description: 'First valuation date kept, inclusive. Omitted: since the first valuation.'
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: 'Last valuation date kept, inclusive. Defaults to today and cannot be in the future.'
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'The bounded valuation series.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationHistory'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'The range is invalid (`invalid_history_range`), or the account is not followed in portfolio mode.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationProblem'
   /api/v1/accounts/{accountId}/portfolio-valuations:
     get:
       operationId: listPortfolioValuations
@@ -7092,7 +7141,30 @@ components:
         - positionCount
         - newerPartialValuation
         - dueMonths
+        - unrealizedGain
       properties:
+        unrealizedGain:
+          description: Unrealized gain of the latest complete valuation with its performance (gain over cost, 6 decimals, ratio 0.0732 = 7.32 %); every member is null when not calculable, never zero.
+          type: object
+          additionalProperties: false
+          required:
+            - value
+            - costBasis
+            - performance
+            - reason
+          properties:
+            value: *id004
+            costBasis: *id004
+            performance: *id004
+            reason:
+              type:
+                - string
+                - 'null'
+              enum:
+                - null
+                - NO_VALUATION
+                - PARTIAL_VALUATION
+                - UNKNOWN_LOT_COST
         dueMonths:
           description: Months still owed a complete month-end valuation, oldest first, computed on every read.
           type: array
@@ -7131,8 +7203,58 @@ components:
       additionalProperties: false
       required:
         - items
+        - total
         - truncated
       properties:
+        total:
+          description: Sum over the shown active accounts, one asset only; gain, cost and performance are null unless every valued account has a computable gain.
+          type: object
+          additionalProperties: false
+          required:
+            - assetCode
+            - totalValue
+            - unrealizedGain
+            - costBasis
+            - performance
+            - valuedAccounts
+            - unvaluedAccounts
+            - oldestValuedOn
+            - partialNewerAccounts
+            - reason
+          properties:
+            assetCode:
+              type:
+                - string
+                - 'null'
+            totalValue: *id004
+            unrealizedGain: *id004
+            costBasis: *id004
+            performance: *id004
+            valuedAccounts:
+              type: integer
+              minimum: 0
+            unvaluedAccounts:
+              type: integer
+              minimum: 0
+            oldestValuedOn:
+              description: Oldest valuation date among the valued accounts, null when none is valued.
+              type:
+                - string
+                - 'null'
+              format: date
+            partialNewerAccounts:
+              description: Valued accounts whose displayed complete valuation has a newer partial observation.
+              type: integer
+              minimum: 0
+            reason:
+              type:
+                - string
+                - 'null'
+              enum:
+                - null
+                - MIXED_ASSETS
+                - NO_VALUATION
+                - INCOMPLETE_GAIN
         items:
           type: array
           items:
@@ -16270,6 +16392,75 @@ components:
         version:
           type: integer
           minimum: 1
+    PortfolioValuationHistoryPoint:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          valuationId,
+          valuedOn,
+          detail,
+          totalValue,
+          securitiesValue,
+          cash,
+          completeness,
+          priceQuality,
+          flags,
+        ]
+      properties:
+        valuationId:
+          type: string
+          format: uuid
+        valuedOn:
+          type: string
+          format: date
+        detail:
+          $ref: '#/components/schemas/PortfolioValuationDetail'
+        totalValue:
+          description: 'Null when the valuation is partial: never zero by default.'
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        securitiesValue:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        cash:
+          $ref: '#/components/schemas/DecimalAmount'
+        completeness:
+          type: string
+          enum: [COMPLETE, PARTIAL]
+        priceQuality:
+          description: 'The worst quality among the positions.'
+          $ref: '#/components/schemas/PortfolioPriceQuality'
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioValuationFlag'
+    PortfolioValuationHistory:
+      type: object
+      additionalProperties: false
+      required: [from, to, assetCode, truncated, points]
+      properties:
+        from:
+          description: 'The requested first day, null when omitted (since the first valuation).'
+          type: [string, 'null']
+          format: date
+        to:
+          description: 'The last day of the range: the requested one, or today.'
+          type: string
+          format: date
+        assetCode:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        truncated:
+          description: 'True when older valuations exist inside the range beyond the 240 returned.'
+          type: boolean
+        points:
+          type: array
+          maxItems: 240
+          items:
+            $ref: '#/components/schemas/PortfolioValuationHistoryPoint'
     PortfolioValuationPage:
       type: object
       additionalProperties: false
@@ -16481,6 +16672,7 @@ components:
             - invalid_price_date
             - operation_asset_mismatch
             - invalid_valuation_query
+            - invalid_history_range
             - invalid_valuation_payload
             - account_not_portfolio
             - portfolio_account_inactive
