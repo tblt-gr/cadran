@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Application;
 
 use App\Module\Accounts\Domain\Account;
+use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
+use App\Module\Portfolio\Domain\EuroFundPrice;
 use App\Module\Portfolio\Domain\Instrument;
 use App\Module\Portfolio\Domain\InstrumentRepository;
 use App\Module\Portfolio\Domain\InstrumentStatus;
+use App\Module\Portfolio\Domain\InstrumentType;
 use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
+use App\Module\Portfolio\Domain\LifeInsurance\LifeInsuranceContractRepository;
 use App\Module\Portfolio\Domain\OperationCashEffect;
 use App\Module\Portfolio\Domain\OperationDetails;
 use App\Module\Portfolio\Domain\OperationType;
@@ -35,6 +39,7 @@ final readonly class OperationResolver
         private InstrumentRepository $instruments,
         private PortfolioOperationRepository $operations,
         private ReadTransferLeg $transferLegs,
+        private LifeInsuranceContractRepository $contracts,
     ) {
     }
 
@@ -52,6 +57,8 @@ final readonly class OperationResolver
         $asset = $this->assets->findByCode($account->assetCode) ?? throw new \LogicException('The account asset is missing from the reference.');
         $type = OperationType::tryFrom($input->type) ?? throw new InvalidPortfolioOperation('The operation type is not supported.', 'OTHER_CORPORATE_ACTION' === $input->type ? 'unsupported_operation_type' : 'invalid_operation_type');
         $tradeDate = self::parseTradeDate($input->tradeDate);
+        OperationTypePolicy::assertContract($account->kind, AccountKind::INSURANCE_CONTRACT === $account->kind ? $this->contracts->findByAccount($account->workspace, $account->id) : null, $tradeDate);
+        OperationTypePolicy::assertAllowed($account->kind, $type);
         $settlementDate = null === $input->settlementDate ? null : self::date($input->settlementDate, 'invalid_settlement_date');
 
         $details = new OperationDetails(
@@ -122,6 +129,9 @@ final readonly class OperationResolver
 
         $main = null === $details->instrumentId ? null : $resolved[$details->instrumentId];
         $counter = null === $details->counterInstrumentId ? null : $resolved[$details->counterInstrumentId];
+        if (InstrumentType::EURO_FUND === $main?->instrumentType) {
+            EuroFundPrice::assert($details->unitPrice);
+        }
         if (null !== $main) {
             self::assertScale($details->quantity, $main->quantityPrecision, 'quantity_precision_exceeded');
             self::assertScale($details->unitPrice, $main->pricePrecision, 'price_precision_exceeded');

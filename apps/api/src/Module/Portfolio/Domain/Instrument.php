@@ -46,7 +46,11 @@ final readonly class Instrument
         if ((null === $reviewedAt) !== (null === $reviewedBy)) {
             throw new InvalidInstrument('Review time and reviewer must be present together.', 'invalid_instrument_review');
         }
-        if (null === $isin && null === $ticker) {
+        if (InstrumentType::EURO_FUND === $instrumentType) {
+            if (null !== $isin || null !== $ticker || null !== $venueMic) {
+                throw new InvalidInstrument('A euro fund carries no identifier or venue.', 'instrument_field_not_allowed');
+            }
+        } elseif (null === $isin && null === $ticker) {
             throw new InvalidInstrument('An instrument identifier is required.', 'instrument_identifier_required');
         }
         self::assertPrecision($quantityPrecision);
@@ -90,8 +94,9 @@ final readonly class Instrument
             || !$this->currencyCode->equals($currencyCode)
             || $this->quantityPrecision !== $quantityPrecision
             || $this->pricePrecision !== $pricePrecision
+            || (InstrumentType::EURO_FUND === $this->instrumentType) !== (InstrumentType::EURO_FUND === $instrumentType)
         )) {
-            throw new InvalidInstrument('Instrument identity is locked after its first operation.', 'instrument_identity_locked');
+            throw new InvalidInstrument('Instrument identity is locked after its first use.', 'instrument_identity_locked');
         }
 
         return new self(

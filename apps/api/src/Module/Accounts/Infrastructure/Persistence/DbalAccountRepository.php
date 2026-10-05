@@ -87,7 +87,7 @@ final readonly class DbalAccountRepository implements AccountRepository
     {
         $rows = $this->connection->fetchAllAssociative(
             'SELECT '.self::COLUMNS.' FROM account_financial_accounts WHERE workspace_id = :workspace_id'
-            ." AND archived_at IS NULL AND kind = 'PORTFOLIO' AND valuation_mode = 'PORTFOLIO'"
+            ." AND archived_at IS NULL AND kind IN ('PORTFOLIO', 'INSURANCE_CONTRACT') AND valuation_mode = 'PORTFOLIO'"
             .' ORDER BY normalized_label, id LIMIT :limit',
             ['workspace_id' => $workspace->id, 'limit' => $limit],
             ['limit' => ParameterType::INTEGER],

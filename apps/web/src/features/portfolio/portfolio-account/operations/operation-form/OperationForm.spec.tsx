@@ -72,6 +72,17 @@ afterEach(() => {
 });
 
 describe('OperationForm', () => {
+  it('offers only allowed operations on a life-insurance contract', () => {
+    renderForm({ account: { ...account, kind: 'INSURANCE_CONTRACT' } });
+    expect((screen.getByLabelText('Type') as HTMLSelectElement).value).toBe('BUY');
+    const values = [...(screen.getByLabelText('Type') as HTMLSelectElement).options].map(
+      (option) => option.value,
+    );
+    expect(values).toContain('BUY');
+    for (const type of ['DEPOSIT', 'WITHDRAWAL', 'SECURITY_TRANSFER_IN', 'SECURITY_TRANSFER_OUT'])
+      expect(values).not.toContain(type);
+  });
+
   it('focuses the type first and renders only the fields of the chosen type', () => {
     renderForm();
     expect(screen.getByLabelText('Type').hasAttribute('data-autofocus')).toBe(true);

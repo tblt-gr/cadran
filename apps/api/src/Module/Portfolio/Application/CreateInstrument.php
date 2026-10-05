@@ -34,7 +34,7 @@ final readonly class CreateInstrument
     public function __invoke(CreateInstrumentInput $input): InstrumentView
     {
         $context = $this->caller->resolveContext();
-        $parsed = $this->parser->parse($input);
+        $parsed = $this->parser->parse($context->workspace, $input);
 
         return $this->transactions->transactional(function () use ($context, $parsed, $input): InstrumentView {
             $this->instruments->lockWorkspace($context->workspace);

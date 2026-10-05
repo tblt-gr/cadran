@@ -7,6 +7,8 @@ namespace App\Module\Portfolio\Application;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Portfolio\Domain\EuroFundPrice;
+use App\Module\Portfolio\Domain\InstrumentType;
 use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 use App\Module\Portfolio\Domain\Valuation\ValuationDetail;
@@ -43,6 +45,12 @@ final readonly class BuildValuationDraft
         foreach ($held as $position) {
             $instrument = $instruments[$position->instrumentId] ?? throw new \LogicException('A held instrument is missing.');
             $price = $best[$position->instrumentId] ?? null;
+            if (InstrumentType::EURO_FUND === $instrument->instrumentType) {
+                // A euro fund is worth 1 on the valuation date; no earlier price is looked up for it.
+                $positions[] = new DraftPosition($instrument, $position->quantity, DecimalValue::fromString(EuroFundPrice::UNIT), $valuedOn, null, null);
+
+                continue;
+            }
             $positions[] = new DraftPosition($instrument, $position->quantity, $price['price'] ?? null, $price['date'] ?? null, $price['kind'] ?? null, $price['id'] ?? null);
         }
         usort($positions, static fn (DraftPosition $left, DraftPosition $right): int => strcasecmp($left->instrument->name, $right->instrument->name));

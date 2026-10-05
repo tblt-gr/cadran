@@ -38,7 +38,7 @@ const messages: Record<string, string> = {
   stale_instrument_version:
     'Cet instrument a été modifié ailleurs. Fermez cette fenêtre pour recharger la liste, puis réessayez.',
   instrument_identity_locked:
-    'L’ISIN, la devise et les précisions sont figés après la première opération.',
+    'L’ISIN, la devise, les précisions et le type fonds en euros sont figés après la première utilisation.',
   instrument_limit_reached: 'La limite d’instruments de cet espace est atteinte.',
 };
 

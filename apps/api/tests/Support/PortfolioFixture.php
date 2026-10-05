@@ -61,6 +61,19 @@ final readonly class PortfolioFixture
         ]);
     }
 
+    public function euroFund(string $id, string $workspace = WorkspaceFixture::OWN_WORKSPACE, string $name = 'Fonds euros Démo'): void
+    {
+        $owner = WorkspaceFixture::OTHER_WORKSPACE === $workspace ? WorkspaceFixture::OTHER_OWNER_ID : WorkspaceFixture::OWNER_ID;
+        $this->connection->insert('portfolio_instruments', [
+            'id' => $id, 'workspace_id' => $workspace, 'name' => $name, 'normalized_name' => mb_strtolower($name),
+            'isin' => null, 'ticker' => null, 'venue_mic' => null, 'instrument_type' => 'EURO_FUND', 'asset_class' => null,
+            'region' => null, 'currency_code' => 'EUR', 'quantity_precision' => 2, 'price_precision' => 0, 'source' => 'MANUAL',
+            'reviewed_at' => '2026-01-01 09:00:00+00', 'reviewed_by' => $owner, 'status' => 'ACTIVE', 'used_at' => null,
+            'created_at' => '2026-01-01 09:00:00+00', 'created_by' => $owner, 'updated_at' => '2026-01-01 09:00:00+00',
+            'version' => 1,
+        ]);
+    }
+
     public function transferLeg(
         string $id,
         string $accountId,

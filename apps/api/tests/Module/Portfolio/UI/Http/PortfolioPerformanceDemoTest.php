@@ -150,7 +150,7 @@ final class PortfolioPerformanceDemoTest extends WebTestCase
 
     private function account(): string
     {
-        $id = $this->connection->fetchOne("SELECT id FROM account_financial_accounts WHERE workspace_id = ? AND valuation_mode = 'PORTFOLIO' ORDER BY label LIMIT 1", [WorkspaceFixture::OWN_WORKSPACE]);
+        $id = $this->connection->fetchOne("SELECT id FROM account_financial_accounts WHERE workspace_id = ? AND kind = 'PORTFOLIO' AND valuation_mode = 'PORTFOLIO' ORDER BY label LIMIT 1", [WorkspaceFixture::OWN_WORKSPACE]);
         self::assertIsString($id);
 
         return $id;

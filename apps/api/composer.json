@@ -74,7 +74,10 @@
     "analyse": "phpstan analyse --configuration=phpstan.neon --memory-limit=512M",
     "format": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
     "lint": "php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff",
-    "test": "php bin/phpunit",
+    "test": [
+      "Composer\\Config::disableProcessTimeout",
+      "php bin/phpunit"
+    ],
     "quality": [
       "@lint",
       "@analyse",

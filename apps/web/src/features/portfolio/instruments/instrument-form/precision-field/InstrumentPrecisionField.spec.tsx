@@ -39,6 +39,6 @@ describe('InstrumentPrecisionField', () => {
   it('is frozen with a hint when locked', () => {
     renderField({ locked: true });
     expect((screen.getByLabelText(/Précision des prix/) as HTMLInputElement).disabled).toBe(true);
-    expect(screen.getByText('Figé après la première opération')).toBeTruthy();
+    expect(screen.getByText('Figé après la première utilisation')).toBeTruthy();
   });
 });

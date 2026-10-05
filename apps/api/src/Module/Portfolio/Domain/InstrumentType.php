@@ -11,4 +11,5 @@ enum InstrumentType: string
     case FUND = 'FUND';
     case BOND = 'BOND';
     case OTHER = 'OTHER';
+    case EURO_FUND = 'EURO_FUND';
 }

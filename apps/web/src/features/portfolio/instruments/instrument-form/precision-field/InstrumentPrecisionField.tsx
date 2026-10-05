@@ -26,7 +26,7 @@ export function InstrumentPrecisionField({
         value={value}
       />
       {showErrors && !validPrecision(value) ? <small>{PRECISION_MESSAGE}</small> : null}
-      {locked ? <small>Figé après la première opération</small> : null}
+      {locked ? <small>Figé après la première utilisation</small> : null}
     </label>
   );
 }

@@ -39,9 +39,20 @@ final readonly class PortfolioAccountGate
         return $account;
     }
 
+    /** The portfolio checks plus the kind: the life-insurance contract of a contract account. */
+    public function forLifeInsurance(WorkspaceScope $workspace, string $accountId, bool $write): Account
+    {
+        $account = $write ? $this->forWrite($workspace, $accountId, true) : $this->forRead($workspace, $accountId);
+        if (AccountKind::INSURANCE_CONTRACT !== $account->kind) {
+            throw new InvalidPortfolioOperation('The account is not a life-insurance contract.', 'account_not_life_insurance');
+        }
+
+        return $account;
+    }
+
     private function assertPortfolio(Account $account): Account
     {
-        if (AccountKind::PORTFOLIO !== $account->kind || AccountValuationMode::PORTFOLIO !== $account->valuationMode) {
+        if (!in_array($account->kind, [AccountKind::PORTFOLIO, AccountKind::INSURANCE_CONTRACT], true) || AccountValuationMode::PORTFOLIO !== $account->valuationMode) {
             throw new InvalidPortfolioOperation('The account is not followed in portfolio mode.', 'account_not_portfolio');
         }
 

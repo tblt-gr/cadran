@@ -47,7 +47,7 @@ final readonly class PortfolioDueMonths
         $utc = new \DateTimeZone('UTC');
         $candidates = [];
         foreach ($accounts as $account) {
-            if ('ARCHIVED' === $account->status || 'PORTFOLIO' !== $account->kind || 'PORTFOLIO' !== $account->valuationMode) {
+            if ('ARCHIVED' === $account->status || !in_array($account->kind, ['PORTFOLIO', 'INSURANCE_CONTRACT'], true) || 'PORTFOLIO' !== $account->valuationMode) {
                 continue;
             }
             $months = DueMonthWindow::candidates($today, new \DateTimeImmutable($account->openedOn, $utc), null === $account->closedOn ? null : new \DateTimeImmutable($account->closedOn, $utc));

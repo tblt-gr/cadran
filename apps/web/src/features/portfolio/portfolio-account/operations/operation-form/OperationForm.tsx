@@ -30,7 +30,7 @@ import { useOperationPreview } from './useOperationPreview';
 import styles from './OperationForm.module.css';
 
 interface Props {
-  account: { id: string; assetCode: string };
+  account: { id: string; assetCode: string; kind?: 'PORTFOLIO' | 'INSURANCE_CONTRACT' | string };
   fieldErrors?: OperationFieldErrors;
   onSubmit: (request: PortfolioOperationRequest, reason: string | null) => void;
   operation?: PortfolioOperation;
@@ -49,7 +49,9 @@ export function OperationForm({
   today,
 }: Props) {
   const [values, setValues] = useState<OperationFormValues>(() =>
-    operation ? valuesFromOperation(operation) : emptyValues(today),
+    operation
+      ? valuesFromOperation(operation)
+      : { ...emptyValues(today), type: account.kind === 'INSURANCE_CONTRACT' ? 'BUY' : 'DEPOSIT' },
   );
   const [submitted, setSubmitted] = useState(false);
   const built = buildOperationRequest(values, account.assetCode);
@@ -106,11 +108,22 @@ export function OperationForm({
             }}
             value={type}
           >
-            {operationTypes.map((value) => (
-              <option key={value} value={value}>
-                {operationTypeLabel(value)}
-              </option>
-            ))}
+            {operationTypes
+              .filter(
+                (value) =>
+                  account.kind !== 'INSURANCE_CONTRACT' ||
+                  ![
+                    'DEPOSIT',
+                    'WITHDRAWAL',
+                    'SECURITY_TRANSFER_IN',
+                    'SECURITY_TRANSFER_OUT',
+                  ].includes(value),
+              )
+              .map((value) => (
+                <option key={value} value={value}>
+                  {operationTypeLabel(value)}
+                </option>
+              ))}
           </select>
         </OperationField>
         <OperationField error={errors.tradeDate} label="Date d’opération">

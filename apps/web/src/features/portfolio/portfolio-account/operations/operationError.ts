@@ -106,6 +106,10 @@ export function operationFieldErrors(error: unknown): OperationFieldErrors {
 }
 
 const messages: Record<string, string> = {
+  life_insurance_contract_required: 'Renseignez d’abord le contrat avant de saisir une opération.',
+  life_insurance_contract_closed: 'Ce contrat est clos à la date de l’opération.',
+  operation_type_not_allowed_for_account: 'Ce type d’opération n’est pas autorisé sur ce contrat.',
+  euro_fund_price_fixed: 'Un fonds en euros vaut toujours 1 € par part.',
   account_not_portfolio: 'Ce compte n’est pas suivi en mode portefeuille.',
   portfolio_account_inactive: 'Ce compte est clos ou archivé : il n’accepte plus d’opération.',
   operation_limit_reached: 'La limite de 10 000 opérations actives pour ce compte est atteinte.',

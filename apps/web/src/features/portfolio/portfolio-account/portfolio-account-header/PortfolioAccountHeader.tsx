@@ -13,10 +13,14 @@ export function PortfolioAccountHeader({
   account,
   accountId,
   onCreate,
+  contractRequired = false,
+  operationBlocked = false,
 }: {
   account?: Account;
   accountId: string;
   onCreate: () => void;
+  contractRequired?: boolean;
+  operationBlocked?: boolean;
 }) {
   const products = useProductOptions(todayInBrowser());
   const product = account?.productCode
@@ -60,7 +64,9 @@ export function PortfolioAccountHeader({
           disabled={
             !account ||
             account.status !== 'ACTIVE' ||
-            account.kind !== 'PORTFOLIO' ||
+            (account.kind !== 'PORTFOLIO' && account.kind !== 'INSURANCE_CONTRACT') ||
+            contractRequired ||
+            operationBlocked ||
             account.valuationMode !== 'PORTFOLIO'
           }
           onClick={onCreate}
@@ -68,6 +74,16 @@ export function PortfolioAccountHeader({
         >
           Nouvelle opération
         </button>
+        {contractRequired ? (
+          <a
+            href={`/portfolios/${accountId}?tab=contract`}
+            onClick={(event) =>
+              handleClientNavigation(event, `/portfolios/${accountId}?tab=contract`)
+            }
+          >
+            Renseignez d'abord le contrat
+          </a>
+        ) : null}
       </div>
     </section>
   );

@@ -8,7 +8,9 @@ use App\Module\Accounts\Domain\Account;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
+use App\Module\Portfolio\Domain\EuroFundPrice;
 use App\Module\Portfolio\Domain\Instrument;
+use App\Module\Portfolio\Domain\InstrumentType;
 use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
 use App\Module\Portfolio\Domain\Valuation\PriceEntry;
 use App\Module\Portfolio\Domain\Valuation\ValuationCalculator;
@@ -121,7 +123,13 @@ final readonly class ValuationResolver
             if (isset($entries[$input->instrumentId])) {
                 throw InvalidPortfolioOperation::field('invalid_valuation_price', $path.'/instrumentId');
             }
-            $entries[$input->instrumentId] = new PriceEntry(self::price($input, $instrument, $path), self::priceDate($input, $valuedOn, $path));
+            $price = self::price($input, $instrument, $path);
+            $priceDate = self::priceDate($input, $valuedOn, $path);
+            if (InstrumentType::EURO_FUND === $instrument->instrumentType) {
+                // A euro fund is worth 1 on the very day it is valued, so its price is never stale.
+                $priceDate = null === $price ? null : $valuedOn;
+            }
+            $entries[$input->instrumentId] = new PriceEntry($price, $priceDate);
         }
         foreach (array_keys($held) as $instrumentId) {
             if (!isset($entries[$instrumentId])) {
@@ -143,6 +151,16 @@ final readonly class ValuationResolver
             throw InvalidPortfolioOperation::field('invalid_valuation_price', $path.'/price');
         } catch (PrecisionExceeded) {
             throw InvalidPortfolioOperation::field('price_precision_exceeded', $path.'/price');
+        }
+        if (InstrumentType::EURO_FUND === $instrument->instrumentType) {
+            // Checked before the precision, which a euro fund fixes at zero: any price but 1 is a fixed-price refusal.
+            try {
+                EuroFundPrice::assert($price);
+            } catch (InvalidPortfolioOperation) {
+                throw InvalidPortfolioOperation::field('euro_fund_price_fixed', $path.'/price');
+            }
+
+            return $price;
         }
         if ($price->isNegative() || 0 === $price->compareTo(DecimalValue::zero())) {
             throw InvalidPortfolioOperation::field('invalid_valuation_price', $path.'/price');
