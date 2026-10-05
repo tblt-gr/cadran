@@ -36,6 +36,7 @@ interface TransactionModalsProps {
   >;
   submitError: TransactionErrorKind | null;
   transferEditorOpen: boolean;
+  onTransferSaved: () => void;
   transferSave: UseMutationResult<Transfer, unknown, CreateTransferRequest>;
   voidError: TransactionErrorKind | null;
   voidMutation: UseMutationResult<Transaction, unknown, Transaction>;
@@ -61,6 +62,7 @@ export function TransactionModals({
   submitError,
   transferEditorOpen,
   transferSave,
+  onTransferSaved,
   voidError,
   voidMutation,
   voiding,
@@ -73,7 +75,8 @@ export function TransactionModals({
         <TransferEditor
           accounts={activeAccountOptions}
           close={closeTransferEditor}
-          onSubmit={(body) => transferSave.mutate(body)}
+          onSubmit={(body) => transferSave.mutateAsync(body)}
+          onSaved={onTransferSaved}
           pending={transferSave.isPending}
           submitError={transactionErrorKind(transferSave.error, transferSave.isError)}
         />

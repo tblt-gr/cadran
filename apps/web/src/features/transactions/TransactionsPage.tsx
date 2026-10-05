@@ -65,6 +65,7 @@ export function TransactionsPage() {
     setSaved,
     submitError,
     transferSave,
+    completeTransfer,
     voidError,
     voidMutation,
   } = mutations;
@@ -171,6 +172,7 @@ export function TransactionsPage() {
         submitError={submitError}
         transferEditorOpen={transferEditorOpen}
         transferSave={transferSave}
+        onTransferSaved={completeTransfer}
         voidError={voidError}
         voidMutation={voidMutation}
         voiding={voiding}

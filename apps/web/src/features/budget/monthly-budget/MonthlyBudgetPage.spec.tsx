@@ -7,6 +7,7 @@ import { MonthlyBudgetPage } from './MonthlyBudgetPage';
 const api = vi.hoisted(() => ({
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
+  recordPortfolioOperation: vi.fn(),
   getSession: vi.fn(),
   getTransaction: vi.fn(),
   listAccounts: vi.fn(),
@@ -333,6 +334,58 @@ describe('MonthlyBudgetPage', () => {
     cleanup();
     vi.clearAllMocks();
     window.history.replaceState({}, '', '/');
+  });
+
+  it('keeps the shared transfer modal open until the opted-in deposit succeeds', async () => {
+    let finishDeposit!: (value: unknown) => void;
+    api.recordPortfolioOperation.mockReturnValue(
+      new Promise((resolve) => {
+        finishDeposit = resolve;
+      }),
+    );
+    const destination = {
+      ...account,
+      kind: 'PORTFOLIO' as const,
+      valuationMode: 'PORTFOLIO' as const,
+    };
+    const source = { ...account, id: 'source', label: 'Banque' };
+    api.listAccounts.mockReturnValue(
+      ok({ items: [source, destination], page: 1, perPage: 100, total: 2 }),
+    );
+    api.createTransfer.mockReturnValue(
+      ok({
+        target: {
+          id: 'incoming',
+          accountId: destination.id,
+          amount: { value: '1500.00', assetCode: 'EUR' },
+          bookedOn: '2026-03-10',
+        },
+      }),
+    );
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Ajouter un virement vers Compte courant' }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
+    await screen.findByLabelText('Compte source');
+    fireEvent.change(within(dialog).getByLabelText('Compte source'), {
+      target: { value: source.id },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Montant (EUR)'), {
+      target: { value: '1500.00' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Libellé'), {
+      target: { value: 'Investissement mensuel' },
+    });
+    fireEvent.click(within(dialog).getByLabelText('Créer le versement sur le compte de réception'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
+    await waitFor(() => expect(api.recordPortfolioOperation).toHaveBeenCalledOnce());
+    expect(screen.getByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();
+    expect(api.createTransfer).toHaveBeenCalledOnce();
+    finishDeposit({ response: { ok: true }, data: {} });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
+    );
   });
 
   it('replaces its one named cold-load skeleton and keeps the ledger during a refetch', async () => {
