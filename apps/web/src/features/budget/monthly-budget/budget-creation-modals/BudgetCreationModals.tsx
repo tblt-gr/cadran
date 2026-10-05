@@ -61,7 +61,6 @@ export function BudgetCreationModals({
       return result.data;
     },
     onSuccess: async () => {
-      close();
       await onSaved();
     },
   });
@@ -105,7 +104,8 @@ export function BudgetCreationModals({
         accounts={accounts.data}
         close={close}
         defaults={{ bookedOn, requireSourceChoice: true, targetAccountId: draft.row.id }}
-        onSubmit={(body) => transfer.mutate(body)}
+        onSubmit={(body) => transfer.mutateAsync(body)}
+        onSaved={close}
         pending={transfer.isPending}
         submitError={transactionErrorKind(transfer.error, transfer.isError)}
       />

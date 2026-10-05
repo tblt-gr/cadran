@@ -87,11 +87,7 @@ export function useTransactionMutations({
       }
       return result.data;
     },
-    onSuccess: async () => {
-      onTransferSaved();
-      setSaved('transferSaved');
-      await reloadAfterWrite();
-    },
+    onSuccess: reloadAfterWrite,
   });
 
   const voidMutation = useMutation({
@@ -159,6 +155,10 @@ export function useTransactionMutations({
     setSaved,
     submitError: transactionErrorKind(save.error, save.isError),
     transferSave,
+    completeTransfer: () => {
+      onTransferSaved();
+      setSaved('transferSaved');
+    },
     voidError: transactionErrorKind(voidMutation.error, voidMutation.isError),
     voidMutation,
   };

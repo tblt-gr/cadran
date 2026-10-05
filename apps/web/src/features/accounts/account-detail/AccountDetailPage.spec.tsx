@@ -8,6 +8,7 @@ import { AccountDetailPage } from './AccountDetailPage';
 const api = vi.hoisted(() => ({
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
+  recordPortfolioOperation: vi.fn(),
   listAccounts: vi.fn(),
   listAccountRuleOverrides: vi.fn(),
   listTransactions: vi.fn(),
@@ -185,6 +186,151 @@ describe('AccountDetailPage', () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('keeps the shared transfer modal open until the opted-in deposit succeeds', async () => {
+    let finishDeposit!: (value: unknown) => void;
+    api.recordPortfolioOperation.mockReturnValue(
+      new Promise((resolve) => {
+        finishDeposit = resolve;
+      }),
+    );
+    const destination = {
+      ...otherAccount,
+      kind: 'PORTFOLIO' as const,
+      valuationMode: 'PORTFOLIO' as const,
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account, destination], page: 1, perPage: 100, total: 2 }),
+    );
+    api.createTransfer.mockImplementation(() =>
+      success({
+        target: {
+          ...movement,
+          id: 'incoming',
+          accountId: destination.id,
+          amount: { value: '1500.00', assetCode: 'EUR' },
+          bookedOn: '2026-03-10',
+        },
+      }),
+    );
+    renderPage();
+    await loaded();
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
+    await within(within(dialog).getByLabelText('Compte de destination')).findByRole('option', {
+      name: destination.label,
+    });
+    fireEvent.change(within(dialog).getByLabelText('Compte de destination'), {
+      target: { value: destination.id },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Montant (EUR)'), {
+      target: { value: '1500.00' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Libellé'), {
+      target: { value: 'Investissement mensuel' },
+    });
+    fireEvent.click(within(dialog).getByLabelText('Créer le versement sur le compte de réception'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
+    await waitFor(() => expect(api.recordPortfolioOperation).toHaveBeenCalledOnce());
+    expect(screen.getByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();
+    expect(api.createTransfer).toHaveBeenCalledOnce();
+    finishDeposit({ response: { ok: true }, data: {} });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
+    );
+  });
+
+  it.each(['server', 'network'])(
+    'keeps the committed transfer through a %s account refetch failure',
+    async (failureKind) => {
+      const destination = {
+        ...otherAccount,
+        kind: 'PORTFOLIO' as const,
+        valuationMode: 'PORTFOLIO' as const,
+      };
+      api.listAccounts.mockImplementation(() =>
+        success({ items: [account, destination], page: 1, perPage: 100, total: 2 }),
+      );
+      api.readAccount
+        .mockImplementationOnce(() => success(account))
+        .mockImplementation(() =>
+          failureKind === 'server'
+            ? failure(500)
+            : Promise.reject(new TypeError('Failed to fetch')),
+        );
+      api.createTransfer.mockImplementation(() =>
+        success(
+          {
+            target: {
+              ...movement,
+              id: 'incoming',
+              accountId: destination.id,
+              amount: { value: '1500.00', assetCode: 'EUR' },
+              bookedOn: '2026-03-10',
+            },
+          },
+          201,
+        ),
+      );
+      api.recordPortfolioOperation
+        .mockResolvedValueOnce({
+          response: { ok: false, status: 409 },
+          error: { code: 'portfolio_operation_conflict' },
+        })
+        .mockResolvedValueOnce({ response: { ok: true }, data: {} });
+      renderPage();
+      await loaded();
+      fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
+      await within(within(dialog).getByLabelText('Compte de destination')).findByRole('option', {
+        name: destination.label,
+      });
+      fireEvent.change(within(dialog).getByLabelText('Compte de destination'), {
+        target: { value: destination.id },
+      });
+      fireEvent.change(within(dialog).getByLabelText('Montant (EUR)'), {
+        target: { value: '1500.00' },
+      });
+      fireEvent.change(within(dialog).getByLabelText('Libellé'), {
+        target: { value: 'Investissement mensuel' },
+      });
+      fireEvent.click(
+        within(dialog).getByLabelText('Créer le versement sur le compte de réception'),
+      );
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
+      await within(dialog).findByText(
+        'Actualisation du compte impossible. Les dernières données disponibles restent affichées.',
+      );
+      await within(dialog).findByRole('button', { name: 'Réessayer le versement' });
+      expect((within(dialog).getByLabelText('Montant (EUR)') as HTMLInputElement).disabled).toBe(
+        true,
+      );
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Réessayer le versement' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
+      );
+      expect(api.createTransfer).toHaveBeenCalledOnce();
+      expect(api.recordPortfolioOperation).toHaveBeenCalledTimes(2);
+      expect(
+        await screen.findByText(
+          'Actualisation du compte impossible. Les dernières données disponibles restent affichées.',
+        ),
+      ).toBeTruthy();
+    },
+  );
+
+  it.each([401, 403, 404])('hides cached account data after refetch status %s', async (status) => {
+    const { queryClient } = renderPage();
+    await loaded();
+    expect(screen.getAllByRole('heading', { name: account.label }).length).toBeGreaterThan(0);
+    api.readAccount.mockImplementation(() => failure(status));
+    void queryClient.invalidateQueries({ queryKey: ['account', account.id] });
+    await waitFor(() =>
+      expect(screen.queryAllByRole('heading', { name: account.label })).toHaveLength(0),
+    );
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Nouveau virement' })).toBeNull();
   });
 
   it('replaces its one named cold-load skeleton and keeps the account during a refetch', async () => {

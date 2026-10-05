@@ -870,7 +870,8 @@
         "claimed": "La dérogation a été enregistrée sur ce compte.",
         "withdrawn": "La dérogation a été retirée : le compte suit de nouveau la règle héritée.",
         "reconciled": "Le solde a été rapproché."
-      }
+      },
+      "refreshError": "Actualisation du compte impossible. Les dernières données disponibles restent affichées."
     }
   },
   "accountGroups": {
@@ -2115,7 +2116,11 @@
         "fee": "Indiquez un montant de frais strictement positif."
       },
       "save": "Créer le virement",
-      "saving": "Enregistrement…"
+      "saving": "Enregistrement…",
+      "depositLabel": "Créer le versement sur le compte de réception",
+      "depositHint": "Le virement seul n’alimente pas les espèces du portefeuille.",
+      "depositPartial": "Le virement est enregistré. Le versement reste à enregistrer : réessayez uniquement le versement.",
+      "retryDeposit": "Réessayer le versement"
     }
   },
   "recurrences": {

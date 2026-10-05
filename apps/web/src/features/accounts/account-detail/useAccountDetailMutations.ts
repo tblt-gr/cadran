@@ -55,11 +55,8 @@ export function useAccountDetailMutations({
       }
       return result.data;
     },
-    onSuccess: async () => {
-      onTransferSaved();
-      await refreshAfterWrite();
-    },
+    onSuccess: refreshAfterWrite,
   });
 
-  return { saveTransaction, saveTransfer };
+  return { saveTransaction, saveTransfer, completeTransfer: onTransferSaved };
 }

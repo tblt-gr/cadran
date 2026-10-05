@@ -81,7 +81,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
     retry: false,
   });
 
-  const { saveTransaction, saveTransfer } = useAccountDetailMutations({
+  const { saveTransaction, saveTransfer, completeTransfer } = useAccountDetailMutations({
     accountId,
     reloadAfterWrite,
     onTransactionSaved: () => {
@@ -120,8 +120,10 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
     return <AccountDetailPageSkeleton status={t('accounts.detail.loading')} />;
   }
 
-  if (account.isError) {
-    const failure = account.error instanceof AccountRequestError ? account.error : null;
+  const failure = account.error instanceof AccountRequestError ? account.error : null;
+  const accessDenied = failure !== null && [401, 403, 404].includes(failure.status);
+
+  if (!account.data || (account.isError && accessDenied)) {
     const notFound = failure?.status === 404 || failure?.status === 403;
     const key = notFound ? 'notFound' : failure?.status === 401 ? 'unauthorized' : 'error';
 
@@ -139,7 +141,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   }
 
   const current: Account = account.data;
-  const creatable = current.status === 'ACTIVE';
+  const creatable = current.status === 'ACTIVE' && !account.isError;
   const transferAccounts = [
     current,
     ...(activeAccounts.data?.items ?? []).filter((item) => item.id !== current.id),
@@ -147,6 +149,14 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
 
   return (
     <div className={styles.page}>
+      {account.isError && !transferEditorOpen ? (
+        <div className={styles.notice} role="alert">
+          <p>{t('accounts.detail.refreshError')}</p>
+          <button className="secondary-action" onClick={() => void account.refetch()} type="button">
+            {t('foundation.retry')}
+          </button>
+        </div>
+      ) : null}
       <AccountDetailHeader
         account={current}
         creatable={creatable}
@@ -203,7 +213,16 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
         <TransferEditor
           accounts={transferAccounts}
           close={closeTransferEditor}
-          onSubmit={(body) => saveTransfer.mutate(body)}
+          onSubmit={(body) => saveTransfer.mutateAsync(body)}
+          onSaved={completeTransfer}
+          refreshError={
+            account.isError
+              ? {
+                  message: t('accounts.detail.refreshError'),
+                  retry: () => void account.refetch(),
+                }
+              : undefined
+          }
           pending={saveTransfer.isPending}
           submitError={transactionErrorKind(saveTransfer.error, saveTransfer.isError)}
         />

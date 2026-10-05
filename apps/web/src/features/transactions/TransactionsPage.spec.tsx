@@ -9,6 +9,7 @@ const api = vi.hoisted(() => ({
   createCategory: vi.fn(),
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
+  recordPortfolioOperation: vi.fn(),
   duplicateTransaction: vi.fn(),
   getSession: vi.fn(),
   listAccounts: vi.fn(),
@@ -113,6 +114,55 @@ describe('TransactionsPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('keeps the shared transfer modal open until the opted-in deposit succeeds', async () => {
+    let finishDeposit!: (value: unknown) => void;
+    api.recordPortfolioOperation.mockReturnValue(
+      new Promise((resolve) => {
+        finishDeposit = resolve;
+      }),
+    );
+    const destination = {
+      ...account,
+      id: 'portfolio',
+      label: 'Titres',
+      kind: 'PORTFOLIO' as const,
+      valuationMode: 'PORTFOLIO' as const,
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account, destination], page: 1, perPage: 100, total: 2 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.createTransfer.mockImplementation(() =>
+      success({
+        target: {
+          ...transaction,
+          id: 'incoming',
+          accountId: destination.id,
+          amount: { value: '1500.00', assetCode: 'EUR' },
+          bookedOn: '2026-03-10',
+        },
+      }),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
+    const dialog = screen.getByRole('dialog', { name: 'Nouveau virement' });
+    fireEvent.change(within(dialog).getByLabelText('Montant (EUR)'), {
+      target: { value: '1500.00' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Libellé'), {
+      target: { value: 'Investissement mensuel' },
+    });
+    fireEvent.click(within(dialog).getByLabelText('Créer le versement sur le compte de réception'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
+    await waitFor(() => expect(api.recordPortfolioOperation).toHaveBeenCalledOnce());
+    expect(screen.getByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();
+    expect(api.createTransfer).toHaveBeenCalledOnce();
+    finishDeposit({ response: { ok: true }, data: {} });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
+    );
   });
 
   it('replaces its sole cold-load status and keeps transactions during a refetch', async () => {
