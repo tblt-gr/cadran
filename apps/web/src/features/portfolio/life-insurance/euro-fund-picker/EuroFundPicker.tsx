@@ -23,7 +23,7 @@ export function EuroFundPicker({
     queryFn: async ({ signal }) => {
       const result = await listInstruments({
         ...authApiOptions(),
-        query: { currencyCode: assetCode, q: q || undefined, status: 'all', perPage: 100, page },
+        query: { currencyCode: assetCode, q: q || undefined, status: 'all', perPage: 50, page },
         signal,
       });
       if (!result.response?.ok || !result.data) throw new Error('Euro fund search failed');
@@ -84,7 +84,7 @@ export function EuroFundPicker({
           ) : null}
         </>
       )}
-      {query.data && (query.data.total > 100 || page > 1) ? (
+      {query.data && (query.data.total > 50 || page > 1) ? (
         <div className={styles.actions}>
           <button
             className="secondary-action"
@@ -100,7 +100,7 @@ export function EuroFundPicker({
           <button
             className="secondary-action"
             type="button"
-            disabled={page * 100 >= query.data.total || disabled}
+            disabled={page * 50 >= query.data.total || disabled}
             onClick={() => {
               setPage((p) => p + 1);
               onChange('');

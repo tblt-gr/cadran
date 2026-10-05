@@ -295,7 +295,10 @@ describe('ContractTab', () => {
     fireEvent.change(screen.getByLabelText('Taux servi (%)'), { target: { value: '-2,8000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le taux' }));
     await waitFor(() => expect(api.recordEuroFundRate).toHaveBeenCalled());
-    expect(api.listInstruments.mock.calls[0][0].query.status).toBe('all');
+    expect(api.listInstruments.mock.calls[0][0].query).toMatchObject({
+      status: 'all',
+      perPage: 50,
+    });
     expect(api.recordEuroFundRate.mock.calls[0][0].body).toMatchObject({
       instrumentId: 'euro-1',
       year: 2025,
