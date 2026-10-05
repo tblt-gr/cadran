@@ -46,8 +46,12 @@ FROM dunglas/frankenphp:1.12.7-php8.5-bookworm@sha256:d502c4823f75f7738b463919ae
 RUN apt-get update \
     && apt-get install --no-install-recommends --yes --only-upgrade \
         libpcre2-8-0 \
+        libperl5.36 \
         libssh2-1 \
         linux-libc-dev \
+        perl \
+        perl-base \
+        perl-modules-5.36 \
     && rm -rf /var/lib/apt/lists/* \
     && install-php-extensions pdo_pgsql bcmath \
     && setcap -r /usr/local/bin/frankenphp \
