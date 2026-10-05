@@ -7,6 +7,7 @@ const known: readonly PortfolioTab[] = [
   'operations',
   'valuations',
   'allocation',
+  'contract',
 ];
 
 /** The tab named by `?tab=`; Performance is the default. */

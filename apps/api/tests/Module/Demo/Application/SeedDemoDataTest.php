@@ -46,8 +46,8 @@ final class SeedDemoDataTest extends KernelTestCase
 
         $summary = $seed(WorkspaceFixture::OWNER_EMAIL);
 
-        self::assertSame(3, $summary->accounts);
-        self::assertSame(18, $this->rows(
+        self::assertSame(4, $summary->accounts);
+        self::assertSame(20, $this->rows(
             'SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ?',
             [$workspace = WorkspaceFixture::OWN_WORKSPACE],
         ));
@@ -55,7 +55,7 @@ final class SeedDemoDataTest extends KernelTestCase
             "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND status = 'INACTIVE'",
             [$workspace],
         ));
-        self::assertSame(18, $this->rows(
+        self::assertSame(20, $this->rows(
             "SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ? AND source = 'MANUAL' AND reviewed_at IS NOT NULL",
             [$workspace],
         ));
@@ -80,8 +80,8 @@ final class SeedDemoDataTest extends KernelTestCase
             'SELECT COUNT(*) FROM account_period_closures WHERE workspace_id = ?',
             [$workspace],
         ));
-        // Three accounts per closed month were reconciled before closing.
-        self::assertSame(3 * $summary->closedMonths, $this->rows(
+        // Every account, including the empty contract valued from its holdings, is reconciled before closing.
+        self::assertSame(4 * $summary->closedMonths, $this->rows(
             "SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND reconciliation_status = 'RECONCILED' AND as_of = (date_trunc('month', as_of) + interval '1 month - 1 day')::date",
             [$workspace],
         ));
@@ -90,6 +90,51 @@ final class SeedDemoDataTest extends KernelTestCase
             "SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND source = 'CALCULATED' AND reconciliation_status = 'RECONCILED' AND superseded_at IS NULL AND as_of = (date_trunc('month', current_date) - interval '1 month' + interval '6 days')::date",
             [$workspace],
         ));
+    }
+
+    public function testTheDemoLifeInsuranceContractCarriesItsSupportsFeeTermsAndRates(): void
+    {
+        $seed = self::getContainer()->get(SeedDemoData::class);
+        self::assertInstanceOf(SeedDemoData::class, $seed);
+        $seed(WorkspaceFixture::OWNER_EMAIL);
+        $workspace = WorkspaceFixture::OWN_WORKSPACE;
+
+        self::assertSame(
+            ['Assurance-vie', 'INSURANCE_CONTRACT', 'FR_LIFE_INSURANCE', 'PORTFOLIO', 'Assureur Démo', '2023-12-31'],
+            array_values((array) $this->connection->fetchAssociative(
+                "SELECT label, kind, product_code, valuation_mode, institution, opened_on::text FROM account_financial_accounts WHERE workspace_id = ? AND kind = 'INSURANCE_CONTRACT'",
+                [$workspace],
+            )),
+        );
+        self::assertSame(
+            ['Assureur Démo', 'Contrat Démo Vie', '2345', 'FREE', 'OPEN'],
+            array_values((array) $this->connection->fetchAssociative(
+                'SELECT insurer, commercial_name, contract_number_suffix, management_mode, status FROM portfolio_life_insurance_contracts WHERE workspace_id = ?',
+                [$workspace],
+            )),
+        );
+        self::assertSame(
+            [['Fonds Actions Démo', 'FRDEMO000064', 'FUND', 'EQUITY', 6, 4], ['Fonds euros Démo', null, 'EURO_FUND', null, 2, 0]],
+            array_map(array_values(...), $this->connection->fetchAllAssociative(
+                "SELECT name, isin, instrument_type, asset_class, quantity_precision, price_precision FROM portfolio_instruments WHERE workspace_id = ? AND name IN ('Fonds euros Démo', 'Fonds Actions Démo') ORDER BY name",
+                [$workspace],
+            )),
+        );
+        self::assertTrue($this->connection->fetchOne(
+            'SELECT entry_fee_rate_value = 1 AND euro_fund_management_fee_rate_value = 0.60 AND unit_linked_management_fee_rate_value = 0.85 AND switch_fee_rate_value = 0.50 AND valid_from = DATE \'2023-12-31\' FROM portfolio_life_insurance_fee_terms WHERE workspace_id = ?',
+            [$workspace],
+        ));
+        self::assertSame(2, $this->rows('SELECT COUNT(*) FROM portfolio_euro_fund_rates WHERE workspace_id = ? AND served_rate_value IN (2.50, 2.80)', [$workspace]));
+        $years = $this->connection->fetchFirstColumn('SELECT year FROM portfolio_euro_fund_rates WHERE workspace_id = ? ORDER BY year DESC', [$workspace]);
+        $current = (int) (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y');
+        self::assertSame([$current - 1, $current - 2], array_map(static function (mixed $year): int {
+            self::assertIsInt($year);
+
+            return $year;
+        }, $years));
+        self::assertSame(['NET_OF_MANAGEMENT_FEES'], $this->connection->fetchFirstColumn('SELECT DISTINCT basis FROM portfolio_euro_fund_rates WHERE workspace_id = ?', [$workspace]));
+        self::assertSame(0, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND account_id IN (SELECT id FROM account_financial_accounts WHERE kind = 'INSURANCE_CONTRACT')", [$workspace]));
+        self::assertSame(0, $this->rows("SELECT COUNT(*) FROM audit_events WHERE concat(before_json::text, after_json::text) LIKE '%00012345%'"));
     }
 
     public function testTheDemoPortfolioMirrorsEveryMonthlyInvestmentTransferAndShowsTheLifecycleCases(): void
@@ -141,7 +186,7 @@ final class SeedDemoDataTest extends KernelTestCase
         $active = 'workspace_id = ? AND superseded_at IS NULL';
 
         self::assertSame(0, $this->rows("SELECT COUNT(*) FROM account_balance_snapshots s JOIN account_financial_accounts a ON a.id = s.account_id WHERE s.workspace_id = ? AND a.valuation_mode = 'PORTFOLIO' AND s.source = 'MANUAL'", [$workspace]));
-        self::assertSame(3, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND detail = 'POSITIONS' AND completeness = 'COMPLETE'", [$workspace]));
+        self::assertSame(3, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND account_id IN (SELECT id FROM account_financial_accounts WHERE kind = 'PORTFOLIO') AND detail = 'POSITIONS' AND completeness = 'COMPLETE'", [$workspace]));
         self::assertGreaterThan(3, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND detail = 'TOTAL'", [$workspace]));
         self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND completeness = 'PARTIAL' AND total_value_value IS NULL", [$workspace]));
         // A price keeps the date it was observed on: an instrument last priced long ago is honestly stale.

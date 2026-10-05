@@ -25,6 +25,7 @@ export function OperationsTab({
   creating,
   onCloseCreate,
   onCreate,
+  contractRequired = false,
 }: {
   account: Account;
   asOf?: string;
@@ -32,6 +33,7 @@ export function OperationsTab({
   creating: boolean;
   onCloseCreate: () => void;
   onCreate: () => void;
+  contractRequired?: boolean;
 }) {
   const [filters, setFilters] = useState<OperationFilterValues>(noFilters);
   const [page, setPage] = useState(1);
@@ -103,7 +105,12 @@ export function OperationsTab({
           }
         >
           {filtered ? null : (
-            <button className="primary-action" onClick={onCreate} type="button">
+            <button
+              className="primary-action"
+              disabled={contractRequired}
+              onClick={onCreate}
+              type="button"
+            >
               Enregistrer la première opération
             </button>
           )}

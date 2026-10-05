@@ -4,6 +4,14 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Model life-insurance accounts as portfolios of euro-fund and unit-linked supports, with a
+  contract tab, masked contract numbers, versioned fee terms and sourced annual euro-fund rates
+  (INS-001).
+
 ## [0.6.0] - 2026-10-04
 
 ### Added

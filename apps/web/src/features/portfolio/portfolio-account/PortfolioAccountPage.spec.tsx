@@ -21,6 +21,7 @@ const api = vi.hoisted(() => ({
   listPortfolioValuations: vi.fn(),
   listProducts: vi.fn(),
   readPortfolioCash: vi.fn(),
+  readLifeInsuranceContract: vi.fn(),
   readPortfolioSummary: vi.fn(),
   readPortfolioPerformance: vi.fn(),
   readPortfolioAllocation: vi.fn(),
@@ -548,6 +549,33 @@ describe('PortfolioAccountPage', () => {
     );
     renderPage();
     expect(await screen.findByText('Ce compte n’est pas suivi en mode portefeuille')).toBeTruthy();
+  });
+
+  it('opens an insurance portfolio and blocks creation until its contract exists', async () => {
+    api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
+    api.readLifeInsuranceContract.mockImplementation(() =>
+      ok({ contract: null, feeTerms: [], euroFundRates: [], euroFunds: [] }),
+    );
+    api.listPortfolioOperations.mockImplementation(() => page([]));
+    renderPage();
+    await screen.findByText('Aucune opération');
+    expect(
+      (screen.getByRole('button', { name: 'Nouvelle opération' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Enregistrer la première opération',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(screen.getByRole('link', { name: 'Supports' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Liquidités' })).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: "Renseignez d'abord le contrat" }).getAttribute('href'),
+    ).toContain('tab=contract');
+    fireEvent.click(screen.getByRole('link', { name: 'Contrat' }));
+    expect(await screen.findByRole('button', { name: 'Renseigner le contrat' })).toBeTruthy();
   });
 
   it('shows an empty state with a create action', async () => {

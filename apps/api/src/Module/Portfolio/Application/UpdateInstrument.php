@@ -34,7 +34,7 @@ final readonly class UpdateInstrument
             if ($input->version !== $current->version) {
                 throw new StaleInstrumentVersion('The instrument was changed by another request.');
             }
-            $parsed = $this->parser->parse($input, $current);
+            $parsed = $this->parser->parse($context->workspace, $input, $current);
             try {
                 $updated = $current->editManually(
                     $parsed->name, $parsed->isin, $parsed->ticker, $parsed->venueMic, $parsed->instrumentType,

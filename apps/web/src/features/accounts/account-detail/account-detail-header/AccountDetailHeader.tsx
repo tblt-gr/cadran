@@ -26,7 +26,9 @@ export function AccountDetailHeader({
   onReconcile: () => void;
 }) {
   const { t } = useTranslation();
-  const valuedByPortfolio = account.kind === 'PORTFOLIO' && account.valuationMode === 'PORTFOLIO';
+  const valuedByPortfolio =
+    (account.kind === 'PORTFOLIO' || account.kind === 'INSURANCE_CONTRACT') &&
+    account.valuationMode === 'PORTFOLIO';
   const valuationsHref = `/portfolios/${account.id}?tab=valuations`;
 
   return (

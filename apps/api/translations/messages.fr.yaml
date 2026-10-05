@@ -182,7 +182,7 @@ api:
       detail: 'Chaque précision doit être comprise entre 0 et 12.'
     instrument_identity_locked:
       title: 'Identité d’instrument figée'
-      detail: 'L’ISIN, la devise et les précisions sont figés après la première opération.'
+      detail: 'L’ISIN, la devise, les précisions et le type fonds en euros sont figés après la première utilisation.'
     instrument_isin_exists:
       title: 'ISIN déjà utilisé'
       detail: 'Un instrument de cet espace porte déjà cet ISIN.'
@@ -738,3 +738,69 @@ api:
     portfolio_valuation_not_found:
       title: 'Valorisation introuvable'
       detail: 'Aucune valorisation ne porte cet identifiant dans cet espace de travail.'
+    account_not_life_insurance:
+      title: 'Compte non assurance-vie'
+      detail: 'Ce compte n’est pas un contrat d’assurance-vie.'
+    invalid_contract_field:
+      title: 'Champ du contrat invalide'
+      detail: 'Un champ du contrat est vide, trop long, contient un caractère interdit ou une valeur non reconnue.'
+    invalid_contract_date:
+      title: 'Date du contrat invalide'
+      detail: 'Les dates du contrat doivent être des jours réels, au plus tard aujourd’hui.'
+    invalid_fee_rate:
+      title: 'Frais invalides'
+      detail: 'Un taux de frais est un pourcentage entre 0 et 100 avec au plus 4 décimales, et un frais fixe est un montant positif dans la devise du compte.'
+    invalid_fee_terms_date:
+      title: 'Date du barème invalide'
+      detail: 'Un barème de frais ne peut pas commencer avant la date de souscription du contrat.'
+    invalid_euro_fund_rate:
+      title: 'Taux du fonds en euros invalide'
+      detail: 'Le taux servi, le bonus, l’année ou la base du taux sont hors de leurs bornes.'
+    instrument_not_euro_fund:
+      title: 'Support non éligible'
+      detail: 'Le support doit être un fonds en euros de cet espace de travail.'
+    life_insurance_contract_exists:
+      title: 'Contrat déjà renseigné'
+      detail: 'Ce compte porte déjà un contrat : modifiez-le plutôt que d’en créer un second.'
+    stale_contract_version:
+      title: 'Contrat modifié entre-temps'
+      detail: 'Rechargez le contrat puis recommencez.'
+    fee_terms_exist:
+      title: 'Barème déjà renseigné'
+      detail: 'Un barème de frais existe déjà à cette date.'
+    fee_terms_limit_reached:
+      title: 'Limite de barèmes atteinte'
+      detail: 'Ce contrat porte déjà le nombre maximal de barèmes de frais.'
+    euro_fund_rate_exists:
+      title: 'Taux déjà renseigné'
+      detail: 'Un taux existe déjà pour ce support et cette année.'
+    euro_fund_rate_limit_reached:
+      title: 'Limite de taux atteinte'
+      detail: 'Ce contrat porte déjà le nombre maximal de taux annoncés.'
+    invalid_life_insurance_payload:
+      title: 'Corps du contrat invalide'
+      detail: 'Le corps ne porte que des champs déclarés, du bon type.'
+    life_insurance_contract_not_found:
+      title: 'Contrat introuvable'
+      detail: 'Aucun contrat n’est renseigné pour ce compte.'
+    life_insurance_fee_terms_not_found:
+      title: 'Barème introuvable'
+      detail: 'Aucun barème de frais ne porte cet identifiant dans cet espace de travail.'
+    euro_fund_rate_not_found:
+      title: 'Taux introuvable'
+      detail: 'Aucun taux ne porte cet identifiant dans cet espace de travail.'
+    life_insurance_contract_required:
+      title: 'Contrat à renseigner'
+      detail: 'Renseignez le contrat d’assurance-vie avant d’y enregistrer une opération.'
+    life_insurance_contract_closed:
+      title: 'Contrat clos'
+      detail: 'Le contrat est clos à cette date : aucune opération ne peut la suivre.'
+    operation_type_not_allowed_for_account:
+      title: 'Opération non autorisée sur ce compte'
+      detail: 'Ce type d’opération n’existe pas sur un contrat d’assurance-vie.'
+    euro_fund_price_fixed:
+      title: 'Prix du fonds en euros fixe'
+      detail: 'Un fonds en euros vaut toujours 1 par part.'
+    instrument_field_not_allowed:
+      title: 'Champ interdit pour ce support'
+      detail: 'Un fonds en euros ne porte ni ISIN, ni ticker, ni place de cotation.'

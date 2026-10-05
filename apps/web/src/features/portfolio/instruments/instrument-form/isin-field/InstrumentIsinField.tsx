@@ -35,7 +35,7 @@ export function InstrumentIsinField({
       ) : error ? (
         <small>{error}</small>
       ) : locked ? (
-        <small>Figé après la première opération</small>
+        <small>Figé après la première utilisation</small>
       ) : null}
     </label>
   );

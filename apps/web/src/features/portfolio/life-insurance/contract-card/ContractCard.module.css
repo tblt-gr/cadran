@@ -1,0 +1,43 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+.heading h3 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+.details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+  margin: var(--spacing-none);
+}
+.details dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.details dd {
+  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
+  overflow-wrap: anywhere;
+}
+.valueSkeleton {
+  width: 65%;
+  height: var(--spacing-6);
+}
+@media (max-width: 42rem) {
+  .details {
+    grid-template-columns: 1fr;
+  }
+  .heading > button {
+    width: 100%;
+  }
+}

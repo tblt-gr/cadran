@@ -1,0 +1,46 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+.fields label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.fields input,
+.fields select {
+  width: 100%;
+}
+.fields small {
+  color: var(--text-secondary);
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+}
+.error {
+  color: var(--negative);
+  margin: var(--spacing-none);
+}
+@media (max-width: 42rem) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    flex-direction: column;
+  }
+}

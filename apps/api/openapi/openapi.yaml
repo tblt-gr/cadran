@@ -2919,6 +2919,266 @@ paths:
                 $ref: '#/components/schemas/PortfolioValuationProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/life-insurance-contract:
+    get:
+      operationId: readLifeInsuranceContract
+      summary: Read the life-insurance contract of an account
+      description: >-
+        The contract (null until it is recorded), its fee terms, the announced euro-fund rates and, for each
+        euro fund held today or rated, the year of its latest rate. The contract number is never returned,
+        only its last four characters. Unknown and foreign accounts answer the same 404.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      responses:
+        '200':
+          description: 'The contract and its dated figures.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceOverview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'The account is not a life-insurance contract followed in portfolio mode.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      operationId: saveLifeInsuranceContract
+      summary: Create or revise the life-insurance contract
+      description: >-
+        Creates the one contract of the account (201), or revises it when `version` is sent (200). Sending
+        `contractNumber: null` clears the stored suffix; omitting it keeps it. The full number is read once and
+        never stored, returned, logged or audited.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LifeInsuranceContractInput'
+      responses:
+        '200':
+          description: 'The contract was revised.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceContract'
+        '201':
+          description: 'The contract was created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceContract'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'A contract already exists, or the version is stale.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: 'The body is invalid, or the account is inactive or not a life-insurance contract.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/life-insurance-contract/fee-terms:
+    post:
+      operationId: addLifeInsuranceFeeTerms
+      summary: Record a dated version of the fee terms
+      description: >-
+        Rates are percentages (`0.85` is 0.85 %). Versions are immutable and informative: they never produce a
+        fee. The version applicable on a date is the latest `validFrom` on or before it.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LifeInsuranceFeeTermsInput'
+      responses:
+        '201':
+          description: 'The fee terms were recorded.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceFeeTerms'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'A version already exists on that date, or the contract carries the maximum number of versions.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: 'The body is invalid, or the account is inactive.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/life-insurance-fee-terms/{id}:
+    delete:
+      operationId: removeLifeInsuranceFeeTerms
+      summary: Delete a version of the fee terms
+      description: >-
+        Rows are immutable: a mistake is deleted and recreated. Unknown and foreign identifiers answer the same 404.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/LifeInsuranceRecordId'
+      responses:
+        '204':
+          description: 'The fee terms were deleted.'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'The account is inactive.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/life-insurance-contract/euro-fund-rates:
+    post:
+      operationId: recordEuroFundRate
+      summary: Record the rate an insurer announced for a euro fund and a year
+      description: >-
+        Announced rates are informative and never shown as a performance of the contract. One rate exists per
+        contract, support and year.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LifeInsuranceEuroFundRateInput'
+      responses:
+        '201':
+          description: 'The rate was recorded.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceEuroFundRate'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'A rate already exists for that support and year, or the contract carries the maximum number of rates.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: 'The body is invalid, the support is not a euro fund of the workspace, or the account is inactive.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/life-insurance-euro-fund-rates/{id}:
+    delete:
+      operationId: removeEuroFundRate
+      summary: Delete an announced euro-fund rate
+      description: >-
+        Unknown and foreign identifiers answer the same 404.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/LifeInsuranceRecordId'
+      responses:
+        '204':
+          description: 'The rate was deleted.'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'The account is inactive.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{accountId}/portfolio-transfer-candidates:
     get:
       operationId: listPortfolioTransferCandidates
@@ -7024,6 +7284,13 @@ components:
         format: uuid
     PortfolioAccountId:
       name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LifeInsuranceRecordId:
+      name: id
       in: path
       required: true
       schema:
@@ -11161,7 +11428,7 @@ components:
           minimum: 1
     InstrumentType:
       type: string
-      enum: [EQUITY, ETF, FUND, BOND, OTHER]
+      enum: [EQUITY, ETF, FUND, BOND, OTHER, EURO_FUND]
     InstrumentAssetClass:
       type: string
       enum: [EQUITY, BOND, MONEY_MARKET, REAL_ESTATE, COMMODITY, MIXED, OTHER]
@@ -11324,6 +11591,7 @@ components:
             - invalid_instrument_ticker
             - invalid_instrument_venue
             - instrument_identifier_required
+            - instrument_field_not_allowed
             - invalid_instrument_type
             - invalid_instrument_classification
             - unsupported_instrument_currency
@@ -16935,6 +17203,10 @@ components:
           enum:
             - account_not_portfolio
             - portfolio_account_inactive
+            - life_insurance_contract_required
+            - life_insurance_contract_closed
+            - operation_type_not_allowed_for_account
+            - euro_fund_price_fixed
             - invalid_operation_type
             - unsupported_operation_type
             - operation_field_required
@@ -17783,6 +18055,303 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PortfolioValuationDraftPosition'
+    LifeInsuranceManagementMode:
+      type: string
+      enum: [FREE, MANAGED, PILOTED]
+    LifeInsuranceContractStatus:
+      type: string
+      enum: [OPEN, CLOSED]
+    LifeInsuranceEuroFundRateBasis:
+      type: string
+      enum: [NET_OF_MANAGEMENT_FEES, GROSS_OF_MANAGEMENT_FEES, UNKNOWN]
+    LifeInsuranceContract:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - accountId
+        - insurer
+        - distributor
+        - commercialName
+        - contractNumberMasked
+        - subscribedOn
+        - taxStartOn
+        - managementMode
+        - status
+        - closedOn
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        insurer:
+          type: string
+          minLength: 1
+          maxLength: 80
+        distributor:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 80
+        commercialName:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 120
+        contractNumberMasked:
+          description: 'The last four characters of the contract number behind four bullets; the full number is never exposed.'
+          type: [string, 'null']
+          pattern: '^•••• [A-Z0-9]{4}$'
+        subscribedOn:
+          type: string
+          format: date
+        taxStartOn:
+          type: string
+          format: date
+        managementMode:
+          $ref: '#/components/schemas/LifeInsuranceManagementMode'
+        status:
+          $ref: '#/components/schemas/LifeInsuranceContractStatus'
+        closedOn:
+          type: [string, 'null']
+          format: date
+        version:
+          type: integer
+          minimum: 1
+    LifeInsuranceContractInput:
+      type: object
+      additionalProperties: false
+      required: [insurer, subscribedOn, managementMode]
+      properties:
+        insurer:
+          type: string
+          minLength: 1
+          maxLength: 80
+        distributor:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 80
+        commercialName:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 120
+        contractNumber:
+          description: 'Input only, 4 to 34 letters, digits, spaces or hyphens. Null clears the stored suffix, omitting keeps it.'
+          type: [string, 'null']
+          minLength: 4
+          maxLength: 34
+          pattern: '^[A-Za-z0-9 -]+$'
+        subscribedOn:
+          type: string
+          format: date
+        taxStartOn:
+          description: 'Defaults to `subscribedOn`; may precede it after a contract transfer.'
+          type: [string, 'null']
+          format: date
+        managementMode:
+          $ref: '#/components/schemas/LifeInsuranceManagementMode'
+        version:
+          description: 'Sent to revise the contract, omitted to create it.'
+          type: integer
+          minimum: 1
+    LifeInsuranceFeeTerms:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - validFrom
+        - entryFeeRate
+        - euroFundManagementFeeRate
+        - unitLinkedManagementFeeRate
+        - switchFeeRate
+        - switchFeeFixed
+        - sourceNote
+      properties:
+        id:
+          type: string
+          format: uuid
+        validFrom:
+          type: string
+          format: date
+        entryFeeRate:
+          type: [string, 'null']
+          maxLength: 64
+        euroFundManagementFeeRate:
+          type: [string, 'null']
+          maxLength: 64
+        unitLinkedManagementFeeRate:
+          type: [string, 'null']
+          maxLength: 64
+        switchFeeRate:
+          type: [string, 'null']
+          maxLength: 64
+        switchFeeFixed:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        sourceNote:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 200
+    LifeInsuranceFeeTermsInput:
+      type: object
+      additionalProperties: false
+      required: [validFrom]
+      properties:
+        validFrom:
+          description: 'Not before the subscription date.'
+          type: string
+          format: date
+        entryFeeRate:
+          description: 'A percentage in [0, 100] with at most 4 decimals.'
+          type: [string, 'null']
+          maxLength: 64
+        euroFundManagementFeeRate:
+          type: [string, 'null']
+          maxLength: 64
+        unitLinkedManagementFeeRate:
+          type: [string, 'null']
+          maxLength: 64
+        switchFeeRate:
+          type: [string, 'null']
+          maxLength: 64
+        switchFeeFixed:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        sourceNote:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 200
+    LifeInsuranceEuroFundRate:
+      type: object
+      additionalProperties: false
+      required: [id, instrumentId, year, servedRate, bonusRate, basis, sourceNote]
+      properties:
+        id:
+          type: string
+          format: uuid
+        instrumentId:
+          type: string
+          format: uuid
+        year:
+          type: integer
+          minimum: 1900
+          maximum: 9999
+        servedRate:
+          description: 'A percentage in [-100, 100], announced by the insurer.'
+          type: string
+          maxLength: 64
+        bonusRate:
+          type: [string, 'null']
+          maxLength: 64
+        basis:
+          $ref: '#/components/schemas/LifeInsuranceEuroFundRateBasis'
+        sourceNote:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 200
+    LifeInsuranceEuroFundRateInput:
+      type: object
+      additionalProperties: false
+      required: [instrumentId, year, servedRate, basis]
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        year:
+          type: integer
+          minimum: 1900
+          maximum: 9999
+        servedRate:
+          type: string
+          maxLength: 64
+        bonusRate:
+          type: [string, 'null']
+          maxLength: 64
+        basis:
+          $ref: '#/components/schemas/LifeInsuranceEuroFundRateBasis'
+        sourceNote:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 200
+    LifeInsuranceEuroFund:
+      type: object
+      additionalProperties: false
+      required: [instrument, latestRateYear, missingLastYear]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/Instrument'
+        latestRateYear:
+          type: [integer, 'null']
+        missingLastYear:
+          description: 'True when the rate of the last closed year is not recorded.'
+          type: boolean
+    LifeInsuranceOverview:
+      type: object
+      additionalProperties: false
+      required: [contract, feeTerms, euroFundRates, euroFunds]
+      properties:
+        contract:
+          oneOf:
+            - $ref: '#/components/schemas/LifeInsuranceContract'
+            - type: 'null'
+        feeTerms:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/LifeInsuranceFeeTerms'
+        euroFundRates:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/LifeInsuranceEuroFundRate'
+        euroFunds:
+          type: array
+          items:
+            $ref: '#/components/schemas/LifeInsuranceEuroFund'
+    LifeInsuranceProblem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, detail, code]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        code:
+          type: string
+          enum:
+            - account_not_portfolio
+            - account_not_life_insurance
+            - portfolio_account_inactive
+            - portfolio_account_not_found
+            - life_insurance_contract_not_found
+            - life_insurance_fee_terms_not_found
+            - euro_fund_rate_not_found
+            - invalid_life_insurance_payload
+            - invalid_contract_field
+            - invalid_contract_date
+            - invalid_fee_rate
+            - invalid_fee_terms_date
+            - invalid_euro_fund_rate
+            - instrument_not_euro_fund
+            - life_insurance_contract_exists
+            - stale_contract_version
+            - fee_terms_exist
+            - fee_terms_limit_reached
+            - euro_fund_rate_exists
+            - euro_fund_rate_limit_reached
+            - portfolio_forbidden
+            - portfolio_payload_too_large
     PortfolioValuationProblem:
       type: object
       additionalProperties: false
@@ -17809,6 +18378,7 @@ components:
             - valuation_price_entry_missing
             - unknown_valuation_instrument
             - invalid_valuation_price
+            - euro_fund_price_fixed
             - price_precision_exceeded
             - invalid_price_date
             - operation_asset_mismatch

@@ -1,3 +1,4 @@
+import { useWorkspaceBaseCurrency } from '@/features/auth/useWorkspaceBaseCurrency';
 import type {
   CreateInstrumentRequest,
   Instrument,
@@ -38,6 +39,7 @@ export function InstrumentForm({
   onSubmit,
 }: Props) {
   const assets = useReferenceAssets();
+  const baseCurrency = useWorkspaceBaseCurrency();
   const [name, setName] = useState(instrument?.name ?? '');
   const [isin, setIsin] = useState(instrument?.isin ?? '');
   const [ticker, setTicker] = useState(instrument?.ticker ?? '');
@@ -51,10 +53,14 @@ export function InstrumentForm({
   );
   const [pricePrecision, setPricePrecision] = useState(String(instrument?.pricePrecision ?? 4));
   const [showErrors, setShowErrors] = useState(false);
+  const euroFund = instrumentType === 'EURO_FUND';
+  const euroPrecision = assets.data?.items.find(
+    (asset) => asset.code === baseCurrency,
+  )?.displayPrecision;
   const locked = instrument?.used ?? false;
   const invalid =
     name.trim() === '' ||
-    (!isin.trim() && !ticker.trim()) ||
+    (!euroFund && !isin.trim() && !ticker.trim()) ||
     !validPrecision(quantityPrecision) ||
     !validPrecision(pricePrecision);
   const fiat = (assets.data?.items ?? []).filter((asset) => asset.kind === 'FIAT');
@@ -70,15 +76,15 @@ export function InstrumentForm({
     }
     const body = {
       name: name.trim(),
-      isin: optional(isin),
-      ticker: optional(ticker),
-      venueMic: optional(venueMic),
+      isin: euroFund ? null : optional(isin),
+      ticker: euroFund ? null : optional(ticker),
+      venueMic: euroFund ? null : optional(venueMic),
       instrumentType,
       assetClass: (assetClass || null) as InstrumentAssetClass | null,
       region: (region || null) as InstrumentRegion | null,
-      currencyCode,
-      quantityPrecision: Number(quantityPrecision),
-      pricePrecision: Number(pricePrecision),
+      currencyCode: euroFund ? baseCurrency : currencyCode,
+      quantityPrecision: euroFund ? euroPrecision! : Number(quantityPrecision),
+      pricePrecision: euroFund ? 0 : Number(pricePrecision),
     };
     onSubmit(
       instrument
@@ -104,35 +110,39 @@ export function InstrumentForm({
           />
           {showErrors && name.trim() === '' ? <small>Le nom est obligatoire.</small> : null}
         </label>
-        <InstrumentIsinField
-          error={fieldErrors.isin}
-          existingInstrumentId={existingInstrumentId}
-          locked={locked}
-          onChange={setIsin}
-          value={isin}
-        />
-        <label>
-          <span>Ticker</span>
-          <input
-            maxLength={12}
-            onChange={(e) => setTicker(e.target.value.toUpperCase())}
-            value={ticker}
-          />
-          {showErrors && !isin.trim() && !ticker.trim() ? (
-            <small>Un ISIN ou un ticker est obligatoire.</small>
-          ) : fieldErrors.ticker ? (
-            <small>{fieldErrors.ticker}</small>
-          ) : null}
-        </label>
-        <label>
-          <span>Place de cotation (MIC)</span>
-          <input
-            maxLength={4}
-            onChange={(e) => setVenue(e.target.value.toUpperCase())}
-            value={venueMic}
-          />
-          {fieldErrors.venueMic ? <small>{fieldErrors.venueMic}</small> : null}
-        </label>
+        {!euroFund ? (
+          <>
+            <InstrumentIsinField
+              error={fieldErrors.isin}
+              existingInstrumentId={existingInstrumentId}
+              locked={locked}
+              onChange={setIsin}
+              value={isin}
+            />
+            <label>
+              <span>Ticker</span>
+              <input
+                maxLength={12}
+                onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                value={ticker}
+              />
+              {showErrors && !isin.trim() && !ticker.trim() ? (
+                <small>Un ISIN ou un ticker est obligatoire.</small>
+              ) : fieldErrors.ticker ? (
+                <small>{fieldErrors.ticker}</small>
+              ) : null}
+            </label>
+            <label>
+              <span>Place de cotation (MIC)</span>
+              <input
+                maxLength={4}
+                onChange={(e) => setVenue(e.target.value.toUpperCase())}
+                value={venueMic}
+              />
+              {fieldErrors.venueMic ? <small>{fieldErrors.venueMic}</small> : null}
+            </label>
+          </>
+        ) : null}
         <InstrumentSelectField
           label="Type"
           options={instrumentTypes}
@@ -156,9 +166,9 @@ export function InstrumentForm({
         <label>
           <span>Devise</span>
           <select
-            disabled={locked || assets.isPending || assets.isError}
+            disabled={euroFund || locked || assets.isPending || assets.isError}
             onChange={(e) => setCurrency(e.target.value)}
-            value={currencyCode}
+            value={euroFund ? baseCurrency : currencyCode}
           >
             {fiat.map((asset) => (
               <option key={asset.code} value={asset.code}>
@@ -166,25 +176,49 @@ export function InstrumentForm({
               </option>
             ))}
           </select>
-          {locked ? <small>Figé après la première opération</small> : null}
+          {locked ? <small>Figé après la première utilisation</small> : null}
         </label>
-        <InstrumentPrecisionField
-          label="Précision des quantités"
-          locked={locked}
-          onChange={setQuantityPrecision}
-          showErrors={showErrors}
-          value={quantityPrecision}
-        />
-        <InstrumentPrecisionField
-          label="Précision des prix"
-          locked={locked}
-          onChange={setPricePrecision}
-          showErrors={showErrors}
-          value={pricePrecision}
-        />
+        {euroFund ? (
+          <>
+            <label>
+              Précision des quantités
+              <input readOnly value={euroPrecision ?? ''} />
+            </label>
+            <label>
+              Précision des prix
+              <input readOnly value="0" />
+            </label>
+            <p>Un fonds en euros vaut toujours 1 € par part.</p>
+          </>
+        ) : (
+          <>
+            <InstrumentPrecisionField
+              label="Précision des quantités"
+              locked={locked}
+              onChange={setQuantityPrecision}
+              showErrors={showErrors}
+              value={quantityPrecision}
+            />
+            <InstrumentPrecisionField
+              label="Précision des prix"
+              locked={locked}
+              onChange={setPricePrecision}
+              showErrors={showErrors}
+              value={pricePrecision}
+            />
+          </>
+        )}
       </div>
       <div className={styles.actions}>
-        <button className="primary-action" disabled={pending || assets.isError} type="submit">
+        <button
+          className="primary-action"
+          disabled={
+            pending ||
+            assets.isError ||
+            (euroFund && (assets.isPending || euroPrecision === undefined))
+          }
+          type="submit"
+        >
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </div>

@@ -1,3 +1,5 @@
+import { ContractTab } from '@/features/portfolio/life-insurance/contract-tab/ContractTab';
+import { useLifeInsuranceContract } from '@/features/portfolio/life-insurance/useLifeInsuranceContract';
 import { useEffect, useRef, useState } from 'react';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
@@ -28,6 +30,11 @@ import styles from './PortfolioAccountPage.module.css';
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const account = useAccountDetail(accountId);
+  const insurance =
+    account.data?.kind === 'INSURANCE_CONTRACT' && account.data?.valuationMode === 'PORTFOLIO';
+  const contract = useLifeInsuranceContract(accountId, insurance);
+  const contractRequired = Boolean(insurance && contract.isSuccess && !contract.data?.contract);
+  const operationBlocked = Boolean(insurance && !contract.data?.contract);
   const sourceReturnFocus = useRef<HTMLElement | null>(null);
   const today = workspaceToday(new Date(), useWorkspaceTimeZone());
   const [asOf, setAsOf] = useState(
@@ -87,9 +94,12 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   }
 
   const current = account.data;
-  const eligible = current.kind === 'PORTFOLIO' && current.valuationMode === 'PORTFOLIO';
+  const eligible =
+    (current.kind === 'PORTFOLIO' || current.kind === 'INSURANCE_CONTRACT') &&
+    current.valuationMode === 'PORTFOLIO';
 
   function openCreate() {
+    if (operationBlocked) return;
     if (active !== 'operations') {
       window.history.pushState({}, '', `/portfolios/${accountId}?tab=operations&asOf=${asOf}`);
       setActive('operations');
@@ -99,7 +109,13 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
 
   return (
     <div className={styles.page}>
-      <PortfolioAccountHeader account={current} accountId={accountId} onCreate={openCreate} />
+      <PortfolioAccountHeader
+        account={current}
+        accountId={accountId}
+        onCreate={openCreate}
+        contractRequired={contractRequired}
+        operationBlocked={operationBlocked}
+      />
       {eligible ? <MonthEndValuationBanner accountId={accountId} asOf={asOf} /> : null}
       <BusinessDateField hint={null} label="Au" onChange={changeDate} today={today} value={asOf} />
       {eligible ? (
@@ -110,9 +126,15 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
           sourceReturnFocus={sourceReturnFocus}
         />
       ) : null}
-      <PortfolioTabs accountId={accountId} active={active} asOf={asOf} />
+      <PortfolioTabs accountId={accountId} active={active} asOf={asOf} kind={current.kind} />
       {eligible ? (
-        active === 'positions' ? (
+        active === 'contract' && insurance ? (
+          <ContractTab
+            accountId={accountId}
+            assetCode={current.assetCode}
+            writable={current.status === 'ACTIVE'}
+          />
+        ) : active === 'positions' ? (
           <PositionsTab accountId={accountId} asOf={asOf} />
         ) : active === 'allocation' ? (
           <AllocationTab accountId={accountId} asOf={asOf} />
@@ -125,6 +147,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
         ) : (
           <OperationsTab
             account={current}
+            contractRequired={operationBlocked}
             asOf={asOf}
             sourceReturnFocus={sourceReturnFocus}
             creating={creating}

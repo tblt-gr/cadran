@@ -3,6 +3,7 @@ export const instrumentTypes = [
   ['ETF', 'ETF'],
   ['FUND', 'Fonds (OPCVM)'],
   ['BOND', 'Obligation'],
+  ['EURO_FUND', 'Fonds en euros'],
   ['OTHER', 'Autre'],
 ] as const;
 export const instrumentClasses = [

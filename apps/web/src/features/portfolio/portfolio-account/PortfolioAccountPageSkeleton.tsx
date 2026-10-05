@@ -1,3 +1,4 @@
+import { ContractTabSkeleton } from '@/features/portfolio/life-insurance/contract-tab/ContractTabSkeleton';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { ValueHistoryCardSkeleton } from './value-history-card/ValueHistoryCardSkeleton';
 import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
@@ -46,8 +47,15 @@ export function PortfolioAccountPageSkeleton({
         frozen
         history={<ValueHistoryCardSkeleton />}
       />
-      <PortfolioTabs accountId={accountId} active={active} asOf={asOf} />
-      {active === 'operations' ? (
+      <PortfolioTabs
+        accountId={accountId}
+        active={active}
+        asOf={asOf}
+        kind={active === 'contract' ? 'INSURANCE_CONTRACT' : undefined}
+      />
+      {active === 'contract' ? (
+        <ContractTabSkeleton />
+      ) : active === 'operations' ? (
         <>
           <OperationFilters currencyCode="" disabled onChange={() => undefined} value={noFilters} />
           <OperationsTableSkeleton status={status} />

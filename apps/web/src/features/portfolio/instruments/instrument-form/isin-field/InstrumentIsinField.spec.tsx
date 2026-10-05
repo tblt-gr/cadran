@@ -34,6 +34,6 @@ describe('InstrumentIsinField', () => {
 
   it('shows the frozen hint when locked without error', () => {
     renderField({ locked: true });
-    expect(screen.getByText('Figé après la première opération')).toBeTruthy();
+    expect(screen.getByText('Figé après la première utilisation')).toBeTruthy();
   });
 });

@@ -163,6 +163,52 @@ final class InstrumentTest extends TestCase
         );
     }
 
+    public function testAnEuroFundNeedsNoIdentifierAndCarriesNone(): void
+    {
+        $fund = $this->euroFund();
+
+        self::assertSame(InstrumentType::EURO_FUND, $fund->instrumentType);
+        self::assertNull($fund->isin);
+        self::assertNull($fund->ticker);
+        self::assertNull($fund->venueMic);
+    }
+
+    public function testAnEuroFundRefusesEveryIdentifier(): void
+    {
+        foreach ([
+            ['isin' => Isin::fromString('FR0000120271'), 'ticker' => null, 'venue' => null],
+            ['isin' => null, 'ticker' => Ticker::fromString('DEMO'), 'venue' => null],
+            ['isin' => null, 'ticker' => null, 'venue' => VenueMic::fromString('XPAR')],
+        ] as $identifiers) {
+            try {
+                $this->euroFund($identifiers['isin'], $identifiers['ticker'], $identifiers['venue']);
+                self::fail('An identifier on a euro fund must be refused.');
+            } catch (InvalidInstrument $exception) {
+                self::assertSame('instrument_field_not_allowed', $exception->problemCode);
+            }
+        }
+    }
+
+    public function testAnEuroFundCannotBeEditedIntoAnotherTypeAfterItsFirstUse(): void
+    {
+        $this->expectException(InvalidInstrument::class);
+        $this->euroFund(usedAt: new \DateTimeImmutable('2026-09-01T10:00:00Z'))->editManually(
+            'Fonds', null, Ticker::fromString('NEW'), null, InstrumentType::FUND, null, null,
+            AssetCode::fromString('EUR'), 2, 0, WorkspaceFixture::OWNER_ID, new \DateTimeImmutable('2026-09-02T10:00:00Z'),
+        );
+    }
+
+    private function euroFund(?Isin $isin = null, ?Ticker $ticker = null, ?VenueMic $venue = null, ?\DateTimeImmutable $usedAt = null): Instrument
+    {
+        $now = new \DateTimeImmutable('2026-09-01T10:00:00Z');
+
+        return new Instrument(
+            '00000000-0000-7000-8000-000000000102', WorkspaceFixture::own(), 'Fonds euros Démo', $isin, $ticker, $venue,
+            InstrumentType::EURO_FUND, null, null, AssetCode::fromString('EUR'), 2, 0, InstrumentSource::MANUAL,
+            null, null, InstrumentStatus::ACTIVE, $usedAt, $now, WorkspaceFixture::OWNER_ID, $now, 1,
+        );
+    }
+
     private function instrument(
         ?string $isin = 'FR0000120271',
         ?string $ticker = 'DEMO',

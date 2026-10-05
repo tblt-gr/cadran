@@ -94,6 +94,8 @@ final readonly class SeedDemoData
         private SeedDemoPortfolio $portfolio,
         /** @var iterable<DemoDataContributor> */
         private iterable $demoDataContributors,
+        /** @var iterable<DemoDataContributor> */
+        private iterable $accountDemoDataContributors,
     ) {
     }
 
@@ -111,6 +113,9 @@ final readonly class SeedDemoData
         }
         $categories = $this->categories();
         $accounts = $this->accounts();
+        foreach ($this->accountDemoDataContributors as $contributor) {
+            $contributor->seed();
+        }
         $plans = $this->budgets($categories, $months);
         $this->goals($categories, $today);
         $this->recurrences($accounts['current']);
@@ -202,7 +207,7 @@ final readonly class SeedDemoData
             ++$closed;
         }
 
-        return new DemoSeedSummary(count($accounts), count($categories), $transactions, $transfers, $closed, $plans);
+        return new DemoSeedSummary($this->listAccounts->__invoke(true, true, 1, 1)->total, count($categories), $transactions, $transfers, $closed, $plans);
     }
 
     /**
