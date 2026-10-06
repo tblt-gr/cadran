@@ -18,6 +18,35 @@ const buy = operationFixture({
 });
 
 describe('OperationsTable', () => {
+  it('shows a parent premium with its support count and gross amount', () => {
+    render(
+      <OperationsTable
+        items={[
+          operationFixture({
+            type: 'PREMIUM',
+            grossAmount: { value: '10000.00', assetCode: 'EUR' },
+            legs: [
+              {
+                index: 1,
+                direction: 'IN',
+                instrument: null,
+                quantity: '6000',
+                unitPrice: '1',
+                amount: { value: '6000', assetCode: 'EUR' },
+                roundingResidual: null,
+              },
+            ],
+          }),
+        ]}
+        onDetail={vi.fn()}
+        onEdit={vi.fn()}
+        onVoid={vi.fn()}
+        onReorder={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('1 supports')).toBeTruthy();
+    expect(screen.getByText(/10.000,00/)).toBeTruthy();
+  });
   it('shows the signed cash effect as text with the exact quantity and price', () => {
     render(
       <OperationsTable

@@ -5,11 +5,13 @@ import styles from './OperationForm.module.css';
 export function OperationField({
   children,
   error,
+  errorId,
   label,
   wide = false,
 }: {
   children: ReactNode;
   error?: string;
+  errorId?: string;
   label: string;
   wide?: boolean;
 }) {
@@ -18,7 +20,7 @@ export function OperationField({
       <span>{label}</span>
       {children}
       {error ? (
-        <small className={styles.error} role="alert">
+        <small id={errorId} className={styles.error} role="alert">
           {error}
         </small>
       ) : null}

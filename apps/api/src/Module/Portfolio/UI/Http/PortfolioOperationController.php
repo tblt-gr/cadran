@@ -82,7 +82,11 @@ final readonly class PortfolioOperationController
             return $body;
         }
         try {
-            $result = $preview($accountId, OperationPayload::operation($body));
+            $correctingOperationId = $request->query->get('correctingOperationId');
+            if (null !== $correctingOperationId && !self::identifier($correctingOperationId)) {
+                throw new PortfolioOperationNotFound();
+            }
+            $result = $preview($accountId, OperationPayload::operation($body), $correctingOperationId);
         } catch (\Throwable $exception) {
             return $this->failure($exception);
         }

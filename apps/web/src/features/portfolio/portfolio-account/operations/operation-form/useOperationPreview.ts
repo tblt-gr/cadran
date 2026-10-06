@@ -8,23 +8,34 @@ import { operationRequestError } from '@/features/portfolio/portfolio-account/op
 const DEBOUNCE_MS = 400;
 
 /** The server-derived cash effect of a valid request, queried 400 ms after the last edit. */
-export function useOperationPreview(accountId: string, request: PortfolioOperationRequest | null) {
-  const serialized = request ? JSON.stringify(request) : null;
+export function useOperationPreview(
+  accountId: string,
+  request: PortfolioOperationRequest | null,
+  correctingOperationId?: string,
+) {
+  const serialized = request ? JSON.stringify({ request, correctingOperationId }) : null;
   const [settled, setSettled] = useState(serialized);
   useEffect(() => {
     const timer = window.setTimeout(() => setSettled(serialized), DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [serialized]);
 
-  return useQuery({
-    queryKey: ['portfolio-operation-preview', accountId, settled],
+  const result = useQuery({
+    queryKey: ['portfolio-operation-preview', accountId, correctingOperationId ?? null, settled],
     enabled: settled !== null && settled === serialized,
     queryFn: async () => {
+      const input = JSON.parse(settled!) as {
+        request: PortfolioOperationRequest;
+        correctingOperationId?: string;
+      };
       const result = await withCsrfRetry(() =>
         previewPortfolioOperation({
           ...authApiOptions(),
           path: { accountId },
-          body: JSON.parse(settled!) as PortfolioOperationRequest,
+          body: input.request,
+          ...(input.correctingOperationId
+            ? { query: { correctingOperationId: input.correctingOperationId } }
+            : {}),
         }),
       );
       if (!result.response?.ok || !result.data) throw operationRequestError(result);
@@ -32,4 +43,10 @@ export function useOperationPreview(accountId: string, request: PortfolioOperati
     },
     retry: false,
   });
+  return {
+    ...result,
+    data: settled === serialized ? result.data : undefined,
+    error: settled === serialized ? result.error : null,
+    isFetching: (serialized !== null && settled !== serialized) || result.isFetching,
+  };
 }

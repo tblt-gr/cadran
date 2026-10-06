@@ -20,6 +20,10 @@ final readonly class OperationView
      * @param array{value: string, assetCode: string}|null                                                 $costBasis
      * @param array{numerator: string, denominator: string}|null                                           $ratio
      * @param array{value: string, assetCode: string}|null                                                 $roundingResidual
+     * @param list<array<string, mixed>>                                                                   $legs
+     * @param array{value: string, assetCode: string}|null                                                 $netPaidAmount
+     * @param array{value: string, assetCode: string}|null                                                 $withheldIncomeTax
+     * @param array{value: string, assetCode: string}|null                                                 $withheldSocialContributions
      */
     public function __construct(
         public string $id,
@@ -52,6 +56,10 @@ final readonly class OperationView
         public ?string $correctsOperationId,
         public ?string $correctedByOperationId,
         public int $version,
+        public array $legs = [],
+        public ?array $withheldIncomeTax = null,
+        public ?array $withheldSocialContributions = null,
+        public ?array $netPaidAmount = null,
     ) {
     }
 }

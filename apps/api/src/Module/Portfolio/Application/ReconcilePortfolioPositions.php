@@ -55,7 +55,7 @@ final readonly class ReconcilePortfolioPositions
     {
         $ids = [];
         foreach ($operations as $operation) {
-            foreach ([$operation->details->instrumentId, $operation->details->counterInstrumentId] as $id) {
+            foreach ([$operation->details->instrumentId, $operation->details->counterInstrumentId, ...array_map(static fn ($leg): string => $leg->instrumentId, $operation->details->legs)] as $id) {
                 if (null !== $id) {
                     $ids[$id] = true;
                 }

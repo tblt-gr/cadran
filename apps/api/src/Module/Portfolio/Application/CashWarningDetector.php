@@ -9,6 +9,7 @@ use App\Module\Portfolio\Domain\Cash\CashLedgerResult;
 use App\Module\Portfolio\Domain\Cash\CashWarning;
 use App\Module\Portfolio\Domain\Cash\CashWarningCode;
 use App\Module\Portfolio\Domain\OperationType;
+use App\Module\Portfolio\Domain\Performance\ExternalFlow;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Transactions\Application\AccountTransactionFact;
 use App\Module\Transactions\Application\TransferLegFact;
@@ -57,7 +58,11 @@ final class CashWarningDetector
                     $changed[] = $operation->id;
                 }
             }
-            if (null !== $operation->roundingResidual && !ExactDecimal::isZero($operation->roundingResidual)) {
+            $hasLegResidual = false;
+            foreach ($details->legs as $leg) {
+                $hasLegResidual = $hasLegResidual || (null !== $leg->roundingResidual && !ExactDecimal::isZero($leg->roundingResidual));
+            }
+            if ($hasLegResidual || (null !== $operation->roundingResidual && !ExactDecimal::isZero($operation->roundingResidual))) {
                 $residuals[] = $operation->id;
             }
         }
@@ -91,12 +96,12 @@ final class CashWarningDetector
     private static function mirrors(PortfolioOperation $operation, ?TransferLegFact $leg): bool
     {
         $details = $operation->details;
-        $gross = $details->grossAmount;
+        $gross = ExternalFlow::linkedAmount($details);
 
         return null !== $leg && null !== $gross
             && !$leg->voided && 'BOOKED' === $leg->state
             && $leg->accountId === $operation->accountId
-            && $leg->amount->value->isNegative() === (OperationType::WITHDRAWAL === $details->type)
+            && $leg->amount->value->isNegative() === (OperationType::WITHDRAWAL === $details->type || $details->type->isSurrender())
             && 0 === ExactDecimal::absolute($leg->amount->value)->compareTo($gross)
             && $leg->bookedOn->format('Y-m-d') === $details->tradeDate->format('Y-m-d');
     }

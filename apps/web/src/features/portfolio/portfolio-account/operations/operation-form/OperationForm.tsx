@@ -1,23 +1,17 @@
-import type {
-  PortfolioOperation,
-  PortfolioOperationRequest,
-  PortfolioOperationType,
-} from '@cadran/api-client';
+import type { PortfolioOperation, PortfolioOperationRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import {
   operationFieldErrors,
   operationSaveMessage,
 } from '@/features/portfolio/portfolio-account/operations/operationError';
-import {
-  operationTypeLabel,
-  operationTypes,
-} from '@/features/portfolio/portfolio-account/operations/operation-type-label';
+import { OperationTypeSelect } from '@/features/portfolio/portfolio-account/operations/operation-type-select/OperationTypeSelect';
 import { LinkedTransferField } from './LinkedTransferField';
 import { OperationDecimalField } from './OperationDecimalField';
 import { OperationField } from './OperationField';
 import { OperationInstrumentField } from './operation-instrument-field/OperationInstrumentField';
 import { OperationPreviewLine } from './OperationPreviewLine';
 import { OperationRatioFields } from './operation-ratio-fields/OperationRatioFields';
+import { InsuranceOperationFields } from './InsuranceOperationFields';
 import { hasField } from './operationMatrix';
 import {
   buildOperationRequest,
@@ -51,23 +45,30 @@ export function OperationForm({
   const [values, setValues] = useState<OperationFormValues>(() =>
     operation
       ? valuesFromOperation(operation)
-      : { ...emptyValues(today), type: account.kind === 'INSURANCE_CONTRACT' ? 'BUY' : 'DEPOSIT' },
+      : {
+          ...emptyValues(today),
+          type: account.kind === 'INSURANCE_CONTRACT' ? 'PREMIUM' : 'DEPOSIT',
+        },
   );
   const [submitted, setSubmitted] = useState(false);
   const built = buildOperationRequest(values, account.assetCode);
-  const preview = useOperationPreview(account.id, built.request);
+  const preview = useOperationPreview(account.id, built.request, operation?.id);
   const errors: OperationFieldErrors = {
     ...(submitted ? built.errors : null),
     ...operationFieldErrors(preview.error),
     ...fieldErrors,
   };
   const type = values.type;
-  const saveMessage = operationSaveMessage(saveError, [
+  const instruments = [
+    ...values.legs.map((leg) => leg.instrument),
     values.instrument,
     values.counterInstrument,
     operation?.instrument ?? null,
     operation?.counterInstrument ?? null,
-  ]);
+  ];
+  const saveMessage =
+    operationSaveMessage(saveError, instruments) ??
+    operationSaveMessage(preview.error, instruments);
   const has = (field: Parameters<typeof hasField>[1]) => hasField(type, field);
 
   function set<K extends keyof OperationFormValues>(key: K, value: OperationFormValues[K]) {
@@ -99,33 +100,14 @@ export function OperationForm({
         </p>
       ) : null}
       <div className={styles.fields}>
-        <OperationField label="Type">
-          <select
-            data-autofocus
-            onChange={(event) => {
-              set('type', event.target.value as PortfolioOperationType);
-              set('linkedTransactionId', '');
-            }}
-            value={type}
-          >
-            {operationTypes
-              .filter(
-                (value) =>
-                  account.kind !== 'INSURANCE_CONTRACT' ||
-                  ![
-                    'DEPOSIT',
-                    'WITHDRAWAL',
-                    'SECURITY_TRANSFER_IN',
-                    'SECURITY_TRANSFER_OUT',
-                  ].includes(value),
-              )
-              .map((value) => (
-                <option key={value} value={value}>
-                  {operationTypeLabel(value)}
-                </option>
-              ))}
-          </select>
-        </OperationField>
+        <OperationTypeSelect
+          accountKind={account.kind}
+          value={type}
+          onChange={(next) => {
+            set('type', next);
+            set('linkedTransactionId', '');
+          }}
+        />
         <OperationField error={errors.tradeDate} label="Date d’opération">
           <input
             onChange={(event) => set('tradeDate', event.target.value)}
@@ -151,8 +133,20 @@ export function OperationForm({
         ) : null}
         {decimal('quantity', 'Quantité')}
         {decimal('unitPrice', 'Prix unitaire')}
-        {decimal('grossAmount', 'Montant brut')}
-        {decimal('fees', 'Frais')}
+        {has('legs') ? (
+          <InsuranceOperationFields
+            account={account}
+            editing={!!operation}
+            errors={errors}
+            values={values}
+            onChange={set}
+          />
+        ) : (
+          <>
+            {decimal('grossAmount', 'Montant brut')}
+            {decimal('fees', 'Frais')}
+          </>
+        )}
         {decimal('taxes', 'Taxes')}
         {has('costBasis') ? (
           <OperationDecimalField
@@ -201,13 +195,14 @@ export function OperationForm({
         {has('linkedTransaction') ? (
           <LinkedTransferField
             accountId={account.id}
-            direction={type === 'DEPOSIT' ? 'IN' : 'OUT'}
+            direction={type === 'DEPOSIT' || type === 'PREMIUM' ? 'IN' : 'OUT'}
             error={errors.linkedTransaction}
             onChange={(candidate, id) => {
               set('linkedTransactionId', id);
               if (candidate) {
                 set('tradeDate', candidate.bookedOn);
-                set('grossAmount', candidate.amount.value);
+                if (type === 'DEPOSIT' || type === 'PREMIUM' || type === 'WITHDRAWAL')
+                  set('grossAmount', candidate.amount.value);
               }
             }}
             value={values.linkedTransactionId}
@@ -238,6 +233,7 @@ export function OperationForm({
         ) : null}
       </div>
       <OperationPreviewLine
+        type={type}
         pending={preview.isFetching}
         preview={built.request ? preview.data : undefined}
         showResidual={type === 'BUY' || type === 'SELL'}

@@ -3,6 +3,7 @@ import { useId, useRef, useState, type FocusEvent, type KeyboardEvent } from 're
 import {
   operationTypeLabel,
   operationTypes,
+  allowedOperationTypes,
 } from '@/features/portfolio/portfolio-account/operations/operation-type-label';
 import styles from './OperationTypeSelect.module.css';
 
@@ -14,8 +15,10 @@ function summary(types: readonly PortfolioOperationType[]): string {
 
 export function OperationTypeSelect({
   onChange,
+  accountKind,
   value,
 }: {
+  accountKind?: string;
   onChange: (types: PortfolioOperationType[]) => void;
   value: readonly PortfolioOperationType[];
 }) {
@@ -65,7 +68,7 @@ export function OperationTypeSelect({
           id={listId}
           role="listbox"
         >
-          {operationTypes.map((type) => {
+          {(accountKind ? allowedOperationTypes(accountKind) : operationTypes).map((type) => {
             const selected = value.includes(type);
             return (
               <li key={type} role="presentation">

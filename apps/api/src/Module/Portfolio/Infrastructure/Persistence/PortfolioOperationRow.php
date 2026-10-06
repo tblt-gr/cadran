@@ -9,6 +9,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Portfolio\Domain\OperationDetails;
 use App\Module\Portfolio\Domain\OperationFieldMatrix;
+use App\Module\Portfolio\Domain\OperationLeg;
 use App\Module\Portfolio\Domain\OperationState;
 use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\OperationVoidKind;
@@ -21,10 +22,12 @@ final class PortfolioOperationRow
         .'taxes_value, taxes_scale, cash_amount_value, cash_amount_scale, cost_basis_value, cost_basis_scale, counter_quantity_value, counter_quantity_scale, '
         .'ratio_numerator_value, ratio_numerator_scale, ratio_denominator_value, ratio_denominator_scale, cost_allocation_ratio_value, cost_allocation_ratio_scale, '
         .'rounding_residual_value, rounding_residual_scale, reference, note, linked_transaction_id, state, voided_at, voided_by, void_reason, void_kind, '
-        .'corrects_operation_id, created_at, created_by, version';
+        .'corrects_operation_id, created_at, created_by, version, withheld_income_tax_value, withheld_income_tax_scale, withheld_social_contributions_value, withheld_social_contributions_scale';
 
-    /** @param array<string, mixed> $row */
-    public static function hydrate(array $row, WorkspaceScope $workspace): PortfolioOperation
+    /** @param array<string, mixed> $row
+     * @param list<OperationLeg> $legs
+     */
+    public static function hydrate(array $row, WorkspaceScope $workspace, array $legs = []): PortfolioOperation
     {
         $type = OperationType::from(self::text($row['operation_type']));
         $storedFees = self::decimal($row, 'fees') ?? DecimalValue::zero();
@@ -53,6 +56,9 @@ final class PortfolioOperationRow
             reference: self::nullableText($row['reference']),
             note: self::nullableText($row['note']),
             linkedTransactionId: self::nullableText($row['linked_transaction_id']),
+            legs: $legs,
+            withheldIncomeTax: self::decimal($row, 'withheld_income_tax'),
+            withheldSocialContributions: self::decimal($row, 'withheld_social_contributions'),
         );
 
         return new PortfolioOperation(
@@ -92,6 +98,8 @@ final class PortfolioOperationRow
             'asset_code' => $operation->assetCode->toString(),
             ...self::decimalColumns('quantity', $details->quantity),
             ...self::decimalColumns('unit_price', $details->unitPrice),
+            ...self::decimalColumns('withheld_income_tax', $details->withheldIncomeTax),
+            ...self::decimalColumns('withheld_social_contributions', $details->withheldSocialContributions),
             ...self::decimalColumns('gross_amount', $details->grossAmount),
             ...self::decimalColumns('fees', $details->fees ?? DecimalValue::zero()),
             ...self::decimalColumns('taxes', $details->taxes ?? DecimalValue::zero()),
@@ -141,7 +149,7 @@ final class PortfolioOperationRow
     }
 
     /** @return array<string, mixed> */
-    private static function decimalColumns(string $name, ?DecimalValue $value): array
+    public static function decimalColumns(string $name, ?DecimalValue $value): array
     {
         return [$name.'_value' => $value?->toString(), $name.'_scale' => $value?->scale()];
     }
@@ -153,7 +161,7 @@ final class PortfolioOperationRow
     }
 
     /** @param array<string, mixed> $row */
-    private static function decimal(array $row, string $name): ?DecimalValue
+    public static function decimal(array $row, string $name): ?DecimalValue
     {
         $value = $row[$name.'_value'] ?? null;
         $scale = $row[$name.'_scale'] ?? null;

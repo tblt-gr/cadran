@@ -25,6 +25,7 @@ final readonly class VoidPortfolioOperation
         private TransactionBoundary $transactions,
         private RecordAuditEvent $audit,
         private ReconcilePortfolioPositions $reconcile,
+        private LifeInsurance\ReconcileContractOperations $contractOperations,
         private ClockInterface $clock,
     ) {
     }
@@ -49,6 +50,7 @@ final readonly class VoidPortfolioOperation
                 throw new StalePortfolioOperationVersion();
             }
             ($this->reconcile)($context->workspace, $operation->accountId);
+            ($this->contractOperations)($context, $operation->accountId, $this->clock->now());
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, PortfolioOperationAuditEvents::VOIDED,
                 PortfolioOperationAuditEvents::ENTITY, $voided->id, PortfolioOperationAudit::voided($voided),

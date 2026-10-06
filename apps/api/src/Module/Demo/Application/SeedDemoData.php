@@ -14,6 +14,7 @@ use App\Module\Accounts\Application\ListAccountGroups;
 use App\Module\Accounts\Application\ListAccounts;
 use App\Module\Accounts\Application\RecordAccountBalance;
 use App\Module\Accounts\Application\RecordAccountBalanceInput;
+use App\Module\Accounts\Domain\AccountBalanceSnapshot;
 use App\Module\Budget\Application\ActivateBudgetPlan;
 use App\Module\Budget\Application\CreateBudgetPlan;
 use App\Module\Budget\Application\CreateBudgetPlanInput;
@@ -23,6 +24,7 @@ use App\Module\Budget\Application\Goals\CreateGoal;
 use App\Module\Budget\Application\Goals\CreateGoalInput;
 use App\Module\Categories\Application\CreateCategory;
 use App\Module\Categories\Application\CreateCategoryInput;
+use App\Module\Foundation\Application\DemoAccountBalanceContributor;
 use App\Module\Foundation\Application\DemoDataContributor;
 use App\Module\Transactions\Application\CreateRefund;
 use App\Module\Transactions\Application\CreateRefundInput;
@@ -113,8 +115,12 @@ final readonly class SeedDemoData
         }
         $categories = $this->categories();
         $accounts = $this->accounts();
+        $balanceAdjustments = [];
         foreach ($this->accountDemoDataContributors as $contributor) {
             $contributor->seed();
+            if ($contributor instanceof DemoAccountBalanceContributor) {
+                array_push($balanceAdjustments, ...$contributor->balanceAdjustments());
+            }
         }
         $plans = $this->budgets($categories, $months);
         $this->goals($categories, $today);
@@ -192,6 +198,16 @@ final readonly class SeedDemoData
                 ++$transfers;
             }
 
+            foreach ($balanceAdjustments as $adjustment) {
+                if ($adjustment->bookedOn->format('Y-m') !== $first->format('Y-m')) {
+                    continue;
+                }
+                $key = array_search($adjustment->accountId, $accounts, true);
+                if (false !== $key && isset($balances[$key])) {
+                    $balances[$key] += $adjustment->cents;
+                    $transfers += $adjustment->transfers;
+                }
+            }
             $marketMove = $plan->marketPerMille();
             if ($isOpen) {
                 $transactions += $this->pending($accounts['current'], $categories, $today);
@@ -430,7 +446,7 @@ final readonly class SeedDemoData
         $this->closePeriod->__invoke(new ClosePeriodInput($first->format('Y-m')));
     }
 
-    private function snapshot(string $account, string $day, int $cents): \App\Module\Accounts\Domain\AccountBalanceSnapshot
+    private function snapshot(string $account, string $day, int $cents): AccountBalanceSnapshot
     {
         return $this->recordBalance->__invoke($account, new RecordAccountBalanceInput($day, DemoCents::format($cents), self::ASSET, null, null));
     }

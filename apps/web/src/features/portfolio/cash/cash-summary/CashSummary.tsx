@@ -13,6 +13,8 @@ const rows: { key: string; label: string; pick: (cash: PortfolioCash) => Decimal
   { key: 'withdrawals', label: 'Retraits', pick: (cash) => cash.totals.withdrawals },
   { key: 'buys', label: 'Achats (brut)', pick: (cash) => cash.totals.buysGross },
   { key: 'sells', label: 'Ventes (brut)', pick: (cash) => cash.totals.sellsGross },
+  { key: 'supportsBought', label: 'Supports achetés', pick: (cash) => cash.totals.supportsBought },
+  { key: 'supportsSold', label: 'Supports vendus', pick: (cash) => cash.totals.supportsSold },
   { key: 'dividends', label: 'Dividendes (brut)', pick: (cash) => cash.totals.dividendsGross },
   { key: 'interest', label: 'Intérêts (brut)', pick: (cash) => cash.totals.interestGross },
   { key: 'fees', label: 'Frais', pick: (cash) => cash.totals.fees },
@@ -49,8 +51,9 @@ export function CashSummary({ cash }: { cash: PortfolioCash | null }) {
         </h4>
         <p className={styles.explanation} hidden={!explaining} id={explanationId}>
           Solde de clôture = solde d’ouverture + versements − retraits − achats (brut) + ventes
-          (brut) + dividendes (brut) + intérêts (brut) − frais − taxes + soulte reçue. Les frais et
-          les taxes sont comptés une seule fois, quel que soit le type d’opération qui les porte.
+          (brut) − supports achetés + supports vendus + dividendes (brut) + intérêts (brut) − frais
+          − taxes + soulte reçue. Les frais et les taxes sont comptés une seule fois, quel que soit
+          le type d’opération qui les porte.
         </p>
         <dl className={styles.figures}>
           {rows.map((row) => (

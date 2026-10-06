@@ -13,6 +13,7 @@ import {
 } from '@/features/portfolio/portfolio-account/operations/operation-form/operationMatrix';
 import { operationTypeLabel } from '@/features/portfolio/portfolio-account/operations/operation-type-label';
 import { useOperation } from '@/features/portfolio/portfolio-account/operations/useOperation';
+import { OperationLegsTable } from './OperationLegsTable';
 import styles from './OperationDetailModal.module.css';
 
 function Row({ children, label }: { children: ReactNode; label: string }) {
@@ -84,6 +85,17 @@ export function OperationDetailModal({
           <Row label="Montant brut">{amount(operation.grossAmount)}</Row>
         ) : null}
         {has('fees') ? <Row label="Frais">{amount(operation.fees)}</Row> : null}
+        {has('withheldIncomeTax') ? (
+          <Row label="Prélèvement fiscal retenu">{amount(operation.withheldIncomeTax)}</Row>
+        ) : null}
+        {has('withheldSocialContributions') ? (
+          <Row label="Prélèvements sociaux retenus">
+            {amount(operation.withheldSocialContributions)}
+          </Row>
+        ) : null}
+        {has('withheldIncomeTax') ? (
+          <Row label="Net versé">{amount(operation.netPaidAmount)}</Row>
+        ) : null}
         {has('taxes') ? <Row label="Taxes">{amount(operation.taxes)}</Row> : null}
         {has('costBasis') ? <Row label="Coût de revient">{amount(operation.costBasis)}</Row> : null}
         {has('counterQuantity') ? (
@@ -123,6 +135,7 @@ export function OperationDetailModal({
         ) : null}
         {operation.state === 'VOIDED' ? <Row label="Motif">{operation.voidReason}</Row> : null}
       </dl>
+      {has('legs') ? <OperationLegsTable legs={operation.legs ?? []} /> : null}
       <div className={styles.links}>
         {operation.correctsOperationId ? (
           <button

@@ -6,7 +6,7 @@ namespace App\Module\Portfolio\Domain;
 
 final class InvalidPortfolioOperation extends \DomainException
 {
-    /** @param array<string, string> $extensions problem members that help the client fix the input, never a secret */
+    /** @param array<string, string|int|list<string>> $extensions problem members that help the client fix the input, never a secret */
     public function __construct(string $message, public readonly string $problemCode, public readonly array $extensions = [])
     {
         parent::__construct($message);

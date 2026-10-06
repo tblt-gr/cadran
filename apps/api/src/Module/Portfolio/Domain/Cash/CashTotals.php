@@ -20,6 +20,8 @@ final readonly class CashTotals
         public DecimalValue $taxes,
         public DecimalValue $cashInLieu,
         public DecimalValue $roundingResiduals,
+        public DecimalValue $supportsBought,
+        public DecimalValue $supportsSold,
     ) {
     }
 }

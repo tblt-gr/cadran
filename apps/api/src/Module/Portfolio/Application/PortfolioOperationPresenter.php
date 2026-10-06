@@ -27,7 +27,7 @@ final readonly class PortfolioOperationPresenter
     {
         $instrumentIds = [];
         foreach ($operations as $operation) {
-            foreach ([$operation->details->instrumentId, $operation->details->counterInstrumentId] as $id) {
+            foreach ([$operation->details->instrumentId, $operation->details->counterInstrumentId, ...array_map(static fn ($leg): string => $leg->instrumentId, $operation->details->legs)] as $id) {
                 if (null !== $id) {
                     $instrumentIds[$id] = true;
                 }
@@ -73,7 +73,7 @@ final readonly class PortfolioOperationPresenter
             null === $details->instrumentId ? null : ($instruments[$details->instrumentId] ?? null),
             null === $details->counterInstrumentId ? null : ($instruments[$details->counterInstrumentId] ?? null),
             $details->quantity?->toString(), $details->unitPrice?->toString(), $amount($details->grossAmount),
-            $optionalAmount('fees', $details->fees), $optionalAmount('taxes', $details->taxes),
+            $optionalAmount('fees', $details->fees), $details->type->isSurrender() ? $amount($details->taxes) : $optionalAmount('taxes', $details->taxes),
             ['value' => $operation->cashAmount->toString(), 'assetCode' => $asset], $amount($details->costBasis),
             $details->counterQuantity?->toString(),
             null === $details->ratioNumerator || null === $details->ratioDenominator ? null : [
@@ -83,6 +83,8 @@ final readonly class PortfolioOperationPresenter
             $details->reference, $details->note, $details->linkedTransactionId, $operation->state->value,
             $operation->voidedAt?->setTimezone(new \DateTimeZone('UTC'))->format(\DateTimeInterface::ATOM),
             $operation->voidReason, $operation->voidKind?->value, $operation->correctsOperationId, $replacementId, $operation->version,
+            array_map(static fn ($leg): array => OperationLegView::of($leg, $asset, $instruments[$leg->instrumentId] ?? null), $details->legs),
+            $amount($details->withheldIncomeTax), $amount($details->withheldSocialContributions), $amount($details->netPaidAmount()),
         );
     }
 

@@ -21,7 +21,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(PortfolioOperationRepository::class)]
 final readonly class DbalPortfolioOperationRepository implements PortfolioOperationRepository
 {
-    public function __construct(private Connection $connection)
+    public function __construct(private Connection $connection, private PortfolioOperationLegStore $legs)
     {
     }
 
@@ -42,6 +42,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
                 'workspace_id' => $operation->workspace->id,
                 ...PortfolioOperationRow::columns($operation),
             ]);
+            $this->legs->add($operation);
         } catch (UniqueConstraintViolationException $exception) {
             // The account lock serialises writers, so the only unique rule a request can still trip is the link.
             if (str_contains($exception->getMessage(), 'portfolio_operations_active_link_unique')) {
@@ -94,7 +95,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
             $parameters,
         );
 
-        return array_map(static fn (array $row): PortfolioOperation => PortfolioOperationRow::hydrate($row, $workspace), $rows);
+        return $this->legs->hydrateMany($workspace, $rows);
     }
 
     public function activeOnDate(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $tradeDate): array
@@ -106,7 +107,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
             ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'trade_date' => $tradeDate->format('Y-m-d')],
         );
 
-        return array_map(static fn (array $row): PortfolioOperation => PortfolioOperationRow::hydrate($row, $workspace), $rows);
+        return $this->legs->hydrateMany($workspace, $rows);
     }
 
     public function activeCountsForDays(WorkspaceScope $workspace, array $accountIds, array $tradeDates): array
@@ -184,13 +185,14 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
     {
         [$where, $parameters, $types] = self::criteria($workspace, $accountId, $filters);
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT '.PortfolioOperationRow::COLUMNS.' FROM portfolio_operations WHERE workspace_id = :workspace_id AND '.$where
+            'SELECT '.PortfolioOperationRow::COLUMNS.' FROM portfolio_operations WHERE portfolio_operations.workspace_id = :workspace_id AND '.$where
+            .(null === $filters->instrumentId ? '' : ' AND (instrument_id = :instrument_id OR counter_instrument_id = :instrument_id OR id IN (SELECT l.operation_id FROM portfolio_operation_legs l WHERE l.workspace_id = :workspace_id AND l.instrument_id = :instrument_id))')
             .' ORDER BY trade_date DESC, sequence DESC, id LIMIT :limit OFFSET :offset',
             [...$parameters, 'limit' => $limit, 'offset' => $offset],
             [...$types, 'limit' => ParameterType::INTEGER, 'offset' => ParameterType::INTEGER],
         );
 
-        return array_map(static fn (array $row): PortfolioOperation => PortfolioOperationRow::hydrate($row, $workspace), $rows);
+        return $this->legs->hydrateMany($workspace, $rows);
     }
 
     public function count(WorkspaceScope $workspace, string $accountId, OperationFilters $filters): int
@@ -198,7 +200,8 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
         [$where, $parameters, $types] = self::criteria($workspace, $accountId, $filters);
 
         return (int) PortfolioOperationRow::text($this->connection->fetchOne(
-            'SELECT count(*) FROM portfolio_operations WHERE workspace_id = :workspace_id AND '.$where,
+            'SELECT count(*) FROM portfolio_operations WHERE portfolio_operations.workspace_id = :workspace_id AND '.$where
+            .(null === $filters->instrumentId ? '' : ' AND (instrument_id = :instrument_id OR counter_instrument_id = :instrument_id OR id IN (SELECT l.operation_id FROM portfolio_operation_legs l WHERE l.workspace_id = :workspace_id AND l.instrument_id = :instrument_id))'),
             $parameters,
             $types,
         ));
@@ -253,7 +256,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
             ['workspace_id' => $workspace->id, 'id' => $id],
         );
 
-        return false === $row ? null : PortfolioOperationRow::hydrate($row, $workspace);
+        return false === $row ? null : $this->legs->hydrateMany($workspace, [$row])[0];
     }
 
     /** @return array{string, array<string, mixed>, array<string, ArrayParameterType>} */
@@ -279,7 +282,6 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
             $types['operation_types'] = ArrayParameterType::STRING;
         }
         if (null !== $filters->instrumentId) {
-            $conditions[] = '(instrument_id = :instrument_id OR counter_instrument_id = :instrument_id)';
             $parameters['instrument_id'] = $filters->instrumentId;
         }
 

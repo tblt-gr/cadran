@@ -16,13 +16,15 @@ final class OperationFieldMatrix
 
     public const array FIELDS = [
         'instrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'costBasis',
-        'counterInstrument', 'counterQuantity', 'ratio', 'costAllocationRatio', 'linkedTransaction',
+        'counterInstrument', 'counterQuantity', 'ratio', 'costAllocationRatio', 'linkedTransaction', 'legs', 'withheldIncomeTax', 'withheldSocialContributions',
     ];
 
     /** @return array{required: list<string>, optional: list<string>} */
     public static function rules(OperationType $type): array
     {
         return match ($type) {
+            OperationType::PREMIUM => ['required' => ['grossAmount'], 'optional' => ['fees', 'legs', 'linkedTransaction']],
+            OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER => ['required' => ['grossAmount'], 'optional' => ['fees', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'linkedTransaction']],
             OperationType::DEPOSIT, OperationType::WITHDRAWAL => ['required' => ['grossAmount'], 'optional' => ['linkedTransaction']],
             OperationType::BUY, OperationType::SELL => ['required' => ['instrument', 'quantity', 'unitPrice', 'grossAmount'], 'optional' => ['fees', 'taxes']],
             OperationType::DIVIDEND => ['required' => ['instrument', 'grossAmount'], 'optional' => ['quantity', 'fees', 'taxes']],

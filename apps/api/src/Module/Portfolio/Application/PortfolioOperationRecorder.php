@@ -18,7 +18,8 @@ use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 /**
  * Persists a resolved operation inside the caller's transaction: it enforces the
  * per-account limit, freezes what the first operation freezes, takes the next
- * sequence of the day and records the audit event. The account is already locked.
+ * sequence of the day or preserves replacement order, and records the audit event.
+ * The account is already locked.
  */
 final readonly class PortfolioOperationRecorder
 {
@@ -29,10 +30,11 @@ final readonly class PortfolioOperationRecorder
         private UuidGenerator $uuid,
         private RecordAuditEvent $audit,
         private ReconcilePortfolioPositions $reconcile,
+        private LifeInsurance\ReconcileContractOperations $contractOperations,
     ) {
     }
 
-    public function record(WorkspaceContext $context, Account $account, ResolvedOperation $resolved, \DateTimeImmutable $now, ?string $originalOperationId = null): PortfolioOperation
+    public function record(WorkspaceContext $context, Account $account, ResolvedOperation $resolved, \DateTimeImmutable $now, ?string $originalOperationId = null, ?int $sequence = null): PortfolioOperation
     {
         if ($this->operations->countActive($context->workspace, $account->id) >= PortfolioOperation::MAX_ACTIVE_PER_ACCOUNT) {
             throw new PortfolioOperationConflict(PortfolioOperationConflict::LIMIT_REACHED);
@@ -45,7 +47,7 @@ final readonly class PortfolioOperationRecorder
             accountId: $account->id,
             assetCode: $account->assetCode,
             details: $resolved->details,
-            sequence: $this->operations->nextSequence($context->workspace, $account->id, $resolved->details->tradeDate),
+            sequence: $sequence ?? $this->operations->nextSequence($context->workspace, $account->id, $resolved->details->tradeDate),
             cashAmount: $resolved->effect->cashAmount,
             roundingResidual: $resolved->effect->roundingResidual,
             state: OperationState::ACTIVE,
@@ -60,6 +62,7 @@ final readonly class PortfolioOperationRecorder
         );
         $this->operations->add($operation);
         ($this->reconcile)($context->workspace, $account->id);
+        ($this->contractOperations)($context, $account->id, $now);
         ($this->audit)(new AuditEventRecord(
             $context->workspace, $context->actorId, PortfolioOperationAuditEvents::RECORDED,
             PortfolioOperationAuditEvents::ENTITY, $operation->id, PortfolioOperationAudit::recorded($operation, $originalOperationId),

@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
+use App\Module\Portfolio\Domain\LegDirection;
 use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 
@@ -46,7 +47,7 @@ final class CashLedger
 
         $zero = DecimalValue::zero();
         $totals = ['deposits' => $zero, 'withdrawals' => $zero, 'buys' => $zero, 'sells' => $zero, 'dividends' => $zero,
-            'interest' => $zero, 'fees' => $zero, 'taxes' => $zero, 'lieu' => $zero, 'residuals' => $zero];
+            'interest' => $zero, 'fees' => $zero, 'taxes' => $zero, 'lieu' => $zero, 'residuals' => $zero, 'supportsBought' => $zero, 'supportsSold' => $zero];
         $running = $opening;
         $movements = [];
         $negative = [];
@@ -61,8 +62,8 @@ final class CashLedger
             }
             $gross = $details->grossAmount ?? $zero;
             $key = match ($details->type) {
-                OperationType::DEPOSIT => 'deposits',
-                OperationType::WITHDRAWAL => 'withdrawals',
+                OperationType::DEPOSIT, OperationType::PREMIUM => 'deposits',
+                OperationType::WITHDRAWAL, OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER => 'withdrawals',
                 OperationType::BUY => 'buys',
                 OperationType::SELL => 'sells',
                 OperationType::DIVIDEND => 'dividends',
@@ -71,7 +72,12 @@ final class CashLedger
                 default => null,
             };
             if (null !== $key) {
-                $totals[$key] = ExactDecimal::add($totals[$key], $gross);
+                $totals[$key] = ExactDecimal::add($totals[$key], $details->netPaidAmount() ?? $gross);
+            }
+            foreach ($details->legs as $leg) {
+                $supportKey = LegDirection::IN === $leg->direction ? 'supportsBought' : 'supportsSold';
+                $totals[$supportKey] = ExactDecimal::add($totals[$supportKey], $leg->amount);
+                $totals['residuals'] = ExactDecimal::add($totals['residuals'], $leg->roundingResidual ?? $zero);
             }
             $totals['fees'] = ExactDecimal::add($totals['fees'], $details->fees ?? $zero);
             $totals['taxes'] = ExactDecimal::add($totals['taxes'], $details->taxes ?? $zero);
@@ -84,7 +90,7 @@ final class CashLedger
             $opening, $running,
             new CashTotals(
                 $totals['deposits'], $totals['withdrawals'], $totals['buys'], $totals['sells'], $totals['dividends'],
-                $totals['interest'], $totals['fees'], $totals['taxes'], $totals['lieu'], $totals['residuals'],
+                $totals['interest'], $totals['fees'], $totals['taxes'], $totals['lieu'], $totals['residuals'], $totals['supportsBought'], $totals['supportsSold'],
             ),
             $movements, $negative, $firstNegative,
         );

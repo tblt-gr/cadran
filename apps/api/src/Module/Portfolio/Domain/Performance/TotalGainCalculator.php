@@ -6,6 +6,7 @@ namespace App\Module\Portfolio\Domain\Performance;
 
 use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Portfolio\Domain\LegDirection;
 use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Portfolio\Domain\Positions\PositionLedgerResult;
@@ -95,6 +96,16 @@ final class TotalGainCalculator
         $realized = $income = $fees = $taxes = $corporateCash = $capitalized = CalculatedDecimal::zero();
         foreach ($operations as $operation) {
             $details = $operation->details;
+            foreach ($details->legs as $leg) {
+                if (LegDirection::OUT !== $leg->direction) {
+                    continue;
+                }
+                $released = $ledger->averageCostReleased[$operation->id.':'.$leg->index] ?? null;
+                if (null === $released) {
+                    return $unavailable;
+                }
+                $realized = $realized->add(CalculatedDecimal::fromDecimal($leg->amount)->subtract($released));
+            }
             if (OperationType::SELL === $details->type) {
                 $released = $ledger->averageCostReleased[$operation->id] ?? null;
                 if (null === $released || null === $details->grossAmount) {

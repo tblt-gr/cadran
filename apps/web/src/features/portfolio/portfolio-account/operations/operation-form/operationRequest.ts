@@ -10,9 +10,21 @@ import { hasField, operationMatrix, type FieldKey } from './operationMatrix';
 export interface PickedInstrument {
   id: string;
   name: string;
+  instrumentType?: string;
+}
+
+export interface SupportLegValue {
+  key: string;
+  instrument: PickedInstrument | null;
+  quantity: string;
+  unitPrice: string;
+  amount: string;
 }
 
 export interface OperationFormValues {
+  legs: SupportLegValue[];
+  withheldIncomeTax: string;
+  withheldSocialContributions: string;
   type: PortfolioOperationType;
   tradeDate: string;
   settlementDate: string;
@@ -36,11 +48,23 @@ export interface OperationFormValues {
 
 /** Keys are matrix fields plus the always-present ones. */
 export type OperationFieldErrors = Partial<
-  Record<FieldKey | 'tradeDate' | 'settlementDate' | 'reference' | 'note' | 'reason', string>
+  Record<
+    | `legs.${number}.${string}`
+    | FieldKey
+    | 'tradeDate'
+    | 'settlementDate'
+    | 'reference'
+    | 'note'
+    | 'reason',
+    string
+  >
 >;
 
 export function emptyValues(tradeDate: string): OperationFormValues {
   return {
+    legs: [],
+    withheldIncomeTax: '',
+    withheldSocialContributions: '',
     type: 'DEPOSIT',
     tradeDate,
     settlementDate: '',
@@ -66,6 +90,15 @@ export function emptyValues(tradeDate: string): OperationFormValues {
 /** Prefills the form with every stored field of an operation. */
 export function valuesFromOperation(operation: PortfolioOperation): OperationFormValues {
   return {
+    legs: (operation.legs ?? []).map((leg) => ({
+      key: String(leg.index),
+      instrument: leg.instrument,
+      quantity: leg.quantity,
+      unitPrice: leg.unitPrice,
+      amount: leg.amount.value,
+    })),
+    withheldIncomeTax: operation.withheldIncomeTax?.value ?? '',
+    withheldSocialContributions: operation.withheldSocialContributions?.value ?? '',
     type: operation.type,
     tradeDate: operation.tradeDate,
     settlementDate: operation.settlementDate ?? '',
@@ -168,6 +201,31 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
   if (fees) request.fees = amount(fees, assetCode);
   const taxes = decimal('taxes', values.taxes, values.type !== 'TAX');
   if (taxes) request.taxes = amount(taxes, assetCode);
+  for (const field of ['withheldIncomeTax', 'withheldSocialContributions'] as const) {
+    const value = decimal(field, values[field], true);
+    if (value) request[field] = amount(value, assetCode);
+  }
+  if (hasField(values.type, 'legs')) {
+    if (values.legs.length > 20) errors.legs = '20 supports au maximum.';
+    request.legs = values.legs.map((leg, index) => {
+      const prefix = `legs.${index + 1}` as const;
+      const validate = (field: 'quantity' | 'unitPrice' | 'amount') => {
+        const value = normalize(leg[field]);
+        if (!isCanonicalUnsignedDecimal(value) || isZeroDecimal(value))
+          errors[`${prefix}.${field}`] = 'Saisissez un nombre décimal strictement positif.';
+        return value;
+      };
+      if (!leg.instrument) errors[`${prefix}.instrument`] = 'Choisissez un support.';
+      return {
+        direction: values.type === 'PREMIUM' ? 'IN' : 'OUT',
+        instrumentId: leg.instrument?.id ?? '',
+        ...(leg.instrument?.instrumentType === 'EURO_FUND'
+          ? {}
+          : { quantity: validate('quantity'), unitPrice: validate('unitPrice') }),
+        amount: amount(validate('amount'), assetCode),
+      };
+    });
+  }
   const costBasis = decimal('costBasis', values.costBasis, true);
   if (costBasis) request.costBasis = amount(costBasis, assetCode);
   const counterQuantity = decimal('counterQuantity', values.counterQuantity);

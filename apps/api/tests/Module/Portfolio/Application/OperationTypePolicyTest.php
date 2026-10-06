@@ -37,9 +37,19 @@ final class OperationTypePolicyTest extends TestCase
         }
     }
 
-    public function testEveryTypeStaysAvailableOnASecuritiesAccount(): void
+    public function testOrdinaryTypesStayAvailableOnASecuritiesAccount(): void
     {
         foreach (OperationType::cases() as $type) {
+            if ($type->hasSupportLegs()) {
+                try {
+                    OperationTypePolicy::assertAllowed(AccountKind::PORTFOLIO, $type);
+                    self::fail('Insurance operations require a contract account.');
+                } catch (InvalidPortfolioOperation $exception) {
+                    self::assertSame('operation_type_not_allowed_for_account', $exception->problemCode);
+                }
+                OperationTypePolicy::assertAllowed(AccountKind::INSURANCE_CONTRACT, $type);
+                continue;
+            }
             OperationTypePolicy::assertAllowed(AccountKind::PORTFOLIO, $type);
         }
 

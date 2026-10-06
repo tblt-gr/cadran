@@ -1,3 +1,5 @@
+import { formatCalendarNumericDay } from '@/lib/decimal';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { useState } from 'react';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
@@ -44,6 +46,18 @@ export function ContractTab({
           <button className="secondary-action" type="button" onClick={() => void query.refetch()}>
             Réessayer
           </button>
+        </p>
+      ) : null}
+      {data.contract?.status === 'CLOSED' && data.contract.closedOn ? (
+        <p role="status">
+          Contrat soldé le {formatCalendarNumericDay(data.contract.closedOn)}. Vous pouvez clôturer
+          le compte.{' '}
+          <a
+            href={`/accounts/${accountId}`}
+            onClick={(event) => handleClientNavigation(event, `/accounts/${accountId}`)}
+          >
+            Voir le compte
+          </a>
         </p>
       ) : null}
       {data.contract ? (

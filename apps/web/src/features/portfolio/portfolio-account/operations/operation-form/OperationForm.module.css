@@ -39,8 +39,9 @@
   color: var(--text-secondary);
   font-size: var(--font-size-label);
 }
-.preview p {
+.previewRow {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   margin: var(--spacing-none);
   gap: var(--spacing-3);
@@ -56,4 +57,13 @@
   .actions > button {
     width: 100%;
   }
+}
+
+.previewRow strong {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.previewValue {
+  width: var(--control-height);
+  height: var(--font-size-body);
 }

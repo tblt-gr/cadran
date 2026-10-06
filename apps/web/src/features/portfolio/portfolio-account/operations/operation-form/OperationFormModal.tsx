@@ -34,7 +34,7 @@ export function OperationFormModal({
   operation,
   today,
 }: {
-  account: { id: string; assetCode: string };
+  account: { id: string; assetCode: string; kind?: string };
   onClose: () => void;
   onSaved: () => void;
   onStale: () => void;
@@ -77,6 +77,10 @@ export function OperationFormModal({
         client.invalidateQueries({ queryKey: ['portfolio-performance', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolio-performance-annual', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolios'] }),
+        client.invalidateQueries({ queryKey: ['portfolio-cash', account.id] }),
+        client.invalidateQueries({ queryKey: ['life-insurance-contract', account.id] }),
+        client.invalidateQueries({ queryKey: ['portfolio-positions', account.id] }),
+        client.invalidateQueries({ queryKey: ['full-surrender-positions', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolio-operations', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolio-operation'] }),
         client.invalidateQueries({ queryKey: ['portfolio-transfer-candidates'] }),

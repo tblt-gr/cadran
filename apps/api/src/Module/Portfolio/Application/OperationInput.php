@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\Application;
 /** The create body of an operation, checked for JSON shape only; every business rule is applied by the resolver. */
 final readonly class OperationInput
 {
+    /** @param list<OperationLegInput> $legs */
     public function __construct(
         public string $type,
         public string $tradeDate,
@@ -26,6 +27,9 @@ final readonly class OperationInput
         public ?string $reference = null,
         public ?string $note = null,
         public ?string $linkedTransactionId = null,
+        public array $legs = [],
+        public ?AmountInput $withheldIncomeTax = null,
+        public ?AmountInput $withheldSocialContributions = null,
     ) {
     }
 }

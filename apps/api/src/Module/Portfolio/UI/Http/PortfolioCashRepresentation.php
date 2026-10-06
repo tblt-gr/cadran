@@ -27,6 +27,8 @@ final class PortfolioCashRepresentation
             'closingBalance' => $amount($view->ledger->closingBalance),
             'currentBalance' => $amount($view->currentBalance),
             'totals' => [
+                'supportsBought' => $amount($totals->supportsBought),
+                'supportsSold' => $amount($totals->supportsSold),
                 'deposits' => $amount($totals->deposits),
                 'withdrawals' => $amount($totals->withdrawals),
                 'buysGross' => $amount($totals->buysGross),

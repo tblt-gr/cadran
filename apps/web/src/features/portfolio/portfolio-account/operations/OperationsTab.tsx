@@ -78,7 +78,12 @@ export function OperationsTab({
 
   return (
     <div className={styles.tab}>
-      <OperationFilters currencyCode={account.assetCode} onChange={changeFilters} value={filters} />
+      <OperationFilters
+        accountKind={account.kind}
+        currencyCode={account.assetCode}
+        onChange={changeFilters}
+        value={filters}
+      />
       {stale ? (
         <p className={styles.notice} role="status">
           Cette opération a déjà été modifiée. La liste a été actualisée.

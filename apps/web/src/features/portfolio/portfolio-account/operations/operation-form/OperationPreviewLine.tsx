@@ -1,15 +1,18 @@
-import type { PortfolioOperationPreview } from '@cadran/api-client';
+import type { PortfolioOperationPreview, PortfolioOperationType } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { formatDecimal } from '@/lib/decimal';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
+import { formatDecimal, isZeroDecimal } from '@/lib/decimal';
 import { CashAmount } from '@/features/portfolio/portfolio-account/operations/cash-amount/CashAmount';
 import styles from './OperationForm.module.css';
 
 /** The read-only figures the server computed: cash effect and, for buys and sells, the residual. */
 export function OperationPreviewLine({
+  type,
   pending,
   preview,
   showResidual,
 }: {
+  type?: PortfolioOperationType;
   pending: boolean;
   preview?: PortfolioOperationPreview;
   showResidual: boolean;
@@ -17,18 +20,50 @@ export function OperationPreviewLine({
   const { i18n } = useTranslation();
   return (
     <div aria-live="polite" className={styles.preview}>
-      <p>
-        <span>Effet sur les espèces</span>{' '}
+      <div className={styles.previewRow}>
+        <span>{type === 'PREMIUM' ? 'Reste en liquidités' : 'Effet sur les espèces'}</span>{' '}
         {preview ? (
           <strong>
             <CashAmount amount={preview.cashAmount} />
           </strong>
+        ) : pending ? (
+          <SkeletonBlock className={styles.previewValue} />
         ) : (
-          <span>{pending ? 'Calcul en cours…' : '-'}</span>
+          <span>-</span>
         )}
-      </p>
+      </div>
+      {type === 'PARTIAL_SURRENDER' || type === 'FULL_SURRENDER' ? (
+        <div className={styles.previewRow}>
+          <span>Net versé</span>
+          {preview?.netPaidAmount ? (
+            <strong>
+              {formatDecimal(preview.netPaidAmount.value, i18n.language)}{' '}
+              {preview.netPaidAmount.assetCode}
+            </strong>
+          ) : pending ? (
+            <SkeletonBlock className={styles.previewValue} />
+          ) : (
+            <span>-</span>
+          )}
+        </div>
+      ) : null}
+      {type === 'FULL_SURRENDER' ? (
+        <div className={styles.previewRow}>
+          <span>Montant brut attendu</span>
+          {preview?.expectedGrossAmount ? (
+            <strong>
+              {formatDecimal(preview.expectedGrossAmount.value, i18n.language)}{' '}
+              {preview.expectedGrossAmount.assetCode}
+            </strong>
+          ) : pending ? (
+            <SkeletonBlock className={styles.previewValue} />
+          ) : (
+            <span>-</span>
+          )}
+        </div>
+      ) : null}
       {showResidual ? (
-        <p>
+        <div className={styles.previewRow}>
           <span>Écart d’arrondi</span>{' '}
           {preview?.roundingResidual ? (
             <strong>
@@ -38,8 +73,19 @@ export function OperationPreviewLine({
           ) : (
             <span>-</span>
           )}
-        </p>
+        </div>
       ) : null}
+      {(preview?.legs ?? [])
+        .filter((leg) => leg.roundingResidual && !isZeroDecimal(leg.roundingResidual.value))
+        .map((leg) => (
+          <div className={styles.previewRow} key={leg.index}>
+            <span>Écart d’arrondi du support {leg.index}</span>
+            <strong>
+              {formatDecimal(leg.roundingResidual!.value, i18n.language)}{' '}
+              {leg.roundingResidual!.assetCode}
+            </strong>
+          </div>
+        ))}
     </div>
   );
 }

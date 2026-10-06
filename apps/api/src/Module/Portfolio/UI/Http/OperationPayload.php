@@ -6,6 +6,8 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Portfolio\Application\AmountInput;
 use App\Module\Portfolio\Application\OperationInput;
+use App\Module\Portfolio\Application\OperationLegInput;
+use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
 
 /**
  * Reads the JSON shape of an operation body: declared fields only, strings where
@@ -17,7 +19,7 @@ final class OperationPayload
     private const array FIELDS = [
         'type', 'tradeDate', 'settlementDate', 'instrumentId', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes',
         'costBasis', 'counterInstrumentId', 'counterQuantity', 'ratio', 'costAllocationRatio', 'reference', 'note',
-        'linkedTransactionId',
+        'linkedTransactionId', 'legs', 'withheldIncomeTax', 'withheldSocialContributions',
     ];
 
     /**
@@ -53,7 +55,38 @@ final class OperationPayload
             reference: self::string($body, 'reference'),
             note: self::string($body, 'note'),
             linkedTransactionId: self::string($body, 'linkedTransactionId'),
+            legs: self::legs($body),
+            withheldIncomeTax: self::amount($body, 'withheldIncomeTax'),
+            withheldSocialContributions: self::amount($body, 'withheldSocialContributions'),
         );
+    }
+
+    /** @param array<mixed> $body
+     * @return list<OperationLegInput>
+     */
+    private static function legs(array $body): array
+    {
+        $rows = $body['legs'] ?? [];
+        if (!is_array($rows) || !array_is_list($rows)) {
+            throw new \UnexpectedValueException('Legs must be a list.');
+        }
+        if (count($rows) > 20) {
+            throw new InvalidPortfolioOperation('At most twenty support legs are allowed.', 'too_many_operation_legs');
+        }
+        $legs = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                throw new \UnexpectedValueException('A leg is an object.');
+            }
+            self::shape($row, ['direction', 'instrumentId', 'amount'], ['quantity', 'unitPrice']);
+            $legs[] = new OperationLegInput(
+                self::requiredString($row, 'direction'), self::requiredString($row, 'instrumentId'),
+                self::string($row, 'quantity'), self::string($row, 'unitPrice'),
+                self::amount($row, 'amount') ?? throw new \UnexpectedValueException('A leg amount is required.'),
+            );
+        }
+
+        return $legs;
     }
 
     /**

@@ -18,7 +18,9 @@ final readonly class OperationDetails
 
     public ?string $reference;
     public ?string $note;
+    public ?DecimalValue $taxes;
 
+    /** @param list<OperationLeg> $legs */
     public function __construct(
         public OperationType $type,
         public \DateTimeImmutable $tradeDate,
@@ -29,7 +31,7 @@ final readonly class OperationDetails
         public ?DecimalValue $unitPrice,
         public ?DecimalValue $grossAmount,
         public ?DecimalValue $fees,
-        public ?DecimalValue $taxes,
+        ?DecimalValue $taxes,
         public ?DecimalValue $costBasis,
         public ?DecimalValue $counterQuantity,
         public ?DecimalValue $ratioNumerator,
@@ -38,11 +40,17 @@ final readonly class OperationDetails
         ?string $reference,
         ?string $note,
         public ?string $linkedTransactionId,
+        public array $legs = [],
+        public ?DecimalValue $withheldIncomeTax = null,
+        public ?DecimalValue $withheldSocialContributions = null,
     ) {
         if ((null === $ratioNumerator) !== (null === $ratioDenominator)) {
             throw new InvalidPortfolioOperation('A ratio carries a numerator and a denominator.', 'invalid_corporate_action');
         }
         OperationFieldMatrix::assertPresence($type, [
+            'legs' => [] !== $legs,
+            'withheldIncomeTax' => null !== $withheldIncomeTax,
+            'withheldSocialContributions' => null !== $withheldSocialContributions,
             'instrument' => null !== $instrumentId,
             'quantity' => null !== $quantity,
             'unitPrice' => null !== $unitPrice,
@@ -57,6 +65,30 @@ final readonly class OperationDetails
             'linkedTransaction' => null !== $linkedTransactionId,
         ]);
 
+        self::assertNotNegative($withheldIncomeTax);
+        self::assertNotNegative($withheldSocialContributions);
+        try {
+            $this->taxes = $type->isSurrender() ? ExactDecimal::add($withheldIncomeTax ?? DecimalValue::zero(), $withheldSocialContributions ?? DecimalValue::zero()) : $taxes;
+        } catch (\App\Module\Foundation\Domain\PrecisionExceeded|\App\Module\Foundation\Domain\MalformedDecimal) {
+            throw new InvalidPortfolioOperation('The observed withholdings are too large to store exactly.', 'invalid_operation_amount');
+        }
+        if (count($legs) > 20) {
+            throw new InvalidPortfolioOperation('At most twenty support legs are allowed.', 'too_many_operation_legs');
+        }
+        $seen = [];
+        foreach ($legs as $offset => $leg) {
+            if ($leg->index !== $offset + 1 || $leg->direction !== (OperationType::PREMIUM === $type ? LegDirection::IN : LegDirection::OUT)) {
+                throw new InvalidPortfolioOperation('The support leg direction is invalid.', 'invalid_leg_direction', ['legIndex' => $leg->index]);
+            }
+            $key = $leg->direction->value.':'.$leg->instrumentId;
+            if (isset($seen[$key])) {
+                throw new InvalidPortfolioOperation('A support is repeated in the same direction.', 'duplicate_leg_instrument', ['legIndex' => $leg->index]);
+            }
+            $seen[$key] = true;
+        }
+        if ($type->isSurrender() && $this->netPaidAmount()?->isNegative()) {
+            throw new InvalidPortfolioOperation('Surrender withholdings and fees exceed the gross.', 'invalid_surrender_amounts');
+        }
         self::assertPositive($quantity, 'invalid_operation_quantity');
         self::assertPositive($counterQuantity, 'invalid_operation_quantity');
         self::assertPositive($unitPrice, 'invalid_operation_amount');
@@ -75,6 +107,21 @@ final readonly class OperationDetails
 
         $this->reference = OperationText::normalize($reference, OperationText::MAX_REFERENCE);
         $this->note = OperationText::normalize($note, OperationText::MAX_NOTE);
+    }
+
+    public function netPaidAmount(): ?DecimalValue
+    {
+        return $this->type->isSurrender() ? ExactDecimal::subtract(ExactDecimal::subtract($this->grossAmount ?? DecimalValue::zero(), $this->fees ?? DecimalValue::zero()), $this->taxes ?? DecimalValue::zero()) : null;
+    }
+
+    public function supportsAmount(): DecimalValue
+    {
+        $sum = DecimalValue::zero();
+        foreach ($this->legs as $leg) {
+            $sum = ExactDecimal::add($sum, $leg->amount);
+        }
+
+        return $sum;
     }
 
     private function assertCorporateAction(): void

@@ -5,11 +5,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { operationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { OperationForm } from './OperationForm';
+import { operationFixture } from '@/features/portfolio/portfolio-account/operations/operations-table/operationFixtures';
 
 const api = vi.hoisted(() => ({
   listInstruments: vi.fn(),
   listPortfolioTransferCandidates: vi.fn(),
   previewPortfolioOperation: vi.fn(),
+  listPortfolioPositions: vi.fn(),
+  readInstrument: vi.fn(),
 }));
 vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
@@ -20,7 +23,10 @@ const account = { id: 'acc-1', assetCode: 'EUR' };
 function ok<T>(data: T) {
   return Promise.resolve({ data, response: new Response('{}', { status: 200 }) });
 }
-function renderForm(props: Partial<React.ComponentProps<typeof OperationForm>> = {}) {
+function renderForm(
+  props: Partial<React.ComponentProps<typeof OperationForm>> = {},
+  configurePreview?: () => void,
+) {
   const onSubmit = vi.fn();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   api.listInstruments.mockImplementation(() =>
@@ -50,6 +56,7 @@ function renderForm(props: Partial<React.ComponentProps<typeof OperationForm>> =
       expectedGrossAmount: null,
     }),
   );
+  configurePreview?.();
   render(
     <QueryClientProvider client={client}>
       <OperationForm
@@ -72,15 +79,157 @@ afterEach(() => {
 });
 
 describe('OperationForm', () => {
+  it('previews a corrected surrender against the original id without double-counting it', async () => {
+    // Server fixture: premium 100, then surrender 60; replacing the same 60 leaves cash 40.
+    const originalId = '00000000-0000-7000-8000-000000000060';
+    renderForm(
+      {
+        account: { ...account, kind: 'INSURANCE_CONTRACT' },
+        operation: operationFixture({
+          id: originalId,
+          type: 'PARTIAL_SURRENDER',
+          grossAmount: { value: '60', assetCode: 'EUR' },
+        }),
+      },
+      () =>
+        api.previewPortfolioOperation.mockImplementation((options) =>
+          options.query?.correctingOperationId === originalId
+            ? ok({
+                cashAmount: { value: '-60', assetCode: 'EUR' },
+                netPaidAmount: { value: '60', assetCode: 'EUR' },
+                legs: [],
+                roundingResidual: null,
+                expectedGrossAmount: null,
+              })
+            : Promise.resolve({
+                error: { code: 'surrender_exceeds_available' },
+                response: new Response('{}', { status: 422 }),
+              }),
+        ),
+    );
+    await waitFor(() =>
+      expect(api.previewPortfolioOperation.mock.calls[0]![0].query).toEqual({
+        correctingOperationId: originalId,
+      }),
+    );
+    expect(await screen.findByText('60 EUR')).toBeTruthy();
+    expect(
+      screen.queryByText('Le rachat dépasse les liquidités et les supports vendus.'),
+    ).toBeNull();
+    expect(api.previewPortfolioOperation.mock.calls[0]![0].body).toEqual({
+      type: 'PARTIAL_SURRENDER',
+      tradeDate: '2026-03-01',
+      grossAmount: { value: '60', assetCode: 'EUR' },
+      legs: [],
+    });
+    change('Montant brut du rachat', '61');
+    await waitFor(
+      () =>
+        expect(api.previewPortfolioOperation.mock.calls.at(-1)![0].body.grossAmount.value).toBe(
+          '61',
+        ),
+      { timeout: 2000 },
+    );
+    expect(api.previewPortfolioOperation.mock.calls.at(-1)![0].query.correctingOperationId).toBe(
+      originalId,
+    );
+  });
+
+  it('omits the correction query and keeps the create body unchanged', async () => {
+    renderForm({ account: { ...account, kind: 'INSURANCE_CONTRACT' } });
+    change('Type', 'PARTIAL_SURRENDER');
+    change('Montant brut du rachat', '60');
+    await waitFor(() => expect(api.previewPortfolioOperation).toHaveBeenCalled(), {
+      timeout: 2000,
+    });
+    const options = api.previewPortfolioOperation.mock.calls.at(-1)![0];
+    expect(options).not.toHaveProperty('query');
+    expect(options.body).toEqual({
+      type: 'PARTIAL_SURRENDER',
+      tradeDate: '2026-03-10',
+      grossAmount: { value: '60', assetCode: 'EUR' },
+      legs: [],
+    });
+  });
   it('offers only allowed operations on a life-insurance contract', () => {
     renderForm({ account: { ...account, kind: 'INSURANCE_CONTRACT' } });
-    expect((screen.getByLabelText('Type') as HTMLSelectElement).value).toBe('BUY');
+    expect((screen.getByLabelText('Type') as HTMLSelectElement).value).toBe('PREMIUM');
     const values = [...(screen.getByLabelText('Type') as HTMLSelectElement).options].map(
       (option) => option.value,
     );
     expect(values).toContain('BUY');
+    expect(values).toContain('PREMIUM');
+    expect(values).toContain('FULL_SURRENDER');
     for (const type of ['DEPOSIT', 'WITHDRAWAL', 'SECURITY_TRANSFER_IN', 'SECURITY_TRANSFER_OUT'])
       expect(values).not.toContain(type);
+  });
+
+  it('copies positions for a full surrender and shows the server expected gross', async () => {
+    api.listPortfolioPositions.mockResolvedValue(
+      ok({ items: [{ instrument: { id: 'euro', name: 'Fonds euros' }, quantity: '6000.00' }] }),
+    );
+    api.readInstrument.mockResolvedValue(
+      ok({ id: 'euro', name: 'Fonds euros', instrumentType: 'EURO_FUND' }),
+    );
+    const { onSubmit } = renderForm({ account: { ...account, kind: 'INSURANCE_CONTRACT' } });
+    api.previewPortfolioOperation.mockImplementation(() =>
+      ok({
+        cashAmount: { value: '0', assetCode: 'EUR' },
+        netPaidAmount: { value: '6000.00', assetCode: 'EUR' },
+        expectedGrossAmount: { value: '6000.00', assetCode: 'EUR' },
+        legs: [],
+        roundingResidual: null,
+      }),
+    );
+    change('Type', 'FULL_SURRENDER');
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole('button', {
+            name: 'Reprendre toutes les positions',
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reprendre toutes les positions' }));
+    expect((screen.getByLabelText('Montant 1') as HTMLInputElement).value).toBe('6000.00');
+    expect(screen.queryByLabelText('Parts 1')).toBeNull();
+    change('Montant brut du rachat', '6000.00');
+    await waitFor(() => expect(screen.getAllByText(/6.000,00/).length).toBe(2), { timeout: 2000 });
+    expect(screen.getByText('Montant brut attendu')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(onSubmit.mock.calls[0]![0].legs).toEqual([
+      { direction: 'OUT', instrumentId: 'euro', amount: { value: '6000.00', assetCode: 'EUR' } },
+    ]);
+  });
+
+  it('offers no insurance-only types on a standard portfolio', () => {
+    renderForm();
+    const options = [...(screen.getByLabelText('Type') as HTMLSelectElement).options].map(
+      (option) => option.value,
+    );
+    expect(options).not.toContain('PREMIUM');
+    expect(options).not.toContain('FULL_SURRENDER');
+  });
+
+  it('shows the server net paid for the reference surrender', async () => {
+    renderForm({ account: { ...account, kind: 'INSURANCE_CONTRACT' } });
+    api.previewPortfolioOperation.mockImplementation(() =>
+      ok({
+        cashAmount: { value: '0', assetCode: 'EUR' },
+        netPaidAmount: { value: '1033.90', assetCode: 'EUR' },
+        expectedGrossAmount: null,
+        legs: [],
+        roundingResidual: null,
+      }),
+    );
+    change('Type', 'PARTIAL_SURRENDER');
+    change('Montant brut du rachat', '1050.00');
+    change('Prélèvement fiscal retenu', '7.50');
+    change('Prélèvements sociaux retenus', '8.60');
+    expect(await screen.findByText(/1.033,90/, undefined, { timeout: 2000 })).toBeTruthy();
+    expect(screen.getByText('Net versé')).toBeTruthy();
+    expect(screen.queryByLabelText('Taxes')).toBeNull();
   });
 
   it('focuses the type first and renders only the fields of the chosen type', () => {

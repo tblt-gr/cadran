@@ -47,7 +47,7 @@ final class PortfolioOperationOpenApiContractTest extends TestCase
 
         $operation = self::map($schemas['PortfolioOperation'] ?? null);
         self::assertSame(
-            ['id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'activeDayOperationCount', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version'],
+            ['id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'activeDayOperationCount', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'netPaidAmount'],
             $operation['required'] ?? null,
         );
         self::assertSame(10_000, self::map(self::map($operation['properties'] ?? null)['activeDayOperationCount'] ?? null)['maximum'] ?? null);
@@ -61,11 +61,56 @@ final class PortfolioOperationOpenApiContractTest extends TestCase
             'price_precision_exceeded', 'operation_asset_mismatch', 'instrument_inactive', 'instrument_currency_mismatch', 'unknown_instrument',
             'invalid_corporate_action', 'invalid_operation_date', 'invalid_settlement_date', 'operation_amount_mismatch',
             'linked_transfer_mismatch', 'invalid_operation_text', 'linked_transfer_taken', 'operation_voided', 'stale_operation_version',
-            'operation_limit_reached',
+            'operation_limit_reached', 'surrender_exceeds_available', 'premium_allocation_exceeds_net', 'leg_amount_mismatch',
+            'unknown_leg_instrument', 'duplicate_leg_instrument', 'invalid_leg_direction', 'invalid_surrender_amounts',
+            'full_surrender_positions_remaining', 'full_surrender_not_balanced', 'operations_after_full_surrender',
         ] as $code) {
             self::assertContains($code, $codes);
         }
         self::assertArrayHasKey('expectedGrossAmount', $problem);
+    }
+
+    public function testCorrectionPreviewTargetIsAnOptionalUuidQueryAndKeepsTheOperationBody(): void
+    {
+        $document = self::map(Yaml::parseFile(dirname(__DIR__, 2).'/openapi/openapi.yaml'));
+        $paths = self::map($document['paths']);
+        $post = self::map(self::map($paths['/api/v1/accounts/{accountId}/portfolio-operations/preview'])['post']);
+        $parameters = $post['parameters'];
+        self::assertIsArray($parameters);
+        $targets = array_values(array_filter($parameters, static fn (mixed $parameter): bool => is_array($parameter) && 'correctingOperationId' === ($parameter['name'] ?? null)));
+        self::assertCount(1, $targets);
+        $target = self::map($targets[0]);
+        self::assertSame('query', $target['in']);
+        self::assertFalse($target['required']);
+        self::assertSame(['type' => 'string', 'format' => 'uuid'], $target['schema']);
+        $body = self::map(self::map(self::map($post['requestBody'])['content'])['application/json']);
+        self::assertSame(['$ref' => '#/components/schemas/PortfolioOperationRequest'], $body['schema']);
+        self::assertIsArray($post['responses']);
+        self::assertArrayHasKey(409, $post['responses']);
+    }
+
+    public function testInsuranceLegsWithholdingsAndPreviewStayExactAndBounded(): void
+    {
+        $document = self::map(Yaml::parseFile(dirname(__DIR__, 2).'/openapi/openapi.yaml'));
+        $schemas = self::map(self::map($document['components'] ?? null)['schemas'] ?? null);
+        $request = self::map(self::map($schemas['PortfolioOperationRequest'])['properties']);
+        self::assertSame(20, self::map($request['legs'])['maxItems']);
+        self::assertArrayHasKey('withheldIncomeTax', $request);
+        self::assertArrayHasKey('withheldSocialContributions', $request);
+        self::assertArrayNotHasKey('netPaidAmount', $request);
+        $leg = self::map($schemas['PortfolioOperationLegInput']);
+        self::assertFalse($leg['additionalProperties']);
+        self::assertSame(['direction', 'instrumentId', 'amount'], $leg['required']);
+        $properties = self::map($leg['properties']);
+        self::assertSame(['string', 'null'], self::map($properties['quantity'])['type']);
+        self::assertSame(['string', 'null'], self::map($properties['unitPrice'])['type']);
+        $preview = self::map($schemas['PortfolioOperationPreview']);
+        self::assertSame(['cashAmount', 'roundingResidual', 'expectedGrossAmount', 'legs', 'netPaidAmount'], $preview['required']);
+        $types = self::map($schemas['PortfolioOperationType'])['enum'];
+        self::assertIsArray($types);
+        foreach (['PREMIUM', 'PARTIAL_SURRENDER', 'FULL_SURRENDER'] as $type) {
+            self::assertContains($type, $types);
+        }
     }
 
     /** @return array<string, mixed> */

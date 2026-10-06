@@ -162,7 +162,7 @@ final readonly class PortfolioPositionController
         }
     }
 
-    /** @param array<string, string> $extensions */
+    /** @param array<string, string|int|list<string>> $extensions */
     private function problem(int $status, string $code, array $extensions = []): JsonResponse
     {
         return ApiProblem::response(

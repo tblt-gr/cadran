@@ -138,3 +138,87 @@ describe('buildOperationRequest', () => {
     expect(result.request?.linkedTransactionId).toBe('tx-1');
   });
 });
+
+describe('insurance requests', () => {
+  it('refuses a 21st support before submitting', () => {
+    const legs = Array.from({ length: 21 }, (_, index) => ({
+      key: String(index),
+      instrument: { ...instrument, id: String(index) },
+      quantity: '1',
+      unitPrice: '1',
+      amount: '1',
+    }));
+    expect(
+      buildOperationRequest(values({ type: 'PREMIUM', grossAmount: '21', legs }), 'EUR').errors
+        ?.legs,
+    ).toBeDefined();
+  });
+  it('keeps the reference premium exact and sends only amount for a euro fund', () => {
+    const result = buildOperationRequest(
+      values({
+        type: 'PREMIUM',
+        grossAmount: '10000.00',
+        fees: '100.00',
+        legs: [
+          {
+            key: 'euro',
+            instrument: { id: 'euro', name: 'Fonds euros', instrumentType: 'EURO_FUND' },
+            quantity: '',
+            unitPrice: '',
+            amount: '6000.00',
+          },
+          { key: 'units', instrument, quantity: '40', unitPrice: '97.50', amount: '3900.00' },
+        ],
+      }),
+      'EUR',
+    );
+    expect(result.errors).toBeNull();
+    expect(result.request?.legs).toEqual([
+      { direction: 'IN', instrumentId: 'euro', amount: { value: '6000.00', assetCode: 'EUR' } },
+      {
+        direction: 'IN',
+        instrumentId: 'ins-1',
+        quantity: '40',
+        unitPrice: '97.50',
+        amount: { value: '3900.00', assetCode: 'EUR' },
+      },
+    ]);
+  });
+  it('sends observed withholdings, never derived taxes or net paid', () => {
+    const result = buildOperationRequest(
+      values({
+        type: 'PARTIAL_SURRENDER',
+        grossAmount: '1050.00',
+        withheldIncomeTax: '7.50',
+        withheldSocialContributions: '8.60',
+        taxes: '16.10',
+      }),
+      'EUR',
+    );
+    expect(result.request?.withheldIncomeTax?.value).toBe('7.50');
+    expect(result.request?.withheldSocialContributions?.value).toBe('8.60');
+    expect(result.request).not.toHaveProperty('taxes');
+    expect(result.request).not.toHaveProperty('netPaidAmount');
+  });
+  it('preserves large quantities and reports zero or malformed leg values by row', () => {
+    const result = buildOperationRequest(
+      values({
+        type: 'FULL_SURRENDER',
+        grossAmount: '1',
+        legs: [
+          {
+            key: 'a',
+            instrument,
+            quantity: '999999999999999999999.123456789',
+            unitPrice: '0',
+            amount: 'abc',
+          },
+        ],
+      }),
+      'EUR',
+    );
+    expect(result.errors?.['legs.1.unitPrice']).toBeDefined();
+    expect(result.errors?.['legs.1.amount']).toBeDefined();
+    expect(result.errors?.['legs.1.quantity']).toBeUndefined();
+  });
+});

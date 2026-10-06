@@ -11,6 +11,7 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
+use Symfony\Component\Clock\ClockInterface;
 
 final readonly class ReorderPortfolioOperations
 {
@@ -22,6 +23,8 @@ final readonly class ReorderPortfolioOperations
         private PortfolioOperationRepository $operations,
         private AssertPeriodOpen $assertPeriodOpen,
         private ReconcilePortfolioPositions $reconcile,
+        private LifeInsurance\ReconcileContractOperations $contractOperations,
+        private ClockInterface $clock,
         private TransactionBoundary $transactions,
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
@@ -60,6 +63,7 @@ final readonly class ReorderPortfolioOperations
             }
             $this->operations->reorder($context->workspace, $accountId, $date, $sequences);
             ($this->reconcile)($context->workspace, $accountId);
+            ($this->contractOperations)($context, $accountId, $this->clock->now());
             ($this->audit)(new AuditEventRecord(
                 $context->workspace,
                 $context->actorId,

@@ -31,3 +31,18 @@
     gap: var(--spacing-1);
   }
 }
+
+.scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  margin-top: var(--spacing-4);
+}
+.scroll table {
+  width: 100%;
+}
+.scroll th,
+.scroll td {
+  padding: var(--spacing-2);
+  text-align: start;
+  font-variant-numeric: tabular-nums;
+}

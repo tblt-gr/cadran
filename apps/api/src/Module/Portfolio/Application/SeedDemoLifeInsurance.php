@@ -7,17 +7,25 @@ namespace App\Module\Portfolio\Application;
 use App\Module\Accounts\Application\CreateAccount;
 use App\Module\Accounts\Application\CreateAccountInput;
 use App\Module\Accounts\Application\ListAccountGroups;
-use App\Module\Foundation\Application\DemoDataContributor;
+use App\Module\Accounts\Application\ListAccounts;
+use App\Module\Foundation\Application\DemoAccountBalanceAdjustment;
+use App\Module\Foundation\Application\DemoAccountBalanceContributor;
+use App\Module\Foundation\Domain\CalculatedDecimal;
+use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\ExactDecimal;
+use App\Module\Foundation\Domain\RoundingMode;
 use App\Module\Portfolio\Application\LifeInsurance\AddFeeTerms;
 use App\Module\Portfolio\Application\LifeInsurance\EuroFundRateInput;
 use App\Module\Portfolio\Application\LifeInsurance\FeeTermsInput;
 use App\Module\Portfolio\Application\LifeInsurance\LifeInsuranceContractInput;
 use App\Module\Portfolio\Application\LifeInsurance\RecordEuroFundRate;
 use App\Module\Portfolio\Application\LifeInsurance\SaveLifeInsuranceContract;
+use App\Module\Transactions\Application\CreateTransfer;
+use App\Module\Transactions\Application\CreateTransferInput;
 use Symfony\Component\Clock\ClockInterface;
 
-/** An empty multi-support wrapper; premiums and operations belong to the next ticket. */
-final readonly class SeedDemoLifeInsurance implements DemoDataContributor
+/** A contract with observed premiums, one surrender and complete monthly statements. */
+final readonly class SeedDemoLifeInsurance implements DemoAccountBalanceContributor
 {
     private const string OPENING_DAY = '2023-12-31';
 
@@ -30,6 +38,9 @@ final readonly class SeedDemoLifeInsurance implements DemoDataContributor
         private RecordEuroFundRate $recordRate,
         private ClockInterface $clock,
         private RecordPortfolioValuation $recordValuation,
+        private RecordPortfolioOperation $recordOperation,
+        private ListAccounts $listAccounts,
+        private CreateTransfer $createTransfer,
     ) {
     }
 
@@ -57,19 +68,51 @@ final readonly class SeedDemoLifeInsurance implements DemoDataContributor
             name: 'Fonds euros Démo', isin: null, ticker: null, venueMic: null, instrumentType: 'EURO_FUND',
             assetClass: null, region: null, currencyCode: 'EUR',
         ));
-        ($this->createInstrument)(new CreateInstrumentInput(
+        $equity = ($this->createInstrument)(new CreateInstrumentInput(
             name: 'Fonds Actions Démo', isin: 'FRDEMO000064', ticker: null, venueMic: null, instrumentType: 'FUND',
             assetClass: 'EQUITY', region: null, currencyCode: 'EUR',
         ));
         ($this->addFeeTerms)($account->id, new FeeTermsInput(
             self::OPENING_DAY, '1', '0.60', '0.85', '0.50', null, 'Barème de démonstration',
         ));
-        // Empty holdings and derived cash sum exactly to zero, allowing historical month closing.
         $today = $this->clock->now()->setTimezone(new \DateTimeZone('UTC'))->setTime(0, 0);
-        for ($month = new \DateTimeImmutable('2024-01-01'); $month->modify('last day of this month') < $today; $month = $month->modify('+1 month')) {
-            ($this->recordValuation)($account->id, new ValuationInput(
-                $month->modify('last day of this month')->format('Y-m-d'), 'POSITIONS', null, [], null, null, null, null,
-            ));
+        ($this->recordOperation)($account->id, new OperationInput(
+            type: 'PREMIUM', tradeDate: self::OPENING_DAY, grossAmount: self::amount('10000.00'), fees: self::amount('100.00'),
+            legs: [new OperationLegInput('IN', $fund->id, null, null, self::amount('6000.00')),
+                new OperationLegInput('IN', $equity->id, '40', '97.50', self::amount('3900.00'))],
+        ));
+        $source = $this->listAccounts->__invoke(false, false, 1, 100, 'SAVINGS')->items[0]->id;
+        $opening = new \DateTimeImmutable(self::OPENING_DAY);
+        ($this->recordValuation)($account->id, self::valuation($opening, $fund->id, $equity->id, '97.50'));
+        $price = DecimalValue::fromString('97.50');
+        for ($month = new \DateTimeImmutable('2024-01-01'); $month <= $today; $month = $month->modify('+1 month')) {
+            if (0 !== self::quarterlyPremiumCents($month, $today->modify('-3 days'))) {
+                $day = $month->modify('+14 days')->format('Y-m-d');
+                $transfer = ($this->createTransfer)(new CreateTransferInput(
+                    $source, $account->id, ['value' => '1500.00', 'assetCode' => 'EUR'], ['value' => '1500.00', 'assetCode' => 'EUR'],
+                    'BOOKED', $day, null, 'Versement trimestriel assurance-vie', null, null,
+                ));
+                $quantity = CalculatedDecimal::fromDecimal(DecimalValue::fromString('885.00'))
+                    ->proportion(CalculatedDecimal::one(), CalculatedDecimal::fromDecimal($price), 6, RoundingMode::DOWN);
+                ($this->recordOperation)($account->id, new OperationInput(
+                    type: 'PREMIUM', tradeDate: $day, grossAmount: self::amount('1500.00'), fees: self::amount('15.00'),
+                    legs: [new OperationLegInput('IN', $fund->id, null, null, self::amount('600.00')),
+                        new OperationLegInput('IN', $equity->id, $quantity->toString(), $price->toString(), self::amount('885.00'))],
+                    linkedTransactionId: $transfer->target->id,
+                ));
+            }
+            if ('2024-06' === $month->format('Y-m') && $today > $month->modify('+9 days')) {
+                ($this->recordOperation)($account->id, new OperationInput(
+                    type: 'PARTIAL_SURRENDER', tradeDate: '2024-06-10', grossAmount: self::amount('1050.00'),
+                    legs: [new OperationLegInput('OUT', $equity->id, '10', '105.00', self::amount('1050.00'))],
+                    withheldIncomeTax: self::amount('7.50'), withheldSocialContributions: self::amount('8.60'),
+                ));
+            }
+            $last = $month->modify('last day of this month');
+            if ($last < $today) {
+                ($this->recordValuation)($account->id, self::valuation($last, $fund->id, $equity->id, $price->toString()));
+            }
+            $price = ExactDecimal::add($price, DecimalValue::fromString('0.25'));
         }
         $year = (int) $today->format('Y');
         foreach ([[$year - 2, '2.50'], [$year - 1, '2.80']] as [$rateYear, $rate]) {
@@ -77,5 +120,38 @@ final readonly class SeedDemoLifeInsurance implements DemoDataContributor
                 $fund->id, $rateYear, $rate, null, 'NET_OF_MANAGEMENT_FEES', 'Taux de démonstration',
             ));
         }
+    }
+
+    public function balanceAdjustments(): array
+    {
+        $source = $this->listAccounts->__invoke(false, false, 1, 100, 'SAVINGS')->items[0]->id;
+        $cutoff = $this->clock->now()->setTimezone(new \DateTimeZone('UTC'))->setTime(0, 0)->modify('-3 days');
+        $adjustments = [];
+        for ($month = new \DateTimeImmutable('2024-01-01'); $month <= $cutoff; $month = $month->modify('+1 month')) {
+            $cents = self::quarterlyPremiumCents($month, $cutoff);
+            if (0 !== $cents) {
+                $adjustments[] = new DemoAccountBalanceAdjustment($source, $month->modify('+14 days'), -$cents, 1);
+            }
+        }
+
+        return $adjustments;
+    }
+
+    private static function quarterlyPremiumCents(\DateTimeImmutable $month, \DateTimeImmutable $cutoff): int
+    {
+        return $month >= new \DateTimeImmutable('2024-01-01') && in_array((int) $month->format('n'), [1, 4, 7, 10], true)
+            && $month->modify('+14 days') <= $cutoff ? 150000 : 0;
+    }
+
+    private static function amount(string $value): AmountInput
+    {
+        return new AmountInput($value, 'EUR');
+    }
+
+    private static function valuation(\DateTimeImmutable $day, string $fund, string $equity, string $price): ValuationInput
+    {
+        $date = $day->format('Y-m-d');
+
+        return new ValuationInput($date, 'POSITIONS', null, [new PriceInput($fund, '1', $date), new PriceInput($equity, $price, $date)], null, null, null, null);
     }
 }

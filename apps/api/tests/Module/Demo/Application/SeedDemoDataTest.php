@@ -80,8 +80,8 @@ final class SeedDemoDataTest extends KernelTestCase
             'SELECT COUNT(*) FROM account_period_closures WHERE workspace_id = ?',
             [$workspace],
         ));
-        // Every account, including the empty contract valued from its holdings, is reconciled before closing.
-        self::assertSame(4 * $summary->closedMonths, $this->rows(
+        // Every account, including the contract valued from its holdings, is reconciled before closing.
+        self::assertSame(4 * $summary->closedMonths + 1, $this->rows(
             "SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND reconciliation_status = 'RECONCILED' AND as_of = (date_trunc('month', as_of) + interval '1 month - 1 day')::date",
             [$workspace],
         ));
@@ -133,7 +133,10 @@ final class SeedDemoDataTest extends KernelTestCase
             return $year;
         }, $years));
         self::assertSame(['NET_OF_MANAGEMENT_FEES'], $this->connection->fetchFirstColumn('SELECT DISTINCT basis FROM portfolio_euro_fund_rates WHERE workspace_id = ?', [$workspace]));
-        self::assertSame(0, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND account_id IN (SELECT id FROM account_financial_accounts WHERE kind = 'INSURANCE_CONTRACT')", [$workspace]));
+        self::assertGreaterThan(0, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'PREMIUM'", [$workspace]));
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'PARTIAL_SURRENDER' AND gross_amount_value = 1050 AND taxes_value = 16.10", [$workspace]));
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'PREMIUM' AND gross_amount_value = 10000 AND fees_value = 100 AND cash_amount_value = 0", [$workspace]));
+        self::assertGreaterThan(0, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'PREMIUM' AND gross_amount_value = 1500 AND fees_value = 15 AND linked_transaction_id IS NOT NULL", [$workspace]));
         self::assertSame(0, $this->rows("SELECT COUNT(*) FROM audit_events WHERE concat(before_json::text, after_json::text) LIKE '%00012345%'"));
     }
 
@@ -156,7 +159,7 @@ final class SeedDemoDataTest extends KernelTestCase
         self::assertGreaterThan(0, $legs);
         self::assertSame($legs, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'DEPOSIT' AND linked_transaction_id IS NOT NULL AND state = 'ACTIVE'", [$workspace]));
         self::assertSame($legs, $this->rows(
-            "SELECT COUNT(*) FROM portfolio_operations d JOIN portfolio_operations b ON b.account_id = d.account_id AND b.trade_date = d.trade_date AND b.operation_type = 'BUY' AND b.reference = 'Investissement mensuel' WHERE d.workspace_id = ? AND d.linked_transaction_id IS NOT NULL",
+            "SELECT COUNT(*) FROM portfolio_operations d JOIN portfolio_operations b ON b.account_id = d.account_id AND b.trade_date = d.trade_date AND b.operation_type = 'BUY' AND b.reference = 'Investissement mensuel' WHERE d.workspace_id = ? AND d.operation_type = 'DEPOSIT' AND d.linked_transaction_id IS NOT NULL",
             [$workspace],
         ));
         foreach (['DIVIDEND', 'FEE', 'SELL', 'SPLIT'] as $type) {

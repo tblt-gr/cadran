@@ -5,6 +5,10 @@ export function operationFixture(overrides: Partial<PortfolioOperation> = {}): P
   return {
     id: '00000000-0000-7000-8000-0000000000a1',
     accountId: '00000000-0000-7000-8000-0000000000ac',
+    legs: [],
+    withheldIncomeTax: null,
+    withheldSocialContributions: null,
+    netPaidAmount: null,
     type: 'DEPOSIT',
     tradeDate: '2026-03-01',
     settlementDate: null,

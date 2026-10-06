@@ -1,3 +1,4 @@
+import { CashSummary } from './cash-summary/CashSummary';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -288,4 +289,10 @@ describe('CashTab', () => {
       expect(screen.queryByText(/Informations \(/)).toBeNull();
     },
   );
+});
+
+it('explains support purchases and sales in the cash identity', async () => {
+  render(<CashSummary cash={null} />);
+  expect(screen.getByText('Supports achetés')).toBeTruthy();
+  expect(screen.getByText('Supports vendus')).toBeTruthy();
 });

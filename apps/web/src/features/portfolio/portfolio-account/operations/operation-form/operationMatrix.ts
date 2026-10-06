@@ -1,6 +1,9 @@
 import type { PortfolioOperationType } from '@cadran/api-client';
 
 export type FieldKey =
+  | 'legs'
+  | 'withheldIncomeTax'
+  | 'withheldSocialContributions'
   | 'instrument'
   | 'quantity'
   | 'unitPrice'
@@ -21,6 +24,23 @@ export const operationMatrix: Record<
   PortfolioOperationType,
   Partial<Record<FieldKey, Requirement>>
 > = {
+  PREMIUM: { grossAmount: 'R', fees: 'O', legs: 'O', linkedTransaction: 'O' },
+  PARTIAL_SURRENDER: {
+    grossAmount: 'R',
+    fees: 'O',
+    legs: 'O',
+    withheldIncomeTax: 'O',
+    withheldSocialContributions: 'O',
+    linkedTransaction: 'O',
+  },
+  FULL_SURRENDER: {
+    grossAmount: 'R',
+    fees: 'O',
+    legs: 'O',
+    withheldIncomeTax: 'O',
+    withheldSocialContributions: 'O',
+    linkedTransaction: 'O',
+  },
   DEPOSIT: { grossAmount: 'R', linkedTransaction: 'O' },
   WITHDRAWAL: { grossAmount: 'R', linkedTransaction: 'O' },
   BUY: { instrument: 'R', quantity: 'R', unitPrice: 'R', grossAmount: 'R', fees: 'O', taxes: 'O' },

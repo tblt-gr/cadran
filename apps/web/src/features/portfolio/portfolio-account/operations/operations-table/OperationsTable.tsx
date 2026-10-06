@@ -67,7 +67,11 @@ export function OperationsTable({ items, onDetail, onEdit, onVoid, onReorder }: 
                       )}
                     </span>
                   </td>
-                  <td>{operation.instrument?.name ?? <EmptyValue label="Aucun instrument" />}</td>
+                  <td>
+                    {hasField(operation.type, 'legs')
+                      ? `${operation.legs?.length ?? 0} supports`
+                      : (operation.instrument?.name ?? <EmptyValue label="Aucun instrument" />)}
+                  </td>
                   <td className={styles.number}>
                     {cell(
                       operation,
