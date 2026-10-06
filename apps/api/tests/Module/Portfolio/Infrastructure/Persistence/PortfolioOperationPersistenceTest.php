@@ -14,10 +14,10 @@ use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\OperationVoidKind;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
-use App\Module\Portfolio\Infrastructure\Persistence\DbalPortfolioOperationRepository;
 use App\Tests\Support\PortfolioFixture;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\DriverException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class PortfolioOperationPersistenceTest extends KernelTestCase
@@ -42,13 +42,30 @@ final class PortfolioOperationPersistenceTest extends KernelTestCase
         $portfolio->account();
         $portfolio->account(PortfolioFixture::CASH_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Autre');
         $portfolio->instrument();
-        $this->operations = new DbalPortfolioOperationRepository($connection);
+        $operations = self::getContainer()->get(PortfolioOperationRepository::class);
+        self::assertInstanceOf(PortfolioOperationRepository::class, $operations);
+        $this->operations = $operations;
     }
 
     protected function tearDown(): void
     {
         $this->fixture->reset();
         parent::tearDown();
+    }
+
+    public function testSupportLegsRoundTripAndStayScopedInInstrumentFilters(): void
+    {
+        (new PortfolioFixture($this->connection))->euroFund(\App\Tests\Support\InsuranceOperationFixture::FUND);
+        $premium = \App\Tests\Support\InsuranceOperationFixture::premium();
+        $this->operations->add($premium);
+        $loaded = $this->operations->find(WorkspaceFixture::own(), $premium->id);
+        self::assertNotNull($loaded);
+        self::assertEquals($premium->details->legs, $loaded->details->legs);
+        $filters = new OperationFilters(null, null, [], \App\Tests\Support\InsuranceOperationFixture::FUND, false);
+        self::assertSame(1, $this->operations->count(WorkspaceFixture::own(), PortfolioFixture::ACCOUNT, $filters));
+        self::assertCount(1, $this->operations->search(WorkspaceFixture::own(), PortfolioFixture::ACCOUNT, $filters, 50, 0));
+        self::assertNull($this->operations->find(WorkspaceFixture::other(), $premium->id));
+        self::assertSame([], $this->operations->search(WorkspaceFixture::other(), PortfolioFixture::ACCOUNT, $filters, 50, 0));
     }
 
     public function testADecimalKeepsItsExactScaleThroughAStoreAndReload(): void
@@ -169,7 +186,7 @@ final class PortfolioOperationPersistenceTest extends KernelTestCase
     public function testTheDatabaseRefusesAnInconsistentVoidMarker(): void
     {
         $this->operations->add($this->buy('00000000-0000-7000-8000-000000000a01', 1));
-        $this->expectException(\Doctrine\DBAL\Exception\DriverException::class);
+        $this->expectException(DriverException::class);
         $this->connection->update('portfolio_operations', ['state' => 'VOIDED'], ['id' => '00000000-0000-7000-8000-000000000a01']);
     }
 

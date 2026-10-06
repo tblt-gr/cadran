@@ -95,7 +95,7 @@ final class PortfolioCashControllerTest extends WebTestCase
         self::assertSame('-2307.68', self::value(self::movements($cash)[1], 'cashAmount'));
         $totals = self::map($cash['totals']);
         self::assertSame(
-            ['deposits', 'withdrawals', 'buysGross', 'sellsGross', 'dividendsGross', 'interestGross', 'fees', 'taxes', 'cashInLieu', 'roundingResiduals'],
+            ['supportsBought', 'supportsSold', 'deposits', 'withdrawals', 'buysGross', 'sellsGross', 'dividendsGross', 'interestGross', 'fees', 'taxes', 'cashInLieu', 'roundingResiduals'],
             array_keys($totals),
         );
         self::assertSame('8.98', self::value($totals, 'fees'));

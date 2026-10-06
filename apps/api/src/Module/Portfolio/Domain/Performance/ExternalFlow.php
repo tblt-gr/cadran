@@ -6,6 +6,7 @@ namespace App\Module\Portfolio\Domain\Performance;
 
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
+use App\Module\Portfolio\Domain\OperationDetails;
 use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 
@@ -18,10 +19,16 @@ final class ExternalFlow
         $gross = $operation->details->grossAmount;
 
         return match ($operation->details->type) {
-            OperationType::DEPOSIT => $gross,
+            OperationType::DEPOSIT, OperationType::PREMIUM => $gross,
+            OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER => ExactDecimal::negate($operation->details->netPaidAmount() ?? DecimalValue::zero()),
             OperationType::WITHDRAWAL => null === $gross ? null : ExactDecimal::negate($gross),
             default => null,
         };
+    }
+
+    public static function linkedAmount(OperationDetails $details): ?DecimalValue
+    {
+        return $details->netPaidAmount() ?? $details->grossAmount;
     }
 
     /** Securities entering or leaving the account are external flows whose value the operation does not state. */

@@ -1,0 +1,46 @@
+.editor {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+.row {
+  min-width: 0;
+  margin: var(--spacing-none);
+  padding: var(--spacing-3);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-control);
+}
+.controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
+}
+.controls > * {
+  min-width: 0;
+}
+.controls input {
+  width: 100%;
+}
+.remove {
+  width: var(--control-height);
+  height: var(--control-height);
+  border-radius: var(--radius-circle);
+  justify-self: end;
+}
+@media (max-width: 42rem) {
+  .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-2);
+}
+.summaryValue {
+  width: var(--control-height);
+  height: var(--font-size-body);
+}

@@ -45,6 +45,10 @@ final class PortfolioOperationRepresentation
             'correctsOperationId' => $view->correctsOperationId,
             'correctedByOperationId' => $view->correctedByOperationId,
             'version' => $view->version,
+            'legs' => $view->legs,
+            'withheldIncomeTax' => $view->withheldIncomeTax,
+            'withheldSocialContributions' => $view->withheldSocialContributions,
+            'netPaidAmount' => $view->netPaidAmount,
         ];
     }
 
@@ -66,6 +70,8 @@ final class PortfolioOperationRepresentation
             'cashAmount' => $preview->cashAmount,
             'roundingResidual' => $preview->roundingResidual,
             'expectedGrossAmount' => $preview->expectedGrossAmount,
+            'legs' => $preview->legs,
+            'netPaidAmount' => $preview->netPaidAmount,
         ];
     }
 

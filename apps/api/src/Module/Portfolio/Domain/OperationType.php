@@ -6,6 +6,10 @@ namespace App\Module\Portfolio\Domain;
 
 enum OperationType: string
 {
+    case PREMIUM = 'PREMIUM';
+    case PARTIAL_SURRENDER = 'PARTIAL_SURRENDER';
+    case FULL_SURRENDER = 'FULL_SURRENDER';
+
     case DEPOSIT = 'DEPOSIT';
     case WITHDRAWAL = 'WITHDRAWAL';
     case BUY = 'BUY';
@@ -20,9 +24,19 @@ enum OperationType: string
     case MERGER = 'MERGER';
     case SPIN_OFF = 'SPIN_OFF';
 
+    public function isSurrender(): bool
+    {
+        return self::PARTIAL_SURRENDER === $this || self::FULL_SURRENDER === $this;
+    }
+
+    public function hasSupportLegs(): bool
+    {
+        return self::PREMIUM === $this || $this->isSurrender();
+    }
+
     /** The only types that move money across the portfolio boundary. */
     public function isExternalCashFlow(): bool
     {
-        return self::DEPOSIT === $this || self::WITHDRAWAL === $this;
+        return self::DEPOSIT === $this || self::WITHDRAWAL === $this || $this->hasSupportLegs();
     }
 }

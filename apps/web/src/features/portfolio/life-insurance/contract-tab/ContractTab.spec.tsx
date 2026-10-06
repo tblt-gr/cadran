@@ -54,6 +54,19 @@ describe('ContractTab', () => {
       true,
     );
   });
+  it('offers the account link after a full surrender closes the contract', async () => {
+    api.readLifeInsuranceContract.mockResolvedValue(
+      ok({
+        ...overviewFixture(),
+        contract: { ...contractFixture(), status: 'CLOSED', closedOn: '2026-06-10' },
+      }),
+    );
+    mount();
+    expect(await screen.findByText(/Contrat soldé le 10\/06\/2026/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Voir le compte' }).getAttribute('href')).toBe(
+      '/accounts/account-1',
+    );
+  });
   it('creates through the shared modal from the empty state', async () => {
     api.readLifeInsuranceContract.mockResolvedValue(ok({ ...overviewFixture(), contract: null }));
     mount();

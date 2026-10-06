@@ -2452,7 +2452,10 @@ paths:
       summary: Preview the server-derived figures of an operation
       description: >-
         Applies the same rules as the creation and writes nothing: no operation, no idempotency key,
-        no first-use freeze.
+        no first-use freeze. With correctingOperationId, validates an active target in this workspace
+        and account, excludes it from replay and permits reuse of its linked transfer. Same-date
+        replacements preserve the target sequence; moved dates use the next sequence. Replacing a
+        full surrender simulates reopening the contract without persisting it.
       tags:
         - Portfolio
       security:
@@ -2460,6 +2463,13 @@ paths:
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
         - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: correctingOperationId
+          in: query
+          required: false
+          description: Active operation replaced by this preview, in the same workspace and account. Unknown, malformed or foreign targets return 404.
+          schema:
+            type: string
+            format: uuid
       requestBody:
         required: true
         content:
@@ -2481,6 +2491,12 @@ paths:
           $ref: '#/components/responses/AccountMutationForbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: The correction target is no longer active (operation_voided).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
         '422':
           description: 'Same refusals as the creation, with the same problem codes.'
           content:
@@ -16447,6 +16463,9 @@ components:
       type: string
       enum:
         [
+          PREMIUM,
+          PARTIAL_SURRENDER,
+          FULL_SURRENDER,
           DEPOSIT,
           WITHDRAWAL,
           BUY,
@@ -16483,6 +16502,54 @@ components:
           type: [string, 'null']
         status:
           $ref: '#/components/schemas/InstrumentStatus'
+    PortfolioOperationLegInput:
+      description: >-
+        One support leg. Euro funds accept amount alone; the server sets quantity to amount
+        and unitPrice to 1. Other supports require quantity and unitPrice. All figures are exact strings.
+      type: object
+      additionalProperties: false
+      required: [direction, instrumentId, amount]
+      properties:
+        direction:
+          type: string
+          enum: [IN, OUT]
+        instrumentId:
+          type: string
+          format: uuid
+        quantity:
+          type: [string, 'null']
+          maxLength: 64
+        unitPrice:
+          type: [string, 'null']
+          maxLength: 64
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+    PortfolioOperationLeg:
+      type: object
+      additionalProperties: false
+      required: [index, direction, instrument, quantity, unitPrice, amount, roundingResidual]
+      properties:
+        index:
+          type: integer
+          minimum: 1
+          maximum: 20
+        direction:
+          type: string
+          enum: [IN, OUT]
+        instrument:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioOperationInstrument'
+            - type: 'null'
+        quantity:
+          $ref: '#/components/schemas/PortfolioDecimal'
+        unitPrice:
+          $ref: '#/components/schemas/PortfolioDecimal'
+        amount:
+          $ref: '#/components/schemas/DecimalAmount'
+        roundingResidual:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
     PortfolioOperationRatio:
       type: object
       additionalProperties: false
@@ -16527,8 +16594,30 @@ components:
           correctsOperationId,
           correctedByOperationId,
           version,
+          legs,
+          withheldIncomeTax,
+          withheldSocialContributions,
+          netPaidAmount,
         ]
       properties:
+        legs:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/PortfolioOperationLeg'
+        withheldIncomeTax:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        withheldSocialContributions:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        netPaidAmount:
+          description: Gross less fees and observed withholdings, null except for surrenders.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
         id:
           type: string
           format: uuid
@@ -16663,6 +16752,19 @@ components:
       additionalProperties: false
       required: [type, tradeDate]
       properties:
+        legs:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/PortfolioOperationLegInput'
+        withheldIncomeTax:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        withheldSocialContributions:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
         type:
           type: string
           description: A `PortfolioOperationType`; `OTHER_CORPORATE_ACTION` is refused as unsupported.
@@ -16758,8 +16860,18 @@ components:
     PortfolioOperationPreview:
       type: object
       additionalProperties: false
-      required: [cashAmount, roundingResidual, expectedGrossAmount]
+      required: [cashAmount, roundingResidual, expectedGrossAmount, legs, netPaidAmount]
       properties:
+        legs:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/PortfolioOperationLeg'
+        netPaidAmount:
+          description: Gross less fees and observed withholdings, null except for surrenders.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
         cashAmount:
           $ref: '#/components/schemas/DecimalAmount'
         roundingResidual:
@@ -16912,6 +17024,8 @@ components:
       additionalProperties: false
       required:
         [
+          supportsBought,
+          supportsSold,
           deposits,
           withdrawals,
           buysGross,
@@ -16924,6 +17038,10 @@ components:
           roundingResiduals,
         ]
       properties:
+        supportsBought:
+          $ref: '#/components/schemas/DecimalAmount'
+        supportsSold:
+          $ref: '#/components/schemas/DecimalAmount'
         deposits:
           $ref: '#/components/schemas/DecimalAmount'
         withdrawals:
@@ -17218,6 +17336,17 @@ components:
             - operation_asset_mismatch
             - instrument_inactive
             - instrument_currency_mismatch
+            - surrender_exceeds_available
+            - premium_allocation_exceeds_net
+            - leg_amount_mismatch
+            - unknown_leg_instrument
+            - duplicate_leg_instrument
+            - invalid_leg_direction
+            - too_many_operation_legs
+            - invalid_surrender_amounts
+            - full_surrender_positions_remaining
+            - full_surrender_not_balanced
+            - operations_after_full_surrender
             - unknown_instrument
             - invalid_corporate_action
             - invalid_operation_date
@@ -17246,11 +17375,24 @@ components:
             - position_would_go_negative
             - split_fraction_unsupported
             - corporate_action_without_position
+        legIndex:
+          type: integer
+          minimum: 1
+          maximum: 20
+        expectedAmount:
+          description: Exact quantity times price on leg_amount_mismatch.
+          type: string
+        instrumentIds:
+          description: Supports remaining after a full surrender.
+          type: array
+          items:
+            type: string
+            format: uuid
         field:
           description: The matrix field named by `operation_field_required` and `operation_field_not_allowed`.
           type: string
         expectedGrossAmount:
-          description: Quantity x unit price, exact, on `operation_amount_mismatch`.
+          description: Exact expected gross on operation_amount_mismatch or full_surrender_not_balanced.
           type: string
         operationId:
           type: string

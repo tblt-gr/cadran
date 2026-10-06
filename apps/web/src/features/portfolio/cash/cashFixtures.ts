@@ -21,6 +21,8 @@ export function cashFixture(overrides: Partial<PortfolioCash> = {}): PortfolioCa
     closingBalance: eur('1193.28'),
     currentBalance: eur('1193.28'),
     totals: {
+      supportsBought: { value: '0', assetCode: 'EUR' },
+      supportsSold: { value: '0', assetCode: 'EUR' },
       deposits: eur('3000.00'),
       withdrawals: eur('500.00'),
       buysGross: eur('2305.69'),

@@ -5,11 +5,13 @@ import styles from './OperationFilters.module.css';
 
 export function OperationFilters({
   currencyCode,
+  accountKind,
   disabled = false,
   onChange,
   value,
 }: {
   currencyCode: string;
+  accountKind?: string;
   disabled?: boolean;
   onChange: (value: OperationFilterValues) => void;
   value: OperationFilterValues;
@@ -19,6 +21,7 @@ export function OperationFilters({
       <legend className="sr-only">Filtres des opérations</legend>
       <div className={styles.row}>
         <OperationTypeSelect
+          accountKind={accountKind}
           onChange={(types) => onChange({ ...value, types })}
           value={value.types}
         />

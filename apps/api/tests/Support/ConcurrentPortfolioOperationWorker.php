@@ -57,6 +57,13 @@ while (2 !== count(glob($barrier.'.ready.*') ?: [])) {
 
 try {
     $outcome = match ($case) {
+        'surrender' => (static function () use ($container): string {
+            $record = $container->get(RecordPortfolioOperation::class);
+            \assert($record instanceof RecordPortfolioOperation);
+            $record(PortfolioFixture::ACCOUNT, new OperationInput(type: 'PARTIAL_SURRENDER', tradeDate: '2026-03-03', grossAmount: new AmountInput('100.00', 'EUR')));
+
+            return 'surrendered';
+        })(),
         'create' => (static function () use ($container, $deposit, $worker): string {
             $record = $container->get(RecordPortfolioOperation::class);
             \assert($record instanceof RecordPortfolioOperation);

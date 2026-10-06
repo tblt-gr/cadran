@@ -23,6 +23,7 @@ final readonly class OperationCashEffect
     ) {
     }
 
+    /** @param list<OperationLeg> $legs */
     public static function derive(
         OperationType $type,
         ?DecimalValue $quantity,
@@ -31,14 +32,16 @@ final readonly class OperationCashEffect
         DecimalValue $fees,
         DecimalValue $taxes,
         int $displayPrecision,
+        array $legs = [],
     ): self {
         try {
-            return self::compute($type, $quantity, $unitPrice, $grossAmount, $fees, $taxes, $displayPrecision);
+            return self::compute($type, $quantity, $unitPrice, $grossAmount, $fees, $taxes, $displayPrecision, $legs);
         } catch (PrecisionExceeded|MalformedDecimal $exception) {
             throw new InvalidPortfolioOperation('The operation amounts are too large to be stored exactly.', 'invalid_operation_amount');
         }
     }
 
+    /** @param list<OperationLeg> $legs */
     private static function compute(
         OperationType $type,
         ?DecimalValue $quantity,
@@ -47,11 +50,14 @@ final readonly class OperationCashEffect
         DecimalValue $fees,
         DecimalValue $taxes,
         int $displayPrecision,
+        array $legs = [],
     ): self {
         $gross = $grossAmount ?? DecimalValue::zero();
         $net = ExactDecimal::subtract(ExactDecimal::subtract($gross, $fees), $taxes);
 
         return match ($type) {
+            OperationType::PREMIUM => self::premium($gross, $fees, $legs),
+            OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER => new self(ExactDecimal::subtract(self::supports($legs), $gross), null, null),
             OperationType::DEPOSIT => new self($gross, null, null),
             OperationType::WITHDRAWAL => new self(ExactDecimal::negate($gross), null, null),
             OperationType::BUY, OperationType::SELL => self::trade($type, $quantity, $unitPrice, $gross, $fees, $taxes, $net, $displayPrecision),
@@ -62,6 +68,28 @@ final readonly class OperationCashEffect
             OperationType::SECURITY_TRANSFER_IN, OperationType::SECURITY_TRANSFER_OUT,
             OperationType::SPLIT, OperationType::SPIN_OFF => new self(DecimalValue::zero(), null, null),
         };
+    }
+
+    /** @param list<OperationLeg> $legs */
+    private static function supports(array $legs): DecimalValue
+    {
+        $total = DecimalValue::zero();
+        foreach ($legs as $leg) {
+            $total = ExactDecimal::add($total, $leg->amount);
+        }
+
+        return $total;
+    }
+
+    /** @param list<OperationLeg> $legs */
+    private static function premium(DecimalValue $gross, DecimalValue $fees, array $legs): self
+    {
+        $cash = ExactDecimal::subtract(ExactDecimal::subtract($gross, $fees), self::supports($legs));
+        if ($cash->isNegative()) {
+            throw new InvalidPortfolioOperation('The support allocation exceeds the net premium.', 'premium_allocation_exceeds_net');
+        }
+
+        return new self($cash, null, null);
     }
 
     private static function trade(

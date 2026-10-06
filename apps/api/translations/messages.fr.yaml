@@ -261,6 +261,39 @@ api:
     invalid_settlement_date:
       title: 'Date de règlement invalide'
       detail: 'La date de règlement suit la date d’opération d’au plus 31 jours.'
+    surrender_exceeds_available:
+      title: 'Rachat supérieur au disponible'
+      detail: 'Le montant brut du rachat dépasse les liquidités disponibles et les supports vendus.'
+    premium_allocation_exceeds_net:
+      title: 'Allocation supérieure au versement net'
+      detail: 'La somme allouée aux supports dépasse le versement après frais.'
+    leg_amount_mismatch:
+      title: 'Montant de support incohérent'
+      detail: 'Le montant de la ligne doit correspondre aux parts multipliées par le prix, à un demi-centime près.'
+    unknown_leg_instrument:
+      title: 'Support introuvable'
+      detail: 'Le support de cette ligne est introuvable dans votre espace.'
+    duplicate_leg_instrument:
+      title: 'Support répété'
+      detail: 'Un support ne peut apparaître deux fois dans le même sens.'
+    invalid_leg_direction:
+      title: 'Sens de support invalide'
+      detail: 'Un versement reçoit des supports et un rachat cède des supports.'
+    too_many_operation_legs:
+      title: 'Trop de lignes de supports'
+      detail: 'Une opération peut contenir au plus vingt lignes de supports.'
+    invalid_surrender_amounts:
+      title: 'Montants de rachat incohérents'
+      detail: 'Les frais et les retenues constatées ne peuvent dépasser le montant brut du rachat.'
+    full_surrender_positions_remaining:
+      title: 'Des supports restent dans le contrat'
+      detail: 'Un rachat total doit céder toutes les parts de tous les supports.'
+    full_surrender_not_balanced:
+      title: 'Rachat total non soldé'
+      detail: 'Le montant brut du rachat total doit solder exactement les liquidités du contrat.'
+    operations_after_full_surrender:
+      title: 'Opérations après le rachat total'
+      detail: 'Une opération active suit ce rachat total. Corrigez ou annulez cette opération avant de solder le contrat.'
     operation_amount_mismatch:
       title: 'Montant brut incohérent'
       detail: 'Le montant brut s’écarte de quantité × prix unitaire de plus d’une demi-unité d’affichage de la devise.'

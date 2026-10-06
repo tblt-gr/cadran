@@ -14,12 +14,16 @@ final class OperationFieldMatrixTest extends TestCase
 {
     private const array ALL = [
         'instrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'costBasis',
-        'counterInstrument', 'counterQuantity', 'ratio', 'costAllocationRatio', 'linkedTransaction',
+        'counterInstrument', 'counterQuantity', 'ratio', 'costAllocationRatio', 'linkedTransaction', 'legs', 'withheldIncomeTax', 'withheldSocialContributions',
     ];
 
     /** @return iterable<string, array{OperationType, list<string>, list<string>}> */
     public static function matrix(): iterable
     {
+        yield 'PREMIUM' => [OperationType::PREMIUM, ['grossAmount'], ['fees', 'legs', 'linkedTransaction']];
+        foreach ([OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER] as $type) {
+            yield $type->value => [$type, ['grossAmount'], ['fees', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'linkedTransaction']];
+        }
         yield 'DEPOSIT' => [OperationType::DEPOSIT, ['grossAmount'], ['linkedTransaction']];
         yield 'WITHDRAWAL' => [OperationType::WITHDRAWAL, ['grossAmount'], ['linkedTransaction']];
         yield 'BUY' => [OperationType::BUY, ['instrument', 'quantity', 'unitPrice', 'grossAmount'], ['fees', 'taxes']];

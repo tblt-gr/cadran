@@ -5,6 +5,8 @@ type ResultLike = { error?: unknown; response?: Response };
 
 /** A refused portfolio request, classified by the problem `code` of the API. */
 export class OperationRequestError extends Error {
+  readonly legIndex?: number;
+  readonly expectedAmount?: string;
   readonly status: number;
   readonly code?: string;
   readonly type?: string;
@@ -16,6 +18,8 @@ export class OperationRequestError extends Error {
   constructor(result: ResultLike) {
     super('Portfolio operation request failed.');
     const problem = result.error as Partial<PortfolioOperationProblem> | undefined;
+    this.legIndex = problem?.legIndex;
+    this.expectedAmount = problem?.expectedAmount;
     this.status = result.response?.status ?? 0;
     this.code = problem?.code;
     this.type = problem?.type;
@@ -31,6 +35,14 @@ export function operationRequestError(result: ResultLike) {
 }
 
 const fieldByCode: Record<string, keyof OperationFieldErrors> = {
+  unknown_leg_instrument: 'legs',
+  operation_asset_mismatch: 'legs',
+  duplicate_leg_instrument: 'legs',
+  invalid_leg_direction: 'legs',
+  premium_allocation_exceeds_net: 'grossAmount',
+  surrender_exceeds_available: 'grossAmount',
+  invalid_surrender_amounts: 'grossAmount',
+  full_surrender_not_balanced: 'grossAmount',
   invalid_operation_quantity: 'quantity',
   quantity_precision_exceeded: 'quantity',
   price_precision_exceeded: 'unitPrice',
@@ -47,6 +59,9 @@ const fieldByCode: Record<string, keyof OperationFieldErrors> = {
   invalid_operation_text: 'note',
 };
 const fieldByName: Record<string, keyof OperationFieldErrors> = {
+  withheldIncomeTax: 'withheldIncomeTax',
+  withheldSocialContributions: 'withheldSocialContributions',
+  legs: 'legs',
   instrumentId: 'instrument',
   counterInstrumentId: 'counterInstrument',
   linkedTransactionId: 'linkedTransaction',
@@ -65,6 +80,15 @@ const fieldByName: Record<string, keyof OperationFieldErrors> = {
   tradeDate: 'tradeDate',
 };
 const fieldTexts: Record<string, string> = {
+  premium_allocation_exceeds_net: 'Les supports dépassent le versement net de frais.',
+  surrender_exceeds_available: 'Le rachat dépasse les liquidités et les supports vendus.',
+  invalid_surrender_amounts: 'Les frais et prélèvements dépassent le montant brut du rachat.',
+  full_surrender_not_balanced: 'Le rachat total doit solder exactement les liquidités.',
+  unknown_leg_instrument: 'Ce support est introuvable.',
+  duplicate_leg_instrument: 'Ce support figure déjà dans l’opération.',
+  invalid_leg_direction: 'Le sens de ce support ne correspond pas à l’opération.',
+  euro_fund_price_fixed: 'Le prix d’un fonds en euros est fixé à 1.',
+  operation_asset_mismatch: 'La devise du support doit correspondre au compte.',
   invalid_operation_quantity: 'La quantité est invalide.',
   quantity_precision_exceeded: 'La quantité dépasse la précision de l’instrument.',
   price_precision_exceeded: 'Le prix dépasse la précision de l’instrument.',
@@ -92,6 +116,26 @@ export function mismatchMessage(expected: string | undefined): string {
 
 export function operationFieldErrors(error: unknown): OperationFieldErrors {
   if (!(error instanceof OperationRequestError) || !error.code) return {};
+  if (error.legIndex !== undefined) {
+    const field =
+      error.code === 'leg_amount_mismatch'
+        ? 'amount'
+        : error.code === 'quantity_precision_exceeded' ||
+            error.code === 'invalid_operation_quantity'
+          ? 'quantity'
+          : error.code === 'price_precision_exceeded' || error.code === 'euro_fund_price_fixed'
+            ? 'unitPrice'
+            : 'row';
+    const message =
+      error.code === 'leg_amount_mismatch'
+        ? `Le montant ne correspond pas aux parts × valeur liquidative. Montant attendu : ${error.expectedAmount ?? '-'}.`
+        : (fieldTexts[error.code] ?? 'Ce support est invalide. Vérifiez ses valeurs.');
+    return { [`legs.${error.legIndex}.${field}`]: message };
+  }
+  if (error.code === 'full_surrender_not_balanced')
+    return {
+      grossAmount: `Le rachat total doit solder les liquidités. Montant brut attendu : ${error.expectedGrossAmount ?? '-'}.`,
+    };
   if (error.code === 'operation_amount_mismatch') {
     return { grossAmount: mismatchMessage(error.expectedGrossAmount) };
   }
@@ -106,6 +150,11 @@ export function operationFieldErrors(error: unknown): OperationFieldErrors {
 }
 
 const messages: Record<string, string> = {
+  full_surrender_positions_remaining:
+    'Le rachat total laisse des supports détenus. Reprenez toutes les positions.',
+  operations_after_full_surrender:
+    'Des opérations suivent cette date. Corrigez-les avant le rachat total.',
+  too_many_operation_legs: '20 supports au maximum sont autorisés.',
   life_insurance_contract_required: 'Renseignez d’abord le contrat avant de saisir une opération.',
   life_insurance_contract_closed: 'Ce contrat est clos à la date de l’opération.',
   operation_type_not_allowed_for_account: 'Ce type d’opération n’est pas autorisé sur ce contrat.',

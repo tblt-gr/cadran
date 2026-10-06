@@ -5,6 +5,14 @@ import { OperationTypeSelect } from './OperationTypeSelect';
 afterEach(cleanup);
 
 describe('OperationTypeSelect', () => {
+  it('offers insurance types without ordinary deposits, withdrawals or security transfers', () => {
+    render(<OperationTypeSelect accountKind="INSURANCE_CONTRACT" onChange={vi.fn()} value={[]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Types d’opération Tous les types' }));
+    expect(screen.getByRole('option', { name: 'Versement' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Rachat total' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Retrait' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Transfert de titres entrant' })).toBeNull();
+  });
   it('stays closed until the trigger opens the type list', () => {
     render(<OperationTypeSelect onChange={vi.fn()} value={[]} />);
 

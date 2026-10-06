@@ -10,6 +10,7 @@ use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\OperationVoidKind;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
@@ -26,6 +27,7 @@ final readonly class CorrectPortfolioOperation
         private PortfolioOperationRepository $operations,
         private PortfolioAccountGate $gate,
         private OperationResolver $resolver,
+        private LifeInsurance\ReconcileContractOperations $contractOperations,
         private PortfolioOperationRecorder $recorder,
         private PortfolioOperationPresenter $presenter,
         private AssertPeriodOpen $assertPeriodOpen,
@@ -54,13 +56,18 @@ final readonly class CorrectPortfolioOperation
             if ($original->version !== $version) {
                 throw new StalePortfolioOperationVersion();
             }
-            $resolved = $this->resolver->resolve($account, $input, $this->calendar->today(), true, $original->id);
 
             $replaced = $original->void(OperationVoidKind::REPLACED, $reason, $now, $context->actorId);
             if (!$this->operations->markVoided($replaced, $version)) {
                 throw new StalePortfolioOperationVersion();
             }
-            $replacement = $this->recorder->record($context, $account, $resolved, $now, $original->id);
+            if (OperationType::FULL_SURRENDER === $original->details->type) {
+                ($this->contractOperations)($context, $account->id, $now);
+            }
+            $resolved = $this->resolver->resolve($account, $input, $this->calendar->today(), true, $original->id);
+            $replacement = $this->recorder->record($context, $account, $resolved, $now, $original->id,
+                $original->details->tradeDate == $newTradeDate ? $original->sequence : null,
+            );
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, PortfolioOperationAuditEvents::REPLACED,
                 PortfolioOperationAuditEvents::ENTITY, $replaced->id, PortfolioOperationAudit::replaced($replaced, $replacement->id),

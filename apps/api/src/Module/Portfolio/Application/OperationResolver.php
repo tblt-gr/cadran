@@ -20,6 +20,7 @@ use App\Module\Portfolio\Domain\LifeInsurance\LifeInsuranceContractRepository;
 use App\Module\Portfolio\Domain\OperationCashEffect;
 use App\Module\Portfolio\Domain\OperationDetails;
 use App\Module\Portfolio\Domain\OperationType;
+use App\Module\Portfolio\Domain\Performance\ExternalFlow;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 use App\Module\Reference\Application\AssetCatalog;
 use App\Module\Reference\Domain\Asset;
@@ -52,15 +53,21 @@ final readonly class OperationResolver
      * @param bool        $lock                 lock the instruments for update, for a write
      * @param string|null $replacingOperationId the operation a correction replaces, whose own transfer link stays available
      */
-    public function resolve(Account $account, OperationInput $input, \DateTimeImmutable $today, bool $lock, ?string $replacingOperationId = null): ResolvedOperation
+    public function resolve(Account $account, OperationInput $input, \DateTimeImmutable $today, bool $lock, ?string $replacingOperationId = null, bool $reopeningContract = false): ResolvedOperation
     {
         $asset = $this->assets->findByCode($account->assetCode) ?? throw new \LogicException('The account asset is missing from the reference.');
         $type = OperationType::tryFrom($input->type) ?? throw new InvalidPortfolioOperation('The operation type is not supported.', 'OTHER_CORPORATE_ACTION' === $input->type ? 'unsupported_operation_type' : 'invalid_operation_type');
         $tradeDate = self::parseTradeDate($input->tradeDate);
-        OperationTypePolicy::assertContract($account->kind, AccountKind::INSURANCE_CONTRACT === $account->kind ? $this->contracts->findByAccount($account->workspace, $account->id) : null, $tradeDate);
+        $contract = AccountKind::INSURANCE_CONTRACT === $account->kind ? $this->contracts->findByAccount($account->workspace, $account->id) : null;
+        // Correction previews reopen only in memory; the write use case reopens transactionally.
+        if ($reopeningContract && null !== $contract) {
+            $contract = $contract->withClosure(null, $today);
+        }
+        OperationTypePolicy::assertContract($account->kind, $contract, $tradeDate);
         OperationTypePolicy::assertAllowed($account->kind, $type);
         $settlementDate = null === $input->settlementDate ? null : self::date($input->settlementDate, 'invalid_settlement_date');
 
+        $resolvedInstruments = $this->resolveInstrumentIds($account, array_values(array_filter([$input->instrumentId, $input->counterInstrumentId, ...array_map(static fn (OperationLegInput $leg): string => $leg->instrumentId, $input->legs)], static fn (?string $id): bool => null !== $id)), $lock, array_map(static fn (OperationLegInput $leg): string => $leg->instrumentId, $input->legs));
         $details = new OperationDetails(
             type: $type,
             tradeDate: $tradeDate,
@@ -80,15 +87,18 @@ final readonly class OperationResolver
             reference: $input->reference,
             note: $input->note,
             linkedTransactionId: $input->linkedTransactionId,
+            legs: SupportLegResolver::resolve($account, $asset, $input->legs, $resolvedInstruments),
+            withheldIncomeTax: self::amount($input->withheldIncomeTax, $asset),
+            withheldSocialContributions: self::amount($input->withheldSocialContributions, $asset),
         );
 
         $this->assertDates($account, $tradeDate, $today);
-        $resolvedInstruments = $this->resolveInstruments($account, $details, $lock);
+        $this->assertInstrumentPrecisions($details, $resolvedInstruments);
         $this->assertLinkedTransfer($account, $details, $replacingOperationId);
 
         $effect = OperationCashEffect::derive(
             $type, $details->quantity, $details->unitPrice, $details->grossAmount,
-            $details->fees ?? DecimalValue::zero(), $details->taxes ?? DecimalValue::zero(), $asset->precision->display,
+            $details->fees ?? DecimalValue::zero(), $details->taxes ?? DecimalValue::zero(), $asset->precision->display, $details->legs,
         );
 
         return new ResolvedOperation($details, $effect, $resolvedInstruments);
@@ -104,10 +114,14 @@ final readonly class OperationResolver
         }
     }
 
-    /** @return list<Instrument> */
-    private function resolveInstruments(Account $account, OperationDetails $details, bool $lock): array
+    /** @param list<string> $ids
+     * @param list<string> $legIds
+     *
+     * @return list<Instrument>
+     */
+    private function resolveInstrumentIds(Account $account, array $ids, bool $lock, array $legIds): array
     {
-        $ids = array_values(array_unique(array_filter([$details->instrumentId, $details->counterInstrumentId])));
+        $ids = array_values(array_unique($ids));
         // A fixed order keeps two writers naming the same instruments in opposite order from deadlocking.
         sort($ids);
         $resolved = [];
@@ -116,17 +130,28 @@ final readonly class OperationResolver
                 ? ($lock ? $this->instruments->findForUpdate($account->workspace, $id) : $this->instruments->find($account->workspace, $id))
                 : null;
             if (null === $instrument) {
-                throw new InvalidPortfolioOperation('The instrument does not exist.', 'unknown_instrument');
+                $legOffset = array_search($id, $legIds, true);
+                throw new InvalidPortfolioOperation('The instrument does not exist.', false !== $legOffset ? 'unknown_leg_instrument' : 'unknown_instrument', false !== $legOffset ? ['legIndex' => $legOffset + 1] : []);
             }
             if (InstrumentStatus::ACTIVE !== $instrument->status) {
                 throw new InvalidPortfolioOperation('The instrument is inactive.', 'instrument_inactive');
             }
             if (!$instrument->currencyCode->equals($account->assetCode)) {
-                throw new InvalidPortfolioOperation('The instrument currency differs from the account currency.', 'instrument_currency_mismatch');
+                throw new InvalidPortfolioOperation('The instrument currency differs from the account currency.', in_array($id, $legIds, true) ? 'operation_asset_mismatch' : 'instrument_currency_mismatch');
             }
             $resolved[$id] = $instrument;
         }
 
+        return array_values($resolved);
+    }
+
+    /** @param list<Instrument> $instruments */
+    private function assertInstrumentPrecisions(OperationDetails $details, array $instruments): void
+    {
+        $resolved = [];
+        foreach ($instruments as $instrument) {
+            $resolved[$instrument->id] = $instrument;
+        }
         $main = null === $details->instrumentId ? null : $resolved[$details->instrumentId];
         $counter = null === $details->counterInstrumentId ? null : $resolved[$details->counterInstrumentId];
         if (InstrumentType::EURO_FUND === $main?->instrumentType) {
@@ -139,8 +164,6 @@ final readonly class OperationResolver
         if (null !== $counter) {
             self::assertScale($details->counterQuantity, $counter->quantityPrecision, 'quantity_precision_exceeded');
         }
-
-        return array_values($resolved);
     }
 
     private function assertLinkedTransfer(Account $account, OperationDetails $details, ?string $replacingOperationId): void
@@ -150,13 +173,13 @@ final readonly class OperationResolver
             return;
         }
         $leg = 1 === preg_match(self::UUID_PATTERN, $linkedId) ? ($this->transferLegs)($account->workspace, $linkedId) : null;
-        $gross = $details->grossAmount;
+        $gross = ExternalFlow::linkedAmount($details);
         $mismatch = static fn (): InvalidPortfolioOperation => new InvalidPortfolioOperation('The linked transfer leg does not mirror this operation.', 'linked_transfer_mismatch');
         if (null === $leg || null === $gross
             || $leg->accountId !== $account->id
             || 'BOOKED' !== $leg->state || $leg->voided
             || !$leg->amount->asset->equals($account->assetCode)
-            || $leg->amount->value->isNegative() !== (OperationType::WITHDRAWAL === $details->type)
+            || $leg->amount->value->isNegative() !== (OperationType::WITHDRAWAL === $details->type || $details->type->isSurrender())
             || 0 !== ExactDecimal::absolute($leg->amount->value)->compareTo($gross)
             || $leg->bookedOn->format('Y-m-d') !== $details->tradeDate->format('Y-m-d')) {
             throw $mismatch();

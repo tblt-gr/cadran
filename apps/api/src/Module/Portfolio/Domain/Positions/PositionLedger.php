@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\Domain\Positions;
 use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\RoundingMode;
+use App\Module\Portfolio\Domain\LegDirection;
 use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 
@@ -130,6 +131,18 @@ final class PositionLedger
             $states[$details->counterInstrumentId]->last = $details->tradeDate;
         }
 
+        $legs = $details->legs;
+        usort($legs, static fn ($a, $b): int => [LegDirection::OUT === $a->direction ? 0 : 1, $a->index] <=> [LegDirection::OUT === $b->direction ? 0 : 1, $b->index]);
+        foreach ($legs as $leg) {
+            $states[$leg->instrumentId] ??= new LedgerState();
+            $states[$leg->instrumentId]->last = $details->tradeDate;
+            if (LegDirection::OUT === $leg->direction) {
+                $this->dispose($states, $movements, $operation, $leg->instrumentId, self::calculated($leg->quantity), $leg->index);
+            } else {
+                $this->acquire($states, $movements, $operation, $leg->instrumentId, self::calculated($leg->quantity), self::calculated($leg->amount), $leg->index);
+            }
+        }
+
         match ($details->type) {
             OperationType::BUY => $this->acquire(
                 $states, $movements, $operation, self::required($details->instrumentId),
@@ -169,11 +182,11 @@ final class PositionLedger
      * @param array<string, LedgerState>       $states
      * @param array<string, list<LotMovement>> $movements
      */
-    private function acquire(array &$states, array &$movements, PortfolioOperation $operation, string $instrumentId, CalculatedDecimal $quantity, ?CalculatedDecimal $cost): void
+    private function acquire(array &$states, array &$movements, PortfolioOperation $operation, string $instrumentId, CalculatedDecimal $quantity, ?CalculatedDecimal $cost, int $legIndex = 0): void
     {
         $state = $states[$instrumentId];
         $lot = new OpenLot(
-            $operation->id.'#0', $operation->id, $operation->details->type, $operation->details->tradeDate,
+            $operation->id.'#'.$legIndex, $operation->id, $operation->details->type, $operation->details->tradeDate,
             $operation->sequence, $quantity, $quantity, $cost,
         );
         $state->lots[] = $lot;
@@ -188,7 +201,7 @@ final class PositionLedger
      * @param array<string, LedgerState>       $states
      * @param array<string, list<LotMovement>> $movements
      */
-    private function dispose(array &$states, array &$movements, PortfolioOperation $operation, string $instrumentId, CalculatedDecimal $quantity): void
+    private function dispose(array &$states, array &$movements, PortfolioOperation $operation, string $instrumentId, CalculatedDecimal $quantity, int $legIndex = 0): void
     {
         $state = $states[$instrumentId];
         if ($state->poolQuantity->compareTo($quantity) < 0) {
@@ -222,12 +235,12 @@ final class PositionLedger
             $remaining = $remaining->subtract($consumed);
         }
         $poolQuantity = $state->poolQuantity;
-        $state->released[$operation->id] = null;
+        $state->released[0 === $legIndex ? $operation->id : $operation->id.':'.$legIndex] = null;
         if (null !== $state->poolCost) {
             $relief = 0 === $quantity->compareTo($poolQuantity)
                 ? $state->poolCost
                 : $state->poolCost->proportion($quantity, $poolQuantity, DecimalValue::MAX_SCALE, RoundingMode::HALF_EVEN);
-            $state->released[$operation->id] = $relief;
+            $state->released[0 === $legIndex ? $operation->id : $operation->id.':'.$legIndex] = $relief;
             $state->poolCost = $state->poolCost->subtract($relief);
         }
         $state->poolQuantity = $poolQuantity->subtract($quantity);
@@ -411,6 +424,10 @@ final class PositionLedger
                 continue;
             }
             $date = $operation->details->tradeDate->format('Y-m-d');
+            foreach ($operation->details->legs as $leg) {
+                $directions[$leg->instrumentId][$date] ??= ['increase' => false, 'decrease' => false];
+                $directions[$leg->instrumentId][$date][LegDirection::IN === $leg->direction ? 'increase' : 'decrease'] = true;
+            }
             $type = $operation->details->type;
             $main = $operation->details->instrumentId;
             $counter = $operation->details->counterInstrumentId;

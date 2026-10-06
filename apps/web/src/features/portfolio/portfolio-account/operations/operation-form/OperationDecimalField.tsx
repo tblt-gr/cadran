@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { OperationField } from './OperationField';
 import styles from './OperationForm.module.css';
 
@@ -15,9 +16,12 @@ export function OperationDecimalField({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const errorId = useId();
   return (
-    <OperationField error={error} label={label}>
+    <OperationField errorId={errorId} error={error} label={label}>
       <input
+        aria-invalid={!!error}
+        aria-describedby={error ? errorId : undefined}
         autoComplete="off"
         inputMode="decimal"
         onChange={(event) => onChange(event.target.value)}

@@ -74,6 +74,13 @@ final readonly class LifeInsuranceContract
         );
     }
 
+    public function withClosure(?\DateTimeImmutable $closedOn, \DateTimeImmutable $at): self
+    {
+        return new self($this->id, $this->workspace, $this->accountId, $this->insurer, $this->distributor, $this->commercialName,
+            $this->numberSuffix, $this->subscribedOn, $this->taxStartOn, $this->managementMode,
+            null === $closedOn ? ContractStatus::OPEN : ContractStatus::CLOSED, $closedOn, $this->createdAt, $this->createdBy, $at, $this->version + 1);
+    }
+
     public function revise(
         string $insurer,
         ?string $distributor,
