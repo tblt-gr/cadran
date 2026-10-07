@@ -1,6 +1,7 @@
 import type { PortfolioOperationType } from '@cadran/api-client';
 
 export const operationTypes: readonly PortfolioOperationType[] = [
+  'SWITCH',
   'PREMIUM',
   'PARTIAL_SURRENDER',
   'FULL_SURRENDER',
@@ -20,6 +21,7 @@ export const operationTypes: readonly PortfolioOperationType[] = [
 ];
 
 const labels: Record<PortfolioOperationType, string> = {
+  SWITCH: 'Arbitrage',
   PREMIUM: 'Versement',
   PARTIAL_SURRENDER: 'Rachat partiel',
   FULL_SURRENDER: 'Rachat total',
@@ -47,6 +49,6 @@ export function allowedOperationTypes(kind?: string): readonly PortfolioOperatio
   return operationTypes.filter((type) =>
     kind === 'INSURANCE_CONTRACT'
       ? !['DEPOSIT', 'WITHDRAWAL', 'SECURITY_TRANSFER_IN', 'SECURITY_TRANSFER_OUT'].includes(type)
-      : !['PREMIUM', 'PARTIAL_SURRENDER', 'FULL_SURRENDER'].includes(type),
+      : !['SWITCH', 'PREMIUM', 'PARTIAL_SURRENDER', 'FULL_SURRENDER'].includes(type),
   );
 }

@@ -22,6 +22,7 @@ final readonly class PreviewPortfolioOperation
         private PortfolioOperationRepository $operations,
         private LifeInsurance\ValidateContractHistory $history,
         private ReconcilePortfolioPositions $positions,
+        private SwitchFeeTerms $switchFeeTerms,
     ) {
     }
 
@@ -66,12 +67,18 @@ final readonly class PreviewPortfolioOperation
             }
         }
 
+        $terms = $this->switchFeeTerms->forOperation($account->workspace, $account->id, $resolved->details);
+
         return new OperationPreview(
             $amount($resolved->effect->cashAmount->toString()),
             null === $resolved->effect->roundingResidual ? null : $amount($resolved->effect->roundingResidual->toString()),
             null === $expectedGross ? null : $amount($expectedGross->toString()),
             array_map(static fn ($leg): array => OperationLegView::of($leg, $asset), $resolved->details->legs),
             null === $resolved->details->netPaidAmount() ? null : $amount($resolved->details->netPaidAmount()->toString()),
+            null === $resolved->details->expectedIncomingAmount() ? null : $amount($resolved->details->expectedIncomingAmount()->toString()),
+            null === $resolved->details->switchDifference() ? null : $amount($resolved->details->switchDifference()->toString()),
+            $terms?->switchFeeRate?->toString(),
+            null === $terms?->switchFeeFixed ? null : $amount($terms->switchFeeFixed->toString()),
         );
     }
 }

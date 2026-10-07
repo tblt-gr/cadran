@@ -45,7 +45,7 @@ export function useOperationPreview(
   });
   return {
     ...result,
-    data: settled === serialized ? result.data : undefined,
+    data: settled === serialized && !result.isFetching && !result.isError ? result.data : undefined,
     error: settled === serialized ? result.error : null,
     isFetching: (serialized !== null && settled !== serialized) || result.isFetching,
   };

@@ -115,7 +115,7 @@ final class PortfolioOperationControllerTest extends WebTestCase
         self::assertNull($buy['correctsOperationId']);
         self::assertNull($buy['correctedByOperationId']);
         self::assertSame(
-            ['id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'activeDayOperationCount', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'netPaidAmount'],
+            ['id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'activeDayOperationCount', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'netPaidAmount', 'applicableSwitchFeeRate', 'applicableSwitchFeeFixed'],
             array_keys($buy),
         );
 
@@ -166,6 +166,10 @@ final class PortfolioOperationControllerTest extends WebTestCase
             'expectedGrossAmount' => ['value' => '2305.688', 'assetCode' => 'EUR'],
             'legs' => [],
             'netPaidAmount' => null,
+            'expectedIncomingAmount' => null,
+            'difference' => null,
+            'applicableSwitchFeeRate' => null,
+            'applicableSwitchFeeFixed' => null,
         ], $this->decode());
         self::assertSame(0, $this->rows('portfolio_operations'));
         self::assertNull($this->connection->fetchOne('SELECT used_at FROM portfolio_instruments WHERE id = ?', [self::ETF]));
@@ -176,7 +180,7 @@ final class PortfolioOperationControllerTest extends WebTestCase
         self::assertSame('operation_amount_mismatch', $this->decode()['code']);
 
         $this->send('POST', $this->path('/preview'), ['type' => 'DEPOSIT', 'tradeDate' => '2026-03-02', 'grossAmount' => ['value' => '10', 'assetCode' => 'EUR']]);
-        self::assertSame(['cashAmount' => ['value' => '10', 'assetCode' => 'EUR'], 'roundingResidual' => null, 'expectedGrossAmount' => null, 'legs' => [], 'netPaidAmount' => null], $this->decode());
+        self::assertSame(['cashAmount' => ['value' => '10', 'assetCode' => 'EUR'], 'roundingResidual' => null, 'expectedGrossAmount' => null, 'legs' => [], 'netPaidAmount' => null, 'expectedIncomingAmount' => null, 'difference' => null, 'applicableSwitchFeeRate' => null, 'applicableSwitchFeeFixed' => null], $this->decode());
     }
 
     public function testEveryOperationTypeCanBeRecordedAndNeverTouchesTheBudget(): void

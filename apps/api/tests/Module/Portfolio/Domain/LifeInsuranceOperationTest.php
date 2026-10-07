@@ -68,6 +68,60 @@ final class LifeInsuranceOperationTest extends TestCase
         self::assertNull(Insurance::premium()->details->legs[1]->roundingResidual);
     }
 
+    public function testSwitchCostReleaseCashIdentityAndPerformanceDecomposition(): void
+    {
+        $switch = Insurance::operation(OperationType::SWITCH, '2000.00', [
+            Insurance::leg(1, LegDirection::OUT, Insurance::FUND, '2000', '1', '2000.00'),
+            Insurance::leg(2, LegDirection::IN, Insurance::EQUITY, '20', '99.50', '1990.00'),
+        ], fees: '10.00', sequence: 3, date: '2026-09-01');
+        $operations = [Insurance::premium(), Insurance::surrender(), $switch];
+        $ledger = (new PositionLedger())->replay($operations, []);
+        self::assertSame(0, BigDecimal::of('4915')->compareTo($ledger->positions[Insurance::EQUITY]->averageCostBasis?->toString() ?? '-1'));
+        self::assertSame(0, BigDecimal::of('2000')->compareTo($ledger->averageCostReleased[$switch->id.':1']?->toString() ?? '-1'));
+        self::assertNull(ExternalFlow::signedAmount($switch));
+        $cash = CashLedger::replay([], $operations);
+        self::assertSame('0.00', $cash->closingBalance->toString());
+        $totals = $cash->totals;
+        $identity = BigDecimal::of($totals->deposits->toString())->minus($totals->withdrawals->toString())
+            ->minus($totals->supportsBought->toString())->plus($totals->supportsSold->toString())
+            ->minus($totals->fees->toString())->minus($totals->taxes->toString());
+        self::assertTrue($identity->isZero());
+        $positions = [];
+        foreach ([[Insurance::FUND, '4000', '4000'], [Insurance::EQUITY, '50', '4915']] as [$instrument, $quantity, $cost]) {
+            $positions[] = new PositionSnapshot('snapshot-'.$instrument, 'valuation', $instrument, DecimalValue::fromString($quantity), null, null, null, null, DecimalValue::fromString($cost), PriceQuality::CURRENT);
+        }
+        $end = PeriodAnchor::valuation('valuation', new \DateTimeImmutable('2026-09-30'), DecimalValue::fromString('8975.00'), DecimalValue::fromString('8975.00'), 'POSITIONS', [], $positions);
+        $result = (new TotalGainCalculator())->calculate(PeriodAnchor::opening(new \DateTimeImmutable('2026-01-14')), $end, $operations, $ledger, 2);
+        self::assertSame('8966.10', $result->netFlows);
+        self::assertSame('8.90', $result->gain);
+        self::assertSame('75.00', $result->decomposition->realized);
+        self::assertSame('60.00', $result->decomposition->unrealizedChange);
+        self::assertSame('-110.00', $result->decomposition->fees);
+        self::assertSame('0.00', $result->decomposition->residual);
+    }
+
+    public function testSwitchUsesExactStatedBalanceWithoutThePerLegTolerance(): void
+    {
+        $large = '99999999999999999999999999.99';
+        $switch = Insurance::operation(OperationType::SWITCH, '1', [
+            Insurance::leg(1, LegDirection::OUT, Insurance::FUND, $large, '1', $large),
+            Insurance::leg(2, LegDirection::IN, Insurance::EQUITY, '1', $large, $large),
+        ]);
+        self::assertSame($large, $switch->details->grossAmount?->toString());
+        self::assertSame('0.00', $switch->details->switchDifference()?->toString());
+        self::assertSame('0', $switch->cashAmount->toString());
+        try {
+            Insurance::operation(OperationType::SWITCH, '1', [
+                Insurance::leg(1, LegDirection::OUT, Insurance::FUND, '1', '1', '1.00'),
+                Insurance::leg(2, LegDirection::IN, Insurance::EQUITY, '1', '0.995', '0.99'),
+            ]);
+            self::fail('Parent balance has no tolerance.');
+        } catch (InvalidPortfolioOperation $exception) {
+            self::assertSame('switch_not_balanced', $exception->problemCode);
+            self::assertSame('1.00', $exception->extensions['expectedIncomingAmount']);
+        }
+    }
+
     public function testHalfCentResidualIsKeptAndBeyondItReturnsExpectedAmount(): void
     {
         $leg = Insurance::leg(1, LegDirection::IN, Insurance::EQUITY, '1', '97.505', '97.50');

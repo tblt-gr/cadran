@@ -7,6 +7,7 @@ type ResultLike = { error?: unknown; response?: Response };
 export class OperationRequestError extends Error {
   readonly legIndex?: number;
   readonly expectedAmount?: string;
+  readonly expectedIncomingAmount?: string;
   readonly status: number;
   readonly code?: string;
   readonly type?: string;
@@ -20,6 +21,7 @@ export class OperationRequestError extends Error {
     const problem = result.error as Partial<PortfolioOperationProblem> | undefined;
     this.legIndex = problem?.legIndex;
     this.expectedAmount = problem?.expectedAmount;
+    this.expectedIncomingAmount = problem?.expectedIncomingAmount;
     this.status = result.response?.status ?? 0;
     this.code = problem?.code;
     this.type = problem?.type;
@@ -35,6 +37,7 @@ export function operationRequestError(result: ResultLike) {
 }
 
 const fieldByCode: Record<string, keyof OperationFieldErrors> = {
+  switch_same_support: 'legs',
   unknown_leg_instrument: 'legs',
   operation_asset_mismatch: 'legs',
   duplicate_leg_instrument: 'legs',
@@ -84,6 +87,7 @@ const fieldTexts: Record<string, string> = {
   surrender_exceeds_available: 'Le rachat dépasse les liquidités et les supports vendus.',
   invalid_surrender_amounts: 'Les frais et prélèvements dépassent le montant brut du rachat.',
   full_surrender_not_balanced: 'Le rachat total doit solder exactement les liquidités.',
+  switch_same_support: 'Un support ne peut pas être vendu et acheté dans le même arbitrage.',
   unknown_leg_instrument: 'Ce support est introuvable.',
   duplicate_leg_instrument: 'Ce support figure déjà dans l’opération.',
   invalid_leg_direction: 'Le sens de ce support ne correspond pas à l’opération.',
@@ -116,6 +120,10 @@ export function mismatchMessage(expected: string | undefined): string {
 
 export function operationFieldErrors(error: unknown): OperationFieldErrors {
   if (!(error instanceof OperationRequestError) || !error.code) return {};
+  if (error.code === 'switch_not_balanced')
+    return {
+      legs: `L’arbitrage doit être équilibré. À réinvestir : ${error.expectedIncomingAmount ?? '-'}.`,
+    };
   if (error.legIndex !== undefined) {
     const field =
       error.code === 'leg_amount_mismatch'

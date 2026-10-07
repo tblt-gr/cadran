@@ -1,3 +1,4 @@
+import { SwitchOperationFields } from './switch-operation-fields/SwitchOperationFields';
 import { OperationDecimalField } from './OperationDecimalField';
 import { SupportLegsField } from './support-legs-field/SupportLegsField';
 import { FullSurrenderPrefill } from './support-legs-field/FullSurrenderPrefill';
@@ -18,6 +19,15 @@ export function InsuranceOperationFields({
   values: OperationFormValues;
 }) {
   const premium = values.type === 'PREMIUM';
+  if (values.type === 'SWITCH')
+    return (
+      <SwitchOperationFields
+        account={account}
+        errors={errors}
+        values={values}
+        onChange={onChange}
+      />
+    );
   const decimal = (
     field: 'grossAmount' | 'fees' | 'withheldIncomeTax' | 'withheldSocialContributions',
     label: string,

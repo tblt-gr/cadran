@@ -2,6 +2,7 @@ import type { PortfolioOperationPreview, PortfolioOperationType } from '@cadran/
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatDecimal, isZeroDecimal } from '@/lib/decimal';
+import { SwitchOperationPreview } from './switch-operation-preview/SwitchOperationPreview';
 import { CashAmount } from '@/features/portfolio/portfolio-account/operations/cash-amount/CashAmount';
 import styles from './OperationForm.module.css';
 
@@ -62,6 +63,7 @@ export function OperationPreviewLine({
           )}
         </div>
       ) : null}
+      {type === 'SWITCH' ? <SwitchOperationPreview pending={pending} preview={preview} /> : null}
       {showResidual ? (
         <div className={styles.previewRow}>
           <span>Écart d’arrondi</span>{' '}

@@ -19,6 +19,7 @@ final readonly class OperationDetails
     public ?string $reference;
     public ?string $note;
     public ?DecimalValue $taxes;
+    public ?DecimalValue $grossAmount;
 
     /** @param list<OperationLeg> $legs */
     public function __construct(
@@ -29,7 +30,7 @@ final readonly class OperationDetails
         public ?string $counterInstrumentId,
         public ?DecimalValue $quantity,
         public ?DecimalValue $unitPrice,
-        public ?DecimalValue $grossAmount,
+        ?DecimalValue $grossAmount,
         public ?DecimalValue $fees,
         ?DecimalValue $taxes,
         public ?DecimalValue $costBasis,
@@ -43,6 +44,7 @@ final readonly class OperationDetails
         public array $legs = [],
         public ?DecimalValue $withheldIncomeTax = null,
         public ?DecimalValue $withheldSocialContributions = null,
+        bool $allowUnbalancedSwitch = false,
     ) {
         if ((null === $ratioNumerator) !== (null === $ratioDenominator)) {
             throw new InvalidPortfolioOperation('A ratio carries a numerator and a denominator.', 'invalid_corporate_action');
@@ -54,7 +56,7 @@ final readonly class OperationDetails
             'instrument' => null !== $instrumentId,
             'quantity' => null !== $quantity,
             'unitPrice' => null !== $unitPrice,
-            'grossAmount' => null !== $grossAmount,
+            'grossAmount' => OperationType::SWITCH !== $type && null !== $grossAmount,
             'fees' => null !== $fees,
             'taxes' => null !== $taxes,
             'costBasis' => null !== $costBasis,
@@ -77,7 +79,7 @@ final readonly class OperationDetails
         }
         $seen = [];
         foreach ($legs as $offset => $leg) {
-            if ($leg->index !== $offset + 1 || $leg->direction !== (OperationType::PREMIUM === $type ? LegDirection::IN : LegDirection::OUT)) {
+            if ($leg->index !== $offset + 1 || (OperationType::SWITCH !== $type && $leg->direction !== (OperationType::PREMIUM === $type ? LegDirection::IN : LegDirection::OUT))) {
                 throw new InvalidPortfolioOperation('The support leg direction is invalid.', 'invalid_leg_direction', ['legIndex' => $leg->index]);
             }
             $key = $leg->direction->value.':'.$leg->instrumentId;
@@ -85,6 +87,26 @@ final readonly class OperationDetails
                 throw new InvalidPortfolioOperation('A support is repeated in the same direction.', 'duplicate_leg_instrument', ['legIndex' => $leg->index]);
             }
             $seen[$key] = true;
+        }
+        $this->grossAmount = OperationType::SWITCH === $type ? $this->supportsAmount(LegDirection::OUT) : $grossAmount;
+        if (OperationType::SWITCH === $type) {
+            foreach ([LegDirection::OUT, LegDirection::IN] as $direction) {
+                $side = array_filter($legs, static fn (OperationLeg $leg): bool => $leg->direction === $direction);
+                if ([] === $side) {
+                    throw InvalidPortfolioOperation::field('operation_field_required', 'legs');
+                }
+                if (count($side) > 10) {
+                    throw new InvalidPortfolioOperation('At most ten legs per side are allowed.', 'too_many_operation_legs');
+                }
+            }
+            foreach ($legs as $leg) {
+                if (isset($seen['IN:'.$leg->instrumentId], $seen['OUT:'.$leg->instrumentId])) {
+                    throw new InvalidPortfolioOperation('A support cannot be sold and bought in the same switch.', 'switch_same_support');
+                }
+            }
+            if (!$allowUnbalancedSwitch && !ExactDecimal::isZero($this->switchDifference() ?? DecimalValue::zero())) {
+                throw new InvalidPortfolioOperation('The switch amounts must balance exactly.', 'switch_not_balanced', ['expectedIncomingAmount' => ($this->expectedIncomingAmount() ?? throw new \LogicException('A switch has an expected incoming amount.'))->toString()]);
+            }
         }
         if ($type->isSurrender() && $this->netPaidAmount()?->isNegative()) {
             throw new InvalidPortfolioOperation('Surrender withholdings and fees exceed the gross.', 'invalid_surrender_amounts');
@@ -114,14 +136,41 @@ final readonly class OperationDetails
         return $this->type->isSurrender() ? ExactDecimal::subtract(ExactDecimal::subtract($this->grossAmount ?? DecimalValue::zero(), $this->fees ?? DecimalValue::zero()), $this->taxes ?? DecimalValue::zero()) : null;
     }
 
-    public function supportsAmount(): DecimalValue
+    public function supportsAmount(?LegDirection $direction = null): DecimalValue
     {
         $sum = DecimalValue::zero();
-        foreach ($this->legs as $leg) {
-            $sum = ExactDecimal::add($sum, $leg->amount);
+        try {
+            foreach ($this->legs as $leg) {
+                if (null !== $direction && $leg->direction !== $direction) {
+                    continue;
+                }
+                $sum = ExactDecimal::add($sum, $leg->amount);
+            }
+        } catch (\App\Module\Foundation\Domain\PrecisionExceeded|\App\Module\Foundation\Domain\MalformedDecimal) {
+            throw new InvalidPortfolioOperation('The support total is too large to store exactly.', 'invalid_operation_amount');
         }
 
         return $sum;
+    }
+
+    public function expectedIncomingAmount(): ?DecimalValue
+    {
+        try {
+            return OperationType::SWITCH === $this->type ? ExactDecimal::subtract($this->supportsAmount(LegDirection::OUT), $this->fees ?? DecimalValue::zero()) : null;
+        } catch (\App\Module\Foundation\Domain\PrecisionExceeded|\App\Module\Foundation\Domain\MalformedDecimal) {
+            throw new InvalidPortfolioOperation('The switch amount is too large to store exactly.', 'invalid_operation_amount');
+        }
+    }
+
+    public function switchDifference(): ?DecimalValue
+    {
+        $expected = $this->expectedIncomingAmount();
+
+        try {
+            return null === $expected ? null : ExactDecimal::subtract($this->supportsAmount(LegDirection::IN), $expected);
+        } catch (\App\Module\Foundation\Domain\PrecisionExceeded|\App\Module\Foundation\Domain\MalformedDecimal) {
+            throw new InvalidPortfolioOperation('The switch difference is too large to store exactly.', 'invalid_operation_amount');
+        }
     }
 
     private function assertCorporateAction(): void

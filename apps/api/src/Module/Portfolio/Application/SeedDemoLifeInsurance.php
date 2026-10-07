@@ -108,6 +108,13 @@ final readonly class SeedDemoLifeInsurance implements DemoAccountBalanceContribu
                     withheldIncomeTax: self::amount('7.50'), withheldSocialContributions: self::amount('8.60'),
                 ));
             }
+            if ('2024-09' === $month->format('Y-m') && $today >= $month) {
+                ($this->recordOperation)($account->id, new OperationInput(
+                    type: 'SWITCH', tradeDate: '2024-09-01', fees: self::amount('10.00'),
+                    legs: [new OperationLegInput('OUT', $fund->id, null, null, self::amount('2000.00')),
+                        new OperationLegInput('IN', $equity->id, '20', '99.50', self::amount('1990.00'))],
+                ));
+            }
             $last = $month->modify('last day of this month');
             if ($last < $today) {
                 ($this->recordValuation)($account->id, self::valuation($last, $fund->id, $equity->id, $price->toString()));

@@ -5,6 +5,18 @@ import { OperationPreviewLine } from './OperationPreviewLine';
 const amount = (value: string) => ({ value, assetCode: 'EUR' });
 afterEach(cleanup);
 describe('insurance preview figures', () => {
+  it('retains switch labels during loading and leaves unavailable figures unknown', () => {
+    const { container, rerender } = render(
+      <OperationPreviewLine type="SWITCH" pending showResidual={false} />,
+    );
+    for (const label of ['À réinvestir', 'Écart', 'Barème (informatif)'])
+      expect(screen.getByText(label)).toBeTruthy();
+    expect(container.querySelectorAll('[aria-hidden="true"]').length).toBe(4);
+    rerender(<OperationPreviewLine type="SWITCH" pending={false} showResidual={false} />);
+    expect(screen.queryByText(/0,00/)).toBeNull();
+    expect(screen.getByText('Non renseigné')).toBeTruthy();
+  });
+
   it('uses the server cash remainder for a premium', () => {
     render(
       <OperationPreviewLine
@@ -16,6 +28,10 @@ describe('insurance preview figures', () => {
           legs: [],
           netPaidAmount: null,
           expectedGrossAmount: null,
+          expectedIncomingAmount: null,
+          difference: null,
+          applicableSwitchFeeRate: null,
+          applicableSwitchFeeFixed: null,
           roundingResidual: null,
         }}
       />,
@@ -54,6 +70,10 @@ describe('insurance preview figures', () => {
           ],
           netPaidAmount: null,
           expectedGrossAmount: null,
+          expectedIncomingAmount: null,
+          difference: null,
+          applicableSwitchFeeRate: null,
+          applicableSwitchFeeFixed: null,
           roundingResidual: null,
         }}
       />,

@@ -279,6 +279,12 @@ api:
     invalid_leg_direction:
       title: 'Sens de support invalide'
       detail: 'Un versement reçoit des supports et un rachat cède des supports.'
+    switch_not_balanced:
+      title: 'Arbitrage non équilibré'
+      detail: 'Le montant acheté doit égaler exactement le montant vendu après frais.'
+    switch_same_support:
+      title: 'Support présent des deux côtés'
+      detail: 'Un support ne peut être vendu et acheté dans le même arbitrage.'
     too_many_operation_legs:
       title: 'Trop de lignes de supports'
       detail: 'Une opération peut contenir au plus vingt lignes de supports.'

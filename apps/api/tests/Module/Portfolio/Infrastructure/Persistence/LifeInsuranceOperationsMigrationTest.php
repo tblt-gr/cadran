@@ -14,8 +14,10 @@ use Symfony\Component\Console\Tester\CommandTester;
 final class LifeInsuranceOperationsMigrationTest extends KernelTestCase
 {
     private const string MIGRATION = 'DoctrineMigrations\Version20261006120000';
+    private const string SWITCH_MIGRATION = 'DoctrineMigrations\Version20261007120000';
     private Connection $connection;
     private bool $atHead = true;
+    private bool $atSwitchHead = true;
 
     protected function setUp(): void
     {
@@ -32,17 +34,27 @@ final class LifeInsuranceOperationsMigrationTest extends KernelTestCase
         if (!$this->atHead) {
             $this->executeMigration('up');
         }
+        if (!$this->atSwitchHead) {
+            $this->executeMigration('up', self::SWITCH_MIGRATION);
+        }
         parent::tearDown();
     }
 
     public function testTheMigrationCanBeReversedAndReappliedWithScopedForeignKeysAndExactDecimals(): void
     {
+        $this->executeMigration('down', self::SWITCH_MIGRATION);
+        $this->atSwitchHead = false;
         $this->executeMigration('down');
         $this->atHead = false;
         self::assertFalse($this->connection->fetchOne("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'portfolio_operation_legs')"));
         self::assertFalse($this->connection->fetchOne("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'portfolio_operations' AND column_name = 'withheld_income_tax_value')"));
         $this->executeMigration('up');
         $this->atHead = true;
+        $this->executeMigration('up', self::SWITCH_MIGRATION);
+        $this->atSwitchHead = true;
+        $constraint = $this->connection->fetchOne("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'portfolio_operations'::regclass AND conname = 'portfolio_operations_type_valid'");
+        self::assertIsString($constraint);
+        self::assertStringContainsString('SWITCH', $constraint);
         $columns = $this->connection->fetchAllAssociative("SELECT column_name, numeric_precision, numeric_scale FROM information_schema.columns WHERE table_name = 'portfolio_operation_legs' AND data_type = 'numeric' ORDER BY column_name");
         self::assertCount(4, $columns);
         foreach ($columns as $column) {
@@ -57,10 +69,10 @@ final class LifeInsuranceOperationsMigrationTest extends KernelTestCase
         self::assertStringContainsString('(instrument_id, workspace_id)', $keys[1]);
     }
 
-    private function executeMigration(string $direction): void
+    private function executeMigration(string $direction, string $migration = self::MIGRATION): void
     {
         $tester = new CommandTester((new Application(self::$kernel ?? self::bootKernel()))->find('doctrine:migrations:execute'));
-        $tester->execute(['versions' => [self::MIGRATION], '--'.$direction => true, '--no-interaction' => true]);
+        $tester->execute(['versions' => [$migration], '--'.$direction => true, '--no-interaction' => true]);
         self::assertSame(Command::SUCCESS, $tester->getStatusCode(), $tester->getDisplay());
         self::ensureKernelShutdown();
         self::bootKernel();

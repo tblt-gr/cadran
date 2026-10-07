@@ -49,6 +49,8 @@ final class PortfolioOperationRepresentation
             'withheldIncomeTax' => $view->withheldIncomeTax,
             'withheldSocialContributions' => $view->withheldSocialContributions,
             'netPaidAmount' => $view->netPaidAmount,
+            'applicableSwitchFeeRate' => $view->applicableSwitchFeeRate,
+            'applicableSwitchFeeFixed' => $view->applicableSwitchFeeFixed,
         ];
     }
 
@@ -72,6 +74,10 @@ final class PortfolioOperationRepresentation
             'expectedGrossAmount' => $preview->expectedGrossAmount,
             'legs' => $preview->legs,
             'netPaidAmount' => $preview->netPaidAmount,
+            'expectedIncomingAmount' => $preview->expectedIncomingAmount,
+            'difference' => $preview->difference,
+            'applicableSwitchFeeRate' => $preview->applicableSwitchFeeRate,
+            'applicableSwitchFeeFixed' => $preview->applicableSwitchFeeFixed,
         ];
     }
 

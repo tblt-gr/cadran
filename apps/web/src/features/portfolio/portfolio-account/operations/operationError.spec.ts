@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { operationRequestError, operationSaveMessage } from './operationError';
+import {
+  operationFieldErrors,
+  operationRequestError,
+  operationSaveMessage,
+} from './operationError';
 
 describe('operationSaveMessage', () => {
   it('uses the problem instrument identifier only to resolve a readable name', () => {
@@ -35,4 +39,13 @@ describe('operationSaveMessage', () => {
     expect(message).toContain('position concernée');
     expect(message).not.toContain('private-instrument-id');
   });
+});
+
+it('explains the exact incoming amount refused by the switch server', () => {
+  const error = operationRequestError({
+    error: { code: 'switch_not_balanced', expectedIncomingAmount: '1990.00' },
+    response: new Response('{}', { status: 422 }),
+  });
+  expect(operationFieldErrors(error).legs).toContain('1990.00');
+  expect(operationSaveMessage(error)).toBeUndefined();
 });

@@ -98,6 +98,28 @@ final class PortfolioOperationConcurrencyTest extends KernelTestCase
         self::assertSame(1, $this->scalar("SELECT count(*) FROM audit_events WHERE event_type = 'portfolio_operation.recorded'"));
     }
 
+    public function testConcurrentSwitchesRecheckHoldingsAfterTheAccountLock(): void
+    {
+        $this->connection->update('account_financial_accounts', ['kind' => 'INSURANCE_CONTRACT'], ['id' => PortfolioFixture::ACCOUNT]);
+        $this->connection->insert('portfolio_life_insurance_contracts', [
+            'id' => '00000000-0000-7000-8000-000000000c01', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+            'account_id' => PortfolioFixture::ACCOUNT, 'insurer' => 'Demo', 'subscribed_on' => '2026-01-01', 'tax_start_on' => '2026-01-01',
+            'management_mode' => 'FREE', 'status' => 'OPEN', 'created_at' => '2026-01-01 00:00:00+00',
+            'updated_at' => '2026-01-01 00:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID, 'version' => 1,
+        ]);
+        $portfolio = new PortfolioFixture($this->connection);
+        $portfolio->euroFund('00000000-0000-7000-8000-000000000b03');
+        $portfolio->instrument();
+        $repository = self::getContainer()->get(\App\Module\Portfolio\Domain\PortfolioOperationRepository::class);
+        self::assertInstanceOf(\App\Module\Portfolio\Domain\PortfolioOperationRepository::class, $repository);
+        $repository->add(\App\Tests\Support\InsuranceOperationFixture::premium());
+        $outcomes = $this->runInParallel('switch');
+        sort($outcomes);
+        self::assertSame(['refused:position_would_go_negative', 'switched'], $outcomes);
+        self::assertSame(1, $this->scalar("SELECT count(*) FROM portfolio_operations WHERE operation_type = 'SWITCH'"));
+        self::assertSame(4, $this->scalar('SELECT count(*) FROM portfolio_operation_legs'));
+    }
+
     private function seedOperation(): void
     {
         $this->connection->insert('portfolio_operations', [

@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
-import { operationFixture } from './operationFixtures';
+import { operationFixture, switchFixture } from './operationFixtures';
 import { OperationsTable } from './OperationsTable';
 
 afterEach(cleanup);
@@ -18,6 +18,27 @@ const buy = operationFixture({
 });
 
 describe('OperationsTable', () => {
+  it('shows one switch parent with both side counts, gross amount and parent actions', () => {
+    const operation = switchFixture();
+    const onEdit = vi.fn();
+    render(
+      <OperationsTable
+        items={[operation]}
+        onDetail={vi.fn()}
+        onEdit={onEdit}
+        onVoid={vi.fn()}
+        onReorder={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByRole('row')).toHaveLength(2);
+    expect(screen.getByText('Arbitrage')).toBeTruthy();
+    expect(screen.getByText('1 supports vendus, 1 achetés')).toBeTruthy();
+    expect(screen.getByText(/2.000,00/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /^Actions pour/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
+    expect(onEdit).toHaveBeenCalledWith(operation);
+  });
+
   it('shows a parent premium with its support count and gross amount', () => {
     render(
       <OperationsTable

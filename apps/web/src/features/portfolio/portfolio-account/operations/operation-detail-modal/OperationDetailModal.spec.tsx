@@ -3,10 +3,50 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { OperationDetailModal } from './OperationDetailModal';
-import { operationFixture } from '@/features/portfolio/portfolio-account/operations/operations-table/operationFixtures';
+import {
+  operationFixture,
+  switchFixture,
+} from '@/features/portfolio/portfolio-account/operations/operations-table/operationFixtures';
 const amount = (value: string) => ({ value, assetCode: 'EUR' });
 afterEach(cleanup);
 describe('insurance detail', () => {
+  it('shows sold and bought supports separately, the manual fee and dated informative terms', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <OperationDetailModal
+          onClose={vi.fn()}
+          onOpenOperation={vi.fn()}
+          operation={switchFixture()}
+        />
+      </QueryClientProvider>,
+    );
+    expect(
+      within(screen.getByRole('table', { name: 'Vendus' })).getByText('Fonds euros'),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByRole('table', { name: 'Achetés' })).getByText('Fonds actions'),
+    ).toBeTruthy();
+    expect(screen.getByText('Frais d’arbitrage')).toBeTruthy();
+    expect(screen.getByText('10,00 EUR')).toBeTruthy();
+    expect(screen.getByText('Barème applicable')).toBeTruthy();
+    expect(screen.getByText('0,5 % (informatif)')).toBeTruthy();
+  });
+  it('leaves missing switch terms and empty support sides explicit', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <OperationDetailModal
+          onClose={vi.fn()}
+          onOpenOperation={vi.fn()}
+          operation={switchFixture({ applicableSwitchFeeRate: null, legs: [] })}
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.getAllByText('Aucun support.')).toHaveLength(2);
+    expect(screen.getByText('Barème applicable').parentElement?.textContent).toContain(
+      'Non renseigné',
+    );
+  });
+
   it('shows supports and observed withholdings from the server in the shared modal', () => {
     render(
       <QueryClientProvider client={new QueryClient()}>

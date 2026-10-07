@@ -64,6 +64,7 @@ export function VoidOperationModal({
   return (
     <Modal close={onClose} eyebrow="Portefeuille" title="Annuler l’opération">
       <VoidOperationDialog
+        type={operation.type}
         error={operationSaveMessage(voidOperation.error, [
           operation.instrument,
           operation.counterInstrument,
