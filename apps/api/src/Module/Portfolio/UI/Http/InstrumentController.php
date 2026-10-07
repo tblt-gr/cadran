@@ -53,6 +53,7 @@ final readonly class InstrumentController
                 '' === $page ? null : (int) $page,
                 '' === $perPage ? null : (int) $perPage,
                 $request->query->has('currencyCode') ? $request->query->getString('currencyCode') : null,
+                $request->query->has('instrumentType') ? $request->query->getString('instrumentType') : null,
             );
         } catch (InvalidInstrumentInput $exception) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode);

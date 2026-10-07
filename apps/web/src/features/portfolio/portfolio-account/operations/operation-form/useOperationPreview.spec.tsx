@@ -15,42 +15,48 @@ afterEach(() => {
 });
 
 describe('correction preview identity', () => {
-  it('hides cached switch figures while refetching and after a failed refresh', async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const request = { type: 'SWITCH' as const, tradeDate: '2026-09-01', legs: [] };
-    api.previewPortfolioOperation.mockResolvedValueOnce({
-      response: new Response('{}', { status: 200 }),
-      data: {
-        cashAmount: { value: '0', assetCode: 'EUR' },
-        expectedIncomingAmount: { value: '1990', assetCode: 'EUR' },
-      },
-    });
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
-    );
-    const { result } = renderHook(() => useOperationPreview('account-1', request), { wrapper });
-    await waitFor(() => expect(result.current.data?.expectedIncomingAmount?.value).toBe('1990'));
-    let complete: (value: unknown) => void = () => {};
-    api.previewPortfolioOperation.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          complete = resolve;
+  it.each(['SWITCH', 'EURO_FUND_INTEREST'] as const)(
+    'hides cached %s figures while refetching and after a failed refresh',
+    async (type) => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const request = { type, tradeDate: '2026-09-01', legs: [] };
+      api.previewPortfolioOperation.mockResolvedValueOnce({
+        response: new Response('{}', { status: 200 }),
+        data: {
+          cashAmount: { value: '0', assetCode: 'EUR' },
+          expectedIncomingAmount: { value: '1990', assetCode: 'EUR' },
+          netCreditedAmount: { value: '124.20', assetCode: 'EUR' },
+        },
+      });
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      );
+      const { result } = renderHook(() => useOperationPreview('account-1', request), { wrapper });
+      await waitFor(() => expect(result.current.data?.expectedIncomingAmount?.value).toBe('1990'));
+      if (type === 'EURO_FUND_INTEREST')
+        expect(result.current.data?.netCreditedAmount?.value).toBe('124.20');
+      let complete: (value: unknown) => void = () => {};
+      api.previewPortfolioOperation.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            complete = resolve;
+          }),
+      );
+      act(() => {
+        void result.current.refetch();
+      });
+      await waitFor(() => expect(result.current.isFetching).toBe(true));
+      expect(result.current.data).toBeUndefined();
+      act(() =>
+        complete({
+          response: new Response('{}', { status: 422 }),
+          error: { code: 'position_would_go_negative' },
         }),
-    );
-    act(() => {
-      void result.current.refetch();
-    });
-    await waitFor(() => expect(result.current.isFetching).toBe(true));
-    expect(result.current.data).toBeUndefined();
-    act(() =>
-      complete({
-        response: new Response('{}', { status: 422 }),
-        error: { code: 'position_would_go_negative' },
-      }),
-    );
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.data).toBeUndefined();
-  });
+      );
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.data).toBeUndefined();
+    },
+  );
 
   it('does not reuse a previous correction preview for an identical body and different original', async () => {
     const first = '00000000-0000-7000-8000-000000000001';

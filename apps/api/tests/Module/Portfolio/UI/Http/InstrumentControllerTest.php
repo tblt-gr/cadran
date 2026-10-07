@@ -44,6 +44,31 @@ final class InstrumentControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testTypeFilterRunsBeforePaginationAndRetainsWorkspaceIsolationAndBounds(): void
+    {
+        $fixtures = new \App\Tests\Support\PortfolioFixture($this->connection);
+        for ($index = 1; $index <= 25; ++$index) {
+            $fixtures->instrument(sprintf('00000000-0000-7000-8000-%012d', 1000 + $index), name: 'AAA Security '.$index);
+        }
+        $first = '00000000-0000-7000-8000-000000009001';
+        $second = '00000000-0000-7000-8000-000000009002';
+        $fixtures->euroFund($first);
+        $fixtures->euroFund($second);
+        $fixtures->euroFund('00000000-0000-7000-8000-000000009003', WorkspaceFixture::OTHER_WORKSPACE);
+        $this->client->request('GET', '/api/v1/instruments?instrumentType=EURO_FUND&perPage=1&page=1');
+        self::assertResponseIsSuccessful();
+        self::assertSame(2, $this->decode()['total']);
+        self::assertSame([$first], array_column(self::items($this->decode()), 'id'));
+        $this->client->request('GET', '/api/v1/instruments?instrumentType=EURO_FUND&perPage=1&page=2');
+        self::assertResponseIsSuccessful();
+        self::assertSame([$second], array_column(self::items($this->decode()), 'id'));
+        foreach (['instrumentType=INVALID', 'instrumentType=', 'instrumentType=EURO_FUND&perPage=51', 'instrumentType=EURO_FUND&page=1001'] as $query) {
+            $this->client->request('GET', '/api/v1/instruments?'.$query);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame('invalid_instrument_query', $this->decode()['code']);
+        }
+    }
+
     public function testTheOwnerCreatesReadsListsEditsAndChangesInstrumentStatus(): void
     {
         $created = $this->create();

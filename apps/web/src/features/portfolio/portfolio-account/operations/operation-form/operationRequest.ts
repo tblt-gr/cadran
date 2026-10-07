@@ -23,6 +23,8 @@ export interface SupportLegValue {
 }
 
 export interface OperationFormValues {
+  interestBasis: 'NET_OF_MANAGEMENT_FEES' | 'GROSS_OF_MANAGEMENT_FEES' | 'UNKNOWN' | '';
+  rateYear: string;
   legs: SupportLegValue[];
   withheldIncomeTax: string;
   withheldSocialContributions: string;
@@ -63,6 +65,8 @@ export type OperationFieldErrors = Partial<
 
 export function emptyValues(tradeDate: string): OperationFormValues {
   return {
+    interestBasis: '',
+    rateYear: '',
     legs: [],
     withheldIncomeTax: '',
     withheldSocialContributions: '',
@@ -91,6 +95,8 @@ export function emptyValues(tradeDate: string): OperationFormValues {
 /** Prefills the form with every stored field of an operation. */
 export function valuesFromOperation(operation: PortfolioOperation): OperationFormValues {
   return {
+    interestBasis: operation.interestBasis ?? '',
+    rateYear: operation.rateYear?.toString() ?? '',
     legs: (operation.legs ?? []).map((leg) => ({
       key: String(leg.index),
       direction: leg.direction,
@@ -104,9 +110,7 @@ export function valuesFromOperation(operation: PortfolioOperation): OperationFor
     type: operation.type,
     tradeDate: operation.tradeDate,
     settlementDate: operation.settlementDate ?? '',
-    instrument: operation.instrument
-      ? { id: operation.instrument.id, name: operation.instrument.name }
-      : null,
+    instrument: operation.instrument ? { ...operation.instrument } : null,
     quantity: operation.quantity ?? '',
     unitPrice: operation.unitPrice ?? '',
     grossAmount: operation.grossAmount?.value ?? '',
@@ -193,16 +197,42 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
     errors.counterInstrument = 'L’instrument reçu doit différer de l’instrument d’origine.';
   }
 
-  const quantity = decimal('quantity', values.quantity);
+  const unitLinkedFee =
+    values.type === 'MANAGEMENT_FEE' &&
+    values.instrument &&
+    values.instrument.instrumentType !== 'EURO_FUND';
+  if (unitLinkedFee && !values.quantity.trim()) errors.quantity = 'Ce champ est obligatoire.';
+  const quantity =
+    values.type === 'MANAGEMENT_FEE' && !unitLinkedFee
+      ? undefined
+      : decimal('quantity', values.quantity);
   if (quantity) request.quantity = quantity;
-  const unitPrice = decimal('unitPrice', values.unitPrice);
+  const unitPrice =
+    values.type === 'MANAGEMENT_FEE' && !unitLinkedFee
+      ? undefined
+      : decimal('unitPrice', values.unitPrice);
   if (unitPrice) request.unitPrice = unitPrice;
   const gross = decimal('grossAmount', values.grossAmount);
   if (gross) request.grossAmount = amount(gross, assetCode);
-  const fees = decimal('fees', values.fees, values.type !== 'FEE');
+  const fees = decimal('fees', values.fees, !['FEE', 'MANAGEMENT_FEE'].includes(values.type));
   if (fees) request.fees = amount(fees, assetCode);
-  const taxes = decimal('taxes', values.taxes, values.type !== 'TAX');
+  const taxes = decimal(
+    'taxes',
+    values.taxes,
+    !['TAX', 'SOCIAL_CONTRIBUTION'].includes(values.type),
+  );
   if (taxes) request.taxes = amount(taxes, assetCode);
+  if (hasField(values.type, 'interestBasis')) {
+    if (!values.interestBasis) errors.interestBasis = 'Choisissez une base du taux.';
+    else request.interestBasis = values.interestBasis;
+    if (taxes && gross && compareDecimals(taxes, gross) >= 0)
+      errors.taxes = 'Les prélèvements doivent être inférieurs au montant brut.';
+  }
+  if (hasField(values.type, 'rateYear')) {
+    if (!/^\d{4}$/.test(values.rateYear) || values.rateYear > values.tradeDate.slice(0, 4))
+      errors.rateYear = 'Saisissez une année au plus égale à celle de l’opération.';
+    else request.rateYear = parseInt(values.rateYear, 10);
+  }
   for (const field of ['withheldIncomeTax', 'withheldSocialContributions'] as const) {
     const value = decimal(field, values[field], true);
     if (value) request[field] = amount(value, assetCode);

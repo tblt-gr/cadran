@@ -41,6 +41,8 @@ final readonly class SeedDemoLifeInsurance implements DemoAccountBalanceContribu
         private RecordPortfolioOperation $recordOperation,
         private ListAccounts $listAccounts,
         private CreateTransfer $createTransfer,
+        private \App\Module\Foundation\Application\CallerWorkspaceContext $caller,
+        private ValuationHoldings $holdings,
     ) {
     }
 
@@ -116,16 +118,30 @@ final readonly class SeedDemoLifeInsurance implements DemoAccountBalanceContribu
                 ));
             }
             $last = $month->modify('last day of this month');
+            if ($last <= $today && '12' === $last->format('m')) {
+                $rateYear = (int) $last->format('Y');
+                $rate = $rateYear === (int) $today->format('Y') - 1 ? '2.80' : '2.50';
+                ($this->recordRate)($account->id, new EuroFundRateInput($fund->id, $rateYear, $rate, null, 'NET_OF_MANAGEMENT_FEES', 'Taux de démonstration'));
+                [$positions] = $this->holdings->held($this->caller->resolveContext()->workspace, $account->id, $last);
+                foreach ($positions as $position) {
+                    if ($position->instrumentId !== $fund->id) {
+                        continue;
+                    }
+                    $gross = CalculatedDecimal::fromDecimal($position->quantity)->proportion(CalculatedDecimal::fromDecimal(DecimalValue::fromString($rate)), CalculatedDecimal::fromDecimal(DecimalValue::fromString('100')), 2, RoundingMode::HALF_EVEN);
+                    $taxes = $gross->proportion(CalculatedDecimal::fromDecimal(DecimalValue::fromString('0.172')), CalculatedDecimal::one(), 2, RoundingMode::HALF_EVEN);
+                    ($this->recordOperation)($account->id, new OperationInput(type: 'EURO_FUND_INTEREST', tradeDate: $last->format('Y-m-d'), instrumentId: $fund->id,
+                        grossAmount: self::amount($gross->toString()), taxes: self::amount($taxes->toString()),
+                        interestBasis: 2024 === $rateYear ? 'UNKNOWN' : 'NET_OF_MANAGEMENT_FEES', rateYear: $rateYear,
+                        note: 'Montant de démonstration, prélèvements sociaux observés de 17,2 %'));
+                }
+                $fee = CalculatedDecimal::fromDecimal(ExactDecimal::multiply(DecimalValue::fromString('0.30'), $price))->round(2, RoundingMode::HALF_EVEN);
+                ($this->recordOperation)($account->id, new OperationInput(type: 'MANAGEMENT_FEE', tradeDate: $last->format('Y-m-d'), instrumentId: $equity->id,
+                    fees: self::amount($fee->toString()), quantity: '0.30', unitPrice: $price->toString()));
+            }
             if ($last < $today) {
                 ($this->recordValuation)($account->id, self::valuation($last, $fund->id, $equity->id, $price->toString()));
             }
             $price = ExactDecimal::add($price, DecimalValue::fromString('0.25'));
-        }
-        $year = (int) $today->format('Y');
-        foreach ([[$year - 2, '2.50'], [$year - 1, '2.80']] as [$rateYear, $rate]) {
-            ($this->recordRate)($account->id, new EuroFundRateInput(
-                $fund->id, $rateYear, $rate, null, 'NET_OF_MANAGEMENT_FEES', 'Taux de démonstration',
-            ));
         }
     }
 

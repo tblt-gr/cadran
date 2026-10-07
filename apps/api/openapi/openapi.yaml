@@ -1829,6 +1829,12 @@ paths:
             type: string
             enum: [active, inactive, all]
             default: active
+        - name: instrumentType
+          in: query
+          required: false
+          description: Keeps only instruments of this type before pagination and counting.
+          schema:
+            $ref: '#/components/schemas/InstrumentType'
         - name: currencyCode
           in: query
           required: false
@@ -2933,6 +2939,46 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/PortfolioValuationProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/life-insurance-income-and-fees:
+    get:
+      operationId: readLifeInsuranceIncomeAndFees
+      summary: Read observed annual contract income and deductions
+      description: >-
+        Active operations in the trade-date year. Amounts and tax kinds are observed, never inferred from rates.
+        At most 2000 operations, 20 sources and 20 operation IDs per quality issue.
+        Each missing served-rate issue identifies one euro-fund and rate-year pair.
+      tags: [Portfolio]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: From the subscription year to the current workspace year.
+      responses:
+        '200':
+          description: Observed income, fees, taxes and evidence quality.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceIncomeAndFees'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Invalid year, non-insurance account, missing contract or too many operations.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{accountId}/life-insurance-contract:
@@ -16463,6 +16509,10 @@ components:
       type: string
       enum:
         [
+          EURO_FUND_INTEREST,
+          PROFIT_SHARING,
+          MANAGEMENT_FEE,
+          SOCIAL_CONTRIBUTION,
           PREMIUM,
           PARTIAL_SURRENDER,
           FULL_SURRENDER,
@@ -16565,6 +16615,9 @@ components:
       additionalProperties: false
       required:
         [
+          interestBasis,
+          rateYear,
+          feeNature,
           id,
           accountId,
           type,
@@ -16603,6 +16656,15 @@ components:
           applicableSwitchFeeFixed,
         ]
       properties:
+        interestBasis:
+          type: [string, 'null']
+          enum: [NET_OF_MANAGEMENT_FEES, GROSS_OF_MANAGEMENT_FEES, UNKNOWN, null]
+        rateYear:
+          type: [integer, 'null']
+          description: From subscription year to trade-date year.
+        feeNature:
+          type: [string, 'null']
+          enum: [ENTRY, MANAGEMENT, SWITCH, SURRENDER, OTHER, null]
         applicableSwitchFeeRate:
           description: Informative percentage valid on the trade date, never used to compute a fee.
           type: [string, 'null']
@@ -16766,6 +16828,12 @@ components:
       additionalProperties: false
       required: [type, tradeDate]
       properties:
+        interestBasis:
+          type: [string, 'null']
+          enum: [NET_OF_MANAGEMENT_FEES, GROSS_OF_MANAGEMENT_FEES, UNKNOWN, null]
+        rateYear:
+          type: [integer, 'null']
+          description: From subscription year to trade-date year.
         legs:
           type: array
           maxItems: 20
@@ -16876,6 +16944,7 @@ components:
       additionalProperties: false
       required:
         [
+          netCreditedAmount,
           cashAmount,
           roundingResidual,
           expectedGrossAmount,
@@ -16887,6 +16956,11 @@ components:
           applicableSwitchFeeFixed,
         ]
       properties:
+        netCreditedAmount:
+          description: Observed net credited to the euro fund, null except for interest and profit sharing.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
         expectedIncomingAmount:
           description: Sum of outgoing stated amounts less the entered fee, null except for switches.
           oneOf:
@@ -17365,6 +17439,9 @@ components:
             - life_insurance_contract_required
             - life_insurance_contract_closed
             - operation_type_not_allowed_for_account
+            - instrument_not_euro_fund
+            - invalid_interest_basis
+            - invalid_year
             - euro_fund_price_fixed
             - invalid_operation_type
             - unsupported_operation_type
@@ -18519,6 +18596,10 @@ components:
           type: string
           enum:
             - account_not_portfolio
+            - invalid_year
+            - life_insurance_contract_required
+            - cash_range_too_dense
+            - cash_amount_too_large
             - account_not_life_insurance
             - portfolio_account_inactive
             - portfolio_account_not_found
@@ -18588,3 +18669,107 @@ components:
         field:
           description: 'The member the code refers to, as a JSON pointer such as `/prices/0/price`.'
           type: string
+    LifeInsuranceObservedIncome:
+      type: object
+      additionalProperties: false
+      required: [gross, withheld, net]
+      properties:
+        gross:
+          $ref: '#/components/schemas/PortfolioDecimal'
+        withheld:
+          $ref: '#/components/schemas/PortfolioDecimal'
+        net:
+          $ref: '#/components/schemas/PortfolioDecimal'
+    LifeInsuranceIncomeAndFees:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          year,
+          assetCode,
+          interest,
+          profitSharing,
+          fees,
+          withheldTaxes,
+          qualityIssues,
+          sources,
+          sourceCount,
+        ]
+      properties:
+        year:
+          type: integer
+        assetCode:
+          type: string
+        interest:
+          $ref: '#/components/schemas/LifeInsuranceObservedIncome'
+        profitSharing:
+          $ref: '#/components/schemas/LifeInsuranceObservedIncome'
+        fees:
+          type: object
+          additionalProperties: false
+          required: [ENTRY, MANAGEMENT, SWITCH, SURRENDER, OTHER, total]
+          properties:
+            ENTRY:
+              $ref: '#/components/schemas/PortfolioDecimal'
+            MANAGEMENT:
+              $ref: '#/components/schemas/PortfolioDecimal'
+            SWITCH:
+              $ref: '#/components/schemas/PortfolioDecimal'
+            SURRENDER:
+              $ref: '#/components/schemas/PortfolioDecimal'
+            OTHER:
+              $ref: '#/components/schemas/PortfolioDecimal'
+            total:
+              $ref: '#/components/schemas/PortfolioDecimal'
+        withheldTaxes:
+          type: object
+          additionalProperties: false
+          required: [INCOME_TAX, SOCIAL_CONTRIBUTIONS, OTHER, total]
+          properties:
+            INCOME_TAX:
+              $ref: '#/components/schemas/PortfolioDecimal'
+            SOCIAL_CONTRIBUTIONS:
+              $ref: '#/components/schemas/PortfolioDecimal'
+            OTHER:
+              $ref: '#/components/schemas/PortfolioDecimal'
+            total:
+              $ref: '#/components/schemas/PortfolioDecimal'
+        qualityIssues:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [code, operationIds, count]
+            properties:
+              code:
+                type: string
+                enum: [INTEREST_BASIS_UNKNOWN, MISSING_EURO_FUND_RATE]
+              operationIds:
+                type: array
+                maxItems: 20
+                items:
+                  type: string
+                  format: uuid
+              count:
+                type: integer
+                minimum: 1
+        sources:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required: [kind, id, date]
+            properties:
+              kind:
+                type: string
+                const: OPERATION
+              id:
+                type: string
+                format: uuid
+              date:
+                type: string
+                format: date
+        sourceCount:
+          type: integer
+          minimum: 0

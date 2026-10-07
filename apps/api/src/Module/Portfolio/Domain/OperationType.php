@@ -6,6 +6,11 @@ namespace App\Module\Portfolio\Domain;
 
 enum OperationType: string
 {
+    case EURO_FUND_INTEREST = 'EURO_FUND_INTEREST';
+    case PROFIT_SHARING = 'PROFIT_SHARING';
+    case MANAGEMENT_FEE = 'MANAGEMENT_FEE';
+    case SOCIAL_CONTRIBUTION = 'SOCIAL_CONTRIBUTION';
+
     case PREMIUM = 'PREMIUM';
     case PARTIAL_SURRENDER = 'PARTIAL_SURRENDER';
     case FULL_SURRENDER = 'FULL_SURRENDER';
@@ -24,6 +29,16 @@ enum OperationType: string
     case SPLIT = 'SPLIT';
     case MERGER = 'MERGER';
     case SPIN_OFF = 'SPIN_OFF';
+
+    public function isCreditedInterest(): bool
+    {
+        return self::EURO_FUND_INTEREST === $this || self::PROFIT_SHARING === $this;
+    }
+
+    public function isObservedInsurance(): bool
+    {
+        return $this->isCreditedInterest() || self::MANAGEMENT_FEE === $this || self::SOCIAL_CONTRIBUTION === $this;
+    }
 
     public function isSurrender(): bool
     {

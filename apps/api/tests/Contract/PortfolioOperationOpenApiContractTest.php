@@ -47,7 +47,7 @@ final class PortfolioOperationOpenApiContractTest extends TestCase
 
         $operation = self::map($schemas['PortfolioOperation'] ?? null);
         self::assertSame(
-            ['id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'activeDayOperationCount', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'netPaidAmount', 'applicableSwitchFeeRate', 'applicableSwitchFeeFixed'],
+            ['interestBasis', 'rateYear', 'feeNature', 'id', 'accountId', 'type', 'tradeDate', 'settlementDate', 'sequence', 'activeDayOperationCount', 'instrument', 'counterInstrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'cashAmount', 'costBasis', 'counterQuantity', 'ratio', 'costAllocationRatio', 'roundingResidual', 'reference', 'note', 'linkedTransactionId', 'state', 'voidedAt', 'voidReason', 'voidKind', 'correctsOperationId', 'correctedByOperationId', 'version', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'netPaidAmount', 'applicableSwitchFeeRate', 'applicableSwitchFeeFixed'],
             $operation['required'] ?? null,
         );
         self::assertSame(10_000, self::map(self::map($operation['properties'] ?? null)['activeDayOperationCount'] ?? null)['maximum'] ?? null);
@@ -107,9 +107,9 @@ final class PortfolioOperationOpenApiContractTest extends TestCase
         self::assertSame(['string', 'null'], self::map($properties['quantity'])['type']);
         self::assertSame(['string', 'null'], self::map($properties['unitPrice'])['type']);
         $preview = self::map($schemas['PortfolioOperationPreview']);
-        self::assertSame(['cashAmount', 'roundingResidual', 'expectedGrossAmount', 'legs', 'netPaidAmount', 'expectedIncomingAmount', 'difference', 'applicableSwitchFeeRate', 'applicableSwitchFeeFixed'], $preview['required']);
+        self::assertSame(['netCreditedAmount', 'cashAmount', 'roundingResidual', 'expectedGrossAmount', 'legs', 'netPaidAmount', 'expectedIncomingAmount', 'difference', 'applicableSwitchFeeRate', 'applicableSwitchFeeFixed'], $preview['required']);
         $previewProperties = self::map($preview['properties']);
-        foreach (['expectedIncomingAmount', 'difference', 'applicableSwitchFeeFixed'] as $field) {
+        foreach (['netCreditedAmount', 'expectedIncomingAmount', 'difference', 'applicableSwitchFeeFixed'] as $field) {
             self::assertSame([
                 ['$ref' => '#/components/schemas/DecimalAmount'], ['type' => 'null'],
             ], self::map($previewProperties[$field])['oneOf']);
@@ -122,7 +122,7 @@ final class PortfolioOperationOpenApiContractTest extends TestCase
         ], self::map($operationProperties['applicableSwitchFeeFixed'])['oneOf']);
         $types = self::map($schemas['PortfolioOperationType'])['enum'];
         self::assertIsArray($types);
-        foreach (['PREMIUM', 'PARTIAL_SURRENDER', 'FULL_SURRENDER', 'SWITCH'] as $type) {
+        foreach (['PREMIUM', 'PARTIAL_SURRENDER', 'FULL_SURRENDER', 'SWITCH', 'EURO_FUND_INTEREST', 'PROFIT_SHARING', 'MANAGEMENT_FEE', 'SOCIAL_CONTRIBUTION'] as $type) {
             self::assertContains($type, $types);
         }
     }

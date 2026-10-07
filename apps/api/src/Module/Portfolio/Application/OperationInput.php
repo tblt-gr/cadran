@@ -30,6 +30,8 @@ final readonly class OperationInput
         public array $legs = [],
         public ?AmountInput $withheldIncomeTax = null,
         public ?AmountInput $withheldSocialContributions = null,
+        public ?string $interestBasis = null,
+        public ?int $rateYear = null,
     ) {
     }
 }

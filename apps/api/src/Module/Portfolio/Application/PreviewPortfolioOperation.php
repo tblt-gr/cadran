@@ -45,7 +45,7 @@ final readonly class PreviewPortfolioOperation
         $amount = static fn (string $value): array => ['value' => $value, 'assetCode' => $asset];
 
         $expectedGross = $resolved->effect->expectedGrossAmount;
-        if ($resolved->details->type->hasSupportLegs() || null !== $original) {
+        if (($resolved->details->type->hasSupportLegs() || $resolved->details->type->isObservedInsurance()) || null !== $original) {
             $existing = $this->operations->activeForAccount($context->workspace, $account->id);
             if (null !== $original) {
                 $existing = array_values(array_filter($existing, static fn (PortfolioOperation $operation): bool => $operation->id !== $original->id));
@@ -79,6 +79,7 @@ final readonly class PreviewPortfolioOperation
             null === $resolved->details->switchDifference() ? null : $amount($resolved->details->switchDifference()->toString()),
             $terms?->switchFeeRate?->toString(),
             null === $terms?->switchFeeFixed ? null : $amount($terms->switchFeeFixed->toString()),
+            null === $resolved->details->netCreditedAmount() ? null : $amount($resolved->details->netCreditedAmount()->toString()),
         );
     }
 }

@@ -8,12 +8,19 @@ import { InstrumentPickerSkeleton } from './InstrumentPickerSkeleton';
 import styles from './InstrumentPicker.module.css';
 
 interface Props {
+  instrumentType?: Instrument['instrumentType'];
   currencyCode: string;
   label: string;
   onChange: (instrument: Instrument | null) => void;
   value?: Pick<Instrument, 'name'> | null;
 }
-export function InstrumentPicker({ currencyCode, label, onChange, value = null }: Props) {
+export function InstrumentPicker({
+  currencyCode,
+  instrumentType,
+  label,
+  onChange,
+  value = null,
+}: Props) {
   const { t } = useTranslation();
   const id = useId();
   const [text, setText] = useState(value?.name ?? '');
@@ -26,14 +33,20 @@ export function InstrumentPicker({ currencyCode, label, onChange, value = null }
   }, [text]);
   useEffect(() => {
     setActive(0);
-  }, [currencyCode, query]);
+  }, [currencyCode, instrumentType, query]);
   const result = useQuery({
-    queryKey: ['instrument-picker', currencyCode, query],
+    queryKey: ['instrument-picker', currencyCode, instrumentType, query],
     enabled: open,
     queryFn: async ({ signal }) => {
       const response = await listInstruments({
         ...authApiOptions(),
-        query: { status: 'active', perPage: 20, q: query || undefined, currencyCode },
+        query: {
+          status: 'active',
+          perPage: 20,
+          q: query || undefined,
+          currencyCode,
+          ...(instrumentType ? { instrumentType } : {}),
+        },
         signal,
       });
       if (!response.response?.ok || !response.data) throw new Error('Instrument picker failed');
@@ -41,7 +54,9 @@ export function InstrumentPicker({ currencyCode, label, onChange, value = null }
     },
     retry: false,
   });
-  const items = result.data ?? [];
+  const items = (result.data ?? []).filter(
+    (item) => !instrumentType || item.instrumentType === instrumentType,
+  );
   function choose(item: Instrument) {
     setText(item.name);
     setOpen(false);

@@ -10,6 +10,26 @@ import {
 const amount = (value: string) => ({ value, assetCode: 'EUR' });
 afterEach(cleanup);
 describe('insurance detail', () => {
+  it('shows the observed interest basis and year and derived fee nature', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <OperationDetailModal
+          onClose={vi.fn()}
+          onOpenOperation={vi.fn()}
+          operation={operationFixture({
+            type: 'EURO_FUND_INTEREST',
+            interestBasis: 'NET_OF_MANAGEMENT_FEES',
+            rateYear: 2026,
+            feeNature: 'MANAGEMENT',
+          })}
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText('Net de frais de gestion')).toBeTruthy();
+    expect(screen.getByText('2026')).toBeTruthy();
+    expect(screen.getByText('Frais de gestion')).toBeTruthy();
+  });
+
   it('shows sold and bought supports separately, the manual fee and dated informative terms', () => {
     render(
       <QueryClientProvider client={new QueryClient()}>

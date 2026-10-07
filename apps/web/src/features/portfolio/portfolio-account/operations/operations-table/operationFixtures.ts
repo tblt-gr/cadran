@@ -3,6 +3,9 @@ import type { PortfolioOperation } from '@cadran/api-client';
 /** A complete operation read model, overridden per test. */
 export function operationFixture(overrides: Partial<PortfolioOperation> = {}): PortfolioOperation {
   return {
+    interestBasis: null,
+    rateYear: null,
+    feeNature: null,
     id: '00000000-0000-7000-8000-0000000000a1',
     accountId: '00000000-0000-7000-8000-0000000000ac',
     applicableSwitchFeeRate: null,

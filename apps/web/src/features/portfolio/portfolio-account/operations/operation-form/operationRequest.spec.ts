@@ -7,6 +7,41 @@ function values(overrides: Partial<OperationFormValues>): OperationFormValues {
 const instrument = { id: 'ins-1', name: 'ETF Monde' };
 
 describe('buildOperationRequest', () => {
+  it('sends observed euro interest without computing net and rejects tax at gross', () => {
+    const input = values({
+      type: 'EURO_FUND_INTEREST',
+      instrument: { ...instrument, instrumentType: 'EURO_FUND' },
+      grossAmount: '150',
+      taxes: '25.80',
+      interestBasis: 'UNKNOWN',
+      rateYear: '2026',
+    });
+    const result = buildOperationRequest(input, 'EUR');
+    expect(result.errors).toBeNull();
+    expect(result.request).toMatchObject({
+      interestBasis: 'UNKNOWN',
+      rateYear: 2026,
+      grossAmount: { value: '150' },
+      taxes: { value: '25.80' },
+    });
+    expect(result.request).not.toHaveProperty('netCreditedAmount');
+    expect(buildOperationRequest({ ...input, taxes: '150' }, 'EUR').errors?.taxes).toBeTruthy();
+  });
+  it('requires positive management fees and units only for unit-linked support', () => {
+    const input = values({
+      type: 'MANAGEMENT_FEE',
+      fees: '30',
+      instrument: { ...instrument, instrumentType: 'FUND' },
+    });
+    expect(buildOperationRequest(input, 'EUR').errors?.quantity).toBeTruthy();
+    expect(
+      buildOperationRequest({ ...input, quantity: '0.30', unitPrice: '100' }, 'EUR').request
+        ?.quantity,
+    ).toBe('0.30');
+    expect(buildOperationRequest({ ...input, instrument: null }, 'EUR').errors).toBeNull();
+    expect(buildOperationRequest({ ...input, fees: '0' }, 'EUR').errors?.fees).toBeTruthy();
+  });
+
   it('keeps both switch directions and leaves gross and balance to the server', () => {
     const result = buildOperationRequest(
       values({

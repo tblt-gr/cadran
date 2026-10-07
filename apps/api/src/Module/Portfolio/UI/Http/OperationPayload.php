@@ -19,7 +19,7 @@ final class OperationPayload
     private const array FIELDS = [
         'type', 'tradeDate', 'settlementDate', 'instrumentId', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes',
         'costBasis', 'counterInstrumentId', 'counterQuantity', 'ratio', 'costAllocationRatio', 'reference', 'note',
-        'linkedTransactionId', 'legs', 'withheldIncomeTax', 'withheldSocialContributions',
+        'linkedTransactionId', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'interestBasis', 'rateYear',
     ];
 
     /**
@@ -34,9 +34,14 @@ final class OperationPayload
                 throw new \UnexpectedValueException('The operation body carries only declared fields.');
             }
         }
+        if (isset($body['rateYear']) && !is_int($body['rateYear'])) {
+            throw new \UnexpectedValueException('rateYear must be an integer.');
+        }
         $ratio = self::object($body, 'ratio', ['numerator', 'denominator']);
 
         return new OperationInput(
+            interestBasis: self::string($body, 'interestBasis'),
+            rateYear: $body['rateYear'] ?? null,
             type: self::requiredString($body, 'type'),
             tradeDate: self::requiredString($body, 'tradeDate'),
             settlementDate: self::string($body, 'settlementDate'),

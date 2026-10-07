@@ -79,6 +79,114 @@ afterEach(() => {
 });
 
 describe('OperationForm', () => {
+  it('places a server management-fee mismatch next to the visible fee field', () => {
+    renderForm({
+      account: { ...account, kind: 'INSURANCE_CONTRACT' },
+      operation: operationFixture({
+        type: 'MANAGEMENT_FEE',
+        fees: { value: '30', assetCode: 'EUR' },
+      }),
+      fieldErrors: { grossAmount: 'Le montant ne correspond pas aux parts.' },
+    });
+    expect(screen.getByLabelText(/Montant des frais/).getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByText('Le montant ne correspond pas aux parts.')).toBeTruthy();
+  });
+
+  it('shows filtered empty support results without inventing net', async () => {
+    renderForm({ account: { ...account, kind: 'INSURANCE_CONTRACT' } }, () => {
+      api.listInstruments.mockImplementation(() =>
+        ok({ items: [{ id: 'units', name: 'Fonds actions', instrumentType: 'FUND' }] }),
+      );
+    });
+    change('Type', 'EURO_FUND_INTEREST');
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Support' }));
+    await screen.findByText('Aucun instrument trouvé.');
+    expect(screen.queryByRole('option', { name: /Fonds actions/ })).toBeNull();
+    expect(screen.queryByText('124,20 EUR')).toBeNull();
+  });
+
+  it.each(['EURO_FUND_INTEREST', 'PROFIT_SHARING', 'SOCIAL_CONTRIBUTION'] as const)(
+    'selects euro funds by keyboard at 360 px for %s',
+    async (type) => {
+      const width = window.innerWidth;
+      window.innerWidth = 360;
+      try {
+        const { onSubmit } = renderForm(
+          { account: { ...account, kind: 'INSURANCE_CONTRACT' } },
+          () => {
+            api.listInstruments.mockImplementation(() =>
+              ok({
+                items: [
+                  { id: 'units', name: 'Fonds actions', instrumentType: 'FUND' },
+                  { id: 'euro', name: 'Fonds euros', instrumentType: 'EURO_FUND' },
+                ],
+              }),
+            );
+            api.previewPortfolioOperation.mockImplementation(() =>
+              ok({
+                cashAmount: { value: '0', assetCode: 'EUR' },
+                netCreditedAmount: { value: '124.20', assetCode: 'EUR' },
+              }),
+            );
+          },
+        );
+        change('Type', type);
+        const picker = screen.getByRole('combobox', { name: 'Support' });
+        fireEvent.focus(picker);
+        await screen.findByRole('option', { name: /Fonds euros/ });
+        expect(screen.queryByRole('option', { name: /Fonds actions/ })).toBeNull();
+        fireEvent.keyDown(picker, { key: 'Enter' });
+        if (type === 'SOCIAL_CONTRIBUTION') {
+          change('Montant', '25.80');
+          change('Année', '2026');
+        } else {
+          change('Montant brut crédité', '150');
+          change('Prélèvements sociaux retenus', '25.80');
+          change('Base du taux', 'NET_OF_MANAGEMENT_FEES');
+          change('Année du taux', '2026');
+        }
+        if (type !== 'SOCIAL_CONTRIBUTION') await screen.findByText('124,20 EUR');
+        fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ type, instrumentId: 'euro', rateYear: 2026 }),
+          null,
+        );
+      } finally {
+        window.innerWidth = width;
+      }
+    },
+  );
+
+  it('keeps management fees in cash unless a support is selected and reveals unit fields', async () => {
+    const { onSubmit } = renderForm({ account: { ...account, kind: 'INSURANCE_CONTRACT' } }, () => {
+      api.listInstruments.mockImplementation(() =>
+        ok({ items: [{ id: 'units', name: 'Fonds actions', instrumentType: 'FUND' }] }),
+      );
+    });
+    change('Type', 'MANAGEMENT_FEE');
+    expect(screen.getByText('Liquidités du contrat')).toBeTruthy();
+    change('Montant des frais', '30');
+    expect(screen.queryByLabelText('Parts prélevées')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.not.objectContaining({ instrumentId: expect.anything() }),
+      null,
+    );
+    const picker = screen.getByRole('combobox', { name: 'Support' });
+    fireEvent.focus(picker);
+    await screen.findByRole('option', { name: /Fonds actions/ });
+    fireEvent.keyDown(picker, { key: 'Enter' });
+    change(/Parts prélevées/, '0.30');
+    change('Valeur liquidative', '100');
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(onSubmit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ quantity: '0.30', unitPrice: '100' }),
+      null,
+    );
+    change('Type', 'EURO_FUND_INTEREST');
+    expect((screen.getByRole('combobox', { name: 'Support' }) as HTMLInputElement).value).toBe('');
+  });
+
   it('selects both switch support sides by keyboard at 360 px', async () => {
     const width = window.innerWidth;
     window.innerWidth = 360;

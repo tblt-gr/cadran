@@ -33,6 +33,24 @@ final readonly class LifeInsuranceContractController
     {
     }
 
+    #[Route('/api/v1/accounts/{accountId}/life-insurance-income-and-fees', name: 'api_v1_life_insurance_income_and_fees', methods: ['GET'])]
+    public function incomeAndFees(string $accountId, Request $request, \App\Module\Portfolio\Application\LifeInsurance\ReadLifeInsuranceIncomeAndFees $read): Response
+    {
+        if (!self::identifier($accountId)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
+        }
+        try {
+            $year = $request->query->all()['year'] ?? null;
+            if (!is_string($year)) {
+                throw new InvalidPortfolioOperation('A year is required.', 'invalid_year');
+            }
+
+            return self::json($read($accountId, $year));
+        } catch (\Throwable $exception) {
+            return $this->failure($exception);
+        }
+    }
+
     #[Route('/api/v1/accounts/{accountId}/life-insurance-contract', name: 'api_v1_life_insurance_contract_show', methods: ['GET'])]
     public function show(string $accountId, ReadLifeInsuranceContract $read): Response
     {

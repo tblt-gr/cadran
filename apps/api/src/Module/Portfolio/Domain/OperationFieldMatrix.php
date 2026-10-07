@@ -16,13 +16,16 @@ final class OperationFieldMatrix
 
     public const array FIELDS = [
         'instrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'costBasis',
-        'counterInstrument', 'counterQuantity', 'ratio', 'costAllocationRatio', 'linkedTransaction', 'legs', 'withheldIncomeTax', 'withheldSocialContributions',
+        'counterInstrument', 'counterQuantity', 'ratio', 'costAllocationRatio', 'linkedTransaction', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'interestBasis', 'rateYear',
     ];
 
     /** @return array{required: list<string>, optional: list<string>} */
     public static function rules(OperationType $type): array
     {
         return match ($type) {
+            OperationType::EURO_FUND_INTEREST, OperationType::PROFIT_SHARING => ['required' => ['instrument', 'grossAmount', 'interestBasis', 'rateYear'], 'optional' => ['taxes']],
+            OperationType::MANAGEMENT_FEE => ['required' => ['fees'], 'optional' => ['instrument', 'quantity', 'unitPrice']],
+            OperationType::SOCIAL_CONTRIBUTION => ['required' => ['instrument', 'taxes', 'rateYear'], 'optional' => []],
             OperationType::SWITCH => ['required' => ['legs'], 'optional' => ['fees']],
             OperationType::PREMIUM => ['required' => ['grossAmount'], 'optional' => ['fees', 'legs', 'linkedTransaction']],
             OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER => ['required' => ['grossAmount'], 'optional' => ['fees', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'linkedTransaction']],

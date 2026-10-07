@@ -42,6 +42,49 @@ function renderPicker(
   return onChange;
 }
 describe('InstrumentPicker', () => {
+  it('requests euro funds before pagination so a fund beyond 20 other instruments remains selectable', async () => {
+    const euro = {
+      ...instrument,
+      id: 'euro-after-20',
+      name: 'Fonds euros',
+      instrumentType: 'EURO_FUND' as const,
+    };
+    api.listInstruments.mockImplementation(({ query }: { query: { instrumentType?: string } }) =>
+      Promise.resolve({
+        data: {
+          items:
+            query.instrumentType === 'EURO_FUND'
+              ? [euro]
+              : Array.from({ length: 20 }, (_, index) => ({ ...instrument, id: `etf-${index}` })),
+        },
+        response: new Response('{}', { status: 200 }),
+      }),
+    );
+    const onChange = vi.fn();
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <InstrumentPicker
+          currencyCode="EUR"
+          instrumentType="EURO_FUND"
+          label="Support"
+          onChange={onChange}
+        />
+      </QueryClientProvider>,
+    );
+    const picker = screen.getByRole('combobox', { name: 'Support' });
+    fireEvent.focus(picker);
+    await screen.findByRole('option', { name: /Fonds euros/ });
+    expect(api.listInstruments).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ instrumentType: 'EURO_FUND', perPage: 20 }),
+      }),
+    );
+    fireEvent.keyDown(picker, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith(euro);
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
@@ -86,6 +129,7 @@ describe('InstrumentPicker', () => {
     fireEvent.keyDown(picker, { key: 'ArrowDown' });
     fireEvent.keyDown(picker, { key: 'Enter' });
     expect(onChange).toHaveBeenLastCalledWith(instrument);
+    expect(api.listInstruments.mock.calls[0]?.[0].query).not.toHaveProperty('instrumentType');
     expect(picker.getAttribute('aria-expanded')).toBe('false');
   });
   it('has a useful empty result and a management link', async () => {

@@ -22,7 +22,7 @@ final class PortfolioOperationRow
         .'taxes_value, taxes_scale, cash_amount_value, cash_amount_scale, cost_basis_value, cost_basis_scale, counter_quantity_value, counter_quantity_scale, '
         .'ratio_numerator_value, ratio_numerator_scale, ratio_denominator_value, ratio_denominator_scale, cost_allocation_ratio_value, cost_allocation_ratio_scale, '
         .'rounding_residual_value, rounding_residual_scale, reference, note, linked_transaction_id, state, voided_at, voided_by, void_reason, void_kind, '
-        .'corrects_operation_id, created_at, created_by, version, withheld_income_tax_value, withheld_income_tax_scale, withheld_social_contributions_value, withheld_social_contributions_scale';
+        .'corrects_operation_id, created_at, created_by, version, withheld_income_tax_value, withheld_income_tax_scale, withheld_social_contributions_value, withheld_social_contributions_scale, interest_basis, rate_year';
 
     /** @param array<string, mixed> $row
      * @param list<OperationLeg> $legs
@@ -37,6 +37,8 @@ final class PortfolioOperationRow
         $date = static fn (mixed $value): \DateTimeImmutable => new \DateTimeImmutable(self::text($value), new \DateTimeZone('UTC'));
 
         $details = new OperationDetails(
+            interestBasis: null === ($row['interest_basis'] ?? null) ? null : \App\Module\Portfolio\Domain\LifeInsurance\InterestBasis::from(self::text($row['interest_basis'])),
+            rateYear: null === ($row['rate_year'] ?? null) ? null : (int) self::text($row['rate_year']),
             type: $type,
             tradeDate: $date($row['trade_date']),
             settlementDate: null === $row['settlement_date'] ? null : $date($row['settlement_date']),
@@ -90,6 +92,8 @@ final class PortfolioOperationRow
             'id' => $operation->id,
             'account_id' => $operation->accountId,
             'operation_type' => $details->type->value,
+            'interest_basis' => $details->interestBasis?->value,
+            'rate_year' => $details->rateYear,
             'trade_date' => $details->tradeDate->format('Y-m-d'),
             'settlement_date' => $details->settlementDate?->format('Y-m-d'),
             'sequence' => $operation->sequence,

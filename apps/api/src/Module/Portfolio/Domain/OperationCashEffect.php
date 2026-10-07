@@ -33,9 +33,10 @@ final readonly class OperationCashEffect
         DecimalValue $taxes,
         int $displayPrecision,
         array $legs = [],
+        bool $fromSupport = false,
     ): self {
         try {
-            return self::compute($type, $quantity, $unitPrice, $grossAmount, $fees, $taxes, $displayPrecision, $legs);
+            return self::compute($type, $quantity, $unitPrice, $grossAmount, $fees, $taxes, $displayPrecision, $legs, $fromSupport);
         } catch (PrecisionExceeded|MalformedDecimal $exception) {
             throw new InvalidPortfolioOperation('The operation amounts are too large to be stored exactly.', 'invalid_operation_amount');
         }
@@ -51,11 +52,14 @@ final readonly class OperationCashEffect
         DecimalValue $taxes,
         int $displayPrecision,
         array $legs = [],
+        bool $fromSupport = false,
     ): self {
         $gross = $grossAmount ?? DecimalValue::zero();
         $net = ExactDecimal::subtract(ExactDecimal::subtract($gross, $fees), $taxes);
 
         return match ($type) {
+            OperationType::EURO_FUND_INTEREST, OperationType::PROFIT_SHARING, OperationType::SOCIAL_CONTRIBUTION => new self(DecimalValue::zero(), null, null),
+            OperationType::MANAGEMENT_FEE => self::managementFee($quantity, $unitPrice, $fees, $displayPrecision, $fromSupport),
             OperationType::SWITCH => new self(DecimalValue::zero(), null, null),
             OperationType::PREMIUM => self::premium($gross, $fees, $legs),
             OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER => new self(ExactDecimal::subtract(self::supports($legs), $gross), null, null),
@@ -119,6 +123,15 @@ final readonly class OperationCashEffect
             : $net;
 
         return new self($cash, self::minimal($residual), self::minimal($expected));
+    }
+
+    private static function managementFee(?DecimalValue $quantity, ?DecimalValue $price, DecimalValue $fees, int $display, bool $fromSupport): self
+    {
+        if (null !== $quantity && null !== $price) {
+            self::trade(OperationType::SELL, $quantity, $price, $fees, DecimalValue::zero(), DecimalValue::zero(), $fees, $display);
+        }
+
+        return new self($fromSupport ? DecimalValue::zero() : ExactDecimal::negate($fees), null, null);
     }
 
     private static function minimal(DecimalValue $value): DecimalValue

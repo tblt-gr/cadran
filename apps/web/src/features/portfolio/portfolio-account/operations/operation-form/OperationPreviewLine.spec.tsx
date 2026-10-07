@@ -5,6 +5,16 @@ import { OperationPreviewLine } from './OperationPreviewLine';
 const amount = (value: string) => ({ value, assetCode: 'EUR' });
 afterEach(cleanup);
 describe('insurance preview figures', () => {
+  it('keeps net credited unknown and retains its label while waiting for the server', () => {
+    const { container, rerender } = render(
+      <OperationPreviewLine type="EURO_FUND_INTEREST" pending={false} showResidual={false} />,
+    );
+    expect(screen.getByText('Net crédité')).toBeTruthy();
+    expect(screen.queryByText(/0,00/)).toBeNull();
+    rerender(<OperationPreviewLine type="EURO_FUND_INTEREST" pending showResidual={false} />);
+    expect(container.querySelectorAll('[aria-hidden="true"]').length).toBe(2);
+  });
+
   it('retains switch labels during loading and leaves unavailable figures unknown', () => {
     const { container, rerender } = render(
       <OperationPreviewLine type="SWITCH" pending showResidual={false} />,
@@ -24,6 +34,7 @@ describe('insurance preview figures', () => {
         pending={false}
         showResidual={false}
         preview={{
+          netCreditedAmount: null,
           cashAmount: amount('0'),
           legs: [],
           netPaidAmount: null,
@@ -56,6 +67,7 @@ describe('insurance preview figures', () => {
         pending={false}
         showResidual={false}
         preview={{
+          netCreditedAmount: null,
           cashAmount: amount('0'),
           legs: [
             {

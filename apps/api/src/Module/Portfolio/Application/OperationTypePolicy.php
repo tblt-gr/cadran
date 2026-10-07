@@ -15,6 +15,9 @@ final class OperationTypePolicy
 {
     /** @var list<OperationType> */
     private const array REFUSED_ON_INSURANCE_CONTRACT = [
+        OperationType::FEE,
+        OperationType::TAX,
+        OperationType::INTEREST,
         OperationType::DEPOSIT,
         OperationType::WITHDRAWAL,
         OperationType::SECURITY_TRANSFER_IN,
@@ -24,7 +27,7 @@ final class OperationTypePolicy
     public static function assertAllowed(AccountKind $kind, OperationType $type): void
     {
         if ((AccountKind::INSURANCE_CONTRACT === $kind && in_array($type, self::REFUSED_ON_INSURANCE_CONTRACT, true))
-            || (AccountKind::INSURANCE_CONTRACT !== $kind && $type->hasSupportLegs())) {
+            || (AccountKind::INSURANCE_CONTRACT !== $kind && ($type->hasSupportLegs() || $type->isObservedInsurance()))) {
             throw new InvalidPortfolioOperation('This operation type is not allowed on a life-insurance contract.', 'operation_type_not_allowed_for_account');
         }
     }

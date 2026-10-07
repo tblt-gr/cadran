@@ -87,6 +87,7 @@ final readonly class PortfolioOperationPresenter
             array_map(static fn ($leg): array => OperationLegView::of($leg, $asset, $instruments[$leg->instrumentId] ?? null), $details->legs),
             $amount($details->withheldIncomeTax), $amount($details->withheldSocialContributions), $amount($details->netPaidAmount()),
             $terms?->switchFeeRate?->toString(), $amount($terms?->switchFeeFixed),
+            $details->interestBasis?->value, $details->rateYear, \App\Module\Portfolio\Domain\LifeInsurance\FeeNature::of($operation)?->value,
         );
     }
 

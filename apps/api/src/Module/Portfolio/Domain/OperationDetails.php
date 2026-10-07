@@ -45,11 +45,15 @@ final readonly class OperationDetails
         public ?DecimalValue $withheldIncomeTax = null,
         public ?DecimalValue $withheldSocialContributions = null,
         bool $allowUnbalancedSwitch = false,
+        public ?LifeInsurance\InterestBasis $interestBasis = null,
+        public ?int $rateYear = null,
     ) {
         if ((null === $ratioNumerator) !== (null === $ratioDenominator)) {
             throw new InvalidPortfolioOperation('A ratio carries a numerator and a denominator.', 'invalid_corporate_action');
         }
         OperationFieldMatrix::assertPresence($type, [
+            'interestBasis' => null !== $interestBasis,
+            'rateYear' => null !== $rateYear,
             'legs' => [] !== $legs,
             'withheldIncomeTax' => null !== $withheldIncomeTax,
             'withheldSocialContributions' => null !== $withheldSocialContributions,
@@ -118,10 +122,13 @@ final readonly class OperationDetails
         self::assertNotNegative($fees);
         self::assertNotNegative($taxes);
         self::assertNotNegative($costBasis);
-        if (OperationType::FEE === $type) {
+        if ($type->isCreditedInterest() && null !== $taxes && null !== $grossAmount && $taxes->compareTo($grossAmount) >= 0) {
+            throw new InvalidPortfolioOperation('Withheld contributions must be less than the credited gross.', 'invalid_operation_amount');
+        }
+        if (OperationType::FEE === $type || OperationType::MANAGEMENT_FEE === $type) {
             self::assertPositive($fees, 'invalid_operation_amount');
         }
-        if (OperationType::TAX === $type) {
+        if (OperationType::TAX === $type || OperationType::SOCIAL_CONTRIBUTION === $type) {
             self::assertPositive($taxes, 'invalid_operation_amount');
         }
         $this->assertCorporateAction();
@@ -129,6 +136,24 @@ final readonly class OperationDetails
 
         $this->reference = OperationText::normalize($reference, OperationText::MAX_REFERENCE);
         $this->note = OperationText::normalize($note, OperationText::MAX_NOTE);
+    }
+
+    public function netCreditedAmount(): ?DecimalValue
+    {
+        return $this->type->isCreditedInterest() ? ExactDecimal::subtract($this->grossAmount ?? DecimalValue::zero(), $this->taxes ?? DecimalValue::zero()) : null;
+    }
+
+    public function supportDeduction(): ?DecimalValue
+    {
+        if (null === $this->instrumentId) {
+            return null;
+        }
+
+        return match ($this->type) {
+            OperationType::MANAGEMENT_FEE => $this->quantity ?? $this->fees,
+            OperationType::SOCIAL_CONTRIBUTION => $this->taxes,
+            default => null,
+        };
     }
 
     public function netPaidAmount(): ?DecimalValue
