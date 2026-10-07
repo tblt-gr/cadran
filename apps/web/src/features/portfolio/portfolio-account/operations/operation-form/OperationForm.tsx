@@ -11,6 +11,7 @@ import { OperationField } from './OperationField';
 import { OperationInstrumentField } from './operation-instrument-field/OperationInstrumentField';
 import { OperationPreviewLine } from './OperationPreviewLine';
 import { OperationRatioFields } from './operation-ratio-fields/OperationRatioFields';
+import { InsuranceIncomeFields } from './insurance-income-fields/InsuranceIncomeFields';
 import { InsuranceOperationFields } from './InsuranceOperationFields';
 import { hasField } from './operationMatrix';
 import {
@@ -58,7 +59,17 @@ export function OperationForm({
     ...operationFieldErrors(preview.error),
     ...fieldErrors,
   };
+  if (values.type === 'MANAGEMENT_FEE' && errors.grossAmount) {
+    errors.fees = errors.grossAmount;
+    delete errors.grossAmount;
+  }
   const type = values.type;
+  const insuranceIncome = [
+    'EURO_FUND_INTEREST',
+    'PROFIT_SHARING',
+    'MANAGEMENT_FEE',
+    'SOCIAL_CONTRIBUTION',
+  ].includes(type);
   const instruments = [
     ...values.legs.map((leg) => leg.instrument),
     values.instrument,
@@ -105,6 +116,11 @@ export function OperationForm({
           value={type}
           onChange={(next) => {
             set('type', next);
+            if (
+              ['EURO_FUND_INTEREST', 'PROFIT_SHARING', 'SOCIAL_CONTRIBUTION'].includes(next) &&
+              values.instrument?.instrumentType !== 'EURO_FUND'
+            )
+              set('instrument', null);
             set('linkedTransactionId', '');
           }}
         />
@@ -122,7 +138,7 @@ export function OperationForm({
             value={values.settlementDate}
           />
         </OperationField>
-        {has('instrument') ? (
+        {!insuranceIncome && has('instrument') ? (
           <OperationInstrumentField
             currencyCode={account.assetCode}
             error={errors.instrument}
@@ -131,9 +147,11 @@ export function OperationForm({
             value={values.instrument}
           />
         ) : null}
-        {decimal('quantity', 'Quantité')}
-        {decimal('unitPrice', 'Prix unitaire')}
-        {has('legs') ? (
+        {!insuranceIncome && decimal('quantity', 'Quantité')}
+        {!insuranceIncome && decimal('unitPrice', 'Prix unitaire')}
+        {insuranceIncome ? (
+          <InsuranceIncomeFields account={account} errors={errors} values={values} onChange={set} />
+        ) : has('legs') ? (
           <InsuranceOperationFields
             account={account}
             editing={!!operation}
@@ -147,7 +165,7 @@ export function OperationForm({
             {decimal('fees', 'Frais')}
           </>
         )}
-        {decimal('taxes', 'Taxes')}
+        {!insuranceIncome && decimal('taxes', 'Taxes')}
         {has('costBasis') ? (
           <OperationDecimalField
             error={errors.costBasis}

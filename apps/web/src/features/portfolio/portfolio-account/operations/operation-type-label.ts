@@ -1,6 +1,10 @@
 import type { PortfolioOperationType } from '@cadran/api-client';
 
 export const operationTypes: readonly PortfolioOperationType[] = [
+  'EURO_FUND_INTEREST',
+  'PROFIT_SHARING',
+  'MANAGEMENT_FEE',
+  'SOCIAL_CONTRIBUTION',
   'SWITCH',
   'PREMIUM',
   'PARTIAL_SURRENDER',
@@ -21,6 +25,10 @@ export const operationTypes: readonly PortfolioOperationType[] = [
 ];
 
 const labels: Record<PortfolioOperationType, string> = {
+  EURO_FUND_INTEREST: 'Intérêts du fonds en euros',
+  PROFIT_SHARING: 'Participation aux bénéfices',
+  MANAGEMENT_FEE: 'Frais de gestion',
+  SOCIAL_CONTRIBUTION: 'Prélèvements sociaux',
   SWITCH: 'Arbitrage',
   PREMIUM: 'Versement',
   PARTIAL_SURRENDER: 'Rachat partiel',
@@ -48,7 +56,24 @@ export function operationTypeLabel(type: PortfolioOperationType): string {
 export function allowedOperationTypes(kind?: string): readonly PortfolioOperationType[] {
   return operationTypes.filter((type) =>
     kind === 'INSURANCE_CONTRACT'
-      ? !['DEPOSIT', 'WITHDRAWAL', 'SECURITY_TRANSFER_IN', 'SECURITY_TRANSFER_OUT'].includes(type)
-      : !['SWITCH', 'PREMIUM', 'PARTIAL_SURRENDER', 'FULL_SURRENDER'].includes(type),
+      ? ![
+          'DEPOSIT',
+          'WITHDRAWAL',
+          'SECURITY_TRANSFER_IN',
+          'SECURITY_TRANSFER_OUT',
+          'FEE',
+          'TAX',
+          'INTEREST',
+        ].includes(type)
+      : ![
+          'SWITCH',
+          'PREMIUM',
+          'PARTIAL_SURRENDER',
+          'FULL_SURRENDER',
+          'EURO_FUND_INTEREST',
+          'PROFIT_SHARING',
+          'MANAGEMENT_FEE',
+          'SOCIAL_CONTRIBUTION',
+        ].includes(type),
   );
 }

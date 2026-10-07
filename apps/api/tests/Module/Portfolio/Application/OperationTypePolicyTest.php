@@ -20,6 +20,9 @@ final class OperationTypePolicyTest extends TestCase
     /** @return iterable<string, array{OperationType}> */
     public static function refusedOnAContract(): iterable
     {
+        yield 'generic fee' => [OperationType::FEE];
+        yield 'generic tax' => [OperationType::TAX];
+        yield 'generic interest' => [OperationType::INTEREST];
         yield 'deposit' => [OperationType::DEPOSIT];
         yield 'withdrawal' => [OperationType::WITHDRAWAL];
         yield 'security transfer in' => [OperationType::SECURITY_TRANSFER_IN];
@@ -40,7 +43,7 @@ final class OperationTypePolicyTest extends TestCase
     public function testOrdinaryTypesStayAvailableOnASecuritiesAccount(): void
     {
         foreach (OperationType::cases() as $type) {
-            if ($type->hasSupportLegs()) {
+            if (in_array($type, [OperationType::PREMIUM, OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER, OperationType::SWITCH, OperationType::EURO_FUND_INTEREST, OperationType::PROFIT_SHARING, OperationType::MANAGEMENT_FEE, OperationType::SOCIAL_CONTRIBUTION], true)) {
                 try {
                     OperationTypePolicy::assertAllowed(AccountKind::PORTFOLIO, $type);
                     self::fail('Insurance operations require a contract account.');
@@ -58,7 +61,7 @@ final class OperationTypePolicyTest extends TestCase
 
     public function testTradesStayAvailableOnAContract(): void
     {
-        foreach ([OperationType::BUY, OperationType::SELL, OperationType::DIVIDEND, OperationType::FEE] as $type) {
+        foreach ([OperationType::BUY, OperationType::SELL, OperationType::DIVIDEND] as $type) {
             OperationTypePolicy::assertAllowed(AccountKind::INSURANCE_CONTRACT, $type);
         }
 

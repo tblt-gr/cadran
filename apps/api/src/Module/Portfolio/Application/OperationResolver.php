@@ -94,15 +94,40 @@ final readonly class OperationResolver
             withheldIncomeTax: self::amount($input->withheldIncomeTax, $asset),
             withheldSocialContributions: self::amount($input->withheldSocialContributions, $asset),
             allowUnbalancedSwitch: !$lock,
+            interestBasis: null === $input->interestBasis ? null : (\App\Module\Portfolio\Domain\LifeInsurance\InterestBasis::tryFrom($input->interestBasis) ?? throw new InvalidPortfolioOperation('The interest basis is invalid.', 'invalid_interest_basis')),
+            rateYear: $input->rateYear,
         );
 
+        if ($type->isObservedInsurance()) {
+            $main = null;
+            foreach ($resolvedInstruments as $instrument) {
+                if ($instrument->id === $details->instrumentId) {
+                    $main = $instrument;
+                }
+            }
+            if (($type->isCreditedInterest() || OperationType::SOCIAL_CONTRIBUTION === $type) && InstrumentType::EURO_FUND !== $main?->instrumentType) {
+                throw new InvalidPortfolioOperation('This operation requires a euro fund.', 'instrument_not_euro_fund');
+            }
+            if (null !== $details->rateYear && (null === $contract || $details->rateYear < (int) $contract->subscribedOn->format('Y') || $details->rateYear > (int) $tradeDate->format('Y'))) {
+                throw new InvalidPortfolioOperation('The rate year lies outside the contract period.', 'invalid_year');
+            }
+            if (OperationType::MANAGEMENT_FEE === $type) {
+                if (null === $main || InstrumentType::EURO_FUND === $main->instrumentType) {
+                    if (null !== $details->quantity || null !== $details->unitPrice) {
+                        throw InvalidPortfolioOperation::field('operation_field_not_allowed', 'quantity');
+                    }
+                } elseif (null === $details->quantity) {
+                    throw InvalidPortfolioOperation::field('operation_field_required', 'quantity');
+                }
+            }
+        }
         $this->assertDates($account, $tradeDate, $today);
         $this->assertInstrumentPrecisions($details, $resolvedInstruments);
         $this->assertLinkedTransfer($account, $details, $replacingOperationId);
 
         $effect = OperationCashEffect::derive(
             $type, $details->quantity, $details->unitPrice, $details->grossAmount,
-            $details->fees ?? DecimalValue::zero(), $details->taxes ?? DecimalValue::zero(), $asset->precision->display, $details->legs,
+            $details->fees ?? DecimalValue::zero(), $details->taxes ?? DecimalValue::zero(), $asset->precision->display, $details->legs, null !== $details->instrumentId,
         );
 
         return new ResolvedOperation($details, $effect, $resolvedInstruments);
@@ -160,6 +185,14 @@ final readonly class OperationResolver
         $counter = null === $details->counterInstrumentId ? null : $resolved[$details->counterInstrumentId];
         if (InstrumentType::EURO_FUND === $main?->instrumentType) {
             EuroFundPrice::assert($details->unitPrice);
+            if ($details->type->isObservedInsurance()) {
+                $quantity = $details->netCreditedAmount() ?? $details->supportDeduction();
+                if (null !== $quantity) {
+                    $literal = $quantity->toString();
+                    $normalized = str_contains($literal, '.') ? rtrim(rtrim($literal, '0'), '.') : $literal;
+                    self::assertScale(DecimalValue::fromString($normalized), $main->quantityPrecision, 'quantity_precision_exceeded');
+                }
+            }
         }
         if (null !== $main) {
             self::assertScale($details->quantity, $main->quantityPrecision, 'quantity_precision_exceeded');

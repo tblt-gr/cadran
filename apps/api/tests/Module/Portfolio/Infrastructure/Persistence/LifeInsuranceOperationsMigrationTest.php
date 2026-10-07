@@ -13,6 +13,8 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 final class LifeInsuranceOperationsMigrationTest extends KernelTestCase
 {
+    private const string OBSERVED_MIGRATION = 'DoctrineMigrations\Version20261007130000';
+    private bool $atObservedHead = true;
     private const string MIGRATION = 'DoctrineMigrations\Version20261006120000';
     private const string SWITCH_MIGRATION = 'DoctrineMigrations\Version20261007120000';
     private Connection $connection;
@@ -37,11 +39,17 @@ final class LifeInsuranceOperationsMigrationTest extends KernelTestCase
         if (!$this->atSwitchHead) {
             $this->executeMigration('up', self::SWITCH_MIGRATION);
         }
+        if (!$this->atObservedHead) {
+            $this->executeMigration('up', self::OBSERVED_MIGRATION);
+        }
         parent::tearDown();
     }
 
     public function testTheMigrationCanBeReversedAndReappliedWithScopedForeignKeysAndExactDecimals(): void
     {
+        $this->executeMigration('down', self::OBSERVED_MIGRATION);
+        $this->atObservedHead = false;
+        self::assertFalse($this->connection->fetchOne("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'portfolio_operations' AND column_name = 'interest_basis')"));
         $this->executeMigration('down', self::SWITCH_MIGRATION);
         $this->atSwitchHead = false;
         $this->executeMigration('down');
@@ -52,9 +60,12 @@ final class LifeInsuranceOperationsMigrationTest extends KernelTestCase
         $this->atHead = true;
         $this->executeMigration('up', self::SWITCH_MIGRATION);
         $this->atSwitchHead = true;
+        $this->executeMigration('up', self::OBSERVED_MIGRATION);
+        $this->atObservedHead = true;
         $constraint = $this->connection->fetchOne("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'portfolio_operations'::regclass AND conname = 'portfolio_operations_type_valid'");
         self::assertIsString($constraint);
         self::assertStringContainsString('SWITCH', $constraint);
+        self::assertStringContainsString('EURO_FUND_INTEREST', $constraint);
         $columns = $this->connection->fetchAllAssociative("SELECT column_name, numeric_precision, numeric_scale FROM information_schema.columns WHERE table_name = 'portfolio_operation_legs' AND data_type = 'numeric' ORDER BY column_name");
         self::assertCount(4, $columns);
         foreach ($columns as $column) {

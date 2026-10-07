@@ -37,6 +37,9 @@ export function operationRequestError(result: ResultLike) {
 }
 
 const fieldByCode: Record<string, keyof OperationFieldErrors> = {
+  instrument_not_euro_fund: 'instrument',
+  invalid_year: 'rateYear',
+  invalid_interest_basis: 'interestBasis',
   switch_same_support: 'legs',
   unknown_leg_instrument: 'legs',
   operation_asset_mismatch: 'legs',
@@ -62,6 +65,8 @@ const fieldByCode: Record<string, keyof OperationFieldErrors> = {
   invalid_operation_text: 'note',
 };
 const fieldByName: Record<string, keyof OperationFieldErrors> = {
+  interestBasis: 'interestBasis',
+  rateYear: 'rateYear',
   withheldIncomeTax: 'withheldIncomeTax',
   withheldSocialContributions: 'withheldSocialContributions',
   legs: 'legs',
@@ -83,6 +88,9 @@ const fieldByName: Record<string, keyof OperationFieldErrors> = {
   tradeDate: 'tradeDate',
 };
 const fieldTexts: Record<string, string> = {
+  instrument_not_euro_fund: 'Choisissez un fonds en euros.',
+  invalid_year: 'L’année doit être comprise entre la souscription et l’opération.',
+  invalid_interest_basis: 'Choisissez une base du taux.',
   premium_allocation_exceeds_net: 'Les supports dépassent le versement net de frais.',
   surrender_exceeds_available: 'Le rachat dépasse les liquidités et les supports vendus.',
   invalid_surrender_amounts: 'Les frais et prélèvements dépassent le montant brut du rachat.',

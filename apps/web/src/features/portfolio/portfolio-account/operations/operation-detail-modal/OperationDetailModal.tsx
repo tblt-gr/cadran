@@ -1,3 +1,4 @@
+import { InsuranceIncomeDetail } from './insurance-income-detail/InsuranceIncomeDetail';
 import { SwitchOperationDetail } from './switch-operation-detail/SwitchOperationDetail';
 import type { PortfolioOperation } from '@cadran/api-client';
 import type { ReactNode, RefObject } from 'react';
@@ -113,6 +114,7 @@ export function OperationDetailModal({
         {has('costAllocationRatio') ? (
           <Row label="Part du coût allouée">{decimal(operation.costAllocationRatio)}</Row>
         ) : null}
+        <InsuranceIncomeDetail operation={operation} />
         <Row label="Effet sur les espèces">
           <CashAmount amount={operation.cashAmount} />
         </Row>

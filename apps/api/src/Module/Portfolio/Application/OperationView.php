@@ -63,6 +63,9 @@ final readonly class OperationView
         public ?array $netPaidAmount = null,
         public ?string $applicableSwitchFeeRate = null,
         public ?array $applicableSwitchFeeFixed = null,
+        public ?string $interestBasis = null,
+        public ?int $rateYear = null,
+        public ?string $feeNature = null,
     ) {
     }
 }

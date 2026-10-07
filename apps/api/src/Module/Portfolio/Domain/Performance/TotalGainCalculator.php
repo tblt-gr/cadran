@@ -106,6 +106,13 @@ final class TotalGainCalculator
                 }
                 $realized = $realized->add(CalculatedDecimal::fromDecimal($leg->amount)->subtract($released));
             }
+            if (null !== $details->supportDeduction()) {
+                $released = $ledger->averageCostReleased[$operation->id] ?? null;
+                if (null === $released) {
+                    return $unavailable;
+                }
+                $realized = $realized->add(self::amount($details->fees ?? $details->taxes)->subtract($released));
+            }
             if (OperationType::SELL === $details->type) {
                 $released = $ledger->averageCostReleased[$operation->id] ?? null;
                 if (null === $released || null === $details->grossAmount) {
@@ -113,7 +120,7 @@ final class TotalGainCalculator
                 }
                 $realized = $realized->add(CalculatedDecimal::fromDecimal($details->grossAmount)->subtract($released));
             }
-            if (in_array($details->type, [OperationType::DIVIDEND, OperationType::INTEREST], true) && null !== $details->grossAmount) {
+            if (in_array($details->type, [OperationType::DIVIDEND, OperationType::INTEREST, OperationType::EURO_FUND_INTEREST, OperationType::PROFIT_SHARING], true) && null !== $details->grossAmount) {
                 $income = $income->add(CalculatedDecimal::fromDecimal($details->grossAmount));
             }
             if (OperationType::MERGER === $details->type && null !== $details->grossAmount) {

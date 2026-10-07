@@ -795,6 +795,12 @@ api:
     invalid_euro_fund_rate:
       title: 'Taux du fonds en euros invalide'
       detail: 'Le taux servi, le bonus, l’année ou la base du taux sont hors de leurs bornes.'
+    invalid_year:
+      title: Année invalide
+      detail: Choisissez une année comprise entre la souscription du contrat et l'année actuelle.
+    invalid_interest_basis:
+      title: Base du taux invalide
+      detail: Choisissez une base du taux reconnue.
     instrument_not_euro_fund:
       title: 'Support non éligible'
       detail: 'Le support doit être un fonds en euros de cet espace de travail.'

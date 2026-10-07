@@ -33,6 +33,21 @@ export function OperationPreviewLine({
           <span>-</span>
         )}
       </div>
+      {type === 'EURO_FUND_INTEREST' || type === 'PROFIT_SHARING' ? (
+        <div className={styles.previewRow}>
+          <span>Net crédité</span>
+          {preview?.netCreditedAmount ? (
+            <strong>
+              {formatDecimal(preview.netCreditedAmount.value, i18n.language)}{' '}
+              {preview.netCreditedAmount.assetCode}
+            </strong>
+          ) : pending ? (
+            <SkeletonBlock className={styles.previewValue} />
+          ) : (
+            <span>-</span>
+          )}
+        </div>
+      ) : null}
       {type === 'PARTIAL_SURRENDER' || type === 'FULL_SURRENDER' ? (
         <div className={styles.previewRow}>
           <span>Net versé</span>

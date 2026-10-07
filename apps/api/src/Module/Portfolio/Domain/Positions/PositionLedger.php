@@ -143,6 +143,12 @@ final class PositionLedger
             }
         }
 
+        if ($details->type->isCreditedInterest()) {
+            $net = self::calculated(self::requiredDecimal($details->netCreditedAmount()));
+            $this->acquire($states, $movements, $operation, self::required($details->instrumentId), self::derivedQuantity(self::requiredDecimal($details->netCreditedAmount())), $net);
+        } elseif (null !== $details->supportDeduction()) {
+            $this->dispose($states, $movements, $operation, self::required($details->instrumentId), self::derivedQuantity($details->supportDeduction()));
+        }
         match ($details->type) {
             OperationType::BUY => $this->acquire(
                 $states, $movements, $operation, self::required($details->instrumentId),
@@ -434,9 +440,9 @@ final class PositionLedger
             if (null !== $main) {
                 $directions[$main][$date] ??= ['increase' => false, 'decrease' => false];
                 $direction = &$directions[$main][$date];
-                if (in_array($type, [OperationType::BUY, OperationType::SECURITY_TRANSFER_IN], true)) {
+                if (in_array($type, [OperationType::BUY, OperationType::SECURITY_TRANSFER_IN, OperationType::EURO_FUND_INTEREST, OperationType::PROFIT_SHARING], true)) {
                     $direction['increase'] = true;
-                } elseif (in_array($type, [OperationType::SELL, OperationType::SECURITY_TRANSFER_OUT, OperationType::MERGER], true)) {
+                } elseif (in_array($type, [OperationType::SELL, OperationType::SECURITY_TRANSFER_OUT, OperationType::MERGER, OperationType::MANAGEMENT_FEE, OperationType::SOCIAL_CONTRIBUTION], true)) {
                     $direction['decrease'] = true;
                 } elseif (OperationType::SPLIT === $type) {
                     $comparison = self::requiredDecimal($operation->details->ratioNumerator)->compareTo(self::requiredDecimal($operation->details->ratioDenominator));
@@ -523,6 +529,15 @@ final class PositionLedger
     private static function calculated(DecimalValue $value): CalculatedDecimal
     {
         return CalculatedDecimal::fromDecimal($value);
+    }
+
+    /** Derived amounts can carry insignificant zeros beyond the support's scale; quantities must round-trip through input validation. */
+    private static function derivedQuantity(DecimalValue $value): CalculatedDecimal
+    {
+        $literal = $value->toString();
+        $normalized = str_contains($literal, '.') ? rtrim(rtrim($literal, '0'), '.') : $literal;
+
+        return self::calculated(DecimalValue::fromString($normalized));
     }
 
     private static function nullableCalculated(?DecimalValue $value): ?CalculatedDecimal

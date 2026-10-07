@@ -20,7 +20,7 @@ final readonly class ListInstruments
     {
     }
 
-    public function __invoke(?string $query, string $status, ?int $page, ?int $perPage, ?string $currencyCode = null): InstrumentPage
+    public function __invoke(?string $query, string $status, ?int $page, ?int $perPage, ?string $currencyCode = null, ?string $instrumentType = null): InstrumentPage
     {
         $page ??= 1;
         $perPage ??= self::DEFAULT_PAGE_SIZE;
@@ -39,12 +39,13 @@ final readonly class ListInstruments
         } catch (\InvalidArgumentException $exception) {
             throw new InvalidInstrumentInput('The instrument currency filter is invalid.', 'invalid_instrument_query', $exception);
         }
+        $type = null === $instrumentType ? null : (\App\Module\Portfolio\Domain\InstrumentType::tryFrom($instrumentType) ?? throw new InvalidInstrumentInput('The instrument type filter is invalid.', 'invalid_instrument_query'));
         $workspace = $this->caller->resolve();
-        $items = $this->instruments->list($workspace, $resolvedStatus, $query, $currency, $perPage, ($page - 1) * $perPage);
+        $items = $this->instruments->list($workspace, $resolvedStatus, $query, $currency, $perPage, ($page - 1) * $perPage, $type);
 
         return new InstrumentPage(
             array_map(InstrumentView::fromInstrument(...), $items), $page, $perPage,
-            $this->instruments->count($workspace, $resolvedStatus, $query, $currency),
+            $this->instruments->count($workspace, $resolvedStatus, $query, $currency, $type),
         );
     }
 }

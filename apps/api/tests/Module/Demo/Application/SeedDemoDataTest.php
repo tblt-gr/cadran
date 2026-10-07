@@ -137,6 +137,9 @@ final class SeedDemoDataTest extends KernelTestCase
         self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'PARTIAL_SURRENDER' AND gross_amount_value = 1050 AND taxes_value = 16.10", [$workspace]));
         self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'PREMIUM' AND gross_amount_value = 10000 AND fees_value = 100 AND cash_amount_value = 0", [$workspace]));
         self::assertGreaterThan(0, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'PREMIUM' AND gross_amount_value = 1500 AND fees_value = 15 AND linked_transaction_id IS NOT NULL", [$workspace]));
+        self::assertSame(2, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'EURO_FUND_INTEREST' AND gross_amount_value > taxes_value AND cash_amount_value = 0", [$workspace]));
+        self::assertSame(2, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'MANAGEMENT_FEE' AND quantity_value = 0.30 AND cash_amount_value = 0", [$workspace]));
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'EURO_FUND_INTEREST' AND interest_basis = 'UNKNOWN'", [$workspace]));
         self::assertSame(0, $this->rows("SELECT COUNT(*) FROM audit_events WHERE concat(before_json::text, after_json::text) LIKE '%00012345%'"));
     }
 

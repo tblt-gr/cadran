@@ -67,7 +67,7 @@ final class CashLedger
                 OperationType::BUY => 'buys',
                 OperationType::SELL => 'sells',
                 OperationType::DIVIDEND => 'dividends',
-                OperationType::INTEREST => 'interest',
+                OperationType::INTEREST, OperationType::EURO_FUND_INTEREST, OperationType::PROFIT_SHARING => 'interest',
                 OperationType::MERGER => 'lieu',
                 default => null,
             };
@@ -78,6 +78,11 @@ final class CashLedger
                 $supportKey = LegDirection::IN === $leg->direction ? 'supportsBought' : 'supportsSold';
                 $totals[$supportKey] = ExactDecimal::add($totals[$supportKey], $leg->amount);
                 $totals['residuals'] = ExactDecimal::add($totals['residuals'], $leg->roundingResidual ?? $zero);
+            }
+            if ($details->type->isCreditedInterest()) {
+                $totals['supportsBought'] = ExactDecimal::add($totals['supportsBought'], $details->netCreditedAmount() ?? $zero);
+            } elseif (null !== $details->supportDeduction()) {
+                $totals['supportsSold'] = ExactDecimal::add($totals['supportsSold'], $details->fees ?? $details->taxes ?? $zero);
             }
             $totals['fees'] = ExactDecimal::add($totals['fees'], $details->fees ?? $zero);
             $totals['taxes'] = ExactDecimal::add($totals['taxes'], $details->taxes ?? $zero);

@@ -85,9 +85,9 @@ final readonly class DbalInstrumentRepository implements InstrumentRepository
         return array_map(static fn (array $row): Instrument => InstrumentRow::hydrate($row, $workspace), $rows);
     }
 
-    public function list(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency, int $limit, int $offset): array
+    public function list(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency, int $limit, int $offset, ?\App\Module\Portfolio\Domain\InstrumentType $instrumentType = null): array
     {
-        [$where, $parameters] = self::filters($workspace, $status, $query, $currency);
+        [$where, $parameters] = self::filters($workspace, $status, $query, $currency, $instrumentType);
         $parameters['limit'] = $limit;
         $parameters['offset'] = $offset;
         $rows = $this->connection->fetchAllAssociative(
@@ -99,9 +99,9 @@ final readonly class DbalInstrumentRepository implements InstrumentRepository
         return array_map(static fn (array $row): Instrument => InstrumentRow::hydrate($row, $workspace), $rows);
     }
 
-    public function count(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency): int
+    public function count(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency, ?\App\Module\Portfolio\Domain\InstrumentType $instrumentType = null): int
     {
-        [$where, $parameters] = self::filters($workspace, $status, $query, $currency);
+        [$where, $parameters] = self::filters($workspace, $status, $query, $currency, $instrumentType);
 
         return InstrumentRow::integer($this->connection->fetchOne('SELECT count(*) FROM portfolio_instruments WHERE workspace_id = :workspace_id AND ('.$where.')', $parameters));
     }
@@ -153,7 +153,7 @@ final readonly class DbalInstrumentRepository implements InstrumentRepository
     }
 
     /** @return array{string, array<string, mixed>} */
-    private static function filters(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency): array
+    private static function filters(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency, ?\App\Module\Portfolio\Domain\InstrumentType $instrumentType): array
     {
         $conditions = ['1 = 1'];
         $parameters = ['workspace_id' => $workspace->id];
@@ -166,6 +166,10 @@ final readonly class DbalInstrumentRepository implements InstrumentRepository
             $parameters['query'] = $query;
             // The query is user text: its LIKE metacharacters must match literally.
             $parameters['prefix'] = addcslashes($query, '%_\\').'%';
+        }
+        if (null !== $instrumentType) {
+            $conditions[] = 'instrument_type = :instrument_type';
+            $parameters['instrument_type'] = $instrumentType->value;
         }
         if (null !== $currency) {
             $conditions[] = 'currency_code = :currency_code';

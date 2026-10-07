@@ -15,6 +15,9 @@ final class PortfolioOperationRepresentation
     public static function one(OperationView $view): array
     {
         return [
+            'interestBasis' => $view->interestBasis,
+            'rateYear' => $view->rateYear,
+            'feeNature' => $view->feeNature,
             'id' => $view->id,
             'accountId' => $view->accountId,
             'type' => $view->type,
@@ -69,6 +72,7 @@ final class PortfolioOperationRepresentation
     public static function preview(OperationPreview $preview): array
     {
         return [
+            'netCreditedAmount' => $preview->netCreditedAmount,
             'cashAmount' => $preview->cashAmount,
             'roundingResidual' => $preview->roundingResidual,
             'expectedGrossAmount' => $preview->expectedGrossAmount,

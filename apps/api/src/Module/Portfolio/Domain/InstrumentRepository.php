@@ -26,9 +26,9 @@ interface InstrumentRepository
     public function duplicateCandidates(WorkspaceScope $workspace, ?Ticker $ticker, string $normalizedName, ?string $excludingId, int $limit): array;
 
     /** @return list<Instrument> */
-    public function list(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency, int $limit, int $offset): array;
+    public function list(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency, int $limit, int $offset, ?InstrumentType $instrumentType = null): array;
 
-    public function count(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency): int;
+    public function count(WorkspaceScope $workspace, ?InstrumentStatus $status, ?string $query, ?AssetCode $currency, ?InstrumentType $instrumentType = null): int;
 
     /** Serializes identifier and capacity checks for every workspace write. */
     public function lockWorkspace(WorkspaceScope $workspace): void;
