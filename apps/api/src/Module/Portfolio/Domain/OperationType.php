@@ -9,6 +9,7 @@ enum OperationType: string
     case PREMIUM = 'PREMIUM';
     case PARTIAL_SURRENDER = 'PARTIAL_SURRENDER';
     case FULL_SURRENDER = 'FULL_SURRENDER';
+    case SWITCH = 'SWITCH';
 
     case DEPOSIT = 'DEPOSIT';
     case WITHDRAWAL = 'WITHDRAWAL';
@@ -31,12 +32,12 @@ enum OperationType: string
 
     public function hasSupportLegs(): bool
     {
-        return self::PREMIUM === $this || $this->isSurrender();
+        return self::PREMIUM === $this || self::SWITCH === $this || $this->isSurrender();
     }
 
     /** The only types that move money across the portfolio boundary. */
     public function isExternalCashFlow(): bool
     {
-        return self::DEPOSIT === $this || self::WITHDRAWAL === $this || $this->hasSupportLegs();
+        return self::DEPOSIT === $this || self::WITHDRAWAL === $this || self::PREMIUM === $this || $this->isSurrender();
     }
 }

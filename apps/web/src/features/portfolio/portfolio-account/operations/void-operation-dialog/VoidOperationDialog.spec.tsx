@@ -6,6 +6,13 @@ import { VoidOperationDialog } from './VoidOperationDialog';
 afterEach(cleanup);
 
 describe('VoidOperationDialog', () => {
+  it('confirms that both sides of a switch are voided together', () => {
+    render(<VoidOperationDialog type="SWITCH" onConfirm={vi.fn()} pending={false} />);
+    expect(
+      screen.getByText('L’arbitrage entier sera annulé : supports vendus et achetés.'),
+    ).toBeTruthy();
+  });
+
   it('refuses to void without a reason', () => {
     const onConfirm = vi.fn();
     render(<VoidOperationDialog onConfirm={onConfirm} pending={false} />);

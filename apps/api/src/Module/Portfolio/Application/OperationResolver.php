@@ -57,6 +57,9 @@ final readonly class OperationResolver
     {
         $asset = $this->assets->findByCode($account->assetCode) ?? throw new \LogicException('The account asset is missing from the reference.');
         $type = OperationType::tryFrom($input->type) ?? throw new InvalidPortfolioOperation('The operation type is not supported.', 'OTHER_CORPORATE_ACTION' === $input->type ? 'unsupported_operation_type' : 'invalid_operation_type');
+        if (OperationType::SWITCH === $type && null !== $input->grossAmount) {
+            throw InvalidPortfolioOperation::field('operation_field_not_allowed', 'grossAmount');
+        }
         $tradeDate = self::parseTradeDate($input->tradeDate);
         $contract = AccountKind::INSURANCE_CONTRACT === $account->kind ? $this->contracts->findByAccount($account->workspace, $account->id) : null;
         // Correction previews reopen only in memory; the write use case reopens transactionally.
@@ -90,6 +93,7 @@ final readonly class OperationResolver
             legs: SupportLegResolver::resolve($account, $asset, $input->legs, $resolvedInstruments),
             withheldIncomeTax: self::amount($input->withheldIncomeTax, $asset),
             withheldSocialContributions: self::amount($input->withheldSocialContributions, $asset),
+            allowUnbalancedSwitch: !$lock,
         );
 
         $this->assertDates($account, $tradeDate, $today);

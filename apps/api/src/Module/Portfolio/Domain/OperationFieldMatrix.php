@@ -23,6 +23,7 @@ final class OperationFieldMatrix
     public static function rules(OperationType $type): array
     {
         return match ($type) {
+            OperationType::SWITCH => ['required' => ['legs'], 'optional' => ['fees']],
             OperationType::PREMIUM => ['required' => ['grossAmount'], 'optional' => ['fees', 'legs', 'linkedTransaction']],
             OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER => ['required' => ['grossAmount'], 'optional' => ['fees', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'linkedTransaction']],
             OperationType::DEPOSIT, OperationType::WITHDRAWAL => ['required' => ['grossAmount'], 'optional' => ['linkedTransaction']],

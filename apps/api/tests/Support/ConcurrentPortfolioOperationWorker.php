@@ -7,6 +7,7 @@ use App\Module\Identity\Infrastructure\Security\SecurityUser;
 use App\Module\Portfolio\Application\AmountInput;
 use App\Module\Portfolio\Application\CorrectPortfolioOperation;
 use App\Module\Portfolio\Application\OperationInput;
+use App\Module\Portfolio\Application\OperationLegInput;
 use App\Module\Portfolio\Application\RecordPortfolioOperation;
 use App\Module\Portfolio\Application\VoidPortfolioOperation;
 use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
@@ -57,6 +58,16 @@ while (2 !== count(glob($barrier.'.ready.*') ?: [])) {
 
 try {
     $outcome = match ($case) {
+        'switch' => (static function () use ($container): string {
+            $record = $container->get(RecordPortfolioOperation::class);
+            \assert($record instanceof RecordPortfolioOperation);
+            $record(PortfolioFixture::ACCOUNT, new OperationInput(type: 'SWITCH', tradeDate: '2026-03-03', legs: [
+                new OperationLegInput('OUT', '00000000-0000-7000-8000-000000000b03', null, null, new AmountInput('6000.00', 'EUR')),
+                new OperationLegInput('IN', PortfolioFixture::ETF, '60', '100.00', new AmountInput('6000.00', 'EUR')),
+            ]));
+
+            return 'switched';
+        })(),
         'surrender' => (static function () use ($container): string {
             $record = $container->get(RecordPortfolioOperation::class);
             \assert($record instanceof RecordPortfolioOperation);
@@ -86,7 +97,7 @@ try {
         })(),
         default => throw new InvalidArgumentException(sprintf('Unknown case "%s".', $case)),
     };
-} catch (InvalidPortfolioOperation $exception) {
+} catch (InvalidPortfolioOperation|App\Module\Portfolio\Domain\Positions\PositionReplayFailed $exception) {
     $outcome = 'refused:'.$exception->problemCode;
 } catch (Throwable $exception) {
     $outcome = 'refused:'.(new ReflectionClass($exception))->getShortName();

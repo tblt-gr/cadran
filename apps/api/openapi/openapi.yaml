@@ -16466,6 +16466,7 @@ components:
           PREMIUM,
           PARTIAL_SURRENDER,
           FULL_SURRENDER,
+          SWITCH,
           DEPOSIT,
           WITHDRAWAL,
           BUY,
@@ -16598,8 +16599,17 @@ components:
           withheldIncomeTax,
           withheldSocialContributions,
           netPaidAmount,
+          applicableSwitchFeeRate,
+          applicableSwitchFeeFixed,
         ]
       properties:
+        applicableSwitchFeeRate:
+          description: Informative percentage valid on the trade date, never used to compute a fee.
+          type: [string, 'null']
+        applicableSwitchFeeFixed:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
         legs:
           type: array
           maxItems: 20
@@ -16748,6 +16758,10 @@ components:
         The fields of the type matrix. A field the type does not carry is refused
         with `operation_field_not_allowed`, a missing required one with
         `operation_field_required`. The cash effect is never part of the request.
+        SWITCH requires 1-10 OUT and 1-10 IN legs on an insurance contract, with
+        disjoint supports and optional fees. Other matrix fields including grossAmount
+        are refused. The server derives grossAmount from OUT amounts and requires
+        sum(OUT) - fees = sum(IN) exactly when saving.
       type: object
       additionalProperties: false
       required: [type, tradeDate]
@@ -16860,8 +16874,35 @@ components:
     PortfolioOperationPreview:
       type: object
       additionalProperties: false
-      required: [cashAmount, roundingResidual, expectedGrossAmount, legs, netPaidAmount]
+      required:
+        [
+          cashAmount,
+          roundingResidual,
+          expectedGrossAmount,
+          legs,
+          netPaidAmount,
+          expectedIncomingAmount,
+          difference,
+          applicableSwitchFeeRate,
+          applicableSwitchFeeFixed,
+        ]
       properties:
+        expectedIncomingAmount:
+          description: Sum of outgoing stated amounts less the entered fee, null except for switches.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        difference:
+          description: Incoming stated amounts less expectedIncomingAmount, without tolerance. Unbalanced previews are allowed.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        applicableSwitchFeeRate:
+          type: [string, 'null']
+        applicableSwitchFeeFixed:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
         legs:
           type: array
           maxItems: 20
@@ -17342,6 +17383,8 @@ components:
             - unknown_leg_instrument
             - duplicate_leg_instrument
             - invalid_leg_direction
+            - switch_same_support
+            - switch_not_balanced
             - too_many_operation_legs
             - invalid_surrender_amounts
             - full_surrender_positions_remaining
@@ -17381,6 +17424,9 @@ components:
           maximum: 20
         expectedAmount:
           description: Exact quantity times price on leg_amount_mismatch.
+          type: string
+        expectedIncomingAmount:
+          description: Exact outgoing sum less fees on switch_not_balanced.
           type: string
         instrumentIds:
           description: Supports remaining after a full surrender.

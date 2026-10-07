@@ -24,6 +24,7 @@ final readonly class OperationView
      * @param array{value: string, assetCode: string}|null                                                 $netPaidAmount
      * @param array{value: string, assetCode: string}|null                                                 $withheldIncomeTax
      * @param array{value: string, assetCode: string}|null                                                 $withheldSocialContributions
+     * @param array{value: string, assetCode: string}|null                                                 $applicableSwitchFeeFixed
      */
     public function __construct(
         public string $id,
@@ -60,6 +61,8 @@ final readonly class OperationView
         public ?array $withheldIncomeTax = null,
         public ?array $withheldSocialContributions = null,
         public ?array $netPaidAmount = null,
+        public ?string $applicableSwitchFeeRate = null,
+        public ?array $applicableSwitchFeeFixed = null,
     ) {
     }
 }

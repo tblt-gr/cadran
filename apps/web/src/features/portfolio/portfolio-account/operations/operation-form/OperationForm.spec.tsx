@@ -1,6 +1,6 @@
 import type { PortfolioOperation } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { operationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
@@ -79,6 +79,106 @@ afterEach(() => {
 });
 
 describe('OperationForm', () => {
+  it('selects both switch support sides by keyboard at 360 px', async () => {
+    const width = window.innerWidth;
+    window.innerWidth = 360;
+    try {
+      renderForm({ account: { ...account, kind: 'INSURANCE_CONTRACT' } });
+      change('Type', 'SWITCH');
+      expect(screen.getAllByText('Ajoutez au moins un support.')).toHaveLength(2);
+      for (const [section, index] of [
+        ['Supports vendus', 1],
+        ['Supports achetés', 2],
+      ] as const) {
+        fireEvent.click(
+          within(screen.getByRole('group', { name: section })).getByRole('button', {
+            name: 'Ajouter un support',
+          }),
+        );
+        const picker = screen.getByRole('combobox', { name: `Support ${index}` });
+        fireEvent.focus(picker);
+        await screen.findByRole('option', { name: /ETF Monde/ });
+        fireEvent.keyDown(picker, { key: 'Enter' });
+        expect((picker as HTMLInputElement).value).toBe('ETF Monde');
+      }
+      expect(screen.getByLabelText('Montant 1')).toBeTruthy();
+      expect(screen.getByLabelText('Montant 2')).toBeTruthy();
+      expect(screen.queryByLabelText('Virement lié')).toBeNull();
+    } finally {
+      window.innerWidth = width;
+    }
+  });
+
+  it('shows both switch sections, server imbalance and a manual fee without blocking save', async () => {
+    const { onSubmit } = renderForm(
+      {
+        account: { ...account, kind: 'INSURANCE_CONTRACT' },
+        operation: operationFixture({
+          type: 'SWITCH',
+          fees: { value: '10', assetCode: 'EUR' },
+          legs: [
+            {
+              index: 1,
+              direction: 'OUT',
+              instrument: {
+                id: 'euro',
+                name: 'Fonds euros',
+                isin: null,
+                ticker: null,
+                status: 'ACTIVE',
+              },
+              quantity: '2000',
+              unitPrice: '1',
+              amount: { value: '2000', assetCode: 'EUR' },
+              roundingResidual: null,
+            },
+            {
+              index: 2,
+              direction: 'IN',
+              instrument: {
+                id: 'fund',
+                name: 'Fonds actions',
+                isin: null,
+                ticker: null,
+                status: 'ACTIVE',
+              },
+              quantity: '20',
+              unitPrice: '99.50',
+              amount: { value: '1990.01', assetCode: 'EUR' },
+              roundingResidual: null,
+            },
+          ],
+        }),
+      },
+      () =>
+        api.previewPortfolioOperation.mockImplementation(() =>
+          ok({
+            cashAmount: { value: '0', assetCode: 'EUR' },
+            expectedIncomingAmount: { value: '1990', assetCode: 'EUR' },
+            difference: { value: '0.01', assetCode: 'EUR' },
+            applicableSwitchFeeRate: '0.5',
+            applicableSwitchFeeFixed: null,
+            legs: [],
+            roundingResidual: null,
+          }),
+        ),
+    );
+    expect(screen.getByRole('group', { name: 'Supports vendus' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Supports achetés' })).toBeTruthy();
+    expect(screen.getByLabelText('Frais d’arbitrage')).toBeTruthy();
+    expect(screen.queryByLabelText('Montant brut du rachat')).toBeNull();
+    expect(await screen.findByText('0,01 EUR', undefined, { timeout: 2000 })).toBeTruthy();
+    expect(screen.getByText('À réinvestir')).toBeTruthy();
+    expect(screen.getByText(/Arbitrage déséquilibré/)).toBeTruthy();
+    expect(screen.getByText('0,5 %')).toBeTruthy();
+    const submit = screen.getByRole('button', { name: 'Enregistrer' }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(false);
+    fireEvent.click(submit);
+    expect(
+      onSubmit.mock.calls[0]![0].legs.map((leg: { direction: string }) => leg.direction),
+    ).toEqual(['OUT', 'IN']);
+  });
+
   it('previews a corrected surrender against the original id without double-counting it', async () => {
     // Server fixture: premium 100, then surrender 60; replacing the same 60 leaves cash 40.
     const originalId = '00000000-0000-7000-8000-000000000060';

@@ -24,6 +24,7 @@ export const operationMatrix: Record<
   PortfolioOperationType,
   Partial<Record<FieldKey, Requirement>>
 > = {
+  SWITCH: { legs: 'R', fees: 'O' },
   PREMIUM: { grossAmount: 'R', fees: 'O', legs: 'O', linkedTransaction: 'O' },
   PARTIAL_SURRENDER: {
     grossAmount: 'R',

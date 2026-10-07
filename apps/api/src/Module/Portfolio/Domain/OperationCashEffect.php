@@ -56,6 +56,7 @@ final readonly class OperationCashEffect
         $net = ExactDecimal::subtract(ExactDecimal::subtract($gross, $fees), $taxes);
 
         return match ($type) {
+            OperationType::SWITCH => new self(DecimalValue::zero(), null, null),
             OperationType::PREMIUM => self::premium($gross, $fees, $legs),
             OperationType::PARTIAL_SURRENDER, OperationType::FULL_SURRENDER => new self(ExactDecimal::subtract(self::supports($legs), $gross), null, null),
             OperationType::DEPOSIT => new self($gross, null, null),

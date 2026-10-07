@@ -1,3 +1,4 @@
+import { SwitchOperationDetail } from './switch-operation-detail/SwitchOperationDetail';
 import type { PortfolioOperation } from '@cadran/api-client';
 import type { ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -84,7 +85,9 @@ export function OperationDetailModal({
         {has('grossAmount') ? (
           <Row label="Montant brut">{amount(operation.grossAmount)}</Row>
         ) : null}
-        {has('fees') ? <Row label="Frais">{amount(operation.fees)}</Row> : null}
+        {has('fees') && operation.type !== 'SWITCH' ? (
+          <Row label="Frais">{amount(operation.fees)}</Row>
+        ) : null}
         {has('withheldIncomeTax') ? (
           <Row label="Prélèvement fiscal retenu">{amount(operation.withheldIncomeTax)}</Row>
         ) : null}
@@ -135,7 +138,11 @@ export function OperationDetailModal({
         ) : null}
         {operation.state === 'VOIDED' ? <Row label="Motif">{operation.voidReason}</Row> : null}
       </dl>
-      {has('legs') ? <OperationLegsTable legs={operation.legs ?? []} /> : null}
+      {operation.type === 'SWITCH' ? (
+        <SwitchOperationDetail operation={operation} />
+      ) : has('legs') ? (
+        <OperationLegsTable legs={operation.legs ?? []} />
+      ) : null}
       <div className={styles.links}>
         {operation.correctsOperationId ? (
           <button

@@ -14,7 +14,7 @@ use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 
 final readonly class PortfolioOperationPresenter
 {
-    public function __construct(private InstrumentRepository $instruments, private PortfolioOperationRepository $operations)
+    public function __construct(private InstrumentRepository $instruments, private PortfolioOperationRepository $operations, private SwitchFeeTerms $switchFeeTerms)
     {
     }
 
@@ -62,6 +62,7 @@ final readonly class PortfolioOperationPresenter
         $amount = static fn (?DecimalValue $value): ?array => null === $value ? null : ['value' => $value->toString(), 'assetCode' => $asset];
         $rules = OperationFieldMatrix::rules($details->type);
         $accepted = [...$rules['required'], ...$rules['optional']];
+        $terms = $this->switchFeeTerms->forOperation($operation->workspace, $operation->accountId, $details);
         // Fees and taxes are stored as zero when omitted: they read back as zero wherever the type accepts them.
         $optionalAmount = static fn (string $field, ?DecimalValue $value): ?array => in_array($field, $accepted, true)
             ? ['value' => ($value ?? DecimalValue::zero())->toString(), 'assetCode' => $asset]
@@ -85,6 +86,7 @@ final readonly class PortfolioOperationPresenter
             $operation->voidReason, $operation->voidKind?->value, $operation->correctsOperationId, $replacementId, $operation->version,
             array_map(static fn ($leg): array => OperationLegView::of($leg, $asset, $instruments[$leg->instrumentId] ?? null), $details->legs),
             $amount($details->withheldIncomeTax), $amount($details->withheldSocialContributions), $amount($details->netPaidAmount()),
+            $terms?->switchFeeRate?->toString(), $amount($terms?->switchFeeFixed),
         );
     }
 

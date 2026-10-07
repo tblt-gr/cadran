@@ -14,6 +14,7 @@ export interface PickedInstrument {
 }
 
 export interface SupportLegValue {
+  direction?: 'OUT' | 'IN';
   key: string;
   instrument: PickedInstrument | null;
   quantity: string;
@@ -92,6 +93,7 @@ export function valuesFromOperation(operation: PortfolioOperation): OperationFor
   return {
     legs: (operation.legs ?? []).map((leg) => ({
       key: String(leg.index),
+      direction: leg.direction,
       instrument: leg.instrument,
       quantity: leg.quantity,
       unitPrice: leg.unitPrice,
@@ -217,7 +219,12 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
       };
       if (!leg.instrument) errors[`${prefix}.instrument`] = 'Choisissez un support.';
       return {
-        direction: values.type === 'PREMIUM' ? 'IN' : 'OUT',
+        direction:
+          values.type === 'SWITCH'
+            ? (leg.direction ?? 'OUT')
+            : values.type === 'PREMIUM'
+              ? 'IN'
+              : 'OUT',
         instrumentId: leg.instrument?.id ?? '',
         ...(leg.instrument?.instrumentType === 'EURO_FUND'
           ? {}

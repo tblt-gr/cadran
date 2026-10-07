@@ -4,12 +4,18 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAmount, formatDecimal, isZeroDecimal } from '@/lib/decimal';
 import styles from './OperationDetailModal.module.css';
 
-export function OperationLegsTable({ legs }: { legs: PortfolioOperationLeg[] }) {
+export function OperationLegsTable({
+  legs,
+  caption = 'Supports de l’opération',
+}: {
+  legs: PortfolioOperationLeg[];
+  caption?: string;
+}) {
   const { i18n } = useTranslation();
   return (
     <div className={styles.scroll}>
       <table>
-        <caption>Supports de l’opération</caption>
+        <caption>{caption}</caption>
         <thead>
           <tr>
             {['Sens', 'Support', 'Parts', 'Valeur liquidative', 'Montant', 'Écart d’arrondi'].map(

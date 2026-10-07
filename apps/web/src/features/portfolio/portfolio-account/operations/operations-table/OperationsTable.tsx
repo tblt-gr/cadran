@@ -26,7 +26,9 @@ export function OperationsTable({ items, onDetail, onEdit, onVoid, onReorder }: 
   const locale = i18n.language;
 
   function cell(operation: PortfolioOperation, field: FieldKey, content: string | null) {
-    return content !== null && hasField(operation.type, field) ? (
+    return content !== null &&
+      (hasField(operation.type, field) ||
+        (operation.type === 'SWITCH' && field === 'grossAmount')) ? (
       content
     ) : (
       <EmptyValue label="Non applicable" />
@@ -68,9 +70,11 @@ export function OperationsTable({ items, onDetail, onEdit, onVoid, onReorder }: 
                     </span>
                   </td>
                   <td>
-                    {hasField(operation.type, 'legs')
-                      ? `${operation.legs?.length ?? 0} supports`
-                      : (operation.instrument?.name ?? <EmptyValue label="Aucun instrument" />)}
+                    {operation.type === 'SWITCH'
+                      ? `${operation.legs?.filter((leg) => leg.direction === 'OUT').length ?? 0} supports vendus, ${operation.legs?.filter((leg) => leg.direction === 'IN').length ?? 0} achetés`
+                      : hasField(operation.type, 'legs')
+                        ? `${operation.legs?.length ?? 0} supports`
+                        : (operation.instrument?.name ?? <EmptyValue label="Aucun instrument" />)}
                   </td>
                   <td className={styles.number}>
                     {cell(

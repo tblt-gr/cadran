@@ -3,10 +3,12 @@ import styles from './VoidOperationDialog.module.css';
 
 export function VoidOperationDialog({
   error,
+  type,
   onConfirm,
   pending,
 }: {
   error?: string;
+  type?: string;
   onConfirm: (reason: string) => void;
   pending: boolean;
 }) {
@@ -25,6 +27,9 @@ export function VoidOperationDialog({
 
   return (
     <form className={styles.dialog} noValidate onSubmit={submit}>
+      {type === 'SWITCH' ? (
+        <p>L’arbitrage entier sera annulé : supports vendus et achetés.</p>
+      ) : null}
       <p>
         L’opération restera visible dans l’historique avec le statut Annulée. Cette action ne peut
         pas être défaite.

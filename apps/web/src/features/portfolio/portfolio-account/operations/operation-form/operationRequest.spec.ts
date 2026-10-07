@@ -7,6 +7,39 @@ function values(overrides: Partial<OperationFormValues>): OperationFormValues {
 const instrument = { id: 'ins-1', name: 'ETF Monde' };
 
 describe('buildOperationRequest', () => {
+  it('keeps both switch directions and leaves gross and balance to the server', () => {
+    const result = buildOperationRequest(
+      values({
+        type: 'SWITCH',
+        grossAmount: '999',
+        fees: '10',
+        legs: [
+          {
+            key: 'out',
+            direction: 'OUT',
+            instrument: { id: 'euro', name: 'Fonds euros', instrumentType: 'EURO_FUND' },
+            quantity: '',
+            unitPrice: '',
+            amount: '2000',
+          },
+          {
+            key: 'in',
+            direction: 'IN',
+            instrument,
+            quantity: '20',
+            unitPrice: '99.50',
+            amount: '1990.01',
+          },
+        ],
+      }),
+      'EUR',
+    );
+    expect(result.errors).toBeNull();
+    expect(result.request).not.toHaveProperty('grossAmount');
+    expect(result.request?.legs?.map((leg) => leg.direction)).toEqual(['OUT', 'IN']);
+    expect(result.request?.legs?.[1]?.amount.value).toBe('1990.01');
+  });
+
   it('sends exact decimal strings and no cash effect for a buy', () => {
     const result = buildOperationRequest(
       values({
