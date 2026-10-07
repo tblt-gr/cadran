@@ -43,9 +43,6 @@
   text-align: right;
   white-space: nowrap;
 }
-.panel thead th:nth-child(n + 4):nth-child(-n + 9) {
-  text-align: right;
-}
 .voided {
   color: var(--text-muted);
 }
