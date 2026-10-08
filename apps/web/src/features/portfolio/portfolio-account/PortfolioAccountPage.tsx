@@ -120,6 +120,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
       <BusinessDateField hint={null} label="Au" onChange={changeDate} today={today} value={asOf} />
       {eligible ? (
         <PortfolioOverview
+          kind={current.kind}
           accountId={accountId}
           asOf={asOf}
           history={<ValueHistoryCard accountId={accountId} asOf={asOf} />}
@@ -130,6 +131,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
       {eligible ? (
         active === 'contract' && insurance ? (
           <ContractTab
+            asOf={asOf}
             accountId={accountId}
             assetCode={current.assetCode}
             writable={current.status === 'ACTIVE'}

@@ -1,3 +1,4 @@
+import { TaxTrackingPanel } from './tax-tracking-card/TaxTrackingPanel';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { useState } from 'react';
@@ -17,10 +18,12 @@ export function ContractTab({
   accountId,
   assetCode,
   writable = true,
+  asOf,
 }: {
   accountId: string;
   assetCode: string;
   writable?: boolean;
+  asOf?: string;
 }) {
   const query = useLifeInsuranceContract(accountId);
   const today = workspaceToday(new Date(), useWorkspaceTimeZone());
@@ -67,6 +70,7 @@ export function ContractTab({
             writable={writable}
             onEdit={() => setModal('contract')}
           />
+          <TaxTrackingPanel accountId={accountId} asOf={asOf ?? today} />
           <FeeTermsCard
             items={data.feeTerms}
             writable={writable}

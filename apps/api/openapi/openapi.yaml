@@ -2941,6 +2941,49 @@ paths:
                 $ref: '#/components/schemas/PortfolioValuationProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/life-insurance-summary:
+    get:
+      operationId: readLifeInsuranceSummary
+      summary: Read observed life-insurance summary and informative tax tracking
+      description: Latest active COMPLETE valuation on or before asOf, with frozen supports
+        and cash. No projection or tax estimate. Active operations stop at asOf. At
+        most 60 calendar years, 5000 history operations, 2000 operations per year and
+        20 source previews. Served rates are recorded percentages, never contract returns.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+        - name: asOf
+          in: query
+          required: false
+          description: Defaults to workspace today; a future date is refused.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Observed value, allocation, flows, supports and informative tax
+            tracking.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Invalid summary date, non-insurance account or report bound exceeded.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/LifeInsuranceSummaryProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{accountId}/life-insurance-income-and-fees:
     get:
       operationId: readLifeInsuranceIncomeAndFees
@@ -18773,3 +18816,492 @@ components:
         sourceCount:
           type: integer
           minimum: 0
+
+    LifeInsuranceSummaryProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - code
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        code:
+          type: string
+          enum:
+            - account_not_life_insurance
+            - account_not_portfolio
+            - invalid_summary_date
+            - cash_range_too_dense
+            - cash_amount_too_large
+            - position_amount_too_large
+            - position_would_go_negative
+            - corporate_action_without_position
+            - split_fraction_unsupported
+            - portfolio_forbidden
+            - portfolio_account_not_found
+    LifeInsuranceSummaryValuation:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - valuedOn
+        - totalValue
+        - completeness
+        - detail
+        - ageDays
+        - stale
+        - cash
+        - euroFundValue
+        - unitLinkedValue
+        - observedTotal
+        - observedTotalDifference
+        - tolerance
+        - flags
+      properties:
+        id:
+          type: string
+          format: uuid
+        valuedOn:
+          type: string
+          format: date
+        totalValue:
+          type: string
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        completeness:
+          type: string
+          const: COMPLETE
+        detail:
+          type: string
+          enum:
+            - TOTAL
+            - POSITIONS
+        ageDays:
+          type: integer
+          minimum: 0
+        stale:
+          type: boolean
+        cash:
+          type: string
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        euroFundValue:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        unitLinkedValue:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        observedTotal:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        observedTotalDifference:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        tolerance:
+          type: string
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioValuationFlag'
+    LifeInsuranceSummarySupport:
+      type: object
+      additionalProperties: false
+      required:
+        - instrumentId
+        - name
+        - type
+        - quantity
+        - unitPrice
+        - priceDate
+        - priceQuality
+        - marketValue
+        - weight
+        - costBasis
+        - unrealizedGain
+        - unrealizedPerformance
+        - latestServedRate
+        - creditedLastClosedYear
+        - lastClosedYear
+        - missingLastYear
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - EURO_FUND
+            - UNIT_LINKED
+        quantity:
+          type: string
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        unitPrice:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        priceDate:
+          type:
+            - string
+            - 'null'
+          format: date
+        priceQuality:
+          type: string
+          enum:
+            - CURRENT
+            - STALE
+            - MISSING
+            - NOT_DETAILED
+        marketValue:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        weight:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        costBasis:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        unrealizedGain:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        unrealizedPerformance:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        latestServedRate:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required:
+                - year
+                - rate
+                - bonusRate
+                - basis
+              properties:
+                year:
+                  type: integer
+                  minimum: 1
+                rate:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                bonusRate:
+                  type:
+                    - string
+                    - 'null'
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                basis:
+                  $ref: '#/components/schemas/LifeInsuranceEuroFundRateBasis'
+            - type: 'null'
+        creditedLastClosedYear:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        lastClosedYear:
+          type: integer
+          minimum: 1
+        missingLastYear:
+          type: boolean
+    LifeInsuranceTaxYear:
+      type: object
+      additionalProperties: false
+      required:
+        - year
+        - premiums
+        - surrendersGross
+        - surrendersNetPaid
+        - withheldIncomeTax
+        - withheldSocialContributions
+      properties:
+        year:
+          type: integer
+          minimum: 1
+        premiums:
+          type: string
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        surrendersGross:
+          type: string
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        surrendersNetPaid:
+          type: string
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        withheldIncomeTax:
+          type: string
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        withheldSocialContributions:
+          type: string
+          pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+    LifeInsuranceSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - asOf
+        - assetCode
+        - contract
+        - valuation
+        - allocation
+        - cumulative
+        - gainSinceOpening
+        - supports
+        - taxYears
+        - contractAge
+        - taxEstimate
+        - qualityIssues
+      properties:
+        asOf:
+          type: string
+          format: date
+        assetCode:
+          type: string
+        contract:
+          oneOf:
+            - $ref: '#/components/schemas/LifeInsuranceContract'
+            - type: 'null'
+        valuation:
+          oneOf:
+            - $ref: '#/components/schemas/LifeInsuranceSummaryValuation'
+            - type: 'null'
+        allocation:
+          type: object
+          additionalProperties: false
+          required:
+            - status
+            - items
+          properties:
+            status:
+              type: string
+              enum:
+                - AVAILABLE
+                - NOT_DETAILED
+                - NO_VALUATION
+            items:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - kind
+                  - value
+                  - share
+                properties:
+                  kind:
+                    type: string
+                    enum:
+                      - EURO_FUND
+                      - UNIT_LINKED
+                      - CASH
+                  value:
+                    type: string
+                    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                  share:
+                    type:
+                      - string
+                      - 'null'
+                    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+              maxItems: 3
+        cumulative:
+          type: object
+          additionalProperties: false
+          required:
+            - premiums
+            - surrendersGross
+            - surrendersNetPaid
+            - fees
+            - withheldTaxes
+            - interestCredited
+            - profitSharing
+            - sources
+            - sourceCount
+          properties:
+            premiums:
+              type: string
+              pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+            surrendersGross:
+              type: string
+              pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+            surrendersNetPaid:
+              type: string
+              pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+            fees:
+              type: object
+              additionalProperties: false
+              required:
+                - ENTRY
+                - MANAGEMENT
+                - SWITCH
+                - SURRENDER
+                - OTHER
+                - total
+              properties:
+                ENTRY:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                MANAGEMENT:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                SWITCH:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                SURRENDER:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                OTHER:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                total:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+            withheldTaxes:
+              type: object
+              additionalProperties: false
+              required:
+                - INCOME_TAX
+                - SOCIAL_CONTRIBUTIONS
+                - OTHER
+                - total
+              properties:
+                INCOME_TAX:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                SOCIAL_CONTRIBUTIONS:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                OTHER:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                total:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+            interestCredited:
+              type: object
+              additionalProperties: false
+              required:
+                - gross
+                - net
+              properties:
+                gross:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                net:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+            profitSharing:
+              type: object
+              additionalProperties: false
+              required:
+                - gross
+                - net
+              properties:
+                gross:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+                net:
+                  type: string
+                  pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+            sources:
+              type: array
+              items:
+                $ref: '#/components/schemas/PortfolioOverviewSource'
+              maxItems: 20
+            sourceCount:
+              type: integer
+              minimum: 0
+        gainSinceOpening:
+          $ref: '#/components/schemas/PortfolioGainFigure'
+        supports:
+          type: array
+          items:
+            $ref: '#/components/schemas/LifeInsuranceSummarySupport'
+        taxYears:
+          type: array
+          items:
+            $ref: '#/components/schemas/LifeInsuranceTaxYear'
+          maxItems: 60
+        contractAge:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required:
+                - taxStartOn
+                - years
+                - months
+              properties:
+                taxStartOn:
+                  type: string
+                  format: date
+                years:
+                  type: integer
+                  minimum: 0
+                months:
+                  type: integer
+                  minimum: 0
+                  maximum: 11
+            - type: 'null'
+        taxEstimate:
+          type: object
+          additionalProperties: false
+          required:
+            - status
+            - ruleSetId
+          properties:
+            status:
+              type: string
+              const: NO_RULE_SET
+            ruleSetId:
+              type: 'null'
+        qualityIssues:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - code
+              - operationIds
+              - count
+            properties:
+              code:
+                type: string
+                enum:
+                  - INTEREST_BASIS_UNKNOWN
+                  - MISSING_EURO_FUND_RATE
+                  - STALE_VALUATION
+                  - NO_VALUATION
+                  - NOT_DETAILED
+                  - RATE_NOT_UPDATED
+              operationIds:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+                maxItems: 20
+              count:
+                type: integer
+                minimum: 1

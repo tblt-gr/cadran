@@ -34,3 +34,10 @@ describe('refreshValuations', () => {
     });
   });
 });
+
+it('invalidates insurance summaries for every selected date of this account', async () => {
+  const client = new QueryClient();
+  const invalidate = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
+  await refreshValuations(client, 'account-1');
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ['life-insurance-summary', 'account-1'] });
+});

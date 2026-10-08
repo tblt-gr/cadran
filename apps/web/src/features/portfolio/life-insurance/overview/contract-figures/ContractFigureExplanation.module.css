@@ -1,0 +1,17 @@
+.content {
+  display: grid;
+  gap: var(--spacing-6);
+}
+.content section {
+  display: grid;
+  gap: var(--spacing-2);
+}
+.content p,
+.content h3,
+.content dl {
+  margin: var(--spacing-none);
+}
+.content dd {
+  margin: var(--spacing-none);
+  overflow-wrap: anywhere;
+}

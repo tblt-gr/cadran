@@ -56,6 +56,7 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
 
       await Promise.all([
         client.invalidateQueries({ queryKey: ['portfolio-summary', accountId] }),
+        client.invalidateQueries({ queryKey: ['life-insurance-summary', accountId] }),
         client.invalidateQueries({ queryKey: ['portfolio-allocation', accountId] }),
         client.invalidateQueries({ queryKey: ['portfolio-valuation-history', accountId] }),
         client.invalidateQueries({ queryKey: ['portfolio-performance', accountId] }),

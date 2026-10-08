@@ -1,4 +1,9 @@
-import type { PortfolioOverviewSource, PortfolioPerformance } from '@cadran/api-client';
+import { GainExplanationEntries } from './GainExplanationEntries';
+import type {
+  PortfolioGainFigure,
+  PortfolioOverviewSource,
+  PortfolioPerformance,
+} from '@cadran/api-client';
 import { Modal } from '@/components/ui/modal/Modal';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatCalendarNumericDay } from '@/lib/decimal';
@@ -7,7 +12,7 @@ import {
   methodSentences,
   type FigureKey,
 } from '@/features/portfolio/performance/performanceFigures';
-import { formulaText } from '@/features/portfolio/performance/performanceFormulas';
+import { formulaText, gainFormulaText } from '@/features/portfolio/performance/performanceFormulas';
 import { describeReason } from '@/features/portfolio/performance/performanceReasons';
 import { QualityBadge } from '@/features/portfolio/performance/quality-badge/QualityBadge';
 import { ExplanationEntries } from './ExplanationEntries';
@@ -15,23 +20,24 @@ import { ExplanationSection } from './ExplanationSection';
 import styles from './PerformanceExplanationModal.module.css';
 
 /** Method, formula, inputs, quality and sources of one figure, all from the response that gave its value. */
-export function PerformanceExplanationModal({
-  performance,
-  figure,
-  onClose,
-  onSource,
-}: {
-  performance: PortfolioPerformance;
-  figure: FigureKey;
-  onClose: () => void;
-  onSource: (source: PortfolioOverviewSource) => void;
-}) {
+type CommonProps = { onClose: () => void; onSource: (source: PortfolioOverviewSource) => void };
+type GainSummary = { accountId: string; assetCode: string; gain: PortfolioGainFigure };
+export function PerformanceExplanationModal(
+  props: CommonProps &
+    (
+      | { performance: PortfolioPerformance; figure: FigureKey }
+      | { gainSummary: GainSummary; figure: 'gain' }
+    ),
+) {
+  const { figure, onClose, onSource } = props;
+  const performance = 'performance' in props ? props.performance : null;
+  const gainSummary = 'gainSummary' in props ? props.gainSummary : null;
+  const data = performance ? performance[figure] : gainSummary!.gain;
   const label = figureLabels[figure];
-  const data = performance[figure];
   const context = {
-    accountId: performance.accountId,
-    assetCode: performance.assetCode,
-    residual: performance.gain.decomposition.residual,
+    accountId: performance?.accountId ?? gainSummary!.accountId,
+    assetCode: performance?.assetCode ?? gainSummary!.assetCode,
+    residual: (performance?.gain ?? gainSummary!.gain).decomposition.residual,
   };
   return (
     <Modal close={onClose} title={`Expliquer : ${label}`}>
@@ -43,7 +49,9 @@ export function PerformanceExplanationModal({
         </ExplanationSection>
         <ExplanationSection title="Formule">
           <p className={styles.formula} data-testid="formula">
-            {formulaText(performance, figure)}
+            {performance
+              ? formulaText(performance, figure)
+              : gainFormulaText(gainSummary!.gain, gainSummary!.assetCode)}
           </p>
         </ExplanationSection>
         <ExplanationSection title="Période">
@@ -54,7 +62,13 @@ export function PerformanceExplanationModal({
           </p>
         </ExplanationSection>
         <ExplanationSection title="Entrées">
-          <ExplanationEntries figure={figure} performance={performance} />
+          <>
+            {performance ? (
+              <ExplanationEntries figure={figure} performance={performance} />
+            ) : (
+              <GainExplanationEntries gain={gainSummary!.gain} assetCode={gainSummary!.assetCode} />
+            )}
+          </>
         </ExplanationSection>
         <ExplanationSection title="Politique de coûts">
           <p>Net de frais et de taxes</p>

@@ -1,4 +1,4 @@
-import type { PortfolioPerformance } from '@cadran/api-client';
+import type { PortfolioGainFigure, PortfolioPerformance } from '@cadran/api-client';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import type { FigureKey } from './performanceFigures';
@@ -10,10 +10,8 @@ export function formulaText(performance: PortfolioPerformance, key: FigureKey): 
   const rate = (value: string | null) =>
     value === null ? '-' : formatRatioPercentage(value, 'fr');
   switch (key) {
-    case 'gain': {
-      const { inputs, value } = performance.gain;
-      return `Gain = ${money(inputs.endValue)} − ${money(inputs.startValue)} − ${money(inputs.netFlows)} = ${money(value)}`;
-    }
+    case 'gain':
+      return gainFormulaText(performance.gain, performance.assetCode);
     case 'modifiedDietz': {
       const { inputs, value } = performance.modifiedDietz;
       if (inputs.gain === null) {
@@ -30,4 +28,10 @@ export function formulaText(performance: PortfolioPerformance, key: FigureKey): 
       return `${figure.formula} ; taux annualisé = ${rate(figure.annualizedRate)}`;
     }
   }
+}
+
+export function gainFormulaText(gain: PortfolioGainFigure, assetCode: string): string {
+  const money = (value: string | null) =>
+    value === null ? '-' : formatAmount(value, assetCode, 'fr');
+  return `Gain = ${money(gain.inputs.endValue)} − ${money(gain.inputs.startValue)} − ${money(gain.inputs.netFlows)} = ${money(gain.value)}`;
 }

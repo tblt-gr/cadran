@@ -315,6 +315,9 @@ api:
     invalid_operation_query:
       title: 'Requête d’opérations invalide'
       detail: 'Les filtres, la période (10 ans au plus) ou la pagination sortent des limites autorisées.'
+    invalid_summary_date:
+      title: Date de synthèse invalide
+      detail: La date doit être valide, non future et couvrir au plus 60 années civiles.
     invalid_as_of:
       title: Date de portefeuille invalide
       detail: Choisissez une date réelle au plus tard aujourd'hui.
