@@ -6,11 +6,56 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-08
+
 ### Added
 
+- Calculate and explain total portfolio gain from valuations and external flows, keeping internal
+  operations out of contributions and withdrawals (PERF-001).
+- Calculate monthly Modified Dietz performance with exact dated flow weights and explicit
+  non-calculable reasons (PERF-002).
+- Calculate time-weighted return only when the required valuations are available, exposing
+  subperiods and missing boundaries instead of substituting an estimate (PERF-003).
+- Calculate money-weighted return with a bounded decimal XIRR solver, and explain absent,
+  ambiguous or non-convergent solutions (PERF-004).
+- Expose performance methods, formulas, dated inputs, rounding and data quality in calculation
+  details with links back to source operations and valuations (PERF-005).
+- Compare monthly and annual portfolio performance, with value history, contributions,
+  withdrawals, gains and qualified return methods beside table alternatives (PTF-003).
 - Model life-insurance accounts as portfolios of euro-fund and unit-linked supports, with a
   contract tab, masked contract numbers, versioned fee terms and sourced annual euro-fund rates
   (INS-001).
+- Offer a linked portfolio deposit when recording a transfer into an investment account,
+  avoiding a second cash movement and preserving transfer neutrality (PTF-010).
+- Record life-insurance premiums and partial or full surrenders with exact support allocations,
+  linked transfers, entry fees and cumulative premium tracking (INS-002).
+- Switch between life-insurance supports atomically, including switch fees and an exact
+  reconciliation of the outgoing and incoming values (INS-004).
+- Record euro-fund interest and contract fees as distinct investment operations, with dated
+  source terms and exact cash or support-unit effects (INS-005).
+- Show life-insurance allocation, performance, cumulative premiums and surrenders, contract
+  history and informative tax tracking with explicit source and quality explanations (INS-003).
+- Add a global breadcrumb with linked parents, including Home / Accounts / Account name /
+  Portfolio, that works when a page is opened directly and while its data loads.
+
+### Changed
+
+- Group insurance reporting into the portfolio's existing tabs: allocation, contract and
+  performance, with contract amount sources in a disclosure closed by default.
+- Clarify account and portfolio navigation by using the breadcrumb for parent pages and keeping
+  business actions in the page header.
+
+### Fixed
+
+- Leave a chained Modified Dietz return unpublished when a month loses at least the invested
+  capital, and build the base-100 index from the unrounded monthly rates.
+- Open the operation or valuation from a performance explanation, and offer a retry when the
+  year or since-opening request fails.
+- Align portfolio operation table headers with their columns.
+- Focus the selected source operation when multiple insurance quality explanations link to the
+  same operation, and reopen collapsed contract sources when returning from a source detail.
+- Separate cumulative contract amount sources from the preceding table with the shared spacing
+  scale.
 
 ## [0.6.0] - 2026-10-04
 

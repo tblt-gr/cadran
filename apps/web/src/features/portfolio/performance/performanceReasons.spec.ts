@@ -46,6 +46,24 @@ describe('describeReason', () => {
     );
   });
 
+  it('names a non-positive growth factor with the blocking months and no action', () => {
+    expect(
+      describeReason({ code: 'NON_POSITIVE_GROWTH_FACTOR' as never, dates: ['2026-02'] }, context),
+    ).toEqual({
+      sentence:
+        "Rendement mensuel inférieur ou égal à -100 % : le chaînage n'est pas publié (02/2026).",
+      action: null,
+    });
+    expect(
+      describeReason(
+        { code: 'NON_POSITIVE_GROWTH_FACTOR' as never, dates: ['2026-01', '2026-03'] },
+        context,
+      ).sentence,
+    ).toBe(
+      "Rendement mensuel inférieur ou égal à -100 % : le chaînage n'est pas publié (01/2026, 03/2026).",
+    );
+  });
+
   it('fills months, the period end and the residual amount', () => {
     expect(
       describeReason({ code: 'MONTH_NOT_CALCULABLE', dates: ['2026-01', '2026-02'] }, context)

@@ -22,6 +22,7 @@ import { useAccountMovements } from './account-movements/useAccountMovements';
 import { useAccountDetail } from './useAccountDetail';
 import { useAccountDetailMutations } from './useAccountDetailMutations';
 import styles from './AccountDetailPage.module.css';
+import { useBreadcrumbAccount } from '@/components/layout/breadcrumb/BreadcrumbContext';
 
 type Saved = 'transactionSaved' | 'transferSaved' | 'claimed' | 'withdrawn' | 'reconciled' | null;
 
@@ -52,6 +53,11 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   const [saved, setSaved] = useState<Saved>(null);
 
   const account = useAccountDetail(accountId);
+  useBreadcrumbAccount(
+    `/accounts/${accountId}`,
+    !account.isError && account.data?.id === accountId ? account.data.label : null,
+    account.isPending,
+  );
   const movements = useAccountMovements(accountId, month);
   const {
     displayedPage,

@@ -27,7 +27,6 @@ export function PortfolioAccountHeader({
     ? products.items.find((item) => item.code === account.productCode)
     : undefined;
   const subtitle = [account?.institution, product?.displayName].filter(Boolean).join(' · ');
-  const href = `/accounts/${accountId}`;
   const instrumentsHref = '/portfolios/instruments';
 
   return (
@@ -45,13 +44,6 @@ export function PortfolioAccountHeader({
         )}
       </div>
       <div className={styles.actions}>
-        <a
-          className="secondary-action"
-          href={href}
-          onClick={(event) => handleClientNavigation(event, href)}
-        >
-          Voir le compte
-        </a>
         <a
           className="secondary-action"
           href={instrumentsHref}

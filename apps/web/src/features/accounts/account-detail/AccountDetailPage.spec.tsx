@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AccountDetailPage } from './AccountDetailPage';
+import { AppShell } from '@/components/layout/app-shell/AppShell';
 
 const api = vi.hoisted(() => ({
   createTransaction: vi.fn(),
@@ -150,7 +151,7 @@ function problem(status: number, type: string) {
   });
 }
 
-function renderPage(accountId = account.id, search = '') {
+function renderPage(accountId = account.id, search = '', shell = false) {
   window.history.pushState({}, '', `/accounts/${accountId}${search}`);
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -159,7 +160,13 @@ function renderPage(accountId = account.id, search = '') {
   return {
     ...render(
       <QueryClientProvider client={queryClient}>
-        <AccountDetailPage accountId={accountId} />
+        {shell ? (
+          <AppShell path={`/accounts/${accountId}`} setPath={vi.fn()} showGlobalActions={false}>
+            <AccountDetailPage accountId={accountId} />
+          </AppShell>
+        ) : (
+          <AccountDetailPage accountId={accountId} />
+        )}
       </QueryClientProvider>,
     ),
     queryClient,
@@ -171,6 +178,28 @@ async function loaded() {
 }
 
 describe('AccountDetailPage', () => {
+  it('publishes its account name without another query and keeps portfolio actions', async () => {
+    api.readAccount.mockImplementation(() =>
+      success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
+    );
+    renderPage(account.id, '?month=2026-03', true);
+    const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
+    await waitFor(() =>
+      expect(within(nav).getByText(account.label).getAttribute('aria-current')).toBe('page'),
+    );
+    expect(api.readAccount).toHaveBeenCalledTimes(1);
+    expect(within(nav).getByRole('link', { name: 'Comptes' }).getAttribute('href')).toBe(
+      '/accounts',
+    );
+    expect(screen.queryByRole('link', { name: 'Retour aux comptes' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Ouvrir le portefeuille' }).getAttribute('href')).toBe(
+      `/portfolios/${account.id}`,
+    );
+    expect(
+      screen.getByRole('link', { name: 'Valoriser le portefeuille' }).getAttribute('href'),
+    ).toBe(`/portfolios/${account.id}?tab=valuations`);
+    expect(window.location.search).toBe('?month=2026-03');
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     api.readAccount.mockImplementation(() => success(account));

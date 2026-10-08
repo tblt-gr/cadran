@@ -61,7 +61,9 @@ final readonly class ComputeModifiedDietz
         $months = [];
         $rates = [];
         $unavailable = [];
+        $nonPositive = [];
         $warnings = $data->warnings;
+        $floor = CalculatedDecimal::one()->negate();
         foreach ($labels as $label) {
             $month = $this->month($workspace, $account, $label, $today, $data->history);
             $months[] = ['month' => $label, 'value' => self::display($month->rate), 'quality' => self::quality($month), 'findings' => [...$month->blocking, ...$month->warnings]];
@@ -70,10 +72,16 @@ final readonly class ComputeModifiedDietz
                 $unavailable[] = $label;
             } else {
                 $rates[] = $month->rate;
+                if ($month->rate->compareTo($floor) <= 0) {
+                    $nonPositive[] = $label;
+                }
             }
         }
         if ([] !== $unavailable) {
             return self::figure(null, [new PerformanceFinding(PerformanceReason::MONTH_NOT_CALCULABLE, $unavailable), ...self::merged($warnings)], [], null, 0, $months, true);
+        }
+        if ([] !== $nonPositive) {
+            return self::figure(null, [new PerformanceFinding(PerformanceReason::NON_POSITIVE_GROWTH_FACTOR, $nonPositive), ...self::merged($warnings)], [], null, 0, $months, true);
         }
 
         return self::figure(ReturnChain::chain($rates), self::merged($warnings), [], null, 0, $months, false);
@@ -148,6 +156,6 @@ final readonly class ComputeModifiedDietz
     {
         $quality = PerformanceQuality::of(PerformanceQuality::APPROXIMATION, $blocked, [] !== $findings);
 
-        return new ModifiedDietzFigure(self::display($rate), $quality, $findings, $averageCapital, $weights, $weightCount, $months, $gain, $denominatorTimesDays);
+        return new ModifiedDietzFigure(self::display($rate), $quality, $findings, $averageCapital, $weights, $weightCount, $months, $gain, $denominatorTimesDays, $rate);
     }
 }

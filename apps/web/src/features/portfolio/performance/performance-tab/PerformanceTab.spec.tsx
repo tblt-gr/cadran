@@ -166,6 +166,113 @@ describe('PerformanceTab', () => {
     );
   });
 
+  it('keeps the year title and value skeletons while the YEAR query is pending', async () => {
+    api.readPortfolioPerformance.mockImplementation((opts: { query?: { scope?: string } }) =>
+      opts.query?.scope === 'YEAR' ? new Promise(() => undefined) : ok(performanceFixture()),
+    );
+    renderTab();
+    await loaded();
+    const summary = screen.getByRole('region', { name: 'Année 2026' });
+    expect(screen.getByRole('heading', { name: 'Année 2026' })).toBeTruthy();
+    expect(within(summary).queryByRole('alert')).toBeNull();
+    expect(
+      within(summary)
+        .getByRole('button', { name: /Gain total/ })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+    expect(
+      within(summary).getAllByTestId('performance-value')[0]?.querySelector('[aria-hidden="true"]'),
+    ).toBeTruthy();
+  });
+
+  it('shows an error with Réessayer when YEAR fails, not value skeletons', async () => {
+    let yearFailed = true;
+    api.readPortfolioPerformance.mockImplementation((opts: { query?: { scope?: string } }) => {
+      if (opts.query?.scope === 'YEAR' && yearFailed) {
+        yearFailed = false;
+        return refused(500, {});
+      }
+      return ok(performanceFixture());
+    });
+    renderTab();
+    await loaded();
+    const summary = screen.getByRole('region', { name: 'Année 2026' });
+    expect(screen.getByRole('heading', { name: 'Année 2026' })).toBeTruthy();
+    const alert = await within(summary).findByRole('alert');
+    expect(alert.textContent).toContain('La performance est indisponible');
+    expect(within(summary).queryAllByTestId('performance-value')).toHaveLength(0);
+    fireEvent.click(within(alert).getByRole('button', { name: 'Réessayer' }));
+    await waitFor(() =>
+      expect(
+        within(summary)
+          .getByRole('button', { name: /Gain total/ })
+          .hasAttribute('disabled'),
+      ).toBe(false),
+    );
+  });
+
+  it('keeps a successful YEAR null figure as non-calculable, not an error', async () => {
+    const fixture = performanceFixture();
+    fixture.gain = {
+      ...fixture.gain,
+      value: null,
+      quality: 'NOT_CALCULABLE',
+      reasons: [{ code: 'NO_END_VALUATION', dates: [] }],
+    };
+    api.readPortfolioPerformance.mockImplementation(() => ok(fixture));
+    renderTab();
+    await loaded();
+    const summary = screen.getByRole('region', { name: 'Année 2026' });
+    await waitFor(() =>
+      expect(
+        within(summary)
+          .getByRole('button', { name: /Gain total/ })
+          .hasAttribute('disabled'),
+      ).toBe(false),
+    );
+    expect(within(summary).queryByRole('alert')).toBeNull();
+    expect(within(summary).getByText('Non calculable', { selector: '.sr-only' })).toBeTruthy();
+  });
+
+  it('opens a year source in its detail and keeps year', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=performance&year=2026`);
+    renderTab();
+    await loaded();
+    const summary = screen.getByRole('region', { name: 'Année 2026' });
+    await waitFor(() =>
+      expect(
+        within(summary)
+          .getByRole('button', { name: /Gain total/ })
+          .hasAttribute('disabled'),
+      ).toBe(false),
+    );
+    fireEvent.click(within(summary).getByRole('button', { name: /Gain total/ }));
+    expect(await screen.findByRole('dialog', { name: 'Expliquer : Gain total' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Opération du 01/02/2026' }));
+    expect(screen.queryByRole('dialog', { name: 'Expliquer : Gain total' })).toBeNull();
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get('asOf')).toBe('2026-03-10');
+    expect(params.get('tab')).toBe('operations');
+    expect(params.get('operation')).toBe('operation-1');
+    expect(params.get('year')).toBe('2026');
+  });
+
+  it('opens a month source in its detail and keeps year', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=performance&year=2026`);
+    renderTab();
+    await loaded();
+    const row = screen.getByRole('row', { name: /^janvier/ });
+    fireEvent.click(within(row).getByRole('button', { name: /Gain total/ }));
+    expect(await screen.findByRole('dialog', { name: 'Expliquer : Gain total' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Valorisation du 31/12/2025' }));
+    expect(screen.queryByRole('dialog', { name: 'Expliquer : Gain total' })).toBeNull();
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get('asOf')).toBe('2026-03-10');
+    expect(params.get('tab')).toBe('valuations');
+    expect(params.get('valuation')).toBe('valuation-1');
+    expect(params.get('year')).toBe('2026');
+  });
+
   it('renders cards instead of the table under 768 px', async () => {
     window.matchMedia = ((query: string) => ({
       matches: query.includes('max-width: 767px'),

@@ -43,7 +43,7 @@ final class PortfolioPerformanceOpenApiContractTest extends TestCase
             self::assertArrayHasKey($component, $decomposition);
         }
         $reasonCodes = self::list(self::map(self::map(self::map($schemas['PortfolioPerformanceReason'])['properties'])['code'])['enum']);
-        foreach (['NO_INVESTED_CAPITAL', 'NON_POSITIVE_DENOMINATOR', 'DENOMINATOR_TOO_SMALL', 'MONTH_NOT_CALCULABLE', 'TOO_MANY_PERIODS'] as $code) {
+        foreach (['NO_INVESTED_CAPITAL', 'NON_POSITIVE_DENOMINATOR', 'DENOMINATOR_TOO_SMALL', 'MONTH_NOT_CALCULABLE', 'NON_POSITIVE_GROWTH_FACTOR', 'TOO_MANY_PERIODS'] as $code) {
             self::assertContains($code, $reasonCodes);
         }
         self::assertSame('#/components/schemas/PortfolioModifiedDietzFigure', self::map(self::map($performance['properties'])['modifiedDietz'])['$ref']);

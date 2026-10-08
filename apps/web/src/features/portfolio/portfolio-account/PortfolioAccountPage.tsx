@@ -18,6 +18,7 @@ import { PortfolioAccountPageSkeleton } from './PortfolioAccountPageSkeleton';
 import { activeTab } from './portfolio-tabs/activeTab';
 import { PortfolioTabs, type PortfolioTab } from './portfolio-tabs/PortfolioTabs';
 import styles from './PortfolioAccountPage.module.css';
+import { useBreadcrumbAccount } from '@/components/layout/breadcrumb/BreadcrumbContext';
 
 /**
  * The portfolio page of one investment account. The tabs are Performance, Espèces, Positions, Opérations, Valorisations and Répartition;
@@ -25,6 +26,11 @@ import styles from './PortfolioAccountPage.module.css';
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const account = useAccountDetail(accountId);
+  useBreadcrumbAccount(
+    `/portfolios/${accountId}`,
+    !account.isError && account.data?.id === accountId ? account.data.label : null,
+    account.isPending,
+  );
   const insurance =
     account.data?.kind === 'INSURANCE_CONTRACT' && account.data?.valuationMode === 'PORTFOLIO';
   const contract = useLifeInsuranceContract(accountId, insurance);

@@ -1,11 +1,10 @@
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './AccountDetailHeader.module.css';
 
 /**
- * The back link, the visually hidden page title and the row of account-level
+ * The visually hidden page title and the row of account-level
  * actions (rules, reconcile, transfer, transaction). A named, self-contained
  * section: it renders only from the account and the creatable flag, and its
  * own responsive layout (actions stack full-width on narrow screens).
@@ -35,14 +34,6 @@ export function AccountDetailHeader({
     <section aria-labelledby="account-detail-title" className={styles.intro}>
       <div>
         <div className={styles.titleRow}>
-          <a
-            aria-label={t('accounts.detail.back')}
-            className={`icon-button ${styles.back}`}
-            href="/accounts"
-            onClick={(event) => handleClientNavigation(event, '/accounts')}
-          >
-            <Icon name="arrow-left" size={18} />
-          </a>
           <p>{t('accounts.detail.eyebrow')}</p>
         </div>
         <h2 className="sr-only" id="account-detail-title">

@@ -20,11 +20,6 @@
   gap: var(--spacing-3);
 }
 
-.back {
-  flex-shrink: 0;
-  text-decoration: none;
-}
-
 .actions a {
   display: inline-flex;
   align-items: center;

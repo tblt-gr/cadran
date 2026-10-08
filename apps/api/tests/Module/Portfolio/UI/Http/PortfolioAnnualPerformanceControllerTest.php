@@ -136,6 +136,19 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
         );
     }
 
+    public function testTheIndexUsesTheUnroundedMonthlyRate(): void
+    {
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-02-01', 'grossAmount' => $this->eur('10100.00')]);
+        $this->recordTotal('2026-02-28', '10100.00');
+        $this->recordTotal('2026-03-31', '10100.00');
+        $this->recordTotal('2026-04-30', '10100.50');
+
+        $april = self::lines($this->annual(2026)['months'])[3];
+
+        self::assertSame('0.000050', self::map($april['modifiedDietz'])['value']);
+        self::assertSame('100.00', $april['modifiedDietzIndex']);
+    }
+
     public function testTheChainedIndexStartsAtTheFirstActiveMonthAndFollowsTheChain(): void
     {
         $this->seedThroughApril();

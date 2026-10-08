@@ -1,0 +1,56 @@
+.breadcrumb {
+  min-width: 0;
+  padding-bottom: var(--spacing-4);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+  color: var(--text-secondary);
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+  list-style: none;
+  padding: var(--spacing-none);
+  margin: var(--spacing-none);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.item a,
+.item > span[aria-current] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.item a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.item a:hover,
+.item > span[aria-current] {
+  color: var(--text-primary);
+}
+
+.item a:focus-visible {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+  border-radius: var(--radius-control);
+}
+
+.separator {
+  flex-shrink: 0;
+}
+
+.accountPlaceholder {
+  width: 8ch;
+  height: 1em;
+}
