@@ -37,9 +37,18 @@ final class ChainedIndexTest extends TestCase
     }
 
     #[Test]
+    public function itKeepsOneHundredWhenTheUnroundedRateIsBelowFiveHundredthsOfAPercent(): void
+    {
+        // R = 0.50 / 10100 = 0.000049504950495049504950. Display 0.000050 would yield 100.01.
+        self::assertSame(['100.00'], ChainedIndex::series(['0.000049504950495049504950'], 0));
+        self::assertSame(['100.01'], ChainedIndex::series(['0.000050'], 0));
+    }
+
+    #[Test]
     public function aZeroReturnKeepsTheIndexAndALargeLossStaysExact(): void
     {
-        self::assertSame(['100.00', '0.00'], ChainedIndex::series(['0', '-1'], 0));
+        self::assertSame(['100.00', null, null], ChainedIndex::series(['0', '-1', '0.02'], 0));
+        self::assertSame(['101.00', null], ChainedIndex::series(['0.01', '-1.5'], 0));
         self::assertSame(['123456789012345778.90'], ChainedIndex::series(['1234567890123456.789'], 0));
     }
 }

@@ -45,6 +45,8 @@ const sentences: Record<string, Describe> = {
   NON_POSITIVE_DENOMINATOR: weakCapital,
   DENOMINATOR_TOO_SMALL: weakCapital,
   MONTH_NOT_CALCULABLE: (dates) => `Mois non calculables : ${list(dates)}.`,
+  NON_POSITIVE_GROWTH_FACTOR: (dates) =>
+    `Rendement mensuel inférieur ou égal à -100 % : le chaînage n'est pas publié (${list(dates)}).`,
   TOO_MANY_PERIODS: tooMuch,
   TOO_MANY_SUBPERIODS: tooMuch,
   TOO_MANY_FLOWS: tooMuch,

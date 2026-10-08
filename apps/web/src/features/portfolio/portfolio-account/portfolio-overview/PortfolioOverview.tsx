@@ -77,7 +77,7 @@ function SecuritiesOverview({
       ) : (
         <PortfolioKpiGrid
           asOf={asOf}
-          footer={<SinceOpeningFigures accountId={accountId} frozen={frozen} />}
+          footer={<SinceOpeningFigures accountId={accountId} asOf={asOf} frozen={frozen} />}
           qualifiers={qualifiers}
           summary={summary.data ?? null}
           onExplain={(code) => {
@@ -118,7 +118,11 @@ export function PortfolioOverview(
         />
         {props.history}
         <section className="card">
-          <SinceOpeningFigures accountId={props.accountId} frozen={props.frozen} />
+          <SinceOpeningFigures
+            accountId={props.accountId}
+            asOf={props.asOf}
+            frozen={props.frozen}
+          />
         </section>
       </>
     );

@@ -8062,6 +8062,7 @@ components:
             - NON_POSITIVE_DENOMINATOR
             - DENOMINATOR_TOO_SMALL
             - MONTH_NOT_CALCULABLE
+            - NON_POSITIVE_GROWTH_FACTOR
             - TOO_MANY_PERIODS
             - MISSING_FLOW_VALUATION
             - STALE_FLOW_VALUATION

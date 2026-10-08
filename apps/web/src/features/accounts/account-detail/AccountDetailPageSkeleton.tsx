@@ -4,7 +4,6 @@ import {
   SkeletonTableRows,
 } from '@/components/ui/skeleton/Skeleton';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
 import headerStyles from './account-detail-header/AccountDetailHeader.module.css';
 import identityStyles from './account-identity/AccountIdentityCard.module.css';
 import movementsStyles from './account-movements/AccountMovementsTable.module.css';
@@ -19,13 +18,6 @@ export function AccountDetailPageSkeleton({ status }: { status: string }) {
       <SkeletonStatus>{status}</SkeletonStatus>
       <section className={headerStyles.intro}>
         <div className={headerStyles.titleRow}>
-          <a
-            aria-label={t('accounts.detail.back')}
-            className={`icon-button ${headerStyles.back}`}
-            href="/accounts"
-          >
-            <Icon name="arrow-left" size={18} />
-          </a>
           <p>{t('accounts.detail.eyebrow')}</p>
         </div>
         <div className={headerStyles.actions}>

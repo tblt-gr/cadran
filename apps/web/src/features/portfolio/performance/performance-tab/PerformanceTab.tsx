@@ -1,6 +1,8 @@
+import type { PortfolioOverviewSource } from '@cadran/api-client';
 import { useEffect, useState } from 'react';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { PerformanceExplanationModal } from '@/features/portfolio/performance/performance-explanation-modal/PerformanceExplanationModal';
+import { openPerformanceSource } from '@/features/portfolio/performance/openPerformanceSource';
 import { usePortfolioPerformance } from '@/features/portfolio/performance/usePortfolioPerformance';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
@@ -36,6 +38,11 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
     url.searchParams.set('year', String(next));
     window.history.pushState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
     setYear(next);
+  }
+
+  function openSource(source: PortfolioOverviewSource) {
+    setExplaining(null);
+    openPerformanceSource(accountId, asOf, source);
   }
 
   if (annual.isError) {
@@ -81,7 +88,9 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
     <div className={styles.tab}>
       <YearNavigator bounds={data.availableYears} onChange={changeYear} year={year} />
       <PerformanceSummary
+        failed={yearPerformance.isError}
         onExplain={setExplaining}
+        onRetry={() => void yearPerformance.refetch()}
         year={year}
         yearPerformance={yearPerformance.data ?? null}
       />
@@ -103,12 +112,13 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
           figure={explaining.figure}
           month={explaining.month}
           onClose={() => setExplaining(null)}
+          onSource={openSource}
         />
       ) : explaining && explained ? (
         <PerformanceExplanationModal
           figure={explaining.figure}
           onClose={() => setExplaining(null)}
-          onSource={() => setExplaining(null)}
+          onSource={openSource}
           performance={explained}
         />
       ) : null}

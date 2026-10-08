@@ -6,6 +6,12 @@
   "accessibility": {
     "skipToContent": "Aller au contenu"
   },
+  "breadcrumb": {
+    "label": "Fil d’Ariane",
+    "home": "Accueil",
+    "account": "Compte",
+    "loadingAccount": "Chargement du compte"
+  },
   "auth": {
     "loading": "Vérification de la session…",
     "logout": "Se déconnecter",
@@ -814,7 +820,6 @@
     },
     "detail": {
       "eyebrow": "Détail du compte",
-      "back": "Retour aux comptes",
       "loading": "Chargement du compte…",
       "notFound": {
         "title": "Compte introuvable",

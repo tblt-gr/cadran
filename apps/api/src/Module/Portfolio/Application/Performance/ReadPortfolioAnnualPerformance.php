@@ -92,7 +92,11 @@ final readonly class ReadPortfolioAnnualPerformance
     {
         $start = isset($history[0]) ? max($account->openedOn, $history[0]->details->tradeDate) : $account->openedOn;
         $firstIndex = max(0, ((int) $start->format('Y') - $year) * 12 + (int) $start->format('n') - 1);
-        $rates = array_map(static fn (AnnualPerformanceMonth $month): ?string => $month->performance?->modifiedDietz->value, $months);
+        $rates = array_map(static function (AnnualPerformanceMonth $month): ?string {
+            $rate = $month->performance?->modifiedDietz->unroundedRate;
+
+            return null === $rate ? null : $rate->toString();
+        }, $months);
         $series = ChainedIndex::series($rates, $firstIndex);
 
         return array_map(

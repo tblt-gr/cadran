@@ -11,6 +11,8 @@ import { summaryFixture, allocationFixture } from './overviewFixtures';
 import { performanceFixture } from '@/features/portfolio/performance/performanceFixtures';
 import { historyFixture } from './value-history-card/valueHistoryFixtures';
 import { PortfolioAccountPage } from './PortfolioAccountPage';
+import { AppShell } from '@/components/layout/app-shell/AppShell';
+import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
 
 const api = vi.hoisted(() => ({
   correctPortfolioOperation: vi.fn(),
@@ -63,7 +65,7 @@ function problem(status: number, body: object) {
 function page(items: PortfolioOperation[]) {
   return ok({ items, page: 1, perPage: 50, total: items.length });
 }
-function renderPage(timeZone = 'Europe/Paris') {
+function renderPage(timeZone = 'Europe/Paris', shell = false, frozen = false) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -76,11 +78,21 @@ function renderPage(timeZone = 'Europe/Paris') {
   };
   client.setQueryData(['session'], session);
   api.getSession.mockImplementation(() => ok(session));
-  return render(
-    <QueryClientProvider client={client}>
+  const content = shell ? (
+    <AppShell path={window.location.pathname} setPath={vi.fn()} showGlobalActions={false}>
       <PortfolioAccountPage accountId={accountId} />
-    </QueryClientProvider>,
+    </AppShell>
+  ) : (
+    <PortfolioAccountPage accountId={accountId} />
   );
+  return {
+    queryClient: client,
+    ...render(
+      <QueryClientProvider client={client}>
+        {frozen ? <FrozenQueries>{content}</FrozenQueries> : content}
+      </QueryClientProvider>,
+    ),
+  };
 }
 function openAction(name: string) {
   fireEvent.click(screen.getByRole('button', { name: /^Actions pour/ }));
@@ -88,6 +100,59 @@ function openAction(name: string) {
 }
 
 const deposit = operationFixture({ id: 'op-1', version: 4 });
+
+describe('portfolio shell breadcrumb', () => {
+  it('uses the page query on direct source entry, keeps tabs and forward actions', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      `/portfolios/${accountId}?tab=operations&asOf=2026-03-10&operationId=op-1`,
+    );
+    renderPage('Europe/Paris', true);
+    const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
+    const parent = await within(nav).findByRole('link', { name: account.label });
+    expect(parent.getAttribute('href')).toBe(`/accounts/${accountId}`);
+    expect(within(nav).getByText('Portefeuille').getAttribute('aria-current')).toBe('page');
+    expect(api.readAccount).toHaveBeenCalledTimes(1);
+    expect(window.location.search).toBe('?tab=operations&asOf=2026-03-10&operationId=op-1');
+    expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Gérer les instruments' }).getAttribute('href')).toBe(
+      '/portfolios/instruments',
+    );
+    expect(screen.getByRole('link', { name: 'Opérations' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+  });
+
+  it.each([403, 404, 500])(
+    'clears a cached label after a failed account read (%s)',
+    async (status) => {
+      const { queryClient } = renderPage('Europe/Paris', true);
+      const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
+      await within(nav).findByRole('link', { name: account.label });
+      api.readAccount.mockImplementation(() => problem(status, {}));
+      void queryClient.invalidateQueries({ queryKey: ['account', accountId] });
+      await within(nav).findByRole('link', { name: 'Compte' });
+      expect(within(nav).queryByText(account.label)).toBeNull();
+      expect(screen.getByRole('alert')).toBeTruthy();
+    },
+  );
+
+  it('renders the real static hierarchy under FrozenQueries without fetching', () => {
+    renderPage('Europe/Paris', true, true);
+    const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
+    expect(within(nav).getByRole('link', { name: 'Comptes' }).getAttribute('href')).toBe(
+      '/accounts',
+    );
+    expect(
+      within(nav).getByRole('link', { name: 'Chargement du compte' }).getAttribute('aria-busy'),
+    ).toBe('true');
+    expect(within(nav).getByText('Portefeuille')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(api.readAccount).not.toHaveBeenCalled();
+    expect(api.readPortfolioSummary).not.toHaveBeenCalled();
+  });
+});
 
 beforeEach(() => {
   window.history.replaceState({}, '', `/portfolios/${accountId}?tab=operations`);
@@ -519,11 +584,7 @@ describe('PortfolioAccountPage', () => {
     expect(await screen.findByRole('heading', { name: 'PEA Démo' })).toBeTruthy();
     expect(await screen.findByRole('table', { name: 'Opérations du portefeuille' })).toBeTruthy();
     expect(screen.queryByTestId('operations-skeleton')).toBeNull();
-    expect(
-      (screen.getByRole('link', { name: 'Voir le compte' }) as HTMLAnchorElement).getAttribute(
-        'href',
-      ),
-    ).toBe(`/accounts/${accountId}`);
+    expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
     expect(
       (
         screen.getByRole('link', { name: 'Gérer les instruments' }) as HTMLAnchorElement

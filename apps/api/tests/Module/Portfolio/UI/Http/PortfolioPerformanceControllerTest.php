@@ -428,6 +428,49 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         self::assertCount(3, self::items2($dietz['months']));
     }
 
+    public function testYearAndInceptionStayNullWhenAChainedMonthLosesMoreThanTheCapital(): void
+    {
+        $this->seedGainThenLoss('11000.00', '0.00', '5500.00');
+
+        $month = self::map($this->performance('MONTH', '2026-03')['modifiedDietz']);
+        self::assertSame('-1.500000', $month['value']);
+
+        foreach (['YEAR' => '2026', 'INCEPTION' => null] as $scope => $period) {
+            $dietz = self::map($this->performance($scope, $period)['modifiedDietz']);
+            self::assertNull($dietz['value'], $scope);
+            self::assertSame('NOT_CALCULABLE', $dietz['quality'], $scope);
+            self::assertSame('NON_POSITIVE_GROWTH_FACTOR', self::map(self::items2($dietz['reasons'])[0])['code'], $scope);
+            self::assertSame(['2026-03'], self::map(self::items2($dietz['reasons'])[0])['dates'], $scope);
+            $byMonth = self::valuesByMonth($dietz['months']);
+            self::assertSame('0.100000', $byMonth['2026-02'], $scope);
+            self::assertSame('-1.500000', $byMonth['2026-03'], $scope);
+        }
+    }
+
+    public function testAMonthlyLossOfExactlyOneHundredPercentBlocksTheYearChain(): void
+    {
+        $this->seedGainThenLoss('11000.00', '0.00');
+
+        $dietz = self::map($this->performance('YEAR', '2026')['modifiedDietz']);
+
+        self::assertNull($dietz['value']);
+        self::assertSame('NON_POSITIVE_GROWTH_FACTOR', self::map(self::items2($dietz['reasons'])[0])['code']);
+        self::assertSame(['2026-03'], self::map(self::items2($dietz['reasons'])[0])['dates']);
+        $byMonth = self::valuesByMonth($dietz['months']);
+        self::assertSame('-1.000000', $byMonth['2026-03']);
+    }
+
+    public function testAMonthlyLossOfFiftyPercentStillChains(): void
+    {
+        $this->seedGainThenLoss('11000.00', '5500.00');
+
+        $dietz = self::map($this->performance('YEAR', '2026')['modifiedDietz']);
+
+        self::assertSame('-0.450000', $dietz['value']);
+        $byMonth = self::valuesByMonth($dietz['months']);
+        self::assertSame(['0.100000', '-0.500000'], [$byMonth['2026-02'], $byMonth['2026-03']]);
+    }
+
     public function testAMonthThatCannotBeCalculatedMakesTheYearNullWithItsMonths(): void
     {
         $this->seedReferenceMonth();
@@ -603,6 +646,17 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
             SQL, [WorkspaceFixture::OWN_WORKSPACE, self::ACCOUNT, $tradeDate, WorkspaceFixture::OWNER_ID, $count]);
     }
 
+    private function seedGainThenLoss(string $februaryEnd, string $marchEnd, ?string $marchDeposit = null): void
+    {
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-01-15', 'grossAmount' => $this->eur('10000.00')]);
+        $this->recordTotal('2026-01-31', '10000.00');
+        $this->recordTotal('2026-02-28', $februaryEnd);
+        if (null !== $marchDeposit) {
+            $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-03-31', 'grossAmount' => $this->eur($marchDeposit)]);
+        }
+        $this->recordTotal('2026-03-31', $marchEnd);
+    }
+
     private function seedReferenceMonth(): void
     {
         $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-02-01', 'grossAmount' => $this->eur('9798.00')]);
@@ -656,6 +710,20 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(201, (string) $this->client->getResponse()->getContent());
 
         return $this->decode();
+    }
+
+    /** @return array<string, mixed> */
+    private static function valuesByMonth(mixed $months): array
+    {
+        $byMonth = [];
+        foreach (self::items2($months) as $month) {
+            $line = self::map($month);
+            $label = $line['month'];
+            self::assertIsString($label);
+            $byMonth[$label] = $line['value'];
+        }
+
+        return $byMonth;
     }
 
     /** @return list<mixed> */

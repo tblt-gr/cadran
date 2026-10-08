@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\Application\Performance;
 
+use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Portfolio\Domain\Performance\PerformanceFinding;
 use App\Module\Portfolio\Domain\Performance\PerformanceQuality;
 
@@ -25,6 +26,7 @@ final readonly class ModifiedDietzFigure
         public ?array $months,
         public ?string $gain = null,
         public ?string $denominatorTimesDays = null,
+        public ?CalculatedDecimal $unroundedRate = null,
     ) {
     }
 }

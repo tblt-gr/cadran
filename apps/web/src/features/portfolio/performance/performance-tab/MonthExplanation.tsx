@@ -1,3 +1,4 @@
+import type { PortfolioOverviewSource } from '@cadran/api-client';
 import { Modal } from '@/components/ui/modal/Modal';
 import { PerformanceExplanationModal } from '@/features/portfolio/performance/performance-explanation-modal/PerformanceExplanationModal';
 import type { FigureKey } from '@/features/portfolio/performance/performanceFigures';
@@ -9,11 +10,13 @@ export function MonthExplanation({
   month,
   figure,
   onClose,
+  onSource,
 }: {
   accountId: string;
   month: string;
   figure: FigureKey;
   onClose: () => void;
+  onSource: (source: PortfolioOverviewSource) => void;
 }) {
   const performance = usePortfolioPerformance(accountId, 'MONTH', month);
   if (performance.data) {
@@ -21,7 +24,7 @@ export function MonthExplanation({
       <PerformanceExplanationModal
         figure={figure}
         onClose={onClose}
-        onSource={onClose}
+        onSource={onSource}
         performance={performance.data}
       />
     );

@@ -18,7 +18,7 @@ final class ChainedIndex
      * @param list<?string> $rates      the monthly returns, one per month in order, null where a month has none
      * @param int           $firstIndex the position of the first month of the chain; earlier months have no index
      *
-     * @return list<?string> the index at each month end; null before the chain starts and from the first missing return on
+     * @return list<?string> the index at each month end; null before the chain starts and from the first missing or non-positive growth factor on
      */
     public static function series(array $rates, int $firstIndex): array
     {
@@ -34,6 +34,13 @@ final class ChainedIndex
                 continue;
             }
             $factor = CalculatedDecimal::one()->add(CalculatedDecimal::fromDecimal(DecimalValue::fromString($rate)));
+            if ($factor->compareTo(CalculatedDecimal::zero()) <= 0) {
+                // Same rule as the annual return (NON_POSITIVE_GROWTH_FACTOR): the chain is not defined past a total loss.
+                $broken = true;
+                $series[] = null;
+
+                continue;
+            }
             $index = $index->proportion($factor, CalculatedDecimal::one(), self::SCALE, RoundingMode::HALF_EVEN);
             $series[] = $index->round(self::DISPLAY_SCALE, RoundingMode::HALF_UP)->toString();
         }

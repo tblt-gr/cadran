@@ -15,6 +15,8 @@ import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav/MobileBot
 import { MobileMoreSheet } from '@/components/layout/mobile-more-sheet/MobileMoreSheet';
 import { Sidebar } from '@/components/layout/sidebar/Sidebar';
 import styles from './AppShell.module.css';
+import { BreadcrumbProvider } from '@/components/layout/breadcrumb/BreadcrumbProvider';
+import { RouteBreadcrumb } from '@/components/layout/breadcrumb/RouteBreadcrumb';
 
 interface AppShellProps {
   children: ReactNode;
@@ -30,7 +32,9 @@ interface AppShellProps {
 export function AppShell(props: AppShellProps) {
   return (
     <HeaderTitleProvider>
-      <AppShellContent {...props} />
+      <BreadcrumbProvider>
+        <AppShellContent {...props} />
+      </BreadcrumbProvider>
     </HeaderTitleProvider>
   );
 }
@@ -99,6 +103,7 @@ function AppShellContent({
 
         <div className={`${styles.body}${contextPanel ? ` ${styles.bodyWithPanel}` : ''}`}>
           <main id="main-content" tabIndex={-1}>
+            <RouteBreadcrumb path={path} onNavigate={handleNavigate} />
             {children}
           </main>
           {contextPanel}
