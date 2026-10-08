@@ -1,13 +1,10 @@
-import { capturePortfolioSource } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import type { RefObject } from 'react';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import { formatCalendarNumericDay } from '@/lib/decimal';
 import {
   money,
-  sourceHref,
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
+import { CumulativeSources } from '@/features/portfolio/life-insurance/overview/recorded-amounts/cumulative-sources/CumulativeSources';
 import styles from './RecordedAmounts.module.css';
 export function RecordedAmounts({
   summary,
@@ -68,37 +65,11 @@ export function RecordedAmounts({
           </tbody>
         </table>
       </div>
-      <h4>Sources des montants cumulés</h4>
-      {cumulative && summary ? (
-        <>
-          {cumulative.sources.length ? (
-            <ul>
-              {cumulative.sources.map((source) => {
-                const href = sourceHref(accountId, summary.asOf, source.kind, source.id);
-                return (
-                  <li key={`${source.kind}-${source.id}`}>
-                    <a
-                      href={href}
-                      onClick={(event) => {
-                        capturePortfolioSource(event.currentTarget, sourceReturnFocus);
-                        handleClientNavigation(event, href);
-                      }}
-                    >
-                      {source.kind === 'OPERATION' ? 'Opération' : 'Valorisation'} du{' '}
-                      {formatCalendarNumericDay(source.date)}
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p>Aucune source à cette date.</p>
-          )}
-          {cumulative.sourceCount > cumulative.sources.length ? (
-            <p>{cumulative.sourceCount - cumulative.sources.length} autres sources</p>
-          ) : null}
-        </>
-      ) : null}
+      <CumulativeSources
+        summary={summary}
+        accountId={accountId}
+        sourceReturnFocus={sourceReturnFocus}
+      />
     </section>
   );
 }

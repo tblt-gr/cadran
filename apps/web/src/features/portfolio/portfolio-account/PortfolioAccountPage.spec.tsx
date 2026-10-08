@@ -775,6 +775,47 @@ it('composes insurance figures, history and performance instead of securities KP
   );
 });
 
+it('restores focus to the exact quality source when two issues link to the same operation', async () => {
+  const summary = insuranceSummaryFixture();
+  summary.qualityIssues = [
+    { code: 'INTEREST_BASIS_UNKNOWN', operationIds: [deposit.id], count: 1 },
+    { code: 'MISSING_EURO_FUND_RATE', operationIds: [deposit.id], count: 1 },
+  ];
+  api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
+  api.readLifeInsuranceSummary.mockImplementation(() => ok(summary));
+  api.readLifeInsuranceContract.mockImplementation(() =>
+    ok({ contract: summary.contract, feeTerms: [], euroFundRates: [], euroFunds: [] }),
+  );
+  api.readPortfolioOperation.mockImplementation(() => ok(deposit));
+  window.history.replaceState(
+    {},
+    '',
+    `/portfolios/${accountId}?tab=valuations&asOf=${summary.asOf}`,
+  );
+  renderPage();
+  await waitFor(() => expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull());
+  const qualitySection = () =>
+    screen.getByRole('heading', { name: 'Qualité des données' }).closest('section')!;
+  await screen.findByRole('heading', { name: 'Qualité des données' });
+  const links = await within(qualitySection()).findAllByRole('link', { name: 'Opération 1' });
+  expect(links).toHaveLength(2);
+  expect(links[1].getAttribute('href')).toBe(links[0].getAttribute('href'));
+  links[1].focus();
+  fireEvent.click(links[1]);
+  await screen.findByRole('dialog', { name: /Opération : Versement/ });
+  expect(links[1].isConnected).toBe(false);
+  fireEvent.keyDown(document, { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  await waitFor(() =>
+    expect(new URLSearchParams(window.location.search).get('tab')).toBe('valuations'),
+  );
+  await waitFor(() => {
+    const returnedLinks = within(qualitySection()).getAllByRole('link', { name: 'Opération 1' });
+    expect(document.activeElement).toBe(returnedLinks[1]);
+    expect(document.activeElement).not.toBe(returnedLinks[0]);
+  });
+});
+
 it.each(['quality', 'cumulative'] as const)(
   'restores focus to a %s source link after previously dismissing a KPI explanation',
   async (kind) => {
@@ -813,6 +854,14 @@ it.each(['quality', 'cumulative'] as const)(
         name: kind === 'quality' ? 'Qualité des données' : 'Montants cumulés enregistrés',
       })
       .closest('section')!;
+    if (kind === 'cumulative') {
+      const disclosure = within(section)
+        .getByText('Sources des montants cumulés')
+        .closest('details')!;
+      expect(disclosure.open).toBe(false);
+      fireEvent.click(disclosure.querySelector('summary')!);
+      await waitFor(() => expect(disclosure.open).toBe(true));
+    }
     const link = within(section).getByRole('link', {
       name: kind === 'quality' ? 'Opération 1' : /Opération du/,
     });
@@ -829,6 +878,16 @@ it.each(['quality', 'cumulative'] as const)(
     await waitFor(() =>
       expect(document.activeElement?.getAttribute('href')).toBe(link.getAttribute('href')),
     );
+    if (kind === 'cumulative') {
+      expect(document.activeElement?.closest('details')?.open).toBe(true);
+      expect(document.activeElement).not.toBe(link);
+      const returnedSection = screen
+        .getByRole('heading', { name: 'Montants cumulés enregistrés' })
+        .closest('section')!;
+      expect(document.activeElement).toBe(
+        within(returnedSection).getByRole('link', { name: /Opération du/ }),
+      );
+    }
   },
 );
 

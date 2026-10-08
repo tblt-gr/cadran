@@ -44,6 +44,7 @@ export function QualityIssues({
                   <a
                     key={id}
                     href={href}
+                    data-quality-source-key={`${issue.code}:${id}`}
                     onClick={(event) => {
                       capturePortfolioSource(event.currentTarget, sourceReturnFocus);
                       handleClientNavigation(event, href);

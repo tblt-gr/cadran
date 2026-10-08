@@ -22,6 +22,8 @@ it('keeps all 15 known financial row labels and skeletonizes only their amounts'
     'Participation aux bénéfices nette',
   ];
   const view = render(<RecordedAmounts summary={null} accountId="account-1" />);
+  expect(screen.getByText('Sources des montants cumulés').closest('summary')).toBeTruthy();
+  expect(screen.getByText('Sources des montants cumulés').closest('details')?.open).toBe(false);
   const table = screen.getByRole('table', { name: 'Montants cumulés enregistrés' });
   expect(
     within(table)
