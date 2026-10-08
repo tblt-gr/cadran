@@ -1,3 +1,4 @@
+import { summaryFixture as insuranceSummaryFixture } from '@/features/portfolio/life-insurance/overview/summaryFixture';
 import type { Account, PortfolioOperation } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -21,7 +22,9 @@ const api = vi.hoisted(() => ({
   listPortfolioValuations: vi.fn(),
   listProducts: vi.fn(),
   readPortfolioCash: vi.fn(),
+  readPortfolioPositionLots: vi.fn(),
   readLifeInsuranceContract: vi.fn(),
+  readLifeInsuranceSummary: vi.fn(),
   readPortfolioSummary: vi.fn(),
   readPortfolioPerformance: vi.fn(),
   readPortfolioAllocation: vi.fn(),
@@ -89,6 +92,7 @@ const deposit = operationFixture({ id: 'op-1', version: 4 });
 beforeEach(() => {
   window.history.replaceState({}, '', `/portfolios/${accountId}?tab=operations`);
   api.readPortfolioSummary.mockImplementation(() => ok(summaryFixture()));
+  api.readLifeInsuranceSummary.mockImplementation(() => ok(insuranceSummaryFixture()));
   api.readPortfolioAllocation.mockImplementation(() => ok(allocationFixture()));
   api.readPortfolioPerformance.mockImplementation(() => ok(performanceFixture()));
   api.readPortfolioValuationHistory.mockImplementation(() => ok(historyFixture()));
@@ -746,4 +750,287 @@ describe('PortfolioAccountPage', () => {
       await screen.findByRole('button', { name: 'Remplacée par l’opération du 05/03/2026' }),
     ).toBeTruthy();
   });
+});
+
+it('composes insurance figures, history and performance instead of securities KPIs', async () => {
+  api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
+  api.readLifeInsuranceContract.mockImplementation(() =>
+    ok({
+      contract: insuranceSummaryFixture().contract,
+      feeTerms: [],
+      euroFundRates: [],
+      euroFunds: [],
+    }),
+  );
+  window.history.replaceState({}, '', `/portfolios/${accountId}?tab=contract&asOf=2026-03-10`);
+  renderPage();
+  await waitFor(() => expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull());
+  expect(await screen.findByRole('heading', { name: 'Valeur du contrat' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Suivi fiscal (informatif)' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: "Depuis l'ouverture" })).toBeTruthy();
+  expect(screen.queryByRole('region', { name: 'Indicateurs du portefeuille' })).toBeNull();
+  expect(api.readPortfolioValuationHistory).toHaveBeenCalled();
+  expect(api.readLifeInsuranceSummary).toHaveBeenCalledWith(
+    expect.objectContaining({ query: { asOf: '2026-03-10' } }),
+  );
+});
+
+it('restores focus to the exact quality source when two issues link to the same operation', async () => {
+  const summary = insuranceSummaryFixture();
+  summary.qualityIssues = [
+    { code: 'INTEREST_BASIS_UNKNOWN', operationIds: [deposit.id], count: 1 },
+    { code: 'MISSING_EURO_FUND_RATE', operationIds: [deposit.id], count: 1 },
+  ];
+  api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
+  api.readLifeInsuranceSummary.mockImplementation(() => ok(summary));
+  api.readLifeInsuranceContract.mockImplementation(() =>
+    ok({ contract: summary.contract, feeTerms: [], euroFundRates: [], euroFunds: [] }),
+  );
+  api.readPortfolioOperation.mockImplementation(() => ok(deposit));
+  window.history.replaceState(
+    {},
+    '',
+    `/portfolios/${accountId}?tab=valuations&asOf=${summary.asOf}`,
+  );
+  renderPage();
+  await waitFor(() => expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull());
+  const qualitySection = () =>
+    screen.getByRole('heading', { name: 'Qualité des données' }).closest('section')!;
+  await screen.findByRole('heading', { name: 'Qualité des données' });
+  const links = await within(qualitySection()).findAllByRole('link', { name: 'Opération 1' });
+  expect(links).toHaveLength(2);
+  expect(links[1].getAttribute('href')).toBe(links[0].getAttribute('href'));
+  links[1].focus();
+  fireEvent.click(links[1]);
+  await screen.findByRole('dialog', { name: /Opération : Versement/ });
+  expect(links[1].isConnected).toBe(false);
+  fireEvent.keyDown(document, { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  await waitFor(() =>
+    expect(new URLSearchParams(window.location.search).get('tab')).toBe('valuations'),
+  );
+  await waitFor(() => {
+    const returnedLinks = within(qualitySection()).getAllByRole('link', { name: 'Opération 1' });
+    expect(document.activeElement).toBe(returnedLinks[1]);
+    expect(document.activeElement).not.toBe(returnedLinks[0]);
+  });
+});
+
+it.each(['quality', 'cumulative'] as const)(
+  'restores focus to a %s source link after previously dismissing a KPI explanation',
+  async (kind) => {
+    const summary = insuranceSummaryFixture();
+    summary.qualityIssues = [
+      { code: 'INTEREST_BASIS_UNKNOWN', operationIds: [deposit.id], count: 1 },
+    ];
+    summary.cumulative.sources = [{ kind: 'OPERATION', id: deposit.id, date: deposit.tradeDate }];
+    api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
+    api.readLifeInsuranceSummary.mockImplementation(() => ok(summary));
+    api.readLifeInsuranceContract.mockImplementation(() =>
+      ok({ contract: summary.contract, feeTerms: [], euroFundRates: [], euroFunds: [] }),
+    );
+    api.readPortfolioOperation.mockImplementation(() => ok(deposit));
+    window.history.replaceState(
+      {},
+      '',
+      `/portfolios/${accountId}?tab=${kind === 'quality' ? 'valuations' : 'contract'}&asOf=${summary.asOf}`,
+    );
+    renderPage();
+    await screen.findByRole('heading', {
+      name: kind === 'quality' ? 'Qualité des données' : 'Montants cumulés enregistrés',
+    });
+    await waitFor(() =>
+      expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull(),
+    );
+    const info = screen.getByRole('button', { name: 'Expliquer : Versements cumulés' });
+    await waitFor(() => expect(info.matches(':disabled')).toBe(false));
+    info.focus();
+    fireEvent.click(info);
+    await screen.findByRole('dialog', { name: 'Expliquer : Versements cumulés' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(info));
+    const section = screen
+      .getByRole('heading', {
+        name: kind === 'quality' ? 'Qualité des données' : 'Montants cumulés enregistrés',
+      })
+      .closest('section')!;
+    if (kind === 'cumulative') {
+      const disclosure = within(section)
+        .getByText('Sources des montants cumulés')
+        .closest('details')!;
+      expect(disclosure.open).toBe(false);
+      fireEvent.click(disclosure.querySelector('summary')!);
+      await waitFor(() => expect(disclosure.open).toBe(true));
+    }
+    const link = within(section).getByRole('link', {
+      name: kind === 'quality' ? 'Opération 1' : /Opération du/,
+    });
+    link.focus();
+    fireEvent.click(link);
+    await screen.findByRole('dialog', { name: /Opération : Versement/ });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(new URLSearchParams(window.location.search).get('tab')).toBe(
+        kind === 'quality' ? 'valuations' : 'contract',
+      ),
+    );
+    await waitFor(() =>
+      expect(document.activeElement?.getAttribute('href')).toBe(link.getAttribute('href')),
+    );
+    if (kind === 'cumulative') {
+      expect(document.activeElement?.closest('details')?.open).toBe(true);
+      expect(document.activeElement).not.toBe(link);
+      const returnedSection = screen
+        .getByRole('heading', { name: 'Montants cumulés enregistrés' })
+        .closest('section')!;
+      expect(document.activeElement).toBe(
+        within(returnedSection).getByRole('link', { name: /Opération du/ }),
+      );
+    }
+  },
+);
+
+it.each([
+  'performance',
+  'operations',
+  'allocation',
+  'positions',
+  'valuations',
+  'contract',
+] as const)('renders insurance details only in their corresponding %s tab', async (tab) => {
+  api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
+  api.readLifeInsuranceContract.mockImplementation(() =>
+    ok({
+      contract: insuranceSummaryFixture().contract,
+      feeTerms: [],
+      euroFundRates: [],
+      euroFunds: [],
+    }),
+  );
+  api.listPortfolioValuations.mockImplementation(() =>
+    ok({ items: [], page: 1, perPage: 24, total: 0 }),
+  );
+  window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
+  renderPage();
+  await screen.findByText(/9\s293,00/);
+  const expected = {
+    allocation: 'Répartition',
+    positions: 'Supports du contrat',
+    valuations: 'Qualité des données',
+    contract: 'Montants cumulés enregistrés',
+  };
+  const nav = screen.getByRole('navigation', { name: 'Sections du portefeuille' });
+  for (const [destination, heading] of Object.entries(expected)) {
+    if (tab === destination) {
+      const title = await screen.findByRole('heading', { name: heading });
+      expect(nav.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } else expect(screen.queryByRole('heading', { name: heading })).toBeNull();
+  }
+  if (tab === 'allocation') {
+    for (const [label, by] of [
+      ['Classe d’actifs', 'ASSET_CLASS'],
+      ['Devise', 'CURRENCY'],
+      ['Instrument', 'INSTRUMENT'],
+    ]) {
+      fireEvent.click(screen.getByRole('button', { name: label }));
+      await waitFor(() =>
+        expect(api.readPortfolioAllocation).toHaveBeenCalledWith(
+          expect.objectContaining({ query: { asOf: '2026-03-10', by } }),
+        ),
+      );
+    }
+  }
+  if (tab === 'positions')
+    expect(screen.getByLabelText('Afficher les positions soldées')).toBeTruthy();
+  if (tab === 'valuations')
+    expect(screen.getByRole('button', { name: 'Enregistrer une valorisation' })).toBeTruthy();
+  if (tab === 'contract')
+    expect(screen.getByRole('heading', { name: 'Suivi fiscal (informatif)' })).toBeTruthy();
+});
+
+it.each(['allocation', 'positions', 'valuations'] as const)(
+  'keeps the securities %s tab free of insurance reports',
+  async (tab) => {
+    api.listPortfolioValuations.mockImplementation(() =>
+      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+    );
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
+    renderPage();
+    await screen.findByRole('region', { name: 'Indicateurs du portefeuille' });
+    if (tab === 'allocation')
+      expect(await screen.findByRole('button', { name: 'Classe d’actifs' })).toBeTruthy();
+    if (tab === 'positions')
+      expect(await screen.findByLabelText('Afficher les positions soldées')).toBeTruthy();
+    if (tab === 'valuations')
+      expect(
+        await screen.findByRole('button', { name: 'Enregistrer une valorisation' }),
+      ).toBeTruthy();
+    expect(api.readLifeInsuranceSummary).not.toHaveBeenCalled();
+    expect(screen.queryByRole('heading', { name: 'Supports du contrat' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Qualité des données' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Montants cumulés enregistrés' })).toBeNull();
+  },
+);
+
+it('keeps lot and day-order dialogs available alongside observed insurance supports', async () => {
+  api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
+  api.readLifeInsuranceContract.mockImplementation(() =>
+    ok({
+      contract: insuranceSummaryFixture().contract,
+      feeTerms: [],
+      euroFundRates: [],
+      euroFunds: [],
+    }),
+  );
+  const instrument = {
+    id: 'instrument-1',
+    name: 'ETF registre',
+    isin: null,
+    ticker: null,
+    status: 'ACTIVE',
+    quantityPrecision: 6,
+  };
+  api.listPortfolioPositions.mockImplementation(() =>
+    ok({
+      asOf: '2026-03-10',
+      items: [
+        {
+          instrument,
+          quantity: '3',
+          fifoCostBasis: null,
+          averageCostBasis: null,
+          averageUnitCost: null,
+          costReason: 'UNKNOWN_LOT_COST',
+          firstAcquiredOn: '2026-03-01',
+          lastOperationOn: '2026-03-01',
+          openLotCount: 1,
+          flags: [{ code: 'ORDER_DEPENDENT_DAY', dates: ['2026-03-01'] }],
+        },
+      ],
+    }),
+  );
+  api.readPortfolioPositionLots.mockImplementation(() =>
+    ok({ asOf: '2026-03-10', instrument, openLots: [], movements: [], fifoCostBasis: null }),
+  );
+  window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions&asOf=2026-03-10`);
+  renderPage();
+  await waitFor(() => expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull());
+  expect(await screen.findByRole('heading', { name: 'Supports du contrat' })).toBeTruthy();
+  fireEvent.click(await screen.findByRole('button', { name: 'Voir les lots' }));
+  const lots = await screen.findByRole('dialog', { name: 'Lots : ETF registre' });
+  await waitFor(() =>
+    expect(api.readPortfolioPositionLots).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: { accountId, instrumentId: instrument.id },
+        query: { asOf: '2026-03-10' },
+      }),
+    ),
+  );
+  fireEvent.keyDown(lots, { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  fireEvent.click(screen.getByRole('button', { name: 'Ordre à vérifier' }));
+  expect(
+    await screen.findByRole('dialog', { name: 'Réordonner la journée du 01/03/2026' }),
+  ).toBeTruthy();
 });

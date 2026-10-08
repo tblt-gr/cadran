@@ -24,12 +24,14 @@ const choices: { value: AllocationBy; label: string }[] = [
 ];
 export function AllocationCard({
   allocation,
+  title = 'Répartition',
   by,
   onByChange,
   disabled = false,
   showFallbackNotice = true,
 }: {
   allocation: PortfolioOverviewAllocation | null;
+  title?: string;
   by: AllocationBy;
   onByChange: (by: AllocationBy) => void;
   disabled?: boolean;
@@ -86,7 +88,7 @@ export function AllocationCard({
       data-testid={!allocation ? 'portfolio-allocation-skeleton' : undefined}
     >
       <div className={styles.header}>
-        <h3 id="portfolio-allocation-title">Répartition</h3>
+        <h3 id="portfolio-allocation-title">{title}</h3>
         <div className={styles.valuationDate}>
           <span>Valorisation retenue :</span>
           {!allocation ? (

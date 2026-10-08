@@ -14,6 +14,7 @@ use App\Module\Portfolio\Domain\LifeInsurance\LifeInsuranceContractRepository;
 use App\Module\Portfolio\Domain\OperationFilters;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 
+/** @phpstan-import-type AnnualIncome from IncomeAndFeesCalculator */
 final readonly class ReadLifeInsuranceIncomeAndFees
 {
     private const int MAX_OPERATIONS = 2000;
@@ -24,7 +25,7 @@ final readonly class ReadLifeInsuranceIncomeAndFees
     {
     }
 
-    /** @return array<string, mixed> */
+    /** @return AnnualIncome */
     public function __invoke(string $accountId, string $yearLiteral): array
     {
         $workspace = $this->caller->resolveContext()->workspace;
@@ -44,8 +45,21 @@ final readonly class ReadLifeInsuranceIncomeAndFees
             throw new InvalidPortfolioOperation('The year holds too many operations.', 'cash_range_too_dense');
         }
 
+        return $this->summarize($year, $account->assetCode->toString(), $operations, $this->rates->listForContract($workspace, $contract->id));
+    }
+
+    /** @param list<\App\Module\Portfolio\Domain\PortfolioOperation> $operations
+     * @param list<\App\Module\Portfolio\Domain\LifeInsurance\EuroFundRate> $rates
+     *
+     * @return AnnualIncome
+     */
+    public function summarize(int $year, string $assetCode, array $operations, array $rates): array
+    {
+        if (count($operations) > self::MAX_OPERATIONS) {
+            throw new InvalidPortfolioOperation('The year holds too many operations.', 'cash_range_too_dense');
+        }
         try {
-            return IncomeAndFeesCalculator::calculate($year, $account->assetCode->toString(), $operations, $this->rates->listForContract($workspace, $contract->id));
+            return IncomeAndFeesCalculator::calculate($year, $assetCode, $operations, $rates);
         } catch (\App\Module\Foundation\Domain\PrecisionExceeded|\App\Module\Foundation\Domain\MalformedDecimal) {
             throw new InvalidPortfolioOperation('Annual sums exceed the supported precision.', 'cash_amount_too_large');
         }

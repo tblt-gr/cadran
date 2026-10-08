@@ -13,10 +13,12 @@ export function AllocationTab({
   accountId,
   asOf,
   frozen = false,
+  title,
 }: {
   accountId: string;
   asOf: string;
   frozen?: boolean;
+  title?: string;
 }) {
   const [by, setBy] = useState<AllocationBy>('INSTRUMENT');
   const summary = usePortfolioSummary(accountId, asOf, !frozen);
@@ -35,6 +37,7 @@ export function AllocationTab({
         </OperationsState>
       ) : (
         <AllocationCard
+          title={title}
           allocation={allocation.data ?? null}
           by={by}
           onByChange={setBy}

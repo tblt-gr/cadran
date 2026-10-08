@@ -1,3 +1,4 @@
+import { summaryFixture } from '@/features/portfolio/life-insurance/overview/summaryFixture';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +10,7 @@ import {
 } from '@/features/portfolio/life-insurance/lifeInsuranceFixtures';
 const api = vi.hoisted(() => ({
   readLifeInsuranceContract: vi.fn(),
+  readLifeInsuranceSummary: vi.fn(),
   saveLifeInsuranceContract: vi.fn(),
   addLifeInsuranceFeeTerms: vi.fn(),
   removeLifeInsuranceFeeTerms: vi.fn(),
@@ -39,6 +41,7 @@ function mount() {
 beforeEach(() => {
   vi.resetAllMocks();
   api.readLifeInsuranceContract.mockResolvedValue(ok(overviewFixture()));
+  api.readLifeInsuranceSummary.mockResolvedValue(ok(summaryFixture()));
   api.listInstruments.mockResolvedValue(ok({ items: [] }));
 });
 afterEach(cleanup);

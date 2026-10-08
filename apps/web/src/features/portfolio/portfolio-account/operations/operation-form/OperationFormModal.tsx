@@ -72,6 +72,7 @@ export function OperationFormModal({
       onSaved();
       await Promise.all([
         client.invalidateQueries({ queryKey: ['portfolio-summary', account.id] }),
+        client.invalidateQueries({ queryKey: ['life-insurance-summary', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolio-allocation', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolio-valuation-history', account.id] }),
         client.invalidateQueries({ queryKey: ['portfolio-performance', account.id] }),

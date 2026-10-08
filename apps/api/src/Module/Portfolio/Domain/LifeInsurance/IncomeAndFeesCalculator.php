@@ -9,7 +9,11 @@ use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 
-/** Observed income and deductions only; announced rates identify missing evidence, never amounts. */
+/**
+ * Observed income and deductions only; announced rates identify missing evidence, never amounts.
+ *
+ * @phpstan-type AnnualIncome array{year: int, assetCode: string, interest: array<string, string>, profitSharing: array<string, string>, fees: array<string, string>, withheldTaxes: array<string, string>, qualityIssues: list<array{code: string, operationIds: list<string>, count: int}>, sources: list<array{kind: string, id: string, date: string}>, sourceCount: int}
+ */
 final class IncomeAndFeesCalculator
 {
     /** @param list<PortfolioOperation> $operations

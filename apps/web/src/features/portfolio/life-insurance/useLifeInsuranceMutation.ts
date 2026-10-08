@@ -36,7 +36,10 @@ export function useLifeInsuranceMutation<T>(
 ) {
   const client = useQueryClient();
   const refresh = () =>
-    client.invalidateQueries({ queryKey: ['life-insurance-contract', accountId] });
+    Promise.all([
+      client.invalidateQueries({ queryKey: ['life-insurance-contract', accountId] }),
+      client.invalidateQueries({ queryKey: ['life-insurance-summary', accountId] }),
+    ]);
   return useMutation({
     mutationFn: async (body: T) => {
       const result = await action(body);

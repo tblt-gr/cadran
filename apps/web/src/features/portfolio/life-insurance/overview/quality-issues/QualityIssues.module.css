@@ -1,0 +1,16 @@
+.card {
+  min-width: 0;
+}
+.card h3 {
+  margin-top: var(--spacing-none);
+}
+.card ul {
+  padding-left: var(--spacing-4);
+}
+.card li + li {
+  margin-top: var(--spacing-4);
+}
+.card a {
+  display: inline-block;
+  margin-right: var(--spacing-3);
+}

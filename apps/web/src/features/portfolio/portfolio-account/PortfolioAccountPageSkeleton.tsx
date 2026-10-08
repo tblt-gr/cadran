@@ -42,6 +42,7 @@ export function PortfolioAccountPageSkeleton({
         />
       </fieldset>
       <PortfolioOverview
+        kind={active === 'contract' ? 'INSURANCE_CONTRACT' : undefined}
         accountId={accountId}
         asOf={asOf}
         frozen

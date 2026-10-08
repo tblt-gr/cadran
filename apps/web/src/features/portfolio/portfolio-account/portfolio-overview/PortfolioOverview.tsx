@@ -1,3 +1,4 @@
+import { LifeInsuranceOverview } from '@/features/portfolio/life-insurance/overview/LifeInsuranceOverview';
 import type { PortfolioOverviewSource } from '@cadran/api-client';
 import { useState, type ReactNode, type RefObject } from 'react';
 import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
@@ -11,7 +12,7 @@ import { PortfolioKpiExplanationModal } from '@/features/portfolio/portfolio-acc
 import type { KpiCode } from '@/features/portfolio/portfolio-account/overviewLabels';
 
 /** Summary first, then the value history. The allocation lives in its own tab. */
-export function PortfolioOverview({
+function SecuritiesOverview({
   accountId,
   asOf,
   frozen = false,
@@ -101,4 +102,25 @@ export function PortfolioOverview({
       ) : null}
     </>
   );
+}
+
+export function PortfolioOverview(
+  props: Parameters<typeof SecuritiesOverview>[0] & { kind?: string },
+) {
+  if (props.kind === 'INSURANCE_CONTRACT')
+    return (
+      <>
+        <LifeInsuranceOverview
+          accountId={props.accountId}
+          asOf={props.asOf}
+          frozen={props.frozen}
+          sourceReturnFocus={props.sourceReturnFocus}
+        />
+        {props.history}
+        <section className="card">
+          <SinceOpeningFigures accountId={props.accountId} frozen={props.frozen} />
+        </section>
+      </>
+    );
+  return <SecuritiesOverview {...props} />;
 }
