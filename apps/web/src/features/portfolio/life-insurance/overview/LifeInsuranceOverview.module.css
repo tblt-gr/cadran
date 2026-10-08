@@ -3,13 +3,3 @@
   min-width: 0;
   gap: var(--spacing-6);
 }
-.details {
-  display: grid;
-  min-width: 0;
-  gap: var(--spacing-6);
-}
-@media (min-width: 1024px) {
-  .details {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  }
-}

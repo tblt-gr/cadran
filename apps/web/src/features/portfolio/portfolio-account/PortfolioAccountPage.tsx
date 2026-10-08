@@ -1,6 +1,7 @@
-import { ContractTab } from '@/features/portfolio/life-insurance/contract-tab/ContractTab';
 import { useLifeInsuranceContract } from '@/features/portfolio/life-insurance/useLifeInsuranceContract';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { usePortfolioSourceReturnFocus } from './usePortfolioSourceReturnFocus';
+import { PortfolioAccountTabContent } from './PortfolioAccountTabContent';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
@@ -11,13 +12,7 @@ import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
-import { AllocationTab } from './allocation-tab/AllocationTab';
-import { CashTab } from '@/features/portfolio/cash/CashTab';
-import { PerformanceTab } from '@/features/portfolio/performance/performance-tab/PerformanceTab';
-import { ValuationsTab } from '@/features/portfolio/valuations/ValuationsTab';
 import { NotPortfolioState } from './operations/NotPortfolioState';
-import { OperationsTab } from './operations/OperationsTab';
-import { PositionsTab } from './positions/PositionsTab';
 import { PortfolioAccountHeader } from './portfolio-account-header/PortfolioAccountHeader';
 import { PortfolioAccountPageSkeleton } from './PortfolioAccountPageSkeleton';
 import { activeTab } from './portfolio-tabs/activeTab';
@@ -35,7 +30,6 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const contract = useLifeInsuranceContract(accountId, insurance);
   const contractRequired = Boolean(insurance && contract.isSuccess && !contract.data?.contract);
   const operationBlocked = Boolean(insurance && !contract.data?.contract);
-  const sourceReturnFocus = useRef<HTMLElement | null>(null);
   const today = workspaceToday(new Date(), useWorkspaceTimeZone());
   const [asOf, setAsOf] = useState(
     () => new URLSearchParams(window.location.search).get('asOf') || today,
@@ -48,6 +42,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   };
   const [creating, setCreating] = useState(false);
   const [active, setActive] = useState<PortfolioTab>(() => activeTab());
+  const sourceReturnFocus = usePortfolioSourceReturnFocus(active, asOf);
 
   useEffect(() => {
     const updateTab = () => {
@@ -129,34 +124,17 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
       ) : null}
       <PortfolioTabs accountId={accountId} active={active} asOf={asOf} kind={current.kind} />
       {eligible ? (
-        active === 'contract' && insurance ? (
-          <ContractTab
-            asOf={asOf}
-            accountId={accountId}
-            assetCode={current.assetCode}
-            writable={current.status === 'ACTIVE'}
-          />
-        ) : active === 'positions' ? (
-          <PositionsTab accountId={accountId} asOf={asOf} />
-        ) : active === 'allocation' ? (
-          <AllocationTab accountId={accountId} asOf={asOf} />
-        ) : active === 'cash' ? (
-          <CashTab accountId={accountId} asOf={asOf} onAsOfChange={changeDate} />
-        ) : active === 'valuations' ? (
-          <ValuationsTab account={current} asOf={asOf} sourceReturnFocus={sourceReturnFocus} />
-        ) : active === 'performance' ? (
-          <PerformanceTab accountId={accountId} asOf={asOf} />
-        ) : (
-          <OperationsTab
-            account={current}
-            contractRequired={operationBlocked}
-            asOf={asOf}
-            sourceReturnFocus={sourceReturnFocus}
-            creating={creating}
-            onCloseCreate={() => setCreating(false)}
-            onCreate={openCreate}
-          />
-        )
+        <PortfolioAccountTabContent
+          account={current}
+          active={active}
+          asOf={asOf}
+          sourceReturnFocus={sourceReturnFocus}
+          contractRequired={operationBlocked}
+          onAsOfChange={changeDate}
+          creating={creating}
+          onCloseCreate={() => setCreating(false)}
+          onCreate={openCreate}
+        />
       ) : (
         <NotPortfolioState accountId={accountId} />
       )}

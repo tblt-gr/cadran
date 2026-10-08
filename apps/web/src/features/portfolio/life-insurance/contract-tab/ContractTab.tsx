@@ -1,4 +1,5 @@
-import { TaxTrackingPanel } from './tax-tracking-card/TaxTrackingPanel';
+import { ContractReportingPanel } from './ContractReportingPanel';
+import type { RefObject } from 'react';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { useState } from 'react';
@@ -19,11 +20,13 @@ export function ContractTab({
   assetCode,
   writable = true,
   asOf,
+  sourceReturnFocus,
 }: {
   accountId: string;
   assetCode: string;
   writable?: boolean;
   asOf?: string;
+  sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
   const query = useLifeInsuranceContract(accountId);
   const today = workspaceToday(new Date(), useWorkspaceTimeZone());
@@ -70,7 +73,11 @@ export function ContractTab({
             writable={writable}
             onEdit={() => setModal('contract')}
           />
-          <TaxTrackingPanel accountId={accountId} asOf={asOf ?? today} />
+          <ContractReportingPanel
+            accountId={accountId}
+            asOf={asOf ?? today}
+            sourceReturnFocus={sourceReturnFocus}
+          />
           <FeeTermsCard
             items={data.feeTerms}
             writable={writable}

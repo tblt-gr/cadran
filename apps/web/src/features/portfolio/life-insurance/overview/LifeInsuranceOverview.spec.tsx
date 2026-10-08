@@ -24,19 +24,20 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe('LifeInsuranceOverview', () => {
-  it('renders the reference values, distinct support rates and exact allocation table', async () => {
+  it('renders only the contract figures in the shared overview', async () => {
     mount();
     await waitFor(() =>
       expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull(),
     );
     expect(screen.getByRole('heading', { name: 'Valeur du contrat' })).toBeTruthy();
     expect(screen.getAllByText(/9\s293,00/).length).toBeGreaterThan(0);
-    expect(screen.getByRole('table', { name: 'Répartition du contrat' })).toBeTruthy();
-    expect(screen.getAllByText(/44,38/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Taux servi 2025 : 2,50/).length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: /Opération 1/ }).getAttribute('href')).toContain(
-      'operation=interest-1',
-    );
+    for (const heading of [
+      'Répartition',
+      'Supports du contrat',
+      'Qualité des données',
+      'Montants cumulés enregistrés',
+    ])
+      expect(screen.queryByRole('heading', { name: heading })).toBeNull();
     expect(api.readLifeInsuranceSummary).toHaveBeenCalledWith(
       expect.objectContaining({
         path: { accountId: 'account-1' },
@@ -49,8 +50,8 @@ describe('LifeInsuranceOverview', () => {
     api.readLifeInsuranceSummary.mockReturnValue(new Promise(() => {}));
     mount();
     expect(screen.getByTestId('life-insurance-overview-skeleton')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Répartition' })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Parts' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Répartition' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Valeur du contrat' })).toBeTruthy();
     expect(
       (screen.getByRole('button', { name: 'Expliquer : Valeur du contrat' }) as HTMLButtonElement)
         .disabled,
@@ -81,7 +82,8 @@ describe('LifeInsuranceOverview', () => {
       '250,00',
     );
   });
-  it.each(['NO_VALUATION', 'NOT_DETAILED'] as const)('shows %s explicitly', async (status) => {
+  it('shows no valuation explicitly', async () => {
+    const status = 'NO_VALUATION' as const;
     const data = summaryFixture();
     data.allocation = { status, items: [] };
     data.supports = [];
@@ -156,7 +158,7 @@ describe('LifeInsuranceOverview', () => {
   });
   it('retains cached values after a failed refresh', async () => {
     const client = mount();
-    await screen.findByRole('link', { name: /Opération 1/ });
+    await screen.findByText(/9\s293,00/);
     api.readLifeInsuranceSummary.mockRejectedValue(new Error('offline'));
     await client.invalidateQueries({ queryKey: ['life-insurance-summary'] });
     expect(await screen.findByRole('alert')).toHaveProperty(

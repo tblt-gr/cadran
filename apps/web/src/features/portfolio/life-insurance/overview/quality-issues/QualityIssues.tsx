@@ -1,3 +1,4 @@
+import { capturePortfolioSource } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import type { RefObject } from 'react';
 import { SkeletonText } from '@/components/ui/skeleton/Skeleton';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -44,7 +45,7 @@ export function QualityIssues({
                     key={id}
                     href={href}
                     onClick={(event) => {
-                      if (sourceReturnFocus) sourceReturnFocus.current = event.currentTarget;
+                      capturePortfolioSource(event.currentTarget, sourceReturnFocus);
                       handleClientNavigation(event, href);
                     }}
                   >

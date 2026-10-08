@@ -1,4 +1,4 @@
-import { clearPortfolioDetailSelection } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
+import { dismissPortfolioDetailSelection } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import type { Account, PortfolioOperation } from '@cadran/api-client';
 import { useEffect, useState, type RefObject } from 'react';
 import { OperationDetailModal } from './operation-detail-modal/OperationDetailModal';
@@ -194,7 +194,7 @@ export function OperationsTab({
               : undefined
           }
           onClose={() => {
-            clearPortfolioDetailSelection();
+            dismissPortfolioDetailSelection(sourceReturnFocus);
             setDetailId(null);
           }}
           onOpenOperation={setDetailId}
