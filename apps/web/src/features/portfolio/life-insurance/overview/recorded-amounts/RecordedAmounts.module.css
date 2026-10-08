@@ -6,6 +6,7 @@
 }
 .scroll {
   overflow-x: auto;
+  margin-bottom: var(--spacing-4);
 }
 
 .scroll table {
