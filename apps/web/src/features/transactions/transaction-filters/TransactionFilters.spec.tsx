@@ -99,6 +99,10 @@ function renderControlledFilters(
   );
 }
 
+function openFilters() {
+  fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
+}
+
 describe('TransactionFilters', () => {
   afterEach(() => {
     cleanup();
@@ -152,6 +156,7 @@ describe('TransactionFilters', () => {
     const onChange = vi.fn();
     renderFilters({ accounts: [account], filters: DEFAULT_FILTERS, onChange, onReset: vi.fn() });
 
+    openFilters();
     const checkbox = screen.getByRole('checkbox', { name: 'Comptabilisée' });
     checkbox.focus();
     expect(document.activeElement).toBe(checkbox);
@@ -160,25 +165,27 @@ describe('TransactionFilters', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ state: ['BOOKED'] }));
   });
 
-  it('reveals the mobile toggle as a focusable, keyboard-operable button controlling the panel', () => {
+  it('opens the filters modal from a keyboard-operable header button and shows the active count', () => {
     renderFilters({
       accounts: [account],
-      filters: DEFAULT_FILTERS,
+      filters: { ...DEFAULT_FILTERS, period: 'thisMonth' },
       onChange: vi.fn(),
       onReset: vi.fn(),
     });
 
-    const toggle = screen.getByRole('button', { name: 'Filtres' });
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    const toggle = screen.getByRole('button', { name: 'Filtres (1 actif)' });
+    expect(screen.queryByRole('dialog', { name: 'Filtres' })).toBeNull();
     toggle.focus();
     fireEvent.click(toggle);
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('dialog', { name: 'Filtres' })).toBeTruthy();
+    expect(screen.getByRole('searchbox', { name: 'Recherche libre' })).toBeTruthy();
   });
 
   it('normalises a comma decimal typed into the amount bounds before it reaches state', () => {
     const onChange = vi.fn();
     renderFilters({ accounts: [account], filters: DEFAULT_FILTERS, onChange, onReset: vi.fn() });
 
+    openFilters();
     fireEvent.change(screen.getByLabelText('Borne haute'), { target: { value: '-200,00' } });
 
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ maxAmount: '-200.00' }));
@@ -192,6 +199,7 @@ describe('TransactionFilters', () => {
         initialFilters: { ...DEFAULT_FILTERS, period: 'thisMonth' },
       });
 
+      openFilters();
       const search = screen.getByRole('searchbox', { name: 'Recherche libre' });
       fireEvent.change(search, { target: { value: 'abc' } });
       fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser les filtres' }));
@@ -214,6 +222,7 @@ describe('TransactionFilters', () => {
       onReset: vi.fn(),
     });
 
+    openFilters();
     expect(screen.queryByRole('button', { name: /Retirer le filtre Montant/ })).toBeNull();
     expect(
       screen.getByText('Choisissez l’actif des bornes pour appliquer le filtre de montant.'),
@@ -228,6 +237,7 @@ describe('TransactionFilters', () => {
       onReset: vi.fn(),
     });
 
+    openFilters();
     const checkbox = screen.getByRole('checkbox', { name: 'Afficher les transactions annulées' });
     expect(checkbox).toHaveProperty('disabled', true);
     expect(checkbox).toHaveProperty('checked', false);
@@ -253,6 +263,7 @@ describe('TransactionFilters', () => {
     );
     renderControlledFilters({ accounts: [account], initialFilters: DEFAULT_FILTERS });
 
+    openFilters();
     const combobox = screen.getByRole('combobox', { name: 'Filtrer par catégorie' });
     fireEvent.change(combobox, { target: { value: 'Sor' } });
     fireEvent.mouseDown(await screen.findByRole('option', { name: 'Sorties' }));

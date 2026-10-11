@@ -407,7 +407,7 @@ describe('MonthlyBudgetPage', () => {
     api.readMonthlyLedger.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
     await waitFor(() => expect(api.readMonthlyLedger).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('heading', { name: 'Budget de mars 2026' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Créer une transaction' })).toBeTruthy();
     expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
   });
 
@@ -456,7 +456,7 @@ describe('MonthlyBudgetPage', () => {
   it('renders exact zero, hides categories without movement and keeps every account', async () => {
     renderPage();
 
-    expect(await screen.findByRole('heading', { name: 'Budget de mars 2026' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Créer une transaction' })).toBeTruthy();
     expect(await screen.findByText('Salaire')).toBeTruthy();
     expect(
       screen.getAllByText(

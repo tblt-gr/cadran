@@ -15,7 +15,7 @@ import { AccountReconciliationModal } from '@/features/accounts/reconciliation-p
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
 import { TransferEditor } from '@/features/transactions/transfer-editor/TransferEditor';
 import { transactionErrorKind } from '@/features/transactions/transactionError';
-import { AccountDetailHeader } from './account-detail-header/AccountDetailHeader';
+import { AccountDetailActions } from './account-detail-actions/AccountDetailActions';
 import { AccountIdentityCard } from './account-identity/AccountIdentityCard';
 import { AccountMovementsSection } from './account-movements-section/AccountMovementsSection';
 import { useAccountMovements } from './account-movements/useAccountMovements';
@@ -163,7 +163,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
           </button>
         </div>
       ) : null}
-      <AccountDetailHeader
+      <AccountDetailActions
         account={current}
         creatable={creatable}
         onAddTransaction={openTransactionEditor}

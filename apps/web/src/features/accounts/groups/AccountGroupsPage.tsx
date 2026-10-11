@@ -11,11 +11,12 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { ArchiveGroupDialog } from '@/features/accounts/groups/archive-group-dialog/ArchiveGroupDialog';
 import { GroupForm } from '@/features/accounts/groups/group-form/GroupForm';
 import { GroupList } from '@/features/accounts/groups/group-list/GroupList';
@@ -173,25 +174,30 @@ export function AccountGroupsPage() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.intro} aria-labelledby="account-groups-intro-title">
-        <div>
-          <p>{t('accountGroups.eyebrow')}</p>
-          <h2 id="account-groups-intro-title">{t('accountGroups.title')}</h2>
-          <span>{t('accountGroups.description')}</span>
-        </div>
-        <div className={styles.introActions}>
-          <a
-            className="secondary-action"
-            href="/accounts"
-            onClick={(event) => handleClientNavigation(event, '/accounts')}
-          >
-            {t('accountGroups.backToAccounts')}
-          </a>
-          <button className="primary-action" onClick={() => openEditor('create')} type="button">
-            {t('accountGroups.add')}
-          </button>
-        </div>
-      </section>
+      <HeaderActions>
+        <button
+          aria-label={t('accountGroups.includeArchived')}
+          aria-pressed={includeArchived}
+          className="icon-button"
+          onClick={() => {
+            setIncludeArchived((current) => !current);
+            setPage(1);
+          }}
+          title={t('accountGroups.includeArchived')}
+          type="button"
+        >
+          <Icon name="archive" />
+        </button>
+        <button
+          aria-label={t('accountGroups.add')}
+          className={`primary-action ${styles.add}`}
+          onClick={() => openEditor('create')}
+          type="button"
+        >
+          <Icon name="add" size={18} />
+          <span className={styles.addLabel}>{t('accountGroups.add')}</span>
+        </button>
+      </HeaderActions>
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`accountGroups.toasts.${saved}`)}</Toast>
@@ -241,20 +247,6 @@ export function AccountGroupsPage() {
           />
         </Modal>
       ) : null}
-
-      <div className={styles.toolbar}>
-        <label>
-          <input
-            checked={includeArchived}
-            onChange={(event) => {
-              setIncludeArchived(event.target.checked);
-              setPage(1);
-            }}
-            type="checkbox"
-          />
-          <span>{t('accountGroups.includeArchived')}</span>
-        </label>
-      </div>
 
       {pagePending ? (
         <AccountGroupsPageSkeleton status={t('accountGroups.loading')} />

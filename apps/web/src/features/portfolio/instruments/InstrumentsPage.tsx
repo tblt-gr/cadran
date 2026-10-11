@@ -2,7 +2,13 @@ import { listInstruments, type Instrument } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { Icon } from '@/components/ui/icon/Icon';
 import { authApiOptions } from '@/features/auth/apiOptions';
+import {
+  InstrumentFilters,
+  type InstrumentStatusFilter,
+} from './instrument-filters/InstrumentFilters';
 import { InstrumentEditorModal } from './instrument-editor-modal/InstrumentEditorModal';
 import { InstrumentState } from './instrument-state/InstrumentState';
 import { InstrumentsPageSkeleton } from './InstrumentsPageSkeleton';
@@ -12,10 +18,9 @@ import { instrumentRequestError } from './instrumentError';
 import styles from './InstrumentsPage.module.css';
 
 type Editor = 'create' | Instrument | null;
-type Status = 'active' | 'inactive' | 'all';
 const PER_PAGE = 20;
 
-function readUrlFilters(): { q: string; status: Status } {
+function readUrlFilters(): { q: string; status: InstrumentStatusFilter } {
   const params = new URLSearchParams(window.location.search);
   const status = params.get('status');
   return {
@@ -30,7 +35,7 @@ export function InstrumentsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [statusTarget, setStatusTarget] = useState<Instrument | null>(null);
   const [staleNotice, setStaleNotice] = useState(false);
-  const [status, setStatus] = useState<Status>(initial.status);
+  const [status, setStatus] = useState<InstrumentStatusFilter>(initial.status);
   const [q, setQ] = useState(initial.q);
   const [query, setQuery] = useState(initial.q);
   const [page, setPage] = useState(1);
@@ -75,15 +80,25 @@ export function InstrumentsPage() {
   }, [page, total, totalPages]);
   return (
     <div className={styles.page}>
-      <section className={styles.intro}>
-        <div>
-          <h2>Instruments</h2>
-          <p>Référentiel de vos titres et fonds d’investissement.</p>
-        </div>
-        <button className="primary-action" onClick={() => setEditor('create')} type="button">
-          Nouvel instrument
+      <HeaderActions>
+        <button
+          aria-label={t('portfolio.instruments.add')}
+          className={`primary-action ${styles.add}`}
+          onClick={() => setEditor('create')}
+          type="button"
+        >
+          <Icon name="add" size={18} />
+          <span className={styles.addLabel}>{t('portfolio.instruments.add')}</span>
         </button>
-      </section>
+      </HeaderActions>
+      <InstrumentFilters
+        onStatusChange={(next) => {
+          setStaleNotice(false);
+          setStatus(next);
+          setPage(1);
+        }}
+        status={status}
+      />
       {staleNotice ? (
         <p className={styles.notice} role="status">
           Cet instrument a déjà été modifié. La liste a été actualisée.
@@ -104,32 +119,9 @@ export function InstrumentsPage() {
       ) : null}
       <section className={styles.toolbar}>
         <label>
-          <span>Rechercher un instrument</span>
+          <span>{t('portfolio.instruments.search')}</span>
           <input onChange={(event) => setQ(event.target.value)} value={q} />
         </label>
-        <div aria-label="Statut" className={styles.filters} role="group">
-          {(
-            [
-              ['active', 'Actifs'],
-              ['inactive', 'Inactifs'],
-              ['all', 'Tous'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              aria-pressed={status === value}
-              className="secondary-action"
-              key={value}
-              onClick={() => {
-                setStaleNotice(false);
-                setStatus(value);
-                setPage(1);
-              }}
-              type="button"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       </section>
       {instruments.isPending && instruments.data === undefined ? (
         <InstrumentsPageSkeleton status={t('portfolio.instruments.loading')} />

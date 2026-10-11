@@ -189,7 +189,8 @@ describe('InstrumentsPage', () => {
     setup();
     renderPage();
     await screen.findByText('ETF Monde');
-    fireEvent.click(screen.getByRole('button', { name: 'Inactifs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Inactifs' }));
     await waitFor(() =>
       expect(api.listInstruments).toHaveBeenLastCalledWith(
         expect.objectContaining({ query: expect.objectContaining({ status: 'inactive' }) }),

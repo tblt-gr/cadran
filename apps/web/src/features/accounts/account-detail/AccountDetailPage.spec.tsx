@@ -161,7 +161,7 @@ function renderPage(accountId = account.id, search = '', shell = false) {
     ...render(
       <QueryClientProvider client={queryClient}>
         {shell ? (
-          <AppShell path={`/accounts/${accountId}`} setPath={vi.fn()} showGlobalActions={false}>
+          <AppShell path={`/accounts/${accountId}`} setPath={vi.fn()}>
             <AccountDetailPage accountId={accountId} />
           </AppShell>
         ) : (
@@ -192,12 +192,13 @@ describe('AccountDetailPage', () => {
       '/accounts',
     );
     expect(screen.queryByRole('link', { name: 'Retour aux comptes' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Ouvrir le portefeuille' }).getAttribute('href')).toBe(
-      `/portfolios/${account.id}`,
-    );
-    expect(
-      screen.getByRole('link', { name: 'Valoriser le portefeuille' }).getAttribute('href'),
-    ).toBe(`/portfolios/${account.id}?tab=valuations`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Autres actions' }));
+    expect(screen.getByRole('button', { name: 'Ouvrir le portefeuille' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Valoriser le portefeuille' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Valoriser le portefeuille' }));
+    expect(window.location.pathname).toBe(`/portfolios/${account.id}`);
+    expect(window.location.search).toBe('?tab=valuations');
+    window.history.replaceState({}, '', `/accounts/${account.id}?month=2026-03`);
     expect(window.location.search).toBe('?month=2026-03');
   });
   beforeEach(() => {
@@ -375,13 +376,13 @@ describe('AccountDetailPage', () => {
     expect(screen.getByTestId('account-detail-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveAccount?.({ data: account, response: new Response('{}', { status: 200 }) });
-    expect(await screen.findByRole('heading', { level: 2, name: account.label })).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 3, name: account.label })).toBeTruthy();
     expect(screen.queryByTestId('account-detail-skeleton')).toBeNull();
 
     api.readAccount.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['account', account.id] });
     await waitFor(() => expect(api.readAccount).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('heading', { level: 2, name: account.label })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 3, name: account.label })).toBeTruthy();
     expect(screen.queryByTestId('account-detail-skeleton')).toBeNull();
   });
 
@@ -389,7 +390,7 @@ describe('AccountDetailPage', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Livret A Banque X' }),
+      await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' }),
     ).toBeTruthy();
     expect(screen.getByText('Supermarché')).toBeTruthy();
     expect(api.listTransactions).toHaveBeenCalledWith(
@@ -399,29 +400,33 @@ describe('AccountDetailPage', () => {
 
   it('links a portfolio-mode account to its portfolio page and no other account', async () => {
     renderPage();
-    await screen.findByRole('heading', { level: 2, name: 'Livret A Banque X' });
-    expect(screen.queryByRole('link', { name: 'Ouvrir le portefeuille' })).toBeNull();
+    await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
+    expect(screen.queryByRole('button', { name: 'Autres actions' })).toBeNull();
     cleanup();
     api.readAccount.mockImplementation(() =>
       success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
     );
     renderPage();
-    const link = await screen.findByRole('link', { name: 'Ouvrir le portefeuille' });
-    expect(link.getAttribute('href')).toBe(`/portfolios/${account.id}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Autres actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir le portefeuille' }));
+    expect(window.location.pathname).toBe(`/portfolios/${account.id}`);
+    window.history.replaceState({}, '', '/');
   });
 
   it('replaces Rapprocher by a valuation link for a portfolio-mode account only', async () => {
     renderPage();
-    await screen.findByRole('heading', { level: 2, name: 'Livret A Banque X' });
+    await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
     expect(screen.getByRole('button', { name: 'Rapprocher' })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Valoriser le portefeuille' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Valoriser le portefeuille' })).toBeNull();
     cleanup();
     api.readAccount.mockImplementation(() =>
       success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
     );
     renderPage();
-    const link = await screen.findByRole('link', { name: 'Valoriser le portefeuille' });
-    expect(link.getAttribute('href')).toBe(`/portfolios/${account.id}?tab=valuations`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Autres actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Valoriser le portefeuille' }));
+    expect(window.location.search).toBe('?tab=valuations');
+    window.history.replaceState({}, '', '/');
     expect(screen.queryByRole('button', { name: 'Rapprocher' })).toBeNull();
   });
 
@@ -452,7 +457,7 @@ describe('AccountDetailPage', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Livret A Banque X' }),
+      await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' }),
     ).toBeTruthy();
     expect(screen.getByText(/archivé et n’accepte plus de nouveau mouvement/)).toBeTruthy();
     expect(
@@ -463,7 +468,7 @@ describe('AccountDetailPage', () => {
   it('shows a missing-valuation state, not zero, when the account has no dated source', async () => {
     renderPage();
 
-    await screen.findByRole('heading', { level: 2, name: 'Livret A Banque X' });
+    await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
     expect(screen.getByText('Non calculable')).toBeTruthy();
   });
 
@@ -609,7 +614,7 @@ describe('AccountDetailPage', () => {
     );
     renderPage();
 
-    await screen.findByRole('heading', { level: 2, name: 'Livret A Banque X' });
+    await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
     expect(screen.getByText('Aucune transaction')).toBeTruthy();
     expect(
       screen.queryByRole('button', { name: 'Enregistrer la première transaction' }),

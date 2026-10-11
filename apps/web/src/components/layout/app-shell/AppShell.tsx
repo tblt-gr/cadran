@@ -1,9 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  FoundationActionSheet,
-  type FoundationAction,
-} from '@/features/foundation/FoundationActionSheet';
 import { useClientNavigation } from '@/hooks/use-client-navigation';
 import { getRouteTitleKey } from '@/lib/navigation';
 import { Header } from '@/components/layout/header/Header';
@@ -11,6 +7,7 @@ import {
   HeaderTitleProvider,
   useHeaderTitleValue,
 } from '@/components/layout/header/HeaderTitleContext';
+import { HeaderActionsProvider } from '@/components/layout/header/HeaderActionsContext';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav/MobileBottomNav';
 import { MobileMoreSheet } from '@/components/layout/mobile-more-sheet/MobileMoreSheet';
 import { Sidebar } from '@/components/layout/sidebar/Sidebar';
@@ -26,14 +23,15 @@ interface AppShellProps {
   headerDate?: string;
   path: string;
   setPath: (path: string) => void;
-  showGlobalActions?: boolean;
 }
 
 export function AppShell(props: AppShellProps) {
   return (
     <HeaderTitleProvider>
       <BreadcrumbProvider>
-        <AppShellContent {...props} />
+        <HeaderActionsProvider>
+          <AppShellContent {...props} />
+        </HeaderActionsProvider>
       </BreadcrumbProvider>
     </HeaderTitleProvider>
   );
@@ -47,13 +45,10 @@ function AppShellContent({
   headerDate,
   path,
   setPath,
-  showGlobalActions,
 }: AppShellProps) {
   const { t } = useTranslation();
-  const [activeAction, setActiveAction] = useState<FoundationAction | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const actionTrigger = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
   const headerOverride = useHeaderTitleValue(path);
   const title = headerOverride ?? t(getRouteTitleKey(path));
@@ -66,16 +61,6 @@ function AppShellContent({
   function closeMoreSheet() {
     setIsMoreOpen(false);
     window.requestAnimationFrame(() => moreButton.current?.focus());
-  }
-
-  function openAction(action: FoundationAction, trigger: HTMLButtonElement) {
-    actionTrigger.current = trigger;
-    setActiveAction(action);
-  }
-
-  function closeAction() {
-    setActiveAction(null);
-    window.requestAnimationFrame(() => actionTrigger.current?.focus());
   }
 
   return (
@@ -96,8 +81,6 @@ function AppShellContent({
           accountSlot={accountSlot}
           freshnessLabel={freshnessLabel}
           headerDate={headerDate}
-          onAction={openAction}
-          showGlobalActions={showGlobalActions}
           title={title}
         />
 
@@ -113,11 +96,9 @@ function AppShellContent({
       <MobileBottomNav
         isMoreOpen={isMoreOpen}
         moreButton={moreButton}
-        onAction={openAction}
         onNavigate={handleNavigate}
         onOpenMore={() => setIsMoreOpen(true)}
         path={path}
-        showGlobalActions={showGlobalActions}
       />
 
       {isMoreOpen ? (
@@ -128,7 +109,6 @@ function AppShellContent({
           path={path}
         />
       ) : null}
-      {activeAction ? <FoundationActionSheet action={activeAction} close={closeAction} /> : null}
     </div>
   );
 }

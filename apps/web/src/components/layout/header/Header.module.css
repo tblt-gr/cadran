@@ -40,6 +40,16 @@
   gap: var(--spacing-3);
 }
 
+.pageActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.pageActions:empty {
+  display: none;
+}
+
 .freshness {
   min-height: 2.5rem;
   padding: var(--spacing-none) var(--spacing-3);
@@ -68,9 +78,11 @@
     gap: var(--spacing-2);
   }
 
-  .freshness,
-  .header :global(.primary-action),
-  .header :global(.secondary-action) {
+  .freshness {
     display: none;
+  }
+
+  .pageActions {
+    gap: var(--spacing-2);
   }
 }

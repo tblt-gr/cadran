@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
-import { DashboardContextPanel } from '@/features/dashboard/context-panel/DashboardContextPanel';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { useDashboardHeader } from '@/features/dashboard/net-worth/useDashboardHeader';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
@@ -73,27 +72,13 @@ export function AuthenticatedApp() {
   } else {
     content = <DashboardPage apiVersion={status.data.apiVersion} />;
   }
-  let contextPanel;
-  if (path === '/' && status.isSuccess) {
-    contextPanel = <DashboardContextPanel />;
-  } else if (path === '/' && status.isPending) {
-    contextPanel = (
-      <FrozenQueries>
-        <DashboardContextPanel />
-      </FrozenQueries>
-    );
-  }
-  const showGlobalActions = matched ? (matched.route.globalActions ?? true) : true;
-
   return (
     <AppShell
-      accountSlot={path === '/settings/profile' ? <LogoutButton /> : undefined}
-      contextPanel={contextPanel}
+      accountSlot={path === '/parameters/profile' ? <LogoutButton /> : undefined}
       freshnessLabel={path === '/' ? dashboardHeader.freshnessLabel : undefined}
       headerDate={path === '/' ? dashboardHeader.headerDate : undefined}
       path={path}
       setPath={setPath}
-      showGlobalActions={showGlobalActions}
     >
       {content}
     </AppShell>

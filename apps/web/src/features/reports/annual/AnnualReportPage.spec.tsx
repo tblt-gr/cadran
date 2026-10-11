@@ -255,7 +255,7 @@ describe('AnnualReportPage', () => {
     );
     renderPage();
     const link = await screen.findByRole('link', { name: /politique d’indicateurs/i });
-    expect(link.getAttribute('href')).toBe('/settings/metric-policy');
+    expect(link.getAttribute('href')).toBe('/parameters/metric-policy');
   });
 
   it('offers a retry after an error', async () => {

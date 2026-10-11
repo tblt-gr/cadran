@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { AppShell } from './AppShell';
 
 function renderShell() {
@@ -35,24 +36,24 @@ describe('AppShell', () => {
     await waitFor(() => expect(document.activeElement).toBe(moreButton));
   });
 
-  it('gives explicit translated feedback for foundation search and add actions', () => {
-    renderShell();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Rechercher' }));
-    const searchDialog = screen.getByRole('dialog', { name: 'Rechercher dans Cadran' });
-    expect(within(searchDialog).getByRole('status').textContent).toContain(
-      'Recherche bientôt disponible',
+  it('renders page actions inside the header and no global placeholders', () => {
+    render(
+      <AppShell path="/transactions" setPath={vi.fn()}>
+        <HeaderActions>
+          <button type="button">Action de page</button>
+        </HeaderActions>
+      </AppShell>,
     );
-    fireEvent.keyDown(document, { key: 'Escape' });
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Ajouter' })[0]);
-    const addDialog = screen.getByRole('dialog', { name: 'Ajouter une donnée' });
-    expect(within(addDialog).getByRole('status').textContent).toContain('Ajout bientôt disponible');
+    const header = screen.getByRole('banner');
+    expect(within(header).getByRole('button', { name: 'Action de page' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Rechercher' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ajouter' })).toBeNull();
   });
 
   it('hides dashboard-only context and global placeholders on feature routes', () => {
     render(
-      <AppShell path="/transactions/categories" setPath={vi.fn()} showGlobalActions={false}>
+      <AppShell path="/transactions/categories" setPath={vi.fn()}>
         <p>Catégories</p>
       </AppShell>,
     );

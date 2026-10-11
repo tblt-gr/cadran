@@ -1,11 +1,12 @@
 import type { Transaction } from '@cadran/api-client';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { CategorizationTabs } from './categorization-tabs/CategorizationTabs';
 import { TransactionList } from './transaction-list/TransactionList';
 import { TransactionsPageSkeleton } from './TransactionsPageSkeleton';
@@ -18,6 +19,11 @@ import { useTransactionMutations } from './useTransactionMutations';
 import { useTransactionsListing } from './useTransactionsListing';
 import styles from './TransactionsPage.module.css';
 
+function navigateTo(href: string) {
+  window.history.pushState({}, '', href);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
 export function TransactionsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -26,7 +32,6 @@ export function TransactionsPage() {
   const [transferEditorOpen, setTransferEditorOpen] = useState(false);
   const [refundTarget, setRefundTarget] = useState<Transaction | null>(null);
   const [periodClosureOpen, setPeriodClosureOpen] = useState(false);
-  const periodClosureButton = useRef<HTMLButtonElement>(null);
 
   const listing = useTransactionsListing();
   const {
@@ -110,44 +115,55 @@ export function TransactionsPage() {
 
   return (
     <div className={styles.page}>
-      <section aria-labelledby="transactions-intro-title" className={styles.intro}>
-        <div>
-          <p>{t('transactions.eyebrow')}</p>
-          <h2 id="transactions-intro-title">{t('transactions.title')}</h2>
-          <span>{t('transactions.description')}</span>
-        </div>
-        <div className={styles.actions}>
-          <button
-            className="secondary-action"
-            onClick={() => setPeriodClosureOpen(true)}
-            ref={periodClosureButton}
-            type="button"
-          >
-            <Icon name="calendar" size={18} />
-            {t('closures.title')}
-          </button>
-          <a
-            className="secondary-action"
-            href="/transactions/categories"
-            onClick={(event) => handleClientNavigation(event, '/transactions/categories')}
-          >
-            {t('transactions.manageCategories')}
-          </a>
-          <a
-            className="secondary-action"
-            href="/transactions/recurrences"
-            onClick={(event) => handleClientNavigation(event, '/transactions/recurrences')}
-          >
-            {t('transactions.manageRecurrences')}
-          </a>
-          <button className="secondary-action" onClick={openTransferEditor} type="button">
-            {t('transactions.addTransfer')}
-          </button>
-          <button className="primary-action" onClick={() => openEditor('create')} type="button">
-            {t('transactions.add')}
-          </button>
-        </div>
-      </section>
+      <TransactionFilters
+        accounts={accountOptions}
+        filters={searchFilters}
+        onChange={updateFilters}
+        onReset={resetAllFilters}
+        revision={filtersRevision}
+      />
+
+      <HeaderActions>
+        <button
+          aria-label={t('transactions.addTransfer')}
+          className="icon-button"
+          onClick={openTransferEditor}
+          title={t('transactions.addTransfer')}
+          type="button"
+        >
+          <Icon name="transactions" size={18} />
+        </button>
+        <ActionMenu
+          items={[
+            {
+              icon: 'calendar',
+              id: 'closure',
+              label: t('closures.title'),
+              onSelect: () => setPeriodClosureOpen(true),
+              text: t('closures.title'),
+            },
+            {
+              icon: 'categories',
+              id: 'categories',
+              label: t('transactions.manageCategories'),
+              onSelect: () => navigateTo('/transactions/categories'),
+              text: t('transactions.manageCategories'),
+            },
+            {
+              icon: 'replace',
+              id: 'recurrences',
+              label: t('transactions.manageRecurrences'),
+              onSelect: () => navigateTo('/transactions/recurrences'),
+              text: t('transactions.manageRecurrences'),
+            },
+          ]}
+          label={t('transactions.moreActions')}
+        />
+        <button className="primary-action" onClick={() => openEditor('create')} type="button">
+          <Icon name="add" size={18} />
+          {t('transactions.add')}
+        </button>
+      </HeaderActions>
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`transactions.toasts.${saved}`)}</Toast>
@@ -178,26 +194,13 @@ export function TransactionsPage() {
         voiding={voiding}
       />
 
-      {periodClosureOpen ? (
-        <PeriodClosurePanel
-          close={() => setPeriodClosureOpen(false)}
-          returnFocus={periodClosureButton}
-        />
-      ) : null}
+      {periodClosureOpen ? <PeriodClosurePanel close={() => setPeriodClosureOpen(false)} /> : null}
 
       <CategorizationTabs
         onChange={(next) =>
           updateFilters({ ...searchFilters, categorization: next === 'NONE' ? 'NONE' : 'ANY' })
         }
         value={categorization}
-      />
-
-      <TransactionFilters
-        accounts={accountOptions}
-        filters={searchFilters}
-        onChange={updateFilters}
-        onReset={resetAllFilters}
-        revision={filtersRevision}
       />
 
       {!impossible &&

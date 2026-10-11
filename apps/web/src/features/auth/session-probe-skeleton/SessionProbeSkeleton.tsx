@@ -1,7 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
 import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from '@/AuthenticatedApp.routes';
-import { DashboardContextPanel } from '@/features/dashboard/context-panel/DashboardContextPanel';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 
@@ -30,12 +29,7 @@ export function SessionProbeSkeleton() {
 
   return (
     <FrozenQueries>
-      <AppShell
-        contextPanel={isDashboard ? <DashboardContextPanel /> : undefined}
-        path={path}
-        setPath={noop}
-        showGlobalActions={matched ? (matched.route.globalActions ?? true) : true}
-      >
+      <AppShell path={path} setPath={noop}>
         {content}
       </AppShell>
     </FrozenQueries>

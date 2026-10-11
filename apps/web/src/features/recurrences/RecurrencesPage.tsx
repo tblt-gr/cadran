@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { ArchivedRecurrencesSection } from '@/features/recurrences/archived-recurrences-section/ArchivedRecurrencesSection';
 import { CandidatesSection } from '@/features/recurrences/candidates-section/CandidatesSection';
 import { ConfirmedRecurrencesSection } from '@/features/recurrences/confirmed-recurrences-section/ConfirmedRecurrencesSection';
@@ -62,26 +62,12 @@ export function RecurrencesPage() {
 
   return (
     <div className={styles.page}>
-      <section aria-labelledby="recurrences-intro-title" className={styles.intro}>
-        <div>
-          <p>{t('recurrences.eyebrow')}</p>
-          <div className={styles.titleRow}>
-            <a
-              aria-label={t('recurrences.backToTransactions')}
-              className={`icon-button ${styles.back}`}
-              href="/transactions"
-              onClick={(event) => handleClientNavigation(event, '/transactions')}
-            >
-              <Icon name="arrow-left" size={18} />
-            </a>
-            <h2 id="recurrences-intro-title">{t('recurrences.title')}</h2>
-          </div>
-          <span>{t('recurrences.description')}</span>
-        </div>
+      <HeaderActions>
         <button className="primary-action" onClick={() => setEditor('create')} type="button">
+          <Icon name="add" size={18} />
           {t('recurrences.add')}
         </button>
-      </section>
+      </HeaderActions>
       <p className={styles.notice}>{t('recurrences.forecastNotice')}</p>
       {notice ? <Toast onDismiss={() => setNotice(null)}>{notice}</Toast> : null}
       {dismissed ? (

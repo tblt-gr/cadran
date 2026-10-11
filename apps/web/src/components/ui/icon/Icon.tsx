@@ -19,6 +19,7 @@ type IconName =
   | 'copy'
   | 'delete'
   | 'edit'
+  | 'filter'
   | 'goals'
   | 'home'
   | 'info'
@@ -103,6 +104,8 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="M12 3 2.8 20h18.4ZM12 9v5m0 3h.01" />;
     case 'delete':
       return <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5m4-5v5" />;
+    case 'filter':
+      return <path d="M4 5h16l-6 7.5V19l-4 2v-8.5Z" />;
     case 'edit':
       return <path d="M4 20h4L20 8l-4-4L4 16v4Zm10-14 4 4" />;
     case 'archive':

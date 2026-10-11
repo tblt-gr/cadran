@@ -2,6 +2,8 @@ import { listAccounts, type Account } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -113,25 +115,26 @@ export function AccountsPage() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.intro} aria-labelledby="account-intro-title">
-        <div>
-          <p>{t('accounts.eyebrow')}</p>
-          <h2 id="account-intro-title">{t('accounts.title')}</h2>
-          <span>{t('accounts.description')}</span>
-        </div>
-        <div className={styles.introActions}>
-          <a
-            className="secondary-action"
-            href="/accounts/groups"
-            onClick={(event) => handleClientNavigation(event, '/accounts/groups')}
-          >
-            {t('accounts.manageGroups')}
-          </a>
-          <button className="primary-action" onClick={() => openEditor('create')} type="button">
-            {t('accounts.add')}
-          </button>
-        </div>
-      </section>
+      <HeaderActions>
+        <a
+          aria-label={t('accounts.manageGroups')}
+          className="icon-button"
+          href="/accounts/groups"
+          onClick={(event) => handleClientNavigation(event, '/accounts/groups')}
+          title={t('accounts.manageGroups')}
+        >
+          <Icon name="categories" />
+        </a>
+        <button
+          aria-label={t('accounts.add')}
+          className={`primary-action ${styles.add}`}
+          onClick={() => openEditor('create')}
+          type="button"
+        >
+          <Icon name="add" size={18} />
+          <span className={styles.addLabel}>{t('accounts.add')}</span>
+        </button>
+      </HeaderActions>
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`accounts.toasts.${saved}`)}</Toast>

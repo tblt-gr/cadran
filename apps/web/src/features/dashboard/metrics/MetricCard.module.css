@@ -50,6 +50,11 @@
   font-size: var(--font-size-brand);
 }
 
+.valueSkeleton {
+  width: 60%;
+  height: var(--font-size-metric);
+}
+
 .description {
   align-self: end;
   color: var(--text-muted);

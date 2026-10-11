@@ -10,8 +10,8 @@ export function MixedPolicyBanner({ policy }: { policy: AnnualPolicy }) {
     <aside className={styles.banner} role="status">
       <p>{t('reports.annual.mixedPolicy', { versions: policy.versions.join(', ') })}</p>
       <a
-        href="/settings/metric-policy"
-        onClick={(event) => handleClientNavigation(event, '/settings/metric-policy')}
+        href="/parameters/metric-policy"
+        onClick={(event) => handleClientNavigation(event, '/parameters/metric-policy')}
       >
         {t('reports.annual.mixedPolicyLink')}
       </a>

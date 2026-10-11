@@ -30,8 +30,6 @@ const BUDGET_PLAN_UUID_PATTERN =
 export interface RouteDefinition {
   /** Matched with `.exec(path)` against the full pathname; capture groups become path params. */
   pattern: RegExp;
-  /** Whether the shell's global create/search actions apply to this route. Defaults to true. */
-  globalActions?: boolean;
   /** Pure redirect: nothing to preview while the session is still being checked. */
   redirect?: boolean;
   render: (match: RegExpExecArray) => ReactNode;
@@ -50,65 +48,66 @@ export interface RouteDefinition {
  */
 export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefinition[] {
   return [
-    { pattern: /^\/portfolios$/, globalActions: false, render: () => <PortfoliosPage /> },
+    { pattern: /^\/portfolios$/, render: () => <PortfoliosPage /> },
     {
       pattern: /^\/portfolios\/instruments$/,
-      globalActions: false,
       render: () => <InstrumentsPage />,
     },
     {
       pattern: /^\/portfolios\/(?!instruments$)([^/]+)$/,
-      globalActions: false,
       render: (match) => <PortfolioAccountPage accountId={match[1]!} />,
     },
-    { pattern: /^\/accounts$/, globalActions: false, render: () => <AccountsPage /> },
+    { pattern: /^\/accounts$/, render: () => <AccountsPage /> },
     {
       pattern: /^\/accounts\/groups$/,
-      globalActions: false,
       render: () => <AccountGroupsPage />,
     },
     {
       pattern: /^\/accounts\/([^/]+)$/,
-      globalActions: false,
       render: (match) => <AccountDetailPage accountId={match[1]!} />,
     },
     {
       pattern: /^\/transactions\/categories$/,
-      globalActions: false,
       render: () => <CategoryPage />,
     },
     {
       pattern: /^\/transactions\/categories\/rules$/,
-      globalActions: false,
       render: () => <CategorizationRulesPage />,
     },
     {
       pattern: /^\/categories$/,
-      globalActions: false,
       redirect: true,
       render: () => <RouteRedirect to="/transactions/categories" />,
     },
     {
       pattern: /^\/categories\/rules$/,
-      globalActions: false,
       redirect: true,
       render: () => <RouteRedirect to="/transactions/categories/rules" />,
     },
-    { pattern: /^\/catalog$/, globalActions: false, render: () => <ProductCatalogPage /> },
+    { pattern: /^\/parameters\/catalog$/, render: () => <ProductCatalogPage /> },
+    { pattern: /^\/parameters\/product-models$/, render: () => <ProductModelsPage /> },
+    {
+      pattern: /^\/catalog$/,
+      redirect: true,
+      render: () => <RouteRedirect to="/parameters/catalog" />,
+    },
     {
       pattern: /^\/product-models$/,
-      globalActions: false,
-      render: () => <ProductModelsPage />,
+      redirect: true,
+      render: () => <RouteRedirect to="/parameters/product-models" />,
     },
-    { pattern: /^\/transactions$/, globalActions: false, render: () => <TransactionsPage /> },
+    {
+      pattern: /^\/settings\/(profile|metric-policy)$/,
+      redirect: true,
+      render: (match) => <RouteRedirect to={`/parameters/${match[1]}`} />,
+    },
+    { pattern: /^\/transactions$/, render: () => <TransactionsPage /> },
     {
       pattern: /^\/transactions\/recurrences$/,
-      globalActions: false,
       render: () => <RecurrencesPage />,
     },
     {
       pattern: /^\/budget$/,
-      globalActions: false,
       redirect: true,
       render: () => (
         <BudgetRouteRedirect
@@ -116,17 +115,15 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
         />
       ),
     },
-    { pattern: /^\/budget\/plans$/, globalActions: false, render: () => <BudgetPage /> },
+    { pattern: /^\/budget\/plans$/, render: () => <BudgetPage /> },
     {
       pattern: /^\/budget\/plans\/([^/]+)$/,
-      globalActions: false,
       render: (match) => <BudgetPage planId={match[1]} />,
     },
-    { pattern: /^\/reports$/, globalActions: false, render: () => <ReportsPage /> },
-    { pattern: /^\/goals$/, globalActions: false, render: () => <GoalsPage /> },
+    { pattern: /^\/reports$/, render: () => <ReportsPage /> },
+    { pattern: /^\/goals$/, render: () => <GoalsPage /> },
     {
       pattern: /^\/reports\/annual\/([^/]+)$/,
-      globalActions: false,
       render: (match) => {
         const today = workspaceToday(new Date(), workspaceTimeZone);
         const currentYear = Number(today.slice(0, 4));
@@ -143,37 +140,28 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
     },
     {
       pattern: /^\/reports\/all-years$/,
-      globalActions: false,
       render: () => <MultiYearReportPage today={workspaceToday(new Date(), workspaceTimeZone)} />,
     },
     {
       pattern: new RegExp(`^/budget/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),
-      globalActions: false,
       redirect: true,
       render: (match) => <BudgetRouteRedirect href={`/budget/plans/${match[1]}`} />,
     },
     {
       pattern: /^\/budget\/([^/]+)$/,
-      globalActions: false,
       render: (match) => <MonthlyBudgetPage periodKey={match[1]!} />,
     },
     {
-      pattern: /^\/settings\/profile$/,
-      globalActions: false,
+      pattern: /^\/parameters\/profile$/,
       render: () => <ProfileSettingsPage />,
     },
     {
-      pattern: /^\/settings\/metric-policy$/,
-      globalActions: false,
+      pattern: /^\/parameters\/metric-policy$/,
       render: () => <MetricPolicyPage />,
     },
-    // Catch-all, checked last: an unmatched path still under /budget (e.g. an
-    // extra path segment) is a 404 like any other, but the budget workbook's
-    // own header already covers the shell's global create/search actions, so
-    // they stay hidden here exactly as they do for every matched budget route.
+    // Catch-all, checked last: an unmatched path still under /budget is a 404.
     {
       pattern: /^\/budget\//,
-      globalActions: false,
       render: () => <PlaceholderPage />,
     },
   ];

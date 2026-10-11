@@ -1,0 +1,9 @@
+@media (max-width: 47.999rem) {
+  .addLabel {
+    display: none;
+  }
+
+  .add {
+    padding: var(--spacing-control-block) var(--spacing-3);
+  }
+}

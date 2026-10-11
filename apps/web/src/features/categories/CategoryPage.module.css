@@ -4,8 +4,6 @@
   gap: var(--spacing-6);
 }
 
-.intro,
-.introActions,
 .toolbar,
 .pagination {
   display: flex;
@@ -14,39 +12,11 @@
   gap: var(--spacing-4);
 }
 
-.intro p,
-.intro h2,
-.intro span,
 .state h2,
 .state p {
   margin: var(--spacing-none);
 }
 
-.intro p {
-  color: var(--gold-300);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
-}
-
-.intro h2 {
-  font-size: var(--font-size-kpi);
-}
-
-.titleRow {
-  display: flex;
-  align-items: center;
-  margin-top: var(--spacing-1);
-  gap: var(--spacing-3);
-}
-
-.back {
-  flex-shrink: 0;
-  text-decoration: none;
-}
-
-.intro span,
 .state p,
 .pagination span {
   color: var(--text-secondary);
@@ -81,21 +51,6 @@
 }
 
 @media (max-width: 42rem) {
-  .intro,
-  .introActions {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .introActions {
-    align-items: stretch;
-    width: 100%;
-  }
-
-  .introActions > * {
-    width: 100%;
-  }
-
   .state {
     padding: var(--spacing-6);
   }

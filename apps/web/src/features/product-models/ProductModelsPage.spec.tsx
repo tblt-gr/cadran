@@ -456,4 +456,22 @@ describe('ProductModelsPage', () => {
       ),
     ).toBeTruthy();
   });
+
+  it('reveals archived models through the filters modal', async () => {
+    api.listProductModels.mockImplementation(() =>
+      success({ items: [model], page: 1, perPage: 50, total: 1 }),
+    );
+
+    renderPage();
+    await screen.findByRole('button', { name: 'Filtres des modèles' });
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres des modèles' }));
+    fireEvent.click(screen.getByLabelText('Afficher les modèles archivés'));
+
+    await waitFor(() =>
+      expect(api.listProductModels).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ includeArchived: true }) }),
+      ),
+    );
+    expect(screen.getByTestId('product-model-filters-count').textContent).toBe('1');
+  });
 });

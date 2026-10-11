@@ -1,8 +1,10 @@
 import { Icon, type IconName } from '@/components/ui/icon/Icon';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import styles from './MetricCard.module.css';
 
 type MetricTone = 'negative' | 'positive' | 'warning';
-type MetricValue = { kind: 'money'; text: string } | { kind: 'unavailable'; text: string };
+type MetricValue =
+  { kind: 'loading' } | { kind: 'money'; text: string } | { kind: 'unavailable'; text: string };
 
 interface MetricCardProps {
   description: string;
@@ -22,9 +24,13 @@ export function MetricCard({ description, icon, id, title, tone, value }: Metric
         </span>
         {title}
       </h2>
-      <p className={value.kind === 'money' ? `money ${styles.value}` : styles.unavailable}>
-        {value.text}
-      </p>
+      {value.kind === 'loading' ? (
+        <SkeletonBlock className={styles.valueSkeleton} data-testid="metric-skeleton" />
+      ) : (
+        <p className={value.kind === 'money' ? `money ${styles.value}` : styles.unavailable}>
+          {value.text}
+        </p>
+      )}
       <p className={styles.description}>{description}</p>
     </section>
   );

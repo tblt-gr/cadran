@@ -4,14 +4,6 @@
   align-content: start;
   gap: var(--spacing-6);
 }
-.toolbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-}
-.toolbar a {
-  text-decoration: none;
-}
 .grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));

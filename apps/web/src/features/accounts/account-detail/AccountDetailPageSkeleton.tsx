@@ -4,7 +4,7 @@ import {
   SkeletonTableRows,
 } from '@/components/ui/skeleton/Skeleton';
 import { useTranslation } from 'react-i18next';
-import headerStyles from './account-detail-header/AccountDetailHeader.module.css';
+import { AccountDetailActionsSkeleton } from './account-detail-actions/AccountDetailActions';
 import identityStyles from './account-identity/AccountIdentityCard.module.css';
 import movementsStyles from './account-movements/AccountMovementsTable.module.css';
 import sectionStyles from './account-movements-section/AccountMovementsSection.module.css';
@@ -16,25 +16,7 @@ export function AccountDetailPageSkeleton({ status }: { status: string }) {
   return (
     <div aria-busy="true" className={styles.page} data-testid="account-detail-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
-      <section className={headerStyles.intro}>
-        <div className={headerStyles.titleRow}>
-          <p>{t('accounts.detail.eyebrow')}</p>
-        </div>
-        <div className={headerStyles.actions}>
-          <button className="secondary-action" disabled type="button">
-            {t('accounts.detail.actions.rules')}
-          </button>
-          <button className="secondary-action" disabled type="button">
-            {t('accounts.detail.actions.reconcile')}
-          </button>
-          <button className="secondary-action" disabled type="button">
-            {t('accounts.detail.actions.addTransfer')}
-          </button>
-          <button className="primary-action" disabled type="button">
-            {t('accounts.detail.actions.addTransaction')}
-          </button>
-        </div>
-      </section>
+      <AccountDetailActionsSkeleton />
       <div className={`card ${identityStyles.card}`}>
         <div className={identityStyles.top}>
           <div className={identityStyles.identity}>

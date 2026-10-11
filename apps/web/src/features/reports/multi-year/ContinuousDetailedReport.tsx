@@ -55,8 +55,8 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
         <aside className={mixedPolicyStyles.banner} role="status">
           <p>{t('reports.multiYear.detailedMixedPolicy')}</p>
           <a
-            href="/settings/metric-policy"
-            onClick={(event) => handleClientNavigation(event, '/settings/metric-policy')}
+            href="/parameters/metric-policy"
+            onClick={(event) => handleClientNavigation(event, '/parameters/metric-policy')}
           >
             {t('reports.annual.mixedPolicyLink')}
           </a>

@@ -1,3 +1,5 @@
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { Icon } from '@/components/ui/icon/Icon';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { usePortfolios } from '@/features/portfolio/usePortfolioOverview';
@@ -11,15 +13,17 @@ export function PortfoliosPage() {
     [401, 403].includes(portfolios.error.status);
   return (
     <div className={styles.page}>
-      <div className={styles.toolbar}>
+      <HeaderActions>
         <a
-          className="secondary-action"
+          aria-label="Instruments"
+          className="icon-button"
           href="/portfolios/instruments"
           onClick={(event) => handleClientNavigation(event, '/portfolios/instruments')}
+          title="Instruments"
         >
-          Instruments
+          <Icon name="catalog" />
         </a>
-      </div>
+      </HeaderActions>
       {portfolios.isError ? (
         <section className="card" role="alert">
           <h3>

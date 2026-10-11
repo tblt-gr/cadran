@@ -1,27 +1,16 @@
+import { useHeaderActionsSlot } from './HeaderActionsContext';
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { FoundationAction } from '@/features/foundation/FoundationActionSheet';
-import { Icon } from '@/components/ui/icon/Icon';
 import styles from './Header.module.css';
 
 interface HeaderProps {
   accountSlot?: ReactNode;
   freshnessLabel?: string;
   headerDate?: string;
-  onAction: (action: FoundationAction, trigger: HTMLButtonElement) => void;
-  showGlobalActions?: boolean;
   title: string;
 }
 
-export function Header({
-  accountSlot,
-  freshnessLabel,
-  headerDate,
-  onAction,
-  showGlobalActions = true,
-  title,
-}: HeaderProps) {
-  const { t } = useTranslation();
+export function Header({ accountSlot, freshnessLabel, headerDate, title }: HeaderProps) {
+  const setActionsSlot = useHeaderActionsSlot();
 
   return (
     <header className={styles.header}>
@@ -30,32 +19,13 @@ export function Header({
         <h1>{title}</h1>
       </div>
       <div className={styles.actions}>
-        {showGlobalActions ? (
-          <>
-            {freshnessLabel ? (
-              <span className={styles.freshness}>
-                <span className={styles.freshnessDot} />
-                {freshnessLabel}
-              </span>
-            ) : null}
-            <button
-              aria-label={t('actions.search')}
-              className="icon-button"
-              onClick={(event) => onAction('search', event.currentTarget)}
-              type="button"
-            >
-              <Icon name="search" />
-            </button>
-            <button
-              className="primary-action"
-              onClick={(event) => onAction('add', event.currentTarget)}
-              type="button"
-            >
-              <Icon name="add" size={18} />
-              {t('actions.add')}
-            </button>
-          </>
+        {freshnessLabel ? (
+          <span className={styles.freshness}>
+            <span className={styles.freshnessDot} />
+            {freshnessLabel}
+          </span>
         ) : null}
+        <div className={styles.pageActions} ref={setActionsSlot} />
         {accountSlot}
       </div>
     </header>

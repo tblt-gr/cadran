@@ -23,7 +23,7 @@ export function breadcrumbItems(
   const plans = item('routes.budgetPlans', '/budget/plans');
   const reports = item('navigation.reports', '/reports');
   const investments = item('navigation.investments', '/portfolios');
-  const settings = item('navigation.settings', '/settings/profile');
+  const settings = item('navigation.settings', '/parameters/profile');
   const staticRoutes: Record<string, BreadcrumbItem[]> = {
     '/': [],
     '/accounts': [accounts],
@@ -45,10 +45,10 @@ export function breadcrumbItems(
     '/reports': [reports],
     '/reports/all-years': [reports, item('routes.allYearsReport')],
     '/goals': [item('navigation.goals')],
-    '/catalog': [item('navigation.catalog')],
-    '/product-models': [item('navigation.productModels')],
-    '/settings/profile': [settings, item('settings.tabs.profile')],
-    '/settings/metric-policy': [settings, item('routes.metricPolicy')],
+    '/parameters/profile': [settings, item('settings.tabs.profile')],
+    '/parameters/metric-policy': [settings, item('routes.metricPolicy')],
+    '/parameters/catalog': [settings, item('navigation.catalog')],
+    '/parameters/product-models': [settings, item('navigation.productModels')],
   };
   let trail = staticRoutes[path];
   if (!trail) {
@@ -70,8 +70,6 @@ export function breadcrumbItems(
       trail = [budget, { label: path.split('/')[2]! }];
     } else if (/^\/reports\/annual\/[^/]+$/.test(path)) {
       trail = [reports, { label: `${t('routes.annualReport')} ${path.split('/')[3]}` }];
-    } else if (/^\/tax\/\d{4}$/.test(path)) {
-      trail = [item('navigation.tax')];
     } else {
       trail = [item('routes.notFound')];
     }
