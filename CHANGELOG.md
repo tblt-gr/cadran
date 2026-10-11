@@ -6,6 +6,11 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
+### Security
+
+- Upgrade the FrankenPHP base image to 1.13.1 (Go binary free of known HIGH and CRITICAL findings)
+  and drop the expired `.trivyignore` exceptions for kin-openapi, gRPC-Go and golang.org/x/crypto.
+
 ## [0.7.0] - 2026-10-08
 
 ### Added
