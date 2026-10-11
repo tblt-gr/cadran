@@ -176,6 +176,15 @@ export function AccountGroupsPage() {
     <div className={styles.page}>
       <HeaderActions>
         <button
+          aria-label={t('accountGroups.add')}
+          className={`primary-action ${styles.add}`}
+          onClick={() => openEditor('create')}
+          type="button"
+        >
+          <Icon name="add" size={18} />
+          <span className={styles.addLabel}>{t('accountGroups.add')}</span>
+        </button>
+        <button
           aria-label={t('accountGroups.includeArchived')}
           aria-pressed={includeArchived}
           className="icon-button"
@@ -187,15 +196,6 @@ export function AccountGroupsPage() {
           type="button"
         >
           <Icon name="archive" />
-        </button>
-        <button
-          aria-label={t('accountGroups.add')}
-          className={`primary-action ${styles.add}`}
-          onClick={() => openEditor('create')}
-          type="button"
-        >
-          <Icon name="add" size={18} />
-          <span className={styles.addLabel}>{t('accountGroups.add')}</span>
         </button>
       </HeaderActions>
 

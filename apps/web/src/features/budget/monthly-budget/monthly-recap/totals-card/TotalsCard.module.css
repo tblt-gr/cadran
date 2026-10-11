@@ -12,6 +12,12 @@
   justify-content: space-between;
   gap: var(--spacing-3);
 }
+.titleGroup {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--spacing-2);
+}
 .heading h3,
 .panel h4,
 .empty {
@@ -57,7 +63,7 @@
     align-items: stretch;
     flex-direction: column;
   }
-  .headingTitle button {
+  .headingTitle > button {
     width: 100%;
   }
 }

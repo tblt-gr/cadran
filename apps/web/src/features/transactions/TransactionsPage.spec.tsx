@@ -754,7 +754,10 @@ describe('TransactionsPage', () => {
 
     expect(await screen.findByRole('row', { name: /CB CARREFOUR/ })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'À catégoriser' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: /À catégoriser/ }),
+    );
 
     await waitFor(() =>
       expect(api.listTransactions).toHaveBeenCalledWith(

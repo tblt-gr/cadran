@@ -53,7 +53,7 @@ export function RuleRow({ canEdit, onArchive, onEdit, onPreview, onToggle, rule 
             },
             {
               disabled: archived,
-              icon: 'rules',
+              icon: 'eye',
               id: 'preview',
               label: t('categorizationRules.list.previewFor', { label: rule.label }),
               onSelect: () => onPreview(rule),
@@ -61,7 +61,7 @@ export function RuleRow({ canEdit, onArchive, onEdit, onPreview, onToggle, rule 
             },
             {
               disabled: archived,
-              icon: 'rules',
+              icon: 'check-circle',
               id: 'toggle',
               label: t(
                 rule.active

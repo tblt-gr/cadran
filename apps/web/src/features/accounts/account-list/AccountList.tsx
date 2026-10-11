@@ -153,7 +153,7 @@ export function AccountList({
                             account.valuationMode === 'PORTFOLIO' ||
                             account.valuation.snapshotId === null ||
                             account.valuation.reconciliationStatus !== 'UNRECONCILED',
-                          icon: 'balance',
+                          icon: 'check-circle',
                           id: 'reconcile',
                           label: t('accounts.list.reconcileOfAccount', { label: account.label }),
                           onSelect: () => onReconcile(account),
@@ -162,7 +162,7 @@ export function AccountList({
                         {
                           // Reading the rules changes nothing, so an archived or closed
                           // account still answers for the dates it was open.
-                          icon: 'rules',
+                          icon: 'sliders',
                           id: 'rules',
                           label: t('accounts.list.rulesOfAccount', { label: account.label }),
                           onSelect: () => onRules(account),

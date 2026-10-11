@@ -2848,6 +2848,10 @@
         "label": "Synthèse mensuelle",
         "loading": "Chargement de la synthèse mensuelle…",
         "pending": "Des opérations en attente peuvent encore modifier cette synthèse.",
+        "info": {
+          "open": "Informations sur la synthèse",
+          "title": "Informations sur la synthèse"
+        },
         "empty": "Aucune donnée comptabilisée pour cette synthèse.",
         "provisional": "Valeurs provisoires à la date du jour.",
         "reasons": {

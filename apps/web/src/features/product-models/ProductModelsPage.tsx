@@ -195,6 +195,10 @@ export function ProductModelsPage() {
     <div className={styles.page}>
       <SettingsTabs path="/parameters/product-models" />
       <HeaderActions>
+        <button className="primary-action" onClick={() => openEditor('create')} type="button">
+          <Icon name="add" size={18} />
+          {t('productModels.add')}
+        </button>
         <ProductModelFilters
           includeArchived={includeArchived}
           onIncludeArchivedChange={(checked) => {
@@ -210,10 +214,6 @@ export function ProductModelsPage() {
           type="button"
         >
           <Icon name="catalog" />
-        </button>
-        <button className="primary-action" onClick={() => openEditor('create')} type="button">
-          <Icon name="add" size={18} />
-          {t('productModels.add')}
         </button>
       </HeaderActions>
 

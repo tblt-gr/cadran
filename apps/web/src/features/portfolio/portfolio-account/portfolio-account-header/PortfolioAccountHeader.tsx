@@ -36,15 +36,6 @@ export function PortfolioAccountHeader({
   return (
     <>
       <HeaderActions>
-        <a
-          aria-label="Gérer les instruments"
-          className="icon-button"
-          href={instrumentsHref}
-          onClick={(event) => handleClientNavigation(event, instrumentsHref)}
-          title="Gérer les instruments"
-        >
-          <Icon name="catalog" />
-        </a>
         <button
           aria-label="Nouvelle opération"
           className={`primary-action ${styles.add}`}
@@ -62,6 +53,15 @@ export function PortfolioAccountHeader({
           <Icon name="add" size={18} />
           <span className={styles.addLabel}>Nouvelle opération</span>
         </button>
+        <a
+          aria-label="Gérer les instruments"
+          className="icon-button"
+          href={instrumentsHref}
+          onClick={(event) => handleClientNavigation(event, instrumentsHref)}
+          title="Gérer les instruments"
+        >
+          <Icon name="chart-line" />
+        </a>
       </HeaderActions>
       {account ? (
         subtitle || contractRequired ? (

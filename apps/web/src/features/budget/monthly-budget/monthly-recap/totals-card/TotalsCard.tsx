@@ -5,7 +5,7 @@ import type {
   MonthlyRecapTotals,
   MonthlyKpiSourceTransaction,
 } from '@cadran/api-client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
@@ -16,6 +16,7 @@ import styles from './TotalsCard.module.css';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface TotalsCardProps {
+  info?: ReactNode;
   month: string;
   onConfigure: () => void;
   owner: boolean;
@@ -114,6 +115,7 @@ function CategoryRow({ category, month }: { category: MonthlyRecapCategory; mont
 }
 
 export function TotalsCard({
+  info,
   month,
   onConfigure,
   owner,
@@ -130,7 +132,10 @@ export function TotalsCard({
     <section aria-labelledby="monthly-recap-totals-title" className={`card ${styles.panel}`}>
       <header className={styles.heading}>
         <div className={styles.headingTitle}>
-          <h3 id="monthly-recap-totals-title">{t('budget.monthly.recap.totals.title')}</h3>
+          <div className={styles.titleGroup}>
+            <h3 id="monthly-recap-totals-title">{t('budget.monthly.recap.totals.title')}</h3>
+            {info}
+          </div>
           {owner ? (
             <button className="secondary-action" onClick={onConfigure} type="button">
               {t('budget.monthly.recap.preferences.open')}

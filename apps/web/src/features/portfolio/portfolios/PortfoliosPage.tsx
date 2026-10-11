@@ -21,7 +21,7 @@ export function PortfoliosPage() {
           onClick={(event) => handleClientNavigation(event, '/portfolios/instruments')}
           title="Instruments"
         >
-          <Icon name="catalog" />
+          <Icon name="chart-line" />
         </a>
       </HeaderActions>
       {portfolios.isError ? (

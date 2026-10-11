@@ -31,7 +31,7 @@ export function AnnualTableActions({
         title={t('reports.annual.columns')}
         type="button"
       >
-        <Icon name="categories" size={16} />
+        <Icon name="columns" size={16} />
       </button>
       <button
         aria-label={incompleteLabel}
@@ -42,7 +42,7 @@ export function AnnualTableActions({
         title={incompleteLabel}
         type="button"
       >
-        <Icon name="calendar" size={16} />
+        <Icon name={includeIncomplete ? 'eye' : 'eye-off'} size={16} />
       </button>
     </HeaderActions>
   );

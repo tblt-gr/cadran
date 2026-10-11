@@ -12,28 +12,39 @@ type IconName =
   | 'budget'
   | 'calendar'
   | 'catalog'
+  | 'chart-line'
+  | 'check-circle'
   | 'categories'
   | 'chevron-left'
   | 'chevron-right'
   | 'close'
+  | 'columns'
   | 'copy'
   | 'delete'
   | 'edit'
+  | 'eye'
+  | 'eye-off'
   | 'filter'
   | 'goals'
   | 'home'
   | 'info'
   | 'investments'
+  | 'layers'
+  | 'lock'
   | 'menu'
   | 'merge'
   | 'more'
   | 'move'
   | 'pie'
+  | 'repeat'
   | 'replace'
+  | 'report'
   | 'rules'
   | 'search'
   | 'settings'
+  | 'sliders'
   | 'tax'
+  | 'transfer'
   | 'transactions'
   | 'treemap';
 
@@ -68,6 +79,8 @@ function IconPath({ name }: { name: IconName }) {
       return (
         <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-4h.01" />
       );
+    case 'report':
+      return <path d="M5 3.5h14v17H5zM9 17v-4m3 4V8m3 9v-6" />;
     case 'tax':
       return <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h6m-6 4h6" />;
     case 'settings':
@@ -120,6 +133,30 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01" />;
     case 'balance':
       return <path d="M4 19h16M12 5v14M6 9h5L8.5 14 6 9Zm7 0h5L15.5 14 13 9Z" />;
+    case 'chart-line':
+      return <path d="M3 20h18M4 16l5-5 4 3 7-8m-4 0h4v4" />;
+    case 'check-circle':
+      return <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-4-9 3 3 5-6" />;
+    case 'columns':
+      return <path d="M4 5h16v14H4zM9.33 5v14m5.34-14v14" />;
+    case 'eye':
+      return (
+        <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Zm9.5 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+      );
+    case 'eye-off':
+      return (
+        <path d="M4 4l16 16M9.9 5.8A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.8M6.2 7.6A16 16 0 0 0 2.5 12S6 18.5 12 18.5a9.4 9.4 0 0 0 3.6-.7M10 10.2a3 3 0 0 0 3.8 3.8" />
+      );
+    case 'layers':
+      return <path d="m12 3 9 5-9 5-9-5Zm-9 8.5 9 5 9-5M3 15.5l9 5 9-5" />;
+    case 'lock':
+      return <path d="M5 11h14v9H5zM8 11V8a4 4 0 0 1 8 0v3m-4 4v2" />;
+    case 'repeat':
+      return <path d="M4 11V9a3 3 0 0 1 3-3h12l-3-3m3 10v2a3 3 0 0 1-3 3H5l3 3" />;
+    case 'sliders':
+      return <path d="M4 7h9m4 0h3M4 17h3m4 0h9M15 4v6M9 14v6" />;
+    case 'transfer':
+      return <path d="M4 8h16m-4-4 4 4-4 4M20 16H4m4-4-4 4 4 4" />;
     case 'pie':
       return <path d="M12 4a8 8 0 1 0 8 8h-8Z" />;
     case 'treemap':

@@ -36,6 +36,26 @@ export function AccountDetailActions({
 
   return (
     <HeaderActions>
+      <button
+        aria-label={t('accounts.detail.actions.addTransaction')}
+        className={`primary-action ${styles.add}`}
+        disabled={!creatable}
+        onClick={onAddTransaction}
+        type="button"
+      >
+        <Icon name="add" size={18} />
+        <span className={styles.addLabel}>{t('accounts.detail.actions.addTransaction')}</span>
+      </button>
+      <button
+        aria-label={t('accounts.detail.actions.addTransfer')}
+        className="icon-button"
+        disabled={!creatable}
+        onClick={onAddTransfer}
+        title={t('accounts.detail.actions.addTransfer')}
+        type="button"
+      >
+        <Icon name="transfer" />
+      </button>
       {valuedByPortfolio ? (
         <ActionMenu
           items={[
@@ -47,14 +67,14 @@ export function AccountDetailActions({
               text: t('accounts.detail.actions.openPortfolio'),
             },
             {
-              icon: 'balance',
+              icon: 'chart-line',
               id: 'value-portfolio',
               label: t('accounts.detail.actions.valuePortfolio'),
               onSelect: () => navigateTo(`/portfolios/${account.id}?tab=valuations`),
               text: t('accounts.detail.actions.valuePortfolio'),
             },
             {
-              icon: 'rules',
+              icon: 'sliders',
               id: 'rules',
               label: t('accounts.detail.actions.rules'),
               onSelect: onOpenRules,
@@ -72,7 +92,7 @@ export function AccountDetailActions({
             title={t('accounts.detail.actions.rules')}
             type="button"
           >
-            <Icon name="rules" />
+            <Icon name="sliders" />
           </button>
           <button
             aria-label={t('accounts.detail.actions.reconcile')}
@@ -82,30 +102,10 @@ export function AccountDetailActions({
             title={t('accounts.detail.actions.reconcile')}
             type="button"
           >
-            <Icon name="balance" />
+            <Icon name="check-circle" />
           </button>
         </>
       )}
-      <button
-        aria-label={t('accounts.detail.actions.addTransfer')}
-        className="icon-button"
-        disabled={!creatable}
-        onClick={onAddTransfer}
-        title={t('accounts.detail.actions.addTransfer')}
-        type="button"
-      >
-        <Icon name="transactions" />
-      </button>
-      <button
-        aria-label={t('accounts.detail.actions.addTransaction')}
-        className={`primary-action ${styles.add}`}
-        disabled={!creatable}
-        onClick={onAddTransaction}
-        type="button"
-      >
-        <Icon name="add" size={18} />
-        <span className={styles.addLabel}>{t('accounts.detail.actions.addTransaction')}</span>
-      </button>
     </HeaderActions>
   );
 }
@@ -117,22 +117,13 @@ export function AccountDetailActionsSkeleton() {
   return (
     <HeaderActions>
       <button
-        aria-label={t('accounts.detail.actions.rules')}
-        className="icon-button"
+        aria-label={t('accounts.detail.actions.addTransaction')}
+        className={`primary-action ${styles.add}`}
         disabled
-        title={t('accounts.detail.actions.rules')}
         type="button"
       >
-        <Icon name="rules" />
-      </button>
-      <button
-        aria-label={t('accounts.detail.actions.reconcile')}
-        className="icon-button"
-        disabled
-        title={t('accounts.detail.actions.reconcile')}
-        type="button"
-      >
-        <Icon name="balance" />
+        <Icon name="add" size={18} />
+        <span className={styles.addLabel}>{t('accounts.detail.actions.addTransaction')}</span>
       </button>
       <button
         aria-label={t('accounts.detail.actions.addTransfer')}
@@ -141,16 +132,25 @@ export function AccountDetailActionsSkeleton() {
         title={t('accounts.detail.actions.addTransfer')}
         type="button"
       >
-        <Icon name="transactions" />
+        <Icon name="transfer" />
       </button>
       <button
-        aria-label={t('accounts.detail.actions.addTransaction')}
-        className={`primary-action ${styles.add}`}
+        aria-label={t('accounts.detail.actions.rules')}
+        className="icon-button"
         disabled
+        title={t('accounts.detail.actions.rules')}
         type="button"
       >
-        <Icon name="add" size={18} />
-        <span className={styles.addLabel}>{t('accounts.detail.actions.addTransaction')}</span>
+        <Icon name="sliders" />
+      </button>
+      <button
+        aria-label={t('accounts.detail.actions.reconcile')}
+        className="icon-button"
+        disabled
+        title={t('accounts.detail.actions.reconcile')}
+        type="button"
+      >
+        <Icon name="check-circle" />
       </button>
     </HeaderActions>
   );

@@ -7,7 +7,6 @@ import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
-import { CategorizationTabs } from './categorization-tabs/CategorizationTabs';
 import { TransactionList } from './transaction-list/TransactionList';
 import { TransactionsPageSkeleton } from './TransactionsPageSkeleton';
 import { TransactionListFooter } from './transaction-list/TransactionListFooter';
@@ -115,15 +114,11 @@ export function TransactionsPage() {
 
   return (
     <div className={styles.page}>
-      <TransactionFilters
-        accounts={accountOptions}
-        filters={searchFilters}
-        onChange={updateFilters}
-        onReset={resetAllFilters}
-        revision={filtersRevision}
-      />
-
       <HeaderActions>
+        <button className="primary-action" onClick={() => openEditor('create')} type="button">
+          <Icon name="add" size={18} />
+          {t('transactions.add')}
+        </button>
         <button
           aria-label={t('transactions.addTransfer')}
           className="icon-button"
@@ -133,10 +128,21 @@ export function TransactionsPage() {
         >
           <Icon name="transactions" size={18} />
         </button>
+      </HeaderActions>
+
+      <TransactionFilters
+        accounts={accountOptions}
+        filters={searchFilters}
+        onChange={updateFilters}
+        onReset={resetAllFilters}
+        revision={filtersRevision}
+      />
+
+      <HeaderActions>
         <ActionMenu
           items={[
             {
-              icon: 'calendar',
+              icon: 'lock',
               id: 'closure',
               label: t('closures.title'),
               onSelect: () => setPeriodClosureOpen(true),
@@ -150,7 +156,7 @@ export function TransactionsPage() {
               text: t('transactions.manageCategories'),
             },
             {
-              icon: 'replace',
+              icon: 'repeat',
               id: 'recurrences',
               label: t('transactions.manageRecurrences'),
               onSelect: () => navigateTo('/transactions/recurrences'),
@@ -159,10 +165,6 @@ export function TransactionsPage() {
           ]}
           label={t('transactions.moreActions')}
         />
-        <button className="primary-action" onClick={() => openEditor('create')} type="button">
-          <Icon name="add" size={18} />
-          {t('transactions.add')}
-        </button>
       </HeaderActions>
 
       {saved ? (
@@ -195,13 +197,6 @@ export function TransactionsPage() {
       />
 
       {periodClosureOpen ? <PeriodClosurePanel close={() => setPeriodClosureOpen(false)} /> : null}
-
-      <CategorizationTabs
-        onChange={(next) =>
-          updateFilters({ ...searchFilters, categorization: next === 'NONE' ? 'NONE' : 'ANY' })
-        }
-        value={categorization}
-      />
 
       {!impossible &&
       !(transactions.isPending && transactions.data === undefined) &&

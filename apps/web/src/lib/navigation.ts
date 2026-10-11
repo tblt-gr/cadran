@@ -57,7 +57,7 @@ export const navigationItems: NavigationItem[] = [
   },
   {
     href: '/reports',
-    icon: 'transactions',
+    icon: 'report',
     labelKey: 'navigation.reports',
     match: (path) =>
       path === '/reports' ||

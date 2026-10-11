@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { TabsNav } from '@/components/ui/tabs-nav/TabsNav';
 import { useMultiYearReport } from '@/features/reports/multi-year/useMultiYearReport';
-import styles from './AnnualYearNavigator.module.css';
 
 interface AnnualYearNavigatorProps {
   currentYear: number;
@@ -10,8 +9,8 @@ interface AnnualYearNavigatorProps {
 
 /**
  * Every available year, newest first, in the same family as the Budget month
- * tabs: horizontal scroll when the range overflows, active year in gold and
- * the current year in a distinct colour.
+ * tabs: horizontal scroll when the range overflows, active year underlined
+ * and the current year marked by a dot.
  */
 export function AnnualYearNavigator({ currentYear, year }: AnnualYearNavigatorProps) {
   const { t } = useTranslation();
@@ -26,24 +25,16 @@ export function AnnualYearNavigator({ currentYear, year }: AnnualYearNavigatorPr
   }
 
   return (
-    <nav aria-label={t('reports.annual.yearNavigation')} className={styles.years}>
-      {years.map((candidate) => {
-        const href = `/reports/annual/${candidate}`;
-        const active = candidate === year;
-        return (
-          <a
-            aria-current={active ? 'page' : undefined}
-            className={
-              active ? styles.active : candidate === currentYear ? styles.current : undefined
-            }
-            href={href}
-            key={candidate}
-            onClick={(event) => handleClientNavigation(event, href)}
-          >
-            {candidate}
-          </a>
-        );
-      })}
-    </nav>
+    <TabsNav
+      items={years.map((candidate) => ({
+        id: String(candidate),
+        active: candidate === year,
+        current: candidate === currentYear,
+        href: `/reports/annual/${candidate}`,
+        label: String(candidate),
+      }))}
+      label={t('reports.annual.yearNavigation')}
+      variant="secondary"
+    />
   );
 }

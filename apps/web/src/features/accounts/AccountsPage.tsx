@@ -116,15 +116,6 @@ export function AccountsPage() {
   return (
     <div className={styles.page}>
       <HeaderActions>
-        <a
-          aria-label={t('accounts.manageGroups')}
-          className="icon-button"
-          href="/accounts/groups"
-          onClick={(event) => handleClientNavigation(event, '/accounts/groups')}
-          title={t('accounts.manageGroups')}
-        >
-          <Icon name="categories" />
-        </a>
         <button
           aria-label={t('accounts.add')}
           className={`primary-action ${styles.add}`}
@@ -134,6 +125,15 @@ export function AccountsPage() {
           <Icon name="add" size={18} />
           <span className={styles.addLabel}>{t('accounts.add')}</span>
         </button>
+        <a
+          aria-label={t('accounts.manageGroups')}
+          className="icon-button"
+          href="/accounts/groups"
+          onClick={(event) => handleClientNavigation(event, '/accounts/groups')}
+          title={t('accounts.manageGroups')}
+        >
+          <Icon name="layers" />
+        </a>
       </HeaderActions>
 
       {saved ? (

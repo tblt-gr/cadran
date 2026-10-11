@@ -78,7 +78,7 @@ export function ProductModelList({
                     label={t('productModels.list.openActions', { name: model.name })}
                     items={[
                       {
-                        icon: 'rules',
+                        icon: 'eye',
                         id: 'inspect',
                         label: t('productModels.list.inspectModel', { name: model.name }),
                         onSelect: () => onInspect(model),

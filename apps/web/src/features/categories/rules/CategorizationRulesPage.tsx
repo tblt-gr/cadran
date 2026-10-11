@@ -37,15 +37,6 @@ export function CategorizationRulesPage() {
     <div className={styles.page}>
       <HeaderActions>
         <button
-          aria-label={t('categorizationRules.preview.action')}
-          className="icon-button"
-          onClick={() => previewWorkflow.open(null)}
-          title={t('categorizationRules.preview.action')}
-          type="button"
-        >
-          <Icon name="search" size={18} />
-        </button>
-        <button
           className="primary-action"
           disabled={!accounts.available}
           onClick={() => editorWorkflow.open('create')}
@@ -53,6 +44,15 @@ export function CategorizationRulesPage() {
         >
           <Icon name="add" size={18} />
           {t('categorizationRules.add')}
+        </button>
+        <button
+          aria-label={t('categorizationRules.preview.action')}
+          className="icon-button"
+          onClick={() => previewWorkflow.open(null)}
+          title={t('categorizationRules.preview.action')}
+          type="button"
+        >
+          <Icon name="eye" size={18} />
         </button>
       </HeaderActions>
 

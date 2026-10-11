@@ -10,6 +10,7 @@ import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { CategorizationTabs } from '@/features/transactions/categorization-tabs/CategorizationTabs';
 import { ActiveFilterChips } from './active-filter-chips/ActiveFilterChips';
 import { AccountMultiSelect } from './account-multi-select/AccountMultiSelect';
 import { AmountRangeFilter } from './amount-range-filter/AmountRangeFilter';
@@ -125,7 +126,7 @@ export function TransactionFilters({
           title={t('transactions.filters.toggle')}
           type="button"
         >
-          <Icon name="rules" size={18} />
+          <Icon name="filter" size={18} />
           {activeCount > 0 ? (
             <span aria-hidden="true" className={styles.badge}>
               {activeCount}
@@ -152,6 +153,11 @@ export function TransactionFilters({
                 value={rawQuery}
               />
             </label>
+
+            <CategorizationTabs
+              onChange={(next) => set('categorization', next === 'NONE' ? 'NONE' : 'ANY')}
+              value={queue ? 'NONE' : 'ALL'}
+            />
 
             <PeriodFilter
               from={filters.from}

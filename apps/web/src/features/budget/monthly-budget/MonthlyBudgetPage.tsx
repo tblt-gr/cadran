@@ -150,15 +150,6 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('budget.monthly.saved')}</Toast> : null}
 
       <HeaderActions>
-        <a
-          aria-label={t('budget.monthly.managePlans')}
-          className="icon-button"
-          href="/budget/plans"
-          onClick={(event) => handleClientNavigation(event, '/budget/plans')}
-          title={t('budget.monthly.managePlans')}
-        >
-          <Icon name="budget" size={18} />
-        </a>
         <button
           aria-label={t('budget.monthly.createTransaction')}
           className="primary-action"
@@ -174,6 +165,15 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
           <Icon name="add" size={18} />
           <span className={styles.actionLabel}>{t('budget.monthly.createTransaction')}</span>
         </button>
+        <a
+          aria-label={t('budget.monthly.managePlans')}
+          className="icon-button"
+          href="/budget/plans"
+          onClick={(event) => handleClientNavigation(event, '/budget/plans')}
+          title={t('budget.monthly.managePlans')}
+        >
+          <Icon name="budget" size={18} />
+        </a>
       </HeaderActions>
 
       <MonthNavigator

@@ -111,6 +111,10 @@ export function CategoryPage() {
   return (
     <div className={styles.page}>
       <HeaderActions>
+        <button className="primary-action" onClick={() => openEditor('create')} type="button">
+          <Icon name="add" size={18} />
+          {t('categories.add')}
+        </button>
         <a
           aria-label={t('categories.manageRules')}
           className="icon-button"
@@ -118,12 +122,8 @@ export function CategoryPage() {
           onClick={(event) => handleClientNavigation(event, '/transactions/categories/rules')}
           title={t('categories.manageRules')}
         >
-          <Icon name="rules" size={18} />
+          <Icon name="sliders" size={18} />
         </a>
-        <button className="primary-action" onClick={() => openEditor('create')} type="button">
-          <Icon name="add" size={18} />
-          {t('categories.add')}
-        </button>
       </HeaderActions>
 
       {saved ? (
