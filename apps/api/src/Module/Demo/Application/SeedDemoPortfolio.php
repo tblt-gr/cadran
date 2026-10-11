@@ -63,6 +63,16 @@ final class SeedDemoPortfolio
         $this->buy($accountId, $day, self::UNCLASSIFIED, 100_000_000, 240_000, 'Achat initial');
     }
 
+    /** Replays the price path of the months already seeded, so the next monthly buy continues the same deterministic history. */
+    public function resume(int $seed, int $investedMonths): void
+    {
+        $this->random = new DemoRandom($seed);
+        $this->price = 1_502_500;
+        for ($month = 0; $month < $investedMonths; ++$month) {
+            $this->price = max(1, $this->price + intdiv($this->price * $this->random->between(-20, 30), 1000));
+        }
+    }
+
     /** The monthly transfer is mirrored by a linked deposit and invested in the world ETF the same day. */
     public function investMonthly(string $accountId, string $legId, string $day, int $cents, int $monthIndex): void
     {

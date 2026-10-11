@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Module\Demo\UI\Console;
 
 use App\Module\Demo\Application\DemoSeedRefused;
+use App\Module\Demo\Application\ExtendDemoData;
 use App\Module\Demo\Application\SeedDemoData;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -24,6 +26,7 @@ final class SeedDemoDataCommand extends Command
 
     public function __construct(
         private readonly SeedDemoData $seed,
+        private readonly ExtendDemoData $extend,
         #[Autowire('%kernel.environment%')]
         private readonly string $environment,
     ) {
@@ -33,6 +36,7 @@ final class SeedDemoDataCommand extends Command
     protected function configure(): void
     {
         $this->addArgument('email', InputArgument::OPTIONAL, 'Owner email of the target workspace; defaults to the provisioned owner.');
+        $this->addOption('extend', null, InputOption::VALUE_NONE, 'Top up an already seeded workspace to today instead of seeding an empty one (idempotent).');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -46,7 +50,9 @@ final class SeedDemoDataCommand extends Command
 
         $email = $input->getArgument('email');
         try {
-            $summary = ($this->seed)(is_string($email) ? $email : null);
+            $summary = true === $input->getOption('extend')
+                ? ($this->extend)(is_string($email) ? $email : null)
+                : ($this->seed)(is_string($email) ? $email : null);
         } catch (DemoSeedRefused $refusal) {
             $io->error($refusal->getMessage());
 
