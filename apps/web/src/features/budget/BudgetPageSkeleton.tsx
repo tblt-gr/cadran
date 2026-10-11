@@ -1,3 +1,5 @@
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { Icon } from '@/components/ui/icon/Icon';
 import {
   SkeletonBlock,
   SkeletonButton,
@@ -19,23 +21,12 @@ export function BudgetPageSkeleton({
   return (
     <div aria-busy="true" className={styles.page} data-testid="budget-page-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
-      <section className={styles.intro}>
-        <div>
-          <p>{t('budget.eyebrow')}</p>
-          <h2>{detail ? <SkeletonBlock className={styles.skeletonTitle} /> : t('budget.title')}</h2>
-          <span>{t(detail ? 'budget.detailDescription' : 'budget.description')}</span>
-        </div>
-        <div className={styles.actions}>
-          {detail ? (
-            <a className="secondary-action" href="/budget/plans">
-              {t('budget.back')}
-            </a>
-          ) : null}
-          <button className="primary-action" disabled type="button">
-            {t('budget.addPlan')}
-          </button>
-        </div>
-      </section>
+      <HeaderActions>
+        <button aria-label={t('budget.addPlan')} className="primary-action" disabled type="button">
+          <Icon name="add" size={18} />
+          <span className={styles.actionLabel}>{t('budget.addPlan')}</span>
+        </button>
+      </HeaderActions>
       {detail ? (
         <>
           <section className={`card ${detailStyles.summary}`}>

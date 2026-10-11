@@ -16,6 +16,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -218,12 +219,7 @@ export function GoalsPage() {
       : editingSummary;
   return (
     <div className={styles.page}>
-      <section className={styles.intro} aria-labelledby="goals-title">
-        <div>
-          <p>{t('goals.eyebrow')}</p>
-          <h2 id="goals-title">{t('goals.title')}</h2>
-          <span>{t('goals.description')}</span>
-        </div>
+      <HeaderActions>
         <button
           className="primary-action"
           onClick={() => {
@@ -234,7 +230,7 @@ export function GoalsPage() {
         >
           {t('goals.add')}
         </button>
-      </section>
+      </HeaderActions>
       <EmergencyFundCard />
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('goals.saved')}</Toast> : null}
       <GoalFilters

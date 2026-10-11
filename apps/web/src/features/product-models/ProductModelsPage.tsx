@@ -12,6 +12,9 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { SettingsTabs } from '@/components/layout/settings-tabs/SettingsTabs';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -21,6 +24,7 @@ import { ArchiveModelDialog } from './archive-model-dialog/ArchiveModelDialog';
 import { DuplicateModelForm } from './duplicate-model-form/DuplicateModelForm';
 import { FromProductForm } from './from-product-form/FromProductForm';
 import { ModelForm } from './model-form/ModelForm';
+import { ProductModelFilters } from './product-model-filters/ProductModelFilters';
 import { ProductModelList } from './product-model-list/ProductModelList';
 import { ProductModelPagination } from './product-model-pagination/ProductModelPagination';
 import { ProductModelPeriodTable } from './product-model-periods/ProductModelPeriodTable';
@@ -189,25 +193,29 @@ export function ProductModelsPage() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.intro} aria-labelledby="product-models-intro-title">
-        <div>
-          <p>{t('productModels.eyebrow')}</p>
-          <h2 id="product-models-intro-title">{t('productModels.title')}</h2>
-          <span>{t('productModels.description')}</span>
-        </div>
-        <div className={styles.introActions}>
-          <button
-            className="secondary-action"
-            onClick={() => openEditor('from-product')}
-            type="button"
-          >
-            {t('productModels.addFromProduct')}
-          </button>
-          <button className="primary-action" onClick={() => openEditor('create')} type="button">
-            {t('productModels.add')}
-          </button>
-        </div>
-      </section>
+      <SettingsTabs path="/parameters/product-models" />
+      <HeaderActions>
+        <button className="primary-action" onClick={() => openEditor('create')} type="button">
+          <Icon name="add" size={18} />
+          {t('productModels.add')}
+        </button>
+        <ProductModelFilters
+          includeArchived={includeArchived}
+          onIncludeArchivedChange={(checked) => {
+            setIncludeArchived(checked);
+            setPage(1);
+          }}
+        />
+        <button
+          aria-label={t('productModels.addFromProduct')}
+          className="icon-button"
+          onClick={() => openEditor('from-product')}
+          title={t('productModels.addFromProduct')}
+          type="button"
+        >
+          <Icon name="catalog" />
+        </button>
+      </HeaderActions>
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>
@@ -305,18 +313,6 @@ export function ProductModelsPage() {
           <ProductModelPeriodTable name={inspecting.name} rules={inspecting.rules} />
         </Modal>
       ) : null}
-
-      <label className={styles.filter}>
-        <input
-          checked={includeArchived}
-          onChange={(event) => {
-            setIncludeArchived(event.target.checked);
-            setPage(1);
-          }}
-          type="checkbox"
-        />
-        <span>{t('productModels.includeArchived')}</span>
-      </label>
 
       {models.isPending && models.data === undefined ? (
         <ProductModelsPageSkeleton status={t('productModels.loading')} />

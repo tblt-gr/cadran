@@ -21,6 +21,8 @@ describe('AuthenticatedApp route table', () => {
       '/categories/rules',
       '/catalog',
       '/product-models',
+      '/parameters/catalog',
+      '/parameters/product-models',
       '/transactions',
       '/transactions/recurrences',
       '/budget',
@@ -32,6 +34,8 @@ describe('AuthenticatedApp route table', () => {
       '/budget/2026-03',
       '/settings/profile',
       '/settings/metric-policy',
+      '/parameters/profile',
+      '/parameters/metric-policy',
     ];
 
     for (const path of paths) {
@@ -57,19 +61,15 @@ describe('AuthenticatedApp route table', () => {
     expect(matchAuthenticatedRoute(routes, '/does-not-exist')).toBeNull();
   });
 
-  it('still hides global actions for an unmatched path under /budget, via the catch-all', () => {
-    // Regression: every /budget-prefixed path used to hide the shell's global
-    // actions, including a 404 one segment too deep for any specific route
-    // (e.g. a stale bookmark). AuthenticatedApp falls back to `true` only when
-    // no entry matches at all, so an unmatched /budget/... path needs its own
-    // entry rather than relying on that fallback.
-    const matched = matchAuthenticatedRoute(routes, '/budget/plans/one/two');
-    expect(matched).not.toBeNull();
-    expect(matched?.route.globalActions).toBe(false);
-
-    // An unrelated unmatched path is not under /budget: it correctly falls
-    // through to AuthenticatedApp's own 404 branch, which defaults to true.
+  it('matches an unmatched path under /budget via the catch-all', () => {
+    expect(matchAuthenticatedRoute(routes, '/budget/plans/one/two')).not.toBeNull();
     expect(matchAuthenticatedRoute(routes, '/unknown/deep/path')).toBeNull();
+  });
+
+  it('redirects the legacy catalog, product model and settings paths under /parameters', () => {
+    for (const path of ['/catalog', '/product-models', '/settings/profile']) {
+      expect(matchAuthenticatedRoute(routes, path)?.route.redirect, path).toBe(true);
+    }
   });
 
   it('routes a bare UUID under /budget to the plan detail redirect, distinct from a month key', () => {
@@ -97,12 +97,6 @@ describe('AuthenticatedApp route table', () => {
 
     expect(accountMatch?.match[1]).toBe('00000000-0000-7000-8000-000000000002');
     expect(planMatch?.match[1]).toBe('00000000-0000-7000-8000-000000000003');
-  });
-
-  it('hides the shell global actions for every declared route', () => {
-    for (const route of routes) {
-      expect(route.globalActions).toBe(false);
-    }
   });
 
   describe('annual report year guard', () => {

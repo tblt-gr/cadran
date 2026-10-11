@@ -4,35 +4,11 @@
   gap: var(--spacing-6);
 }
 
-.intro {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--spacing-6);
-}
-
-.intro p,
-.intro h2,
-.intro span,
 .state h2,
 .state p {
   margin: var(--spacing-none);
 }
 
-.intro p {
-  color: var(--gold-300);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
-}
-
-.intro h2 {
-  margin-top: var(--spacing-1);
-  font-size: var(--font-size-kpi);
-}
-
-.intro span,
 .state p,
 .pagination span {
   color: var(--text-secondary);
@@ -73,14 +49,6 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-4);
-}
-
-@media (max-width: 62rem) {
-  .intro {
-    align-items: stretch;
-    flex-direction: column;
-    gap: var(--spacing-4);
-  }
 }
 
 @media (max-width: 42rem) {

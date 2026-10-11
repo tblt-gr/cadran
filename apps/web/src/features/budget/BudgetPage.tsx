@@ -7,6 +7,8 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { Toast } from '@/components/ui/toast/Toast';
@@ -104,29 +106,17 @@ export function BudgetPage({ planId }: { planId?: string }) {
   return (
     <div className={styles.page}>
       {notice ? <Toast onDismiss={() => setNotice(null)}>{notice}</Toast> : null}
-      <section className={styles.intro}>
-        <div>
-          <p>{t('budget.eyebrow')}</p>
-          <h2>
-            {selected ? t('budget.detailTitle', { period: selected.period }) : t('budget.title')}
-          </h2>
-          <span>{t(selected ? 'budget.detailDescription' : 'budget.description')}</span>
-        </div>
-        <div className={styles.actions}>
-          {selected ? (
-            <a
-              className="secondary-action"
-              href="/budget/plans"
-              onClick={(event) => handleClientNavigation(event, '/budget/plans')}
-            >
-              {t('budget.back')}
-            </a>
-          ) : null}
-          <button className="primary-action" onClick={() => setPlanEditor('create')} type="button">
-            {t('budget.addPlan')}
-          </button>
-        </div>
-      </section>
+      <HeaderActions>
+        <button
+          aria-label={t('budget.addPlan')}
+          className="primary-action"
+          onClick={() => setPlanEditor('create')}
+          type="button"
+        >
+          <Icon name="add" size={18} />
+          <span className={styles.actionLabel}>{t('budget.addPlan')}</span>
+        </button>
+      </HeaderActions>
       {selected ? (
         <PlanDetail
           detail={selected}

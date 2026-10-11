@@ -406,6 +406,26 @@ describe('AccountsPage', () => {
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 
+  it('keeps the filters behind one header button that shows the active count', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Filtres' }));
+    expect(screen.queryByTestId('account-filters-count')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Afficher les comptes archivés'));
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+
+    expect(screen.getByTestId('account-filters-count').textContent).toBe('1');
+    await waitFor(() =>
+      expect(api.listAccounts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ includeArchived: true }) }),
+      ),
+    );
+    expect(screen.queryByRole('heading', { name: 'Comptes et supports' })).toBeNull();
+  });
+
   it('covers the empty state and creates an account described by hand', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [], page: 1, perPage: 50, total: 0 }),

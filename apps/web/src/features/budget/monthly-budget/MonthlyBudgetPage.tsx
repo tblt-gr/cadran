@@ -2,6 +2,9 @@ import { readMonthlyLedger } from '@cadran/api-client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
@@ -78,6 +81,23 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
   // the ledger's own copy is kept as the source of truth once it has answered,
   // since it is what the displayed figures were actually computed against.
 
+  const monthLabel =
+    parsed.kind === 'valid'
+      ? new Intl.DateTimeFormat(i18n.language, {
+          month: 'long',
+          timeZone: 'UTC',
+          year: 'numeric',
+        }).format(new Date(`${parsed.month}-01T12:00:00Z`))
+      : null;
+  useHeaderTitle(
+    `/budget/${periodKey}`,
+    monthLabel === null
+      ? null
+      : t('budget.monthly.title', {
+          month: monthLabel.charAt(0).toLocaleLowerCase(i18n.language) + monthLabel.slice(1),
+        }),
+  );
+
   if (parsed.kind !== 'valid') {
     return (
       <section className={`card ${styles.routeError}`} role="alert">
@@ -109,12 +129,6 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
   const month = parsed.month;
 
   const currentMonth = today.slice(0, 7);
-  const monthLabel = new Intl.DateTimeFormat(i18n.language, {
-    month: 'long',
-    timeZone: 'UTC',
-    year: 'numeric',
-  }).format(new Date(`${month}-01T12:00:00Z`));
-
   function changeAxis(nextAxis: BudgetAxis | null) {
     const href = monthHref(month!, nextAxis);
     window.history.pushState({}, '', href);
@@ -135,37 +149,32 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
     <div className={styles.page}>
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('budget.monthly.saved')}</Toast> : null}
 
-      <section aria-labelledby="monthly-budget-title" className={styles.intro}>
-        <div>
-          <p>{t('budget.monthly.eyebrow')}</p>
-          <h2 id="monthly-budget-title">
-            {t('budget.monthly.title', { month: lowerFirst(monthLabel, i18n.language) })}
-          </h2>
-          <span>{t('budget.monthly.description')}</span>
-        </div>
-        <div className={styles.actions}>
-          <button
-            className="primary-action"
-            disabled={!ledger.data?.actionsAllowed}
-            onClick={() => setDraft({ kind: 'expense', row: null })}
-            title={
-              ledger.data && !ledger.data.actionsAllowed
-                ? t('budget.monthly.closedReason')
-                : undefined
-            }
-            type="button"
-          >
-            {t('budget.monthly.createTransaction')}
-          </button>
-          <a
-            className="secondary-action"
-            href="/budget/plans"
-            onClick={(event) => handleClientNavigation(event, '/budget/plans')}
-          >
-            {t('budget.monthly.managePlans')}
-          </a>
-        </div>
-      </section>
+      <HeaderActions>
+        <button
+          aria-label={t('budget.monthly.createTransaction')}
+          className="primary-action"
+          disabled={!ledger.data?.actionsAllowed}
+          onClick={() => setDraft({ kind: 'expense', row: null })}
+          title={
+            ledger.data && !ledger.data.actionsAllowed
+              ? t('budget.monthly.closedReason')
+              : undefined
+          }
+          type="button"
+        >
+          <Icon name="add" size={18} />
+          <span className={styles.actionLabel}>{t('budget.monthly.createTransaction')}</span>
+        </button>
+        <a
+          aria-label={t('budget.monthly.managePlans')}
+          className="icon-button"
+          href="/budget/plans"
+          onClick={(event) => handleClientNavigation(event, '/budget/plans')}
+          title={t('budget.monthly.managePlans')}
+        >
+          <Icon name="budget" size={18} />
+        </a>
+      </HeaderActions>
 
       <MonthNavigator
         axis={axis}
@@ -217,8 +226,4 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       ) : null}
     </div>
   );
-}
-
-function lowerFirst(value: string, locale: string) {
-  return value.charAt(0).toLocaleLowerCase(locale) + value.slice(1);
 }

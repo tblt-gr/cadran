@@ -56,14 +56,8 @@ export const navigationItems: NavigationItem[] = [
     match: (path) => path === '/goals',
   },
   {
-    href: '/tax/2026',
-    icon: 'tax',
-    labelKey: 'navigation.tax',
-    match: (path) => /^\/tax\/\d{4}$/.test(path),
-  },
-  {
     href: '/reports',
-    icon: 'transactions',
+    icon: 'report',
     labelKey: 'navigation.reports',
     match: (path) =>
       path === '/reports' ||
@@ -71,22 +65,10 @@ export const navigationItems: NavigationItem[] = [
       path === '/reports/all-years',
   },
   {
-    href: '/catalog',
-    icon: 'catalog',
-    labelKey: 'navigation.catalog',
-    match: (path) => path === '/catalog',
-  },
-  {
-    href: '/product-models',
-    icon: 'catalog',
-    labelKey: 'navigation.productModels',
-    match: (path) => path === '/product-models',
-  },
-  {
-    href: '/settings/profile',
+    href: '/parameters/profile',
     icon: 'settings',
     labelKey: 'navigation.settings',
-    match: (path) => path.startsWith('/settings/'),
+    match: (path) => path.startsWith('/parameters/'),
   },
 ];
 
@@ -105,7 +87,9 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
   if (pathname === '/reports/all-years') return 'routes.allYearsReport';
   if (/^\/budget\/plans\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';
   if (pathname === '/budget/plans') return 'routes.budgetPlans';
-  if (pathname === '/settings/metric-policy') return 'routes.metricPolicy';
+  if (pathname === '/parameters/metric-policy') return 'routes.metricPolicy';
+  if (pathname === '/parameters/catalog') return 'navigation.catalog';
+  if (pathname === '/parameters/product-models') return 'navigation.productModels';
 
   return navigationItems.find((item) => item.match(pathname))?.labelKey ?? 'routes.notFound';
 }

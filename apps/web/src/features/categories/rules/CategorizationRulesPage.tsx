@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { categorizationRuleErrorKind } from './categorizationRuleError';
 import { RuleAccountsNotice } from './rule-accounts/RuleAccountsNotice';
 import { CategorizationRulesPageSkeleton } from './CategorizationRulesPageSkeleton';
@@ -35,40 +35,26 @@ export function CategorizationRulesPage() {
 
   return (
     <div className={styles.page}>
-      <section aria-labelledby="rules-intro-title" className={styles.intro}>
-        <div>
-          <p>{t('categorizationRules.eyebrow')}</p>
-          <div className={styles.titleRow}>
-            <a
-              aria-label={t('categorizationRules.backToCategories')}
-              className={`icon-button ${styles.back}`}
-              href="/transactions/categories"
-              onClick={(event) => handleClientNavigation(event, '/transactions/categories')}
-            >
-              <Icon name="arrow-left" size={18} />
-            </a>
-            <h2 id="rules-intro-title">{t('categorizationRules.title')}</h2>
-          </div>
-          <span>{t('categorizationRules.description')}</span>
-        </div>
-        <div className={styles.introActions}>
-          <button
-            className="secondary-action"
-            onClick={() => previewWorkflow.open(null)}
-            type="button"
-          >
-            {t('categorizationRules.preview.action')}
-          </button>
-          <button
-            className="primary-action"
-            disabled={!accounts.available}
-            onClick={() => editorWorkflow.open('create')}
-            type="button"
-          >
-            {t('categorizationRules.add')}
-          </button>
-        </div>
-      </section>
+      <HeaderActions>
+        <button
+          className="primary-action"
+          disabled={!accounts.available}
+          onClick={() => editorWorkflow.open('create')}
+          type="button"
+        >
+          <Icon name="add" size={18} />
+          {t('categorizationRules.add')}
+        </button>
+        <button
+          aria-label={t('categorizationRules.preview.action')}
+          className="icon-button"
+          onClick={() => previewWorkflow.open(null)}
+          title={t('categorizationRules.preview.action')}
+          type="button"
+        >
+          <Icon name="eye" size={18} />
+        </button>
+      </HeaderActions>
 
       <RuleAccountsNotice
         isError={accounts.query.isError}

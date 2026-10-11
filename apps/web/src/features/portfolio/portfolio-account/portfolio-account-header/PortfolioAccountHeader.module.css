@@ -1,58 +1,23 @@
-.intro {
+.meta {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--spacing-4);
-}
-.eyebrow {
-  margin: var(--spacing-none);
-  color: var(--gold-300);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
-}
-.intro h2 {
-  margin: var(--spacing-none);
-  font-size: var(--font-size-kpi);
 }
 .subtitle {
   margin: var(--spacing-none);
   color: var(--text-secondary);
 }
-.title {
-  display: block;
-  width: 14rem;
-  height: 1.75rem;
-}
 .subtitleBlock {
   display: block;
   width: 10rem;
   height: 1rem;
-  margin-top: var(--spacing-2);
 }
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-3);
-}
-.actions a {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-}
-@media (max-width: 42rem) {
-  .intro {
-    flex-direction: column;
+@media (max-width: 47.999rem) {
+  .addLabel {
+    display: none;
   }
-  .actions {
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
-  }
-  .actions > * {
-    justify-content: center;
-    width: 100%;
+  .add {
+    padding: var(--spacing-control-block) var(--spacing-3);
   }
 }

@@ -58,7 +58,7 @@ final readonly class SeedDemoData
     private const int RANDOM_SEED = 20260926;
 
     /** key => [type, label, axes, budgeted]. Always budgeted: inserting budget_included = false currently fails in DbalCategoryRepository::add(). */
-    private const array CATEGORIES = [
+    public const array CATEGORIES = [
         'salary' => ['INCOME', 'Salaire', [], true],
         'salary_bonus' => ['INCOME', 'Primes', [], true],
         'rent' => ['EXPENSE', 'Loyer', ['FIXED', 'ESSENTIAL'], true],

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
+import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
 import styles from './YearRangeSelector.module.css';
 
 const MAX_SPAN_YEARS = 14;
@@ -84,32 +84,15 @@ export function YearRangeSelector({
           </div>
         </div>
         {display && onDisplayChange ? (
-          <div
-            aria-label={t('reports.multiYear.displayMode')}
-            className={styles.displayModes}
-            role="group"
-          >
-            <button
-              aria-label={t('reports.multiYear.compact')}
-              aria-pressed={display === 'compact'}
-              disabled={display === 'compact'}
-              onClick={() => onDisplayChange('compact')}
-              title={t('reports.multiYear.compact')}
-              type="button"
-            >
-              <Icon name="menu" size={16} />
-            </button>
-            <button
-              aria-label={t('reports.multiYear.detailed')}
-              aria-pressed={display === 'detailed'}
-              disabled={display === 'detailed'}
-              onClick={() => onDisplayChange('detailed')}
-              title={t('reports.multiYear.detailed')}
-              type="button"
-            >
-              <Icon name="catalog" size={16} />
-            </button>
-          </div>
+          <SegmentedControl
+            label={t('reports.multiYear.displayMode')}
+            onChange={onDisplayChange}
+            options={[
+              { value: 'compact', label: t('reports.multiYear.compact') },
+              { value: 'detailed', label: t('reports.multiYear.detailed') },
+            ]}
+            value={display}
+          />
         ) : null}
       </div>
       {error ? (

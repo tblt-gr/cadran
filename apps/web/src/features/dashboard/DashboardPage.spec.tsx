@@ -3,12 +3,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
-import { DashboardContextPanel } from './context-panel/DashboardContextPanel';
 import { DashboardPage } from './DashboardPage';
 
 const api = vi.hoisted(() => ({
   readNetWorth: vi.fn(),
   readNetWorthHistory: vi.fn(),
+  readMonthlyProjection: vi.fn(),
 }));
 
 vi.mock('@cadran/api-client', async (importOriginal) => ({
@@ -127,7 +127,20 @@ function problem(status: number) {
   });
 }
 
-function renderDashboard() {
+function metric(value: string | null, assetCode: string | null) {
+  return { value, assetCode, reason: value === null ? 'ZERO_BASE' : null, pendingCount: 0 };
+}
+
+function monthlyReport() {
+  return {
+    cashIncome: metric('4320.00', 'EUR'),
+    budgetExpenses: metric('2860.00', 'EUR'),
+    cashSavingsRate: metric('0.338', null),
+  };
+}
+
+function renderDashboard(report: object = monthlyReport()) {
+  api.readMonthlyProjection.mockImplementation(() => success(report));
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -136,7 +149,6 @@ function renderDashboard() {
     ...render(
       <QueryClientProvider client={queryClient}>
         <DashboardPage apiVersion="v1" />
-        <DashboardContextPanel />
       </QueryClientProvider>,
     ),
     queryClient,
@@ -151,17 +163,6 @@ describe('DashboardPage', () => {
   afterEach(() => {
     cleanup();
     vi.resetAllMocks();
-  });
-
-  it('keeps the quality panel title as text and holds its badge and detail with skeleton blocks', () => {
-    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
-    api.readNetWorthHistory.mockImplementation(() => new Promise(() => undefined));
-    renderDashboard();
-
-    const panel = screen.getByRole('complementary');
-    expect(within(panel).getByRole('heading', { name: 'Qualité des données' })).toBeTruthy();
-    expect(within(panel).getAllByTestId('context-panel-skeleton').length).toBeGreaterThan(0);
-    expect(within(panel).queryByText('Chargement…')).toBeNull();
   });
 
   it('replaces its one named cold-load skeleton and keeps data during a refetch', async () => {
@@ -421,20 +422,6 @@ describe('DashboardPage', () => {
     ).toBe('down');
   });
 
-  it('tells an outage apart from a missing valuation in the quality panel', async () => {
-    api.readNetWorth.mockReturnValue(problem(500));
-    api.readNetWorthHistory.mockReturnValue(problem(500));
-
-    renderDashboard();
-    await loaded();
-
-    const panel = (await screen.findByRole('heading', { name: 'Qualité des données' })).closest(
-      'aside',
-    );
-    await waitFor(() => expect(panel?.textContent).toContain('Connexion interrompue'));
-    expect(panel?.textContent).not.toContain('Valorisation manquante');
-  });
-
   it('names an unauthorized caller instead of showing an empty portfolio', async () => {
     api.readNetWorth.mockReturnValue(problem(403));
     api.readNetWorthHistory.mockReturnValue(problem(403));
@@ -462,5 +449,49 @@ describe('DashboardPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Patrimoine net' })).toBeTruthy();
     });
+  });
+
+  it('shows the current month figures from the monthly projection and names the month', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard();
+    await loaded();
+
+    const income = (await screen.findByRole('heading', { name: 'Revenus' })).closest('section');
+    await waitFor(() => expect(income?.textContent).toContain(`4${NARROW}320,00${NBSP}€`));
+    const month = new Date().toISOString().slice(0, 7);
+    expect(api.readMonthlyProjection).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { month } }),
+    );
+    expect(income?.textContent).toContain('Mois en cours :');
+    const spending = screen.getByRole('heading', { name: 'Dépenses' }).closest('section');
+    expect(spending?.textContent).toContain(`2${NARROW}860,00${NBSP}€`);
+    const saving = screen.getByRole('heading', { name: 'Taux d’épargne' }).closest('section');
+    expect(saving?.textContent).toContain('33,80 %');
+  });
+
+  it('keeps a non computable month as a dash-like label, never zero', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard({ ...monthlyReport(), cashSavingsRate: metric(null, null) });
+    await loaded();
+
+    const saving = (await screen.findByRole('heading', { name: 'Taux d’épargne' })).closest(
+      'section',
+    );
+    await waitFor(() => expect(saving?.textContent).toContain('Non calculable'));
+  });
+
+  it('no longer renders the data quality panel', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard();
+    await loaded();
+
+    expect(screen.queryByRole('heading', { name: 'Qualité des données' })).toBeNull();
+    expect(screen.queryByRole('complementary')).toBeNull();
   });
 });

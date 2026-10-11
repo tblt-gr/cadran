@@ -49,11 +49,12 @@ describe('MonthlyMonthNavigator', () => {
     renderNavigator('2026-08');
     const selected = await screen.findByRole('button', { name: 'Août 2026' });
     expect(selected.getAttribute('aria-current')).toBe('page');
-    expect(selected.className).toContain('active');
     const current = screen.getByRole('button', { name: 'Septembre 2026' });
     expect(current.getAttribute('aria-current')).toBeNull();
-    expect(current.className).toContain('current');
-    expect(screen.getByRole('button', { name: 'Juillet 2026' }).className).toBe('');
+    expect(current.getAttribute('data-current')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Juillet 2026' }).hasAttribute('data-current')).toBe(
+      false,
+    );
   });
 
   it('selects another month on click', async () => {

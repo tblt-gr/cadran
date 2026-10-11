@@ -78,14 +78,7 @@ export function ProfileSettingsPage() {
 
   return (
     <div className={styles.page}>
-      <SettingsTabs path="/settings/profile" />
-      <section className={styles.intro} aria-labelledby="settings-intro-title">
-        <div>
-          <p>{t('settings.eyebrow')}</p>
-          <h2 id="settings-intro-title">{t('settings.title')}</h2>
-          <span>{t('settings.description')}</span>
-        </div>
-      </section>
+      <SettingsTabs path="/parameters/profile" />
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`settings.saved.${saved}`)}</Toast>

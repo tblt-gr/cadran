@@ -1,4 +1,6 @@
 import type { Account } from '@cadran/api-client';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -6,8 +8,10 @@ import { todayInBrowser } from '@/lib/businessDay';
 import styles from './PortfolioAccountHeader.module.css';
 
 /**
- * Identity and primary action of a portfolio account. Without `account` it is the
- * loading state: the static chrome stays real, only the account's own values are blocks.
+ * Institution and product line of a portfolio account, plus its page actions in
+ * the shell header. The account name already lives in the shell header and the
+ * breadcrumb. Without `account` it is the loading state: the actions stay real
+ * but disabled, only the account's own values are blocks.
  */
 export function PortfolioAccountHeader({
   account,
@@ -30,29 +34,11 @@ export function PortfolioAccountHeader({
   const instrumentsHref = '/portfolios/instruments';
 
   return (
-    <section aria-labelledby="portfolio-account-title" className={styles.intro}>
-      <div>
-        <h2 id="portfolio-account-title">
-          {account ? account.label : <SkeletonBlock className={styles.title} />}
-        </h2>
-        {account ? (
-          subtitle ? (
-            <p className={styles.subtitle}>{subtitle}</p>
-          ) : null
-        ) : (
-          <SkeletonBlock className={styles.subtitleBlock} />
-        )}
-      </div>
-      <div className={styles.actions}>
-        <a
-          className="secondary-action"
-          href={instrumentsHref}
-          onClick={(event) => handleClientNavigation(event, instrumentsHref)}
-        >
-          Gérer les instruments
-        </a>
+    <>
+      <HeaderActions>
         <button
-          className="primary-action"
+          aria-label="Nouvelle opération"
+          className={`primary-action ${styles.add}`}
           disabled={
             !account ||
             account.status !== 'ACTIVE' ||
@@ -64,19 +50,38 @@ export function PortfolioAccountHeader({
           onClick={onCreate}
           type="button"
         >
-          Nouvelle opération
+          <Icon name="add" size={18} />
+          <span className={styles.addLabel}>Nouvelle opération</span>
         </button>
-        {contractRequired ? (
-          <a
-            href={`/portfolios/${accountId}?tab=contract`}
-            onClick={(event) =>
-              handleClientNavigation(event, `/portfolios/${accountId}?tab=contract`)
-            }
-          >
-            Renseignez d'abord le contrat
-          </a>
-        ) : null}
-      </div>
-    </section>
+        <a
+          aria-label="Gérer les instruments"
+          className="icon-button"
+          href={instrumentsHref}
+          onClick={(event) => handleClientNavigation(event, instrumentsHref)}
+          title="Gérer les instruments"
+        >
+          <Icon name="chart-line" />
+        </a>
+      </HeaderActions>
+      {account ? (
+        subtitle || contractRequired ? (
+          <div className={styles.meta}>
+            {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
+            {contractRequired ? (
+              <a
+                href={`/portfolios/${accountId}?tab=contract`}
+                onClick={(event) =>
+                  handleClientNavigation(event, `/portfolios/${accountId}?tab=contract`)
+                }
+              >
+                Renseignez d'abord le contrat
+              </a>
+            ) : null}
+          </div>
+        ) : null
+      ) : (
+        <SkeletonBlock className={styles.subtitleBlock} />
+      )}
+    </>
   );
 }

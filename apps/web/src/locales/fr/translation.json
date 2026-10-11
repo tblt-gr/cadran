@@ -82,18 +82,6 @@
     "missingFreshness_other": "{{count}} valorisations manquantes",
     "staleFreshness": "Mis à jour il y a {{count}} jours"
   },
-  "foundationActions": {
-    "add": {
-      "description": "La création sera activée avec les premiers modules métier. Aucune donnée n’a été modifiée.",
-      "status": "Ajout bientôt disponible",
-      "title": "Ajouter une donnée"
-    },
-    "search": {
-      "description": "La recherche globale sera activée lorsque les premières données pourront être indexées.",
-      "status": "Recherche bientôt disponible",
-      "title": "Rechercher dans Cadran"
-    }
-  },
   "navigation": {
     "accounts": "Comptes",
     "budget": "Budget",
@@ -109,7 +97,6 @@
     "moreDialog": "Navigation complémentaire",
     "reports": "Rapports",
     "settings": "Paramètres",
-    "tax": "Impôts",
     "transactions": "Transactions",
     "catalog": "Catalogue produits",
     "productModels": "Modèles de produits"
@@ -356,12 +343,13 @@
     }
   },
   "accounts": {
-    "eyebrow": "Patrimoine de l’espace",
-    "title": "Comptes et supports",
-    "description": "Décrivez chaque compte : devise, nature, dates de vie et portée patrimoniale. Un solde observé à une date reste exact ; une absence reste non calculable.",
     "add": "Nouveau compte",
     "addFirst": "Créer le premier compte",
     "manageGroups": "Gérer les groupes",
+    "filters": {
+      "open": "Filtres",
+      "title": "Filtrer les comptes"
+    },
     "includeClosed": "Afficher les comptes clôturés",
     "includeArchived": "Afficher les comptes archivés",
     "loading": "Chargement des comptes…",
@@ -819,7 +807,6 @@
       }
     },
     "detail": {
-      "eyebrow": "Détail du compte",
       "loading": "Chargement du compte…",
       "notFound": {
         "title": "Compte introuvable",
@@ -859,6 +846,7 @@
       },
       "actions": {
         "addTransaction": "Nouvelle transaction",
+        "more": "Autres actions",
         "addTransfer": "Nouveau virement",
         "openPortfolio": "Ouvrir le portefeuille",
         "valuePortfolio": "Valoriser le portefeuille",
@@ -880,12 +868,8 @@
     }
   },
   "accountGroups": {
-    "eyebrow": "Organisation patrimoniale",
-    "title": "Groupes de comptes",
-    "description": "Classez les comptes dans une arborescence exclusive. Les étiquettes n’entrent pas dans le dénominateur d’un groupe.",
     "add": "Nouveau groupe",
     "addFirst": "Créer le premier groupe",
-    "backToAccounts": "Retour aux comptes",
     "includeArchived": "Afficher les groupes archivés",
     "loading": "Chargement des groupes…",
     "toasts": {
@@ -986,12 +970,8 @@
     }
   },
   "categories": {
-    "eyebrow": "Référentiel de l’espace",
-    "title": "Catégories et axes analytiques",
-    "description": "Structurez les revenus et dépenses sans doubler les totaux, puis ajoutez des axes transversaux.",
     "add": "Nouvelle catégorie",
     "manageRules": "Gérer les règles",
-    "backToTransactions": "Retour aux transactions",
     "addFirst": "Créer la première catégorie",
     "includeArchived": "Afficher les catégories archivées",
     "loading": "Chargement des catégories…",
@@ -1284,10 +1264,11 @@
     }
   },
   "catalog": {
-    "eyebrow": "Référentiel système",
-    "title": "Catalogue des produits financiers",
-    "description": "Les modèles de produits livrés avec l’application, avec leurs plafonds et taux datés et la source officielle de chaque valeur.",
     "resolvedOn": "Règles applicables au {{date}}.",
+    "filters": {
+      "open": "Filtres du catalogue",
+      "title": "Filtres"
+    },
     "loading": "Chargement du catalogue…",
     "asOf": {
       "label": "Date métier",
@@ -1437,7 +1418,19 @@
       "loading": "Chargement des instruments disponibles…"
     },
     "instruments": {
-      "loading": "Chargement des instruments…"
+      "loading": "Chargement des instruments…",
+      "add": "Nouvel instrument",
+      "search": "Rechercher un instrument",
+      "filters": {
+        "open": "Filtres",
+        "title": "Filtrer les instruments",
+        "status": "Statut",
+        "statuses": {
+          "active": "Actifs",
+          "inactive": "Inactifs",
+          "all": "Tous"
+        }
+      }
     },
     "kpi": {
       "TOTAL_VALUE": {
@@ -1461,11 +1454,12 @@
     }
   },
   "productModels": {
-    "eyebrow": "Référentiel de l’espace",
-    "title": "Modèles de produits",
-    "description": "Décrivez les produits que votre établissement propose, à côté du catalogue système en lecture seule : famille, enveloppe, rendement, capacités et périodes datées.",
     "add": "Nouveau modèle",
     "addFromProduct": "Partir d’un produit",
+    "filters": {
+      "open": "Filtres des modèles",
+      "title": "Filtres"
+    },
     "addFirst": "Créer le premier modèle",
     "loading": "Chargement des modèles…",
     "saved": "Le modèle a été enregistré.",
@@ -1651,6 +1645,7 @@
     }
   },
   "dashboard": {
+    "currentMonth": "Mois en cours : {{month}}",
     "allocation": {
       "description": "Répartition exclusive par groupe de comptes",
       "empty": "Aucun groupe de comptes de premier niveau. Créez-en un pour répartir votre patrimoine.",
@@ -1672,7 +1667,6 @@
       "xAxis": "Date"
     },
     "income": {
-      "description": "{{count}} opérations en {{period}}",
       "title": "Revenus"
     },
     "netWorth": {
@@ -1717,22 +1711,14 @@
         "title": "Patrimoine inaccessible"
       }
     },
-    "quality": {
-      "description": "Exemples des états du shell",
-      "title": "Qualité des données"
-    },
     "savingRate": {
       "title": "Taux d’épargne"
     },
     "spending": {
-      "description": "{{count}} opérations en {{period}}",
       "title": "Dépenses"
     }
   },
   "settings": {
-    "eyebrow": "Compte",
-    "title": "Paramètres du profil",
-    "description": "Gérez le nom affiché et le mot de passe de votre compte propriétaire.",
     "loading": "Chargement du profil…",
     "error": {
       "title": "Profil indisponible",
@@ -1797,7 +1783,9 @@
     "tabs": {
       "label": "Sections des paramètres",
       "profile": "Profil",
-      "metricPolicy": "Politique d’indicateurs"
+      "metricPolicy": "Politique d’indicateurs",
+      "catalog": "Catalogue",
+      "productModels": "Modèles"
     }
   },
   "closures": {
@@ -1857,12 +1845,10 @@
     }
   },
   "transactions": {
-    "eyebrow": "Mouvements de l’espace",
-    "title": "Mouvements enregistrés",
-    "description": "Enregistrez chaque entrée ou sortie sur un compte, avec son montant exact, sa date et éventuellement une catégorie.",
     "add": "Nouvelle transaction",
     "addFirst": "Enregistrer la première transaction",
     "addTransfer": "Nouveau virement",
+    "moreActions": "Autres actions",
     "manageRecurrences": "Gérer les récurrences",
     "manageCategories": "Gérer les catégories",
     "includeVoided": "Afficher les transactions annulées",
@@ -2025,6 +2011,9 @@
       "categorizationAll": "Toutes",
       "categorizationQueue": "À catégoriser",
       "toggle": "Filtres",
+      "toggleWithCount_one": "Filtres ({{count}} actif)",
+      "toggleWithCount_other": "Filtres ({{count}} actifs)",
+      "title": "Filtres",
       "periodLabel": "Période",
       "period": {
         "all": "Toutes les dates",
@@ -2129,10 +2118,6 @@
     }
   },
   "recurrences": {
-    "eyebrow": "Suivi prévisionnel",
-    "title": "Récurrences",
-    "backToTransactions": "Retour aux transactions",
-    "description": "Confirmez les mouvements réguliers puis surveillez leurs échéances, sans les ajouter aux écritures.",
     "add": "Nouvelle récurrence",
     "forecastNotice": "Une échéance attendue est une prévision : elle n’est comptée dans aucun total enregistré.",
     "loading": "Chargement des récurrences…",
@@ -2248,10 +2233,6 @@
     }
   },
   "categorizationRules": {
-    "eyebrow": "Automatisation contrôlée",
-    "title": "Règles de catégorisation",
-    "description": "Préparez des règles ordonnées qui catégorisent les mouvements éligibles sans remplacer une décision manuelle.",
-    "backToCategories": "Retour aux catégories",
     "add": "Nouvelle règle",
     "addFirst": "Créer la première règle",
     "loading": "Chargement des règles…",
@@ -2480,9 +2461,6 @@
     }
   },
   "goals": {
-    "eyebrow": "Objectifs",
-    "title": "Objectifs d’épargne et de budget",
-    "description": "Définissez des seuils annuels ou des objectifs mensuels fondés sur votre revenu de référence.",
     "add": "Nouvel objectif",
     "filters": "Filtres des objectifs",
     "year": "Année",
@@ -2789,9 +2767,7 @@
   },
   "budget": {
     "monthly": {
-      "eyebrow": "Budget mensuel",
       "title": "Budget de {{month}}",
-      "description": "Consultez les mouvements comptabilisés du mois et ajoutez les corrections utiles.",
       "managePlans": "Gérer les plans et objectifs",
       "createTransaction": "Créer une transaction",
       "year": "Année",
@@ -2872,6 +2848,10 @@
         "label": "Synthèse mensuelle",
         "loading": "Chargement de la synthèse mensuelle…",
         "pending": "Des opérations en attente peuvent encore modifier cette synthèse.",
+        "info": {
+          "open": "Informations sur la synthèse",
+          "title": "Informations sur la synthèse"
+        },
         "empty": "Aucune donnée comptabilisée pour cette synthèse.",
         "provisional": "Valeurs provisoires à la date du jour.",
         "reasons": {
@@ -2960,14 +2940,8 @@
         }
       }
     },
-    "eyebrow": "Configuration budgétaire",
-    "title": "Plans budgétaires",
-    "description": "Définissez des objectifs mensuels ou annuels sans modifier vos transactions.",
-    "detailTitle": "Plan {{period}}",
-    "detailDescription": "Les montants résolus et avertissements sont fournis par le serveur.",
     "addPlan": "Nouveau plan",
     "addFirst": "Créer le premier plan",
-    "back": "Retour aux plans",
     "edit": "Modifier",
     "activate": "Activer",
     "close": "Clôturer",
@@ -3098,8 +3072,6 @@
   },
   "metricPolicy": {
     "eyebrow": "Indicateurs",
-    "title": "Politique d’indicateurs",
-    "description": "Définit quels comptes comptent comme trésorerie dans les revenus et les dépenses budgétaires. Les mois clôturés gardent la version active à leur clôture.",
     "loading": "Chargement de la politique d’indicateurs…",
     "error": "La politique d’indicateurs est indisponible",
     "unauthorized": "Vous n’êtes pas autorisé à consulter cette politique",

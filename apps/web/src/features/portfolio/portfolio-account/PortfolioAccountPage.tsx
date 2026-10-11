@@ -9,7 +9,6 @@ import { clearPortfolioDetailSelection } from './portfolioDetailLocation';
 import { MonthEndValuationBanner } from '@/features/portfolio/month-end/month-end-valuation-banner/MonthEndValuationBanner';
 import { ValueHistoryCard } from './value-history-card/ValueHistoryCard';
 import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
 import { NotPortfolioState } from './operations/NotPortfolioState';
@@ -83,13 +82,6 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
             Réessayer
           </button>
         )}
-        <a
-          className="secondary-action"
-          href="/accounts"
-          onClick={(event) => handleClientNavigation(event, '/accounts')}
-        >
-          Retour aux comptes
-        </a>
       </section>
     );
   }

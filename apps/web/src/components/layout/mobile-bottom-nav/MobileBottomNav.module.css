@@ -10,7 +10,7 @@
     bottom: calc(var(--spacing-3) + env(safe-area-inset-bottom));
     left: var(--spacing-3);
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     min-height: var(--mobile-navigation-height);
     padding: var(--spacing-1-5);
     border: var(--border-line-strong);
@@ -19,12 +19,7 @@
     box-shadow: var(--shadow-mobile-navigation);
   }
 
-  .navigation.withoutAction {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .link,
-  .add {
+  .link {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -44,9 +39,5 @@
   .link[aria-current='page'] {
     color: var(--gold-300);
     background: var(--gold-soft);
-  }
-
-  .add {
-    color: var(--gold-300);
   }
 }

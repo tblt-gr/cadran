@@ -197,8 +197,9 @@ describe('App', () => {
     ['/reports/annual/2026', 'Rapport annuel 2026'],
     ['/reports/all-years', 'Rapport pluriannuel'],
     ['/goals', 'Objectifs'],
-    ['/tax/2026', 'Impôts'],
-    ['/settings/profile', 'Paramètres'],
+    ['/parameters/profile', 'Paramètres'],
+    ['/parameters/catalog', 'Catalogue produits'],
+    ['/parameters/product-models', 'Modèles de produits'],
   ])('scaffolds the route %s', async (path, title) => {
     window.history.replaceState({}, '', path);
     mockApi();
@@ -228,11 +229,8 @@ describe('App', () => {
 
     renderApp();
 
-    const manageCategories = await screen.findByRole('link', { name: 'Gérer les catégories' });
-    fireEvent.click(manageCategories, { ctrlKey: true });
-    expect(window.location.pathname).toBe('/transactions');
-
-    fireEvent.click(manageCategories);
+    fireEvent.click(await screen.findByRole('button', { name: 'Autres actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gérer les catégories' }));
 
     expect(window.location.pathname).toBe('/transactions/categories');
     const transactionLinks = await screen.findAllByRole('link', { name: 'Transactions' });
@@ -241,22 +239,13 @@ describe('App', () => {
     );
     expect(screen.queryByRole('link', { name: 'Catégories' })).toBeNull();
 
-    const manageRules = screen.getByRole('link', { name: 'Gérer les règles' });
-    fireEvent.click(manageRules);
+    fireEvent.click(screen.getByRole('link', { name: 'Gérer les règles' }));
 
     expect(window.location.pathname).toBe('/transactions/categories/rules');
     expect(
-      await screen.findAllByRole('heading', { name: 'Règles de catégorisation' }),
-    ).toHaveLength(2);
-
-    fireEvent.click(screen.getByRole('link', { name: 'Retour aux catégories' }));
-    expect(window.location.pathname).toBe('/transactions/categories');
-    expect(
-      await screen.findByRole('heading', { name: 'Catégories et axes analytiques' }),
+      await screen.findByRole('heading', { level: 1, name: 'Règles de catégorisation' }),
     ).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('link', { name: 'Retour aux transactions' }));
-    expect(window.location.pathname).toBe('/transactions');
+    expect(screen.queryByRole('link', { name: 'Retour aux catégories' })).toBeNull();
   });
 
   it('skips the legacy URL on browser back after a redirect', async () => {

@@ -79,7 +79,7 @@ function renderPage(timeZone = 'Europe/Paris', shell = false, frozen = false) {
   client.setQueryData(['session'], session);
   api.getSession.mockImplementation(() => ok(session));
   const content = shell ? (
-    <AppShell path={window.location.pathname} setPath={vi.fn()} showGlobalActions={false}>
+    <AppShell path={window.location.pathname} setPath={vi.fn()}>
       <PortfolioAccountPage accountId={accountId} />
     </AppShell>
   ) : (
@@ -222,7 +222,7 @@ describe('PortfolioAccountPage', () => {
       expect(screen.queryByRole('dialog')).toBeNull();
       view.unmount();
       renderPage();
-      await screen.findByRole('heading', { name: 'PEA Démo' });
+      await waitFor(() => expect(screen.queryByTestId('value-history-skeleton')).toBeNull());
       expect(screen.queryByRole('dialog')).toBeNull();
     },
   );
@@ -263,7 +263,7 @@ describe('PortfolioAccountPage', () => {
       expect(screen.queryByRole('dialog')).toBeNull();
       view.unmount();
       renderPage();
-      await screen.findByRole('heading', { name: 'PEA Démo' });
+      await waitFor(() => expect(screen.queryByTestId('value-history-skeleton')).toBeNull());
       expect(screen.queryByRole('dialog')).toBeNull();
     },
   );
@@ -581,7 +581,6 @@ describe('PortfolioAccountPage', () => {
     expect(screen.getByRole('heading', { name: 'Évolution de la valeur' })).toBeTruthy();
     expect(screen.getByTestId('value-history-skeleton')).toBeTruthy();
     resolve?.(await ok(account));
-    expect(await screen.findByRole('heading', { name: 'PEA Démo' })).toBeTruthy();
     expect(await screen.findByRole('table', { name: 'Opérations du portefeuille' })).toBeTruthy();
     expect(screen.queryByTestId('operations-skeleton')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();

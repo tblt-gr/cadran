@@ -7,6 +7,7 @@ namespace App\Tests\Module\Demo\Application;
 use App\Module\Demo\Application\DemoCents;
 use App\Module\Demo\Application\DemoRandom;
 use App\Module\Demo\Application\DemoSeedRefused;
+use App\Module\Demo\Application\ExtendDemoData;
 use App\Module\Demo\Application\SeedDemoData;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Tests\Support\WorkspaceFixture;
@@ -216,6 +217,32 @@ final class SeedDemoDataTest extends KernelTestCase
         } catch (DemoSeedRefused) {
             self::assertSame($before, $this->rows('SELECT COUNT(*) FROM transaction_transactions'));
         }
+    }
+
+    public function testExtendingASeededWorkspaceIsIdempotentAndRestoresMissingOpenMonthEntries(): void
+    {
+        $seed = self::getContainer()->get(SeedDemoData::class);
+        self::assertInstanceOf(SeedDemoData::class, $seed);
+        $extend = self::getContainer()->get(ExtendDemoData::class);
+        self::assertInstanceOf(ExtendDemoData::class, $extend);
+        $seed(WorkspaceFixture::OWNER_EMAIL);
+        $live = "SELECT COUNT(*) FROM transaction_transactions WHERE workspace_id = ? AND voided_at IS NULL AND booked_on >= date_trunc('month', current_date)";
+        $workspace = WorkspaceFixture::OWN_WORKSPACE;
+        $before = $this->rows($live, [$workspace]);
+
+        // Seeded today, nothing is missing: the extension writes nothing.
+        $extend(WorkspaceFixture::OWNER_EMAIL);
+        self::assertSame($before, $this->rows($live, [$workspace]));
+
+        // As if the seed had run days ago: direct debits of the open month are gone, the extension brings them back once.
+        $this->connection->executeStatement(
+            "UPDATE transaction_transactions SET voided_at = now(), state = 'VOIDED' WHERE workspace_id = ? AND raw_label LIKE 'PRLV %' AND booked_on >= date_trunc('month', current_date)",
+            [$workspace],
+        );
+        $extend(WorkspaceFixture::OWNER_EMAIL);
+        self::assertSame($before, $this->rows($live, [$workspace]));
+        $extend(WorkspaceFixture::OWNER_EMAIL);
+        self::assertSame($before, $this->rows($live, [$workspace]));
     }
 
     public function testCentsFormatExactlyAndTheGeneratorIsReproducible(): void

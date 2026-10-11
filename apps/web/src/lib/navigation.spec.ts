@@ -14,11 +14,11 @@ describe('navigationItems', () => {
   });
 
   it('titles the metric policy page while keeping it under Settings', () => {
-    expect(getRouteTitleKey('/settings/metric-policy')).toBe('routes.metricPolicy');
+    expect(getRouteTitleKey('/parameters/metric-policy')).toBe('routes.metricPolicy');
     expect(
       navigationItems
-        .find((item) => item.href === '/settings/profile')
-        ?.match('/settings/metric-policy'),
+        .find((item) => item.href === '/parameters/profile')
+        ?.match('/parameters/metric-policy'),
     ).toBe(true);
   });
 

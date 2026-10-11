@@ -1,7 +1,9 @@
 import type { MetricPolicy } from '@cadran/api-client';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { SettingsTabs } from '@/components/layout/settings-tabs/SettingsTabs';
+import { Icon } from '@/components/ui/icon/Icon';
 import { ActivateMetricPolicyModal } from './activate-metric-policy-modal/ActivateMetricPolicyModal';
 import { CreateMetricPolicyModal } from './create-metric-policy-modal/CreateMetricPolicyModal';
 import { ActiveMetricPolicyCard } from './ActiveMetricPolicyCard';
@@ -22,13 +24,8 @@ export function MetricPolicyPage() {
 
   return (
     <div className={styles.page}>
-      <SettingsTabs path="/settings/metric-policy" />
-      <section className={styles.intro} aria-labelledby="metric-policy-title">
-        <div>
-          <p>{t('metricPolicy.eyebrow')}</p>
-          <h2 id="metric-policy-title">{t('metricPolicy.title')}</h2>
-          <span>{t('metricPolicy.description')}</span>
-        </div>
+      <SettingsTabs path="/parameters/metric-policy" />
+      <HeaderActions>
         <button
           className="primary-action"
           disabled={!policies.data}
@@ -36,9 +33,10 @@ export function MetricPolicyPage() {
           ref={createButton}
           type="button"
         >
+          <Icon name="add" size={18} />
           {t('metricPolicy.create.open')}
         </button>
-      </section>
+      </HeaderActions>
 
       {policies.isPending && policies.data === undefined ? (
         <MetricPolicyPageSkeleton status={t('metricPolicy.loading')} />

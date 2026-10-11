@@ -1,23 +1,6 @@
-.bar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-  padding: var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-card);
-  background: var(--bg-surface-1);
-}
-
-.searchRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-3);
-}
-
 .search {
   display: flex;
-  flex: 1 1 16rem;
+  grid-column: 1 / -1;
   align-items: center;
   min-width: 0;
   min-height: var(--control-height);
@@ -51,19 +34,19 @@
   appearance: none;
 }
 
-.toggle {
+.trigger {
   position: relative;
-  flex: 0 0 auto;
-  gap: var(--spacing-2);
-  white-space: nowrap;
 }
 
-.toggle[data-active='true'] {
+.trigger[data-active='true'] {
   color: var(--gold-200);
   border-color: var(--gold-500);
 }
 
 .badge {
+  position: absolute;
+  top: calc(var(--spacing-1) * -1);
+  right: calc(var(--spacing-1) * -1);
   display: inline-grid;
   min-width: 1.125rem;
   height: 1.125rem;
@@ -77,15 +60,10 @@
 }
 
 .panel {
-  display: none;
-  gap: var(--spacing-4);
-}
-
-.panel[data-open='true'] {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13.75rem, 1fr));
-  padding-top: var(--spacing-4);
-  border-top: var(--border-line-subtle);
+  align-items: start;
+  gap: var(--spacing-4);
 }
 
 .checkbox {

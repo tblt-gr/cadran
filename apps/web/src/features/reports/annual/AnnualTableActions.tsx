@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import styles from './AnnualTableActions.module.css';
 
@@ -9,7 +10,7 @@ interface AnnualTableActionsProps {
   saving: boolean;
 }
 
-/** Column picker and incomplete-month switch as circular icon buttons, above the table or the month cards, on every viewport. */
+/** Column picker and incomplete-month switch as circular icon buttons in the shell header. */
 export function AnnualTableActions({
   includeIncomplete,
   onOpenColumns,
@@ -22,7 +23,7 @@ export function AnnualTableActions({
   });
 
   return (
-    <div className={styles.actions}>
+    <HeaderActions>
       <button
         aria-label={t('reports.annual.columns')}
         className={`icon-ghost ${styles.button}`}
@@ -30,7 +31,7 @@ export function AnnualTableActions({
         title={t('reports.annual.columns')}
         type="button"
       >
-        <Icon name="categories" size={16} />
+        <Icon name="columns" size={16} />
       </button>
       <button
         aria-label={incompleteLabel}
@@ -41,8 +42,8 @@ export function AnnualTableActions({
         title={incompleteLabel}
         type="button"
       >
-        <Icon name="calendar" size={16} />
+        <Icon name={includeIncomplete ? 'eye' : 'eye-off'} size={16} />
       </button>
-    </div>
+    </HeaderActions>
   );
 }

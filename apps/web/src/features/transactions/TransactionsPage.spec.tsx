@@ -194,26 +194,26 @@ describe('TransactionsPage', () => {
     expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull();
   });
 
-  it('opens the monthly closure flow before the recurrence action', async () => {
+  it('opens the monthly closure flow from the header overflow menu', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, perPage: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     renderPage();
 
-    const closureButton = screen.getByRole('button', { name: 'Clôture du mois' });
-    const recurrencesLink = screen.getByRole('link', { name: 'Gérer les récurrences' });
-    expect(
-      closureButton.compareDocumentPosition(recurrencesLink) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
+    expect(screen.getByRole('button', { name: 'Gérer les catégories' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Gérer les récurrences' })).toBeTruthy();
     expect(screen.queryByRole('dialog', { name: 'Clôture du mois' })).toBeNull();
 
-    fireEvent.click(closureButton);
+    fireEvent.click(screen.getByRole('button', { name: 'Clôture du mois' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
     expect(within(dialog).getByLabelText('Mois')).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Fermer' }));
-    await waitFor(() => expect(document.activeElement).toBe(closureButton));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Clôture du mois' })).toBeNull(),
+    );
   });
 
   it('offers every category, expenses first, whatever the nature or the sign', async () => {
@@ -754,7 +754,10 @@ describe('TransactionsPage', () => {
 
     expect(await screen.findByRole('row', { name: /CB CARREFOUR/ })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'À catégoriser' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: /À catégoriser/ }),
+    );
 
     await waitFor(() =>
       expect(api.listTransactions).toHaveBeenCalledWith(
@@ -1110,8 +1113,14 @@ describe('TransactionsPage', () => {
     renderPage();
 
     expect(await screen.findByRole('cell', { name: 'Ancien compte' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
     fireEvent.focus(screen.getByRole('combobox', { name: 'Filtrer par compte' }));
     expect(screen.getByRole('option', { name: 'Ancien compte' })).toBeTruthy();
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Filtres' })).getByRole('button', {
+        name: 'Fermer',
+      }),
+    );
     fireEvent.click(
       screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
     );
@@ -1268,6 +1277,7 @@ describe('TransactionsPage', () => {
     renderPage();
 
     await screen.findByRole('heading', { name: 'Aucune transaction' });
+    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
 
     await waitFor(() =>

@@ -212,6 +212,7 @@ describe('ProductCatalogPage', () => {
     renderPage();
     await screen.findByRole('heading', { name: 'Livret A' });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres du catalogue' }));
     fireEvent.change(screen.getByLabelText('Date métier'), { target: { value: '2026-03-15' } });
 
     await waitFor(() => {
@@ -219,6 +220,7 @@ describe('ProductCatalogPage', () => {
         expect.objectContaining({ query: { asOf: '2026-03-15', page: 1, perPage: 25 } }),
       );
     });
+    expect(screen.getByTestId('catalog-filters-count').textContent).toBe('1');
   });
 
   it('asks the reader to sign in again when the session has expired', async () => {

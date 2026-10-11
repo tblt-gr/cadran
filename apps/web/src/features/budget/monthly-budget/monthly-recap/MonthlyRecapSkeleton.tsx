@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import {
   SkeletonBlock,
   SkeletonStatus,
@@ -30,60 +31,69 @@ export function MonthlyRecapPlaceholder() {
   const { t } = useTranslation();
   return (
     <aside className={styles.recap}>
-      <section className={`card ${wealthStyles.panel}`}>
-        <h3>{t('budget.monthly.recap.wealth.title')}</h3>
-        <dl className={wealthStyles.figures}>
-          {WEALTH_LABELS.map((label) => (
-            <div key={label}>
-              <dt>{t(label)}</dt>
-              <dd>
-                <SkeletonBlock className={styles.skeletonValue} />
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-      <section className={`card ${totalsStyles.panel}`}>
-        <header className={totalsStyles.heading}>
-          <div className={totalsStyles.headingTitle}>
-            <h3>{t('budget.monthly.recap.totals.title')}</h3>
-            <button className="secondary-action" disabled type="button">
-              {t('budget.monthly.recap.preferences.open')}
-            </button>
-          </div>
-        </header>
-        <ul className={totalsStyles.rows}>
-          {TOTAL_LABELS.map((label) => (
-            <li className={totalsStyles.row} key={label}>
-              <div>
-                <span className={totalsStyles.label}>{t(label)}</span>
-                <SkeletonBlock className={styles.skeletonAmount} />
+      <div className={styles.wealth}>
+        <section className={`card ${wealthStyles.panel}`}>
+          <h3>{t('budget.monthly.recap.wealth.title')}</h3>
+          <dl className={wealthStyles.figures}>
+            {WEALTH_LABELS.map((label) => (
+              <div key={label}>
+                <dt>{t(label)}</dt>
+                <dd>
+                  <SkeletonBlock className={styles.skeletonValue} />
+                </dd>
               </div>
-            </li>
-          ))}
-        </ul>
-        <h4>{t('budget.monthly.recap.totals.axes')}</h4>
-      </section>
-      <section className={`card ${accountStyles.panel}`}>
-        <h3>{t('budget.monthly.recap.accounts.title')}</h3>
-        <div className={accountStyles.tableScroll}>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">{t('budget.monthly.recap.accounts.account')}</th>
-                <th scope="col">
+            ))}
+          </dl>
+        </section>
+      </div>
+      <div className={styles.totals}>
+        <section className={`card ${totalsStyles.panel}`}>
+          <header className={totalsStyles.heading}>
+            <div className={totalsStyles.headingTitle}>
+              <div className={totalsStyles.titleGroup}>
+                <h3>{t('budget.monthly.recap.totals.title')}</h3>
+                <InfoButton disabled label={t('budget.monthly.recap.info.open')} />
+              </div>
+              <button className="secondary-action" disabled type="button">
+                {t('budget.monthly.recap.preferences.open')}
+              </button>
+            </div>
+          </header>
+          <ul className={totalsStyles.rows}>
+            {TOTAL_LABELS.map((label) => (
+              <li className={totalsStyles.row} key={label}>
+                <div>
+                  <span className={totalsStyles.label}>{t(label)}</span>
                   <SkeletonBlock className={styles.skeletonAmount} />
-                </th>
-                <th scope="col">
-                  <SkeletonBlock className={styles.skeletonAmount} />
-                </th>
-                <th scope="col">{t('budget.monthly.recap.accounts.share')}</th>
-              </tr>
-            </thead>
-            <SkeletonTableRows columns={4} rows={4} />
-          </table>
-        </div>
-      </section>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <h4>{t('budget.monthly.recap.totals.axes')}</h4>
+        </section>
+      </div>
+      <div className={styles.accounts}>
+        <section className={`card ${accountStyles.panel}`}>
+          <h3>{t('budget.monthly.recap.accounts.title')}</h3>
+          <div className={accountStyles.tableScroll}>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">{t('budget.monthly.recap.accounts.account')}</th>
+                  <th scope="col">
+                    <SkeletonBlock className={styles.skeletonAmount} />
+                  </th>
+                  <th scope="col">
+                    <SkeletonBlock className={styles.skeletonAmount} />
+                  </th>
+                  <th scope="col">{t('budget.monthly.recap.accounts.share')}</th>
+                </tr>
+              </thead>
+              <SkeletonTableRows columns={4} rows={4} />
+            </table>
+          </div>
+        </section>
+      </div>
     </aside>
   );
 }

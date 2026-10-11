@@ -1,9 +1,8 @@
-import { MetricPolicyBadge } from '@/features/metric-policy/metric-policy-badge/MetricPolicyBadge';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/features/auth/useSession';
 import { AccountRecap } from './account-recap/AccountRecap';
-import { PortfolioCostsCard } from './portfolio-costs-card/PortfolioCostsCard';
+import { RecapInfo } from './recap-info/RecapInfo';
 import { RecapPreferencesModal } from './recap-preferences/RecapPreferencesModal';
 import { TotalsCard } from './totals-card/TotalsCard';
 import { useMonthlyRecap, useRecapPreferences } from './useMonthlyRecap';
@@ -33,50 +32,48 @@ export function MonthlyRecap({ month }: { month: string }) {
   const data = recap.data;
   return (
     <aside aria-label={t('budget.monthly.recap.label')} className={styles.recap}>
-      <p className={styles.policy}>
-        <MetricPolicyBadge policy={data.metricPolicy} />
-      </p>
-      {data.state === 'PENDING' ? (
-        <p className={styles.pending} role="status">
-          {t('budget.monthly.recap.pending')}
-        </p>
-      ) : null}
       {data.state === 'EMPTY' ? (
         <p className={styles.pending}>{t('budget.monthly.recap.empty')}</p>
       ) : null}
-      <WealthCard netWorth={data.netWorth} provisional={data.provisional} />
-      {preferences.isPending ? (
-        <section aria-busy="true" className={`card ${styles.preferenceState}`} role="status">
-          {t('budget.monthly.recap.preferences.loading')}
-        </section>
-      ) : preferences.isError || !preferences.data ? (
-        <section className={`card ${styles.preferenceState}`} role="alert">
-          <p>{t('budget.monthly.recap.preferences.error')}</p>
-          <button
-            className="secondary-action"
-            onClick={() => void preferences.refetch()}
-            type="button"
-          >
-            {t('foundation.retry')}
-          </button>
-        </section>
-      ) : (
-        <TotalsCard
-          month={month}
-          onConfigure={() => setEditingPreferences(true)}
-          owner={owner}
-          totals={data.totals}
-          visibleAxes={preferences.data.visibleAxes}
-          visibleCategoryIds={preferences.data.visibleCategoryIds}
+      <div className={styles.wealth}>
+        <WealthCard netWorth={data.netWorth} provisional={data.provisional} />
+      </div>
+      <div className={styles.totals}>
+        {preferences.isPending ? (
+          <section aria-busy="true" className={`card ${styles.preferenceState}`} role="status">
+            {t('budget.monthly.recap.preferences.loading')}
+          </section>
+        ) : preferences.isError || !preferences.data ? (
+          <section className={`card ${styles.preferenceState}`} role="alert">
+            <p>{t('budget.monthly.recap.preferences.error')}</p>
+            <button
+              className="secondary-action"
+              onClick={() => void preferences.refetch()}
+              type="button"
+            >
+              {t('foundation.retry')}
+            </button>
+          </section>
+        ) : (
+          <TotalsCard
+            info={<RecapInfo pending={data.state === 'PENDING'} policy={data.metricPolicy} />}
+            month={month}
+            onConfigure={() => setEditingPreferences(true)}
+            owner={owner}
+            totals={data.totals}
+            visibleAxes={preferences.data.visibleAxes}
+            visibleCategoryIds={preferences.data.visibleCategoryIds}
+          />
+        )}
+      </div>
+      <div className={styles.accounts}>
+        <AccountRecap
+          accounts={data.accounts}
+          currentAsOf={data.currentAsOf}
+          groups={data.groups}
+          previousAsOf={data.previousAsOf}
         />
-      )}
-      <AccountRecap
-        accounts={data.accounts}
-        currentAsOf={data.currentAsOf}
-        groups={data.groups}
-        previousAsOf={data.previousAsOf}
-      />
-      {data.portfolioCosts ? <PortfolioCostsCard costs={data.portfolioCosts} /> : null}
+      </div>
       {editingPreferences && preferences.data ? (
         <RecapPreferencesModal
           close={() => setEditingPreferences(false)}

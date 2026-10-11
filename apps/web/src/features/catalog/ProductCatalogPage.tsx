@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
+import { SettingsTabs } from '@/components/layout/settings-tabs/SettingsTabs';
+import { CatalogFilters } from './catalog-filters/CatalogFilters';
 import { ProductCard } from '@/features/catalog/product-card/ProductCard';
 import { ProductCatalogPageSkeleton } from './ProductCatalogPageSkeleton';
 import { todayInBrowser } from '@/lib/businessDay';
@@ -70,14 +71,13 @@ export function ProductCatalogPage() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.intro} aria-labelledby="catalog-intro-title">
-        <div>
-          <p>{t('catalog.eyebrow')}</p>
-          <h2 id="catalog-intro-title">{t('catalog.title')}</h2>
-          <span>{t('catalog.description')}</span>
-        </div>
-        <BusinessDateField onChange={chooseBusinessDate} today={today} value={asOf} />
-      </section>
+      <SettingsTabs path="/parameters/catalog" />
+      <CatalogFilters
+        asOf={asOf}
+        disabled={catalogue.isPending && catalogue.data === undefined}
+        onChange={chooseBusinessDate}
+        today={today}
+      />
 
       {catalogue.isPending && catalogue.data === undefined ? (
         <ProductCatalogPageSkeleton status={t('catalog.loading')} />

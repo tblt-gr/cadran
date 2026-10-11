@@ -272,7 +272,7 @@ describe('AccountGroupsPage', () => {
     renderPage();
 
     await screen.findByRole('heading', { name: 'Aucun groupe' });
-    fireEvent.click(screen.getByLabelText('Afficher les groupes archivés'));
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher les groupes archivés' }));
 
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(document.querySelector('img')).toBeNull();

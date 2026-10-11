@@ -9,6 +9,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
@@ -109,35 +110,21 @@ export function CategoryPage() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.intro} aria-labelledby="category-intro-title">
-        <div>
-          <p>{t('categories.eyebrow')}</p>
-          <div className={styles.titleRow}>
-            <a
-              aria-label={t('categories.backToTransactions')}
-              className={`icon-button ${styles.back}`}
-              href="/transactions"
-              onClick={(event) => handleClientNavigation(event, '/transactions')}
-            >
-              <Icon name="arrow-left" size={18} />
-            </a>
-            <h2 id="category-intro-title">{t('categories.title')}</h2>
-          </div>
-          <span>{t('categories.description')}</span>
-        </div>
-        <div className={styles.introActions}>
-          <a
-            className="secondary-action"
-            href="/transactions/categories/rules"
-            onClick={(event) => handleClientNavigation(event, '/transactions/categories/rules')}
-          >
-            {t('categories.manageRules')}
-          </a>
-          <button className="primary-action" onClick={() => openEditor('create')} type="button">
-            {t('categories.add')}
-          </button>
-        </div>
-      </section>
+      <HeaderActions>
+        <button className="primary-action" onClick={() => openEditor('create')} type="button">
+          <Icon name="add" size={18} />
+          {t('categories.add')}
+        </button>
+        <a
+          aria-label={t('categories.manageRules')}
+          className="icon-button"
+          href="/transactions/categories/rules"
+          onClick={(event) => handleClientNavigation(event, '/transactions/categories/rules')}
+          title={t('categories.manageRules')}
+        >
+          <Icon name="sliders" size={18} />
+        </a>
+      </HeaderActions>
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>

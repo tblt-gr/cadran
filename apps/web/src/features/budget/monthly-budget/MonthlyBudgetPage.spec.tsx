@@ -287,7 +287,7 @@ function renderPage(periodKey = '2026-03') {
 
 async function loaded() {
   await waitFor(() => expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull());
-  await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
+  await waitFor(() => expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull());
 }
 
 describe('MonthlyBudgetPage', () => {
@@ -407,7 +407,7 @@ describe('MonthlyBudgetPage', () => {
     api.readMonthlyLedger.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
     await waitFor(() => expect(api.readMonthlyLedger).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('heading', { name: 'Budget de mars 2026' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Créer une transaction' })).toBeTruthy();
     expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
   });
 
@@ -427,13 +427,13 @@ describe('MonthlyBudgetPage', () => {
     ).toHaveLength(1);
     resolveRecap?.({ data: recap, response: new Response('{}', { status: 200 }) });
     expect(await screen.findByText('Salaire')).toBeTruthy();
-    expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull();
+    expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
 
     api.readMonthlyRecap.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['monthly-recap'] });
     await waitFor(() => expect(api.readMonthlyRecap).toHaveBeenCalledTimes(2));
     expect(screen.getByText('Salaire')).toBeTruthy();
-    expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull();
+    expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
   });
 
   it('replaces the recap skeleton with its error and empty states', async () => {
@@ -442,7 +442,7 @@ describe('MonthlyBudgetPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Synthèse mensuelle indisponible' }),
     ).toBeTruthy();
-    expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull();
+    expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
 
     failed.unmount();
     api.readMonthlyRecap.mockReturnValue(ok({ ...recap, state: 'EMPTY' }));
@@ -450,13 +450,13 @@ describe('MonthlyBudgetPage', () => {
     expect(
       await screen.findByText('Aucune donnée comptabilisée pour cette synthèse.'),
     ).toBeTruthy();
-    expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull();
+    expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
   });
 
   it('renders exact zero, hides categories without movement and keeps every account', async () => {
     renderPage();
 
-    expect(await screen.findByRole('heading', { name: 'Budget de mars 2026' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Créer une transaction' })).toBeTruthy();
     expect(await screen.findByText('Salaire')).toBeTruthy();
     expect(
       screen.getAllByText(
@@ -912,7 +912,7 @@ describe('MonthlyBudgetPage', () => {
     }
   });
 
-  it('shows portfolio costs outside the budget only when the workspace has a portfolio account', async () => {
+  it('keeps the portfolio costs panel hidden until portfolio taxes are implemented', async () => {
     renderPage();
     await loaded();
     expect(screen.queryByRole('heading', { name: 'Coûts de portefeuille' })).toBeNull();
@@ -938,13 +938,24 @@ describe('MonthlyBudgetPage', () => {
       }),
     );
     renderPage();
-    expect(await screen.findByRole('heading', { name: 'Coûts de portefeuille' })).toBeTruthy();
+    await loaded();
+    expect(screen.queryByRole('heading', { name: 'Coûts de portefeuille' })).toBeNull();
   });
 
-  it('shows the metric policy version of the month next to the recap', async () => {
+  it('keeps the metric policy behind the recap info button', async () => {
     renderPage();
 
-    expect(await screen.findByText('Politique v1')).toBeTruthy();
+    await waitFor(() => expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
+    const info = await screen.findByRole('button', { name: 'Informations sur la synthèse' });
+    expect(screen.queryByText('Politique v1')).toBeNull();
+    expect(screen.queryByText(/peuvent encore modifier/)).toBeNull();
+    fireEvent.click(info);
+    const dialog = await screen.findByRole('dialog', { name: 'Informations sur la synthèse' });
+    expect(within(dialog).getByText('Politique v1')).toBeTruthy();
+    expect(
+      within(dialog).getByText('Des opérations en attente peuvent encore modifier cette synthèse.'),
+    ).toBeTruthy();
   });
 
   it('shows provisional non-calculable recap values, links accounts, and saves owner preferences', async () => {

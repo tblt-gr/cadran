@@ -105,11 +105,10 @@ describe('AnnualReportPage', () => {
     expect(screen.getByTestId('header-title').textContent).toBe('Rapport annuel 2025');
     const selected = screen.getByRole('link', { name: '2025' });
     expect(selected.getAttribute('aria-current')).toBe('page');
-    expect(selected.className).toContain('active');
     const current = screen.getByRole('link', { name: '2026' });
     expect(current.getAttribute('aria-current')).toBeNull();
-    expect(current.className).toContain('current');
-    expect(screen.getByRole('link', { name: '2024' }).className).toBe('');
+    expect(current.getAttribute('data-current')).toBe('true');
+    expect(screen.getByRole('link', { name: '2024' }).hasAttribute('data-current')).toBe(false);
   });
 
   it('renders exact amounts and rates, and a dash with a hidden reason for empty cells', async () => {
@@ -255,7 +254,7 @@ describe('AnnualReportPage', () => {
     );
     renderPage();
     const link = await screen.findByRole('link', { name: /politique d’indicateurs/i });
-    expect(link.getAttribute('href')).toBe('/settings/metric-policy');
+    expect(link.getAttribute('href')).toBe('/parameters/metric-policy');
   });
 
   it('offers a retry after an error', async () => {

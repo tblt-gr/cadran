@@ -1,8 +1,23 @@
+/* Masonry-style flow with CSS columns: panels fill the columns top to bottom, so a short panel never
+   leaves a gap beside a tall one. The browser picks as many columns as fit the minimum width;
+   notices span every column. */
 .recap {
-  display: flex;
+  display: block;
   min-width: 0;
-  flex-direction: column;
-  gap: var(--spacing-4);
+  column-gap: var(--spacing-4);
+  column-width: 28rem;
+}
+.wealth,
+.totals,
+.accounts {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  margin-bottom: var(--spacing-4);
+  break-inside: avoid;
+}
+.pending {
+  column-span: all;
 }
 .state,
 .preferenceState {
@@ -19,10 +34,6 @@
   margin: var(--spacing-none);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
-}
-
-.policy {
-  margin: var(--spacing-none);
 }
 
 .skeletonValue {

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useMultiYearReport } from '@/features/reports/multi-year/useMultiYearReport';
-import styles from './MonthlyMonthNavigator.module.css';
+import { TabsNav } from '@/components/ui/tabs-nav/TabsNav';
 
 /** Month label with year (`Septembre 2026`), capitalised like the Budget month tabs. */
 export function formatMonthLabel(month: string, locale: string): string {
@@ -29,8 +29,8 @@ interface MonthlyMonthNavigatorProps {
 
 /**
  * Every available month, newest first, in the same family as the annual year
- * list: horizontal scroll when the range overflows, active month in gold and
- * the current month in a distinct colour.
+ * list: horizontal scroll when the range overflows, active month underlined
+ * and the current month marked by a dot.
  */
 export function MonthlyMonthNavigator({
   currentMonth,
@@ -54,23 +54,16 @@ export function MonthlyMonthNavigator({
   }
 
   return (
-    <nav aria-label={t('reports.month')} className={styles.months}>
-      {months.map((candidate) => {
-        const active = candidate === month;
-        return (
-          <button
-            aria-current={active ? 'page' : undefined}
-            className={
-              active ? styles.active : candidate === currentMonth ? styles.current : undefined
-            }
-            key={candidate}
-            onClick={() => onSelect(candidate)}
-            type="button"
-          >
-            {formatMonthLabel(candidate, i18n.language)}
-          </button>
-        );
-      })}
-    </nav>
+    <TabsNav
+      items={months.map((candidate) => ({
+        id: candidate,
+        active: candidate === month,
+        current: candidate === currentMonth,
+        label: formatMonthLabel(candidate, i18n.language),
+        onSelect: () => onSelect(candidate),
+      }))}
+      label={t('reports.month')}
+      variant="secondary"
+    />
   );
 }
