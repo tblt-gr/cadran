@@ -74,6 +74,14 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
 
       if (url.endsWith('/api/v1/portfolios')) return jsonResponse({ items: [], truncated: false });
 
+      if (url.endsWith('/api/v1/profile')) {
+        return jsonResponse({
+          id: '00000000-0000-7000-8000-000000000001',
+          email: 'owner@example.test',
+          displayName: 'Owner',
+        });
+      }
+
       if (url.includes('/api/v1/session')) {
         return jsonResponse(authenticatedSession);
       }
@@ -163,7 +171,7 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
         return Promise.reject(new Error('offline'));
       }
 
-      return jsonResponse({ status: 'ready', apiVersion: 'v1' });
+      return jsonResponse({ status: 'ready', apiVersion: 'v1', version: '1.0.0' });
     }),
   );
 }
@@ -207,6 +215,25 @@ describe('App', () => {
     renderApp();
 
     expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
+  });
+
+  it('shows the running version beneath the profile settings from the already loaded status', async () => {
+    window.history.replaceState({}, '', '/parameters/profile');
+    mockApi();
+
+    renderApp();
+
+    expect(await screen.findByText('Version 1.0.0')).toBeTruthy();
+  });
+
+  it('hides the version line rather than guessing when the status cannot be read', async () => {
+    window.history.replaceState({}, '', '/parameters/profile');
+    mockApi({ status: 'reject' });
+
+    renderApp();
+
+    expect(await screen.findByLabelText('Nom affiché')).toBeTruthy();
+    expect(screen.queryByText(/^Version/)).toBeNull();
   });
 
   it('scaffolds application routes with client-side navigation', async () => {

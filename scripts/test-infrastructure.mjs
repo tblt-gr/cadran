@@ -132,6 +132,35 @@ if (
   fail('The app health check must use the configured TLS server name on loopback');
 }
 
+if (
+  !healthcheck.includes("'ready' === ($payload['status'] ?? null)") ||
+  !healthcheck.includes("'v1' === ($payload['apiVersion'] ?? null)") ||
+  /\['status' => 'ready', 'apiVersion' => 'v1'\] === \$payload/.test(healthcheck)
+) {
+  fail('The app health check must verify status and apiVersion only, not the whole payload');
+}
+
+const appDockerfile = readFileSync(new URL('../docker/app/Dockerfile', import.meta.url), 'utf8');
+const runtimeStage = appDockerfile.split(/^FROM .* AS runtime$/m)[1] ?? '';
+
+if (
+  !/^ARG CADRAN_VERSION=unknown$/m.test(runtimeStage) ||
+  !/^ENV CADRAN_VERSION=\$\{CADRAN_VERSION\}$/m.test(runtimeStage)
+) {
+  fail('The runtime image stage must expose its release through ARG and ENV CADRAN_VERSION');
+}
+
+if (
+  typeof services.app?.build?.args?.CADRAN_VERSION !== 'string' ||
+  services.app.build.args.CADRAN_VERSION === ''
+) {
+  fail('The app build must receive the CADRAN_VERSION build argument');
+}
+
+if (!/^export CADRAN_VERSION\s*:=.*package\.json/m.test(makefile)) {
+  fail('The Makefile must export CADRAN_VERSION from the root package.json for every image build');
+}
+
 const caddyfile = readFileSync(new URL('../docker/app/Caddyfile', import.meta.url), 'utf8');
 
 if (caddyfile.includes('Strict-Transport-Security')) {
@@ -278,4 +307,42 @@ for (const name of ['cadran_restore_check', 'cadran_restore_new']) {
 
 if (/\u2014/.test(backupHost + backupTool)) {
   fail('The backup scripts must not contain an em dash');
+}
+
+// Upgrade and rollback (OPS-003): thin Makefile targets over scripts/upgrade.sh.
+const upgradeScript = readFileSync(new URL('../scripts/upgrade.sh', import.meta.url), 'utf8');
+
+if (!upgradeScript.startsWith('#!/bin/sh') || /bash/.test(upgradeScript)) {
+  fail('The upgrade script must be POSIX sh');
+}
+
+if (!/^upgrade:\n\t.*scripts\/upgrade\.sh upgrade$/m.test(makefile)) {
+  fail('make upgrade must run scripts/upgrade.sh upgrade');
+}
+
+if (!/^rollback:\n\t.*scripts\/upgrade\.sh rollback$/m.test(makefile)) {
+  fail('make rollback must run scripts/upgrade.sh rollback');
+}
+
+if (!/^status:\n(?:\t.*\n)*?\t.*Version: %s.*CADRAN_VERSION/m.test(makefile)) {
+  fail('make status must print the version read from the running container');
+}
+
+if (!/^main "\$@"; exit \$\?$/m.test(upgradeScript)) {
+  fail('The upgrade script must run main and exit on one final line: git checkout rewrites it');
+}
+
+if (/--force|git fetch[^\n]*\+/.test(upgradeScript.replace(/^\s*#.*$/gm, ''))) {
+  fail('Tags must be fetched without --force so an existing local tag is never moved');
+}
+
+if (
+  !upgradeScript.includes('CADRAN_RESTORE_LEAVE_APP_STOPPED=1') ||
+  !backupHost.includes('CADRAN_RESTORE_LEAVE_APP_STOPPED')
+) {
+  fail('The rollback must restore with the newer app image left stopped');
+}
+
+if (/—/.test(upgradeScript)) {
+  fail('The upgrade script must not contain an em dash');
 }

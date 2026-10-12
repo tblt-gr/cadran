@@ -10095,6 +10095,7 @@ components:
       required:
         - status
         - apiVersion
+        - version
       properties:
         status:
           type: string
@@ -10102,6 +10103,12 @@ components:
         apiVersion:
           type: string
           const: v1
+        version:
+          type: string
+          minLength: 1
+          description: >-
+            Release the running image was built from (for example `1.0.0`), or
+            `unknown` when the build did not provide one.
     SessionState:
       type: object
       additionalProperties: false

@@ -18,7 +18,30 @@ final class FoundationStatusControllerTest extends WebTestCase
         self::assertResponseHeaderSame('content-type', 'application/json');
         self::assertResponseHeaderSame('cache-control', 'no-store, private');
         self::assertJsonStringEqualsJsonString(
-            '{"status":"ready","apiVersion":"v1"}',
+            '{"status":"ready","apiVersion":"v1","version":"unknown"}',
+            (string) $client->getResponse()->getContent(),
+        );
+    }
+
+    public function testItExposesTheVersionTheImageWasBuiltWith(): void
+    {
+        $previous = $_SERVER['CADRAN_VERSION'] ?? null;
+        $_SERVER['CADRAN_VERSION'] = '1.2.3';
+
+        try {
+            $client = self::createClient();
+            $client->request('GET', '/api/v1/status');
+        } finally {
+            if (null === $previous) {
+                unset($_SERVER['CADRAN_VERSION']);
+            } else {
+                $_SERVER['CADRAN_VERSION'] = $previous;
+            }
+        }
+
+        self::assertResponseIsSuccessful();
+        self::assertJsonStringEqualsJsonString(
+            '{"status":"ready","apiVersion":"v1","version":"1.2.3"}',
             (string) $client->getResponse()->getContent(),
         );
     }

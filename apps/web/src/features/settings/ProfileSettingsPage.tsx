@@ -15,6 +15,7 @@ import {
 import { ownerProfileQueryKey, useOwnerProfile } from '@/features/settings/useOwnerProfile';
 import { ChangePasswordForm, type PasswordChange } from './change-password-form/ChangePasswordForm';
 import { DisplayNameForm } from './display-name-form/DisplayNameForm';
+import { RunningVersion } from './running-version/RunningVersion';
 import { ProfileSettingsPageSkeleton } from './ProfileSettingsPageSkeleton';
 import styles from './ProfileSettingsPage.module.css';
 
@@ -25,7 +26,7 @@ type Saved = 'password' | 'profile';
  * neither takes an account identifier, so there is nothing here that could
  * point at somebody else's record.
  */
-export function ProfileSettingsPage() {
+export function ProfileSettingsPage({ runningVersion }: { runningVersion?: string | null }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const profile = useOwnerProfile();
@@ -136,6 +137,8 @@ export function ProfileSettingsPage() {
           </section>
         </div>
       )}
+
+      <RunningVersion version={runningVersion} />
     </div>
   );
 }

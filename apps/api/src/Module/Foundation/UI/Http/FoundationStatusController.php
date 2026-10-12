@@ -19,6 +19,7 @@ final class FoundationStatusController
             data: [
                 'status' => $status->status,
                 'apiVersion' => $status->apiVersion,
+                'version' => $status->version,
             ],
             headers: ['Cache-Control' => 'no-store'],
         );

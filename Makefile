@@ -1,6 +1,8 @@
-.PHONY: backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
+.PHONY: upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
+# Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
+export CADRAN_VERSION := $(shell sed -n 's/^  "version": "\([0-9][0-9.]*\)".*/\1/p' package.json | head -n 1)
 COMPOSE := docker compose --env-file $(COMPOSE_ENV)
 COMPOSE_DEFAULT := env -u CADRAN_HTTPS_BIND -u CADRAN_HTTPS_PORT -u CADRAN_SERVER_NAME docker compose --env-file .env.example
 TOOLS_IMAGE := cadran_tools:local
@@ -67,7 +69,18 @@ setup:
 status:
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) exec app php /usr/local/bin/healthcheck.php
+	@printf 'Version: %s\n' "$$($(COMPOSE) exec -T app printenv CADRAN_VERSION 2>/dev/null || echo unknown)"
 	sh scripts/backup.sh health
+
+# Safe upgrade to the tag VERSION=vX.Y.Z: refusals, verified pre-upgrade backup, checkout, build, migration, health.
+# IDENTITY=<offline age identity> is required: the new backup is restore-verified before anything changes.
+# From an untagged checkout (for example after git pull on main) add FROM=vX.Y.Z, the release that is running.
+upgrade:
+	sh scripts/upgrade.sh upgrade
+
+# Restores the pre-upgrade backup recorded in var/upgrade/last-upgrade.json, then starts the previous version.
+rollback:
+	sh scripts/upgrade.sh rollback
 
 backup-image:
 	docker build --file docker/backup/Dockerfile --tag $(BACKUP_IMAGE) docker/backup

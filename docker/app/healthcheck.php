@@ -27,4 +27,9 @@ if (false === $response) {
 
 $payload = json_decode($response, true);
 
-exit(['status' => 'ready', 'apiVersion' => 'v1'] === $payload ? 0 : 1);
+// The payload also carries the release `version`, which varies by image and is not a health signal.
+exit(
+    is_array($payload)
+    && 'ready' === ($payload['status'] ?? null)
+    && 'v1' === ($payload['apiVersion'] ?? null) ? 0 : 1
+);

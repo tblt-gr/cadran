@@ -1720,6 +1720,10 @@
   },
   "settings": {
     "loading": "Chargement du profil…",
+    "version": {
+      "label": "Version",
+      "value": "Version {{version}}"
+    },
     "error": {
       "title": "Profil indisponible",
       "description": "Impossible de charger votre profil. Vérifiez que le service local est démarré, puis réessayez."

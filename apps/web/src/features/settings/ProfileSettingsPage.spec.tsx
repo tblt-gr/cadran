@@ -42,7 +42,7 @@ function type_(label: string, value: string) {
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
 }
 
-function renderPage() {
+function renderPage(version?: string | null) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -50,7 +50,7 @@ function renderPage() {
   return {
     ...render(
       <QueryClientProvider client={queryClient}>
-        <ProfileSettingsPage />
+        <ProfileSettingsPage runningVersion={version} />
       </QueryClientProvider>,
     ),
     queryClient,
@@ -92,6 +92,23 @@ describe('ProfileSettingsPage', () => {
     await waitFor(() => expect(api.getOwnerProfile).toHaveBeenCalledTimes(2));
     expect(screen.getByLabelText('Nom affiché')).toBeTruthy();
     expect(screen.queryByTestId('profile-settings-skeleton')).toBeNull();
+  });
+
+  it('shows the running version beneath the profile sections without any request of its own', async () => {
+    api.getOwnerProfile.mockReturnValue(success(profile));
+    renderPage('1.0.0');
+    await screen.findByLabelText('Nom affiché');
+
+    expect(screen.getByText('Version 1.0.0')).toBeTruthy();
+    expect(api.getOwnerProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the version label real beside the profile skeleton while the status is pending', async () => {
+    api.getOwnerProfile.mockImplementation(() => new Promise(() => undefined));
+    renderPage(undefined);
+
+    expect(await screen.findByTestId('profile-settings-skeleton')).toBeTruthy();
+    expect(screen.getByText('Version')).toBeTruthy();
   });
 
   it('offers a retry when the profile cannot be read', async () => {

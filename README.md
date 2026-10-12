@@ -222,8 +222,10 @@ Conventional Commits, and block direct pushes to `main` on the official reposito
 
 `make e2e` runs the optional browser suite in a container on the host network, so it currently
 expects a Linux host. It is not a pull-request gate before v1.0.0; browser E2E coverage enters the
-quality process once stable critical journeys exist. `make db-backup` and
-`make db-restore FILE=...` arrive with the backup capability in a later sprint.
+quality process once stable critical journeys exist. `make db-backup`, `make db-restore FILE=...`,
+`make upgrade VERSION=vX.Y.Z IDENTITY=...` (verified encrypted pre-upgrade backup, then checkout,
+build, migration and health check) and `make rollback IDENTITY=...` (restores that backup and the
+previous version) keep the data safe across versions; `make status` shows the running version.
 
 ### Project documents
 
