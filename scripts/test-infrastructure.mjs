@@ -239,8 +239,43 @@ if (/PGPASSWORD|--password/.test(backupTool) || !backupTool.includes('PGPASSFILE
   fail('The database password must reach pg_dump through a password file only');
 }
 
-for (const target of ['backup-key', 'db-backup', 'db-backup-prune']) {
+for (const target of [
+  'backup-key',
+  'db-backup',
+  'db-backup-prune',
+  'db-backup-verify',
+  'db-restore',
+  'db-restore-cleanup',
+]) {
   if (!new RegExp(`^${target}:`, 'm').test(makefile)) {
     fail(`The Makefile must define ${target}`);
   }
+}
+
+// Restore (OPS-002): every container goes through the hardened run_container.
+if ((backupHost.match(/docker run/g) ?? []).length !== 1) {
+  fail('Every backup and restore container must be started through run_container only');
+}
+
+if (
+  !backupTool.includes('--single-transaction') ||
+  !backupTool.includes('--exit-on-error') ||
+  !backupTool.includes('--no-owner') ||
+  /pg_restore[^\n]*--clean/.test(backupTool)
+) {
+  fail('pg_restore must run single-transaction, exit-on-error, without owners and without --clean');
+}
+
+if (!backupHost.includes('restore-cadran') || !/CONFIRM/.test(backupHost)) {
+  fail('The restore must refuse without the exact CONFIRM value');
+}
+
+for (const name of ['cadran_restore_check', 'cadran_restore_new']) {
+  if (!backupTool.includes(name)) {
+    fail(`The restore tool must use the fixed database name ${name}`);
+  }
+}
+
+if (/\u2014/.test(backupHost + backupTool)) {
+  fail('The backup scripts must not contain an em dash');
 }

@@ -1,4 +1,4 @@
-.PHONY: backup-image backup-key db-backup db-backup-prune demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
+.PHONY: backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 COMPOSE := docker compose --env-file $(COMPOSE_ENV)
@@ -86,6 +86,26 @@ db-backup: backup-image
 # Applies the daily/weekly/monthly retention; DRY_RUN=1 only prints the plan.
 db-backup-prune: backup-image
 	sh scripts/backup.sh prune $(if $(DRY_RUN),--dry-run)
+
+# Restores FILE into the isolated cadran_restore_check database, checks it, drops it. The live database is not touched.
+db-backup-verify: backup-image
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait db
+	sh scripts/backup.sh verify
+
+# Verifies FILE, takes a pre-restore backup, then replaces the live database. Needs CONFIRM=restore-cadran.
+db-restore:
+	sh scripts/backup.sh restore-precheck
+	$(MAKE) --no-print-directory backup-image
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait db
+	sh scripts/backup.sh restore
+
+# Lists the cadran_previous_* databases kept after a restore and drops them after an interactive yes.
+db-restore-cleanup: backup-image
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait db
+	sh scripts/backup.sh restore-cleanup
 
 tls-certificate:
 	sh scripts/check-local-runtime.sh
