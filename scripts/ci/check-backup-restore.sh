@@ -3,7 +3,11 @@
 #   1. retention on dated dummy names, with a hand-computed expected set;
 #   2. a real encrypted backup of a throwaway database migrated and seeded
 #      through the tooling image;
-#   3. a failing backup that must leave the previous one intact.
+#   3. a failing backup that must leave the previous one intact;
+#   4. the restore workflow (OPS-002): verification in an isolated database,
+#      guarded replacement of the live database with row counts compared before
+#      and after, and every refusal (wrong identity, truncated file, modified
+#      checksum, future schema, missing CONFIRM, directory or symlink FILE).
 #
 # The database under test is cadran_test<TEST_TOKEN>, never the development
 # database. Run from anywhere; needs Docker, GNU date and make.
@@ -246,6 +250,8 @@ tools_step doctrine:database:drop --force --if-exists --no-interaction
 tools_step doctrine:database:create --no-interaction
 tools_step doctrine:migrations:migrate --no-interaction --allow-no-migration
 run_tools app:demo:seed >/dev/null 2>&1 || printf 'note: demo seed unavailable, backing up the migrated schema only\n'
+# Without a provisioned owner the seed cannot run; the restore checks still need one workspace.
+$compose exec -T db psql --username=cadran --dbname="$CADRAN_DB_NAME" --no-psqlrc --quiet --command="INSERT INTO identity_workspaces (id, name, timezone, base_currency, created_at) SELECT gen_random_uuid(), 'Backup check', 'Europe/Paris', 'EUR', now() WHERE NOT EXISTS (SELECT 1 FROM identity_workspaces)"
 
 backups="$scratch/backups"
 mkdir "$backups"
@@ -338,6 +344,260 @@ if sleep 1 && CADRAN_DB_PASSWORD_FILE="$scratch/wrong_password" $backup_script c
 fi
 assert_equal 'a failed backup leaves the directory untouched' "$before_listing" "$(cd "$backups" && ls -A | sort)"
 (cd "$backups" && sha256sum --check --status "$(basename "$dump").sha256") || fail 'first backup was altered by the failure'
+
+# --- 4. Restore and verification (OPS-002) ----------------------------------
+
+# The application is wired to the development database, not to the test one.
+export CADRAN_RESTORE_SKIP_APP=1
+
+sql() {
+    # sql <database> <statement>: single value, no formatting.
+    $compose exec -T db psql --username=cadran --dbname="$1" --no-psqlrc --tuples-only --no-align --command="$2"
+}
+
+table_counts() {
+    for table in identity_users identity_workspaces account_financial_accounts transaction_transactions; do
+        printf '%s=%s\n' "$table" "$(sql "$CADRAN_DB_NAME" "SELECT count(*) FROM $table")"
+    done
+}
+
+database_exists() {
+    [ "$(sql postgres "SELECT count(*) FROM pg_database WHERE datname = '$1'")" = 1 ]
+}
+
+previous_databases() {
+    sql postgres "SELECT datname FROM pg_database WHERE datname ~ '^cadran_previous_[0-9]{14}$' ORDER BY 1"
+}
+
+expect_refusal() {
+    # expect_refusal <description> <expected message> <command...>
+    refusal_description=$1
+    refusal_message=$2
+    shift 2
+    if refusal_output=$("$@" 2>&1); then
+        fail "$refusal_description: must be refused"
+        return
+    fi
+    case $refusal_output in
+        *"$refusal_message"*) ;;
+        *) fail "$refusal_description: expected '$refusal_message', got: $(printf '%s' "$refusal_output" | tail -n 3)" ;;
+    esac
+}
+
+if [ "$(sql "$CADRAN_DB_NAME" 'SELECT count(*) FROM identity_workspaces')" = 0 ]; then
+    fail_hard 'the restore checks need at least one workspace in the test database'
+fi
+
+counts_before=$(table_counts)
+preexisting_previous=$(previous_databases)
+pre_restore_files() { find "$backups" -maxdepth 1 -name '*-pre-restore.dump.age' | wc -l | tr -d ' '; }
+
+verify_output=$(make --no-print-directory db-backup-verify FILE="$dump" IDENTITY="$identity" 2>&1) ||
+    fail "db-backup-verify failed: $(printf '%s' "$verify_output" | tail -n 5)"
+case $verify_output in *'verified'*) ;; *) fail 'verify must report success' ;; esac
+if printf '%s' "$verify_output" | grep -Eq 'Version20[0-9]{12}|AGE-SECRET-KEY|PGDMP'; then
+    fail 'verify output leaks a value'
+fi
+database_exists cadran_restore_check && fail 'cadran_restore_check was left behind'
+assert_equal 'verification leaves the live database untouched' "$counts_before" "$(table_counts)"
+
+# Fixtures for refusals: every case works on a private copy of the backup trio.
+stage() {
+    # stage <directory>: copies the trio and prints the staged dump path
+    mkdir -p "$1"
+    cp "$dump" "$dump.sha256" "$base.manifest.json" "$1/"
+    printf '%s/%s\n' "$1" "$(basename "$dump")"
+}
+restore_env() {
+    # restore_env <file> <identity> [confirm]
+    env FILE="$1" IDENTITY="$2" CONFIRM="${3-restore-cadran}" $backup_script restore
+}
+verify_env() {
+    env FILE="$1" IDENTITY="$2" $backup_script verify
+}
+
+other_identity="$scratch/other/identity.txt"
+CADRAN_BACKUP_RECIPIENT_FILE="$scratch/other_recipient" IDENTITY="$other_identity" $backup_script key >/dev/null
+expect_refusal 'wrong identity' 'IDENTITY does not match this backup' verify_env "$dump" "$other_identity"
+expect_refusal 'wrong identity on restore' 'IDENTITY does not match this backup' restore_env "$dump" "$other_identity"
+
+truncated=$(stage "$scratch/truncated")
+truncate -s -64 "$truncated"
+expect_refusal 'truncated file' 'checksum mismatch' verify_env "$truncated" "$identity"
+
+empty=$(stage "$scratch/empty")
+: > "$empty"
+expect_refusal 'empty file' 'checksum mismatch' verify_env "$empty" "$identity"
+
+bad_sum=$(stage "$scratch/badsum")
+printf '%s  %s\n' "$(printf '0%.0s' $(seq 1 64))" "$(basename "$bad_sum")" > "$bad_sum.sha256"
+expect_refusal 'modified checksum' 'checksum mismatch' verify_env "$bad_sum" "$identity"
+
+bad_manifest_sum=$(stage "$scratch/badmanifestsum")
+sed -i "s/\"sha256\": \"[0-9a-f]*\"/\"sha256\": \"$(printf '1%.0s' $(seq 1 64))\"/" "${bad_manifest_sum%.dump.age}.manifest.json"
+expect_refusal 'manifest checksum differs' 'checksum mismatch' verify_env "$bad_manifest_sum" "$identity"
+
+future=$(stage "$scratch/future")
+sed -i 's/Version[0-9]\{14\}/Version99991231235959/' "${future%.dump.age}.manifest.json"
+expect_refusal 'future schemaVersion' 'incompatible backup: made by a newer Cadran version' verify_env "$future" "$identity"
+expect_refusal 'future schemaVersion on restore' 'incompatible backup: made by a newer Cadran version' restore_env "$future" "$identity"
+
+format=$(stage "$scratch/format")
+sed -i 's/"format": 1/"format": 2/' "${format%.dump.age}.manifest.json"
+expect_refusal 'unknown format' 'unknown backup format' verify_env "$format" "$identity"
+
+injected=$(stage "$scratch/injected")
+sed -i 's/Version[0-9]\{14\}/Version1; DROP DATABASE cadran/' "${injected%.dump.age}.manifest.json"
+expect_refusal 'malformed schemaVersion' 'manifest' verify_env "$injected" "$identity"
+
+expect_refusal 'missing CONFIRM' 'CONFIRM=restore-cadran' env FILE="$dump" IDENTITY="$identity" $backup_script restore
+expect_refusal 'wrong CONFIRM' 'CONFIRM=restore-cadran' restore_env "$dump" "$identity" 'yes'
+expect_refusal 'make without CONFIRM' 'CONFIRM=restore-cadran' make --no-print-directory db-restore FILE="$dump" IDENTITY="$identity"
+
+dir_file="$scratch/dirfile/cadran-20260101-000000-manual.dump.age"
+mkdir -p "$dir_file"
+: > "$dir_file.sha256"
+: > "${dir_file%.dump.age}.manifest.json"
+expect_refusal 'FILE is a directory' 'regular file' verify_env "$dir_file" "$identity"
+
+link_dir="$scratch/linkfile"
+mkdir "$link_dir"
+ln -s "$dump" "$link_dir/$(basename "$dump")"
+cp "$dump.sha256" "$base.manifest.json" "$link_dir/"
+expect_refusal 'FILE is a symbolic link' 'regular file' verify_env "$link_dir/$(basename "$dump")" "$identity"
+
+expect_refusal 'FILE with a foreign name' 'name' verify_env "$scratch/key.out" "$identity"
+expect_refusal 'FILE missing' 'regular file' verify_env "$scratch/absent/cadran-20260101-000000-manual.dump.age" "$identity"
+expect_refusal 'FILE unset' 'FILE' env IDENTITY="$identity" $backup_script verify
+expect_refusal 'FILE with a comma in its path' 'comma' verify_env "$scratch/a,b/cadran-20260101-000000-manual.dump.age" "$identity"
+
+no_sum=$(stage "$scratch/nosum")
+rm "$no_sum.sha256"
+expect_refusal 'missing checksum sidecar' 'checksum' verify_env "$no_sum" "$identity"
+
+link_sum=$(stage "$scratch/linksum")
+mv "$link_sum.sha256" "$scratch/outside_sum"
+ln -s "$scratch/outside_sum" "$link_sum.sha256"
+expect_refusal 'symbolic-link sidecar' 'regular file' verify_env "$link_sum" "$identity"
+
+ln -s "$identity" "$scratch/identity_link"
+expect_refusal 'IDENTITY is a symbolic link' 'IDENTITY' verify_env "$dump" "$scratch/identity_link"
+expect_refusal 'IDENTITY with dot-dot' 'IDENTITY' verify_env "$dump" "$scratch/other/../identity/identity.txt"
+expect_refusal 'IDENTITY unset' 'IDENTITY' env FILE="$dump" $backup_script verify
+: > "$scratch/not_an_identity"
+chmod 600 "$scratch/not_an_identity"
+expect_refusal 'IDENTITY that is not an age identity' 'IDENTITY does not match this backup' verify_env "$dump" "$scratch/not_an_identity"
+
+database_exists cadran_restore_check && fail 'a refusal left cadran_restore_check behind'
+database_exists cadran_restore_new && fail 'a refusal left cadran_restore_new behind'
+assert_equal 'refusals take no pre-restore backup' 0 "$(pre_restore_files)"
+assert_equal 'refusals leave the live database untouched' "$counts_before" "$(table_counts)"
+assert_equal 'refusals rename nothing' "$preexisting_previous" "$(previous_databases)"
+
+# Replacement: the live database changes, the restore must bring it back.
+sql "$CADRAN_DB_NAME" 'CREATE TABLE restore_marker (id integer)' >/dev/null
+sql "$CADRAN_DB_NAME" 'TRUNCATE transaction_transactions CASCADE' >/dev/null 2>&1
+sql "$CADRAN_DB_NAME" "INSERT INTO identity_workspaces (id, name, timezone, base_currency, created_at) VALUES (gen_random_uuid(), 'After backup', 'Europe/Paris', 'EUR', now())" >/dev/null
+[ "$counts_before" != "$(table_counts)" ] || fail 'the live database was not modified before the restore'
+restore_output=$(make --no-print-directory db-restore FILE="$dump" IDENTITY="$identity" CONFIRM=restore-cadran 2>&1) ||
+    fail "db-restore failed: $(printf '%s' "$restore_output" | tail -n 8)"
+assert_equal 'restore brings the row counts back to the backup state' "$counts_before" "$(table_counts)"
+assert_equal 'restore removes changes made after the backup' 0 \
+    "$(sql "$CADRAN_DB_NAME" "SELECT count(*) FROM pg_tables WHERE tablename = 'restore_marker'")"
+assert_equal 'restore takes one pre-restore backup' 1 "$(pre_restore_files)"
+database_exists cadran_restore_check && fail 'cadran_restore_check was left behind after restore'
+database_exists cadran_restore_new && fail 'cadran_restore_new was left behind after restore'
+new_previous=$(previous_databases | grep -vxF -- "$preexisting_previous" || true)
+assert_equal 'restore keeps exactly one previous database' 1 "$(printf '%s' "$new_previous" | grep -c .)"
+case $restore_output in *"$new_previous"*) ;; *) fail 'restore must name the kept previous database' ;; esac
+if printf '%s' "$restore_output" | grep -Eq 'AGE-SECRET-KEY|PGDMP'; then
+    fail 'restore output leaks a value'
+fi
+# The kept database holds the state of the live one before the restore.
+assert_equal 'the previous database holds the replaced data' 1 \
+    "$(sql "$new_previous" "SELECT count(*) FROM pg_tables WHERE tablename = 'restore_marker'")"
+
+# Interrupted restore: killed while cadran_restore_new exists, before any swap.
+counts_after_restore=$(table_counts)
+previous_after_restore=$(previous_databases)
+interrupted_pre_restore=$(pre_restore_files)
+sleep 1
+env FILE="$dump" IDENTITY="$identity" CONFIRM=restore-cadran $backup_script restore >/dev/null 2>&1 &
+restore_pid=$!
+waited=0
+until database_exists cadran_restore_new; do
+    waited=$((waited + 1))
+    if [ "$waited" -gt 600 ] || ! kill -0 "$restore_pid" 2>/dev/null; then
+        fail 'the restore never reached cadran_restore_new'
+        break
+    fi
+    sleep 0.1
+done
+kill -TERM "$restore_pid" 2>/dev/null || true
+docker kill --signal TERM cadran_backup_run >/dev/null 2>&1 || true
+interrupted_status=0
+wait "$restore_pid" || interrupted_status=$?
+[ "$interrupted_status" -ne 0 ] || fail 'an interrupted restore must not report success'
+database_exists cadran_restore_check && fail 'an interrupted restore left cadran_restore_check behind'
+database_exists cadran_restore_new && fail 'an interrupted restore left cadran_restore_new behind'
+assert_equal 'an interrupted restore does not swap' "$previous_after_restore" "$(previous_databases)"
+assert_equal 'an interrupted restore keeps the live data' "$counts_after_restore" "$(table_counts)"
+[ "$(pre_restore_files)" -gt "$interrupted_pre_restore" ] || fail 'the interrupted run should have taken its pre-restore backup first'
+
+# swap then rollback, driven directly: the live data comes back to the pre-swap state.
+tool() {
+    docker run --rm --init --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
+        --user "$(id -u):$(id -g)" --network cadran_internal --env "CADRAN_DB_NAME=$CADRAN_DB_NAME" \
+        --mount "type=bind,source=$repo_root/var/docker-secrets/db_password,target=/run/db_password,readonly" \
+        cadran_backup:local "$@"
+}
+sql "$CADRAN_DB_NAME" 'CREATE TABLE swap_old_marker (id integer)' >/dev/null
+sql postgres 'DROP DATABASE IF EXISTS cadran_restore_new' >/dev/null
+sql postgres 'CREATE DATABASE cadran_restore_new' >/dev/null
+sql cadran_restore_new 'CREATE TABLE swap_new_marker (id integer)' >/dev/null
+swap_output=$(tool swap) || fail 'swap failed'
+swap_previous=$(printf '%s\n' "$swap_output" | sed -n 's/^previous=//p')
+swap_failed=$(printf '%s\n' "$swap_output" | sed -n 's/^failed=//p')
+assert_equal 'swap exposes the new database as live' 1 \
+    "$(sql "$CADRAN_DB_NAME" "SELECT count(*) FROM pg_tables WHERE tablename = 'swap_new_marker'")"
+assert_equal 'swap keeps the old database as previous' 1 \
+    "$(sql "$swap_previous" "SELECT count(*) FROM pg_tables WHERE tablename = 'swap_old_marker'")"
+database_exists cadran_restore_new && fail 'swap left cadran_restore_new behind'
+tool rollback "$swap_previous" "$swap_failed" >/dev/null || fail 'rollback failed'
+assert_equal 'rollback brings the pre-swap data back' 1 \
+    "$(sql "$CADRAN_DB_NAME" "SELECT count(*) FROM pg_tables WHERE tablename = 'swap_old_marker'")"
+assert_equal 'the rolled-back live database accepts connections' t \
+    "$(sql postgres "SELECT datallowconn FROM pg_database WHERE datname = '$CADRAN_DB_NAME'")"
+assert_equal 'the failed database is kept for inspection' 1 \
+    "$(sql "$swap_failed" "SELECT count(*) FROM pg_tables WHERE tablename = 'swap_new_marker'")"
+sql postgres "DROP DATABASE \"$swap_failed\"" >/dev/null
+sql "$CADRAN_DB_NAME" 'DROP TABLE swap_old_marker' >/dev/null
+assert_equal 'swap and rollback leave no previous database' "$previous_after_restore" "$(previous_databases)"
+if tool rollback 'cadran_previous_1; DROP DATABASE x' 'cadran_failed_20260101000000' >/dev/null 2>&1; then
+    fail 'rollback must refuse a malformed database name'
+fi
+
+# Cleanup: listing, refusal without a terminal, then drop of the kept databases.
+list_output=$($backup_script restore-cleanup </dev/null 2>&1 || true)
+case $list_output in *"$new_previous"*) ;; *) fail 'restore-cleanup must list the kept databases' ;; esac
+if [ -z "$(previous_databases)" ]; then
+    fail 'restore-cleanup without a terminal must not drop anything'
+fi
+all_previous=$(previous_databases)
+if [ -z "$preexisting_previous" ]; then
+    printf 'no\n' | CADRAN_BACKUP_ALLOW_TEST_STDIN=1 $backup_script restore-cleanup >/dev/null 2>&1 || true
+    assert_equal 'an answer other than yes drops nothing' "$all_previous" "$(previous_databases)"
+    printf 'yes\n' | CADRAN_BACKUP_ALLOW_TEST_STDIN=1 $backup_script restore-cleanup >/dev/null ||
+        fail 'restore-cleanup failed'
+    assert_equal 'restore-cleanup drops every kept database' '' "$(previous_databases)"
+else
+    printf 'note: cadran_previous_* databases already exist; the drop is not exercised to keep them\n'
+    for name in $all_previous; do
+        case $name in
+            *) printf '%s\n' "$preexisting_previous" | grep -qxF -- "$name" || sql postgres "DROP DATABASE \"$name\"" >/dev/null ;;
+        esac
+    done
+fi
 
 if [ "$failures" -ne 0 ]; then
     printf '%s backup check(s) failed.\n' "$failures" >&2
