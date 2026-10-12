@@ -127,8 +127,32 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
+          fetch-depth: 0
           persist-credentials: false
+      # Pull requests only pay for this check when they touch what it exercises.
+      - name: Detect backup-related changes
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          comparison_base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          if git diff --quiet "$comparison_base" "$HEAD_SHA" -- \
+            docker/backup docker/postgres docker/tools scripts/backup.sh \
+            scripts/ci/check-backup-restore.sh scripts/init-local.sh Makefile compose.yaml \
+            apps/api/migrations .github/workflows/ci.yml; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Backup, retention and failure handling
+        if: steps.scope.outputs.run == 'true'
         run: sh scripts/ci/check-backup-restore.sh
 
   openapi:
