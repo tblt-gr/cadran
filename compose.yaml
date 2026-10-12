@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: docker/app/Dockerfile
+      args:
+        CADRAN_VERSION: ${CADRAN_VERSION:-unknown}
     image: cadran_app:local
     container_name: cadran_app
     user: '33:33'

@@ -36,7 +36,11 @@ export function AuthenticatedApp() {
   });
 
   const dashboardHeader = useDashboardHeader(path === '/');
-  const routes = useMemo(() => buildAuthenticatedRoutes(workspaceTimeZone), [workspaceTimeZone]);
+  const runningVersion = status.isError ? null : status.data?.version;
+  const routes = useMemo(
+    () => buildAuthenticatedRoutes(workspaceTimeZone, runningVersion),
+    [workspaceTimeZone, runningVersion],
+  );
   const matched = matchAuthenticatedRoute(routes, path);
 
   useEffect(() => {

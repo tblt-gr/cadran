@@ -9,6 +9,7 @@ final readonly class FoundationStatus
     public function __construct(
         public string $status,
         public string $apiVersion,
+        public string $version,
     ) {
     }
 }

@@ -9,6 +9,7 @@
 #   restore   verify FILE, take a pre-restore backup, replace the live database
 #   restore-precheck   validate CONFIRM, FILE and IDENTITY without any docker call
 #   restore-cleanup    list and (after an interactive yes) drop cadran_previous_*
+#   dir       print the resolved backup directory (used by scripts/upgrade.sh)
 #
 # Environment: CADRAN_BACKUP_DIR (also read from .env.local), IDENTITY,
 # LABEL, CADRAN_BACKUP_RECIPIENT_FILE, CADRAN_DB_PASSWORD_FILE, CADRAN_DB_NAME,
@@ -21,6 +22,12 @@
 #                              restore (the CI check restores a throwaway
 #                              database the application is not wired to).
 #   CADRAN_BACKUP_ALLOW_TEST_STDIN=1  let restore-cleanup read its yes from a pipe.
+# Rollback switch (set by scripts/upgrade.sh only):
+#   CADRAN_RESTORE_LEAVE_APP_STOPPED=1  stop the app service before the restore as
+#                              usual, but never restart it afterwards and skip the
+#                              post-restore health rollback: the restored schema is
+#                              older than the running image, so the matching older
+#                              version must be checked out and started instead.
 set -eu
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
@@ -304,7 +311,10 @@ restore_exit() {
     if [ "$swapped" -eq 0 ] && [ "$fresh_started" -eq 1 ]; then
         admin_container drop-new > /dev/null 2>&1 || true
     fi
-    if [ "$app_stopped" -eq 1 ]; then
+    if [ "$app_stopped" -eq 1 ] && [ "${CADRAN_RESTORE_LEAVE_APP_STOPPED:-}" = 1 ] && [ "$swapped" -eq 1 ]; then
+        # The database now holds the older schema: the running image must not meet it.
+        printf 'restore: the app service stays stopped; start the version that matches the restored data.\n' >&2
+    elif [ "$app_stopped" -eq 1 ]; then
         if compose up --detach --wait app > /dev/null 2>&1; then
             printf 'restore: the app service was restarted on the live database.\n' >&2
         else
@@ -348,12 +358,18 @@ restore() {
     printf 'Step 4/4: replacing the live database\n'
     swap_output=$(admin_container swap) || die 'the replacement failed; the live database was not touched'
     swapped=1
+    if [ "${CADRAN_RESTORE_LEAVE_APP_STOPPED:-}" = 1 ]; then
+        app_stopped=0
+    fi
     previous=$(printf '%s\n' "$swap_output" | sed -n 's/^previous=\(cadran_previous_[0-9]\{14\}\)$/\1/p' | head -n 1)
     failed=$(printf '%s\n' "$swap_output" | sed -n 's/^failed=\(cadran_failed_[0-9]\{14\}\)$/\1/p' | head -n 1)
     [ -n "$previous" ] && [ -n "$failed" ] || die 'unexpected replacement result; check the databases with make db-restore-cleanup'
 
     if [ "${CADRAN_RESTORE_SKIP_APP:-}" = 1 ]; then
         printf 'The app service was not touched (CADRAN_RESTORE_SKIP_APP=1).\n'
+    elif [ "${CADRAN_RESTORE_LEAVE_APP_STOPPED:-}" = 1 ]; then
+        app_stopped=0
+        printf 'The app service stays stopped: start the version that matches the restored data.\n'
     elif compose up --detach --wait app > /dev/null 2>&1 &&
         compose exec -T app php /usr/local/bin/healthcheck.php > /dev/null 2>&1; then
         app_stopped=0
@@ -410,5 +426,9 @@ case $command in
     restore) restore ;;
     restore-precheck) restore_precheck ;;
     restore-cleanup) restore_cleanup ;;
-    *) die 'usage: backup.sh key | create | prune [--dry-run] | health | verify | restore | restore-precheck | restore-cleanup' ;;
+    dir)
+        resolve_backup_dir
+        printf '%s\n' "$backup_dir"
+        ;;
+    *) die 'usage: backup.sh key | create | prune [--dry-run] | health | verify | restore | restore-precheck | restore-cleanup | dir' ;;
 esac

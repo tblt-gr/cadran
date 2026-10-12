@@ -6,7 +6,11 @@ test.describe('foundation smoke', () => {
 
     expect(response.status()).toBe(200);
     expect(response.headers()['cache-control']).toContain('no-store');
-    expect(await response.json()).toEqual({ status: 'ready', apiVersion: 'v1' });
+    expect(await response.json()).toEqual({
+      status: 'ready',
+      apiVersion: 'v1',
+      version: expect.any(String),
+    });
   });
 
   test('serves the web shell and reaches a ready state', async ({ page }) => {

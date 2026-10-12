@@ -68,6 +68,10 @@ COPY --chown=www-data:www-data docker/app/Caddyfile /etc/frankenphp/Caddyfile
 COPY docker/app/entrypoint.sh /usr/local/bin/cadran-entrypoint
 COPY docker/app/healthcheck.php /usr/local/bin/healthcheck.php
 
+# Declared last so a new release only invalidates the layers below it.
+ARG CADRAN_VERSION=unknown
+ENV CADRAN_VERSION=${CADRAN_VERSION}
+
 USER www-data
 
 ENTRYPOINT ["/usr/local/bin/cadran-entrypoint"]

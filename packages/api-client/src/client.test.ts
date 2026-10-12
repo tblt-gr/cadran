@@ -18,7 +18,7 @@ describe('generated Cadran client', () => {
   it('calls the versioned endpoint with its generated response type', async () => {
     const request = vi.fn<typeof fetch>(async (_input, _init) =>
       Promise.resolve(
-        new Response(JSON.stringify({ status: 'ready', apiVersion: 'v1' }), {
+        new Response(JSON.stringify({ status: 'ready', apiVersion: 'v1', version: '1.0.0' }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         }),
@@ -31,7 +31,7 @@ describe('generated Cadran client', () => {
       throwOnError: true,
     });
 
-    expect(response.data).toEqual({ status: 'ready', apiVersion: 'v1' });
+    expect(response.data).toEqual({ status: 'ready', apiVersion: 'v1', version: '1.0.0' });
     expect(request).toHaveBeenCalledOnce();
     expect(request.mock.calls[0]?.[0]).toMatchObject({
       method: 'GET',

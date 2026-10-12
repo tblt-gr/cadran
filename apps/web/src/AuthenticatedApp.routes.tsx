@@ -45,8 +45,13 @@ export interface RouteDefinition {
  * `workspaceTimeZone` is a parameter rather than a closed-over value because
  * the one route that needs it (the bare `/budget` redirect) must resolve
  * "today" in the workspace's own zone, not a build-time constant.
+ * `runningVersion` comes from the foundation status (`undefined` while it
+ * loads, `null` when it failed) and is only shown by the profile settings.
  */
-export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefinition[] {
+export function buildAuthenticatedRoutes(
+  workspaceTimeZone: string,
+  runningVersion?: string | null,
+): RouteDefinition[] {
   return [
     { pattern: /^\/portfolios$/, render: () => <PortfoliosPage /> },
     {
@@ -153,7 +158,7 @@ export function buildAuthenticatedRoutes(workspaceTimeZone: string): RouteDefini
     },
     {
       pattern: /^\/parameters\/profile$/,
-      render: () => <ProfileSettingsPage />,
+      render: () => <ProfileSettingsPage runningVersion={runningVersion} />,
     },
     {
       pattern: /^\/parameters\/metric-policy$/,
