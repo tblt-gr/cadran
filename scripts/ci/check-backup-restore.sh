@@ -205,6 +205,19 @@ fi
 
 # --- 2. Real encrypted backup ------------------------------------------------
 
+# Runs a console command and shows the tail of its output only when it fails.
+tools_step() {
+    if ! output=$(run_tools "$@" 2>&1); then
+        printf '%s\n' "$output" | tail -n 30 >&2
+        fail_hard "console step failed: $*"
+    fi
+}
+
+fail_hard() {
+    printf 'FAIL: %s\n' "$1" >&2
+    exit 1
+}
+
 run_tools() {
     docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
         --env APP_ENV=test --env "TEST_TOKEN=${TEST_TOKEN}" \
@@ -216,6 +229,11 @@ run_tools() {
 
 sh scripts/init-local.sh
 make tools >/dev/null
+# A clean checkout has no vendor/ directory: install it like make install does.
+docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
+    --mount "type=bind,source=$repo_root,target=/workspace" --workdir /workspace \
+    cadran_tools:local composer install --working-dir=apps/api --no-interaction --no-progress \
+    --prefer-dist --no-scripts --quiet
 $compose build db >/dev/null
 $compose up --detach --wait db
 
@@ -224,9 +242,9 @@ export TEST_TOKEN
 CADRAN_DB_NAME="cadran_test$TEST_TOKEN"
 export CADRAN_DB_NAME
 database_created=1
-run_tools doctrine:database:drop --force --if-exists --no-interaction >/dev/null
-run_tools doctrine:database:create --no-interaction >/dev/null
-run_tools doctrine:migrations:migrate --no-interaction --allow-no-migration >/dev/null
+tools_step doctrine:database:drop --force --if-exists --no-interaction
+tools_step doctrine:database:create --no-interaction
+tools_step doctrine:migrations:migrate --no-interaction --allow-no-migration
 run_tools app:demo:seed >/dev/null 2>&1 || printf 'note: demo seed unavailable, backing up the migrated schema only\n'
 
 backups="$scratch/backups"
