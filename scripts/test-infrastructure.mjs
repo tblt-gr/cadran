@@ -178,3 +178,69 @@ if (
 ) {
   fail('Docker commands must not depend on excluded environment files');
 }
+
+for (const [serviceName, service] of Object.entries(services)) {
+  const mountsBackups = (service.volumes ?? []).some(
+    (volume) => /backup/i.test(volume.source ?? '') || /backup/i.test(volume.target ?? ''),
+  );
+
+  if (mountsBackups) {
+    fail(`${serviceName} must not mount the backup directory`);
+  }
+}
+
+const backupDockerfile = readFileSync(
+  new URL('../docker/backup/Dockerfile', import.meta.url),
+  'utf8',
+);
+const postgresDockerfile = readFileSync(
+  new URL('../docker/postgres/Dockerfile', import.meta.url),
+  'utf8',
+);
+const baseImage = (dockerfile) => dockerfile.match(/^FROM\s+(\S+)/m)?.[1];
+
+if (!baseImage(backupDockerfile) || baseImage(backupDockerfile) !== baseImage(postgresDockerfile)) {
+  fail('The backup image must use the exact base image of the PostgreSQL image');
+}
+
+if (
+  !backupDockerfile.includes('USER 70:70') ||
+  !/apk add --no-cache age\b/.test(backupDockerfile)
+) {
+  fail('The backup image must install age and run as the postgres user');
+}
+
+const backupImageName = makefile.match(/^BACKUP_IMAGE\s*:=\s*(\S+)/m)?.[1];
+
+if (!backupImageName?.startsWith('cadran_')) {
+  fail('The backup image name must start with cadran_');
+}
+
+const backupHost = readFileSync(new URL('../scripts/backup.sh', import.meta.url), 'utf8');
+const backupTool = readFileSync(
+  new URL('../docker/backup/cadran-backup.sh', import.meta.url),
+  'utf8',
+);
+
+if (
+  !backupHost.includes('--name cadran_backup_run') ||
+  !backupHost.includes('--read-only') ||
+  !backupHost.includes('--cap-drop ALL') ||
+  !backupHost.includes('--security-opt no-new-privileges')
+) {
+  fail('The backup container must be a named, read-only, capability-free one-shot run');
+}
+
+if (!backupTool.startsWith('#!/bin/sh') || /bash/.test(backupTool)) {
+  fail('The backup tool must be POSIX sh');
+}
+
+if (/PGPASSWORD|--password/.test(backupTool) || !backupTool.includes('PGPASSFILE')) {
+  fail('The database password must reach pg_dump through a password file only');
+}
+
+for (const target of ['backup-key', 'db-backup', 'db-backup-prune']) {
+  if (!new RegExp(`^${target}:`, 'm').test(makefile)) {
+    fail(`The Makefile must define ${target}`);
+  }
+}
