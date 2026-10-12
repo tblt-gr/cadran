@@ -120,6 +120,17 @@ jobs:
       - name: Tests
         run: composer test --working-dir=apps/api
 
+  backup-restore:
+    name: Encrypted backup and retention
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Backup, retention and failure handling
+        run: sh scripts/ci/check-backup-restore.sh
+
   openapi:
     name: OpenAPI and generated client
     runs-on: ubuntu-latest
@@ -299,6 +310,7 @@ jobs:
       - commitlint
       - quality
       - backend
+      - backup-restore
       - openapi
       - build
       - composer-audit

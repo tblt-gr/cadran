@@ -1,10 +1,11 @@
-.PHONY: demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
+.PHONY: backup-image backup-key db-backup db-backup-prune demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 COMPOSE := docker compose --env-file $(COMPOSE_ENV)
 COMPOSE_DEFAULT := env -u CADRAN_HTTPS_BIND -u CADRAN_HTTPS_PORT -u CADRAN_SERVER_NAME docker compose --env-file .env.example
 TOOLS_IMAGE := cadran_tools:local
 E2E_IMAGE := cadran_e2e:local
+BACKUP_IMAGE := cadran_backup:local
 # Host-published address of the running stack. Override when .env.local changes the port.
 E2E_BASE_URL ?= https://localhost:8443
 HOST_UID := $(shell id -u)
@@ -66,6 +67,25 @@ setup:
 status:
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) exec app php /usr/local/bin/healthcheck.php
+	sh scripts/backup.sh health
+
+backup-image:
+	docker build --file docker/backup/Dockerfile --tag $(BACKUP_IMAGE) docker/backup
+
+# Writes the age identity outside the repository and the public recipient to
+# var/docker-secrets. IDENTITY defaults to ~/.config/cadran/backup-identity.txt.
+backup-key: backup-image
+	sh scripts/backup.sh key
+
+# Encrypted pg_dump into CADRAN_BACKUP_DIR (default ./backups). LABEL: manual, daily, pre-upgrade, pre-restore.
+db-backup: backup-image
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait db
+	sh scripts/backup.sh create
+
+# Applies the daily/weekly/monthly retention; DRY_RUN=1 only prints the plan.
+db-backup-prune: backup-image
+	sh scripts/backup.sh prune $(if $(DRY_RUN),--dry-run)
 
 tls-certificate:
 	sh scripts/check-local-runtime.sh
