@@ -12,8 +12,6 @@ interface BudgetPlanRepository
 
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?BudgetPlan;
 
-    public function findByPeriod(WorkspaceScope $workspace, BudgetPeriodType $periodType, \DateTimeImmutable $period): ?BudgetPlan;
-
     public function findActiveByPeriod(WorkspaceScope $workspace, BudgetPeriodType $periodType, \DateTimeImmutable $period): ?BudgetPlan;
 
     /** @return list<BudgetPlan> */

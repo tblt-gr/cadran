@@ -27,19 +27,6 @@ final class InMemoryBudgetPlanRepository implements BudgetPlanRepository
         return $this->find($workspace, $id);
     }
 
-    public function findByPeriod(WorkspaceScope $workspace, BudgetPeriodType $periodType, \DateTimeImmutable $period): ?BudgetPlan
-    {
-        foreach ($this->plans as $plan) {
-            if ($plan->workspace->equals($workspace)
-                && $plan->period->type === $periodType
-                && $plan->period->firstDay()->format('Y-m-d') === $period->format('Y-m-d')) {
-                return $plan;
-            }
-        }
-
-        return null;
-    }
-
     public function findActiveByPeriod(WorkspaceScope $workspace, BudgetPeriodType $periodType, \DateTimeImmutable $period): ?BudgetPlan
     {
         foreach ($this->plans as $plan) {

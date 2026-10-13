@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Application\Performance;
 
 use App\Module\Portfolio\Domain\Performance\GainDecomposition;
-use App\Module\Portfolio\Domain\Performance\PerformanceFinding;
 use App\Module\Portfolio\Domain\Performance\PerformancePeriod;
-use App\Module\Portfolio\Domain\Performance\PerformanceQuality;
 use App\Module\Portfolio\Domain\Performance\PeriodAnchor;
 use App\Module\Portfolio\Domain\Performance\TimeWeightedReturn;
 
@@ -15,9 +13,7 @@ use App\Module\Portfolio\Domain\Performance\TimeWeightedReturn;
 final readonly class PortfolioPerformance
 {
     /**
-     * @param list<PerformanceFinding>                                                      $findings     blocking reasons first, then warnings
      * @param list<array{operationId: string, type: string, date: string, amount: ?string}> $flows        the first ComputePortfolioPerformance::MAX_FLOWS external flows
-     * @param list<array{kind: string, id: string, date: string}>                           $sources      the first PortfolioExplanation::MAX_SOURCES sources, anchors first
      * @param array<string, PerformanceExplanation>                                         $explanations by PerformanceMethod value
      */
     public function __construct(
@@ -31,13 +27,9 @@ final readonly class PortfolioPerformance
         public ?string $netFlows,
         public ?string $startValue,
         public ?string $endValue,
-        public PerformanceQuality $quality,
-        public array $findings,
         public GainDecomposition $decomposition,
         public array $flows,
         public int $flowCount,
-        public array $sources,
-        public int $sourceCount,
         public ModifiedDietzFigure $modifiedDietz,
         public TimeWeightedReturn $timeWeighted,
         public MoneyWeightedFigure $moneyWeighted,

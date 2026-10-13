@@ -13,9 +13,6 @@ interface RefundRepository
 
     public function findByRefundTransactionId(WorkspaceScope $workspace, string $refundTransactionId): ?TransactionRefund;
 
-    /** @return list<TransactionRefund> */
-    public function findByOriginalTransactionId(WorkspaceScope $workspace, string $originalTransactionId): array;
-
     /** Whether the original has a live (non-terminal) linked refund. */
     public function hasLiveRefund(WorkspaceScope $workspace, string $originalTransactionId): bool;
 

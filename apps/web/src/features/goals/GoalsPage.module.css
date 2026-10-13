@@ -221,9 +221,6 @@
 .statusTable th:first-child {
   text-align: left;
 }
-.scheduleDetails table {
-  margin-top: var(--spacing-3);
-}
 .modalLoading {
   margin: var(--spacing-none);
   color: var(--text-secondary);

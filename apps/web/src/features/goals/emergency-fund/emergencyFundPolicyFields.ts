@@ -6,8 +6,8 @@ import type {
 } from '@cadran/api-client';
 
 export const MAX_ESSENTIAL_CATEGORIES = 50;
-export const MAX_TRAILING_MONTHS = 24;
-export const MAX_TARGET_MONTHS = 60;
+const MAX_TRAILING_MONTHS = 24;
+const MAX_TARGET_MONTHS = 60;
 
 export interface PolicyDraft {
   essentialMode: EmergencyFundEssentialMode;
@@ -34,7 +34,7 @@ export function draftFromPolicy(policy: EmergencyFundPolicy): PolicyDraft {
 }
 
 /** Accepts a decimal comma; the wire format always uses a dot. */
-export function normalizeTarget(value: string): string {
+function normalizeTarget(value: string): string {
   return value.trim().replace(',', '.');
 }
 

@@ -22,11 +22,6 @@ final readonly class AccountBalanceSnapshots
         }
     }
 
-    public function appended(AccountBalanceSnapshot $snapshot): self
-    {
-        return new self([...$this->snapshots, $snapshot]);
-    }
-
     /**
      * The active snapshot that still answers on $asOf: latest day on or
      * before that date, then the most recently recorded source on that day.

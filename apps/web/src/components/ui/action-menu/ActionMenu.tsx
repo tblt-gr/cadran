@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Icon, type IconName } from '@/components/ui/icon/Icon';
 import styles from './ActionMenu.module.css';
 
-export interface ActionMenuItem {
+interface ActionMenuItem {
   disabled?: boolean;
   icon: IconName;
   id: string;

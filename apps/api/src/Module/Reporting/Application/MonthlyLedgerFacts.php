@@ -24,8 +24,6 @@ final class MonthlyLedgerFacts
     {
         return array_map(static fn (MonthlyTransactionFact $fact): MonthlyLedgerEntry => new MonthlyLedgerEntry(
             $fact->id,
-            $fact->accountId,
-            $fact->amount,
             $fact->asset,
             MonthlyMovementKind::from($fact->nature),
             new \DateTimeImmutable($fact->bookedOn),

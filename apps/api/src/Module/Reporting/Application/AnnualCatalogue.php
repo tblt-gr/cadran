@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Reporting\Application;
 
 use App\Module\Accounts\Application\ReportAccountReference;
-use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Reporting\Domain\Aggregation\ColumnKind;
 
 /**
@@ -115,12 +114,6 @@ final readonly class AnnualCatalogue
                 array_slice($current, 0, self::DEFAULT_ACCOUNT_COLUMNS),
             ),
         ];
-    }
-
-    /** @return list<string> */
-    public static function axes(): array
-    {
-        return array_map(static fn (AnalyticAxis $axis): string => $axis->value, AnalyticAxis::cases());
     }
 
     private static function stock(string $id, ?string $label): AnnualColumn

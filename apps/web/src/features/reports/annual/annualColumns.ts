@@ -1,4 +1,4 @@
-import type { AnnualAggregate, AnnualColumn } from '@cadran/api-client';
+import type { AnnualAggregate } from '@cadran/api-client';
 
 export const MAX_ANNUAL_COLUMNS = 40;
 
@@ -88,9 +88,4 @@ export function annualCellHref(columnId: string, month: string): string {
     default:
       return `/reports?month=${month}`;
   }
-}
-
-export function columnGroup(column: Pick<AnnualColumn, 'id'>): string {
-  const [prefix] = column.id.split(':');
-  return column.id.includes(':') ? prefix! : 'indicator';
 }

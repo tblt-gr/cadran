@@ -2,7 +2,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { AllocationBar } from './AllocationBar';
 import styles from './AllocationLegend.module.css';
 
-export interface AllocationLegendItem {
+interface AllocationLegendItem {
   /** Formatted exact amount, or an empty-value marker. */
   amount: ReactNode;
   key: string;

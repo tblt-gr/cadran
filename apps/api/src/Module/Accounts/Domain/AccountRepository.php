@@ -39,17 +39,6 @@ interface AccountRepository
     ): int;
 
     /**
-     * Active accounts included in net worth, capped at $limit.
-     *
-     * Closure is deliberately not filtered here: whether a closed account
-     * still counts depends on the business day being aggregated, so the
-     * decision belongs to the calculation rather than to the query.
-     *
-     * @return list<Account>
-     */
-    public function listForNetWorth(WorkspaceScope $workspace, int $limit): array;
-
-    /**
      * Accounts included in net worth and active on at least one day of the
      * requested historical interval, capped at $limit.
      *

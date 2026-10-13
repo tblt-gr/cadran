@@ -36,12 +36,6 @@
   font-weight: var(--font-weight-bold);
 }
 
-.unavailable {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-normal);
-}
-
 .consequences {
   margin: var(--spacing-none);
   padding-left: var(--spacing-4);

@@ -11,7 +11,7 @@ import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { metricPolicyRequestError } from './metricPolicyError';
 
-export const metricPoliciesQueryKey = ['metric-policies'] as const;
+const metricPoliciesQueryKey = ['metric-policies'] as const;
 
 export function useMetricPolicies() {
   return useQuery<MetricPolicyCatalog>({

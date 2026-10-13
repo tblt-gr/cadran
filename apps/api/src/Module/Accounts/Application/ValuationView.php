@@ -57,25 +57,6 @@ final readonly class ValuationView
         );
     }
 
-    public static function missing(string $accountId, \DateTimeImmutable $requestedOn): self
-    {
-        return new self(
-            accountId: $accountId,
-            requestedOn: $requestedOn->format('Y-m-d'),
-            asOf: null,
-            amount: null,
-            assetCode: null,
-            displayAmount: null,
-            belowDisplayStep: false,
-            source: null,
-            ageDays: null,
-            quality: ValuationQuality::MISSING->value,
-            reconciliationStatus: null,
-            snapshotId: null,
-            version: null,
-        );
-    }
-
     private static function display(AccountValuation $valuation, ?Asset $asset): ?DisplayedAmount
     {
         if (null === $valuation->amount || null === $asset) {

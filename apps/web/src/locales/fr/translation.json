@@ -65,16 +65,10 @@
     "collapse": "Réduire",
     "expand": "Déployer",
     "more": "Plus",
-    "search": "Rechercher",
     "scrollLeft": "Défiler vers la gauche",
-    "scrollRight": "Défiler vers la droite",
-    "openRowActions": "Actions de « {{label}} »"
+    "scrollRight": "Défiler vers la droite"
   },
   "foundation": {
-    "apiVersion": "API {{version}}",
-    "error": "L’API est actuellement indisponible.",
-    "loading": "Connexion à l’API…",
-    "ready": "Le socle de l’application est prêt.",
     "readyWithVersion": "API {{version}}. Le socle de l’application est prêt.",
     "retry": "Réessayer"
   },

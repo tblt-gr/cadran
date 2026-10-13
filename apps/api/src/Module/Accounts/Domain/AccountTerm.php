@@ -27,7 +27,7 @@ final readonly class AccountTerm
      * catalogue-sourced term always carries both.
      */
     public function __construct(
-        public RuleKind $kind,
+        RuleKind $kind,
         public string $token,
         public EffectivePeriod $period,
         public ?VerificationState $verification,

@@ -142,15 +142,4 @@ final class ProductModelFixture
     {
         return new \DateTimeImmutable($value, new \DateTimeZone('UTC'));
     }
-
-    /** @return list<string> */
-    public static function identifiers(int $count): array
-    {
-        $ids = [];
-        for ($index = 1; $index <= $count; ++$index) {
-            $ids[] = sprintf('00000000-0000-7000-8000-0000000000b%01x', $index);
-        }
-
-        return $ids;
-    }
 }

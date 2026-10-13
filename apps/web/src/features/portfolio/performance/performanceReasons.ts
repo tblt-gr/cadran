@@ -10,7 +10,7 @@ export interface ReasonContext {
   residual: string | null;
 }
 
-export interface ReasonAction {
+interface ReasonAction {
   label: string;
   href: string;
 }

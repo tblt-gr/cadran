@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import styles from './ProductModelsState.module.css';
 
-export type ProductModelsStateKind = 'loading' | 'error' | 'unauthorized' | 'empty';
+type ProductModelsStateKind = 'loading' | 'error' | 'unauthorized' | 'empty';
 
 interface ProductModelsStateProps {
   kind: ProductModelsStateKind;

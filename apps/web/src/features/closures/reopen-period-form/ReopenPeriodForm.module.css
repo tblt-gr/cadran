@@ -10,23 +10,6 @@
   font-size: var(--font-size-label);
 }
 
-.blocker {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-  margin: var(--spacing-none);
-  padding: var(--spacing-3) var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-control);
-}
-
-.confirm {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-3);
-  font-size: var(--font-size-label);
-}
-
 .reason {
   display: flex;
   flex-direction: column;

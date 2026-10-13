@@ -1,9 +1,3 @@
-.state {
-  margin: var(--spacing-none);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-
 .warning {
   margin: var(--spacing-none) var(--spacing-none) var(--spacing-4);
   padding: var(--spacing-3) var(--spacing-4);

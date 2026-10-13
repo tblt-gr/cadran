@@ -23,17 +23,6 @@
   color: var(--text-secondary);
   font-size: var(--font-size-label);
 }
-.state {
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  gap: var(--spacing-3);
-  padding: var(--spacing-8);
-}
-.state h3,
-.state p {
-  margin: var(--spacing-none);
-}
 @media (max-width: 480px) {
   .toolbar {
     align-items: start;

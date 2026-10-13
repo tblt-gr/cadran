@@ -25,7 +25,7 @@ export interface ValuationFormValues {
 }
 
 /** Errors keyed by JSON pointer, the same keys the server uses for its own refusals. */
-export type ValuationFormErrors = Record<string, string>;
+type ValuationFormErrors = Record<string, string>;
 
 type Result =
   | { request: PortfolioValuationRequest; errors: null }

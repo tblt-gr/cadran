@@ -7,7 +7,7 @@ import type {
 import { compareDecimals, isCanonicalUnsignedDecimal, isZeroDecimal } from '@/lib/decimal';
 import { hasField, operationMatrix, type FieldKey } from './operationMatrix';
 
-export interface PickedInstrument {
+interface PickedInstrument {
   id: string;
   name: string;
   instrumentType?: string;

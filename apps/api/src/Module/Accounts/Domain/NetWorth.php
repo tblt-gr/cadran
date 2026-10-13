@@ -14,10 +14,6 @@ use App\Module\Foundation\Domain\DecimalValue;
  */
 final readonly class NetWorth
 {
-    /**
-     * @param list<NetWorthContribution> $contributions every account considered,
-     *                                                  eligible or not
-     */
     public function __construct(
         public \DateTimeImmutable $asOf,
         public ?DecimalValue $total,
@@ -29,7 +25,6 @@ final readonly class NetWorth
         public int $valuedAccountCount,
         public int $missingValuationCount,
         public int $staleValuationCount,
-        public array $contributions,
     ) {
         if (null !== $reason && null !== $total) {
             throw new \InvalidArgumentException('A non-calculable net worth cannot carry a figure.');

@@ -34,13 +34,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-.amount,
-.unknown {
+.amount {
   grid-column: 1 / -1;
 }
 
-.empty,
-.unknown {
+.empty {
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-normal);

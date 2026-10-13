@@ -43,17 +43,6 @@ final readonly class DbalRefundRepository implements RefundRepository
         return false === $row ? null : self::hydrate($workspace, $row);
     }
 
-    public function findByOriginalTransactionId(WorkspaceScope $workspace, string $originalTransactionId): array
-    {
-        $rows = $this->connection->fetchAllAssociative(
-            'SELECT id, refund_transaction_id, original_transaction_id, created_at FROM transaction_refunds '
-            .'WHERE workspace_id = :workspace_id AND original_transaction_id = :original_transaction_id ORDER BY created_at, id',
-            ['workspace_id' => $workspace->id, 'original_transaction_id' => $originalTransactionId],
-        );
-
-        return array_map(fn (array $row): TransactionRefund => self::hydrate($workspace, $row), $rows);
-    }
-
     /** A refund settled or rejected no longer occupies the original's cap. */
     private const string LIVE_STATE_FILTER = "t.state NOT IN ('VOIDED', 'REJECTED')";
 

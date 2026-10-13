@@ -120,7 +120,7 @@ const fieldTexts: Record<string, string> = {
 };
 
 /** Message for the gross amount refusal, with the exact value the server expects. */
-export function mismatchMessage(expected: string | undefined): string {
+function mismatchMessage(expected: string | undefined): string {
   return expected
     ? `Le montant brut ne correspond pas à quantité × prix. Montant attendu : ${expected}.`
     : 'Le montant brut ne correspond pas à quantité × prix.';

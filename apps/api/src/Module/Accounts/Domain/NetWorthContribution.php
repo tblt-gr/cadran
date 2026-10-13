@@ -18,16 +18,14 @@ use App\Module\Foundation\Domain\ExactDecimal;
 final readonly class NetWorthContribution
 {
     /**
-     * @param list<string> $tagGroupIds
-     * @param bool         $eligible    included in net worth, open on the requested
-     *                                  day and not archived; an account outside that
-     *                                  window is not a missing valuation
+     * @param bool $eligible included in net worth, open on the requested
+     *                       day and not archived; an account outside that
+     *                       window is not a missing valuation
      */
     public function __construct(
         public string $accountId,
         public int $netWorthSign,
         public ?string $primaryGroupId,
-        public array $tagGroupIds,
         public ?AssetAmount $amount,
         public ValuationQuality $quality,
         public ?int $ageDays,
@@ -53,7 +51,6 @@ final readonly class NetWorthContribution
             includeInNetWorth: $this->eligible,
             netWorthSign: $this->netWorthSign,
             primaryGroupId: $this->primaryGroupId,
-            tagGroupIds: $this->tagGroupIds,
             value: $this->amount?->value,
             asset: $this->amount?->asset,
         );

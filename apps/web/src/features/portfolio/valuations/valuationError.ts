@@ -3,7 +3,7 @@ import type { PortfolioValuationProblem } from '@cadran/api-client';
 type ResultLike = { error?: unknown; response?: Response };
 
 /** A refused valuation request, classified by the problem `code` of the API. */
-export class ValuationRequestError extends Error {
+class ValuationRequestError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly type?: string;

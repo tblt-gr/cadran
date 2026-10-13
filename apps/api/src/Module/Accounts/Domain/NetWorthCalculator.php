@@ -47,7 +47,6 @@ final class NetWorthCalculator
             valuedAccountCount: count($eligible) - $missing,
             missingValuationCount: $missing,
             staleValuationCount: $stale,
-            contributions: $contributions,
         );
     }
 

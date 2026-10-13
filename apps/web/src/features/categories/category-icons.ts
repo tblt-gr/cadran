@@ -199,8 +199,6 @@ export const CATEGORY_ICONS = [
   },
 ] as const;
 
-export type CategoryIconKey = (typeof CATEGORY_ICONS)[number]['key'];
-
 export function categoryIcon(key: string | null | undefined) {
   return CATEGORY_ICONS.find((icon) => icon.key === key);
 }

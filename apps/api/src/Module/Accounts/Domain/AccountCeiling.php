@@ -37,7 +37,7 @@ final readonly class AccountCeiling
      * divergence from the published figure beside it.
      */
     public function __construct(
-        public RuleKind $kind,
+        RuleKind $kind,
         public AssetAmount $amount,
         public EffectivePeriod $period,
         public ?VerificationState $verification,

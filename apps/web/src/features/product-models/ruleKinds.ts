@@ -62,11 +62,11 @@ export function ruleValueType(kind: ProductRuleKind): RuleValueType {
   return VALUE_TYPE[kind];
 }
 
-export function ruleRequiredCapability(kind: ProductRuleKind): ProductCapability | null {
+function ruleRequiredCapability(kind: ProductRuleKind): ProductCapability | null {
   return REQUIRED_CAPABILITY[kind];
 }
 
-export function yieldAcceptsRateRule(yieldKind: ProductYieldKind): boolean {
+function yieldAcceptsRateRule(yieldKind: ProductYieldKind): boolean {
   return YIELD_ACCEPTS_RATE[yieldKind];
 }
 

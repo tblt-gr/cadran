@@ -90,7 +90,6 @@ final class NetWorthShareCalculatorTest extends TestCase
                 includeInNetWorth: true,
                 netWorthSign: -1,
                 primaryGroupId: self::DEBTS,
-                tagGroupIds: [],
                 value: null,
                 asset: null,
             ),
@@ -135,7 +134,7 @@ final class NetWorthShareCalculatorTest extends TestCase
     {
         return [
             $this->valued(self::CHECKING, self::LIQUID, '4000'),
-            $this->valued(self::LIVRET, self::SAVINGS, '6000', tags: [self::LIQUID]),
+            $this->valued(self::LIVRET, self::SAVINGS, '6000'),
             $this->valued(self::PIGGY, self::SAVINGS, '1000', included: false),
         ];
     }
@@ -150,16 +149,12 @@ final class NetWorthShareCalculatorTest extends TestCase
         ];
     }
 
-    /**
-     * @param list<string> $tags
-     */
     private function valued(
         string $id,
         string $primary,
         string $value,
         int $sign = 1,
         bool $included = true,
-        array $tags = [],
         string $asset = 'EUR',
     ): AccountShareInput {
         return new AccountShareInput(
@@ -167,7 +162,6 @@ final class NetWorthShareCalculatorTest extends TestCase
             includeInNetWorth: $included,
             netWorthSign: $sign,
             primaryGroupId: $primary,
-            tagGroupIds: $tags,
             value: DecimalValue::fromString($value),
             asset: AssetCode::fromString($asset),
         );

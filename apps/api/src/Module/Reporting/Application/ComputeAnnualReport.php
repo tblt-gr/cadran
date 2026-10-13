@@ -96,7 +96,7 @@ final readonly class ComputeAnnualReport
             $aggregates[$column->id] = $this->aggregate($column, $months, $previous, $resolved->incomplete, $policy);
         }
 
-        return new ComputedAnnualYear($year, $resolved->workspace, $resolved->incomplete, $resolved->catalogue, $resolved->columns, $months, $previous, $policy, $aggregates);
+        return new ComputedAnnualYear($year, $resolved->incomplete, $resolved->catalogue, $resolved->columns, $months, $previous, $policy, $aggregates);
     }
 
     private function assertYear(int $year): void

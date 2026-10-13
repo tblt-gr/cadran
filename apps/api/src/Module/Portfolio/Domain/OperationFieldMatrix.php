@@ -12,8 +12,6 @@ namespace App\Module\Portfolio\Domain;
  */
 final class OperationFieldMatrix
 {
-    public const array RATIO_FIELDS = ['numerator', 'denominator'];
-
     public const array FIELDS = [
         'instrument', 'quantity', 'unitPrice', 'grossAmount', 'fees', 'taxes', 'costBasis',
         'counterInstrument', 'counterQuantity', 'ratio', 'costAllocationRatio', 'linkedTransaction', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'interestBasis', 'rateYear',

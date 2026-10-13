@@ -45,14 +45,6 @@
 .table td {
   overflow-wrap: anywhere;
 }
-.warnings {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-}
-.warnings p {
-  margin: var(--spacing-none);
-}
 @media (max-width: 42rem) {
   .heading > button {
     width: 100%;

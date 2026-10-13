@@ -43,16 +43,6 @@ final readonly class DbalBudgetPlanRepository implements BudgetPlanRepository
         return false === $row ? null : BudgetPlanRow::hydrate($row, $workspace);
     }
 
-    public function findByPeriod(WorkspaceScope $workspace, BudgetPeriodType $periodType, \DateTimeImmutable $period): ?BudgetPlan
-    {
-        $row = $this->connection->fetchAssociative(
-            'SELECT '.self::COLUMNS.' FROM budget_plans WHERE workspace_id = :workspace_id AND period_type = :period_type AND period = :period',
-            ['workspace_id' => $workspace->id, 'period_type' => $periodType->value, 'period' => $period->format('Y-m-d')],
-        );
-
-        return false === $row ? null : BudgetPlanRow::hydrate($row, $workspace);
-    }
-
     public function findActiveByPeriod(WorkspaceScope $workspace, BudgetPeriodType $periodType, \DateTimeImmutable $period): ?BudgetPlan
     {
         $row = $this->connection->fetchAssociative(

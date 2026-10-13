@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import styles from './TransactionsState.module.css';
 
-export type TransactionsStateKind =
-  'error' | 'unauthorized' | 'empty' | 'queueEmpty' | 'impossible';
+type TransactionsStateKind = 'error' | 'unauthorized' | 'empty' | 'queueEmpty' | 'impossible';
 
 interface TransactionsStateProps {
   /** Hides the empty state's create action where creation is not available (a closed or archived account). */

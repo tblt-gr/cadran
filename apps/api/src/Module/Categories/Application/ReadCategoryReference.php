@@ -55,12 +55,4 @@ final readonly class ReadCategoryReference
 
         return $ancestors;
     }
-
-    /** @return list<string> */
-    public function ancestorIdsOf(WorkspaceScope $workspace, string $categoryId): array
-    {
-        $category = $this->categories->find($workspace, $categoryId);
-
-        return null === $category ? [] : $this->ancestorsOf($workspace, $category);
-    }
 }

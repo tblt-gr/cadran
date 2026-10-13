@@ -41,9 +41,4 @@ final readonly class BusinessDay
     {
         return self::fromIsoDate($moment->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d'));
     }
-
-    public function toString(): string
-    {
-        return $this->date->format('Y-m-d');
-    }
 }

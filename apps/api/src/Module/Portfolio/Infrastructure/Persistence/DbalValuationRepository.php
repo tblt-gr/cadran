@@ -123,7 +123,7 @@ final readonly class DbalValuationRepository implements ValuationRepository
             return [];
         }
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT s.instrument_id, s.unit_price_value, s.unit_price_scale, s.price_date, s.valuation_id, v.recorded_at'
+            'SELECT s.instrument_id, s.unit_price_value, s.unit_price_scale, s.price_date, s.valuation_id'
             .' FROM portfolio_position_snapshots s JOIN portfolio_valuations v ON v.id = s.valuation_id AND v.workspace_id = s.workspace_id'
             .' WHERE s.workspace_id = :workspace_id AND v.workspace_id = :workspace_id AND v.account_id = :account_id AND v.superseded_at IS NULL'
             .' AND s.unit_price_value IS NOT NULL AND s.price_date <= :on_or_before AND s.instrument_id IN (:instruments)'
@@ -137,7 +137,6 @@ final readonly class DbalValuationRepository implements ValuationRepository
             ValuationRow::decimal($row, 'unit_price') ?? throw new \UnexpectedValueException('A priced snapshot has a price.'),
             ValuationRow::day($row['price_date']),
             ValuationRow::text($row['valuation_id']),
-            new \DateTimeImmutable(ValuationRow::text($row['recorded_at'])),
         ), $rows);
     }
 
