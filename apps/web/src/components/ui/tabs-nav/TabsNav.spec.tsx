@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TabsNav } from './TabsNav';
+import '@/i18n';
+import { TabsNav, type TabsNavItem } from './TabsNav';
 
 describe('TabsNav', () => {
   afterEach(cleanup);
@@ -40,5 +41,73 @@ describe('TabsNav', () => {
     expect(screen.getByRole('button', { name: 'Y' }).getAttribute('aria-current')).toBe('page');
     fireEvent.click(x);
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  describe('when the items overflow', () => {
+    const months: TabsNavItem[] = ['2026-10', '2026-09', '2026-08', '2026-07'].map((id) => ({
+      id,
+      label: id,
+      onSelect: () => undefined,
+      active: id === '2026-10',
+    }));
+
+    // jsdom has no layout: give the strip and its tabs the geometry a browser would measure.
+    function stubBox(node: HTMLElement, box: Record<string, number>) {
+      for (const [key, value] of Object.entries(box)) {
+        Object.defineProperty(node, key, { configurable: true, value, writable: true });
+      }
+    }
+
+    function strip() {
+      return screen.getByRole('navigation', { name: 'Mois' });
+    }
+
+    function scrollButton(name: string) {
+      return screen.getByRole<HTMLButtonElement>('button', { name });
+    }
+
+    it('offers no scroll button while everything fits', () => {
+      render(<TabsNav items={months} label="Mois" variant="secondary" />);
+      expect(screen.queryByRole('button', { name: 'Défiler vers la gauche' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Défiler vers la droite' })).toBeNull();
+    });
+
+    it('scrolls with the circular buttons and disables each one at its end', () => {
+      render(<TabsNav items={months} label="Mois" variant="secondary" />);
+      stubBox(strip(), { clientWidth: 100, scrollLeft: 0, scrollWidth: 300 });
+      fireEvent.scroll(strip());
+
+      expect(scrollButton('Défiler vers la gauche').disabled).toBe(true);
+      expect(scrollButton('Défiler vers la droite').disabled).toBe(false);
+
+      fireEvent.click(scrollButton('Défiler vers la droite'));
+      expect(strip().scrollLeft).toBe(80);
+      fireEvent.scroll(strip());
+      expect(scrollButton('Défiler vers la gauche').disabled).toBe(false);
+
+      strip().scrollLeft = 200;
+      fireEvent.scroll(strip());
+      expect(scrollButton('Défiler vers la droite').disabled).toBe(true);
+      fireEvent.click(scrollButton('Défiler vers la gauche'));
+      expect(strip().scrollLeft).toBe(120);
+    });
+
+    it('brings the active tab into view when it changes', () => {
+      const { rerender } = render(<TabsNav items={months} label="Mois" variant="secondary" />);
+      stubBox(strip(), { clientWidth: 100, scrollLeft: 0, scrollWidth: 300 });
+      stubBox(screen.getByRole('button', { name: '2026-07' }), {
+        offsetLeft: 250,
+        offsetWidth: 40,
+      });
+
+      rerender(
+        <TabsNav
+          items={months.map((item) => ({ ...item, active: item.id === '2026-07' }))}
+          label="Mois"
+          variant="secondary"
+        />,
+      );
+      expect(strip().scrollLeft).toBe(190);
+    });
   });
 });

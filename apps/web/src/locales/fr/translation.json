@@ -66,6 +66,8 @@
     "expand": "Déployer",
     "more": "Plus",
     "search": "Rechercher",
+    "scrollLeft": "Défiler vers la gauche",
+    "scrollRight": "Défiler vers la droite",
     "openRowActions": "Actions de « {{label}} »"
   },
   "foundation": {
