@@ -9,11 +9,19 @@ export type NavigationHandler = (event: MouseEvent<HTMLAnchorElement>, href: str
 interface NavigationLinkProps {
   className?: string;
   item: NavigationItem;
+  /** The user shows interest in the target (hover, focus): lets the app warm it up. */
+  onIntent?: (href: string) => void;
   onNavigate: NavigationHandler;
   path: string;
 }
 
-export function NavigationLink({ className, item, onNavigate, path }: NavigationLinkProps) {
+export function NavigationLink({
+  className,
+  item,
+  onIntent,
+  onNavigate,
+  path,
+}: NavigationLinkProps) {
   const { t } = useTranslation();
   const isCurrent = item.match(path);
   const label = t(item.labelKey);
@@ -23,6 +31,8 @@ export function NavigationLink({ className, item, onNavigate, path }: Navigation
       aria-current={isCurrent ? 'page' : undefined}
       className={`${styles.link}${className ? ` ${className}` : ''}`}
       href={item.href}
+      onFocus={() => onIntent?.(item.href)}
+      onPointerEnter={() => onIntent?.(item.href)}
       onClick={(event) => onNavigate(event, item.href)}
       title={label}
     >

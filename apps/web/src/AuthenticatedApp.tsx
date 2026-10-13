@@ -1,15 +1,23 @@
 import { getFoundationStatus } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
-import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { RouteErrorBoundary } from '@/components/layout/route-error-boundary/RouteErrorBoundary';
+import { RouteSuspense } from '@/components/layout/route-suspense/RouteSuspense';
 import { useDashboardHeader } from '@/features/dashboard/net-worth/useDashboardHeader';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
+import { RouteLoadErrorState } from '@/features/foundation/RouteLoadErrorState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
-import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from './AuthenticatedApp.routes';
+import { getRouteTitleKey } from '@/lib/navigation';
+import {
+  buildAuthenticatedRoutes,
+  DashboardPage,
+  matchAuthenticatedRoute,
+  preloadRoute,
+} from './AuthenticatedApp.routes';
 
 /**
  * The application once a session exists: shell, routing and the foundation
@@ -17,6 +25,7 @@ import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from './Authenticat
  */
 export function AuthenticatedApp() {
   const [path, setPath] = useState(() => window.location.pathname);
+  const [isNavigating, startTransition] = useTransition();
   // AuthGate only renders this tree once the session query already resolved
   // to an authenticated, workspace-bound user, so this read is a cache hit:
   // no extra request and no loading state to handle here.
@@ -43,14 +52,23 @@ export function AuthenticatedApp() {
   );
   const matched = matchAuthenticatedRoute(routes, path);
 
+  // A path change is a transition: React keeps the page on screen until the
+  // next page's chunk is ready, so in-app navigation never flashes a fallback.
+  const navigateTo = useCallback(
+    (nextPath: string) => {
+      startTransition(() => setPath(nextPath));
+    },
+    [startTransition],
+  );
+
   useEffect(() => {
     function updatePath() {
-      setPath(window.location.pathname);
+      navigateTo(window.location.pathname);
     }
 
     window.addEventListener('popstate', updatePath);
     return () => window.removeEventListener('popstate', updatePath);
-  }, []);
+  }, [navigateTo]);
 
   let content;
   if (matched) {
@@ -81,10 +99,17 @@ export function AuthenticatedApp() {
       accountSlot={path === '/parameters/profile' ? <LogoutButton /> : undefined}
       freshnessLabel={path === '/' ? dashboardHeader.freshnessLabel : undefined}
       headerDate={path === '/' ? dashboardHeader.headerDate : undefined}
+      isNavigating={isNavigating}
+      onNavigationIntent={preloadRoute}
       path={path}
-      setPath={setPath}
+      setPath={navigateTo}
     >
-      {content}
+      <RouteErrorBoundary
+        fallback={<RouteLoadErrorState titleKey={getRouteTitleKey(path)} />}
+        resetKey={path}
+      >
+        <RouteSuspense titleKey={getRouteTitleKey(path)}>{content}</RouteSuspense>
+      </RouteErrorBoundary>
     </AppShell>
   );
 }

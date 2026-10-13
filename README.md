@@ -186,7 +186,8 @@ make quality    # formatting, static analysis, module boundaries, types, OpenAPI
 make test       # module-boundary, infrastructure, backend (PHPUnit) and frontend (Vitest) tests
 make e2e        # optional browser smoke scaffold against the running stack (Linux host)
 make audit      # Composer and npm dependency audits
-make build      # production build of both applications
+make build      # production build of both applications, then the bundle size budgets
+make perf       # performance suite on a 100,000-transaction synthetic workspace (PERF_ASSERT=1 asserts the p95)
 ```
 
 Narrower targets exist for a tighter loop: `make architecture` runs the module-boundary and

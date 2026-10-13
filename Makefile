@@ -1,4 +1,4 @@
-.PHONY: upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure architecture quality build audit e2e e2e-image
+.PHONY: upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit e2e e2e-image
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -138,6 +138,11 @@ test-database: tools
 
 test-api: test-database
 	$(TOOLS_RUN_WITH_DB) composer test --working-dir=apps/api
+
+# Backend performance budgets (NFR-001): seeds 100 000 transactions over 15 years in the test database and prints
+# p50/p95 per endpoint. PERF_ASSERT=1 turns the monthly report p95 target (300 ms) into a failure.
+perf: test-database
+	$(TOOLS_RUN_WITH_DB) env PERF_ASSERT=$(PERF_ASSERT) php apps/api/bin/phpunit --configuration apps/api/phpunit.dist.xml apps/api/performance
 
 test-web: tools
 	$(TOOLS_RUN) pnpm test

@@ -17,27 +17,27 @@ use App\Module\Reporting\Domain\MonthlyMetric;
 use App\Module\Reporting\Domain\MonthlyMovement;
 use App\Module\Reporting\Domain\MonthlyMovementKind;
 use App\Module\Reporting\Domain\MonthlyProjectionReason;
-use App\Module\Transactions\Domain\Transaction;
-use App\Module\Transactions\Domain\TransactionFilters;
-use App\Module\Transactions\Domain\TransactionRepository;
-use App\Module\Transactions\Domain\TransactionState;
+use App\Module\Transactions\Application\BookedMovementFact;
+use App\Module\Transactions\Application\BookedMovementReader;
+use App\Module\Transactions\Application\ReadMonthlyTransactionFacts;
 
 /**
  * The "period cash income" a ratio target resolves against, for either a
  * MONTH or a YEAR budget period. It extends RPT-001's own definition to an
  * arbitrary bounded date range rather than copying its `CalendarMonth`-only
  * reads: {@see AccountRepository::listOpenDuring()} and
- * {@see TransactionRepository::search()} already accept a plain date range,
+ * {@see BookedMovementReader::between()} already accept a plain date range,
  * so a year is read exactly like a month, only over twelve times the span.
  */
 final readonly class ReadPeriodCashIncome
 {
     public const int MAX_ACCOUNTS = 500;
-    public const int MAX_TRANSACTIONS = 6000;
+    /** A YEAR period is twelve months of the monthly projection's volume. */
+    public const int MAX_TRANSACTIONS = 12 * ReadMonthlyTransactionFacts::MAX_TRANSACTIONS;
 
     public function __construct(
         private AccountRepository $accounts,
-        private TransactionRepository $transactions,
+        private BookedMovementReader $movements,
         private WorkspaceTimezoneReader $timezones,
         private ResolveMetricPolicy $metricPolicy,
     ) {
@@ -74,14 +74,10 @@ final readonly class ReadPeriodCashIncome
             throw new BudgetIncomeScopeTooLarge('A budget period income reads at most 500 accounts.');
         }
 
-        $rows = $this->transactions->search(
-            $workspace,
-            new TransactionFilters(from: $first, to: $last, states: [TransactionState::BOOKED]),
-            self::MAX_TRANSACTIONS + 1,
-            null,
-        );
+        // Scalar facts, not hydrated transactions: a year at the bound is 24 000 rows and must not exhaust memory.
+        $rows = $this->movements->between($workspace, $first, $last, self::MAX_TRANSACTIONS + 1);
         if (count($rows) > self::MAX_TRANSACTIONS) {
-            throw new BudgetIncomeScopeTooLarge('A budget period income reads at most 6000 transactions.');
+            throw new BudgetIncomeScopeTooLarge(sprintf('A budget period income reads at most %d transactions.', self::MAX_TRANSACTIONS));
         }
 
         $kindByAccount = [];
@@ -89,14 +85,14 @@ final readonly class ReadPeriodCashIncome
             $kindByAccount[$account->id] = $account->kind->value;
         }
         $movements = array_map(
-            static fn (Transaction $transaction): MonthlyMovement => new MonthlyMovement(
-                $transaction->amount->value,
-                $transaction->amount->asset,
-                MonthlyMovementKind::from($transaction->nature->value),
+            static fn (BookedMovementFact $fact): MonthlyMovement => new MonthlyMovement(
+                $fact->amount->value,
+                $fact->amount->asset,
+                MonthlyMovementKind::from($fact->nature),
                 [],
                 false,
-                $transaction->id,
-                $kindByAccount[$transaction->accountId] ?? null,
+                $fact->id,
+                $kindByAccount[$fact->accountId] ?? null,
             ),
             $rows,
         );

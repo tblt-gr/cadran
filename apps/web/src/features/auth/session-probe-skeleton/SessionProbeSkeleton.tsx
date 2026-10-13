@@ -1,8 +1,15 @@
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
-import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from '@/AuthenticatedApp.routes';
-import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import {
+  buildAuthenticatedRoutes,
+  DashboardPage,
+  matchAuthenticatedRoute,
+} from '@/AuthenticatedApp.routes';
+import { RouteErrorBoundary } from '@/components/layout/route-error-boundary/RouteErrorBoundary';
+import { RouteSuspense } from '@/components/layout/route-suspense/RouteSuspense';
+import { RouteLoadErrorState } from '@/features/foundation/RouteLoadErrorState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
+import { getRouteTitleKey } from '@/lib/navigation';
 
 const noop = () => undefined;
 
@@ -30,7 +37,12 @@ export function SessionProbeSkeleton() {
   return (
     <FrozenQueries>
       <AppShell path={path} setPath={noop}>
-        {content}
+        <RouteErrorBoundary
+          fallback={<RouteLoadErrorState titleKey={getRouteTitleKey(path)} />}
+          resetKey={path}
+        >
+          <RouteSuspense titleKey={getRouteTitleKey(path)}>{content}</RouteSuspense>
+        </RouteErrorBoundary>
       </AppShell>
     </FrozenQueries>
   );

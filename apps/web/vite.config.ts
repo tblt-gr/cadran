@@ -14,6 +14,10 @@ export default defineConfig({
       '@fixtures': fileURLToPath(new URL('../../tests/fixtures', import.meta.url)),
     },
   },
+  build: {
+    // Read by scripts/check-bundle-budget.mjs to enforce the bundle budgets.
+    manifest: true,
+  },
   test: {
     environment: 'jsdom',
   },

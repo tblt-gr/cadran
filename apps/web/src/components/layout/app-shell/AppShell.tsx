@@ -21,6 +21,10 @@ interface AppShellProps {
   contextPanel?: ReactNode;
   freshnessLabel?: string;
   headerDate?: string;
+  /** A navigation is waiting for its page: the content region is busy, not frozen. */
+  isNavigating?: boolean;
+  /** The user shows interest in a destination (hover, focus), so the app can warm it up. */
+  onNavigationIntent?: (href: string) => void;
   path: string;
   setPath: (path: string) => void;
 }
@@ -43,6 +47,8 @@ function AppShellContent({
   contextPanel,
   freshnessLabel,
   headerDate,
+  isNavigating = false,
+  onNavigationIntent,
   path,
   setPath,
 }: AppShellProps) {
@@ -52,7 +58,7 @@ function AppShellContent({
   const moreButton = useRef<HTMLButtonElement>(null);
   const headerOverride = useHeaderTitleValue(path);
   const title = headerOverride ?? t(getRouteTitleKey(path));
-  const { handleNavigate, navigate } = useClientNavigation(path, setPath);
+  const { handleNavigate, navigate } = useClientNavigation(setPath);
 
   useEffect(() => {
     document.title = path === '/' ? t('app.name') : `${title} · ${t('app.name')}`;
@@ -72,6 +78,7 @@ function AppShellContent({
       <Sidebar
         isCollapsed={isCollapsed}
         onNavigate={handleNavigate}
+        onNavigationIntent={onNavigationIntent}
         onToggle={() => setIsCollapsed((value) => !value)}
         path={path}
       />
@@ -85,7 +92,7 @@ function AppShellContent({
         />
 
         <div className={`${styles.body}${contextPanel ? ` ${styles.bodyWithPanel}` : ''}`}>
-          <main id="main-content" tabIndex={-1}>
+          <main aria-busy={isNavigating || undefined} id="main-content" tabIndex={-1}>
             <RouteBreadcrumb path={path} onNavigate={handleNavigate} />
             {children}
           </main>
@@ -97,6 +104,7 @@ function AppShellContent({
         isMoreOpen={isMoreOpen}
         moreButton={moreButton}
         onNavigate={handleNavigate}
+        onNavigationIntent={onNavigationIntent}
         onOpenMore={() => setIsMoreOpen(true)}
         path={path}
       />
@@ -106,6 +114,7 @@ function AppShellContent({
           accountSlot={accountSlot}
           close={closeMoreSheet}
           navigate={navigate}
+          onNavigationIntent={onNavigationIntent}
           path={path}
         />
       ) : null}

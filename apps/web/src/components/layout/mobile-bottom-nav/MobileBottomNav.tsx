@@ -12,6 +12,7 @@ interface MobileBottomNavProps {
   isMoreOpen: boolean;
   moreButton: RefObject<HTMLButtonElement | null>;
   onNavigate: NavigationHandler;
+  onNavigationIntent?: (href: string) => void;
   onOpenMore: () => void;
   path: string;
 }
@@ -20,6 +21,7 @@ export function MobileBottomNav({
   isMoreOpen,
   moreButton,
   onNavigate,
+  onNavigationIntent,
   onOpenMore,
   path,
 }: MobileBottomNavProps) {
@@ -34,6 +36,7 @@ export function MobileBottomNav({
           className={styles.link}
           item={item}
           key={item.href}
+          onIntent={onNavigationIntent}
           onNavigate={onNavigate}
           path={path}
         />

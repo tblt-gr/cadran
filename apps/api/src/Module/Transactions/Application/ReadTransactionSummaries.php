@@ -10,7 +10,8 @@ use App\Module\Transactions\Domain\TransactionRepository;
 /** A bounded, workspace-scoped read port for explanation surfaces. */
 final readonly class ReadTransactionSummaries
 {
-    public const int MAX_TRANSACTIONS = 500;
+    /** The identifiers of a month's KPI sources can be as many as the month's transactions. */
+    public const int MAX_TRANSACTIONS = ReadMonthlyTransactionFacts::MAX_TRANSACTIONS;
 
     public function __construct(private TransactionRepository $transactions)
     {
@@ -28,7 +29,7 @@ final readonly class ReadTransactionSummaries
     {
         $ids = array_values(array_unique($ids));
         if (count($ids) > self::MAX_TRANSACTIONS) {
-            throw new \InvalidArgumentException('A transaction summary read accepts at most 500 identifiers.');
+            throw new \InvalidArgumentException(sprintf('A transaction summary read accepts at most %d identifiers.', self::MAX_TRANSACTIONS));
         }
 
         return array_map(

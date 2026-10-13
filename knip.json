@@ -7,7 +7,8 @@
     },
     "apps/web": {
       "entry": ["scripts/*.mjs"],
-      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"]
+      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
+      "ignoreDependencies": ["@fontsource-variable/inter"]
     },
     "packages/api-client": {
       "entry": ["src/*.test.ts"],

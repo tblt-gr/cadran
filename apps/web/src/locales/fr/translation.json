@@ -110,6 +110,12 @@
     "instruments": "Instruments",
     "portfolioAccount": "Portefeuille",
     "redirecting": "Redirection…",
+    "pageLoading": "Chargement de la page…",
+    "loadError": {
+      "description": "La page n’a pas pu être chargée. Rechargez la page pour récupérer la dernière version.",
+      "reload": "Recharger la page",
+      "title": "Page indisponible"
+    },
     "notFound": "Page introuvable",
     "metricPolicy": "Politique d’indicateurs"
   },

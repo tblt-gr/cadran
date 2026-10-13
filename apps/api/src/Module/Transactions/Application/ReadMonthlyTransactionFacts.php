@@ -14,7 +14,11 @@ use App\Module\Transactions\Domain\TransactionState;
 /** A bounded, workspace-scoped read port consumed by reporting. */
 final readonly class ReadMonthlyTransactionFacts
 {
-    public const int MAX_TRANSACTIONS = 500;
+    /**
+     * One month of a 100 000-transaction, 15-year history averages about 560 rows, and a busy month several times
+     * that; 2000 bounds the read (and every read derived from a month) without refusing a realistic user.
+     */
+    public const int MAX_TRANSACTIONS = 2000;
 
     public function __construct(private TransactionRepository $transactions)
     {
@@ -33,7 +37,7 @@ final readonly class ReadMonthlyTransactionFacts
             null,
         );
         if (count($rows) > self::MAX_TRANSACTIONS) {
-            throw new MonthlyTransactionScopeTooLarge('A monthly projection reads at most 500 transactions.');
+            throw new MonthlyTransactionScopeTooLarge(sprintf('A monthly projection reads at most %d transactions.', self::MAX_TRANSACTIONS));
         }
 
         $pending = array_values(array_filter(

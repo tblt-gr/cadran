@@ -1,11 +1,16 @@
 import type { AnnualCategoryShare, AnnualReport } from '@cadran/api-client';
+import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
+import { lazyComponent } from '@/lib/lazyComponent';
 import { FlowsDataTable, NetWorthDataTable } from './ChartDataTables';
 import { ChartFrame } from './ChartFrame';
 import { AnnualDonut, type AnnualDonutItem, type AnnualLegendRow } from './AnnualDonut';
 import { AnnualNetWorthChart } from './AnnualNetWorthChart';
-import { FlowsChart } from './FlowsChart';
 import styles from './AnnualCharts.module.css';
+
+// recharts loads on demand, after the report's own figures.
+const FlowsChart = lazyComponent(() => import('./FlowsChart'), 'FlowsChart');
 
 const TOP_VISIBLE_ROWS = 6;
 
@@ -44,7 +49,9 @@ export function AnnualCharts({
             data={<FlowsDataTable flows={flows} />}
             title={t('reports.annual.charts.flows')}
           >
-            <FlowsChart flows={flows} />
+            <Suspense fallback={<SkeletonChartArea />}>
+              <FlowsChart flows={flows} />
+            </Suspense>
           </ChartFrame>
           <ChartFrame
             data={<NetWorthDataTable netWorth={netWorth} />}

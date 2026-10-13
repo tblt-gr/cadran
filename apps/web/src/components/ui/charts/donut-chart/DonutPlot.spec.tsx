@@ -45,7 +45,7 @@ describe('DonutPlot', () => {
     expect(screen.queryByRole('img', { name: 'Diagramme' })).toBeNull();
   });
 
-  it('draws once its box has a size', () => {
+  it('draws once its box has a size', async () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
       bottom: 0,
       height: 200,
@@ -59,6 +59,7 @@ describe('DonutPlot', () => {
     });
     render(<DonutPlot label="Diagramme" slices={slices} totalText="100,00 €" />);
 
-    expect(screen.getByRole('img', { name: 'Diagramme' })).toBeTruthy();
+    // The chart library loads on demand, after the box is measured.
+    expect(await screen.findByRole('img', { name: 'Diagramme' }, { timeout: 5000 })).toBeTruthy();
   });
 });

@@ -24,7 +24,7 @@ final readonly class ReadMonthlyTransferPairs
             ReadMonthlyTransactionFacts::MAX_TRANSACTIONS + 1,
         );
         if (count($pairs) > ReadMonthlyTransactionFacts::MAX_TRANSACTIONS) {
-            throw new MonthlyTransactionScopeTooLarge('A monthly projection reads at most 500 transfer pairs.');
+            throw new MonthlyTransactionScopeTooLarge(sprintf('A monthly projection reads at most %d transfer pairs.', ReadMonthlyTransactionFacts::MAX_TRANSACTIONS));
         }
 
         return $pairs;

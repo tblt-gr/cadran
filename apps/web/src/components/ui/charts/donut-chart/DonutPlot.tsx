@@ -1,6 +1,13 @@
+import { Suspense } from 'react';
 import { useBoxSize } from '@/hooks/use-box-size';
-import { DonutChart, type DonutSlice } from './DonutChart';
+import { SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
+import { lazyComponent } from '@/lib/lazyComponent';
+import type { DonutSlice } from './DonutChart';
 import styles from './DonutPlot.module.css';
+
+// recharts is the heaviest dependency: the donut loads it on demand so the pages that embed
+// one (portfolio, annual report) stay within the route chunk budget.
+const DonutChart = lazyComponent(() => import('./DonutChart'), 'DonutChart');
 
 interface DonutPlotProps {
   label: string;
@@ -16,13 +23,15 @@ export function DonutPlot({ label, slices, totalText }: DonutPlotProps) {
   return (
     <div className={styles.plot} ref={ref}>
       {ready ? (
-        <DonutChart
-          height={size.height}
-          label={label}
-          slices={slices}
-          totalText={totalText}
-          width={size.width}
-        />
+        <Suspense fallback={<SkeletonChartArea />}>
+          <DonutChart
+            height={size.height}
+            label={label}
+            slices={slices}
+            totalText={totalText}
+            width={size.width}
+          />
+        </Suspense>
       ) : null}
     </div>
   );
