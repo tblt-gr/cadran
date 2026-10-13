@@ -110,7 +110,7 @@ final class MonthlyPortfolioCostsRecapTest extends WebTestCase
         self::assertSame($items[1]['fees'], self::map($cash['totals'])['fees']);
         self::assertSame($items[1]['taxes'], self::map($cash['totals'])['taxes']);
 
-        $this->client->request('GET', '/api/v1/accounts/'.self::ACCOUNT.'/portfolio-operations?from=2026-03-01&to=2026-03-31&perPage=100', server: ['HTTP_ACCEPT' => 'application/json']);
+        $this->client->request('GET', '/api/v1/accounts/'.self::ACCOUNT.'/portfolio-operations?from=2026-03-01&to=2026-03-31&pageSize=100', server: ['HTTP_ACCEPT' => 'application/json']);
         $page = self::map(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
         $fees = BigDecimal::zero();
         $taxes = BigDecimal::zero();

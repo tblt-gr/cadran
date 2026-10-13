@@ -41,10 +41,10 @@ final readonly class AccountGroupController
     public function list(Request $request, ListAccountGroups $listAccountGroups): Response
     {
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
+        $pageSize = $request->query->getString('pageSize');
         $includeArchived = $request->query->getString('includeArchived');
         $parentEligible = $request->query->getString('parentEligible');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($perPage)
+        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)
             || !in_array($includeArchived, ['', 'true', 'false'], true)
             || !in_array($parentEligible, ['', 'true', 'false'], true)) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_group_query');
@@ -54,7 +54,7 @@ final readonly class AccountGroupController
             $groups = $listAccountGroups(
                 'true' === $includeArchived,
                 '' === $page ? null : (int) $page,
-                '' === $perPage ? null : (int) $perPage,
+                '' === $pageSize ? null : (int) $pageSize,
                 'true' === $parentEligible,
             );
         } catch (InvalidAccountGroupInput) {

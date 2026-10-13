@@ -238,7 +238,7 @@ final class ProductCatalogControllerTest extends WebTestCase
     {
         $this->signIn(WorkspaceFixture::OWNER_EMAIL);
 
-        $this->client->request('GET', '/api/v1/products?page=2&perPage=3');
+        $this->client->request('GET', '/api/v1/products?page=2&pageSize=3');
 
         self::assertResponseIsSuccessful();
         $body = $this->decode();
@@ -247,7 +247,7 @@ final class ProductCatalogControllerTest extends WebTestCase
             array_column(self::rows($body, 'items'), 'code'),
         );
         self::assertSame(2, $body['page']);
-        self::assertSame(3, $body['perPage']);
+        self::assertSame(3, $body['pageSize']);
         self::assertSame(8, $body['total']);
     }
 
@@ -268,7 +268,7 @@ final class ProductCatalogControllerTest extends WebTestCase
     public static function unboundedQueries(): iterable
     {
         yield 'a page past the cap' => ['?page=1001'];
-        yield 'a page size past the cap' => ['?perPage=101'];
+        yield 'a page size past the cap' => ['?pageSize=101'];
         yield 'a page that is not a number' => ['?page=none'];
         yield 'a date that is not a day' => ['?asOf=2026-09'];
         yield 'a day that does not exist' => ['?asOf=2026-02-31'];

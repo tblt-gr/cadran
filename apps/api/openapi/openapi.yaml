@@ -24,6 +24,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FoundationStatus'
+        '400':
+          description: >-
+            The request is rejected before reaching the controller, for example
+            because the Host header is malformed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/session:
@@ -51,10 +59,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionState'
+        '400':
+          description: >-
+            The request is rejected before reaching the controller, for example
+            because the Host header is malformed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
       operationId: openSession
+      x-cadran-idempotency: 'Opening a session again only issues another session cookie for the same owner; failed attempts are throttled.'
       summary: Open a session with email and password
       description: >-
         A same-origin browser mutation: it must send the X-CSRF-TOKEN header
@@ -89,6 +106,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     delete:
       operationId: closeSession
+      x-cadran-idempotency: 'Closing a session that is already closed is a no-op answered 204.'
       summary: Close the current session
       description: >-
         A same-origin browser mutation: it must send the X-CSRF-TOKEN header
@@ -108,6 +126,7 @@ paths:
   /api/v1/session/password:
     put:
       operationId: defineInitialPassword
+      x-cadran-idempotency: 'One-time operation: once the password is defined a replay answers 409 and changes nothing.'
       summary: Define the owner password on first run
       description: >-
         Public and one-time. Accepted only while the provisioned owner has no
@@ -168,6 +187,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     patch:
       operationId: updateOwnerProfile
+      x-cadran-idempotency: 'The body states the resulting profile fields, so a replay writes the same state.'
       summary: Edit the signed-in owner's display name
       description: >-
         A same-origin browser mutation: it must send the X-CSRF-TOKEN header
@@ -212,6 +232,7 @@ paths:
   /api/v1/profile/password:
     put:
       operationId: changeOwnerPassword
+      x-cadran-idempotency: 'A replay is refused because the current password no longer matches once the first call succeeded; attempts are throttled.'
       summary: Change the signed-in owner's password
       description: >-
         Requires the current password in the same request, verified server-side
@@ -269,7 +290,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - name: limit
+        - name: pageSize
           in: query
           required: false
           description: Page size, between 1 and 100. Defaults to 50.
@@ -286,6 +307,7 @@ paths:
             to read the newest events.
           schema:
             type: string
+            maxLength: 256
       responses:
         '200':
           description: One page of the workspace audit trail.
@@ -360,7 +382,7 @@ paths:
             minimum: 1
             maximum: 1000
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           description: Page size, between 1 and 100. Defaults to 50.
@@ -440,7 +462,7 @@ paths:
             minimum: 1
             maximum: 1000
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           description: Page size, between 1 and 100. Defaults to 25.
@@ -466,6 +488,7 @@ paths:
   /api/v1/products/{code}:
     get:
       operationId: readProduct
+      x-cadran-bounded: 'Capabilities, rules and unavailable rule kinds come from the closed ProductCapability and ProductRuleKind enumerations, with at most one rule per kind.'
       summary: Read one catalogue product on a business date
       description: >-
         Requires an authenticated session. An unknown code and a malformed one
@@ -526,7 +549,7 @@ paths:
             minimum: 1
             maximum: 1000
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           schema:
@@ -571,6 +594,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     post:
       operationId: createCategory
+      x-cadran-idempotency: 'Active sibling labels are unique: a replay answers 409 and creates nothing.'
       summary: Create a category in the calling workspace
       description: >-
         Creates an income or expense category. The parent, when present, must
@@ -681,6 +705,7 @@ paths:
   /api/v1/categories/{id}/impact:
     get:
       operationId: previewCategoryImpact
+      x-cadran-bounded: 'Blockers come from the closed set of 15 category blocker codes.'
       summary: Preview what a category lifecycle operation would change
       description: >-
         Answers what moving, merging, archiving or replacing a category would
@@ -959,6 +984,12 @@ paths:
           in: query
           description: Status month; defaults to the current workspace-local month, or December for a past year.
           schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
       responses:
         '200':
           description: Goals visible in the selected year, bounded to 50.
@@ -979,7 +1010,11 @@ paths:
       summary: Create an annual or rolling-ratio goal
       tags: [Goals]
       security: [{ sessionCookie: [] }]
-      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      parameters:
+        [
+          { $ref: '#/components/parameters/CsrfToken' },
+          { $ref: '#/components/parameters/IdempotencyKey' },
+        ]
       requestBody:
         required: true
         content:
@@ -988,6 +1023,9 @@ paths:
       responses:
         '201':
           description: The goal and its first immutable definition version.
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/GoalDetail' }
@@ -1038,6 +1076,7 @@ paths:
   /api/v1/goals/emergency-fund:
     get:
       operationId: readEmergencyFundCoverage
+      x-cadran-bounded: 'Eligible accounts come from the net-worth read, capped at 500 accounts per workspace, and the reference window holds at most 24 months.'
       summary: Calculate how many months of essential expenses the eligible liquid assets cover
       description: >-
         covered months = eligible liquid assets / average monthly essential expenses of the reference
@@ -1130,6 +1169,7 @@ paths:
       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
     get:
       operationId: readGoal
+      x-cadran-bounded: 'Warnings come from a one-value enumeration and a goal keeps at most 50 versions.'
       summary: Read one goal and its immutable definition history
       tags: [Goals]
       security: [{ sessionCookie: [] }]
@@ -1213,6 +1253,7 @@ paths:
   /api/v1/goals/{id}/versions:
     get:
       operationId: listGoalVersions
+      x-cadran-bounded: 'At most 50 definitions are returned, newest first.'
       summary: List the append-only definition history of a goal
       tags: [Goals]
       security: [{ sessionCookie: [] }]
@@ -1300,7 +1341,7 @@ paths:
         - name: page
           in: query
           schema: { type: integer, minimum: 1, maximum: 1000, default: 1 }
-        - name: perPage
+        - name: pageSize
           in: query
           schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
       responses:
@@ -1315,6 +1356,7 @@ paths:
         '500': { $ref: '#/components/responses/InternalServerError' }
     post:
       operationId: createBudgetPlan
+      x-cadran-idempotency: 'A replay creates a second draft plan that no report reads until activated; activation is unique per period.'
       summary: Create a draft monthly or annual budget plan
       tags: [Budget]
       security:
@@ -1348,6 +1390,7 @@ paths:
         schema: { type: string, format: uuid }
     get:
       operationId: readBudgetPlan
+      x-cadran-bounded: 'A plan holds at most 500 targets.'
       summary: Read a plan with resolved targets and overlap warnings
       tags: [Budget]
       security:
@@ -1452,6 +1495,7 @@ paths:
   /api/v1/budget-plans/{id}/activate:
     post:
       operationId: activateBudgetPlan
+      x-cadran-idempotency: 'A replay finds the plan already active for its period and answers 409.'
       summary: Activate a non-empty draft budget plan
       tags: [Budget]
       security:
@@ -1485,6 +1529,7 @@ paths:
   /api/v1/budget-plans/{id}/close:
     post:
       operationId: closeBudgetPlan
+      x-cadran-idempotency: 'A replay finds the plan already closed and answers 409.'
       summary: Close an active budget plan
       tags: [Budget]
       security:
@@ -1517,6 +1562,7 @@ paths:
   /api/v1/budget-plans/{planId}/targets:
     post:
       operationId: createBudgetTarget
+      x-cadran-idempotency: 'Targets are checked against the plan overlap rules, so a replayed target is refused.'
       summary: Add an exact amount or ratio target to a plan
       tags: [Budget]
       security:
@@ -1580,6 +1626,35 @@ paths:
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+    delete:
+      operationId: deleteBudgetTarget
+      summary: Delete a budget target
+      tags: [Budget]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeleteBudgetTargetRequest' }
+      responses:
+        '204':
+          description: The target was deleted.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/account-groups:
     get:
       operationId: listAccountGroups
@@ -1608,7 +1683,7 @@ paths:
             minimum: 1
             maximum: 1000
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           schema:
@@ -1640,6 +1715,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     post:
       operationId: createAccountGroup
+      x-cadran-idempotency: 'Active sibling labels are unique: a replay answers 409 and creates nothing.'
       summary: Create an account group in the calling workspace
       description: >-
         Creates a workspace-owned exclusive group. The parent, when present,
@@ -1852,13 +1928,13 @@ paths:
             minimum: 1
             maximum: 1000
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           schema:
             type: integer
             minimum: 1
-            maximum: 50
+            maximum: 100
             default: 20
       responses:
         '200':
@@ -1871,7 +1947,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/WorkspaceForbidden'
-        '422':
+        '400':
           description: The query, status or pagination is outside its bounds.
           content:
             application/problem+json:
@@ -1892,6 +1968,7 @@ paths:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -1901,6 +1978,9 @@ paths:
       responses:
         '201':
           description: The reviewed manual instrument was created.
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
           content:
             application/json:
               schema:
@@ -2115,6 +2195,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-positions:
     get:
       operationId: listPortfolioPositions
+      x-cadran-bounded: 'Positions derive from at most 10000 active operations of a single account (one row per instrument held).'
       summary: Reconcile the positions of a portfolio account
       description: Replays active operations through the requested date. Positions and lots are derived and never persisted.
       tags: [Portfolio]
@@ -2214,6 +2295,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-positions/{instrumentId}/lots:
     get:
       operationId: readPortfolioPositionLots
+      x-cadran-bounded: 'Lots and movements derive from at most 10000 active operations of one account.'
       summary: Read the open lots and lot movements of an instrument
       tags: [Portfolio]
       security:
@@ -2256,6 +2338,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-operations/order:
     put:
       operationId: reorderPortfolioOperations
+      x-cadran-idempotency: 'The body states the resulting order of the day, so a replay writes the same order.'
       summary: Reorder every active operation of one trade date
       description: The submitted identifiers must be exactly the active set of the day. The complete history is replayed before commit.
       tags: [Portfolio]
@@ -2363,7 +2446,7 @@ paths:
             minimum: 1
             maximum: 1000
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           schema:
@@ -2384,8 +2467,14 @@ paths:
           $ref: '#/components/responses/WorkspaceForbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '400':
+          description: 'A filter or pagination value is out of bounds.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
         '422':
-          description: 'The account is not followed in portfolio mode, or a filter or pagination value is out of bounds.'
+          description: 'The account is not followed in portfolio mode.'
           content:
             application/problem+json:
               schema:
@@ -2455,6 +2544,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-operations/preview:
     post:
       operationId: previewPortfolioOperation
+      x-cadran-idempotency: 'Read-only dry run: nothing is persisted.'
       summary: Preview the server-derived figures of an operation
       description: >-
         Applies the same rules as the creation and writes nothing: no operation, no idempotency key,
@@ -2656,6 +2746,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-valuation-history:
     get:
       operationId: readPortfolioValuationHistory
+      x-cadran-bounded: 'A history returns at most 240 points and flags come from the closed valuation flag enumeration.'
       summary: Read the valuation series of a portfolio account
       description: >-
         One point per active valuation (a superseded or withdrawn valuation is absent), oldest first, with the
@@ -2736,7 +2827,7 @@ paths:
             type: integer
             minimum: 1
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           schema:
@@ -2757,8 +2848,14 @@ paths:
           $ref: '#/components/responses/WorkspaceForbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '400':
+          description: 'A filter or pagination value is invalid.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuationProblem'
         '422':
-          description: 'The filters are invalid, or the account is not followed in portfolio mode.'
+          description: 'The account is not followed in portfolio mode.'
           content:
             application/problem+json:
               schema:
@@ -2823,6 +2920,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-valuations/draft:
     get:
       operationId: readPortfolioValuationDraft
+      x-cadran-bounded: 'Positions are instruments of the workspace, at most 500, and flags come from a closed enumeration.'
       summary: Build the form of a valuation
       description: >-
         The positions held on the date with the last known price of each, taken from an earlier
@@ -2863,6 +2961,7 @@ paths:
   /api/v1/portfolio-valuations/{id}:
     get:
       operationId: readPortfolioValuation
+      x-cadran-bounded: 'Positions are instruments of the workspace, at most 500, and flags come from a closed enumeration.'
       summary: Read one portfolio valuation
       description: >-
         Superseded and withdrawn valuations are returned as read-only history. Unknown, malformed and
@@ -2944,6 +3043,7 @@ paths:
   /api/v1/accounts/{accountId}/life-insurance-summary:
     get:
       operationId: readLifeInsuranceSummary
+      x-cadran-bounded: 'Supports are instruments of the workspace, at most 500; flags and reasons come from closed enumerations.'
       summary: Read observed life-insurance summary and informative tax tracking
       description: Latest active COMPLETE valuation on or before asOf, with frozen supports
         and cash. No projection or tax estimate. Active operations stop at asOf. At
@@ -2987,6 +3087,7 @@ paths:
   /api/v1/accounts/{accountId}/life-insurance-income-and-fees:
     get:
       operationId: readLifeInsuranceIncomeAndFees
+      x-cadran-bounded: 'Quality issues are one entry per issue code and, for a missing euro-fund rate, one per instrument (at most 500).'
       summary: Read observed annual contract income and deductions
       description: >-
         Active operations in the trade-date year. Amounts and tax kinds are observed, never inferred from rates.
@@ -3027,6 +3128,7 @@ paths:
   /api/v1/accounts/{accountId}/life-insurance-contract:
     get:
       operationId: readLifeInsuranceContract
+      x-cadran-bounded: 'Euro funds are instruments of the workspace, at most 500.'
       summary: Read the life-insurance contract of an account
       description: >-
         The contract (null until it is recorded), its fee terms, the announced euro-fund rates and, for each
@@ -3121,6 +3223,7 @@ paths:
   /api/v1/accounts/{accountId}/life-insurance-contract/fee-terms:
     post:
       operationId: addLifeInsuranceFeeTerms
+      x-cadran-idempotency: 'One fee-terms row exists per contract and start date: a replay is refused.'
       summary: Record a dated version of the fee terms
       description: >-
         Rates are percentages (`0.85` is 0.85 %). Versions are immutable and informative: they never produce a
@@ -3174,6 +3277,7 @@ paths:
   /api/v1/life-insurance-fee-terms/{id}:
     delete:
       operationId: removeLifeInsuranceFeeTerms
+      x-cadran-idempotency: 'Deleting a row that is already deleted answers 404 and changes nothing.'
       summary: Delete a version of the fee terms
       description: >-
         Rows are immutable: a mistake is deleted and recreated. Unknown and foreign identifiers answer the same 404.
@@ -3204,6 +3308,7 @@ paths:
   /api/v1/accounts/{accountId}/life-insurance-contract/euro-fund-rates:
     post:
       operationId: recordEuroFundRate
+      x-cadran-idempotency: 'One announced rate exists per contract, support and year: a replay is refused.'
       summary: Record the rate an insurer announced for a euro fund and a year
       description: >-
         Announced rates are informative and never shown as a performance of the contract. One rate exists per
@@ -3257,6 +3362,7 @@ paths:
   /api/v1/life-insurance-euro-fund-rates/{id}:
     delete:
       operationId: removeEuroFundRate
+      x-cadran-idempotency: 'Deleting a row that is already deleted answers 404 and changes nothing.'
       summary: Delete an announced euro-fund rate
       description: >-
         Unknown and foreign identifiers answer the same 404.
@@ -3287,6 +3393,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-transfer-candidates:
     get:
       operationId: listPortfolioTransferCandidates
+      x-cadran-bounded: 'The server returns the 50 most recent matching transfer legs.'
       summary: List the transfer legs a deposit or withdrawal could mirror
       description: >-
         The 50 most recent booked, non-voided transfer legs of the account in the requested direction,
@@ -3316,8 +3423,14 @@ paths:
           $ref: '#/components/responses/WorkspaceForbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '400':
+          description: 'The direction is invalid.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOperationProblem'
         '422':
-          description: 'The account is not followed in portfolio mode, or the direction is invalid.'
+          description: 'The account is not followed in portfolio mode.'
           content:
             application/problem+json:
               schema:
@@ -3357,7 +3470,7 @@ paths:
             minimum: 1
             maximum: 1000
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           schema:
@@ -3389,6 +3502,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     post:
       operationId: createAccount
+      x-cadran-idempotency: 'Account labels are unique in the workspace: a replay answers 409 and creates nothing.'
       summary: Create a financial account in the calling workspace
       description: >-
         Creates an account with its denomination, kind, lifecycle dates,
@@ -3680,7 +3794,7 @@ paths:
             minimum: 1
             maximum: 1000
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           schema:
@@ -3774,6 +3888,7 @@ paths:
   /api/v1/accounts/{id}/rules:
     get:
       operationId: readAccountRules
+      x-cadran-bounded: 'At most one ceiling or rate per rule kind (9 kinds) and at most 20 brackets per scale.'
       summary: Read the rules in force for an account on a business date
       description: >-
         Resolves the ceilings, rates and terms that apply to one account of the
@@ -3833,6 +3948,7 @@ paths:
   /api/v1/accounts/{id}/rule-overrides:
     get:
       operationId: listAccountRuleOverrides
+      x-cadran-bounded: 'An account records at most 100 overrides and a scale holds at most 20 brackets.'
       summary: List every rule override ever recorded on an account
       description: >-
         Withdrawn overrides included, and whatever business date is being
@@ -3871,6 +3987,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     post:
       operationId: recordAccountRuleOverride
+      x-cadran-idempotency: 'An override covering the same dates for the same rule already exists after the first call, so a replay answers 409.'
       summary: Record a dated rule override against one account
       description: >-
         States locally what the account inherits wrongly: a rate its branch
@@ -3948,6 +4065,7 @@ paths:
   /api/v1/accounts/{id}/rule-overrides/{overrideId}/withdraw:
     post:
       operationId: withdrawAccountRuleOverride
+      x-cadran-idempotency: 'A replay finds the override already withdrawn and answers 409.'
       summary: Withdraw a rule override
       description: >-
         Withdrawing is not ending. Ending an override is a dated fact recorded
@@ -4111,7 +4229,7 @@ paths:
       operationId: readMonthlyLedgerMovements
       summary: Read one monthly ledger row's source movements
       description: >-
-        Returns at most 50 booked source movements, ordered by booked day and
+        Returns at most `pageSize` (default 50) booked source movements, ordered by booked day and
         source identifier descending. Category amounts are attributed split
         amounts; account amounts are signed transfer legs.
       tags: [Reporting]
@@ -4147,6 +4265,10 @@ paths:
             type: string
             minLength: 1
             maxLength: 512
+        - name: pageSize
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
       responses:
         '200':
           description: A stable bounded page of source movements.
@@ -4156,6 +4278,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '422':
           description: The workspace exceeds a bounded monthly read limit.
           content:
@@ -4400,6 +4523,7 @@ paths:
   /api/v1/reports/annual/{year}:
     get:
       operationId: readAnnualReport
+      x-cadran-bounded: 'A year has 12 months and the policy versions are at most 101 (100 stored plus the system version).'
       summary: Read the annual monthly-summary report of the calling workspace
       description: >-
         Twelve rows, one per month, with one cell per selected column, the
@@ -4440,6 +4564,7 @@ paths:
   /api/v1/reports/annual/{year}/columns/{columnId}/explain:
     get:
       operationId: explainAnnualReportColumn
+      x-cadran-bounded: 'A year has 12 months and the policy versions are at most 101 (100 stored plus the system version).'
       summary: Explain the aggregate of one annual report column
       description: >-
         Formula, policy, the value of every month with whether it was counted
@@ -4546,6 +4671,7 @@ paths:
         '500': { $ref: '#/components/responses/InternalServerError' }
     post:
       operationId: createMetricPolicy
+      x-cadran-idempotency: 'An identical definition already stored is refused, so a replay appends no version.'
       summary: Append the next immutable metric policy version
       description: >-
         Owner only. A version is never edited or deleted. The mutation requires
@@ -4640,6 +4766,7 @@ paths:
   /api/v1/net-worth:
     get:
       operationId: readNetWorth
+      x-cadran-bounded: 'Contributions come from at most 500 accounts and allocation from at most 500 groups; a larger workspace is refused.'
       summary: Read the explainable net worth of the calling workspace
       description: >-
         Requires an authenticated session. The workspace is resolved from the
@@ -4700,6 +4827,7 @@ paths:
   /api/v1/net-worth/history:
     get:
       operationId: readNetWorthHistory
+      x-cadran-bounded: 'A history spans at most 60 months, one point per month end.'
       summary: Read the net-worth history curve of the calling workspace
       description: >-
         Requires an authenticated session. One point per month end, ending on
@@ -4780,7 +4908,7 @@ paths:
             minimum: 1
             maximum: 1000
             default: 1
-        - name: perPage
+        - name: pageSize
           in: query
           required: false
           schema:
@@ -4805,6 +4933,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     post:
       operationId: createProductModel
+      x-cadran-idempotency: 'Active model names are unique: a replay answers 409 and creates nothing.'
       summary: Describe a product model in the calling workspace
       description: >-
         Records a model the workspace describes itself: a family, an envelope, a
@@ -4867,6 +4996,7 @@ paths:
   /api/v1/product-models/from-product:
     post:
       operationId: createProductModelFromProduct
+      x-cadran-idempotency: 'Active model names are unique: a replay answers 409 and creates nothing.'
       summary: Start a product model from a system catalogue product
       description: >-
         Copies a catalogue product into a workspace model. The copy is made by
@@ -4927,6 +5057,7 @@ paths:
   /api/v1/product-models/{id}:
     get:
       operationId: readProductModel
+      x-cadran-bounded: 'A model holds at most 200 dated rule periods, a closed capability enumeration and at most 20 brackets per scale.'
       summary: Read one product model of the calling workspace
       description: >-
         Returns the model with every dated period it ever recorded, including
@@ -4964,6 +5095,7 @@ paths:
   /api/v1/product-models/{id}/duplicate:
     post:
       operationId: duplicateProductModel
+      x-cadran-idempotency: 'Active model names are unique: a replay answers 409 and creates nothing.'
       summary: Duplicate a product model of the calling workspace
       description: >-
         Copies the description and the dated periods with their effective dates
@@ -5161,6 +5293,7 @@ paths:
   /api/v1/recurrence-candidates:
     get:
       operationId: detectRecurrenceCandidates
+      x-cadran-bounded: 'Detection reads the latest 24 months and at most 5000 movements; the result reports partial when the cap is reached.'
       summary: Detect recurring transaction candidates in a bounded history window
       description: >-
         Read-only detection over the latest 24 months and at most 5000 eligible movements.
@@ -5180,6 +5313,7 @@ paths:
   /api/v1/recurrence-candidates/dismiss:
     post:
       operationId: dismissRecurrenceCandidate
+      x-cadran-idempotency: 'A dismissal is stored once per candidate fingerprint; a replay stores nothing new.'
       summary: Dismiss a detected recurrence candidate
       tags: [Transactions]
       security: [{ sessionCookie: [] }]
@@ -5199,6 +5333,7 @@ paths:
   /api/v1/recurrence-candidates/dismissals/{fingerprint}:
     delete:
       operationId: restoreRecurrenceCandidate
+      x-cadran-idempotency: 'Removing a dismissal that is already removed is a no-op.'
       summary: Undo a recurrence candidate dismissal
       tags: [Transactions]
       security: [{ sessionCookie: [] }]
@@ -5224,7 +5359,7 @@ paths:
         - { name: includeArchived, in: query, schema: { type: boolean, default: false } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - {
-            name: perPage,
+            name: pageSize,
             in: query,
             schema: { type: integer, minimum: 1, maximum: 100, default: 50 },
           }
@@ -5244,7 +5379,11 @@ paths:
       description: Creates a forecast schedule and snapshots expected occurrences through the twelve-month horizon.
       tags: [Transactions]
       security: [{ sessionCookie: [] }]
-      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      parameters:
+        [
+          { $ref: '#/components/parameters/CsrfToken' },
+          { $ref: '#/components/parameters/IdempotencyKey' },
+        ]
       requestBody:
         required: true
         content:
@@ -5253,17 +5392,26 @@ paths:
       responses:
         '201':
           description: The confirmed recurrence.
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Recurrence' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: The Idempotency-Key was reused with a different body, or the first request is still in flight.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
         '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/recurrences/refresh-horizon:
     post:
       operationId: refreshRecurrenceHorizon
+      x-cadran-idempotency: 'Occurrences are unique per recurrence and expected date, so a replay generates nothing new.'
       summary: Explicitly extend active recurrence schedules to twelve months
       description: Idempotent; listing recurrences and occurrences never performs this mutation.
       tags: [Transactions]
@@ -5371,6 +5519,7 @@ paths:
   /api/v1/recurrences/{id}/occurrences:
     get:
       operationId: listRecurrenceOccurrences
+      x-cadran-bounded: 'The window is at most 60 months and the server returns at most 1000 occurrences.'
       summary: List stored occurrence snapshots with their effective read-time status
       description: >-
         LATE is computed in the workspace timezone and is never persisted by this GET.
@@ -5401,7 +5550,7 @@ paths:
         - { name: includeArchived, in: query, schema: { type: boolean, default: false } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - {
-            name: perPage,
+            name: pageSize,
             in: query,
             schema: { type: integer, minimum: 1, maximum: 100, default: 50 },
           }
@@ -5424,7 +5573,11 @@ paths:
       summary: Create an active categorization rule
       tags: [Transactions]
       security: [{ sessionCookie: [] }]
-      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      parameters:
+        [
+          { $ref: '#/components/parameters/CsrfToken' },
+          { $ref: '#/components/parameters/IdempotencyKey' },
+        ]
       requestBody:
         {
           required: true,
@@ -5436,13 +5589,20 @@ paths:
         }
       responses:
         '201':
-          {
-            description: The created rule.,
-            content:
-              { application/json: { schema: { $ref: '#/components/schemas/CategorizationRule' } } },
-          }
+          description: The created rule.
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CategorizationRule' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: The Idempotency-Key was reused with a different body, or the first request is still in flight.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422':
           {
@@ -5535,6 +5695,7 @@ paths:
   /api/v1/categorization-rules/preview:
     post:
       operationId: previewCategorizationRules
+      x-cadran-idempotency: 'Read-only dry run: nothing is persisted on the transactions.'
       summary: Preview a bounded historical run without changing transactions
       tags: [Transactions]
       security: [{ sessionCookie: [] }]
@@ -5572,6 +5733,7 @@ paths:
   /api/v1/categorization-rules/apply:
     post:
       operationId: applyCategorizationRules
+      x-cadran-idempotency: 'The preview token is bound to the current outcome of the rules, so a replay after the first apply is refused as stale.'
       summary: Apply an unchanged, unexpired preview once
       tags: [Transactions]
       security: [{ sessionCookie: [] }]
@@ -6221,6 +6383,7 @@ paths:
   /api/v1/accounts/{accountId}/reconciliation:
     get:
       operationId: readAccountReconciliation
+      x-cadran-bounded: 'Available resolutions are a subset of the three resolutions MATCH, OVERRIDE and ADJUST.'
       summary: Compare an observed closing balance to the movements of its period
       description: >-
         `discrepancy = closing - (opening + sum of booked movements)`, with the
@@ -6704,6 +6867,7 @@ paths:
   /api/v1/period-closures:
     get:
       operationId: listPeriodClosures
+      x-cadran-bounded: 'One calendar year of monthly closures, plus the reopened rows of those months.'
       summary: List the closures of one year, reopened ones included
       description: >-
         The history of the workspace's monthly closures, newest month first.
@@ -6740,6 +6904,7 @@ paths:
   /api/v1/periods/{period}:
     get:
       operationId: readPeriodStatus
+      x-cadran-bounded: 'Blockers are one entry per closing condition, a closed enumeration.'
       summary: Read one month, closed or not, with what would block closing it
       description: >-
         A closed month returns its active closure. An open month returns the
@@ -6770,6 +6935,7 @@ paths:
   /api/v1/periods/{period}/closure:
     put:
       operationId: closePeriod
+      x-cadran-idempotency: 'A replay finds the period already closed and answers 409; only one active closure exists per month.'
       summary: Close a month that has ended
       description: >-
         Refused with `type: /problems/period-closing-blocked` and the list of
@@ -6904,6 +7070,7 @@ paths:
   /api/v1/portfolios:
     get:
       operationId: listPortfolios
+      x-cadran-bounded: 'At most 50 portfolio accounts are returned and the response flags truncation.'
       summary: List portfolio-mode accounts of the workspace
       tags:
         - Portfolio
@@ -6933,6 +7100,7 @@ paths:
   /api/v1/portfolio-valuation-reminders:
     get:
       operationId: listPortfolioValuationReminders
+      x-cadran-bounded: 'At most 650 reminders (50 accounts over a 13-month window).'
       summary: List the month-end portfolio valuations still to enter
       description: Computed on every read in the workspace time zone from accounts, valuations and closures; at most 650 items (50 accounts over a 13-month window, so never truncated), oldest month first.
       tags:
@@ -6955,6 +7123,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-summary:
     get:
       operationId: readPortfolioSummary
+      x-cadran-bounded: 'Reconciliation warnings are counters keyed by distinct warning code, a closed set.'
       summary: Read the dated portfolio dashboard
       tags:
         - Portfolio
@@ -6993,6 +7162,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-allocation:
     get:
       operationId: readPortfolioAllocation
+      x-cadran-bounded: 'One row per allocation class of a single frozen valuation, a closed reference set.'
       summary: Read exact frozen valuation allocation
       tags:
         - Portfolio
@@ -7040,6 +7210,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-performance:
     get:
       operationId: readPortfolioPerformance
+      x-cadran-bounded: 'Flags and reasons come from the closed valuation flag and performance reason enumerations.'
       summary: Read the total gain of a portfolio account over a period
       description: >-
         Gain of a month, a year or the whole life of the account, bounded by two
@@ -7092,6 +7263,7 @@ paths:
   /api/v1/accounts/{accountId}/portfolio-performance/annual:
     get:
       operationId: readPortfolioAnnualPerformance
+      x-cadran-bounded: 'Reasons come from the closed performance reason enumeration.'
       summary: Read the monthly and annual performance of a portfolio account
       description: >-
         The twelve months of a year, the year total and the whole life of the
@@ -7420,9 +7592,11 @@ components:
       in: header
       required: false
       description: >-
-        Retries the same money-movement creation safely. Required when a
-        transaction source is IMPORT or PROVIDER. A replayed successful
-        response adds `Idempotency-Replayed: true`.
+        Retries the same creation safely for seven days: the same key with the
+        same body replays the first response without a second row, the same key
+        with another body answers 409. Required only when a transaction source
+        is IMPORT or PROVIDER. A replayed successful response adds
+        `Idempotency-Replayed: true`.
       schema:
         type: string
         minLength: 16
@@ -7735,6 +7909,7 @@ components:
         truncated:
           type: boolean
     PortfolioOverviewSummary:
+      x-cadran-asset-scope: 'Amounts are in the asset of the portfolio account (`account.assetCode`).'
       type: object
       additionalProperties: false
       required:
@@ -8895,13 +9070,6 @@ components:
           $ref: '#/components/schemas/PortfolioAnnualRateCell'
         moneyWeighted:
           $ref: '#/components/schemas/PortfolioAnnualMoneyWeighted'
-    PortfolioAnnualMonthStatus:
-      type: string
-      enum:
-        - CALCULATED
-        - NOT_CALCULABLE
-        - BEFORE_OPENING
-        - FUTURE
     PortfolioAnnualMonthLine:
       description: A month with its figures, or only month and status when it lies before the opening or in the future.
       oneOf:
@@ -9160,6 +9328,7 @@ components:
           maxItems: 12
           items: { $ref: '#/components/schemas/GoalSchedulePart' }
     GoalSchedulePreviewPart:
+      x-cadran-asset-scope: 'Amounts are in the workspace currency, as the operation description states.'
       type: object
       additionalProperties: false
       required: [monthIndex, amount, cumulative]
@@ -9179,24 +9348,23 @@ components:
           maxItems: 12
           items: { $ref: '#/components/schemas/GoalSchedulePreviewPart' }
     GoalProblem:
-      type: object
-      additionalProperties: false
-      required: [type, title, status, detail, code]
-      properties:
-        type: { type: string, format: uri-reference }
-        title: { type: string }
-        status: { type: integer, minimum: 400, maximum: 599 }
-        detail: { type: string }
-        code: { type: string }
-        expected:
-          description: Present with schedule_sum_mismatch; the annual target.
-          type: string
-        actual:
-          description: Present with schedule_sum_mismatch; the exact sum of the submitted parts.
-          type: string
-        difference:
-          description: Present with schedule_sum_mismatch; expected minus actual, signed.
-          type: string
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - code
+          properties:
+            code:
+              type: string
+            expected:
+              description: Present with schedule_sum_mismatch; the annual target.
+              type: string
+            actual:
+              description: Present with schedule_sum_mismatch; the exact sum of the submitted parts.
+              type: string
+            difference:
+              description: Present with schedule_sum_mismatch; expected minus actual, signed.
+              type: string
     EmergencyFundEssentialMode:
       type: string
       enum: [AXIS, CATEGORIES]
@@ -9252,6 +9420,7 @@ components:
         targetMonths: { $ref: '#/components/schemas/EmergencyFundTargetMonths' }
         version: { type: integer, minimum: 0 }
     EmergencyFundCoverage:
+      x-cadran-asset-scope: 'Amounts are in `reference.assetCode`.'
       type: object
       additionalProperties: false
       required:
@@ -9383,6 +9552,7 @@ components:
             - $ref: '#/components/schemas/GoalSchedule'
             - type: 'null'
     GoalCorrectionPreviewState:
+      x-cadran-asset-scope: 'Amounts are in the asset of the goal (`assetCode` of the goal).'
       type: object
       additionalProperties: false
       required: [goalVersion, expected, status]
@@ -9534,12 +9704,19 @@ components:
     GoalList:
       type: object
       additionalProperties: false
-      required: [items]
+      required: [items, page, pageSize, total]
       properties:
         items:
           type: array
-          maxItems: 50
+          maxItems: 100
           items: { $ref: '#/components/schemas/GoalSummary' }
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1, maximum: 100 }
+        total:
+          type: integer
+          minimum: 0
+          maximum: 50
+          description: Goals of the selected year and state, at most 50.
     GoalReferenceIncome:
       type: object
       additionalProperties: false
@@ -9605,6 +9782,7 @@ components:
       type: [string, 'null']
       pattern: '^-?(0|[1-9]\d*)(\.\d{1,24})?$'
     GoalStatusMonth:
+      x-cadran-asset-scope: 'Amounts are in the asset of the goal (`assetCode` of the goal).'
       type: object
       additionalProperties: false
       required:
@@ -9637,6 +9815,7 @@ components:
         windowStart: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
         windowEnd: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
     GoalAnnualStatus:
+      x-cadran-asset-scope: 'Amounts are in the asset of the goal (`assetCode` of the goal).'
       type: object
       additionalProperties: false
       required:
@@ -9848,13 +10027,13 @@ components:
     BudgetPlanPage:
       type: object
       additionalProperties: false
-      required: [items, page, perPage, total]
+      required: [items, page, pageSize, total]
       properties:
         items:
           type: array
           items: { $ref: '#/components/schemas/BudgetPlan' }
         page: { type: integer, minimum: 1 }
-        perPage: { type: integer, minimum: 1, maximum: 100 }
+        pageSize: { type: integer, minimum: 1, maximum: 100 }
         total: { type: integer, minimum: 0 }
     BudgetTarget:
       type: object
@@ -10088,6 +10267,12 @@ components:
           oneOf:
             - $ref: '#/components/schemas/BudgetExactDecimal'
             - type: 'null'
+        version: { type: integer, minimum: 1 }
+    DeleteBudgetTargetRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
         version: { type: integer, minimum: 1 }
     FoundationStatus:
       type: object
@@ -10332,7 +10517,7 @@ components:
       required:
         - items
         - page
-        - perPage
+        - pageSize
         - total
       properties:
         items:
@@ -10342,7 +10527,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 100
@@ -10408,7 +10593,7 @@ components:
       required:
         - items
         - page
-        - perPage
+        - pageSize
         - total
       properties:
         items:
@@ -10418,7 +10603,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 100
@@ -10723,7 +10908,7 @@ components:
       required:
         - items
         - page
-        - perPage
+        - pageSize
         - total
       properties:
         items:
@@ -10733,7 +10918,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 100
@@ -11101,7 +11286,7 @@ components:
       required:
         - items
         - page
-        - perPage
+        - pageSize
         - total
       properties:
         items:
@@ -11111,7 +11296,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 100
@@ -11428,35 +11613,20 @@ components:
           type: integer
           minimum: 1
     CategoryOperationProblem:
-      description: >-
-        An RFC 9457 problem carrying the refusal reasons as an extension member.
-        The members are repeated rather than composed with `allOf`, because
-        `Problem` forbids additional properties and a composed schema would
-        reject the very document this endpoint returns.
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - title
-        - status
-        - detail
-        - blockers
-      properties:
-        type:
-          type: string
-          format: uri-reference
-          const: /problems/category-operation-refused
-        title:
-          type: string
-        status:
-          type: integer
-        detail:
-          type: string
-        blockers:
-          type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/CategoryImpactBlocker'
+      description: An RFC 9457 problem carrying the refusal reasons as an extension member.
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - blockers
+          properties:
+            type:
+              const: /problems/category-operation-refused
+            blockers:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/CategoryImpactBlocker'
     CreateCategoryRequest:
       type: object
       additionalProperties: false
@@ -11638,7 +11808,7 @@ components:
     InstrumentPage:
       type: object
       additionalProperties: false
-      required: [items, page, perPage, total]
+      required: [items, page, pageSize, total]
       properties:
         items:
           type: array
@@ -11647,7 +11817,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 50
@@ -11679,56 +11849,47 @@ components:
         status:
           $ref: '#/components/schemas/InstrumentStatus'
     InstrumentProblem:
-      type: object
-      additionalProperties: false
-      required: [type, title, status, detail, code]
-      properties:
-        type:
-          type: string
-          format: uri-reference
-        title:
-          type: string
-        status:
-          type: integer
-          minimum: 400
-          maximum: 599
-        detail:
-          type: string
-        code:
-          type: string
-          enum:
-            - invalid_instrument_query
-            - invalid_instrument_payload
-            - invalid_instrument_name
-            - invalid_instrument_isin
-            - invalid_instrument_ticker
-            - invalid_instrument_venue
-            - instrument_identifier_required
-            - instrument_field_not_allowed
-            - invalid_instrument_type
-            - invalid_instrument_classification
-            - unsupported_instrument_currency
-            - invalid_instrument_precision
-            - instrument_identity_locked
-            - instrument_isin_exists
-            - instrument_duplicate_candidates
-            - instrument_limit_reached
-            - stale_instrument_version
-            - instrument_already_inactive
-            - instrument_already_active
-            - instrument_not_found
-            - instrument_forbidden
-            - instrument_payload_too_large
-        existingId:
-          oneOf:
-            - type: string
-              format: uuid
-            - type: 'null'
-        candidates:
-          type: array
-          maxItems: 5
-          items:
-            $ref: '#/components/schemas/InstrumentCandidate'
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - code
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_instrument_query
+                - invalid_instrument_payload
+                - invalid_instrument_name
+                - invalid_instrument_isin
+                - invalid_instrument_ticker
+                - invalid_instrument_venue
+                - instrument_identifier_required
+                - instrument_field_not_allowed
+                - invalid_instrument_type
+                - invalid_instrument_classification
+                - unsupported_instrument_currency
+                - invalid_instrument_precision
+                - instrument_identity_locked
+                - instrument_isin_exists
+                - instrument_duplicate_candidates
+                - instrument_limit_reached
+                - stale_instrument_version
+                - instrument_already_inactive
+                - instrument_already_active
+                - instrument_not_found
+                - instrument_forbidden
+                - instrument_payload_too_large
+            existingId:
+              oneOf:
+                - type: string
+                  format: uuid
+                - type: 'null'
+            candidates:
+              type: array
+              maxItems: 5
+              items:
+                $ref: '#/components/schemas/InstrumentCandidate'
     CreateInstrumentRequest:
       type: object
       additionalProperties: false
@@ -11846,7 +12007,7 @@ components:
       required:
         - items
         - page
-        - perPage
+        - pageSize
         - total
       properties:
         items:
@@ -11856,7 +12017,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 100
@@ -11913,7 +12074,7 @@ components:
       required:
         - items
         - page
-        - perPage
+        - pageSize
         - total
       properties:
         items:
@@ -11923,7 +12084,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 100
@@ -12349,7 +12510,7 @@ components:
       required:
         - items
         - page
-        - perPage
+        - pageSize
         - total
       properties:
         items:
@@ -12359,7 +12520,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 100
@@ -13753,7 +13914,7 @@ components:
           type: [string, 'null']
           maxLength: 512
         hasMore: { type: boolean }
-        pageSize: { type: integer, const: 50 }
+        pageSize: { type: integer, minimum: 1, maximum: 100 }
     MonthlyProjectionAccount:
       type: object
       additionalProperties: false
@@ -14437,6 +14598,7 @@ components:
           type: object
           additionalProperties: { $ref: '#/components/schemas/AnnualCell' }
     AnnualExtreme:
+      x-cadran-asset-scope: 'The asset is the `assetCode` of the report column the aggregate belongs to.'
       type: object
       additionalProperties: false
       required: [value, month]
@@ -14453,6 +14615,7 @@ components:
           type: string
           enum: [FUTURE, NO_DATA, PROVISIONAL, NULL_VALUE]
     AnnualAggregate:
+      x-cadran-asset-scope: 'The asset is the `assetCode` of the report column the cell belongs to.'
       type: object
       additionalProperties: false
       required:
@@ -14645,6 +14808,7 @@ components:
           type: boolean
           description: True when the year before has at least one month with data.
     AnnualMonthExplanation:
+      x-cadran-asset-scope: 'The asset is the `assetCode` of the report column the cell belongs to.'
       type: object
       additionalProperties: false
       required: [month, state, value, reason, counted, exclusionReason]
@@ -14678,6 +14842,7 @@ components:
           enum: [SINGLE, MIXED]
         version: { type: [integer, 'null'] }
     MultiYearCell:
+      x-cadran-asset-scope: 'The asset is the `assetCode` of the report column the cell belongs to.'
       description: >-
         A year's value for one column, with the change against the previous year. `changeReason`
         explains whichever of `change`/`changeRatio` is null, `change` first.
@@ -14711,6 +14876,7 @@ components:
           type: object
           additionalProperties: { $ref: '#/components/schemas/MultiYearCell' }
     MultiYearExtreme:
+      x-cadran-asset-scope: 'The asset is the `assetCode` of the report column the aggregate belongs to.'
       type: object
       additionalProperties: false
       required: [value, year]
@@ -14718,6 +14884,7 @@ components:
         value: { type: string }
         year: { type: integer }
     MultiYearSummaryCell:
+      x-cadran-asset-scope: 'The asset is the `assetCode` of the report column the cell belongs to.'
       description: The average of `COMPLETE` years for one column, with its minimum and maximum year.
       type: object
       additionalProperties: false
@@ -14734,6 +14901,7 @@ components:
             - { $ref: '#/components/schemas/MultiYearExtreme' }
             - { type: 'null' }
     MultiYearDetailedExtreme:
+      x-cadran-asset-scope: 'The asset is the `assetCode` of the report column the aggregate belongs to.'
       description: One extreme month of the whole detailed period.
       type: object
       additionalProperties: false
@@ -14744,6 +14912,7 @@ components:
           description: The `YYYY-MM` of the extreme month.
           type: string
     MultiYearDetailedAggregate:
+      x-cadran-asset-scope: 'The asset is the `assetCode` of the report column the cell belongs to.'
       description: >-
         The whole selected detailed period for one column, over every month of every year of the
         range (not only the `COMPLETE` years the summary row is restricted to): total, average,
@@ -15192,6 +15361,7 @@ components:
       properties:
         fingerprint: { type: string, pattern: '^[0-9a-f]{64}$' }
     CreateRecurrenceRequest:
+      x-cadran-asset-scope: 'The amount is in the asset of the account named by `accountId`; the response states it explicitly.'
       type: object
       additionalProperties: false
       required:
@@ -15218,6 +15388,7 @@ components:
         dayOfPeriod: { type: integer, minimum: 1, maximum: 31 }
         firstExpectedOn: { type: string, format: date }
     UpdateRecurrenceRequest:
+      x-cadran-asset-scope: 'The amount is in the asset of the recurrence account, which cannot change; the response states it explicitly.'
       type: object
       additionalProperties: false
       required:
@@ -15274,11 +15445,11 @@ components:
     RecurrencePage:
       type: object
       additionalProperties: false
-      required: [items, page, perPage, total]
+      required: [items, page, pageSize, total]
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/Recurrence' } }
         page: { type: integer, minimum: 1 }
-        perPage: { type: integer, minimum: 1, maximum: 100 }
+        pageSize: { type: integer, minimum: 1, maximum: 100 }
         total: { type: integer, minimum: 0 }
     RecurrenceOccurrence:
       description: A forecast snapshot; `LATE` is an effective read-time state and is never stored.
@@ -15597,33 +15768,20 @@ components:
               items: { $ref: '#/components/schemas/TransactionSplitInput' }
             - type: 'null'
     RefundConflictProblem:
-      description: >-
-        Raised by the refund creation endpoint when the original is already
-        fully refunded (`type: /problems/refund.already_settled`) or the
-        requested amount exceeds what remains
-        (`type: /problems/refund.exceeds_refundable`).
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - title
-        - status
-        - detail
-        - remaining
-      properties:
-        type:
-          type: string
-          format: uri-reference
-        title:
-          type: string
-        status:
-          type: integer
-          const: 409
-        detail:
-          type: string
-        remaining:
-          description: What remains refundable on the original, before this request.
-          $ref: '#/components/schemas/DecimalAmount'
+      description:
+        'Raised by the refund creation endpoint when the original is already fully refunded (`type:
+        /problems/refund.already_settled`) or the requested amount exceeds what remains (`type: /problems/refund.exceeds_refundable`).'
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - remaining
+          properties:
+            status:
+              const: 409
+            remaining:
+              description: What remains refundable on the original, before this request.
+              $ref: '#/components/schemas/DecimalAmount'
     RuleTextPredicate:
       type: object
       additionalProperties: false
@@ -15791,11 +15949,11 @@ components:
     CategorizationRulePage:
       type: object
       additionalProperties: false
-      required: [items, page, perPage, total]
+      required: [items, page, pageSize, total]
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/CategorizationRule' } }
         page: { type: integer, minimum: 1 }
-        perPage: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1 }
         total: { type: integer, minimum: 0 }
     CategorizationPreviewRequest:
       type: object
@@ -16627,6 +16785,7 @@ components:
         amount:
           $ref: '#/components/schemas/DecimalAmount'
     PortfolioOperationLeg:
+      x-cadran-asset-scope: 'The unit price is in the currency of the leg instrument; quantities are instrument units.'
       type: object
       additionalProperties: false
       required: [index, direction, instrument, quantity, unitPrice, amount, roundingResidual]
@@ -16850,7 +17009,7 @@ components:
     PortfolioOperationPage:
       type: object
       additionalProperties: false
-      required: [items, page, perPage, total]
+      required: [items, page, pageSize, total]
       properties:
         items:
           type: array
@@ -16859,7 +17018,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 100
@@ -17467,116 +17626,107 @@ components:
           items:
             $ref: '#/components/schemas/PortfolioTransferCandidate'
     PortfolioOperationProblem:
-      type: object
-      additionalProperties: false
-      required: [type, title, status, detail, code]
-      properties:
-        type:
-          type: string
-          format: uri-reference
-        title:
-          type: string
-        status:
-          type: integer
-          minimum: 400
-          maximum: 599
-        detail:
-          type: string
-        code:
-          type: string
-          enum:
-            - account_not_portfolio
-            - portfolio_account_inactive
-            - life_insurance_contract_required
-            - life_insurance_contract_closed
-            - operation_type_not_allowed_for_account
-            - instrument_not_euro_fund
-            - invalid_interest_basis
-            - invalid_year
-            - euro_fund_price_fixed
-            - invalid_operation_type
-            - unsupported_operation_type
-            - operation_field_required
-            - operation_field_not_allowed
-            - invalid_operation_amount
-            - invalid_operation_quantity
-            - quantity_precision_exceeded
-            - price_precision_exceeded
-            - operation_asset_mismatch
-            - instrument_inactive
-            - instrument_currency_mismatch
-            - surrender_exceeds_available
-            - premium_allocation_exceeds_net
-            - leg_amount_mismatch
-            - unknown_leg_instrument
-            - duplicate_leg_instrument
-            - invalid_leg_direction
-            - switch_same_support
-            - switch_not_balanced
-            - too_many_operation_legs
-            - invalid_surrender_amounts
-            - full_surrender_positions_remaining
-            - full_surrender_not_balanced
-            - operations_after_full_surrender
-            - unknown_instrument
-            - invalid_corporate_action
-            - invalid_operation_date
-            - invalid_settlement_date
-            - operation_amount_mismatch
-            - linked_transfer_mismatch
-            - invalid_operation_text
-            - invalid_operation_payload
-            - invalid_operation_query
-            - invalid_position_query
-            - invalid_cash_query
-            - cash_range_too_large
-            - cash_range_too_dense
-            - cash_amount_too_large
-            - portfolio_account_not_found
-            - portfolio_operation_not_found
-            - portfolio_instrument_not_found
-            - stale_operation_version
-            - stale_operation_order
-            - operation_voided
-            - linked_transfer_taken
-            - operation_limit_reached
-            - portfolio_operation_conflict
-            - portfolio_forbidden
-            - portfolio_payload_too_large
-            - position_would_go_negative
-            - split_fraction_unsupported
-            - corporate_action_without_position
-        legIndex:
-          type: integer
-          minimum: 1
-          maximum: 20
-        expectedAmount:
-          description: Exact quantity times price on leg_amount_mismatch.
-          type: string
-        expectedIncomingAmount:
-          description: Exact outgoing sum less fees on switch_not_balanced.
-          type: string
-        instrumentIds:
-          description: Supports remaining after a full surrender.
-          type: array
-          items:
-            type: string
-            format: uuid
-        field:
-          description: The matrix field named by `operation_field_required` and `operation_field_not_allowed`.
-          type: string
-        expectedGrossAmount:
-          description: Exact expected gross on operation_amount_mismatch or full_surrender_not_balanced.
-          type: string
-        operationId:
-          type: string
-          format: uuid
-        tradeDate:
-          type: string
-          format: date
-        instrumentId:
-          type: string
-          format: uuid
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - code
+          properties:
+            code:
+              type: string
+              enum:
+                - account_not_portfolio
+                - portfolio_account_inactive
+                - life_insurance_contract_required
+                - life_insurance_contract_closed
+                - operation_type_not_allowed_for_account
+                - instrument_not_euro_fund
+                - invalid_interest_basis
+                - invalid_year
+                - euro_fund_price_fixed
+                - invalid_operation_type
+                - unsupported_operation_type
+                - operation_field_required
+                - operation_field_not_allowed
+                - invalid_operation_amount
+                - invalid_operation_quantity
+                - quantity_precision_exceeded
+                - price_precision_exceeded
+                - operation_asset_mismatch
+                - instrument_inactive
+                - instrument_currency_mismatch
+                - surrender_exceeds_available
+                - premium_allocation_exceeds_net
+                - leg_amount_mismatch
+                - unknown_leg_instrument
+                - duplicate_leg_instrument
+                - invalid_leg_direction
+                - switch_same_support
+                - switch_not_balanced
+                - too_many_operation_legs
+                - invalid_surrender_amounts
+                - full_surrender_positions_remaining
+                - full_surrender_not_balanced
+                - operations_after_full_surrender
+                - unknown_instrument
+                - invalid_corporate_action
+                - invalid_operation_date
+                - invalid_settlement_date
+                - operation_amount_mismatch
+                - linked_transfer_mismatch
+                - invalid_operation_text
+                - invalid_operation_payload
+                - invalid_operation_query
+                - invalid_position_query
+                - invalid_cash_query
+                - cash_range_too_large
+                - cash_range_too_dense
+                - cash_amount_too_large
+                - portfolio_account_not_found
+                - portfolio_operation_not_found
+                - portfolio_instrument_not_found
+                - stale_operation_version
+                - stale_operation_order
+                - operation_voided
+                - linked_transfer_taken
+                - operation_limit_reached
+                - portfolio_operation_conflict
+                - portfolio_forbidden
+                - portfolio_payload_too_large
+                - position_would_go_negative
+                - split_fraction_unsupported
+                - corporate_action_without_position
+            legIndex:
+              type: integer
+              minimum: 1
+              maximum: 20
+            expectedAmount:
+              description: Exact quantity times price on leg_amount_mismatch.
+              type: string
+            expectedIncomingAmount:
+              description: Exact outgoing sum less fees on switch_not_balanced.
+              type: string
+            instrumentIds:
+              description: Supports remaining after a full surrender.
+              type: array
+              items:
+                type: string
+                format: uuid
+            field:
+              description: The matrix field named by `operation_field_required` and `operation_field_not_allowed`.
+              type: string
+            expectedGrossAmount:
+              description: Exact expected gross on operation_amount_mismatch or full_surrender_not_balanced.
+              type: string
+            operationId:
+              type: string
+              format: uuid
+            tradeDate:
+              type: string
+              format: date
+            instrumentId:
+              type: string
+              format: uuid
     DecimalAmount:
       description: >-
         A financial decimal. Every amount, quantity, price and rate travels as
@@ -17679,27 +17829,25 @@ components:
         expectedActiveVersion: { type: integer, minimum: 1 }
         reason: { type: string, maxLength: 200 }
     MetricPolicyProblem:
-      type: object
-      additionalProperties: false
-      required: [type, title, status, detail]
-      properties:
-        type: { type: string, format: uri-reference }
-        title: { type: string }
-        status: { type: integer, minimum: 400, maximum: 599 }
-        detail: { type: string }
-        code:
-          type: string
-          enum:
-            - policy_definition_exists
-            - policy_version_limit
-            - stale_active_policy
-            - policy_already_active
-            - activation_limit
-            - unknown_policy_version
-        version: { type: integer, minimum: 1 }
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - policy_definition_exists
+                - policy_version_limit
+                - stale_active_policy
+                - policy_already_active
+                - activation_limit
+                - unknown_policy_version
+            version:
+              type: integer
+              minimum: 1
     Problem:
+      description: An RFC 9457 problem detail. Extension members are allowed; specialised problems compose it with allOf.
       type: object
-      additionalProperties: false
       required:
         - type
         - title
@@ -17718,87 +17866,61 @@ components:
         detail:
           type: string
     AmountInputProblem:
-      description: >-
-        An RFC 9457 problem raised by the shared exact-amount parser. The JSON
-        pointer names the public request member that failed validation.
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - title
-        - status
-        - detail
-        - pointer
-      properties:
-        type:
-          type: string
-          format: uri-reference
-          pattern: '^/problems/amount\.'
-        title:
-          type: string
-        status:
-          type: integer
-          const: 422
-        detail:
-          type: string
-        pointer:
-          type: string
-          pattern: '^/'
+      description:
+        An RFC 9457 problem raised by the shared exact-amount parser. The JSON pointer names the
+        public request member that failed validation.
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - pointer
+          properties:
+            type:
+              pattern: ^/problems/amount\.
+            status:
+              const: 422
+            pointer:
+              type: string
+              pattern: ^/
     PortfolioAccountRequiresOperationsProblem:
       description: >-
         Raised when an income, expense, refund or fee would be booked on an
         account valued by its portfolio, which would count the same money
         twice. Record a portfolio operation instead; transfers and adjustments
         stay allowed.
-      type: object
-      additionalProperties: false
-      required: [type, title, status, detail, code, accountId]
-      properties:
-        type:
-          type: string
-          const: /problems/portfolio-account-requires-operations
-        title:
-          type: string
-        status:
-          type: integer
-          const: 422
-        detail:
-          type: string
-        code:
-          type: string
-          const: portfolio_account_requires_operations
-        accountId:
-          type: string
-          format: uuid
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [code, accountId]
+          properties:
+            type:
+              const: /problems/portfolio-account-requires-operations
+            status:
+              const: 422
+            code:
+              type: string
+              const: portfolio_account_requires_operations
+            accountId:
+              type: string
+              format: uuid
     TransactionBelongsToTransferProblem:
-      description: >-
-        Raised by the transaction update, void and split-replacement
-        endpoints when the targeted transaction is a transfer leg or its
-        fee: only the transfer's own endpoint may change it.
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - title
-        - status
-        - detail
-        - transferId
-      properties:
-        type:
-          type: string
-          format: uri-reference
-          const: /problems/transaction-belongs-to-transfer
-        title:
-          type: string
-        status:
-          type: integer
-          const: 422
-        detail:
-          type: string
-        transferId:
-          description: The transfer to use instead.
-          type: string
-          format: uuid
+      description:
+        "Raised by the transaction update, void and split-replacement endpoints when the targeted
+        transaction is a transfer leg or its fee: only the transfer's own endpoint may change it."
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - transferId
+          properties:
+            type:
+              const: /problems/transaction-belongs-to-transfer
+            status:
+              const: 422
+            transferId:
+              description: The transfer to use instead.
+              type: string
+              format: uuid
     PeriodClosingCondition:
       type: string
       enum:
@@ -17939,30 +18061,20 @@ components:
           minLength: 1
           maxLength: 200
     PeriodClosingBlockedProblem:
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - title
-        - status
-        - detail
-        - blockers
-      properties:
-        type:
-          type: string
-          format: uri-reference
-          const: /problems/period-closing-blocked
-        title:
-          type: string
-        status:
-          type: integer
-          const: 409
-        detail:
-          type: string
-        blockers:
-          type: array
-          items:
-            $ref: '#/components/schemas/PeriodClosingBlocker'
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - blockers
+          properties:
+            type:
+              const: /problems/period-closing-blocked
+            status:
+              const: 409
+            blockers:
+              type: array
+              items:
+                $ref: '#/components/schemas/PeriodClosingBlocker'
     PortfolioValuationDetail:
       type: string
       enum: [TOTAL, POSITIONS]
@@ -17980,6 +18092,7 @@ components:
       type: string
       enum: [CURRENT, STALE, MISSING, NOT_DETAILED]
     PortfolioValuationPriceEntry:
+      x-cadran-asset-scope: 'The price is in the currency of the instrument.'
       type: object
       additionalProperties: false
       required: [instrumentId, price]
@@ -18193,7 +18306,7 @@ components:
     PortfolioValuationPage:
       type: object
       additionalProperties: false
-      required: [items, page, perPage, total]
+      required: [items, page, pageSize, total]
       properties:
         items:
           type: array
@@ -18202,7 +18315,7 @@ components:
         page:
           type: integer
           minimum: 1
-        perPage:
+        pageSize:
           type: integer
           minimum: 1
           maximum: 100
@@ -18210,6 +18323,7 @@ components:
           type: integer
           minimum: 0
     PortfolioValuationPosition:
+      x-cadran-asset-scope: 'The unit price is in the currency of the instrument.'
       type: object
       additionalProperties: false
       required:
@@ -18301,6 +18415,7 @@ components:
               items:
                 $ref: '#/components/schemas/PortfolioValuationPosition'
     PortfolioValuationDraftPosition:
+      x-cadran-asset-scope: 'The last price is in the currency of the instrument.'
       type: object
       additionalProperties: false
       required: [instrument, quantity, lastPrice, lastPriceDate, lastPriceOrigin]
@@ -18628,98 +18743,78 @@ components:
           items:
             $ref: '#/components/schemas/LifeInsuranceEuroFund'
     LifeInsuranceProblem:
-      type: object
-      additionalProperties: false
-      required: [type, title, status, detail, code]
-      properties:
-        type:
-          type: string
-          format: uri-reference
-        title:
-          type: string
-        status:
-          type: integer
-          minimum: 400
-          maximum: 599
-        detail:
-          type: string
-        code:
-          type: string
-          enum:
-            - account_not_portfolio
-            - invalid_year
-            - life_insurance_contract_required
-            - cash_range_too_dense
-            - cash_amount_too_large
-            - account_not_life_insurance
-            - portfolio_account_inactive
-            - portfolio_account_not_found
-            - life_insurance_contract_not_found
-            - life_insurance_fee_terms_not_found
-            - euro_fund_rate_not_found
-            - invalid_life_insurance_payload
-            - invalid_contract_field
-            - invalid_contract_date
-            - invalid_fee_rate
-            - invalid_fee_terms_date
-            - invalid_euro_fund_rate
-            - instrument_not_euro_fund
-            - life_insurance_contract_exists
-            - stale_contract_version
-            - fee_terms_exist
-            - fee_terms_limit_reached
-            - euro_fund_rate_exists
-            - euro_fund_rate_limit_reached
-            - portfolio_forbidden
-            - portfolio_payload_too_large
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - code
+          properties:
+            code:
+              type: string
+              enum:
+                - account_not_portfolio
+                - invalid_year
+                - life_insurance_contract_required
+                - cash_range_too_dense
+                - cash_amount_too_large
+                - account_not_life_insurance
+                - portfolio_account_inactive
+                - portfolio_account_not_found
+                - life_insurance_contract_not_found
+                - life_insurance_fee_terms_not_found
+                - euro_fund_rate_not_found
+                - invalid_life_insurance_payload
+                - invalid_contract_field
+                - invalid_contract_date
+                - invalid_fee_rate
+                - invalid_fee_terms_date
+                - invalid_euro_fund_rate
+                - instrument_not_euro_fund
+                - life_insurance_contract_exists
+                - stale_contract_version
+                - fee_terms_exist
+                - fee_terms_limit_reached
+                - euro_fund_rate_exists
+                - euro_fund_rate_limit_reached
+                - portfolio_forbidden
+                - portfolio_payload_too_large
     PortfolioValuationProblem:
-      type: object
-      additionalProperties: false
-      required: [type, title, status, detail]
-      properties:
-        type:
-          type: string
-          format: uri-reference
-        title:
-          type: string
-        status:
-          type: integer
-          minimum: 400
-          maximum: 599
-        detail:
-          type: string
-        code:
-          type: string
-          enum:
-            - invalid_valuation_detail
-            - valuation_field_not_allowed
-            - invalid_valuation_total
-            - invalid_valuation_date
-            - valuation_price_entry_missing
-            - unknown_valuation_instrument
-            - invalid_valuation_price
-            - euro_fund_price_fixed
-            - price_precision_exceeded
-            - invalid_price_date
-            - operation_asset_mismatch
-            - invalid_valuation_query
-            - invalid_history_range
-            - invalid_valuation_payload
-            - account_not_portfolio
-            - portfolio_account_inactive
-            - portfolio_account_not_found
-            - portfolio_valuation_not_found
-            - valuation_exists
-            - stale_valuation_version
-            - valuation_limit_reached
-            - portfolio_valuation_conflict
-            - cash_amount_too_large
-            - portfolio_forbidden
-            - portfolio_payload_too_large
-            - position_would_go_negative
-        field:
-          description: 'The member the code refers to, as a JSON pointer such as `/prices/0/price`.'
-          type: string
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_valuation_detail
+                - valuation_field_not_allowed
+                - invalid_valuation_total
+                - invalid_valuation_date
+                - valuation_price_entry_missing
+                - unknown_valuation_instrument
+                - invalid_valuation_price
+                - euro_fund_price_fixed
+                - price_precision_exceeded
+                - invalid_price_date
+                - operation_asset_mismatch
+                - invalid_valuation_query
+                - invalid_history_range
+                - invalid_valuation_payload
+                - account_not_portfolio
+                - portfolio_account_inactive
+                - portfolio_account_not_found
+                - portfolio_valuation_not_found
+                - valuation_exists
+                - stale_valuation_version
+                - valuation_limit_reached
+                - portfolio_valuation_conflict
+                - cash_amount_too_large
+                - portfolio_forbidden
+                - portfolio_payload_too_large
+                - position_would_go_negative
+            field:
+              description: The member the code refers to, as a JSON pointer such as `/prices/0/price`.
+              type: string
     LifeInsuranceObservedIncome:
       type: object
       additionalProperties: false
@@ -18826,37 +18921,26 @@ components:
           minimum: 0
 
     LifeInsuranceSummaryProblem:
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - title
-        - status
-        - detail
-        - code
-      properties:
-        type:
-          type: string
-        title:
-          type: string
-        status:
-          type: integer
-        detail:
-          type: string
-        code:
-          type: string
-          enum:
-            - account_not_life_insurance
-            - account_not_portfolio
-            - invalid_summary_date
-            - cash_range_too_dense
-            - cash_amount_too_large
-            - position_amount_too_large
-            - position_would_go_negative
-            - corporate_action_without_position
-            - split_fraction_unsupported
-            - portfolio_forbidden
-            - portfolio_account_not_found
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - code
+          properties:
+            code:
+              type: string
+              enum:
+                - account_not_life_insurance
+                - account_not_portfolio
+                - invalid_summary_date
+                - cash_range_too_dense
+                - cash_amount_too_large
+                - position_amount_too_large
+                - position_would_go_negative
+                - corporate_action_without_position
+                - split_fraction_unsupported
+                - portfolio_forbidden
+                - portfolio_account_not_found
     LifeInsuranceSummaryValuation:
       type: object
       additionalProperties: false

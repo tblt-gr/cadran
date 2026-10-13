@@ -468,10 +468,10 @@ final class PortfolioValuationControllerTest extends WebTestCase
         $this->recordTotal('2026-02-28', '20.00');
         $this->recordTotal('2026-03-31', '30.00');
 
-        $page = $this->list(self::ACCOUNT, '?perPage=2');
-        self::assertSame(['items', 'page', 'perPage', 'total'], array_keys($page));
+        $page = $this->list(self::ACCOUNT, '?pageSize=2');
+        self::assertSame(['items', 'page', 'pageSize', 'total'], array_keys($page));
         self::assertSame(3, $page['total']);
-        self::assertSame(2, $page['perPage']);
+        self::assertSame(2, $page['pageSize']);
         self::assertSame(['2026-03-31', '2026-02-28'], array_column(array_map(self::map(...), self::items($page)), 'valuedOn'));
         $summary = self::map(self::items($page)[0]);
         self::assertSame(['id', 'accountId', 'valuedOn', 'detail', 'source', 'totalValue', 'cash', 'securitiesValue', 'completeness', 'priceQuality', 'flags', 'version'], array_keys($summary));
@@ -479,12 +479,12 @@ final class PortfolioValuationControllerTest extends WebTestCase
         $range = $this->list(self::ACCOUNT, '?from=2026-02-01&to=2026-03-01');
         self::assertSame(['2026-02-28'], array_column(array_map(self::map(...), self::items($range)), 'valuedOn'));
 
-        $second = $this->list(self::ACCOUNT, '?perPage=2&page=2');
+        $second = $this->list(self::ACCOUNT, '?pageSize=2&page=2');
         self::assertSame(['2026-01-31'], array_column(array_map(self::map(...), self::items($second)), 'valuedOn'));
 
-        foreach (['?perPage=0', '?perPage=101', '?page=0', '?from=2026-03-01&to=2026-02-01', '?from=bad'] as $query) {
+        foreach (['?pageSize=0', '?pageSize=101', '?page=0', '?from=2026-03-01&to=2026-02-01', '?from=bad'] as $query) {
             $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-valuations'.$query);
-            self::assertResponseStatusCodeSame(422, $query);
+            self::assertResponseStatusCodeSame(400, $query);
         }
     }
 

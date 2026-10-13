@@ -16,14 +16,23 @@ use App\Module\Budget\Application\Goals\ReadGoal;
 use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\UpdateGoal;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Transactions\Application\IdempotencyConflict;
+use App\Module\Transactions\Application\IdempotentExecution;
+use App\Module\Transactions\Application\IdempotentResponse;
+use App\Module\Transactions\Application\InvalidIdempotencyKey;
+use App\Module\Transactions\UI\Http\TransactionHttpEnvelope;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class GoalController
 {
-    public function __construct(private BudgetHttpEnvelope $envelope)
-    {
+    public function __construct(
+        private BudgetHttpEnvelope $envelope,
+        private TransactionHttpEnvelope $idempotencyEnvelope,
+        private IdempotentExecution $idempotentExecution,
+    ) {
     }
 
     #[Route('/api/v1/goals', name: 'api_v1_goals_list', methods: ['GET'])]
@@ -35,14 +44,38 @@ final readonly class GoalController
                 throw new GoalInputError('invalid_goal_query', 'A year is four digits.');
             }
             $rawMonth = $request->query->get('month');
-            $items = $list(null === $rawYear ? null : (int) $rawYear, $request->query->getString('state', 'active'), $rawMonth);
+            $page = $list(
+                null === $rawYear ? null : (int) $rawYear,
+                $request->query->getString('state', 'active'),
+                $rawMonth,
+                self::pagination($request, 'page', 1),
+                self::pagination($request, 'pageSize', ListGoals::DEFAULT_PAGE_SIZE),
+            );
         } catch (GoalInputError $error) {
             return $this->problem('future_goal_month' === $error->errorCode ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_BAD_REQUEST, $error->errorCode);
         } catch (WorkspaceAccessDenied) {
             return $this->forbidden();
         }
 
-        return $this->envelope->json(['items' => array_map(GoalRepresentation::summary(...), $items)]);
+        return $this->envelope->json([
+            'items' => array_map(GoalRepresentation::summary(...), $page->items),
+            'page' => $page->page,
+            'pageSize' => $page->pageSize,
+            'total' => $page->total,
+        ]);
+    }
+
+    private static function pagination(Request $request, string $name, int $default): int
+    {
+        $raw = $request->query->get($name);
+        if (null === $raw) {
+            return $default;
+        }
+        if (1 !== preg_match('/^[0-9]{1,4}$/D', $raw)) {
+            throw new GoalInputError('invalid_goal_query', 'A pagination value is a positive integer.');
+        }
+
+        return (int) $raw;
     }
 
     #[Route('/api/v1/goals/{id}/status', name: 'api_v1_goals_status', methods: ['GET'])]
@@ -82,7 +115,18 @@ final readonly class GoalController
             if (null !== $target) {
                 self::allowed($target, ['value', 'assetCode'], ['value', 'assetCode']);
             }
-            $result = $create(new CreateGoalInput(self::string($body, 'label'), self::string($body, 'kind'), self::string($body, 'metric'), self::string($scope, 'type'), self::nullableString($scope, 'ref'), self::nullableInteger($body, 'year'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), self::nullableString($body, 'startMonth'), self::schedule($body)));
+            $input = (new CreateGoalInput(self::string($body, 'label'), self::string($body, 'kind'), self::string($body, 'metric'), self::string($scope, 'type'), self::nullableString($scope, 'ref'), self::nullableInteger($body, 'year'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), self::nullableString($body, 'startMonth'), self::schedule($body)));
+            $result = $this->idempotentExecution->execute(
+                'goal.create',
+                $this->idempotencyEnvelope->idempotency($request, false),
+                static function () use ($create, $input): IdempotentResponse {
+                    $detail = $create($input);
+
+                    return new IdempotentResponse(GoalRepresentation::detail($detail), Response::HTTP_CREATED, $detail->id);
+                },
+            );
+        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
+            return $this->idempotencyEnvelope->idempotencyProblem($exception);
         } catch (GoalInputError $error) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode, $error->details);
         } catch (\UnexpectedValueException) {
@@ -93,7 +137,7 @@ final readonly class GoalController
             return $this->forbidden();
         }
 
-        return $this->envelope->json(GoalRepresentation::detail($result), Response::HTTP_CREATED);
+        return new JsonResponse($result->body, $result->status, ['Cache-Control' => 'no-store', ...($result->replayed ? ['Idempotency-Replayed' => 'true'] : [])]);
     }
 
     #[Route('/api/v1/goals/{id}', name: 'api_v1_goals_read', methods: ['GET'])]

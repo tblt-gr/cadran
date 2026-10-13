@@ -313,7 +313,7 @@ describe('ContractTab', () => {
     await waitFor(() => expect(api.recordEuroFundRate).toHaveBeenCalled());
     expect(api.listInstruments.mock.calls[0][0].query).toMatchObject({
       status: 'all',
-      perPage: 50,
+      pageSize: 50,
     });
     expect(api.recordEuroFundRate.mock.calls[0][0].body).toMatchObject({
       instrumentId: 'euro-1',

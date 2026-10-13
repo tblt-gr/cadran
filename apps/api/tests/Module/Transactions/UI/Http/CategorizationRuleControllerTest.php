@@ -1425,4 +1425,33 @@ final class CategorizationRuleControllerTest extends WebTestCase
     {
         return ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'];
     }
+
+    public function testCreationReplaysTheFirstResponseForTheSameKeyAndBodyAndRefusesAChangedBody(): void
+    {
+        $send = fn (array $body) => $this->client->request('POST', '/api/v1/categorization-rules', server: [...self::jsonHeaders(), 'HTTP_IDEMPOTENCY_KEY' => 'rule-create-key-0000001'], content: json_encode($body, JSON_THROW_ON_ERROR));
+        $count = fn (string $workspace): mixed => $this->connection->fetchOne('SELECT COUNT(*) FROM transaction_categorization_rules WHERE workspace_id = ?', [$workspace]);
+
+        $send($this->rulePayload());
+        self::assertResponseStatusCodeSame(201);
+        $first = $this->decode()['id'];
+
+        $send($this->rulePayload());
+        self::assertResponseStatusCodeSame(201);
+        self::assertResponseHeaderSame('Idempotency-Replayed', 'true');
+        self::assertSame($first, $this->decode()['id']);
+        self::assertSame(1, $count(WorkspaceFixture::OWN_WORKSPACE));
+
+        $send($this->rulePayload(['label' => 'Changed']));
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame(1, $count(WorkspaceFixture::OWN_WORKSPACE));
+
+        // The other workspace never sees the stored response: its own request is judged on its own data
+        // (the target category belongs to the first workspace, so the rule is refused, not replayed).
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+        $send($this->rulePayload());
+        self::assertFalse($this->client->getResponse()->headers->has('Idempotency-Replayed'));
+        self::assertNotSame(201, $this->client->getResponse()->getStatusCode());
+        self::assertSame(1, $count(WorkspaceFixture::OWN_WORKSPACE));
+        self::assertSame(0, $count(WorkspaceFixture::OTHER_WORKSPACE));
+    }
 }

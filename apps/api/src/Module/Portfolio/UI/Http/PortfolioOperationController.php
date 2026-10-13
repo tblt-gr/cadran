@@ -62,7 +62,7 @@ final readonly class PortfolioOperationController
                 instrumentId: self::scalar($query->all(), 'instrumentId'),
                 includeVoided: self::scalar($query->all(), 'includeVoided'),
                 page: self::scalar($query->all(), 'page'),
-                perPage: self::scalar($query->all(), 'perPage'),
+                pageSize: self::scalar($query->all(), 'pageSize'),
             ));
         } catch (\Throwable $exception) {
             return $this->failure($exception);
@@ -230,7 +230,7 @@ final readonly class PortfolioOperationController
                 $exception->extensions,
             ),
             $exception instanceof \UnexpectedValueException => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_operation_payload'),
-            $exception instanceof InvalidOperationQuery => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_operation_query'),
+            $exception instanceof InvalidOperationQuery => $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_operation_query'),
             $exception instanceof PortfolioAccountNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND),
             $exception instanceof PortfolioOperationNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::OPERATION_NOT_FOUND),
             $exception instanceof StalePortfolioOperationVersion => $this->problem(Response::HTTP_CONFLICT, 'stale_operation_version'),

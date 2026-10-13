@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
+import { useSubmissionKey } from '@/hooks/use-submission-key';
 import {
   InstrumentRequestError,
   instrumentFieldErrors,
@@ -24,6 +25,7 @@ export function useInstrumentEditor(instrument: Instrument | undefined, onSaved:
   const client = useQueryClient();
   const [retryDuplicate, setRetryDuplicate] = useState(false);
   const [submittedBody, setSubmittedBody] = useState<Body | null>(null);
+  const submission = useSubmissionKey();
   const save = useMutation({
     mutationFn: async ({ body, duplicate }: { body: Body; duplicate: boolean }) => {
       const payload = duplicate ? { ...body, confirmDuplicate: true } : body;
@@ -36,12 +38,20 @@ export function useInstrumentEditor(instrument: Instrument | undefined, onSaved:
             }),
           )
         : await withCsrfRetry(() =>
-            createInstrument({ ...authApiOptions(), body: payload as CreateInstrumentRequest }),
+            createInstrument({
+              ...authApiOptions(),
+              headers: {
+                ...authApiOptions().headers,
+                'Idempotency-Key': submission.keyFor(payload),
+              },
+              body: payload as CreateInstrumentRequest,
+            }),
           );
       if (!result.response?.ok || !result.data) throw instrumentRequestError(result);
       return result.data;
     },
     onSuccess: async () => {
+      submission.release();
       onSaved();
       await client.invalidateQueries({ queryKey: ['instruments'] });
     },

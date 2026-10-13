@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Transactions\Application\IdempotencyConflict;
+use App\Module\Transactions\Application\IdempotentExecution;
+use App\Module\Transactions\Application\IdempotentResponse;
+use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\Recurrence\ArchiveRecurrence;
 use App\Module\Transactions\Application\Recurrence\ConfirmRecurrence;
 use App\Module\Transactions\Application\Recurrence\DetectRecurrenceCandidates;
@@ -35,7 +39,7 @@ final readonly class RecurrenceController
         'label', 'counterparty', 'expectedAmount', 'amountTolerance', 'intervalKind', 'dayOfPeriod', 'version',
     ];
 
-    public function __construct(private TransactionHttpEnvelope $envelope)
+    public function __construct(private TransactionHttpEnvelope $envelope, private IdempotentExecution $idempotentExecution)
     {
     }
 
@@ -92,17 +96,17 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrences', name: 'api_v1_recurrences_list', methods: ['GET'])]
     public function list(Request $request, ListRecurrences $list): Response
     {
-        if ([] !== array_diff(array_keys($request->query->all()), ['includeArchived', 'page', 'perPage'])) {
+        if ([] !== array_diff(array_keys($request->query->all()), ['includeArchived', 'page', 'pageSize'])) {
             return $this->problem(400, '/problems/recurrences.invalid_query');
         }
         $archived = $request->query->getString('includeArchived');
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
-        if (!in_array($archived, ['', 'true', 'false'], true) || !self::digits($page) || !self::digits($perPage)) {
+        $pageSize = $request->query->getString('pageSize');
+        if (!in_array($archived, ['', 'true', 'false'], true) || !self::digits($page) || !self::digits($pageSize)) {
             return $this->problem(400, '/problems/recurrences.invalid_query');
         }
         try {
-            return $this->envelope->json($list('true' === $archived, '' === $page ? 1 : (int) $page, '' === $perPage ? 50 : (int) $perPage));
+            return $this->envelope->json($list('true' === $archived, '' === $page ? 1 : (int) $page, '' === $pageSize ? 50 : (int) $pageSize));
         } catch (InvalidRecurrenceInput) {
             return $this->problem(400, '/problems/recurrences.invalid_query');
         } catch (WorkspaceAccessDenied) {
@@ -119,18 +123,29 @@ final readonly class RecurrenceController
         }
         try {
             $payload = RecurrencePayload::of($body, self::CREATE_FIELDS);
-            $view = $confirm(new RecurrenceInput(
+            $input = new RecurrenceInput(
                 $payload->identifier('accountId'), $payload->string('label'), $payload->nullableString('counterparty'),
                 $payload->string('expectedAmount'), $payload->string('amountTolerance'), $payload->string('intervalKind'),
                 $payload->integer('dayOfPeriod'), $payload->string('firstExpectedOn'),
-            ));
+            );
+            $result = $this->idempotentExecution->execute(
+                'recurrence.create',
+                $this->envelope->idempotency($request, false),
+                static function () use ($confirm, $input): IdempotentResponse {
+                    $view = $confirm($input);
+
+                    return new IdempotentResponse($view, 201, is_string($view['id'] ?? null) ? $view['id'] : null);
+                },
+            );
+        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
+            return $this->envelope->idempotencyProblem($exception);
         } catch (InvalidRecurrenceInput|InvalidRecurrenceReference|\UnexpectedValueException) {
             return $this->problem(422, '/problems/recurrences.invalid');
         } catch (WorkspaceAccessDenied) {
             return $this->problem(403, '/problems/recurrences.forbidden');
         }
 
-        return $this->envelope->json($view, 201);
+        return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
     }
 
     #[Route('/api/v1/recurrences/refresh-horizon', name: 'api_v1_recurrences_refresh_horizon', methods: ['POST'], priority: 10)]

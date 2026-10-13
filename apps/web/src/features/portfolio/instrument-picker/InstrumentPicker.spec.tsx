@@ -78,7 +78,7 @@ describe('InstrumentPicker', () => {
     await screen.findByRole('option', { name: /Fonds euros/ });
     expect(api.listInstruments).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({ instrumentType: 'EURO_FUND', perPage: 20 }),
+        query: expect.objectContaining({ instrumentType: 'EURO_FUND', pageSize: 20 }),
       }),
     );
     fireEvent.keyDown(picker, { key: 'Enter' });

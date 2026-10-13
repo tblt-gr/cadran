@@ -10,7 +10,7 @@ final readonly class BudgetPlanPage
     public function __construct(
         public array $items,
         public int $page,
-        public int $perPage,
+        public int $pageSize,
         public int $total,
     ) {
     }

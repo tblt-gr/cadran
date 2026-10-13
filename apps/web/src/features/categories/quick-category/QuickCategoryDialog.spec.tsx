@@ -43,7 +43,7 @@ function renderDialog(queryClient = new QueryClient(), parents: Category[] = [])
   const onCreated = vi.fn();
   api.listCategories.mockImplementation(({ query }) => {
     const items = parents.filter((parent) => parent.type === query.type);
-    return success({ items, page: 1, perPage: 50, total: items.length });
+    return success({ items, page: 1, pageSize: 50, total: items.length });
   });
   render(
     <QueryClientProvider client={queryClient}>
@@ -100,7 +100,7 @@ describe('QuickCategoryDialog', () => {
   it('validates the label locally without issuing a request', async () => {
     const queryClient = new QueryClient();
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     render(
       <QueryClientProvider client={queryClient}>
@@ -122,7 +122,7 @@ describe('QuickCategoryDialog', () => {
 
   it('publishes the created category to list and picker caches before closing', async () => {
     const queryClient = new QueryClient();
-    const emptyPage: CategoryPage = { items: [], page: 1, perPage: 50, total: 0 };
+    const emptyPage: CategoryPage = { items: [], page: 1, pageSize: 50, total: 0 };
     const listKey = ['categories', false, 1] as const;
     const pickerKey = ['category-candidates', 'EXPENSE', false, 'Boulangerie'] as const;
     queryClient.setQueryData(listKey, emptyPage);

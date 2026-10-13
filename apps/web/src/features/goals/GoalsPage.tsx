@@ -16,6 +16,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSubmissionKey } from '@/hooks/use-submission-key';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
@@ -37,6 +38,9 @@ import { goalErrorKind, goalErrorMismatch, goalRequestError } from './goalError'
 import { ReferenceIncomeNote } from './ReferenceIncomeNote';
 import styles from './GoalsPage.module.css';
 import { currentMonthIn } from './goalFormFields';
+
+// The server caps a year's goals at 50, so a single page always holds the whole list.
+const GOALS_PAGE_SIZE = 50;
 
 type Editor = GoalSummary | 'create' | null;
 function currentYear(timeZone: string) {
@@ -79,7 +83,7 @@ export function GoalsPage() {
     queryFn: async ({ signal }) => {
       const result = await listGoals({
         ...authApiOptions(),
-        query: { year, month: listMonth, state },
+        query: { year, month: listMonth, state, page: 1, pageSize: GOALS_PAGE_SIZE },
         signal,
       });
       if (!result.response?.ok || !result.data) throw goalRequestError(result);
@@ -143,6 +147,7 @@ export function GoalsPage() {
       void queryClient.invalidateQueries({ queryKey: ['goal-versions'] });
     }
   };
+  const submission = useSubmissionKey();
   const save = useMutation({
     mutationFn: async (body: CreateGoalRequest | UpdateGoalRequest) => {
       const result =
@@ -155,12 +160,20 @@ export function GoalsPage() {
               }),
             )
           : await withCsrfRetry(() =>
-              createGoal({ ...authApiOptions(), body: body as CreateGoalRequest }),
+              createGoal({
+                ...authApiOptions(),
+                headers: {
+                  ...authApiOptions().headers,
+                  'Idempotency-Key': submission.keyFor(body),
+                },
+                body: body as CreateGoalRequest,
+              }),
             );
       if (!result.response?.ok || !result.data) throw goalRequestError(result);
       return result.data;
     },
     onSuccess: async () => {
+      submission.release();
       setEditor(null);
       setSaved(true);
       await refresh();

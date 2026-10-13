@@ -32,7 +32,7 @@ final class ListAccountBalancesTest extends TestCase
         ]))(AccountFixture::ID, 1, 2);
 
         self::assertSame(1, $page->page);
-        self::assertSame(2, $page->perPage);
+        self::assertSame(2, $page->pageSize);
         self::assertSame(3, $page->total);
         self::assertCount(2, $page->items);
         self::assertSame('231.10', $page->items[0]->amount->value->toString());
@@ -40,12 +40,12 @@ final class ListAccountBalancesTest extends TestCase
     }
 
     #[DataProvider('outOfBoundsPages')]
-    public function testAPageOutsideItsBoundsIsRefused(?int $page, ?int $perPage): void
+    public function testAPageOutsideItsBoundsIsRefused(?int $page, ?int $pageSize): void
     {
         $this->expectException(InvalidAccountBalanceInput::class);
         $this->expectExceptionMessage('outside its bounds');
 
-        ($this->list())(AccountFixture::ID, $page, $perPage);
+        ($this->list())(AccountFixture::ID, $page, $pageSize);
     }
 
     /**

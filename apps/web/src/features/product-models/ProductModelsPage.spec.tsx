@@ -120,10 +120,10 @@ afterEach(() => {
 describe('ProductModelsPage', () => {
   it('describes a model by hand and records no period with it', async () => {
     api.listProductModels.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+      success({ items: [livretA], page: 1, pageSize: 100, total: 1 }),
     );
     api.createProductModel.mockImplementation(({ body }) => success({ ...model, ...body }, 201));
     const { container } = renderPage();
@@ -166,7 +166,7 @@ describe('ProductModelsPage', () => {
 
   it('records a tiered rate period as canonical decimal strings with its mode', async () => {
     api.listProductModels.mockImplementation(() =>
-      success({ items: [model], page: 1, perPage: 50, total: 1 }),
+      success({ items: [model], page: 1, pageSize: 50, total: 1 }),
     );
     api.addProductModelRule.mockImplementation(({ body }) =>
       success({ ...model, version: 2, rules: [{ id: 'r1', ...body }] }),
@@ -218,10 +218,10 @@ describe('ProductModelsPage', () => {
 
   it('starts a model from a catalogue product, sending only its code', async () => {
     api.listProductModels.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+      success({ items: [livretA], page: 1, pageSize: 100, total: 1 }),
     );
     api.createProductModelFromProduct.mockImplementation(({ body }) =>
       success({ ...model, origin: 'SYSTEM_PRODUCT', basedOnProductCode: body.productCode }, 201),
@@ -251,10 +251,10 @@ describe('ProductModelsPage', () => {
 
   it('starts on a valuation mode the chosen product can feed', async () => {
     api.listProductModels.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [lifeInsurance], page: 1, perPage: 100, total: 1 }),
+      success({ items: [lifeInsurance], page: 1, pageSize: 100, total: 1 }),
     );
     renderPage();
 
@@ -276,7 +276,7 @@ describe('ProductModelsPage', () => {
 
   it('duplicates a model by name and archives one through a confirmation', async () => {
     api.listProductModels.mockImplementation(() =>
-      success({ items: [model], page: 1, perPage: 50, total: 1 }),
+      success({ items: [model], page: 1, pageSize: 50, total: 1 }),
     );
     api.duplicateProductModel.mockImplementation(({ body }) =>
       success({ ...model, id: 'copy', name: body.name, origin: 'WORKSPACE_MODEL' }, 201),
@@ -311,7 +311,7 @@ describe('ProductModelsPage', () => {
 
   it('separates a taken name from a stale version and shows the unauthorized state', async () => {
     api.listProductModels.mockImplementation(() =>
-      success({ items: [model], page: 1, perPage: 50, total: 1 }),
+      success({ items: [model], page: 1, pageSize: 50, total: 1 }),
     );
     api.duplicateProductModel.mockImplementation(() =>
       problem(409, '/problems/product-model-name-taken'),
@@ -332,7 +332,7 @@ describe('ProductModelsPage', () => {
     cleanup();
     vi.clearAllMocks();
     api.listProductModels.mockImplementation(() =>
-      success({ items: [model], page: 1, perPage: 50, total: 1 }),
+      success({ items: [model], page: 1, pageSize: 50, total: 1 }),
     );
     api.archiveProductModel.mockImplementation(() => problem(409, '/problems/stale-version'));
     renderPage();
@@ -376,7 +376,7 @@ describe('ProductModelsPage', () => {
       ],
     };
     api.listProductModels.mockImplementation(() =>
-      success({ items: [archived], page: 1, perPage: 50, total: 1 }),
+      success({ items: [archived], page: 1, pageSize: 50, total: 1 }),
     );
     renderPage();
 
@@ -412,7 +412,7 @@ describe('ProductModelsPage', () => {
     expect(
       screen.getByTestId('product-models-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
-    resolveModels?.(await success({ items: [model], page: 1, perPage: 20, total: 1 }));
+    resolveModels?.(await success({ items: [model], page: 1, pageSize: 20, total: 1 }));
     expect(await screen.findByText(model.name)).toBeTruthy();
     expect(screen.queryByTestId('product-models-skeleton')).toBeNull();
 
@@ -434,7 +434,7 @@ describe('ProductModelsPage', () => {
 
   it('keeps a locale-formatted rate on the field instead of sending it', async () => {
     api.listProductModels.mockImplementation(() =>
-      success({ items: [model], page: 1, perPage: 50, total: 1 }),
+      success({ items: [model], page: 1, pageSize: 50, total: 1 }),
     );
     renderPage();
 
@@ -459,7 +459,7 @@ describe('ProductModelsPage', () => {
 
   it('reveals archived models through the filters modal', async () => {
     api.listProductModels.mockImplementation(() =>
-      success({ items: [model], page: 1, perPage: 50, total: 1 }),
+      success({ items: [model], page: 1, pageSize: 50, total: 1 }),
     );
 
     renderPage();

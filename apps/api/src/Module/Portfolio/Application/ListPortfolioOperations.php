@@ -11,8 +11,8 @@ use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 
 final readonly class ListPortfolioOperations
 {
-    public const int DEFAULT_PER_PAGE = 50;
-    public const int MAX_PER_PAGE = 100;
+    public const int DEFAULT_PAGE_SIZE = 50;
+    public const int MAX_PAGE_SIZE = 100;
     public const int MAX_PAGE = 1000;
     public const int MAX_RANGE_YEARS = 10;
     public const int MAX_TYPES = 13;
@@ -31,12 +31,12 @@ final readonly class ListPortfolioOperations
         $this->gate->forRead($workspace, $accountId);
         $filters = $this->filters($query);
         $page = self::bounded($query->page, 1, 1, self::MAX_PAGE);
-        $perPage = self::bounded($query->perPage, self::DEFAULT_PER_PAGE, 1, self::MAX_PER_PAGE);
+        $pageSize = self::bounded($query->pageSize, self::DEFAULT_PAGE_SIZE, 1, self::MAX_PAGE_SIZE);
 
-        $items = $this->operations->search($workspace, $accountId, $filters, $perPage, ($page - 1) * $perPage);
+        $items = $this->operations->search($workspace, $accountId, $filters, $pageSize, ($page - 1) * $pageSize);
 
         return new OperationPage(
-            $this->presenter->present($workspace, $items), $page, $perPage,
+            $this->presenter->present($workspace, $items), $page, $pageSize,
             $this->operations->count($workspace, $accountId, $filters),
         );
     }

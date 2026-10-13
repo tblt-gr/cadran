@@ -52,7 +52,7 @@ final class PortfolioOperationOpenApiContractTest extends TestCase
         );
         self::assertSame(10_000, self::map(self::map($operation['properties'] ?? null)['activeDayOperationCount'] ?? null)['maximum'] ?? null);
 
-        $problem = self::map(self::map($schemas['PortfolioOperationProblem'] ?? null)['properties'] ?? null);
+        $problem = self::map(self::extension($schemas['PortfolioOperationProblem'] ?? null));
         $codes = self::map($problem['code'] ?? null)['enum'] ?? null;
         self::assertIsArray($codes);
         foreach ([
@@ -125,6 +125,19 @@ final class PortfolioOperationOpenApiContractTest extends TestCase
         foreach (['PREMIUM', 'PARTIAL_SURRENDER', 'FULL_SURRENDER', 'SWITCH', 'EURO_FUND_INTEREST', 'PROFIT_SHARING', 'MANAGEMENT_FEE', 'SOCIAL_CONTRIBUTION'] as $type) {
             self::assertContains($type, $types);
         }
+    }
+
+    /**
+     * Properties added by a specialised problem on top of the shared `Problem` it composes with allOf.
+     *
+     * @return array<string, mixed>
+     */
+    private static function extension(mixed $schema): array
+    {
+        $parts = self::map($schema)['allOf'] ?? null;
+        self::assertIsArray($parts);
+
+        return self::map(self::map($parts[1] ?? null)['properties'] ?? null);
     }
 
     /** @return array<string, mixed> */

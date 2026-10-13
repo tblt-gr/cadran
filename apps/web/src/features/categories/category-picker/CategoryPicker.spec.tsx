@@ -66,7 +66,7 @@ describe('CategoryPicker', () => {
       success({
         items: query.search === 'Sor' ? [candidate] : [],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: query.search === 'Sor' ? 1 : 0,
       }),
     );
@@ -91,7 +91,7 @@ describe('CategoryPicker', () => {
 
   it('says when a search matched nothing instead of looking inert', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPicker();
 
@@ -106,7 +106,7 @@ describe('CategoryPicker', () => {
 
   it('is driven entirely from the keyboard', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [candidate], page: 1, perPage: 50, total: 1 }),
+      success({ items: [candidate], page: 1, pageSize: 50, total: 1 }),
     );
     const onChange = renderPicker();
     const combobox = screen.getByRole('combobox', { name: 'Catégorie qui reçoit l’historique' });
@@ -129,7 +129,7 @@ describe('CategoryPicker', () => {
 
   it('closes on Escape without choosing anything', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [candidate], page: 1, perPage: 50, total: 1 }),
+      success({ items: [candidate], page: 1, pageSize: 50, total: 1 }),
     );
     const onChange = renderPicker();
     const combobox = screen.getByRole('combobox', { name: 'Catégorie qui reçoit l’historique' });
@@ -150,7 +150,7 @@ describe('CategoryPicker', () => {
           { ...candidate, id: '00000000-0000-7000-8000-0000000000c1', label: 'Restaurants' },
         ],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 2,
       }),
     );
@@ -165,7 +165,7 @@ describe('CategoryPicker', () => {
 
   it('offers creation last and hands the searched label to the host', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [candidate], page: 1, perPage: 50, total: 1 }),
+      success({ items: [candidate], page: 1, pageSize: 50, total: 1 }),
     );
     const onCreateRequest = vi.fn();
     renderPicker(vi.fn(), onCreateRequest);
@@ -189,7 +189,7 @@ describe('CategoryPicker', () => {
 
   it('does not offer to recreate the category already selected', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [candidate], page: 1, perPage: 50, total: 1 }),
+      success({ items: [candidate], page: 1, pageSize: 50, total: 1 }),
     );
     const onCreateRequest = vi.fn();
     renderPicker(vi.fn(), onCreateRequest);
@@ -211,7 +211,7 @@ describe('CategoryPicker', () => {
       label: 'Salaire',
     };
     api.listCategories.mockImplementation(() =>
-      success({ items: [candidate, income], page: 1, perPage: 50, total: 2 }),
+      success({ items: [candidate, income], page: 1, pageSize: 50, total: 2 }),
     );
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -236,7 +236,7 @@ describe('CategoryPicker', () => {
 
   it('marks the selection inside the field and carries the host message', () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -272,7 +272,7 @@ describe('CategoryPicker', () => {
 
   it('offers no creation without a host to handle it', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPicker();
 

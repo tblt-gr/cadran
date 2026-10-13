@@ -160,7 +160,7 @@ describe('EmergencyFundPolicyModal', () => {
       respond({
         items: [category('k1', 'Courses', true), category('k2', 'Hors budget', false)],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 2,
       }),
     );

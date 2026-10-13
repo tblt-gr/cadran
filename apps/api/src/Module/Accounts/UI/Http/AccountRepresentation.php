@@ -58,7 +58,7 @@ final readonly class AccountRepresentation
         return [
             'items' => array_map(self::one(...), $page->items),
             'page' => $page->page,
-            'perPage' => $page->perPage,
+            'pageSize' => $page->pageSize,
             'total' => $page->total,
         ];
     }

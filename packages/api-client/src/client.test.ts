@@ -53,13 +53,13 @@ describe('generated Cadran client', () => {
       baseUrl: 'https://cadran.test',
       fetch: request,
       throwOnError: true,
-      query: { limit: 25 },
+      query: { pageSize: 25 },
     });
 
     expect(response.data).toEqual({ items: [], nextCursor: null });
     expect(request.mock.calls[0]?.[0]).toMatchObject({
       method: 'GET',
-      url: 'https://cadran.test/api/v1/audit-events?limit=25',
+      url: 'https://cadran.test/api/v1/audit-events?pageSize=25',
     });
   });
 
@@ -75,7 +75,7 @@ describe('generated Cadran client', () => {
     } as const;
     const request = vi.fn<typeof fetch>(async (_input, _init) =>
       Promise.resolve(
-        new Response(JSON.stringify({ items: [euro], page: 1, perPage: 50, total: 1 }), {
+        new Response(JSON.stringify({ items: [euro], page: 1, pageSize: 50, total: 1 }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         }),
@@ -86,7 +86,7 @@ describe('generated Cadran client', () => {
       baseUrl: 'https://cadran.test',
       fetch: request,
       throwOnError: true,
-      query: { perPage: 50 },
+      query: { pageSize: 50 },
     });
 
     // The generated type must keep the amount a string: a number here would
@@ -95,7 +95,7 @@ describe('generated Cadran client', () => {
     expect(response.data.items[0]?.displayStep).toEqual({ value: '0.01', assetCode: 'EUR' });
     expect(request.mock.calls[0]?.[0]).toMatchObject({
       method: 'GET',
-      url: 'https://cadran.test/api/v1/assets?perPage=50',
+      url: 'https://cadran.test/api/v1/assets?pageSize=50',
     });
   });
 
@@ -123,7 +123,7 @@ describe('generated Cadran client', () => {
               },
             ],
             page: 1,
-            perPage: 25,
+            pageSize: 25,
             total: 1,
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },

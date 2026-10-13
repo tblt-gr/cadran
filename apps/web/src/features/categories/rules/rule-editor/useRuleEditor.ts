@@ -6,6 +6,7 @@ import {
   type UpdateCategorizationRuleRequest,
 } from '@cadran/api-client';
 import { useMutation } from '@tanstack/react-query';
+import { useSubmissionKey } from '@/hooks/use-submission-key';
 import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -26,6 +27,7 @@ export function useRuleEditor(accountsAvailable: boolean, onSaved: () => void) {
   const refresh = useRefreshCategorizationData();
   const [target, setTarget] = useState<RuleEditorTarget>(null);
 
+  const submission = useSubmissionKey();
   const save = useMutation({
     mutationFn: async (body: CreateCategorizationRuleRequest | UpdateCategorizationRuleRequest) => {
       const result =
@@ -40,6 +42,10 @@ export function useRuleEditor(accountsAvailable: boolean, onSaved: () => void) {
           : await withCsrfRetry(() =>
               createCategorizationRule({
                 ...authApiOptions(),
+                headers: {
+                  ...authApiOptions().headers,
+                  'Idempotency-Key': submission.keyFor(body),
+                },
                 body: body as CreateCategorizationRuleRequest,
               }),
             );
@@ -52,6 +58,7 @@ export function useRuleEditor(accountsAvailable: boolean, onSaved: () => void) {
       }
     },
     onSuccess: async () => {
+      submission.release();
       setTarget(null);
       onSaved();
       await refresh();

@@ -160,10 +160,10 @@ final class AccountBalanceControllerTest extends WebTestCase
             (string) $this->client->getResponse()->getContent(),
         );
 
-        $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/balances?page=1&perPage=1');
+        $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/balances?page=1&pageSize=1');
         $page = $this->decode();
         self::assertSame(1, $page['page']);
-        self::assertSame(1, $page['perPage']);
+        self::assertSame(1, $page['pageSize']);
         self::assertSame(2, $page['total']);
         $items = $page['items'] ?? null;
         self::assertIsList($items);
@@ -186,7 +186,7 @@ final class AccountBalanceControllerTest extends WebTestCase
         $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/balances?page=0');
         self::assertResponseStatusCodeSame(400);
 
-        $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/balances?perPage=101');
+        $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/balances?pageSize=101');
         self::assertResponseStatusCodeSame(400);
 
         $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/balances?page=1001');

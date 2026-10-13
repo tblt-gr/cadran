@@ -47,7 +47,7 @@ final class BudgetRepresentation
     /** @return array<string, mixed> */
     public static function page(BudgetPlanPage $page): array
     {
-        return ['items' => array_map(self::plan(...), $page->items), 'page' => $page->page, 'perPage' => $page->perPage, 'total' => $page->total];
+        return ['items' => array_map(self::plan(...), $page->items), 'page' => $page->page, 'pageSize' => $page->pageSize, 'total' => $page->total];
     }
 
     /** @return array<string, mixed> */

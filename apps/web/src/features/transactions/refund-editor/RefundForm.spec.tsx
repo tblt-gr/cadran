@@ -75,10 +75,10 @@ describe('RefundForm', () => {
 
   it('blocks submission when the amount changes but the shown allocation is left untouched', async () => {
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     const splitProposal: RefundableTransaction = {
       ...proposal,

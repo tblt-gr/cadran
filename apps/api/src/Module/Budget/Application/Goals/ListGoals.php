@@ -17,9 +17,15 @@ final readonly class ListGoals
     {
     }
 
-    /** @return list<GoalSummaryView> */
-    public function __invoke(?int $year, string $state, ?string $monthKey = null): array
+    public const int MAX_PAGE = 1000;
+    public const int MAX_PAGE_SIZE = 100;
+    public const int DEFAULT_PAGE_SIZE = 50;
+
+    public function __invoke(?int $year, string $state, ?string $monthKey = null, int $page = 1, int $pageSize = self::DEFAULT_PAGE_SIZE): GoalPage
     {
+        if ($page < 1 || $page > self::MAX_PAGE || $pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
+            throw new GoalInputError('invalid_goal_query', 'The page or page size is outside its bounds.');
+        }
         $today = CalendarMonth::containing($this->calendar->today());
         $year ??= $today->year;
         if ($year < 1900 || $year > $today->year + 5) {
@@ -46,12 +52,14 @@ final readonly class ListGoals
             default => throw new GoalInputError('invalid_goal_query', 'A goal state is active or closed.'),
         };
         $workspace = $this->caller->resolve();
-        $goals = $this->goals->listForYear($workspace, $year, $goalState, 50);
+        // A workspace lists at most 50 goals per year and state: pages slice that bounded set.
+        $all = $this->goals->listForYear($workspace, $year, $goalState, 50);
+        $goals = array_slice($all, ($page - 1) * $pageSize, $pageSize);
         // Only a future year lands here on a future month: its goals have no real figure to read.
         $future = ReadGoalStatus::isFuture($month, $today);
         $inputs = $future ? null : $this->readStatus->inputs($workspace, $month, $goals);
 
-        return array_map(function ($goal) use ($workspace, $year, $month, $inputs): GoalSummaryView {
+        $items = array_map(function ($goal) use ($workspace, $year, $month, $inputs): GoalSummaryView {
             $versions = $this->versions->listByGoal($workspace, $goal->id, 50);
             $scope = ($this->scope)($workspace, $goal->scopeType, $goal->scopeRef, true);
             $status = null === $inputs
@@ -60,5 +68,7 @@ final readonly class ListGoals
 
             return $this->present->summary($goal, $versions, $year, $status, $scope);
         }, $goals);
+
+        return new GoalPage($items, $page, $pageSize, count($all));
     }
 }

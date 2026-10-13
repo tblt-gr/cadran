@@ -58,6 +58,6 @@ final class ListBudgetPlansTest extends TestCase
         self::assertCount(1, $page->items);
         self::assertSame(2, $page->total);
         self::assertSame(1, $page->page);
-        self::assertSame(1, $page->perPage);
+        self::assertSame(1, $page->pageSize);
     }
 }

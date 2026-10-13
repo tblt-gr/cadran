@@ -86,7 +86,7 @@ const securitiesAccount: Product = {
 };
 
 function page(items: Product[]): ProductPage {
-  return { items, page: 1, perPage: 25, total: items.length };
+  return { items, page: 1, pageSize: 25, total: items.length };
 }
 
 function success<T>(data: T, status = 200) {
@@ -217,7 +217,7 @@ describe('ProductCatalogPage', () => {
 
     await waitFor(() => {
       expect(api.listProducts).toHaveBeenLastCalledWith(
-        expect.objectContaining({ query: { asOf: '2026-03-15', page: 1, perPage: 25 } }),
+        expect.objectContaining({ query: { asOf: '2026-03-15', page: 1, pageSize: 25 } }),
       );
     });
     expect(screen.getByTestId('catalog-filters-count').textContent).toBe('1');

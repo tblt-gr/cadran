@@ -498,7 +498,7 @@ final class PortfolioOperationControllerTest extends WebTestCase
         self::assertSame([], $this->decode()['items']);
 
         $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-transfer-candidates?direction=SIDEWAYS');
-        self::assertResponseStatusCodeSame(422);
+        self::assertResponseStatusCodeSame(400);
         $this->get('/api/v1/accounts/'.self::FOREIGN_ACCOUNT.'/portfolio-transfer-candidates?direction=IN');
         self::assertResponseStatusCodeSame(404);
         $this->get('/api/v1/accounts/'.self::CURRENT_ACCOUNT.'/portfolio-transfer-candidates?direction=IN');
@@ -566,7 +566,7 @@ final class PortfolioOperationControllerTest extends WebTestCase
         $page = $this->decode();
         self::assertSame([$stock['id'], $deposit['id'], $second['id'], $first['id']], array_column(self::items($page), 'id'));
         self::assertSame(1, $page['page']);
-        self::assertSame(50, $page['perPage']);
+        self::assertSame(50, $page['pageSize']);
         self::assertSame(4, $page['total']);
         $itemsById = array_column(self::items($page), null, 'id');
         self::assertSame(2, $itemsById[self::string($first['id'])]['activeDayOperationCount']);
@@ -574,7 +574,7 @@ final class PortfolioOperationControllerTest extends WebTestCase
         self::assertSame(1, $itemsById[self::string($deposit['id'])]['activeDayOperationCount']);
         self::assertSame(1, $itemsById[self::string($stock['id'])]['activeDayOperationCount']);
 
-        $this->get($this->path('?perPage=2&page=2'));
+        $this->get($this->path('?pageSize=2&page=2'));
         self::assertSame([$second['id'], $first['id']], array_column(self::items($this->decode()), 'id'));
         $this->get($this->path('?type=BUY&type=SECURITY_TRANSFER_IN'));
         self::assertSame(3, $this->decode()['total']);
@@ -583,9 +583,9 @@ final class PortfolioOperationControllerTest extends WebTestCase
         $this->get($this->path('?from=2026-03-05&to=2026-03-31'));
         self::assertSame([$deposit['id']], array_column(self::items($this->decode()), 'id'));
 
-        foreach (['?page=0', '?perPage=101', '?perPage=abc', '?type=NOPE', '?from=2026-13-01', '?from=2010-01-01&to=2026-01-01', '?instrumentId=x', '?includeVoided=maybe'] as $query) {
+        foreach (['?page=0', '?pageSize=101', '?pageSize=abc', '?type=NOPE', '?from=2026-13-01', '?from=2010-01-01&to=2026-01-01', '?instrumentId=x', '?includeVoided=maybe'] as $query) {
             $this->get($this->path($query));
-            self::assertResponseStatusCodeSame(422, $query);
+            self::assertResponseStatusCodeSame(400, $query);
             self::assertSame('invalid_operation_query', $this->decode()['code']);
         }
     }

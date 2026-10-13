@@ -38,13 +38,13 @@ final readonly class BudgetPlanController
     public function list(Request $request, ListBudgetPlans $list): Response
     {
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
-        if (!self::boundedInteger($page, 1, 1000) || !self::boundedInteger($perPage, 1, 100)) {
+        $pageSize = $request->query->getString('pageSize');
+        if (!self::boundedInteger($page, 1, 1000) || !self::boundedInteger($pageSize, 1, 100)) {
             return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_budget_query');
         }
 
         try {
-            $result = $list('' === $page ? 1 : (int) $page, '' === $perPage ? 50 : (int) $perPage);
+            $result = $list('' === $page ? 1 : (int) $page, '' === $pageSize ? 50 : (int) $pageSize);
         } catch (WorkspaceAccessDenied) {
             return $this->forbidden();
         }

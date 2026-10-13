@@ -19,16 +19,16 @@ final readonly class ListAccountGroups
     ) {
     }
 
-    public function __invoke(bool $includeArchived, ?int $page, ?int $perPage, bool $parentEligible = false): AccountGroupPage
+    public function __invoke(bool $includeArchived, ?int $page, ?int $pageSize, bool $parentEligible = false): AccountGroupPage
     {
         $requestedPage = $page ?? 1;
-        $pageSize = $perPage ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
+        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
+        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
             throw new InvalidAccountGroupInput('The group page is outside its bounds.');
         }
 
         $workspace = $this->caller->resolve();
-        $groups = $this->groups->list($workspace, $includeArchived && !$parentEligible, $pageSize, ($requestedPage - 1) * $pageSize);
+        $groups = $this->groups->list($workspace, $includeArchived && !$parentEligible, $resolvedPageSize, ($requestedPage - 1) * $resolvedPageSize);
         if ($parentEligible) {
             $groups = array_values(array_filter(
                 $groups,
@@ -52,7 +52,7 @@ final readonly class ListAccountGroups
                 $groups,
             ),
             page: $requestedPage,
-            perPage: $pageSize,
+            pageSize: $resolvedPageSize,
             total: $this->groups->count($workspace, $includeArchived && !$parentEligible),
         );
     }

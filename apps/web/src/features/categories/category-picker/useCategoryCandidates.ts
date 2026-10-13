@@ -12,7 +12,7 @@ export function useCategoryCandidates(
     queryFn: async ({ signal }) => {
       const result = await listCategories({
         ...authApiOptions(),
-        query: { type, search: search || undefined, parentEligible, page: 1, perPage: 50 },
+        query: { type, search: search || undefined, parentEligible, page: 1, pageSize: 50 },
         signal,
       });
       if (!result.response?.ok || !result.data)

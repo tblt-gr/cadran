@@ -42,7 +42,7 @@ export function InstrumentPicker({
         ...authApiOptions(),
         query: {
           status: 'active',
-          perPage: 20,
+          pageSize: 20,
           q: query || undefined,
           currencyCode,
           ...(instrumentType ? { instrumentType } : {}),

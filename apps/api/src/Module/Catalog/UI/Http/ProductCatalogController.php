@@ -36,10 +36,10 @@ final class ProductCatalogController
     public function list(Request $request, ListProducts $listProducts): Response
     {
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
+        $pageSize = $request->query->getString('pageSize');
         $asOf = $request->query->getString('asOf');
 
-        foreach ([$page, $perPage] as $parameter) {
+        foreach ([$page, $pageSize] as $parameter) {
             if ('' !== $parameter && 1 !== preg_match('/^[0-9]{1,4}$/D', $parameter)) {
                 return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_query');
             }
@@ -48,7 +48,7 @@ final class ProductCatalogController
         try {
             $catalogue = $listProducts(
                 '' === $page ? null : (int) $page,
-                '' === $perPage ? null : (int) $perPage,
+                '' === $pageSize ? null : (int) $pageSize,
                 '' === $asOf ? null : $asOf,
             );
         } catch (InvalidProductQuery) {
@@ -79,7 +79,7 @@ final class ProductCatalogController
         return self::json([
             'items' => array_map(self::represent(...), $catalogue->products),
             'page' => $catalogue->page,
-            'perPage' => $catalogue->perPage,
+            'pageSize' => $catalogue->pageSize,
             'total' => $catalogue->total,
         ]);
     }

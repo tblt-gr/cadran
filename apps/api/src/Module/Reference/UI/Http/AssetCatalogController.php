@@ -33,9 +33,9 @@ final class AssetCatalogController
     public function list(Request $request, ListAssets $listAssets): Response
     {
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
+        $pageSize = $request->query->getString('pageSize');
 
-        foreach ([$page, $perPage] as $parameter) {
+        foreach ([$page, $pageSize] as $parameter) {
             if ('' !== $parameter && 1 !== preg_match('/^[0-9]{1,4}$/D', $parameter)) {
                 return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_asset_query');
             }
@@ -44,7 +44,7 @@ final class AssetCatalogController
         try {
             $catalogue = $listAssets(
                 '' === $page ? null : (int) $page,
-                '' === $perPage ? null : (int) $perPage,
+                '' === $pageSize ? null : (int) $pageSize,
             );
         } catch (InvalidAssetQuery) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_asset_query');
@@ -70,7 +70,7 @@ final class AssetCatalogController
         return self::json([
             'items' => array_map(self::represent(...), $catalogue->assets),
             'page' => $catalogue->page,
-            'perPage' => $catalogue->perPage,
+            'pageSize' => $catalogue->pageSize,
             'total' => $catalogue->total,
         ]);
     }

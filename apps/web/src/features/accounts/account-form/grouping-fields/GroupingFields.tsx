@@ -31,7 +31,7 @@ export function GroupingFields({
     queryFn: async ({ signal }) => {
       const result = await listAccountGroups({
         ...authApiOptions(),
-        query: { page: 1, perPage: 100 },
+        query: { page: 1, pageSize: 100 },
         signal,
       });
       if (!result.response?.ok || !result.data) {

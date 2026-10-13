@@ -108,7 +108,7 @@ describe('category identity flow', () => {
   it('refreshes list, combobox selection/options and transaction cells from a successful category edit', async () => {
     let current = category;
     api.listCategories.mockImplementation(() =>
-      success({ items: [current], page: 1, perPage: 50, total: 1 }),
+      success({ items: [current], page: 1, pageSize: 50, total: 1 }),
     );
     api.updateCategory.mockImplementation(({ body }) => {
       current = { ...category, ...body, version: 2 };

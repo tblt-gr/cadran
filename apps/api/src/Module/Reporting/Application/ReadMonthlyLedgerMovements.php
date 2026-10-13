@@ -20,6 +20,7 @@ use App\Module\Transactions\Application\ReadMonthlyTransferPairs;
 final readonly class ReadMonthlyLedgerMovements
 {
     public const int PAGE_SIZE = 50;
+    public const int MAX_PAGE_SIZE = 100;
 
     public function __construct(
         private CallerWorkspace $caller,
@@ -36,7 +37,9 @@ final readonly class ReadMonthlyLedgerMovements
         string $requestedMonth,
         ?string $requestedAxis,
         ?string $encodedCursor,
+        ?string $requestedPageSize = null,
     ): MonthlyLedgerMovementPageView {
+        $pageSize = self::pageSize($requestedPageSize);
         if (!in_array($kind, ['income', 'expense', 'account'], true) || !self::uuid($id)) {
             throw new InvalidMonthlyLedgerQuery('The monthly ledger row is invalid.');
         }
@@ -68,11 +71,11 @@ final readonly class ReadMonthlyLedgerMovements
             ));
         }
 
-        $hasMore = count($items) > self::PAGE_SIZE;
-        $page = array_slice($items, 0, self::PAGE_SIZE);
+        $hasMore = count($items) > $pageSize;
+        $page = array_slice($items, 0, $pageSize);
         $nextCursor = null;
         if ($hasMore) {
-            $last = $page[self::PAGE_SIZE - 1] ?? throw new \LogicException('A full monthly ledger page must have a last item.');
+            $last = $page[$pageSize - 1] ?? throw new \LogicException('A full monthly ledger page must have a last item.');
             $nextCursor = (new MonthlyLedgerCursor(
                 $month->key(),
                 $kind,
@@ -83,7 +86,19 @@ final readonly class ReadMonthlyLedgerMovements
             ))->encode();
         }
 
-        return new MonthlyLedgerMovementPageView($page, $nextCursor, $hasMore, self::PAGE_SIZE);
+        return new MonthlyLedgerMovementPageView($page, $nextCursor, $hasMore, $pageSize);
+    }
+
+    private static function pageSize(?string $requested): int
+    {
+        if (null === $requested || '' === $requested) {
+            return self::PAGE_SIZE;
+        }
+        if (1 !== preg_match('/^[0-9]{1,3}$/', $requested) || (int) $requested < 1 || (int) $requested > self::MAX_PAGE_SIZE) {
+            throw new InvalidMonthlyLedgerQuery('The page size must be between 1 and 100.');
+        }
+
+        return (int) $requested;
     }
 
     /** @return list<MonthlyLedgerMovementView> */
@@ -98,7 +113,7 @@ final readonly class ReadMonthlyLedgerMovements
         $expectedType = 'income' === $kind ? 'INCOME' : 'EXPENSE';
         $exists = [] !== array_filter($categories, static fn ($category): bool => $category->id === $id && $category->type === $expectedType);
         if (!$exists) {
-            return [];
+            throw new MonthlyLedgerRowNotFound('The ledger category does not exist in this workspace.');
         }
         $transactions = ($this->transactions)($workspace, $month);
         $sources = MonthlyLedgerCalculator::categorySources(
@@ -131,7 +146,7 @@ final readonly class ReadMonthlyLedgerMovements
             $labels[$account->id] = $account->label;
         }
         if (!isset($labels[$id])) {
-            return [];
+            throw new MonthlyLedgerRowNotFound('The ledger account does not exist in this workspace.');
         }
 
         $items = [];

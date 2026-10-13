@@ -59,11 +59,11 @@ final class PortfolioCashOpenApiContractTest extends TestCase
         $names = array_map(static fn (mixed $parameter): mixed => is_array($parameter) ? ($parameter['name'] ?? null) : null, self::list($get['parameters'] ?? null));
         self::assertContains('from', $names);
         self::assertContains('to', $names);
-        $codes = self::list(self::map(self::map($this->schema('PortfolioOperationProblem')['properties'] ?? null)['code'] ?? null)['enum'] ?? null);
+        $codes = self::list(self::map(self::map(self::extension($this->schema('PortfolioOperationProblem')))['code'] ?? null)['enum'] ?? null);
         foreach (['invalid_cash_query', 'cash_range_too_large', 'cash_range_too_dense', 'cash_amount_too_large'] as $code) {
             self::assertContains($code, $codes);
         }
-        self::assertSame('portfolio_account_requires_operations', self::map(self::map($this->schema('PortfolioAccountRequiresOperationsProblem')['properties'] ?? null)['code'] ?? null)['const'] ?? null);
+        self::assertSame('portfolio_account_requires_operations', self::map(self::extension($this->schema('PortfolioAccountRequiresOperationsProblem'))['code'] ?? null)['const'] ?? null);
     }
 
     /** @return array<string, mixed> */
@@ -86,6 +86,19 @@ final class PortfolioCashOpenApiContractTest extends TestCase
         self::assertIsList($value);
 
         return $value;
+    }
+
+    /**
+     * Properties added by a specialised problem on top of the shared `Problem` it composes with allOf.
+     *
+     * @return array<string, mixed>
+     */
+    private static function extension(mixed $schema): array
+    {
+        $parts = self::map($schema)['allOf'] ?? null;
+        self::assertIsArray($parts);
+
+        return self::map(self::map($parts[1] ?? null)['properties'] ?? null);
     }
 
     /** @return array<string, mixed> */

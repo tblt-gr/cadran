@@ -879,4 +879,33 @@ final class RecurrenceControllerTest extends WebTestCase
     {
         return ['CONTENT_TYPE' => 'application/json'];
     }
+
+    public function testCreationReplaysTheFirstResponseForTheSameKeyAndBodyAndRefusesAChangedBody(): void
+    {
+        $send = fn (array $body) => $this->client->request('POST', '/api/v1/recurrences', server: [...self::jsonHeaders(), 'HTTP_IDEMPOTENCY_KEY' => 'recurrence-key-0000001'], content: json_encode($body, JSON_THROW_ON_ERROR));
+        $count = fn (string $workspace): mixed => $this->connection->fetchOne('SELECT COUNT(*) FROM transaction_recurrences WHERE workspace_id = ?', [$workspace]);
+
+        $send($this->recurrencePayload());
+        self::assertResponseStatusCodeSame(201);
+        $first = $this->decode()['id'];
+
+        $send($this->recurrencePayload());
+        self::assertResponseStatusCodeSame(201);
+        self::assertResponseHeaderSame('Idempotency-Replayed', 'true');
+        self::assertSame($first, $this->decode()['id']);
+        self::assertSame(1, $count(WorkspaceFixture::OWN_WORKSPACE));
+
+        $send([...$this->recurrencePayload(), 'label' => 'Changed']);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame(1, $count(WorkspaceFixture::OWN_WORKSPACE));
+
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+        $this->renewCsrf();
+        $send([...$this->recurrencePayload(), 'accountId' => self::OTHER_ACCOUNT]);
+        self::assertResponseStatusCodeSame(201);
+        self::assertFalse($this->client->getResponse()->headers->has('Idempotency-Replayed'));
+        self::assertNotSame($first, $this->decode()['id']);
+        self::assertSame(1, $count(WorkspaceFixture::OWN_WORKSPACE));
+        self::assertSame(1, $count(WorkspaceFixture::OTHER_WORKSPACE));
+    }
 }

@@ -29,7 +29,7 @@ export function useRecurrencesListing() {
     queryFn: async ({ signal }) => {
       const result = await listRecurrences({
         ...authApiOptions(),
-        query: { includeArchived: false, page: 1, perPage: 100 },
+        query: { includeArchived: false, page: 1, pageSize: 100 },
         signal,
       });
       if (!result.response?.ok || !result.data) throw failed(result);
@@ -43,7 +43,7 @@ export function useRecurrencesListing() {
     queryFn: async ({ signal }) => {
       const result = await listRecurrences({
         ...authApiOptions(),
-        query: { includeArchived: true, page: 1, perPage: 100 },
+        query: { includeArchived: true, page: 1, pageSize: 100 },
         signal,
       });
       if (!result.response?.ok || !result.data) throw failed(result);
@@ -59,7 +59,7 @@ export function useRecurrencesListing() {
     queryFn: async ({ signal }) => {
       const result = await listAccounts({
         ...authApiOptions(),
-        query: { includeArchived: false, includeClosed: false, page: 1, perPage: 100 },
+        query: { includeArchived: false, includeClosed: false, page: 1, pageSize: 100 },
         signal,
       });
       if (!result.response?.ok || !result.data) throw failed(result);

@@ -41,19 +41,19 @@ export function useColumnCatalogue(enabled: boolean) {
         collect((page) =>
           listCategories({
             ...authApiOptions(),
-            query: { includeArchived: true, page, perPage: PAGE_SIZE },
+            query: { includeArchived: true, page, pageSize: PAGE_SIZE },
           }),
         ),
         collect((page) =>
           listAccountGroups({
             ...authApiOptions(),
-            query: { includeArchived: true, page, perPage: PAGE_SIZE },
+            query: { includeArchived: true, page, pageSize: PAGE_SIZE },
           }),
         ),
         collect((page) =>
           listAccounts({
             ...authApiOptions(),
-            query: { includeArchived: true, includeClosed: true, page, perPage: PAGE_SIZE },
+            query: { includeArchived: true, includeClosed: true, page, pageSize: PAGE_SIZE },
           }),
         ),
       ]);

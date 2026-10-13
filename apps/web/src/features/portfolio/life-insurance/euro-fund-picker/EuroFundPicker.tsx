@@ -23,7 +23,7 @@ export function EuroFundPicker({
     queryFn: async ({ signal }) => {
       const result = await listInstruments({
         ...authApiOptions(),
-        query: { currencyCode: assetCode, q: q || undefined, status: 'all', perPage: 50, page },
+        query: { currencyCode: assetCode, q: q || undefined, status: 'all', pageSize: 50, page },
         signal,
       });
       if (!result.response?.ok || !result.data) throw new Error('Euro fund search failed');

@@ -14,7 +14,7 @@ final readonly class AssetPage
     public function __construct(
         public array $assets,
         public int $page,
-        public int $perPage,
+        public int $pageSize,
         public int $total,
     ) {
     }

@@ -34,13 +34,13 @@ final readonly class ListAccounts
         bool $includeArchived,
         bool $includeClosed,
         ?int $page,
-        ?int $perPage,
+        ?int $pageSize,
         ?string $kind = null,
         ?string $asOf = null,
     ): AccountPage {
         $requestedPage = $page ?? 1;
-        $pageSize = $perPage ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
+        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
+        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
             throw new InvalidAccountInput('The account page is outside its bounds.');
         }
 
@@ -52,8 +52,8 @@ final readonly class ListAccounts
             $workspace,
             $includeArchived,
             $includeClosed,
-            $pageSize,
-            ($requestedPage - 1) * $pageSize,
+            $resolvedPageSize,
+            ($requestedPage - 1) * $resolvedPageSize,
             $accountKind,
         );
 
@@ -72,7 +72,7 @@ final readonly class ListAccounts
                 $accounts,
             ),
             page: $requestedPage,
-            perPage: $pageSize,
+            pageSize: $resolvedPageSize,
             total: $this->accounts->count($workspace, $includeArchived, $includeClosed, $accountKind),
         );
     }

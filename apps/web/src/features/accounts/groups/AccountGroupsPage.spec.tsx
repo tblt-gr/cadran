@@ -164,13 +164,13 @@ const livretAProduct = {
 describe('AccountGroupsPage', () => {
   beforeEach(() => {
     api.listProductModels.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.readNetWorth.mockImplementation(() => success(netWorth({ allocation: [] })));
   });
@@ -196,14 +196,14 @@ describe('AccountGroupsPage', () => {
         }),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     const { queryClient } = renderPage();
 
     expect(screen.getByTestId('account-groups-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveGroups?.({
-      data: { items: [group], page: 1, perPage: 50, total: 1 },
+      data: { items: [group], page: 1, pageSize: 50, total: 1 },
       response: new Response('{}', { status: 200 }),
     });
     expect(screen.getByTestId('account-groups-skeleton')).toBeTruthy();
@@ -221,7 +221,7 @@ describe('AccountGroupsPage', () => {
 
   it('covers the empty state and creates a bounded group', async () => {
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.createAccountGroup.mockImplementation(({ body }) => success({ ...group, ...body }, 201));
     renderPage();
@@ -243,11 +243,11 @@ describe('AccountGroupsPage', () => {
 
   it('shows a share reason instead of 0%', async () => {
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
     api.readNetWorth.mockImplementation(() => success(netWorth({ allocation: [] })));
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -265,7 +265,7 @@ describe('AccountGroupsPage', () => {
       success({
         items: query.includeArchived ? [crafted] : [],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: query.includeArchived ? 1 : 0,
       }),
     );
@@ -283,7 +283,7 @@ describe('AccountGroupsPage', () => {
 
   it('separates a taken label from a stale version', async () => {
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
     api.updateAccountGroup.mockImplementation(() =>
       problem(409, '/problems/account-group-label-taken'),
@@ -303,7 +303,7 @@ describe('AccountGroupsPage', () => {
     cleanup();
     vi.clearAllMocks();
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
     api.updateAccountGroup.mockImplementation(() => problem(409, '/problems/stale-version'));
     renderPage();
@@ -334,7 +334,7 @@ describe('AccountGroupsPage', () => {
     const livrets: AccountGroup = { ...group, id: LIVRETS_ID, label: 'Livrets' };
     const investissements: AccountGroup = { ...group, id: INVEST_ID, label: 'Investissements' };
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [livrets, investissements], page: 1, perPage: 50, total: 2 }),
+      success({ items: [livrets, investissements], page: 1, pageSize: 50, total: 2 }),
     );
     api.readNetWorth.mockImplementation(() =>
       success(
@@ -413,7 +413,7 @@ describe('AccountGroupsPage', () => {
       ),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [livretAProduct], page: 1, perPage: 100, total: 1 }),
+      success({ items: [livretAProduct], page: 1, pageSize: 100, total: 1 }),
     );
     api.listAccounts.mockImplementation(() =>
       success({
@@ -451,7 +451,7 @@ describe('AccountGroupsPage', () => {
           }),
         ],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 3,
       }),
     );
@@ -488,7 +488,7 @@ describe('AccountGroupsPage', () => {
   it('lists exclusive allocation rows beside the pie, like the synthèse card', async () => {
     const livrets: AccountGroup = { ...group, id: LIVRETS_ID, label: 'Livrets' };
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [livrets], page: 1, perPage: 50, total: 1 }),
+      success({ items: [livrets], page: 1, pageSize: 50, total: 1 }),
     );
     api.readNetWorth.mockImplementation(() =>
       success(
@@ -512,7 +512,7 @@ describe('AccountGroupsPage', () => {
       ),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -525,7 +525,7 @@ describe('AccountGroupsPage', () => {
 
   it('keeps one page skeleton while member and total reads are initially pending', async () => {
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
     api.listAccounts.mockImplementation(() => new Promise(() => undefined));
     api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
@@ -543,7 +543,7 @@ describe('AccountGroupsPage', () => {
 
   it('never prints 0 for a group whose exclusive total is absent', async () => {
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
     api.readNetWorth.mockImplementation(() =>
       success(
@@ -569,7 +569,7 @@ describe('AccountGroupsPage', () => {
       ),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -580,11 +580,11 @@ describe('AccountGroupsPage', () => {
 
   it('marks a group column as sorted when its header is clicked', async () => {
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
     api.readNetWorth.mockImplementation(() => success(netWorth({ allocation: [] })));
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -599,7 +599,7 @@ describe('AccountGroupsPage', () => {
 
   it('offers Treemap and Camembert toggles when allocation is present', async () => {
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, perPage: 50, total: 1 }),
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
     api.readNetWorth.mockImplementation(() =>
       success(
@@ -623,7 +623,7 @@ describe('AccountGroupsPage', () => {
       ),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 

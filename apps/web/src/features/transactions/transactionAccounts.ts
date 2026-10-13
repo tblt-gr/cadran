@@ -15,7 +15,7 @@ export async function listReferencedAccounts(
   for (let page = 1; unresolved.size > 0 && page <= MAX_PAGE; page += 1) {
     const result = await listAccounts({
       ...authApiOptions(),
-      query: { includeArchived: true, includeClosed: true, page, perPage: PAGE_SIZE },
+      query: { includeArchived: true, includeClosed: true, page, pageSize: PAGE_SIZE },
       signal,
     });
     if (!result.response?.ok || !result.data) {

@@ -18,6 +18,10 @@ use App\Module\Transactions\Application\Categorization\PreviewCategorizationRule
 use App\Module\Transactions\Application\Categorization\PreviewStale;
 use App\Module\Transactions\Application\Categorization\StaleCategorizationRule;
 use App\Module\Transactions\Application\Categorization\UpdateCategorizationRule;
+use App\Module\Transactions\Application\IdempotencyConflict;
+use App\Module\Transactions\Application\IdempotentExecution;
+use App\Module\Transactions\Application\IdempotentResponse;
+use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Domain\Categorization\UnsafeRulePattern;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,24 +32,24 @@ final readonly class CategorizationRuleController
     private const array CREATE_FIELDS = ['label', 'priority', 'accountScope', 'conditions', 'targetCategoryId', 'targetAxes', 'targetCounterparty', 'effectiveFrom', 'effectiveTo'];
     private const array UPDATE_FIELDS = ['label', 'priority', 'accountScope', 'conditions', 'targetCategoryId', 'targetAxes', 'targetCounterparty', 'effectiveFrom', 'effectiveTo', 'active', 'version'];
 
-    public function __construct(private TransactionHttpEnvelope $envelope)
+    public function __construct(private TransactionHttpEnvelope $envelope, private IdempotentExecution $idempotentExecution)
     {
     }
 
     #[Route('/api/v1/categorization-rules', name: 'api_v1_categorization_rules_list', methods: ['GET'])]
     public function list(Request $request, ListCategorizationRules $list): Response
     {
-        if ([] !== array_diff(array_keys($request->query->all()), ['includeArchived', 'page', 'perPage'])) {
+        if ([] !== array_diff(array_keys($request->query->all()), ['includeArchived', 'page', 'pageSize'])) {
             return $this->problem(400, '/problems/rules.invalid_query');
         }
         $archived = $request->query->getString('includeArchived');
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
-        if (!in_array($archived, ['', 'true', 'false'], true) || !self::digits($page) || !self::digits($perPage)) {
+        $pageSize = $request->query->getString('pageSize');
+        if (!in_array($archived, ['', 'true', 'false'], true) || !self::digits($page) || !self::digits($pageSize)) {
             return $this->problem(400, '/problems/rules.invalid_query');
         }
         try {
-            return $this->envelope->json($list('true' === $archived, '' === $page ? 1 : (int) $page, '' === $perPage ? 50 : (int) $perPage));
+            return $this->envelope->json($list('true' === $archived, '' === $page ? 1 : (int) $page, '' === $pageSize ? 50 : (int) $pageSize));
         } catch (InvalidCategorizationRuleInput) {
             return $this->problem(400, '/problems/rules.invalid_query');
         } catch (WorkspaceAccessDenied) {
@@ -61,7 +65,18 @@ final readonly class CategorizationRuleController
             return $body;
         }
         try {
-            $view = $create(CategorizationRulePayload::of($body, self::CREATE_FIELDS)->input(false));
+            $input = CategorizationRulePayload::of($body, self::CREATE_FIELDS)->input(false);
+            $result = $this->idempotentExecution->execute(
+                'categorization_rule.create',
+                $this->envelope->idempotency($request, false),
+                static function () use ($create, $input): IdempotentResponse {
+                    $view = $create($input);
+
+                    return new IdempotentResponse($view, 201, is_string($view['id'] ?? null) ? $view['id'] : null);
+                },
+            );
+        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
+            return $this->envelope->idempotencyProblem($exception);
         } catch (UnsafeRulePattern $exception) {
             return $this->problem(422, '/problems/rules.unsafe_pattern', ['reason' => $exception->reason, 'field' => $exception->field]);
         } catch (InvalidCategorizationReference) {
@@ -74,7 +89,7 @@ final readonly class CategorizationRuleController
             return $this->problem(403, '/problems/rules.forbidden');
         }
 
-        return $this->envelope->json($view, 201);
+        return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
     }
 
     #[Route('/api/v1/categorization-rules/{id}', name: 'api_v1_categorization_rules_update', methods: ['PUT'])]

@@ -7,6 +7,7 @@ namespace App\Module\Reporting\UI\Http;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Reporting\Application\InvalidMonthlyLedgerQuery;
+use App\Module\Reporting\Application\MonthlyLedgerRowNotFound;
 use App\Module\Reporting\Application\MonthlyProjectionScopeTooLarge;
 use App\Module\Reporting\Application\ReadMonthlyLedger;
 use App\Module\Reporting\Application\ReadMonthlyLedgerMovements;
@@ -59,9 +60,12 @@ final readonly class MonthlyLedgerController
                 $request->query->getString('month'),
                 self::optional($request, 'axis'),
                 self::optional($request, 'cursor'),
+                self::optional($request, 'pageSize'),
             );
         } catch (InvalidMonthlyLedgerQuery) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
+        } catch (MonthlyLedgerRowNotFound) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.monthly_ledger_row_not_found');
         } catch (MonthlyProjectionScopeTooLarge) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.monthly_ledger_scope_too_large', self::TYPE_SCOPE_TOO_LARGE);
         } catch (WorkspaceAccessDenied) {

@@ -298,7 +298,7 @@ describe('MonthlyBudgetPage', () => {
     api.readMonthlyRecapPreferences.mockReturnValue(
       ok({ visibleCategoryIds: [expenseId], visibleAxes: ['ESSENTIAL'], version: 0 }),
     );
-    api.listCategories.mockReturnValue(ok({ items: [], page: 1, perPage: 100, total: 0 }));
+    api.listCategories.mockReturnValue(ok({ items: [], page: 1, pageSize: 100, total: 0 }));
     api.getSession.mockReturnValue(
       ok({
         authenticated: true,
@@ -307,7 +307,7 @@ describe('MonthlyBudgetPage', () => {
         workspace: { id: 'w1', role: 'OWNER', timeZone: 'Europe/Paris' },
       }),
     );
-    api.listAccounts.mockReturnValue(ok({ items: [account], page: 1, perPage: 100, total: 1 }));
+    api.listAccounts.mockReturnValue(ok({ items: [account], page: 1, pageSize: 100, total: 1 }));
     api.readMonthlyLedgerMovements.mockReturnValue(
       ok({
         items: [
@@ -350,7 +350,7 @@ describe('MonthlyBudgetPage', () => {
     };
     const source = { ...account, id: 'source', label: 'Banque' };
     api.listAccounts.mockReturnValue(
-      ok({ items: [source, destination], page: 1, perPage: 100, total: 2 }),
+      ok({ items: [source, destination], page: 1, pageSize: 100, total: 2 }),
     );
     api.createTransfer.mockReturnValue(
       ok({
@@ -878,7 +878,7 @@ describe('MonthlyBudgetPage', () => {
 
   it('disables the transfer action for an account that is not active', async () => {
     api.listAccounts.mockReturnValue(
-      ok({ items: [{ ...account, status: 'CLOSED' }], page: 1, perPage: 100, total: 1 }),
+      ok({ items: [{ ...account, status: 'CLOSED' }], page: 1, pageSize: 100, total: 1 }),
     );
     renderPage();
 
@@ -963,7 +963,7 @@ describe('MonthlyBudgetPage', () => {
       ok({
         items: [{ id: expenseId, label: 'Voyages', type: 'EXPENSE' }],
         page: 1,
-        perPage: 100,
+        pageSize: 100,
         total: 1,
       }),
     );
@@ -1001,8 +1001,8 @@ describe('MonthlyBudgetPage', () => {
     api.listCategories.mockImplementation(({ query }) =>
       ok(
         query?.page === 2
-          ? { items: [incomeCategory], page: 2, perPage: 100, total: 101 }
-          : { items: firstPage, page: 1, perPage: 100, total: 101 },
+          ? { items: [incomeCategory], page: 2, pageSize: 100, total: 101 }
+          : { items: firstPage, page: 1, pageSize: 100, total: 101 },
       ),
     );
     api.readMonthlyRecap.mockReturnValue(
@@ -1024,7 +1024,7 @@ describe('MonthlyBudgetPage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
     expect(await within(dialog).findByLabelText('Income 101')).toBeTruthy();
     expect(api.listCategories).toHaveBeenLastCalledWith(
-      expect.objectContaining({ query: expect.objectContaining({ page: 2, perPage: 100 }) }),
+      expect.objectContaining({ query: expect.objectContaining({ page: 2, pageSize: 100 }) }),
     );
   });
 
@@ -1036,7 +1036,7 @@ describe('MonthlyBudgetPage', () => {
       type: 'EXPENSE' as const,
     };
     api.listCategories.mockReturnValue(
-      ok({ items: [archivedCategory], page: 1, perPage: 100, total: 1 }),
+      ok({ items: [archivedCategory], page: 1, pageSize: 100, total: 1 }),
     );
     renderPage();
     await loaded();

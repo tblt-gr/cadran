@@ -77,7 +77,7 @@ describe('CategoryPage', () => {
     expect(screen.getByTestId('category-page-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveCategories?.({
-      data: { items: [category], page: 1, perPage: 50, total: 1 },
+      data: { items: [category], page: 1, pageSize: 50, total: 1 },
       response: new Response('{}', { status: 200 }),
     });
     expect(await screen.findByText(category.label)).toBeTruthy();
@@ -92,7 +92,7 @@ describe('CategoryPage', () => {
 
   it('covers the empty state and creates a bounded category', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.createCategory.mockImplementation(({ body }) => success({ ...category, ...body }, 201));
     const { container } = renderPage();
@@ -119,7 +119,7 @@ describe('CategoryPage', () => {
 
   it('leaves the create form type field without a dangling description', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -144,7 +144,7 @@ describe('CategoryPage', () => {
           },
         ],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 1,
       }),
     );
@@ -166,7 +166,7 @@ describe('CategoryPage', () => {
               }))
             : [],
         page: query.page,
-        perPage: 50,
+        pageSize: 50,
         total: query.page === 1 ? 60 : 50,
       }),
     );
@@ -189,7 +189,7 @@ describe('CategoryPage', () => {
       success({
         items: query.includeArchived ? [crafted] : [],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: query.includeArchived ? 1 : 0,
       }),
     );
@@ -247,7 +247,7 @@ describe('CategoryPage', () => {
           },
         ],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 2,
       }),
     );
@@ -259,7 +259,7 @@ describe('CategoryPage', () => {
 
   it('archives a category only after an explicit confirmation of its impact', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [category], page: 1, perPage: 50, total: 1 }),
+      success({ items: [category], page: 1, pageSize: 50, total: 1 }),
     );
     api.previewCategoryImpact.mockImplementation(() =>
       success({
@@ -311,7 +311,7 @@ describe('CategoryPage', () => {
       success({
         items: [{ ...category, typeEditable: false, typeEditReason: 'HAS_CHILDREN' }],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 1,
       }),
     );

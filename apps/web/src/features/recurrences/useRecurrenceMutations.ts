@@ -13,6 +13,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSubmissionKey } from '@/hooks/use-submission-key';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import type { Editor } from './recurrenceEditorState';
@@ -46,6 +47,7 @@ export function useRecurrenceMutations({
   const [notice, setNotice] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState<RecurrenceCandidate | null>(null);
 
+  const submission = useSubmissionKey();
   const save = useMutation({
     mutationFn: async (body: CreateRecurrenceRequest | UpdateRecurrenceRequest) => {
       const result =
@@ -58,12 +60,20 @@ export function useRecurrenceMutations({
               }),
             )
           : await withCsrfRetry(() =>
-              confirmRecurrence({ ...authApiOptions(), body: body as CreateRecurrenceRequest }),
+              confirmRecurrence({
+                ...authApiOptions(),
+                headers: {
+                  ...authApiOptions().headers,
+                  'Idempotency-Key': submission.keyFor(body),
+                },
+                body: body as CreateRecurrenceRequest,
+              }),
             );
       if (!result.response?.ok || !result.data) throw recurrenceRequestError(result);
       return result.data;
     },
     onSuccess: async () => {
+      submission.release();
       onSaved();
       setNotice(t('recurrences.toasts.saved'));
       await queryClient.invalidateQueries({ queryKey: ['recurrences'] });

@@ -127,10 +127,11 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         self::assertSame('Épargne', $accountItem['counterpartAccountLabel']);
         self::assertSame('-300.00', self::fields($accountItem['amount'] ?? null)['value']);
 
-        $foreign = $this->read('/api/v1/reports/monthly/ledger/expense/'.self::OTHER_CATEGORY.'/movements?month=2026-09');
-        self::assertSame([], self::rows($foreign, 'items'));
-        $foreignAccount = $this->read('/api/v1/reports/monthly/ledger/account/'.self::OTHER_ACCOUNT.'/movements?month=2026-09');
-        self::assertSame([], self::rows($foreignAccount, 'items'));
+        // A row of another workspace is indistinguishable from an unknown one.
+        $this->client->request('GET', '/api/v1/reports/monthly/ledger/expense/'.self::OTHER_CATEGORY.'/movements?month=2026-09');
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('GET', '/api/v1/reports/monthly/ledger/account/'.self::OTHER_ACCOUNT.'/movements?month=2026-09');
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testMovementPagingIsStableBoundedAndCursorBoundToItsQuery(): void

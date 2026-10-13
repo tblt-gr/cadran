@@ -9,8 +9,8 @@ use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
 
 final readonly class ListPortfolioValuations
 {
-    public const int DEFAULT_PER_PAGE = 24;
-    public const int MAX_PER_PAGE = 100;
+    public const int DEFAULT_PAGE_SIZE = 24;
+    public const int MAX_PAGE_SIZE = 100;
 
     public function __construct(
         private CallerWorkspaceContext $caller,
@@ -20,7 +20,7 @@ final readonly class ListPortfolioValuations
     ) {
     }
 
-    public function __invoke(string $accountId, ?string $from, ?string $to, ?string $page, ?string $perPage): ValuationPage
+    public function __invoke(string $accountId, ?string $from, ?string $to, ?string $page, ?string $pageSize): ValuationPage
     {
         $workspace = $this->caller->resolveContext()->workspace;
         $this->gate->forRead($workspace, $accountId);
@@ -30,7 +30,7 @@ final readonly class ListPortfolioValuations
             throw new InvalidValuationQuery('The range ends before it starts.');
         }
         $pageNumber = self::integer($page, 1, 1, 1_000_000);
-        $size = self::integer($perPage, self::DEFAULT_PER_PAGE, 1, self::MAX_PER_PAGE);
+        $size = self::integer($pageSize, self::DEFAULT_PAGE_SIZE, 1, self::MAX_PAGE_SIZE);
 
         $found = $this->valuations->search($workspace, $accountId, $fromDay, $toDay, $size, ($pageNumber - 1) * $size);
 

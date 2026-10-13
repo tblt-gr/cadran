@@ -65,7 +65,7 @@ export function AccountGroupsPage() {
     queryFn: async ({ signal }) => {
       const result = await listAccountGroups({
         ...authApiOptions(),
-        query: { includeArchived, page, perPage: 50 },
+        query: { includeArchived, page, pageSize: 50 },
         signal,
       });
       if (!result.response?.ok || !result.data) {
@@ -82,7 +82,12 @@ export function AccountGroupsPage() {
     queryFn: async ({ signal }) => {
       const result = await listAccounts({
         ...authApiOptions(),
-        query: { includeArchived: false, includeClosed: true, page: 1, perPage: ACCOUNT_PAGE_SIZE },
+        query: {
+          includeArchived: false,
+          includeClosed: true,
+          page: 1,
+          pageSize: ACCOUNT_PAGE_SIZE,
+        },
         signal,
       });
       if (!result.response?.ok || !result.data) {
