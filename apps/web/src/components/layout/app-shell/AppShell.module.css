@@ -39,7 +39,6 @@
 }
 
 .body {
-  position: relative;
   display: grid;
   min-width: 0;
   padding: var(--spacing-6);
@@ -50,55 +49,6 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   min-width: 0;
-}
-
-/* Indeterminate bar at the top of the content area while the next page loads. It stays hidden
-   for a short delay: a navigation whose chunk is already there would otherwise flash it. */
-.progress {
-  position: absolute;
-  z-index: 1;
-  top: var(--spacing-none);
-  right: var(--spacing-none);
-  left: var(--spacing-none);
-  height: var(--border-width-focus);
-  overflow: hidden;
-  background: var(--border-subtle);
-  visibility: hidden;
-  animation-name: progress-reveal;
-  animation-delay: var(--duration-progress-delay);
-  animation-fill-mode: forwards;
-}
-
-@keyframes progress-reveal {
-  to {
-    visibility: visible;
-  }
-}
-
-.progress::after {
-  display: block;
-  width: 40%;
-  height: 100%;
-  background: var(--gradient-cta);
-  content: '';
-  animation: progress-slide var(--duration-progress-slide) var(--ease-out) infinite;
-}
-
-@keyframes progress-slide {
-  from {
-    transform: translateX(-100%);
-  }
-
-  to {
-    transform: translateX(250%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .progress::after {
-    width: 100%;
-    animation: none;
-  }
 }
 
 .bodyWithPanel {

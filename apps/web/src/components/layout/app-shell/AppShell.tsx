@@ -92,10 +92,6 @@ function AppShellContent({
         />
 
         <div className={`${styles.body}${contextPanel ? ` ${styles.bodyWithPanel}` : ''}`}>
-          {/* aria-busy on <main> carries the state for assistive technology; the bar is only visual. */}
-          {isNavigating ? (
-            <div aria-hidden="true" className={styles.progress} data-navigation-progress />
-          ) : null}
           <main aria-busy={isNavigating || undefined} id="main-content" tabIndex={-1}>
             <RouteBreadcrumb path={path} onNavigate={handleNavigate} />
             {children}

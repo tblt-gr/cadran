@@ -82,7 +82,7 @@ describe('AppShell', () => {
     expect(onNavigationIntent).toHaveBeenLastCalledWith('/reports');
   });
 
-  it('marks the content busy and draws a decorative progress bar only while navigating', () => {
+  it('marks the content busy only while navigating', () => {
     const { rerender } = render(
       <AppShell path="/" setPath={vi.fn()}>
         <p>Contenu</p>
@@ -90,7 +90,6 @@ describe('AppShell', () => {
     );
     const main = screen.getByRole('main');
     expect(main.getAttribute('aria-busy')).toBeNull();
-    expect(document.querySelector('[data-navigation-progress]')).toBeNull();
 
     rerender(
       <AppShell isNavigating path="/" setPath={vi.fn()}>
@@ -99,7 +98,5 @@ describe('AppShell', () => {
     );
 
     expect(main.getAttribute('aria-busy')).toBe('true');
-    const progress = document.querySelector('[data-navigation-progress]');
-    expect(progress?.getAttribute('aria-hidden')).toBe('true');
   });
 });
