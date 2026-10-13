@@ -1,9 +1,12 @@
 import { annualPreferences, annualReport } from '@/features/reports/annual/annualFixtures';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import './i18n';
 import App from './App';
+
+// Pages are code-split: the first render of each one waits for its chunk to be transformed.
+configure({ asyncUtilTimeout: 5000 });
 
 function renderApp() {
   const queryClient = new QueryClient({
@@ -266,7 +269,8 @@ describe('App', () => {
     );
     expect(screen.queryByRole('link', { name: 'Catégories' })).toBeNull();
 
-    fireEvent.click(screen.getByRole('link', { name: 'Gérer les règles' }));
+    // The categories page replaces Transactions once its chunk has loaded.
+    fireEvent.click(await screen.findByRole('link', { name: 'Gérer les règles' }));
 
     expect(window.location.pathname).toBe('/transactions/categories/rules');
     expect(

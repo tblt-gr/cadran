@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/check-bundle-budget.mjs",
     "lint": "oxlint && pnpm lint:css-tokens",
     "lint:css-tokens": "node scripts/check-css-tokens.mjs",
     "test": "vitest run",

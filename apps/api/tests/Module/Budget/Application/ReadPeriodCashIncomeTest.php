@@ -6,6 +6,7 @@ namespace App\Tests\Module\Budget\Application;
 
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\PeriodClosure;
+use App\Module\Budget\Application\BudgetIncomeScopeTooLarge;
 use App\Module\Budget\Application\ReadPeriodCashIncome;
 use App\Module\Budget\Domain\BudgetPeriod;
 use App\Module\Catalog\Domain\AccountKind;
@@ -65,6 +66,28 @@ final class ReadPeriodCashIncomeTest extends TestCase
         $income = ($read)(WorkspaceScope::fromString(self::WORKSPACE), BudgetPeriod::year(2026));
 
         self::assertSame('5000.00', $income->value?->toString());
+    }
+
+    public function testAYearReadsTwelveMonthsOfTheMonthlyVolumeAndRefusesOneMore(): void
+    {
+        // A year is twelve months of up to 2000 transactions, so 24 000 income movements of 1.00 sum to 24000.00
+        // and the 24 001st is refused rather than silently left out of the total.
+        self::assertSame(24_000, ReadPeriodCashIncome::MAX_TRANSACTIONS);
+        $accounts = new InMemoryAccountRepository(AccountFixture::account());
+        $policy = new ResolveMetricPolicy(new InMemoryMetricPolicyRepository(), new InMemoryPeriodClosureRepository(), new MockClock('2026-09-19T10:00:00+00:00'));
+        $within = array_map(fn (): Transaction => $this->transaction('2026-03-05', '1.00', TransactionNature::INCOME), range(1, 24_000));
+
+        $income = (new ReadPeriodCashIncome($accounts, new InMemoryTransactionRepository(...$within), new FixedWorkspaceTimezoneReader(), $policy))(
+            WorkspaceScope::fromString(self::WORKSPACE),
+            BudgetPeriod::year(2026),
+        );
+        self::assertSame('24000.00', $income->value?->toString());
+
+        $this->expectException(BudgetIncomeScopeTooLarge::class);
+        (new ReadPeriodCashIncome($accounts, new InMemoryTransactionRepository(...$within, ...[$this->transaction('2026-03-06', '1.00', TransactionNature::INCOME)]), new FixedWorkspaceTimezoneReader(), $policy))(
+            WorkspaceScope::fromString(self::WORKSPACE),
+            BudgetPeriod::year(2026),
+        );
     }
 
     public function testItIsNonCalculableWithNoOpenAccount(): void

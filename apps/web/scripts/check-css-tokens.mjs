@@ -53,7 +53,11 @@ for (const filePath of await collectCssFiles(stylesRoot)) {
       );
     }
 
-    const sourceWithoutComments = source.replace(/\/\*[\s\S]*?\*\//g, '');
+    // @font-face descriptors (font-weight ranges, unicode-range) describe a font file, not a
+    // styled element, so they are not design tokens.
+    const sourceWithoutComments = source
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/@font-face\s*\{[^}]*\}/g, '');
 
     for (const match of sourceWithoutComments.matchAll(/^\s*([a-z-]+)\s*:\s*([^;]+);/gim)) {
       const [, property, rawValue] = match;

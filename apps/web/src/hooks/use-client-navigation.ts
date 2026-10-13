@@ -28,14 +28,16 @@ function navigateFromPage(href: string) {
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
-export function useClientNavigation(path: string, setPath: (path: string) => void) {
+export function useClientNavigation(setPath: (path: string) => void) {
   const navigate = useCallback(
     (nextPath: string) => {
-      if (nextPath === path) return;
+      // The address bar, not the committed path: while a transition is pending the two differ,
+      // and a click back on the page still on screen must still win over the pending one.
+      if (nextPath === window.location.pathname) return;
       window.history.pushState({}, '', nextPath);
       setPath(nextPath);
     },
-    [path, setPath],
+    [setPath],
   );
 
   const handleNavigate = useCallback(

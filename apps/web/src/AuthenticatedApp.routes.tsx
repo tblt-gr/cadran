@@ -1,28 +1,86 @@
 import type { ReactNode } from 'react';
 import { RouteRedirect } from '@/components/layout/route-redirect/RouteRedirect';
-import { AccountsPage } from '@/features/accounts/AccountsPage';
-import { AccountDetailPage } from '@/features/accounts/account-detail/AccountDetailPage';
-import { AccountGroupsPage } from '@/features/accounts/groups/AccountGroupsPage';
-import { ProductCatalogPage } from '@/features/catalog/ProductCatalogPage';
-import { ProductModelsPage } from '@/features/product-models/ProductModelsPage';
-import { CategoryPage } from '@/features/categories/CategoryPage';
-import { CategorizationRulesPage } from '@/features/categories/rules/CategorizationRulesPage';
-import { TransactionsPage } from '@/features/transactions/TransactionsPage';
-import { RecurrencesPage } from '@/features/recurrences/RecurrencesPage';
-import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
-import { MetricPolicyPage } from '@/features/metric-policy/MetricPolicyPage';
-import { ProfileSettingsPage } from '@/features/settings/ProfileSettingsPage';
-import { BudgetPage } from '@/features/budget/BudgetPage';
 import { BudgetRouteRedirect } from '@/features/budget/monthly-budget/BudgetRouteRedirect';
-import { MonthlyBudgetPage } from '@/features/budget/monthly-budget/MonthlyBudgetPage';
-import { AnnualReportPage } from '@/features/reports/annual/AnnualReportPage';
-import { MultiYearReportPage } from '@/features/reports/multi-year/MultiYearReportPage';
-import { GoalsPage } from '@/features/goals/GoalsPage';
-import { InstrumentsPage } from '@/features/portfolio/instruments/InstrumentsPage';
-import { PortfoliosPage } from '@/features/portfolio/portfolios/PortfoliosPage';
-import { PortfolioAccountPage } from '@/features/portfolio/portfolio-account/PortfolioAccountPage';
-import { ReportsPage } from '@/features/reports/ReportsPage';
+import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
+import { lazyComponent } from '@/lib/lazyComponent';
 import { workspaceToday } from '@/lib/workspaceTime';
+
+/** Not a route entry: the root path depends on the foundation probe and is rendered by AuthenticatedApp. */
+export const DashboardPage = lazyComponent(
+  () => import('@/features/dashboard/DashboardPage'),
+  'DashboardPage',
+);
+const AccountsPage = lazyComponent(
+  () => import('@/features/accounts/AccountsPage'),
+  'AccountsPage',
+);
+const AccountDetailPage = lazyComponent(
+  () => import('@/features/accounts/account-detail/AccountDetailPage'),
+  'AccountDetailPage',
+);
+const AccountGroupsPage = lazyComponent(
+  () => import('@/features/accounts/groups/AccountGroupsPage'),
+  'AccountGroupsPage',
+);
+const ProductCatalogPage = lazyComponent(
+  () => import('@/features/catalog/ProductCatalogPage'),
+  'ProductCatalogPage',
+);
+const ProductModelsPage = lazyComponent(
+  () => import('@/features/product-models/ProductModelsPage'),
+  'ProductModelsPage',
+);
+const CategoryPage = lazyComponent(
+  () => import('@/features/categories/CategoryPage'),
+  'CategoryPage',
+);
+const CategorizationRulesPage = lazyComponent(
+  () => import('@/features/categories/rules/CategorizationRulesPage'),
+  'CategorizationRulesPage',
+);
+const TransactionsPage = lazyComponent(
+  () => import('@/features/transactions/TransactionsPage'),
+  'TransactionsPage',
+);
+const RecurrencesPage = lazyComponent(
+  () => import('@/features/recurrences/RecurrencesPage'),
+  'RecurrencesPage',
+);
+const MetricPolicyPage = lazyComponent(
+  () => import('@/features/metric-policy/MetricPolicyPage'),
+  'MetricPolicyPage',
+);
+const ProfileSettingsPage = lazyComponent(
+  () => import('@/features/settings/ProfileSettingsPage'),
+  'ProfileSettingsPage',
+);
+const BudgetPage = lazyComponent(() => import('@/features/budget/BudgetPage'), 'BudgetPage');
+const MonthlyBudgetPage = lazyComponent(
+  () => import('@/features/budget/monthly-budget/MonthlyBudgetPage'),
+  'MonthlyBudgetPage',
+);
+const AnnualReportPage = lazyComponent(
+  () => import('@/features/reports/annual/AnnualReportPage'),
+  'AnnualReportPage',
+);
+const MultiYearReportPage = lazyComponent(
+  () => import('@/features/reports/multi-year/MultiYearReportPage'),
+  'MultiYearReportPage',
+);
+const GoalsPage = lazyComponent(() => import('@/features/goals/GoalsPage'), 'GoalsPage');
+const InstrumentsPage = lazyComponent(
+  () => import('@/features/portfolio/instruments/InstrumentsPage'),
+  'InstrumentsPage',
+);
+const PortfoliosPage = lazyComponent(
+  () => import('@/features/portfolio/portfolios/PortfoliosPage'),
+  'PortfoliosPage',
+);
+const PortfolioAccountPage = lazyComponent(
+  () => import('@/features/portfolio/portfolio-account/PortfolioAccountPage'),
+  'PortfolioAccountPage',
+);
+const ReportsPage = lazyComponent(() => import('@/features/reports/ReportsPage'), 'ReportsPage');
 
 const BUDGET_PLAN_UUID_PATTERN =
   '[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
@@ -32,6 +90,8 @@ export interface RouteDefinition {
   pattern: RegExp;
   /** Pure redirect: nothing to preview while the session is still being checked. */
   redirect?: boolean;
+  /** Requests the page chunk ahead of its render; a redirect points at its destination page. */
+  preload?: () => Promise<unknown>;
   render: (match: RegExpExecArray) => ReactNode;
 }
 
@@ -53,51 +113,73 @@ export function buildAuthenticatedRoutes(
   runningVersion?: string | null,
 ): RouteDefinition[] {
   return [
-    { pattern: /^\/portfolios$/, render: () => <PortfoliosPage /> },
+    {
+      pattern: /^\/portfolios$/,
+      preload: PortfoliosPage.preload,
+      render: () => <PortfoliosPage />,
+    },
     {
       pattern: /^\/portfolios\/instruments$/,
+      preload: InstrumentsPage.preload,
       render: () => <InstrumentsPage />,
     },
     {
       pattern: /^\/portfolios\/(?!instruments$)([^/]+)$/,
+      preload: PortfolioAccountPage.preload,
       render: (match) => <PortfolioAccountPage accountId={match[1]!} />,
     },
-    { pattern: /^\/accounts$/, render: () => <AccountsPage /> },
+    { pattern: /^\/accounts$/, preload: AccountsPage.preload, render: () => <AccountsPage /> },
     {
       pattern: /^\/accounts\/groups$/,
+      preload: AccountGroupsPage.preload,
       render: () => <AccountGroupsPage />,
     },
     {
       pattern: /^\/accounts\/([^/]+)$/,
+      preload: AccountDetailPage.preload,
       render: (match) => <AccountDetailPage accountId={match[1]!} />,
     },
     {
       pattern: /^\/transactions\/categories$/,
+      preload: CategoryPage.preload,
       render: () => <CategoryPage />,
     },
     {
       pattern: /^\/transactions\/categories\/rules$/,
+      preload: CategorizationRulesPage.preload,
       render: () => <CategorizationRulesPage />,
     },
     {
       pattern: /^\/categories$/,
+      preload: CategoryPage.preload,
       redirect: true,
       render: () => <RouteRedirect to="/transactions/categories" />,
     },
     {
       pattern: /^\/categories\/rules$/,
+      preload: CategorizationRulesPage.preload,
       redirect: true,
       render: () => <RouteRedirect to="/transactions/categories/rules" />,
     },
-    { pattern: /^\/parameters\/catalog$/, render: () => <ProductCatalogPage /> },
-    { pattern: /^\/parameters\/product-models$/, render: () => <ProductModelsPage /> },
+    {
+      pattern: /^\/parameters\/catalog$/,
+      preload: ProductCatalogPage.preload,
+      render: () => <ProductCatalogPage />,
+    },
+    {
+      pattern: /^\/parameters\/product-models$/,
+      preload: ProductModelsPage.preload,
+      render: () => <ProductModelsPage />,
+    },
     {
       pattern: /^\/catalog$/,
+      preload: ProductCatalogPage.preload,
       redirect: true,
       render: () => <RouteRedirect to="/parameters/catalog" />,
     },
     {
       pattern: /^\/product-models$/,
+      preload: ProductModelsPage.preload,
       redirect: true,
       render: () => <RouteRedirect to="/parameters/product-models" />,
     },
@@ -106,13 +188,19 @@ export function buildAuthenticatedRoutes(
       redirect: true,
       render: (match) => <RouteRedirect to={`/parameters/${match[1]}`} />,
     },
-    { pattern: /^\/transactions$/, render: () => <TransactionsPage /> },
+    {
+      pattern: /^\/transactions$/,
+      preload: TransactionsPage.preload,
+      render: () => <TransactionsPage />,
+    },
     {
       pattern: /^\/transactions\/recurrences$/,
+      preload: RecurrencesPage.preload,
       render: () => <RecurrencesPage />,
     },
     {
       pattern: /^\/budget$/,
+      preload: MonthlyBudgetPage.preload,
       redirect: true,
       render: () => (
         <BudgetRouteRedirect
@@ -120,15 +208,17 @@ export function buildAuthenticatedRoutes(
         />
       ),
     },
-    { pattern: /^\/budget\/plans$/, render: () => <BudgetPage /> },
+    { pattern: /^\/budget\/plans$/, preload: BudgetPage.preload, render: () => <BudgetPage /> },
     {
       pattern: /^\/budget\/plans\/([^/]+)$/,
+      preload: BudgetPage.preload,
       render: (match) => <BudgetPage planId={match[1]} />,
     },
-    { pattern: /^\/reports$/, render: () => <ReportsPage /> },
-    { pattern: /^\/goals$/, render: () => <GoalsPage /> },
+    { pattern: /^\/reports$/, preload: ReportsPage.preload, render: () => <ReportsPage /> },
+    { pattern: /^\/goals$/, preload: GoalsPage.preload, render: () => <GoalsPage /> },
     {
       pattern: /^\/reports\/annual\/([^/]+)$/,
+      preload: AnnualReportPage.preload,
       render: (match) => {
         const today = workspaceToday(new Date(), workspaceTimeZone);
         const currentYear = Number(today.slice(0, 4));
@@ -145,6 +235,7 @@ export function buildAuthenticatedRoutes(
     },
     {
       pattern: /^\/reports\/all-years$/,
+      preload: MultiYearReportPage.preload,
       render: () => <MultiYearReportPage today={workspaceToday(new Date(), workspaceTimeZone)} />,
     },
     {
@@ -154,14 +245,17 @@ export function buildAuthenticatedRoutes(
     },
     {
       pattern: /^\/budget\/([^/]+)$/,
+      preload: MonthlyBudgetPage.preload,
       render: (match) => <MonthlyBudgetPage periodKey={match[1]!} />,
     },
     {
       pattern: /^\/parameters\/profile$/,
+      preload: ProfileSettingsPage.preload,
       render: () => <ProfileSettingsPage runningVersion={runningVersion} />,
     },
     {
       pattern: /^\/parameters\/metric-policy$/,
+      preload: MetricPolicyPage.preload,
       render: () => <MetricPolicyPage />,
     },
     // Catch-all, checked last: an unmatched path still under /budget is a 404.
@@ -182,4 +276,18 @@ export function matchAuthenticatedRoute(
     if (match) return { route, match };
   }
   return null;
+}
+
+const preloadRoutes = buildAuthenticatedRoutes('UTC');
+
+/**
+ * Warms the page chunk of `path` (navigation intent, or the URL on first load)
+ * so the render that needs it finds it ready. Unknown paths are ignored.
+ */
+export function preloadRoute(path: string): void {
+  if (path === '/') {
+    void DashboardPage.preload();
+    return;
+  }
+  void matchAuthenticatedRoute(preloadRoutes, path)?.route.preload?.();
 }

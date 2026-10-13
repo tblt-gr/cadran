@@ -150,5 +150,6 @@
   --duration-chart-draw: 560ms;
   --duration-loading-spin: 900ms;
   --duration-skeleton-shimmer: 900ms;
+  --duration-progress-slide: 1200ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }

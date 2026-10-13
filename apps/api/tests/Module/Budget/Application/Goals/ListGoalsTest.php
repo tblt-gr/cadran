@@ -41,6 +41,7 @@ use App\Module\Reporting\Domain\Aggregation\MonthState;
 use App\Module\Transactions\Application\MonthlyTransferPairFact;
 use App\Module\Transactions\Application\MonthlyTransferPairReader;
 use App\Module\Transactions\Application\ReadMonthlyAccountTransferNet;
+use App\Module\Transactions\Application\ReadMonthlyTransactionFacts;
 use App\Module\Transactions\Application\ReadMonthlyTransferPairs;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
 use App\Tests\Module\Accounts\Domain\AccountFixture;
@@ -108,10 +109,10 @@ final class ListGoalsTest extends TestCase
 
     public function testAnOversizedTransferMonthLeavesOnlyAccountGoalsNotCalculable(): void
     {
-        // March holds 501 pairs, one more than a monthly read accepts: the account goals lose their
+        // March holds one pair more than a monthly read accepts: the account goals lose their
         // total instead of failing the whole list, and the workspace savings goal is still computed.
         $oversized = [];
-        for ($index = 0; $index <= 500; ++$index) {
+        for ($index = 0; $index <= ReadMonthlyTransactionFacts::MAX_TRANSACTIONS; ++$index) {
             $oversized[] = self::pair(sprintf('00000000-0000-7000-8000-%012d', 1000 + $index), self::ACCOUNT_B, self::ACCOUNT_A, '1.00', '2026-03-10');
         }
         $transfers = new CountingTransferPairReader(['2026-03' => $oversized]);

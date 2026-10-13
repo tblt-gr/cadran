@@ -2,8 +2,24 @@ import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactElement } from 'react';
 import '@/i18n';
-import { AnnualReportPage } from '@/features/reports/annual/AnnualReportPage';
-import { buildAuthenticatedRoutes, matchAuthenticatedRoute } from './AuthenticatedApp.routes';
+import { RouteRedirect } from '@/components/layout/route-redirect/RouteRedirect';
+import {
+  buildAuthenticatedRoutes,
+  matchAuthenticatedRoute,
+  preloadRoute,
+} from './AuthenticatedApp.routes';
+
+const loaded = vi.hoisted(() => ({ transactions: 0, dashboard: 0 }));
+
+// Counting factory runs tells whether a page chunk was requested, without rendering it.
+vi.mock('@/features/transactions/TransactionsPage', () => {
+  loaded.transactions += 1;
+  return { TransactionsPage: () => null };
+});
+vi.mock('@/features/dashboard/DashboardPage', () => {
+  loaded.dashboard += 1;
+  return { DashboardPage: () => null };
+});
 
 const routes = buildAuthenticatedRoutes('Europe/Paris');
 
@@ -99,6 +115,34 @@ describe('AuthenticatedApp route table', () => {
     expect(planMatch?.match[1]).toBe('00000000-0000-7000-8000-000000000003');
   });
 
+  describe('page chunks', () => {
+    it('gives every route that shows a page a preloader, and plain redirects none', () => {
+      const withoutPreload = routes.filter((route) => !route.redirect && !route.preload);
+      // Only the catch-all 404 placeholder is static.
+      expect(withoutPreload.map((route) => route.pattern.source)).toEqual(['^\\/budget\\/']);
+    });
+
+    it('requests the matched page chunk only when preloaded, never at import time', async () => {
+      expect(loaded.transactions).toBe(0);
+
+      preloadRoute('/transactions');
+
+      await vi.waitFor(() => expect(loaded.transactions).toBe(1));
+    });
+
+    it('preloads the dashboard for the root path, which has no route entry', async () => {
+      expect(loaded.dashboard).toBe(0);
+
+      preloadRoute('/');
+
+      await vi.waitFor(() => expect(loaded.dashboard).toBe(1));
+    });
+
+    it('ignores a path no page serves', () => {
+      expect(() => preloadRoute('/does-not-exist')).not.toThrow();
+    });
+  });
+
   describe('annual report year guard', () => {
     afterEach(() => {
       cleanup();
@@ -121,11 +165,12 @@ describe('AuthenticatedApp route table', () => {
       },
     );
 
-    it('keeps a valid empty past year', () => {
+    it('keeps a valid empty past year instead of redirecting', () => {
       vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-24T10:00:00Z') });
       const matched = matchAuthenticatedRoute(routes, '/reports/annual/2001')!;
-      const element = matched.route.render(matched.match) as ReactElement;
-      expect(element.type).toBe(AnnualReportPage);
+      const element = matched.route.render(matched.match) as ReactElement<{ year: number }>;
+      expect(element.type).not.toBe(RouteRedirect);
+      expect(element.props.year).toBe(2001);
     });
   });
 });

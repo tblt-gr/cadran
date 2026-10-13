@@ -21,11 +21,11 @@ final class ReadMonthlyTransferPairsTest extends TestCase
         $reader = new RecordingMonthlyTransferPairReader(ReadMonthlyTransactionFacts::MAX_TRANSACTIONS);
         $pairs = (new ReadMonthlyTransferPairs($reader))($workspace, CalendarMonth::fromString('2026-09'));
 
-        self::assertCount(500, $pairs);
+        self::assertCount(2_000, $pairs);
         self::assertTrue($workspace->equals($reader->workspace));
         self::assertSame('2026-09-01', $reader->from->format('Y-m-d'));
         self::assertSame('2026-09-30', $reader->to->format('Y-m-d'));
-        self::assertSame(501, $reader->limit);
+        self::assertSame(2_001, $reader->limit);
     }
 
     public function testItRefusesMoreThanTheProjectionTransactionLimit(): void

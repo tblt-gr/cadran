@@ -1,7 +1,9 @@
 import type { AnnualReport } from '@cadran/api-client';
-import { useCallback, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
 import { Toast } from '@/components/ui/toast/Toast';
+import { lazyComponent } from '@/lib/lazyComponent';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { ReportsTabs } from '@/features/reports/ReportsTabs';
 import { AnnualTableActions } from '@/features/reports/annual/AnnualTableActions';
@@ -12,13 +14,15 @@ import {
   useSaveAnnualReportPreferences,
 } from '@/features/reports/annual/useAnnualReport';
 import { MultiYearCards } from './MultiYearCards';
-import { MultiYearCharts } from './MultiYearCharts';
 import { DetailedAnnualReports } from './DetailedAnnualReports';
 import { MultiYearSkeleton } from './MultiYearSkeleton';
 import { MultiYearTable } from './MultiYearTable';
 import { MultiYearRequestError, useMultiYearReport } from './useMultiYearReport';
 import { YearRangeSelector, type MultiYearDisplayMode } from './YearRangeSelector';
 import styles from './MultiYearReportPage.module.css';
+
+// recharts loads on demand, after the report's own figures.
+const MultiYearCharts = lazyComponent(() => import('./MultiYearCharts'), 'MultiYearCharts');
 
 interface MultiYearReportPageProps {
   /** Workspace-local date, `YYYY-MM-DD`. */
@@ -153,13 +157,17 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
           <>
             <MultiYearTable report={report.data} />
             <MultiYearCards report={report.data} />
-            <MultiYearCharts report={report.data} />
+            <Suspense fallback={<SkeletonChartArea />}>
+              <MultiYearCharts report={report.data} />
+            </Suspense>
           </>
         ) : (
           <>
             <DetailedAnnualReports onReportsReady={setReportsReady} report={report.data} />
             {detailedReports ? (
-              <MultiYearCharts annualReports={detailedReports} report={report.data} />
+              <Suspense fallback={<SkeletonChartArea />}>
+                <MultiYearCharts annualReports={detailedReports} report={report.data} />
+              </Suspense>
             ) : null}
           </>
         )}

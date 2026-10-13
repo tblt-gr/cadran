@@ -50,7 +50,7 @@ describe('AuthGate', () => {
     vi.unstubAllGlobals();
   });
 
-  it('shows a loading state while the session is being checked', () => {
+  it('shows a loading state while the session is being checked', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => new Promise(() => undefined)),
@@ -59,7 +59,8 @@ describe('AuthGate', () => {
     renderGate();
 
     expect(screen.getByRole('navigation', { name: 'Navigation principale' })).toBeTruthy();
-    expect(screen.getByTestId('dashboard-skeleton')).toBeTruthy();
+    // The dashboard chunk is code-split: its own loading state follows the route fallback.
+    expect(await screen.findByTestId('dashboard-skeleton', {}, { timeout: 5000 })).toBeTruthy();
     expect(screen.queryByText('Espace authentifié')).toBeNull();
   });
 

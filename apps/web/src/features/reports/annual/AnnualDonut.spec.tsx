@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AnnualDonut } from './AnnualDonut';
@@ -32,7 +32,7 @@ describe('AnnualDonut', () => {
     expect(screen.queryByText('Autres')).toBeNull();
   });
 
-  it('draws one distinct-coloured slice per category, cycling the palette with no two adjacent slices sharing a colour', () => {
+  it('draws one distinct-coloured slice per category, cycling the palette with no two adjacent slices sharing a colour', async () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
       bottom: 0,
       height: 200,
@@ -49,8 +49,14 @@ describe('AnnualDonut', () => {
       <AnnualDonut assetCode="EUR" label="Diagramme" legend={eight} slices={eight} />,
     );
 
+    // The chart library loads on demand, after the box is measured.
+    await waitFor(
+      () => expect(container.querySelectorAll('path.recharts-sector')).toHaveLength(8),
+      {
+        timeout: 5000,
+      },
+    );
     const sectors = container.querySelectorAll('path.recharts-sector');
-    expect(sectors).toHaveLength(8);
     const fills = Array.from(sectors).map((sector) => sector.getAttribute('fill'));
     const distinctColours = new Set(fills);
     expect(distinctColours.size).toBeGreaterThan(1);

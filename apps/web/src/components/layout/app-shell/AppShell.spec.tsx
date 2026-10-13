@@ -63,4 +63,43 @@ describe('AppShell', () => {
     expect(screen.queryByRole('button', { name: 'Rechercher' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Ajouter' })).toBeNull();
   });
+
+  it('forwards navigation intent from the sidebar and the complementary sheet', () => {
+    const onNavigationIntent = vi.fn();
+    render(
+      <AppShell onNavigationIntent={onNavigationIntent} path="/" setPath={vi.fn()}>
+        <p>Contenu</p>
+      </AppShell>,
+    );
+
+    const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
+    fireEvent.focus(within(sidebar).getByRole('link', { name: 'Objectifs' }));
+    expect(onNavigationIntent).toHaveBeenLastCalledWith('/goals');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Plus' }));
+    const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
+    fireEvent.pointerEnter(within(sheet).getByRole('link', { name: 'Rapports' }));
+    expect(onNavigationIntent).toHaveBeenLastCalledWith('/reports');
+  });
+
+  it('marks the content busy and draws a decorative progress bar only while navigating', () => {
+    const { rerender } = render(
+      <AppShell path="/" setPath={vi.fn()}>
+        <p>Contenu</p>
+      </AppShell>,
+    );
+    const main = screen.getByRole('main');
+    expect(main.getAttribute('aria-busy')).toBeNull();
+    expect(document.querySelector('[data-navigation-progress]')).toBeNull();
+
+    rerender(
+      <AppShell isNavigating path="/" setPath={vi.fn()}>
+        <p>Contenu</p>
+      </AppShell>,
+    );
+
+    expect(main.getAttribute('aria-busy')).toBe('true');
+    const progress = document.querySelector('[data-navigation-progress]');
+    expect(progress?.getAttribute('aria-hidden')).toBe('true');
+  });
 });

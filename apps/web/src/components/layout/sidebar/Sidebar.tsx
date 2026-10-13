@@ -10,11 +10,18 @@ import styles from './Sidebar.module.css';
 interface SidebarProps {
   isCollapsed: boolean;
   onNavigate: NavigationHandler;
+  onNavigationIntent?: (href: string) => void;
   onToggle: () => void;
   path: string;
 }
 
-export function Sidebar({ isCollapsed, onNavigate, onToggle, path }: SidebarProps) {
+export function Sidebar({
+  isCollapsed,
+  onNavigate,
+  onNavigationIntent,
+  onToggle,
+  path,
+}: SidebarProps) {
   const { t } = useTranslation();
 
   return (
@@ -39,6 +46,7 @@ export function Sidebar({ isCollapsed, onNavigate, onToggle, path }: SidebarProp
             className={styles.link}
             item={item}
             key={item.href}
+            onIntent={onNavigationIntent}
             onNavigate={onNavigate}
             path={path}
           />

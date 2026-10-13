@@ -72,6 +72,9 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
         // fresh statistics, so this brings the fixture back to that baseline
         // rather than measuring an artifact of the seeding shortcut.
         $this->connection->executeStatement('ANALYZE transaction_transactions');
+        // The same goes for the GIN pending list: right after a bulk insert it inflates the cost estimate of the
+        // trigram indexes until autovacuum flushes it, which made the planner pick a sequential scan at random.
+        $this->connection->executeStatement("SELECT gin_clean_pending_list('transaction_transactions_label_trgm_index'), gin_clean_pending_list('transaction_transactions_counterparty_trgm_index')");
 
         $repository = new DbalTransactionRepository($this->connection);
         $workspace = WorkspaceScope::fromString(self::WORKSPACE);

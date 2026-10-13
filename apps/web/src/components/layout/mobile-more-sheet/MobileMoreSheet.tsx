@@ -9,10 +9,17 @@ interface MobileMoreSheetProps {
   accountSlot?: ReactNode;
   close: () => void;
   navigate: (path: string) => void;
+  onNavigationIntent?: (href: string) => void;
   path: string;
 }
 
-export function MobileMoreSheet({ accountSlot, close, navigate, path }: MobileMoreSheetProps) {
+export function MobileMoreSheet({
+  accountSlot,
+  close,
+  navigate,
+  onNavigationIntent,
+  path,
+}: MobileMoreSheetProps) {
   const { t } = useTranslation();
 
   return (
@@ -37,6 +44,8 @@ export function MobileMoreSheet({ accountSlot, close, navigate, path }: MobileMo
               aria-current={item.match(path) ? 'page' : undefined}
               href={item.href}
               key={item.href}
+              onFocus={() => onNavigationIntent?.(item.href)}
+              onPointerEnter={() => onNavigationIntent?.(item.href)}
               onClick={(event) => {
                 event.preventDefault();
                 navigate(item.href);

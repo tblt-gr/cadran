@@ -6,10 +6,13 @@ namespace App\Tests\Module\Budget\Application\Double;
 
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Transactions\Application\BookedMovementFact;
+use App\Module\Transactions\Application\BookedMovementReader;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionPosition;
 use App\Module\Transactions\Domain\TransactionRepository;
+use App\Module\Transactions\Domain\TransactionState;
 use App\Module\Transactions\Domain\TransactionWatermark;
 
 /**
@@ -17,7 +20,7 @@ use App\Module\Transactions\Domain\TransactionWatermark;
  * `search()` a bounded date range. Every method this ticket does not touch
  * throws, so a use case that starts relying on one is caught here first.
  */
-final class InMemoryTransactionRepository implements TransactionRepository
+final class InMemoryTransactionRepository implements TransactionRepository, BookedMovementReader
 {
     /** @var list<Transaction> */
     private array $transactions;
@@ -66,6 +69,20 @@ final class InMemoryTransactionRepository implements TransactionRepository
         }));
 
         return array_slice($rows, 0, $limit);
+    }
+
+    public function between(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array
+    {
+        $booked = array_values(array_filter($this->transactions, static fn (Transaction $transaction): bool => $transaction->workspace->equals($workspace)
+            && TransactionState::BOOKED === $transaction->state
+            && $transaction->bookedOn >= $from
+            && $transaction->bookedOn <= $to));
+        usort($booked, static fn (Transaction $left, Transaction $right): int => [$left->bookedOn, $left->id] <=> [$right->bookedOn, $right->id]);
+
+        return array_map(
+            static fn (Transaction $transaction): BookedMovementFact => new BookedMovementFact($transaction->id, $transaction->accountId, $transaction->nature->value, $transaction->amount),
+            array_slice($booked, 0, $limit),
+        );
     }
 
     public function watermark(WorkspaceScope $workspace): ?TransactionWatermark
