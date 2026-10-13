@@ -1,5 +1,8 @@
+import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './TabsNav.module.css';
+import { useStripOverflow } from './useStripOverflow';
 
 export interface TabsNavItem {
   id: string;
@@ -23,56 +26,87 @@ interface TabsNavProps {
   variant?: 'primary' | 'secondary';
 }
 
-/** Underlined tab strip for sibling views: links for routes, buttons for in-page state. */
+/**
+ * Underlined tab strip for sibling views: links for routes, buttons for in-page state. When the
+ * tabs overflow, circular edge buttons scroll the strip, since a mouse wheel cannot.
+ */
 export function TabsNav({ items, label, variant = 'primary' }: TabsNavProps) {
+  const { t } = useTranslation();
+  const activeKey = items.find((item) => item.active)?.id;
+  const strip = useStripOverflow<HTMLElement>(activeKey);
+
   return (
-    <nav aria-label={label} className={`${styles.tabs} ${styles[variant]}`}>
-      {items.map((item) => {
-        const className = styles.tab;
-        const data = item.current ? { 'data-current': 'true' } : {};
-        if (item.disabled) {
+    <div className={`${styles.strip} ${styles[variant]}`}>
+      {strip.overflows ? (
+        <button
+          aria-label={t('actions.scrollLeft')}
+          className={`icon-button ${styles.scroll}`}
+          disabled={!strip.canScrollBack}
+          onClick={() => strip.scrollStep(-1)}
+          type="button"
+        >
+          <Icon name="chevron-left" size={14} />
+        </button>
+      ) : null}
+      <nav aria-label={label} className={styles.tabs} ref={strip.ref}>
+        {items.map((item) => {
+          const className = styles.tab;
+          const data = item.current ? { 'data-current': 'true' } : {};
+          if (item.disabled) {
+            return (
+              <span
+                aria-disabled="true"
+                className={className}
+                key={item.id}
+                title={item.title}
+                {...data}
+              >
+                {item.label}
+              </span>
+            );
+          }
+          const href = item.href;
+          if (href !== undefined) {
+            return (
+              <a
+                aria-current={item.active ? 'page' : undefined}
+                className={className}
+                href={href}
+                key={item.id}
+                onClick={(event) => handleClientNavigation(event, href)}
+                title={item.title}
+                {...data}
+              >
+                {item.label}
+              </a>
+            );
+          }
           return (
-            <span
-              aria-disabled="true"
-              className={className}
-              key={item.id}
-              title={item.title}
-              {...data}
-            >
-              {item.label}
-            </span>
-          );
-        }
-        const href = item.href;
-        if (href !== undefined) {
-          return (
-            <a
+            <button
               aria-current={item.active ? 'page' : undefined}
               className={className}
-              href={href}
               key={item.id}
-              onClick={(event) => handleClientNavigation(event, href)}
+              onClick={item.onSelect}
               title={item.title}
+              type="button"
               {...data}
             >
               {item.label}
-            </a>
+            </button>
           );
-        }
-        return (
-          <button
-            aria-current={item.active ? 'page' : undefined}
-            className={className}
-            key={item.id}
-            onClick={item.onSelect}
-            title={item.title}
-            type="button"
-            {...data}
-          >
-            {item.label}
-          </button>
-        );
-      })}
-    </nav>
+        })}
+      </nav>
+      {strip.overflows ? (
+        <button
+          aria-label={t('actions.scrollRight')}
+          className={`icon-button ${styles.scroll}`}
+          disabled={!strip.canScrollForward}
+          onClick={() => strip.scrollStep(1)}
+          type="button"
+        >
+          <Icon name="chevron-right" size={14} />
+        </button>
+      ) : null}
+    </div>
   );
 }
