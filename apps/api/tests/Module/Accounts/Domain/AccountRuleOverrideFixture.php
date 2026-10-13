@@ -65,25 +65,6 @@ final class AccountRuleOverrideFixture
         );
     }
 
-    public static function term(
-        string $id,
-        string $token,
-        string $validFrom,
-        ?string $validTo = null,
-        RuleKind $kind = RuleKind::INTEREST_ACCRUAL_METHOD,
-        ?\DateTimeImmutable $withdrawnAt = null,
-    ): AccountRuleOverride {
-        return self::of(
-            $id,
-            $kind,
-            DeclaredRuleValue::text($token),
-            $validFrom,
-            $validTo,
-            'The contract states a different accrual method.',
-            $withdrawnAt,
-        );
-    }
-
     private static function of(
         string $id,
         RuleKind $kind,
@@ -106,16 +87,5 @@ final class AccountRuleOverrideFixture
             withdrawnAt: $withdrawnAt,
             withdrawnBy: null === $withdrawnAt ? null : self::OTHER_AUTHOR,
         );
-    }
-
-    /** @return list<string> */
-    public static function identifiers(int $count): array
-    {
-        $ids = [];
-        for ($index = 1; $index <= $count; ++$index) {
-            $ids[] = sprintf('00000000-0000-7000-8000-0000000000c%01x', $index);
-        }
-
-        return $ids;
     }
 }

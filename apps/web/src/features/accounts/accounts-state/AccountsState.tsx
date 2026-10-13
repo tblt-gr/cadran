@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import styles from './AccountsState.module.css';
 
-export type AccountsStateKind = 'loading' | 'error' | 'unauthorized' | 'empty';
+type AccountsStateKind = 'loading' | 'error' | 'unauthorized' | 'empty';
 
 interface AccountsStateProps {
   kind: AccountsStateKind;

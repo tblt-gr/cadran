@@ -1,4 +1,4 @@
-import { listPortfolioPositions, type PortfolioPosition } from '@cadran/api-client';
+import { listPortfolioPositions } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { operationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
@@ -19,5 +19,3 @@ export function usePositions(accountId: string, asOf: string, includeClosed: boo
     retry: false,
   });
 }
-
-export type Position = PortfolioPosition;

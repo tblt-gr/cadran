@@ -29,15 +29,6 @@
   margin: var(--spacing-none);
   font-size: var(--font-size-kpi);
 }
-.unavailable {
-  color: var(--text-muted);
-  font-size: var(--font-size-label);
-}
-.unavailable small {
-  display: block;
-  margin-top: var(--spacing-1);
-  font-size: var(--font-size-xs);
-}
 .quality {
   color: var(--text-muted);
   font-size: var(--font-size-label);

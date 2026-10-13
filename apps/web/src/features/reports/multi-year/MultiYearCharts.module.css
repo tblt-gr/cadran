@@ -3,13 +3,6 @@
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--spacing-4);
 }
-.chart {
-  display: grid;
-  gap: var(--spacing-3);
-}
-.plot {
-  min-height: 220px;
-}
 .flows {
   width: 100%;
 }

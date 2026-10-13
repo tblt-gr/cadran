@@ -88,12 +88,6 @@
   font-size: var(--font-size-label);
 }
 
-.choices {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-1) var(--spacing-4);
-}
-
 .choice {
   display: inline-flex;
   align-items: center;

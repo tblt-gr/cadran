@@ -9,25 +9,45 @@
     "php": ">=8.5",
     "ext-bcmath": "*",
     "ext-ctype": "*",
+    "ext-filter": "*",
     "ext-iconv": "*",
+    "ext-mbstring": "*",
     "brick/math": "^0.20.0",
+    "doctrine/dbal": "^4.4",
     "doctrine/doctrine-bundle": "^3.2",
     "doctrine/doctrine-migrations-bundle": "^3.7",
+    "doctrine/migrations": "^3.9",
+    "psr/event-dispatcher": "^1.0",
+    "psr/log": "^3.0",
+    "symfony/clock": "7.4.*",
     "symfony/console": "7.4.*",
+    "symfony/dependency-injection": "7.4.*",
     "symfony/dotenv": "7.4.*",
+    "symfony/event-dispatcher": "7.4.*",
     "symfony/flex": "^2",
     "symfony/framework-bundle": "7.4.*",
+    "symfony/http-foundation": "7.4.*",
+    "symfony/http-kernel": "7.4.*",
     "symfony/lock": "7.4.*",
+    "symfony/password-hasher": "7.4.*",
     "symfony/rate-limiter": "7.4.*",
+    "symfony/routing": "7.4.*",
     "symfony/runtime": "7.4.*",
     "symfony/security-bundle": "7.4.*",
+    "symfony/security-core": "7.4.*",
+    "symfony/security-http": "7.4.*",
     "symfony/translation": "7.4.*",
+    "symfony/translation-contracts": "^3.7",
     "symfony/yaml": "7.4.*"
   },
   "require-dev": {
+    "ext-pdo": "*",
     "friendsofphp/php-cs-fixer": "^3.0",
     "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^13.3",
+    "psr/cache": "^3.0",
+    "shipmonk/composer-dependency-analyser": "^1.8",
+    "shipmonk/dead-code-detector": "^1.4",
     "symfony/browser-kit": "7.4.*",
     "symfony/css-selector": "7.4.*"
   },
@@ -71,7 +91,8 @@
     "post-update-cmd": [
       "@auto-scripts"
     ],
-    "analyse": "phpstan analyse --configuration=phpstan.neon --memory-limit=512M",
+    "analyse": "DEFAULT_URI=http://localhost php bin/console cache:warmup --env=test && phpstan analyse --configuration=phpstan.neon --memory-limit=512M",
+    "deps": "composer-dependency-analyser --config=composer-dependency-analyser.php",
     "format": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
     "lint": "php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff",
     "test": [
@@ -80,6 +101,7 @@
     ],
     "quality": [
       "@lint",
+      "@deps",
       "@analyse",
       "@test"
     ]

@@ -78,16 +78,14 @@ final readonly class ComputePortfolioPerformance
         $twr = ($this->timeWeighted)($workspace, $account->id, $period->scope, $data);
         $mwr = ($this->moneyWeighted)($data, $blocking, $warnings);
         $findings = [...$blocking, ...$warnings];
-        $preview = array_slice($sources, 0, PortfolioExplanation::MAX_SOURCES);
         $twrSources = $this->withAnchors($sources, $twr);
 
         return new PortfolioPerformance(
             $account->id, $account->assetCode->toString(), $period, $data->start, $data->end, $precision,
             $gain, $netFlows, $startValue, $endValue,
-            $quality, $findings,
             $total->decomposition ?? GainDecomposition::unavailable($blocking[0]->code ?? null),
             array_map(static fn (PortfolioOperation $operation): array => self::flow($operation, $precision), array_slice($flows, 0, self::MAX_FLOWS)),
-            count($flows), $preview, count($sources),
+            count($flows),
             $dietz, $twr, $mwr,
             [
                 PerformanceMethod::TOTAL_GAIN->value => $this->explain($data, $today, PerformanceMethod::TOTAL_GAIN, ['startValue' => $startValue, 'endValue' => $endValue, 'netFlows' => $netFlows], $quality, $findings, $sources),

@@ -26,7 +26,6 @@ use App\Module\Foundation\Domain\AssetCode;
 final readonly class AccountRuleAuthority
 {
     private function __construct(
-        public AccountRulesOrigin $origin,
         public ProductCapabilities $capabilities,
         public YieldKind $yieldKind,
     ) {
@@ -34,12 +33,12 @@ final readonly class AccountRuleAuthority
 
     public static function ofProduct(FinancialProduct $product): self
     {
-        return new self(AccountRulesOrigin::SYSTEM_CATALOG, $product->capabilities, $product->yieldKind);
+        return new self($product->capabilities, $product->yieldKind);
     }
 
     public static function ofModel(ProductModel $model): self
     {
-        return new self(AccountRulesOrigin::WORKSPACE_MODEL, $model->capabilities, $model->yieldKind);
+        return new self($model->capabilities, $model->yieldKind);
     }
 
     /**

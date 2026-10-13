@@ -30,11 +30,6 @@ final readonly class DbalGoalVersionRepository implements GoalVersionRepository
         return array_map(static fn (array $row): GoalVersion => GoalVersionRow::hydrate($row, $workspace, $parts[GoalRow::text($row['id'] ?? null)] ?? []), $rows);
     }
 
-    public function countByGoal(WorkspaceScope $workspace, string $goalId): int
-    {
-        return (int) GoalRow::text($this->connection->fetchOne('SELECT count(*) FROM budget_goal_versions WHERE workspace_id = :workspace_id AND goal_id = :goal_id', ['workspace_id' => $workspace->id, 'goal_id' => $goalId]));
-    }
-
     public function add(GoalVersion $version): void
     {
         $this->connection->insert('budget_goal_versions', ['id' => $version->id, 'workspace_id' => $version->workspace->id, ...GoalVersionRow::columns($version)], ['retroactive' => ParameterType::BOOLEAN]);

@@ -106,7 +106,7 @@ export function totalValuationFixture(
   };
 }
 
-export function summaryOf(valuation: PortfolioValuation): PortfolioValuationSummary {
+function summaryOf(valuation: PortfolioValuation): PortfolioValuationSummary {
   return {
     id: valuation.id,
     accountId: valuation.accountId,

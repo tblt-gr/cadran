@@ -146,7 +146,6 @@ final class RecordingAuditTrailReader implements AuditTrailReader
     public ?WorkspaceScope $workspace = null;
     public int $findEventCalls = 0;
     public ?int $limit = null;
-    public ?AuditTrailCursor $after = null;
 
     /**
      * @param list<AuditTrailEntry> $entries
@@ -159,7 +158,6 @@ final class RecordingAuditTrailReader implements AuditTrailReader
     {
         $this->workspace = $workspace;
         $this->limit = $limit;
-        $this->after = $after;
 
         return array_slice($this->entries, 0, $limit);
     }

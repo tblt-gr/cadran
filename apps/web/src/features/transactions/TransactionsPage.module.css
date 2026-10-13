@@ -4,33 +4,11 @@
   gap: var(--spacing-6);
 }
 
-.toolbar,
 .pagination {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-4);
-}
-
-.toolbar {
-  justify-content: flex-end;
-}
-
-.toolbar label {
-  display: flex;
-  align-items: center;
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  gap: var(--spacing-2);
-}
-
-.toolbar select {
-  min-height: var(--control-height);
-  padding: var(--spacing-2) var(--spacing-3);
-  border: var(--border-line-strong);
-  border-radius: var(--radius-control);
-  color: var(--text-primary);
-  background: var(--bg-surface-2);
 }
 
 .pagination {
@@ -45,15 +23,4 @@
   border-radius: var(--radius-control);
   color: var(--negative);
   background: var(--negative-soft);
-}
-
-@media (max-width: 42rem) {
-  .toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .toolbar select {
-    width: 100%;
-  }
 }

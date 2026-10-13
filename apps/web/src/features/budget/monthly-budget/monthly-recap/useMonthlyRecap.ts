@@ -9,7 +9,7 @@ import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { budgetRequestError } from '@/features/budget/budgetError';
 
-export const RECAP_PREFERENCES_QUERY_KEY = ['monthly-recap-preferences'];
+const RECAP_PREFERENCES_QUERY_KEY = ['monthly-recap-preferences'];
 
 export function useMonthlyRecap(month: string) {
   return useQuery({

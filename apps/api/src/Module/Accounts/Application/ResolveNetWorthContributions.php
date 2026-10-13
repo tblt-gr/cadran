@@ -101,7 +101,6 @@ final readonly class ResolveNetWorthContributions
             accountId: $account->id,
             netWorthSign: $account->netWorthSign(),
             primaryGroupId: $account->primaryGroupId,
-            tagGroupIds: $account->tagGroupIds,
             amount: $valuation->amount,
             quality: $valuation->quality,
             ageDays: $valuation->ageDays,

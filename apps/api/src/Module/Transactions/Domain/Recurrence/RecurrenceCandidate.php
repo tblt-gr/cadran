@@ -17,7 +17,6 @@ final readonly class RecurrenceCandidate
     public function __construct(
         public string $fingerprint,
         public string $accountId,
-        public string $groupingKey,
         public string $counterparty,
         public RecurrenceIntervalKind $intervalKind,
         public DecimalValue $medianGapDays,

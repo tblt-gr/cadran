@@ -1,5 +1,3 @@
-import type { PortfolioPerformance } from '@cadran/api-client';
-
 export type FigureKey = 'gain' | 'modifiedDietz' | 'timeWeighted' | 'moneyWeighted';
 
 export const figureKeys: readonly FigureKey[] = [
@@ -25,7 +23,3 @@ export const methodSentences: Record<FigureKey, string> = {
   moneyWeighted:
     'Taux annuel de votre argent, compte tenu des dates de vos versements et retraits.',
 };
-
-export function figureOf(performance: PortfolioPerformance, key: FigureKey) {
-  return performance[key];
-}

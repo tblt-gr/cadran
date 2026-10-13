@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { TabsNav, type TabsNavItem } from '@/components/ui/tabs-nav/TabsNav';
 import { useMultiYearReport } from './multi-year/useMultiYearReport';
 
-export type ReportsTab = 'monthly' | 'annual' | 'allYears';
+type ReportsTab = 'monthly' | 'annual' | 'allYears';
 
 interface ReportsTabsProps {
   active: ReportsTab;

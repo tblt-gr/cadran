@@ -17,11 +17,11 @@ final class MonthlyLedgerCalculatorTest extends TestCase
 {
     public function testSplitRefundAndBookedAxisAreAttributedExactlyOnce(): void
     {
-        $expense = self::entry('01', MonthlyMovementKind::EXPENSE, '-100', [
+        $expense = self::entry('01', MonthlyMovementKind::EXPENSE, [
             new MonthlySplit('food', DecimalValue::fromString('-60'), ['ESSENTIAL']),
             new MonthlySplit('transport', DecimalValue::fromString('-40'), ['VARIABLE']),
         ]);
-        $refund = self::entry('02', MonthlyMovementKind::REFUND, '20', [
+        $refund = self::entry('02', MonthlyMovementKind::REFUND, [
             new MonthlySplit('food', DecimalValue::fromString('20'), ['ESSENTIAL']),
         ]);
 
@@ -44,8 +44,8 @@ final class MonthlyLedgerCalculatorTest extends TestCase
         self::assertFalse($empty->hasMovements);
 
         $zeroSources = MonthlyLedgerCalculator::categorySources([
-            self::entry('01', MonthlyMovementKind::INCOME, '10', [new MonthlySplit('salary', DecimalValue::fromString('10'), [])]),
-            self::entry('02', MonthlyMovementKind::INCOME, '-10', [new MonthlySplit('salary', DecimalValue::fromString('-10'), [])]),
+            self::entry('01', MonthlyMovementKind::INCOME, [new MonthlySplit('salary', DecimalValue::fromString('10'), [])]),
+            self::entry('02', MonthlyMovementKind::INCOME, [new MonthlySplit('salary', DecimalValue::fromString('-10'), [])]),
         ], 'INCOME', 'salary', null);
         $zero = MonthlyLedgerCalculator::total($zeroSources, invert: false);
         self::assertSame('0', $zero->value?->toString());
@@ -54,7 +54,7 @@ final class MonthlyLedgerCalculatorTest extends TestCase
         $mixed = MonthlyLedgerCalculator::total([
             $zeroSources[0],
             MonthlyLedgerCalculator::categorySources([
-                self::entry('03', MonthlyMovementKind::INCOME, '1', [new MonthlySplit('salary', DecimalValue::fromString('1'), [])], 'USD'),
+                self::entry('03', MonthlyMovementKind::INCOME, [new MonthlySplit('salary', DecimalValue::fromString('1'), [])], 'USD'),
             ], 'INCOME', 'salary', null)[0],
         ], invert: false);
         self::assertNull($mixed->value);
@@ -122,14 +122,11 @@ final class MonthlyLedgerCalculatorTest extends TestCase
     private static function entry(
         string $suffix,
         MonthlyMovementKind $kind,
-        string $amount,
         array $splits,
         string $asset = 'EUR',
     ): MonthlyLedgerEntry {
         return new MonthlyLedgerEntry(
             '00000000-0000-7000-8000-0000000001'.$suffix,
-            '00000000-0000-7000-8000-0000000000a1',
-            DecimalValue::fromString($amount),
             AssetCode::fromString($asset),
             $kind,
             new \DateTimeImmutable('2026-09-15'),

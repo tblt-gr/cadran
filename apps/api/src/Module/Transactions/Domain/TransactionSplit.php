@@ -44,14 +44,6 @@ final readonly class TransactionSplit
         }
     }
 
-    public function withProvenance(CategorizationOrigin $origin, ?string $ruleId): self
-    {
-        return new self(
-            $this->id, $this->workspace, $this->transactionId, $this->categoryId, $this->amount,
-            $this->analyticAxes, $this->note, $this->createdAt, $this->position, $origin, $ruleId,
-        );
-    }
-
     private static function identifier(string $id): void
     {
         if (1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $id)) {

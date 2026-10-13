@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Module\Reporting\Application;
 
-use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Domain\Aggregation\Aggregate;
 use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
 
@@ -24,7 +23,6 @@ final readonly class ComputedAnnualYear
      */
     public function __construct(
         public int $year,
-        public WorkspaceScope $workspace,
         public IncompleteMonths $incomplete,
         public AnnualCatalogue $catalogue,
         public array $columns,

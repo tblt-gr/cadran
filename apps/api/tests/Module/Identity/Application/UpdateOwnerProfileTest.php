@@ -142,7 +142,6 @@ final class UpdateOwnerProfileTest extends TestCase
 
 final class RecordingOwnerProfileWriter implements OwnerProfileWriter
 {
-    public ?string $userId = null;
     public ?string $displayName = null;
 
     public function __construct(private readonly bool $applied)
@@ -151,7 +150,6 @@ final class RecordingOwnerProfileWriter implements OwnerProfileWriter
 
     public function updateDisplayName(string $userId, string $displayName): bool
     {
-        $this->userId = $userId;
         $this->displayName = $displayName;
 
         return $this->applied;

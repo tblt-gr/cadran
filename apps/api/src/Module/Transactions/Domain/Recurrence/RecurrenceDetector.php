@@ -91,7 +91,6 @@ final class RecurrenceDetector
         return new RecurrenceCandidate(
             fingerprint: self::fingerprint($group[0]->accountId, $group[0]->groupingKey, $interval),
             accountId: $group[0]->accountId,
-            groupingKey: $group[0]->groupingKey,
             counterparty: $last->displayName,
             intervalKind: $interval,
             medianGapDays: $medianGap,

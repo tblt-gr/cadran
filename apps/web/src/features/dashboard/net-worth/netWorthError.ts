@@ -6,7 +6,7 @@ export type NetWorthErrorKind = 'error' | 'unauthorized';
  * A refused net-worth read. A caller attached to no workspace is told so
  * plainly instead of seeing the generic outage copy.
  */
-export class NetWorthRequestError extends Error {
+class NetWorthRequestError extends Error {
   readonly kind: NetWorthErrorKind;
 
   constructor(status: number) {

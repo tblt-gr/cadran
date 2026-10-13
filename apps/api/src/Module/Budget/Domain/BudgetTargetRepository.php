@@ -8,8 +8,6 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 
 interface BudgetTargetRepository
 {
-    public function find(WorkspaceScope $workspace, string $id): ?BudgetTarget;
-
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?BudgetTarget;
 
     /** @return list<BudgetTarget> at most $limit targets of $planId, in this workspace */

@@ -144,27 +144,6 @@ final class ExactDecimal
         return self::fromBig(self::toBig($numerator)->dividedBy(self::toBig($denominator), $precision, $brickMode), $precision, $brickMode);
     }
 
-    /** Computes value x numerator / denominator and rounds only the final quotient. */
-    public static function proportion(
-        DecimalValue $value,
-        DecimalValue $numerator,
-        DecimalValue $denominator,
-        int $scale = DecimalValue::MAX_SCALE,
-        RoundingMode $roundingMode = RoundingMode::HALF_UP,
-    ): DecimalValue {
-        $brickMode = match ($roundingMode) {
-            RoundingMode::HALF_UP => BrickRoundingMode::HalfUp,
-            RoundingMode::HALF_EVEN => BrickRoundingMode::HalfEven,
-            RoundingMode::DOWN => BrickRoundingMode::Down,
-        };
-        $precision = max(0, $scale);
-        $result = self::toBig($value)
-            ->multipliedBy(self::toBig($numerator))
-            ->dividedBy(self::toBig($denominator), $precision, $brickMode);
-
-        return self::fromBig($result, $precision, $brickMode);
-    }
-
     public static function timesHundred(DecimalValue $ratio): DecimalValue
     {
         return self::fromBig(self::toBig($ratio)->multipliedBy(100), max(0, $ratio->scale()));

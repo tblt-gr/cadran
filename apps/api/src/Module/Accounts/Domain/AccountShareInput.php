@@ -15,15 +15,11 @@ use App\Module\Foundation\Domain\DecimalValue;
  */
 final readonly class AccountShareInput
 {
-    /**
-     * @param list<string> $tagGroupIds
-     */
     public function __construct(
         public string $accountId,
         public bool $includeInNetWorth,
         public int $netWorthSign,
         public ?string $primaryGroupId,
-        public array $tagGroupIds,
         public ?DecimalValue $value,
         public ?AssetCode $asset = null,
     ) {

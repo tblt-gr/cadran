@@ -27,9 +27,6 @@ final class AccountPersistenceTest extends KernelTestCase
 {
     private const string OWN_ACCOUNT = '00000000-0000-7000-8000-0000000000d1';
     private const string OTHER_ACCOUNT = '00000000-0000-7000-8000-0000000000d2';
-    private const string EXCLUDED_ACCOUNT = '00000000-0000-7000-8000-0000000000d3';
-    private const string ARCHIVED_ACCOUNT = '00000000-0000-7000-8000-0000000000d4';
-    private const string FOREIGN_ACCOUNT = '00000000-0000-7000-8000-0000000000d5';
     private const string OWN_MODEL = ProductModelFixture::ID;
     private const string OTHER_MODEL = '00000000-0000-7000-8000-0000000000e2';
 
@@ -111,40 +108,6 @@ final class AccountPersistenceTest extends KernelTestCase
         self::assertSame(1, $this->repository->count(WorkspaceFixture::own(), false, false));
     }
 
-    public function testTheNetWorthListingKeepsClosedAccountsAndDropsArchivedAndExcludedOnes(): void
-    {
-        $this->repository->add($this->account(self::OWN_ACCOUNT, WorkspaceFixture::own()));
-        $closed = $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::own(), label: 'Compte clos', closedOn: '2026-02-01');
-        $this->repository->add($closed);
-        $excluded = $this->account(self::EXCLUDED_ACCOUNT, WorkspaceFixture::own(), label: 'Compte joint tiers')
-            ->reconfigure(
-                label: 'Compte joint tiers',
-                kind: AccountKind::SAVINGS,
-                productCode: ProductCode::fromString('FR_LIVRET_A'),
-                productModelId: null,
-                institution: 'Banque X',
-                maskedIdentifier: MaskedIdentifier::fromString('4821'),
-                valuationMode: AccountValuationMode::TRANSACTIONS,
-                liquidityLevel: LiquidityLevel::IMMEDIATE,
-                includeInNetWorth: false,
-                includeInEmergencyFund: false,
-                openedOn: new \DateTimeImmutable('2026-01-10', new \DateTimeZone('UTC')),
-                closedOn: null,
-                updatedAt: new \DateTimeImmutable('2026-09-01T12:00:00+00:00'),
-            );
-        $this->repository->add($excluded);
-        $this->repository->add($this->account(self::ARCHIVED_ACCOUNT, WorkspaceFixture::own(), label: 'Compte archivé')
-            ->archive(new \DateTimeImmutable('2026-09-02T12:00:00+00:00')));
-        $this->repository->add($this->account(self::FOREIGN_ACCOUNT, WorkspaceFixture::other()));
-
-        // Closure is dated, so a closed account still has to reach the
-        // calculation, which decides day by day whether it counted.
-        self::assertSame(
-            [self::OTHER_ACCOUNT, self::OWN_ACCOUNT],
-            array_column($this->repository->listForNetWorth(WorkspaceFixture::own(), 100), 'id'),
-        );
-    }
-
     public function testAMonthListingDropsAccountsClosedOrArchivedBeforeItAndKeepsThoseOpenDuringIt(): void
     {
         $id = static fn (int $n): string => sprintf('00000000-0000-7000-8000-00000000f%03d', $n);
@@ -170,6 +133,50 @@ final class AccountPersistenceTest extends KernelTestCase
         $ids = array_map(static fn (Account $account): string => $account->id, $listed);
         sort($ids);
         self::assertSame([$id(1), $id(3), $id(4), $id(5), $id(7)], $ids);
+    }
+
+    public function testTheNetWorthMonthListingAppliesWorkspaceInclusionOpeningClosureAndArchiveRules(): void
+    {
+        $id = static fn (int $n): string => sprintf('00000000-0000-7000-8000-00000000e%03d', $n);
+        $own = WorkspaceFixture::own();
+        $this->repository->add($this->account($id(1), $own, label: 'Actif'));
+        $this->repository->add($this->account($id(2), $own, label: 'Ouvert le dernier jour', openedOn: '2026-05-31'));
+        $this->repository->add($this->account($id(3), $own, label: 'Ouvert apres', openedOn: '2026-06-01'));
+        $this->repository->add($this->account($id(4), $own, label: 'Clos veille', closedOn: '2026-04-30'));
+        $this->repository->add($this->account($id(5), $own, label: 'Clos le 1er', closedOn: '2026-05-01'));
+        $this->repository->add($this->account($id(6), $own, label: 'Archive le 1er')
+            ->archive(new \DateTimeImmutable('2026-04-30T23:30:00+00:00')));
+        $this->repository->add($this->account($id(7), $own, label: 'Archive le 2 a Paris')
+            ->archive(new \DateTimeImmutable('2026-05-01T22:30:00+00:00')));
+        $this->repository->add($this->account($id(8), WorkspaceFixture::other(), label: 'Autre espace'));
+        $excluded = $this->account($id(9), $own, label: 'Hors patrimoine');
+        $this->repository->add($excluded->reconfigure(
+            label: $excluded->label,
+            kind: $excluded->kind,
+            productCode: $excluded->productCode,
+            productModelId: $excluded->productModelId,
+            institution: $excluded->institution,
+            maskedIdentifier: $excluded->maskedIdentifier,
+            valuationMode: $excluded->valuationMode,
+            liquidityLevel: $excluded->liquidityLevel,
+            includeInNetWorth: false,
+            includeInEmergencyFund: $excluded->includeInEmergencyFund,
+            openedOn: $excluded->openedOn,
+            closedOn: $excluded->closedOn,
+            updatedAt: new \DateTimeImmutable('2026-09-01T12:00:00+00:00'),
+        ));
+
+        $listed = $this->repository->listForNetWorthDuring(
+            $own,
+            new \DateTimeImmutable('2026-05-01', new \DateTimeZone('UTC')),
+            new \DateTimeImmutable('2026-05-31', new \DateTimeZone('UTC')),
+            new \DateTimeZone('Europe/Paris'),
+            100,
+        );
+
+        $ids = array_map(static fn (Account $account): string => $account->id, $listed);
+        sort($ids);
+        self::assertSame([$id(1), $id(2), $id(5), $id(7)], $ids);
     }
 
     public function testOptimisticVersioningRejectsAStaleUpdate(): void
@@ -353,6 +360,7 @@ final class AccountPersistenceTest extends KernelTestCase
         WorkspaceScope $workspace,
         string $label = 'Livret A Banque X',
         ?string $closedOn = null,
+        string $openedOn = '2026-01-10',
         ?string $productCode = 'FR_LIVRET_A',
         ?string $productModelId = null,
         ?string $institution = 'Banque X',
@@ -374,7 +382,7 @@ final class AccountPersistenceTest extends KernelTestCase
             liquidityLevel: LiquidityLevel::IMMEDIATE,
             includeInNetWorth: true,
             includeInEmergencyFund: false,
-            openedOn: new \DateTimeImmutable('2026-01-10', $utc),
+            openedOn: new \DateTimeImmutable($openedOn, $utc),
             closedOn: null === $closedOn ? null : new \DateTimeImmutable($closedOn, $utc),
             version: 1,
             createdAt: $now,

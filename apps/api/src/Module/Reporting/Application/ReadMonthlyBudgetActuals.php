@@ -82,7 +82,6 @@ final readonly class ReadMonthlyBudgetActuals
                     [] !== $accountFacts->accounts,
                 );
             $actuals[$scope->key] = new MonthlyBudgetActualView(
-                $scope->key,
                 new MonthlyMetricView($actual->amount, $actual->asset?->toString(), $actual->reason?->value),
                 array_map(
                     static function (MonthlyBudgetActualSource $source) use ($bookedFactsById): MonthlyBudgetSourceView {

@@ -4,7 +4,7 @@ import { authApiOptions } from '@/features/auth/apiOptions';
 import { netWorthRequestError } from './netWorthError';
 
 /** Points of the history curve, the current day included. */
-export const HISTORY_MONTHS = 12;
+const HISTORY_MONTHS = 12;
 
 /**
  * The aggregate is workspace-wide and reads every account, so callers that

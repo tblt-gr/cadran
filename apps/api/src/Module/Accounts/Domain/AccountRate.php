@@ -33,7 +33,7 @@ final readonly class AccountRate
      * by the regulator must never read the same, whatever `guaranteed` says.
      */
     public function __construct(
-        public RuleKind $kind,
+        RuleKind $kind,
         public RateScale $scale,
         public bool $guaranteed,
         public EffectivePeriod $period,

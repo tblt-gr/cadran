@@ -8,7 +8,7 @@
 import { isCanonicalDecimal, isZeroDecimal, subtractDecimals, sumDecimals } from '@/lib/decimal';
 import type { SplitRowValues } from './SplitRow';
 
-export const MIN_EVEN_SPLIT_ROWS = 2;
+const MIN_EVEN_SPLIT_ROWS = 2;
 export const MAX_SPLIT_ROWS = 20;
 
 /**

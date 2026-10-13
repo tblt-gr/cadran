@@ -8,7 +8,6 @@ final readonly class MonthlyBudgetActualView
 {
     /** @param list<MonthlyBudgetSourceView> $sources */
     public function __construct(
-        public string $scopeKey,
         public MonthlyMetricView $amount,
         public array $sources,
         public int $pendingCount,

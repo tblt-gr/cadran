@@ -110,11 +110,6 @@ final readonly class DbalAccountRepository implements AccountRepository
         ));
     }
 
-    public function listForNetWorth(WorkspaceScope $workspace, int $limit): array
-    {
-        return $this->hydrateMany($this->netWorthRows($workspace, $limit), $workspace);
-    }
-
     public function listForNetWorthDuring(
         WorkspaceScope $workspace,
         \DateTimeImmutable $from,
@@ -246,22 +241,6 @@ final readonly class DbalAccountRepository implements AccountRepository
         }
 
         return [implode(' AND ', $conditions), $parameters];
-    }
-
-    /**
-     * Active accounts included in net worth, closed ones kept.
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function netWorthRows(WorkspaceScope $workspace, int $limit): array
-    {
-        return $this->connection->fetchAllAssociative(
-            'SELECT '.self::COLUMNS.' FROM account_financial_accounts'
-            .' WHERE workspace_id = :workspace_id AND archived_at IS NULL AND include_in_net_worth = true'
-            .' ORDER BY kind, normalized_label, id LIMIT :limit',
-            ['workspace_id' => $workspace->id, 'limit' => $limit],
-            ['limit' => ParameterType::INTEGER],
-        );
     }
 
     /**

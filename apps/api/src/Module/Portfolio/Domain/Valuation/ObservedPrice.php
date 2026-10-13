@@ -14,7 +14,6 @@ final readonly class ObservedPrice
         public DecimalValue $price,
         public \DateTimeImmutable $priceDate,
         public string $valuationId,
-        public \DateTimeImmutable $recordedAt,
     ) {
     }
 }

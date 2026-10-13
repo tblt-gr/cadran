@@ -105,7 +105,9 @@ jobs:
         run: composer install --working-dir=apps/api --no-interaction --no-progress --prefer-dist --no-scripts
       - name: Coding standards
         run: composer lint --working-dir=apps/api
-      - name: Static analysis
+      - name: Composer dependencies
+        run: composer deps --working-dir=apps/api
+      - name: Static analysis and dead code
         run: composer analyse --working-dir=apps/api
       - name: Module boundaries and workspace scope
         run: sh scripts/test-architecture.sh

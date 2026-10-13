@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 
-export const ANNUAL_PREFERENCES_QUERY_KEY = ['annual-report-preferences'];
+const ANNUAL_PREFERENCES_QUERY_KEY = ['annual-report-preferences'];
 
 export class AnnualRequestError extends Error {
   readonly status: number;
