@@ -22,18 +22,16 @@
 }
 
 /* Scroll affordances appear on hover or keyboard focus only. They stay laid out while hidden so
-   revealing them never shifts the tabs. */
+   revealing them never shifts the tabs. `visibility`, not `opacity`: the shared
+   `.icon-button:disabled` opacity would keep a disabled chevron half visible at rest. */
 .scroll {
   flex: none;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--duration-fast) var(--ease-out);
+  visibility: hidden;
 }
 
 .strip:hover .scroll,
 .strip:focus-within .scroll {
-  opacity: 1;
-  pointer-events: auto;
+  visibility: visible;
 }
 
 .strip:hover .tabs,
@@ -109,10 +107,6 @@
 @media (prefers-reduced-motion: reduce) {
   .tabs {
     scroll-behavior: auto;
-  }
-
-  .scroll {
-    transition-duration: var(--duration-reduced-motion);
   }
 
   .tab {
