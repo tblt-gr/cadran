@@ -898,4 +898,59 @@ final class GoalControllerTest extends WebTestCase
             return $value;
         }, $values);
     }
+
+    public function testCreationReplaysTheFirstResponseForTheSameKeyAndBodyAndRefusesAChangedBody(): void
+    {
+        $key = 'goal-create-key-00000001';
+        $send = function (array $body) use ($key): void {
+            $this->client->request('POST', '/api/v1/goals', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json', 'HTTP_IDEMPOTENCY_KEY' => $key], content: json_encode($body, JSON_THROW_ON_ERROR));
+        };
+
+        $send($this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        self::assertFalse($this->client->getResponse()->headers->has('Idempotency-Replayed'));
+        $first = $this->id($this->decode());
+
+        $send($this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        self::assertResponseHeaderSame('Idempotency-Replayed', 'true');
+        self::assertSame($first, $this->id($this->decode()));
+        self::assertSame('1', $this->scalar('SELECT COUNT(*) FROM budget_goals WHERE workspace_id = ?', [WorkspaceFixture::OWN_WORKSPACE]));
+
+        $send([...$this->annualPayload(), 'label' => 'Another label']);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('1', $this->scalar('SELECT COUNT(*) FROM budget_goals WHERE workspace_id = ?', [WorkspaceFixture::OWN_WORKSPACE]));
+
+        $this->requestJson('POST', '/api/v1/session', ['email' => WorkspaceFixture::OTHER_OWNER_EMAIL, 'password' => WorkspaceFixture::OWNER_PASSWORD]);
+        $this->client->request('GET', '/api/v1/session');
+        $csrf = $this->client->getCookieJar()->get(SignedCsrfToken::COOKIE_NAME);
+        self::assertNotNull($csrf);
+        $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', $csrf->getValue());
+        $send($this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        self::assertFalse($this->client->getResponse()->headers->has('Idempotency-Replayed'));
+        self::assertNotSame($first, $this->id($this->decode()));
+        self::assertSame('1', $this->scalar('SELECT COUNT(*) FROM budget_goals WHERE workspace_id = ?', [WorkspaceFixture::OWN_WORKSPACE]));
+    }
+
+    public function testTheListIsPagedAndRejectsOutOfRangePagination(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        $this->requestJson('POST', '/api/v1/goals', [...$this->annualPayload(), 'label' => 'Second']);
+        self::assertResponseStatusCodeSame(201);
+
+        $this->client->request('GET', '/api/v1/goals?year=2026&pageSize=1&page=2');
+        self::assertResponseIsSuccessful();
+        $page = $this->decode();
+        self::assertCount(1, self::items($page['items']));
+        self::assertSame(2, $page['page']);
+        self::assertSame(1, $page['pageSize']);
+        self::assertSame(2, $page['total']);
+
+        foreach (['pageSize=0', 'pageSize=101', 'page=0', 'page=1001', 'pageSize=abc'] as $query) {
+            $this->client->request('GET', '/api/v1/goals?year=2026&'.$query);
+            self::assertResponseStatusCodeSame(400, $query);
+        }
+    }
 }

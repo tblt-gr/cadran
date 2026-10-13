@@ -26,7 +26,7 @@ final class ListAssetsTest extends TestCase
         // By code, like the real catalogue, whatever order they were seeded in.
         self::assertSame(['BTC', 'EUR', 'USD'], self::codesOf($page->assets));
         self::assertSame(1, $page->page);
-        self::assertSame(ListAssets::DEFAULT_PAGE_SIZE, $page->perPage);
+        self::assertSame(ListAssets::DEFAULT_PAGE_SIZE, $page->pageSize);
         self::assertSame(3, $page->total);
     }
 
@@ -38,7 +38,7 @@ final class ListAssetsTest extends TestCase
 
         self::assertSame(['EUR', 'JPY'], self::codesOf($page->assets));
         self::assertSame(2, $page->page);
-        self::assertSame(2, $page->perPage);
+        self::assertSame(2, $page->pageSize);
         self::assertSame(5, $page->total);
     }
 
@@ -53,13 +53,13 @@ final class ListAssetsTest extends TestCase
     }
 
     #[DataProvider('unboundedQueries')]
-    public function testAnUnboundedQueryIsRefused(?int $page, ?int $perPage): void
+    public function testAnUnboundedQueryIsRefused(?int $page, ?int $pageSize): void
     {
         $catalog = InMemoryAssetCatalog::withCodes('EUR');
 
         $this->expectException(InvalidAssetQuery::class);
 
-        (new ListAssets($catalog))($page, $perPage);
+        (new ListAssets($catalog))($page, $pageSize);
     }
 
     /**

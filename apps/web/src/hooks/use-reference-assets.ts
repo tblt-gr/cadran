@@ -14,7 +14,7 @@ export function useReferenceAssets(): UseQueryResult<{ items: Asset[] }> {
     queryFn: async ({ signal }) => {
       const result = await listAssets({
         ...authApiOptions(),
-        query: { page: 1, perPage: 100 },
+        query: { page: 1, pageSize: 100 },
         signal,
       });
       if (!result.response?.ok || !result.data) {

@@ -20,7 +20,7 @@ const sell = operationFixture({ id: 'sell-1', type: 'SELL', sequence: 2 });
 
 function response(items: PortfolioOperation[]) {
   return Promise.resolve({
-    data: { items, page: 1, perPage: 100, total: items.length },
+    data: { items, page: 1, pageSize: 100, total: items.length },
     response: new Response('{}', { status: 200 }),
   });
 }

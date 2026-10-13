@@ -36,8 +36,8 @@ final class AuditTrailController
         Request $request,
         ListAuditTrail $listAuditTrail,
     ): Response {
-        $limit = $request->query->getString('limit');
-        if ('' !== $limit && 1 !== preg_match('/^[0-9]{1,3}$/', $limit)) {
+        $pageSize = $request->query->getString('pageSize');
+        if ('' !== $pageSize && 1 !== preg_match('/^[0-9]{1,3}$/', $pageSize)) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_audit_query');
         }
 
@@ -45,7 +45,7 @@ final class AuditTrailController
 
         try {
             $page = $listAuditTrail(
-                '' === $limit ? null : (int) $limit,
+                '' === $pageSize ? null : (int) $pageSize,
                 '' === $cursor ? null : $cursor,
             );
         } catch (WorkspaceAccessDenied) {

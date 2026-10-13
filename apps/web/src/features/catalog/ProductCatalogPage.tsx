@@ -41,7 +41,7 @@ export function ProductCatalogPage() {
     queryFn: async ({ signal }) => {
       const result = await listProducts({
         ...authApiOptions(),
-        query: { asOf, page, perPage: PAGE_SIZE },
+        query: { asOf, page, pageSize: PAGE_SIZE },
         signal,
       });
       if (!result.response?.ok || !result.data) {

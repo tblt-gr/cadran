@@ -40,7 +40,7 @@ export function BudgetPage({ planId }: { planId?: string }) {
     queryFn: async ({ signal }) => {
       const result = await listBudgetPlans({
         ...authApiOptions(),
-        query: { page: 1, perPage: 100 },
+        query: { page: 1, pageSize: 100 },
         signal,
       });
       if (failed(result)) throw budgetRequestError(result);

@@ -25,14 +25,14 @@ final readonly class ListCategories
     public function __invoke(
         bool $includeArchived,
         ?int $page,
-        ?int $perPage,
+        ?int $pageSize,
         ?string $type = null,
         ?string $search = null,
         bool $parentEligible = false,
     ): CategoryPage {
         $requestedPage = $page ?? 1;
-        $pageSize = $perPage ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
+        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
+        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
             throw new InvalidCategoryInput('The category page is outside its bounds.');
         }
         $categoryType = null === $type ? null : CategoryInputParser::type($type);
@@ -45,8 +45,8 @@ final readonly class ListCategories
         $categories = $this->categories->list(
             $workspace,
             $includeArchived,
-            $pageSize,
-            ($requestedPage - 1) * $pageSize,
+            $resolvedPageSize,
+            ($requestedPage - 1) * $resolvedPageSize,
             $categoryType,
             $trimmedSearch,
             $parentEligible,
@@ -85,7 +85,7 @@ final readonly class ListCategories
                 $categories,
             ),
             page: $requestedPage,
-            perPage: $pageSize,
+            pageSize: $resolvedPageSize,
             total: $this->categories->count($workspace, $includeArchived, $categoryType, $trimmedSearch, $parentEligible),
         );
     }

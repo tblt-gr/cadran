@@ -41,12 +41,12 @@ final readonly class CategoryController
     public function list(Request $request, ListCategories $listCategories): Response
     {
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
+        $pageSize = $request->query->getString('pageSize');
         $includeArchived = $request->query->getString('includeArchived');
         $type = $request->query->getString('type');
         $search = $request->query->getString('search');
         $parentEligible = $request->query->getString('parentEligible');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($perPage)
+        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)
             || !in_array($includeArchived, ['', 'true', 'false'], true)
             || !in_array($type, ['', 'EXPENSE', 'INCOME'], true)
             || !in_array($parentEligible, ['', 'true', 'false'], true)) {
@@ -57,7 +57,7 @@ final readonly class CategoryController
             $categories = $listCategories(
                 'true' === $includeArchived,
                 '' === $page ? null : (int) $page,
-                '' === $perPage ? null : (int) $perPage,
+                '' === $pageSize ? null : (int) $pageSize,
                 '' === $type ? null : $type,
                 '' === $search ? null : $search,
                 'true' === $parentEligible,

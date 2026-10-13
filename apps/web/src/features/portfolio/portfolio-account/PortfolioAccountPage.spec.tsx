@@ -63,7 +63,7 @@ function problem(status: number, body: object) {
   return Promise.resolve({ error: body, response: new Response('{}', { status }) });
 }
 function page(items: PortfolioOperation[]) {
-  return ok({ items, page: 1, perPage: 50, total: items.length });
+  return ok({ items, page: 1, pageSize: 50, total: items.length });
 }
 function renderPage(timeZone = 'Europe/Paris', shell = false, frozen = false) {
   const client = new QueryClient({
@@ -162,8 +162,8 @@ beforeEach(() => {
   api.readPortfolioPerformance.mockImplementation(() => ok(performanceFixture()));
   api.readPortfolioValuationHistory.mockImplementation(() => ok(historyFixture()));
   api.readAccount.mockImplementation(() => ok(account));
-  api.listProducts.mockImplementation(() => ok({ items: [], page: 1, perPage: 100, total: 0 }));
-  api.listInstruments.mockImplementation(() => ok({ items: [], page: 1, perPage: 20, total: 0 }));
+  api.listProducts.mockImplementation(() => ok({ items: [], page: 1, pageSize: 100, total: 0 }));
+  api.listInstruments.mockImplementation(() => ok({ items: [], page: 1, pageSize: 20, total: 0 }));
   api.listPortfolioTransferCandidates.mockImplementation(() => ok({ items: [] }));
   api.previewPortfolioOperation.mockImplementation(() =>
     ok({
@@ -195,7 +195,7 @@ describe('PortfolioAccountPage', () => {
         `/portfolios/${accountId}?tab=${kind === 'operation' ? 'operations' : 'valuations'}&asOf=2026-03-10&operation=${deposit.id}&valuation=valuation-1&filter=kept#sources`,
       );
       api.listPortfolioValuations.mockImplementation(() =>
-        ok({ items: [], page: 1, perPage: 24, total: 0 }),
+        ok({ items: [], page: 1, pageSize: 24, total: 0 }),
       );
       api.readPortfolioOperation.mockImplementation(() => ok(deposit));
       api.readPortfolioValuation.mockImplementation(() =>
@@ -236,7 +236,7 @@ describe('PortfolioAccountPage', () => {
         `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10&operation=${deposit.id}&valuation=valuation-1&filter=kept#sources`,
       );
       api.listPortfolioValuations.mockImplementation(() =>
-        ok({ items: [], page: 1, perPage: 24, total: 0 }),
+        ok({ items: [], page: 1, pageSize: 24, total: 0 }),
       );
       api.readPortfolioOperation.mockImplementation(() => ok(deposit));
       api.readPortfolioValuation.mockImplementation(() =>
@@ -340,7 +340,7 @@ describe('PortfolioAccountPage', () => {
       ok({ ...summaryFixture(), dueMonths: ['2026-02', '2026-03'] }),
     );
     api.listPortfolioValuations.mockImplementation(() =>
-      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+      ok({ items: [], page: 1, pageSize: 24, total: 0 }),
     );
     api.readPortfolioValuationDraft.mockImplementation(() =>
       ok({
@@ -365,7 +365,7 @@ describe('PortfolioAccountPage', () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-03-10&tab=positions`);
     api.readPortfolioCash.mockImplementation(() => ok(cashFixture()));
     api.listPortfolioValuations.mockImplementation(() =>
-      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+      ok({ items: [], page: 1, pageSize: 24, total: 0 }),
     );
     renderPage();
     await screen.findByText('Aucune position à cette date');
@@ -416,7 +416,7 @@ describe('PortfolioAccountPage', () => {
 
   it('opens the exact valuation source from a KPI explanation with one dialog', async () => {
     api.listPortfolioValuations.mockImplementation(() =>
-      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+      ok({ items: [], page: 1, pageSize: 24, total: 0 }),
     );
     api.readPortfolioValuation.mockImplementation(() =>
       ok(positionsValuationFixture({ id: 'valuation-1' })),
@@ -505,7 +505,7 @@ describe('PortfolioAccountPage', () => {
   it('opens the Valorisations tab from ?tab=valuations', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=valuations`);
     api.listPortfolioValuations.mockImplementation(() =>
-      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+      ok({ items: [], page: 1, pageSize: 24, total: 0 }),
     );
     renderPage();
 
@@ -969,7 +969,7 @@ it.each([
     }),
   );
   api.listPortfolioValuations.mockImplementation(() =>
-    ok({ items: [], page: 1, perPage: 24, total: 0 }),
+    ok({ items: [], page: 1, pageSize: 24, total: 0 }),
   );
   window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
   renderPage();
@@ -1013,7 +1013,7 @@ it.each(['allocation', 'positions', 'valuations'] as const)(
   'keeps the securities %s tab free of insurance reports',
   async (tab) => {
     api.listPortfolioValuations.mockImplementation(() =>
-      ok({ items: [], page: 1, perPage: 24, total: 0 }),
+      ok({ items: [], page: 1, pageSize: 24, total: 0 }),
     );
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
     renderPage();

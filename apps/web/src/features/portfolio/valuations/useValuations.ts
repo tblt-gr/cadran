@@ -16,7 +16,7 @@ export function useValuations(accountId: string, page: number, asOf?: string) {
       const result = await listPortfolioValuations({
         ...authApiOptions(),
         path: { accountId },
-        query: { page, perPage: VALUATIONS_PER_PAGE, to: asOf },
+        query: { page, pageSize: VALUATIONS_PER_PAGE, to: asOf },
         signal,
       });
       if (!result.response?.ok || !result.data) throw valuationRequestError(result);

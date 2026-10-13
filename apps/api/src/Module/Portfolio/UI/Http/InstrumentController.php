@@ -20,6 +20,11 @@ use App\Module\Portfolio\Application\ReadInstrument;
 use App\Module\Portfolio\Application\StaleInstrumentVersion;
 use App\Module\Portfolio\Application\UpdateInstrument;
 use App\Module\Portfolio\Application\UpdateInstrumentInput;
+use App\Module\Transactions\Application\IdempotencyConflict;
+use App\Module\Transactions\Application\IdempotentExecution;
+use App\Module\Transactions\Application\IdempotentResponse;
+use App\Module\Transactions\Application\InvalidIdempotencyKey;
+use App\Module\Transactions\UI\Http\TransactionHttpEnvelope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,29 +39,32 @@ final readonly class InstrumentController
         'isin', 'ticker', 'venueMic', 'assetClass', 'region', 'quantityPrecision', 'pricePrecision', 'confirmDuplicate',
     ];
 
-    public function __construct(private TranslatorInterface $translator)
-    {
+    public function __construct(
+        private TranslatorInterface $translator,
+        private TransactionHttpEnvelope $idempotencyEnvelope,
+        private IdempotentExecution $idempotentExecution,
+    ) {
     }
 
     #[Route('/api/v1/instruments', name: 'api_v1_instruments_list', methods: ['GET'])]
     public function list(Request $request, ListInstruments $list): Response
     {
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($perPage)) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_instrument_query');
+        $pageSize = $request->query->getString('pageSize');
+        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_instrument_query');
         }
         try {
             $result = $list(
                 $request->query->has('q') ? $request->query->getString('q') : null,
                 $request->query->getString('status'),
                 '' === $page ? null : (int) $page,
-                '' === $perPage ? null : (int) $perPage,
+                '' === $pageSize ? null : (int) $pageSize,
                 $request->query->has('currencyCode') ? $request->query->getString('currencyCode') : null,
                 $request->query->has('instrumentType') ? $request->query->getString('instrumentType') : null,
             );
         } catch (InvalidInstrumentInput $exception) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode);
+            return $this->problem(Response::HTTP_BAD_REQUEST, $exception->problemCode);
         } catch (WorkspaceAccessDenied) {
             return $this->problem(Response::HTTP_FORBIDDEN, 'instrument_forbidden');
         }
@@ -73,12 +81,23 @@ final readonly class InstrumentController
         }
         try {
             $payload = InstrumentPayload::of($body, self::REQUIRED_WRITE_FIELDS, self::OPTIONAL_WRITE_FIELDS);
-            $instrument = $create(new CreateInstrumentInput(
+            $input = new CreateInstrumentInput(
                 $payload->string('name'), $payload->nullableString('isin'), $payload->nullableString('ticker'),
                 $payload->nullableString('venueMic'), $payload->string('instrumentType'), $payload->nullableString('assetClass'),
                 $payload->nullableString('region'), $payload->string('currencyCode'), $payload->nullableInteger('quantityPrecision'),
                 $payload->nullableInteger('pricePrecision'), $payload->boolean('confirmDuplicate'),
-            ));
+            );
+            $result = $this->idempotentExecution->execute(
+                'instrument.create',
+                $this->idempotencyEnvelope->idempotency($request, false),
+                static function () use ($create, $input): IdempotentResponse {
+                    $instrument = $create($input);
+
+                    return new IdempotentResponse(InstrumentRepresentation::one($instrument), Response::HTTP_CREATED, $instrument->id);
+                },
+            );
+        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
+            return $this->idempotencyEnvelope->idempotencyProblem($exception);
         } catch (\UnexpectedValueException) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_instrument_payload');
         } catch (InvalidInstrumentInput $exception) {
@@ -95,7 +114,7 @@ final readonly class InstrumentController
             return $this->problem(Response::HTTP_FORBIDDEN, 'instrument_forbidden');
         }
 
-        return self::json(InstrumentRepresentation::one($instrument), Response::HTTP_CREATED);
+        return new JsonResponse($result->body, $result->status, ['Cache-Control' => 'no-store', ...($result->replayed ? ['Idempotency-Replayed' => 'true'] : [])]);
     }
 
     #[Route('/api/v1/instruments/{id}', name: 'api_v1_instruments_show', methods: ['GET'])]

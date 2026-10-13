@@ -64,9 +64,9 @@ final readonly class ProductModelController
     public function list(Request $request, ListProductModels $listProductModels): Response
     {
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
+        $pageSize = $request->query->getString('pageSize');
         $includeArchived = $request->query->getString('includeArchived');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($perPage) || !self::flag($includeArchived)) {
+        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize) || !self::flag($includeArchived)) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_model_query');
         }
 
@@ -74,7 +74,7 @@ final readonly class ProductModelController
             $models = $listProductModels(
                 'true' === $includeArchived,
                 '' === $page ? null : (int) $page,
-                '' === $perPage ? null : (int) $perPage,
+                '' === $pageSize ? null : (int) $pageSize,
             );
         } catch (InvalidProductModelInput) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_model_query');

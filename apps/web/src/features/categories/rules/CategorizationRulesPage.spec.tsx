@@ -83,7 +83,7 @@ describe('CategorizationRulesPage', () => {
       screen.getByTestId('categorization-rules-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
     resolveRules?.({
-      data: { items: [rule], page: 1, perPage: 100, total: 1 },
+      data: { items: [rule], page: 1, pageSize: 100, total: 1 },
       response: new Response('{}', { status: 200 }),
     });
     expect(await screen.findByText(rule.label)).toBeTruthy();
@@ -104,7 +104,7 @@ describe('CategorizationRulesPage', () => {
   it('covers the empty state and opens the shared editor', async () => {
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Créer la première règle' }));
@@ -116,7 +116,7 @@ describe('CategorizationRulesPage', () => {
   it('renders stored labels as text and only enables application after a preview', async () => {
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [rule], page: 1, perPage: 100, total: 1 }),
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
     );
     api.previewCategorizationRules.mockImplementation(() =>
       success({
@@ -149,7 +149,7 @@ describe('CategorizationRulesPage', () => {
   it('does not describe an all-manual result as a zero-match preview', async () => {
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [rule], page: 1, perPage: 100, total: 1 }),
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
     );
     api.previewCategorizationRules.mockImplementation(() =>
       success({
@@ -188,7 +188,7 @@ describe('CategorizationRulesPage', () => {
     };
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [rule], page: 1, perPage: 100, total: 1 }),
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
     );
     api.previewCategorizationRules.mockImplementation(() =>
       success({
@@ -221,7 +221,7 @@ describe('CategorizationRulesPage', () => {
     };
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [rule], page: 1, perPage: 100, total: 1 }),
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
     );
     api.previewCategorizationRules.mockImplementation(() =>
       success({
@@ -252,7 +252,7 @@ describe('CategorizationRulesPage', () => {
     };
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [rule], page: 1, perPage: 100, total: 1 }),
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
     );
     api.previewCategorizationRules.mockImplementation(() =>
       success({
@@ -282,9 +282,9 @@ describe('CategorizationRulesPage', () => {
     const deactivatedRule = { ...rule, active: false, deactivatedReason: 'USER' };
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     api.listCategorizationRules
-      .mockImplementationOnce(() => success({ items: [rule], page: 1, perPage: 100, total: 1 }))
+      .mockImplementationOnce(() => success({ items: [rule], page: 1, pageSize: 100, total: 1 }))
       .mockImplementation(() =>
-        success({ items: [deactivatedRule], page: 1, perPage: 100, total: 1 }),
+        success({ items: [deactivatedRule], page: 1, pageSize: 100, total: 1 }),
       );
     api.previewCategorizationRules.mockImplementation(() =>
       success({
@@ -311,13 +311,13 @@ describe('CategorizationRulesPage', () => {
   it('paginates through every rule instead of stopping at the first 100', async () => {
     const laterRule = { ...rule, id: '00000000-0000-7000-8000-000000000099', label: 'Page deux' };
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listCategorizationRules.mockImplementation(({ query }) =>
       success(
         query?.page === 2
-          ? { items: [laterRule], page: 2, perPage: 100, total: 101 }
-          : { items: [rule], page: 1, perPage: 100, total: 101 },
+          ? { items: [laterRule], page: 2, pageSize: 100, total: 101 }
+          : { items: [rule], page: 1, pageSize: 100, total: 101 },
       ),
     );
     renderPage();
@@ -329,7 +329,7 @@ describe('CategorizationRulesPage', () => {
     expect(await screen.findByText(laterRule.label)).toBeTruthy();
     expect(screen.getByText('Page 2 sur 2')).toBeTruthy();
     expect(api.listCategorizationRules).toHaveBeenLastCalledWith(
-      expect.objectContaining({ query: expect.objectContaining({ page: 2, perPage: 100 }) }),
+      expect.objectContaining({ query: expect.objectContaining({ page: 2, pageSize: 100 }) }),
     );
   });
   it('keeps the list mounted and focus on the pagination control while changing page', async () => {
@@ -339,12 +339,12 @@ describe('CategorizationRulesPage', () => {
       resolveSecondPage = resolve;
     });
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listCategorizationRules.mockImplementation(({ query }) =>
       query?.page === 2
         ? secondPage
-        : success({ items: [rule], page: 1, perPage: 100, total: 101 }),
+        : success({ items: [rule], page: 1, pageSize: 100, total: 101 }),
     );
     renderPage();
 
@@ -362,7 +362,7 @@ describe('CategorizationRulesPage', () => {
     // A second activation while the fetch is in flight must not race ahead to page 3.
     fireEvent.click(next);
 
-    resolveSecondPage(await success({ items: [laterRule], page: 2, perPage: 100, total: 101 }));
+    resolveSecondPage(await success({ items: [laterRule], page: 2, pageSize: 100, total: 101 }));
 
     expect(await screen.findByText(laterRule.label)).toBeTruthy();
     expect(screen.getByText('Page 2 sur 2')).toBeTruthy();
@@ -383,7 +383,7 @@ describe('CategorizationRulesPage', () => {
                 },
               ],
               page: 2,
-              perPage: 100,
+              pageSize: 100,
               total: 101,
             }
           : {
@@ -393,13 +393,13 @@ describe('CategorizationRulesPage', () => {
                 assetCode: 'EUR',
               })),
               page: 1,
-              perPage: 100,
+              pageSize: 100,
               total: 101,
             },
       ),
     );
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderPage();
 
@@ -412,10 +412,10 @@ describe('CategorizationRulesPage', () => {
     api.listAccounts.mockImplementation(({ query }) =>
       query?.page === 2
         ? Promise.resolve({ error: {}, response: new Response('', { status: 500 }) })
-        : success({ items: [], page: 1, perPage: 100, total: 101 }),
+        : success({ items: [], page: 1, pageSize: 100, total: 101 }),
     );
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [rule], page: 1, perPage: 100, total: 1 }),
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
     );
     renderPage();
 
@@ -427,7 +427,7 @@ describe('CategorizationRulesPage', () => {
   it('keeps rule editing unavailable while account references load', async () => {
     api.listAccounts.mockImplementation(() => new Promise(() => undefined));
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderPage();
 
@@ -447,7 +447,7 @@ describe('CategorizationRulesPage', () => {
       Promise.resolve({ error: {}, response: new Response('', { status: 500 }) }),
     );
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [rule], page: 1, perPage: 100, total: 1 }),
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
     );
     renderPage();
 
@@ -464,7 +464,7 @@ describe('CategorizationRulesPage', () => {
       Promise.resolve({ error: {}, response: new Response('', { status: 401 }) }),
     );
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderPage();
 
@@ -478,7 +478,7 @@ describe('CategorizationRulesPage', () => {
   it('requires a fresh preview when the apply token becomes stale', async () => {
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [rule], page: 1, perPage: 100, total: 1 }),
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
     );
     api.previewCategorizationRules.mockImplementation(() =>
       success({
@@ -515,7 +515,7 @@ describe('CategorizationRulesPage', () => {
   it('explains a preview rejected for exceeding the safe execution limit', async () => {
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     api.listCategorizationRules.mockImplementation(() =>
-      success({ items: [rule], page: 1, perPage: 100, total: 1 }),
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
     );
     api.previewCategorizationRules.mockImplementation(() =>
       Promise.resolve({

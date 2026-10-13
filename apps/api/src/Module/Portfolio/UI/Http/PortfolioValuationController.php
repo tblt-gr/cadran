@@ -53,7 +53,7 @@ final readonly class PortfolioValuationController
         }
         try {
             $query = $request->query->all();
-            $page = $list($accountId, self::scalar($query, 'from'), self::scalar($query, 'to'), self::scalar($query, 'page'), self::scalar($query, 'perPage'));
+            $page = $list($accountId, self::scalar($query, 'from'), self::scalar($query, 'to'), self::scalar($query, 'page'), self::scalar($query, 'pageSize'));
         } catch (\Throwable $exception) {
             return $this->failure($exception);
         }
@@ -173,7 +173,7 @@ final readonly class PortfolioValuationController
             $exception instanceof InvalidPortfolioOperation => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
             $exception instanceof \UnexpectedValueException => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_valuation_payload'),
             $exception instanceof InvalidHistoryRange => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_history_range'),
-            $exception instanceof InvalidValuationQuery => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_valuation_query'),
+            $exception instanceof InvalidValuationQuery => $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_valuation_query'),
             $exception instanceof PortfolioAccountNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND),
             $exception instanceof ValuationNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::VALUATION_NOT_FOUND),
             $exception instanceof ValuationConflict => $this->problem(Response::HTTP_CONFLICT, $exception->problemCode),

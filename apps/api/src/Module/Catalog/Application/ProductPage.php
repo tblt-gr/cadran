@@ -14,7 +14,7 @@ final readonly class ProductPage
     public function __construct(
         public array $products,
         public int $page,
-        public int $perPage,
+        public int $pageSize,
         public int $total,
     ) {
     }

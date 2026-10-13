@@ -89,7 +89,7 @@ describe('BudgetPage', () => {
     expect(screen.getByTestId('budget-page-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolvePlans?.({
-      data: { items: [plan], page: 1, perPage: 100, total: 1 },
+      data: { items: [plan], page: 1, pageSize: 100, total: 1 },
       response: new Response('{}', { status: 200 }),
     });
     expect(await screen.findByText(plan.period)).toBeTruthy();
@@ -102,7 +102,7 @@ describe('BudgetPage', () => {
     expect(screen.queryByTestId('budget-page-skeleton')).toBeNull();
   });
   it('shows an empty state and submits a monthly draft in the shared modal', async () => {
-    api.listBudgetPlans.mockReturnValue(ok({ items: [], page: 1, perPage: 100, total: 0 }));
+    api.listBudgetPlans.mockReturnValue(ok({ items: [], page: 1, pageSize: 100, total: 0 }));
     api.createBudgetPlan.mockReturnValue(ok(plan, 201));
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier plan' }));
@@ -118,7 +118,7 @@ describe('BudgetPage', () => {
     );
   });
   it('shows a stored decimal ratio as an exact percentage and preserves the server non-calculable reason', async () => {
-    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, pageSize: 100, total: 1 }));
     api.readBudgetPlan.mockReturnValue(
       ok(
         detail({
@@ -155,7 +155,7 @@ describe('BudgetPage', () => {
     expect(await screen.findByRole('heading', { name: 'Session expirée' })).toBeTruthy();
   });
   it('disables activation of an empty draft and explains why', async () => {
-    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, pageSize: 100, total: 1 }));
     api.readBudgetPlan.mockReturnValue(ok(detail()));
     renderPage(plan.id);
 
@@ -166,7 +166,7 @@ describe('BudgetPage', () => {
   });
   it('renders a readable target scope label instead of its category identifier', async () => {
     const categoryId = '00000000-0000-7000-8000-000000000004';
-    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, pageSize: 100, total: 1 }));
     api.readBudgetPlan.mockReturnValue(
       ok(
         detail({
@@ -187,7 +187,7 @@ describe('BudgetPage', () => {
     expect(screen.queryByText(categoryId)).toBeNull();
   });
   it('opens the category target perimeter picker as a labelled combobox', async () => {
-    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, pageSize: 100, total: 1 }));
     api.readBudgetPlan.mockReturnValue(ok(detail()));
     api.listCategories.mockReturnValue(
       ok({
@@ -202,7 +202,7 @@ describe('BudgetPage', () => {
           },
         ],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 1,
       }),
     );
@@ -216,9 +216,9 @@ describe('BudgetPage', () => {
     expect(await screen.findByRole('listbox', { name: 'Périmètre' })).toBeTruthy();
   });
   it('explains that a ratio target is entered as an exact decimal ratio', async () => {
-    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, pageSize: 100, total: 1 }));
     api.readBudgetPlan.mockReturnValue(ok(detail()));
-    api.listCategories.mockReturnValue(ok({ items: [], page: 1, perPage: 50, total: 0 }));
+    api.listCategories.mockReturnValue(ok({ items: [], page: 1, pageSize: 50, total: 0 }));
     renderPage(plan.id);
 
     await waitFor(() => expect(screen.queryByTestId('budget-page-skeleton')).toBeNull());
@@ -235,7 +235,7 @@ describe('BudgetPage', () => {
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
     const invalidate = vi.spyOn(client, 'invalidateQueries');
-    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, pageSize: 100, total: 1 }));
     api.readBudgetPlan.mockReturnValue(ok(detail({ targets: [target] })));
     api.updateBudgetTarget.mockReturnValue(ok(target));
     renderPage(plan.id, client);
@@ -253,7 +253,7 @@ describe('BudgetPage', () => {
     [422, 'La demande est invalide ou une référence n’est plus utilisable.'],
     [0, 'L’opération a échoué. Réessayez.'],
   ])('renders lifecycle request error %i', async (status, message) => {
-    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, perPage: 100, total: 1 }));
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, pageSize: 100, total: 1 }));
     api.readBudgetPlan.mockReturnValue(ok(detail({ targets: [target] })));
     api.activateBudgetPlan.mockReturnValue(
       status === 0

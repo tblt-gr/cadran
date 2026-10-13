@@ -20,23 +20,23 @@ final readonly class ListAssets
     {
     }
 
-    public function __invoke(?int $page, ?int $perPage): AssetPage
+    public function __invoke(?int $page, ?int $pageSize): AssetPage
     {
         $requestedPage = $page ?? 1;
-        $pageSize = $perPage ?? self::DEFAULT_PAGE_SIZE;
+        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
 
         if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE) {
             throw new InvalidAssetQuery(sprintf('The page number must be between 1 and %d.', self::MAX_PAGE));
         }
 
-        if ($pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
+        if ($resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
             throw new InvalidAssetQuery(sprintf('The page size must be between 1 and %d.', self::MAX_PAGE_SIZE));
         }
 
         return new AssetPage(
-            assets: $this->catalog->readPage($pageSize, ($requestedPage - 1) * $pageSize),
+            assets: $this->catalog->readPage($resolvedPageSize, ($requestedPage - 1) * $resolvedPageSize),
             page: $requestedPage,
-            perPage: $pageSize,
+            pageSize: $resolvedPageSize,
             total: $this->catalog->count(),
         );
     }

@@ -133,7 +133,7 @@ final class AuditTrailControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(204);
         $this->signIn();
 
-        $this->client->request('GET', '/api/v1/audit-events?limit=1');
+        $this->client->request('GET', '/api/v1/audit-events?pageSize=1');
 
         $first = $this->items();
         self::assertCount(1, $first);
@@ -141,7 +141,7 @@ final class AuditTrailControllerTest extends WebTestCase
         $cursor = $this->nextCursor();
         self::assertNotNull($cursor);
 
-        $this->client->request('GET', '/api/v1/audit-events?limit=1&cursor='.rawurlencode($cursor));
+        $this->client->request('GET', '/api/v1/audit-events?pageSize=1&cursor='.rawurlencode($cursor));
 
         $second = $this->items();
         self::assertSame(['session.closed'], array_column($second, 'eventType'));
@@ -152,7 +152,7 @@ final class AuditTrailControllerTest extends WebTestCase
     {
         $this->signIn();
 
-        $this->client->request('GET', '/api/v1/audit-events?limit=101');
+        $this->client->request('GET', '/api/v1/audit-events?pageSize=101');
 
         self::assertResponseStatusCodeSame(400);
         self::assertResponseHeaderSame('content-type', 'application/problem+json');
@@ -162,7 +162,7 @@ final class AuditTrailControllerTest extends WebTestCase
     {
         $this->signIn();
 
-        $this->client->request('GET', '/api/v1/audit-events?limit=all');
+        $this->client->request('GET', '/api/v1/audit-events?pageSize=all');
 
         self::assertResponseStatusCodeSame(400);
     }

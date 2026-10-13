@@ -28,16 +28,16 @@ final readonly class ListProducts
     ) {
     }
 
-    public function __invoke(?int $page, ?int $perPage, ?string $asOf): ProductPage
+    public function __invoke(?int $page, ?int $pageSize, ?string $asOf): ProductPage
     {
         $requestedPage = $page ?? 1;
-        $pageSize = $perPage ?? self::DEFAULT_PAGE_SIZE;
+        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
 
         if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE) {
             throw new InvalidProductQuery(sprintf('The page number must be between 1 and %d.', self::MAX_PAGE));
         }
 
-        if ($pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
+        if ($resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
             throw new InvalidProductQuery(sprintf('The page size must be between 1 and %d.', self::MAX_PAGE_SIZE));
         }
 
@@ -45,14 +45,14 @@ final readonly class ListProducts
         $businessDay = null === $asOf ? $today : self::parse($asOf);
 
         $products = [];
-        foreach ($this->catalog->readPage($pageSize, ($requestedPage - 1) * $pageSize) as $entry) {
+        foreach ($this->catalog->readPage($resolvedPageSize, ($requestedPage - 1) * $resolvedPageSize) as $entry) {
             $products[] = $entry->effectiveOn($businessDay->date, $today->date);
         }
 
         return new ProductPage(
             products: $products,
             page: $requestedPage,
-            perPage: $pageSize,
+            pageSize: $resolvedPageSize,
             total: $this->catalog->count(),
         );
     }

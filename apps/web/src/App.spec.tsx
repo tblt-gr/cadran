@@ -99,11 +99,11 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
       }
 
       if (url.includes('/api/v1/accounts')) {
-        return jsonResponse({ items: [], page: 1, perPage: 50, total: 0 });
+        return jsonResponse({ items: [], page: 1, pageSize: 50, total: 0 });
       }
 
       if (url.includes('/api/v1/categories')) {
-        return jsonResponse({ items: [], page: 1, perPage: 50, total: 0 });
+        return jsonResponse({ items: [], page: 1, pageSize: 50, total: 0 });
       }
 
       if (url.includes('/comparisons')) {
@@ -130,7 +130,7 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
       }
 
       if (url.includes('/api/v1/budget-plans')) {
-        return jsonResponse({ items: [], page: 1, perPage: 100, total: 0 });
+        return jsonResponse({ items: [], page: 1, pageSize: 100, total: 0 });
       }
 
       if (url.includes('/api/v1/reports/monthly/ledger')) {
@@ -152,7 +152,7 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
       }
 
       if (url.includes('/api/v1/categorization-rules')) {
-        return jsonResponse({ items: [], page: 1, perPage: 100, total: 0 });
+        return jsonResponse({ items: [], page: 1, pageSize: 100, total: 0 });
       }
 
       if (url.includes('/api/v1/net-worth/history')) {

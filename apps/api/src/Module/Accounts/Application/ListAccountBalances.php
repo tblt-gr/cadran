@@ -26,11 +26,11 @@ final readonly class ListAccountBalances
     ) {
     }
 
-    public function __invoke(string $accountId, ?int $page, ?int $perPage): AccountBalanceSnapshotPage
+    public function __invoke(string $accountId, ?int $page, ?int $pageSize): AccountBalanceSnapshotPage
     {
         $requestedPage = $page ?? 1;
-        $pageSize = $perPage ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
+        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
+        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
             throw new InvalidAccountBalanceInput('The snapshot page is outside its bounds.');
         }
 
@@ -44,11 +44,11 @@ final readonly class ListAccountBalances
             items: $this->snapshots->pageForAccount(
                 $workspace,
                 $account->id,
-                $pageSize,
-                ($requestedPage - 1) * $pageSize,
+                $resolvedPageSize,
+                ($requestedPage - 1) * $resolvedPageSize,
             ),
             page: $requestedPage,
-            perPage: $pageSize,
+            pageSize: $resolvedPageSize,
             total: $this->snapshots->countForAccount($workspace, $account->id),
         );
     }

@@ -63,7 +63,7 @@ final class PortfolioOperationRepresentation
         return [
             'items' => array_map(self::one(...), $page->items),
             'page' => $page->page,
-            'perPage' => $page->perPage,
+            'pageSize' => $page->pageSize,
             'total' => $page->total,
         ];
     }

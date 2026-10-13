@@ -208,7 +208,7 @@ describe('AccountDetailPage', () => {
       success({ items: [movement], nextCursor: null, hasMore: false, pageSize: 50 }),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account, otherAccount], page: 1, perPage: 100, total: 2 }),
+      success({ items: [account, otherAccount], page: 1, pageSize: 100, total: 2 }),
     );
     api.listAccountRuleOverrides.mockImplementation(() => success({ overrides: [] }));
     api.readAccountRules.mockImplementation(() => success(noProductRules));
@@ -231,7 +231,7 @@ describe('AccountDetailPage', () => {
       valuationMode: 'PORTFOLIO' as const,
     };
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account, destination], page: 1, perPage: 100, total: 2 }),
+      success({ items: [account, destination], page: 1, pageSize: 100, total: 2 }),
     );
     api.createTransfer.mockImplementation(() =>
       success({
@@ -280,7 +280,7 @@ describe('AccountDetailPage', () => {
         valuationMode: 'PORTFOLIO' as const,
       };
       api.listAccounts.mockImplementation(() =>
-        success({ items: [account, destination], page: 1, perPage: 100, total: 2 }),
+        success({ items: [account, destination], page: 1, pageSize: 100, total: 2 }),
       );
       api.readAccount
         .mockImplementationOnce(() => success(account))

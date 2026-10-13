@@ -51,7 +51,7 @@ export function CategoryPage() {
     queryFn: async ({ signal }) => {
       const result = await listCategories({
         ...authApiOptions(),
-        query: { includeArchived, page, perPage: 50 },
+        query: { includeArchived, page, pageSize: 50 },
         signal,
       });
       if (!result.response?.ok || !result.data) {

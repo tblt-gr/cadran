@@ -14,7 +14,7 @@ export async function listRuleScopeAccounts(signal?: AbortSignal): Promise<Accou
   for (let page = 1; page === 1 || accounts.length < total; page += 1) {
     const result = await listAccounts({
       ...authApiOptions(),
-      query: { includeArchived: false, includeClosed: false, page, perPage: PAGE_SIZE },
+      query: { includeArchived: false, includeClosed: false, page, pageSize: PAGE_SIZE },
       signal,
     });
     if (!result.response?.ok || !result.data) throw categorizationRuleRequestError(result);

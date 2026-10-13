@@ -81,7 +81,7 @@ final class LifeInsuranceOpenApiContractTest extends TestCase
      */
     private static function codes(array $schemas, string $problem): array
     {
-        $codes = self::map(self::map(self::map($schemas[$problem] ?? null)['properties'] ?? null)['code'] ?? null)['enum'] ?? null;
+        $codes = self::map(self::map(self::extension($schemas[$problem] ?? null))['code'] ?? null)['enum'] ?? null;
         self::assertIsArray($codes);
 
         return $codes;
@@ -91,6 +91,19 @@ final class LifeInsuranceOpenApiContractTest extends TestCase
     private static function document(): array
     {
         return self::map(Yaml::parseFile(dirname(__DIR__, 2).'/openapi/openapi.yaml'));
+    }
+
+    /**
+     * Properties added by a specialised problem on top of the shared `Problem` it composes with allOf.
+     *
+     * @return array<string, mixed>
+     */
+    private static function extension(mixed $schema): array
+    {
+        $parts = self::map($schema)['allOf'] ?? null;
+        self::assertIsArray($parts);
+
+        return self::map(self::map($parts[1] ?? null)['properties'] ?? null);
     }
 
     /** @return array<string, mixed> */

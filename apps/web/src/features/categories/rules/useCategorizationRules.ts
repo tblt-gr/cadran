@@ -21,7 +21,7 @@ export function useCategorizationRules() {
     queryFn: async ({ signal }) => {
       const result = await listCategorizationRules({
         ...authApiOptions(),
-        query: { includeArchived: false, page, perPage: PAGE_SIZE },
+        query: { includeArchived: false, page, pageSize: PAGE_SIZE },
         signal,
       });
       if (!result.response?.ok || !result.data) throw categorizationRuleRequestError(result);

@@ -18,7 +18,7 @@ const AXES = [
 function accounts(signal?: AbortSignal) {
   return listAccounts({
     ...authApiOptions(),
-    query: { includeArchived: false, includeClosed: false, page: 1, perPage: 100 },
+    query: { includeArchived: false, includeClosed: false, page: 1, pageSize: 100 },
     signal,
   }).then((result) => {
     if (!result.response?.ok || !result.data) throw new Error('goals-accounts');

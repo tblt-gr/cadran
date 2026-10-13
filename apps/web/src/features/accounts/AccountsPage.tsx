@@ -40,7 +40,7 @@ export function AccountsPage() {
     queryFn: async ({ signal }) => {
       const result = await listAccounts({
         ...authApiOptions(),
-        query: { includeArchived, includeClosed, page, perPage: PAGE_SIZE },
+        query: { includeArchived, includeClosed, page, pageSize: PAGE_SIZE },
         signal,
       });
       if (requestFailed(result)) {

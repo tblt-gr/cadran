@@ -325,16 +325,16 @@ describe('AccountsPage', () => {
     // catalogue; a workspace with none yet is the default for every test that
     // does not say otherwise.
     api.listProductModels.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     // Reading the rules of an account also reads the claims recorded against
     // it; an account that never claimed anything is the default.
     api.listAccountRuleOverrides.mockImplementation(() => success({ overrides: [] }));
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [defaultGroup], page: 1, perPage: 100, total: 1 }),
+      success({ items: [defaultGroup], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+      success({ items: [livretA], page: 1, pageSize: 100, total: 1 }),
     );
     api.readNetWorth.mockImplementation(() =>
       success({
@@ -376,7 +376,7 @@ describe('AccountsPage', () => {
     expect(screen.getByTestId('accounts-page-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveAccounts?.({
-      data: { items: [account], page: 1, perPage: 50, total: 1 },
+      data: { items: [account], page: 1, pageSize: 50, total: 1 },
       response: new Response('{}', { status: 200 }),
     });
     expect(await screen.findByText(account.label)).toBeTruthy();
@@ -396,7 +396,7 @@ describe('AccountsPage', () => {
 
   it('holds the share column with skeleton blocks while the net worth read is pending', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
     renderPage();
@@ -408,7 +408,7 @@ describe('AccountsPage', () => {
 
   it('keeps the filters behind one header button that shows the active count', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     renderPage();
 
@@ -428,13 +428,13 @@ describe('AccountsPage', () => {
 
   it('covers the empty state and creates an account described by hand', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+      success({ items: [euro], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+      success({ items: [livretA], page: 1, pageSize: 100, total: 1 }),
     );
     api.createAccount.mockImplementation(({ body }) => success({ ...account, ...body }, 201));
     const { container } = renderPage();
@@ -507,16 +507,16 @@ describe('AccountsPage', () => {
       archivedAt: null,
     };
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+      success({ items: [euro], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+      success({ items: [livretA], page: 1, pageSize: 100, total: 1 }),
     );
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [epargne], page: 1, perPage: 100, total: 1 }),
+      success({ items: [epargne], page: 1, pageSize: 100, total: 1 }),
     );
     api.createAccount.mockImplementation(({ body }) => success({ ...account, ...body }, 201));
     renderPage();
@@ -545,16 +545,16 @@ describe('AccountsPage', () => {
 
   it('refuses an included account without a primary group', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+      success({ items: [euro], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderPage();
 
@@ -577,13 +577,13 @@ describe('AccountsPage', () => {
 
   it('inherits the kind of a chosen product and submits only its reference', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+      success({ items: [euro], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+      success({ items: [livretA], page: 1, pageSize: 100, total: 1 }),
     );
     api.createAccount.mockImplementation(({ body }) => success({ ...account, ...body }, 201));
     renderPage();
@@ -651,16 +651,16 @@ describe('AccountsPage', () => {
 
   it('creates an account from a workspace template without copying its rules', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+      success({ items: [euro], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listProductModels.mockImplementation(() =>
-      success({ items: [livretATemplate], page: 1, perPage: 100, total: 1 }),
+      success({ items: [livretATemplate], page: 1, pageSize: 100, total: 1 }),
     );
     api.createAccount.mockImplementation(({ body }) => success({ ...account, ...body }, 201));
     renderPage();
@@ -712,13 +712,13 @@ describe('AccountsPage', () => {
 
   it('states the contribution basis of a share savings plan and promises no yield', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+      success({ items: [euro], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [pea], page: 1, perPage: 100, total: 1 }),
+      success({ items: [pea], page: 1, pageSize: 100, total: 1 }),
     );
     renderPage();
 
@@ -764,13 +764,13 @@ describe('AccountsPage', () => {
 
   it('lets a catalogue product be chosen when the workspace templates cannot be read', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+      success({ items: [euro], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [livretA], page: 1, perPage: 100, total: 1 }),
+      success({ items: [livretA], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProductModels.mockImplementation(() => failure(500));
     renderPage();
@@ -795,7 +795,7 @@ describe('AccountsPage', () => {
       productModelId: livretATemplate.id,
     };
     api.listAccounts.mockImplementation(() =>
-      success({ items: [templated], page: 1, perPage: 50, total: 1 }),
+      success({ items: [templated], page: 1, pageSize: 50, total: 1 }),
     );
     api.readProductModel.mockImplementation(() => failure(500));
     renderPage();
@@ -820,10 +820,10 @@ describe('AccountsPage', () => {
 
   it('lets an unreadable catalogue fall back to an account described by hand', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({ items: [euro], page: 1, perPage: 100, total: 1 }),
+      success({ items: [euro], page: 1, pageSize: 100, total: 1 }),
     );
     api.listProducts.mockImplementation(() => failure(500));
     renderPage();
@@ -843,11 +843,11 @@ describe('AccountsPage', () => {
 
   it('refuses to create an account when the asset reference cannot be read', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() => failure(500));
     api.listProducts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderPage();
 
@@ -874,13 +874,13 @@ describe('AccountsPage', () => {
 
   it('refuses a full banking identifier and a closing date before the opening one', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listAssets.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listProducts.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderPage();
 
@@ -904,7 +904,7 @@ describe('AccountsPage', () => {
 
   it('keeps the emergency fund tied to net worth', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     api.updateAccount.mockImplementation(({ body }) => success({ ...account, ...body }));
     renderPage();
@@ -937,7 +937,7 @@ describe('AccountsPage', () => {
 
   it('archives an account through a confirmation instead of deleting it', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     api.archiveAccount.mockImplementation(() =>
       success({ ...account, status: 'ARCHIVED', editable: false, version: 2 }),
@@ -960,7 +960,7 @@ describe('AccountsPage', () => {
 
   it('does not focus the archive confirm, so Enter closes instead of archiving', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     renderPage();
 
@@ -980,7 +980,7 @@ describe('AccountsPage', () => {
 
   it('separates a taken label from a stale version and shows the unauthorized state', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     api.updateAccount.mockImplementation(() => problem(409, '/problems/account-label-taken'));
     renderPage();
@@ -998,7 +998,7 @@ describe('AccountsPage', () => {
     vi.clearAllMocks();
     api.readProduct.mockImplementation(() => success(livretA));
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     api.updateAccount.mockImplementation(() => problem(409, '/problems/stale-version'));
     renderPage();
@@ -1029,7 +1029,7 @@ describe('AccountsPage', () => {
       editable: false,
     };
     api.listAccounts.mockImplementation(() =>
-      success({ items: [archived], page: 1, perPage: 50, total: 1 }),
+      success({ items: [archived], page: 1, pageSize: 50, total: 1 }),
     );
     api.readAccountRules.mockImplementation(() =>
       success({
@@ -1098,7 +1098,7 @@ describe('AccountsPage', () => {
 
   it('records a claim against a rule and hands it back to the rules it came from', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     api.readAccountRules.mockImplementation(() => success(passbookRules));
     api.recordAccountRuleOverride.mockImplementation(() =>
@@ -1161,7 +1161,7 @@ describe('AccountsPage', () => {
 
   it('refuses a second claim over the same dates and says which correction is expected', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     api.readAccountRules.mockImplementation(() => success(passbookRules));
     api.recordAccountRuleOverride.mockImplementation(() =>
@@ -1189,7 +1189,7 @@ describe('AccountsPage', () => {
 
   it('withdraws a claim after saying that it stops applying to past dates too', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     api.readAccountRules.mockImplementation(() => success(claimedRules));
     api.withdrawAccountRuleOverride.mockImplementation(() =>
@@ -1241,7 +1241,7 @@ describe('AccountsPage', () => {
           },
         ],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 2,
       }),
     );
@@ -1253,7 +1253,7 @@ describe('AccountsPage', () => {
 
   it('names a missing valuation instead of inventing a zero balance', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 50, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     renderPage();
 
@@ -1267,7 +1267,7 @@ describe('AccountsPage', () => {
       success({
         items: [{ ...account, valuation: staleValuation }],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 1,
       }),
     );
@@ -1343,7 +1343,7 @@ describe('AccountsPage', () => {
       success({
         items: [{ ...account, valuation: staleValuation }],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 1,
       }),
     );
@@ -1361,7 +1361,7 @@ describe('AccountsPage', () => {
       success({
         items: [{ ...account, valuation: staleValuation }],
         page: 1,
-        perPage: 50,
+        pageSize: 50,
         total: 1,
       }),
     );

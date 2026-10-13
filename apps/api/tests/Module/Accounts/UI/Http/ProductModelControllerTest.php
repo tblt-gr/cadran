@@ -423,7 +423,7 @@ final class ProductModelControllerTest extends WebTestCase
 
         $this->client->request('GET', '/api/v1/product-models');
         self::assertResponseIsSuccessful();
-        self::assertSame(50, $this->decode()['perPage']);
+        self::assertSame(50, $this->decode()['pageSize']);
     }
 
     public function testAnAnonymousCallerReachesNothing(): void
@@ -448,10 +448,10 @@ final class ProductModelControllerTest extends WebTestCase
 
     public function testQueryBoundsAndPayloadSizeAreEnforced(): void
     {
-        $this->client->request('GET', '/api/v1/product-models?perPage=0');
+        $this->client->request('GET', '/api/v1/product-models?pageSize=0');
         self::assertResponseStatusCodeSame(400);
 
-        $this->client->request('GET', '/api/v1/product-models?perPage=101');
+        $this->client->request('GET', '/api/v1/product-models?pageSize=101');
         self::assertResponseStatusCodeSame(400);
 
         $this->client->request('GET', '/api/v1/product-models?page=1001');

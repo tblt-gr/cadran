@@ -57,12 +57,12 @@ final readonly class AccountController
     public function list(Request $request, ListAccounts $listAccounts): Response
     {
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
+        $pageSize = $request->query->getString('pageSize');
         $includeArchived = $request->query->getString('includeArchived');
         $includeClosed = $request->query->getString('includeClosed');
         $kind = $request->query->getString('kind');
         $asOf = $request->query->getString('asOf');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($perPage)
+        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)
             || !self::flag($includeArchived) || !self::flag($includeClosed)) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_query');
         }
@@ -72,7 +72,7 @@ final readonly class AccountController
                 'true' === $includeArchived,
                 'true' === $includeClosed,
                 '' === $page ? null : (int) $page,
-                '' === $perPage ? null : (int) $perPage,
+                '' === $pageSize ? null : (int) $pageSize,
                 '' === $kind ? null : $kind,
                 '' === $asOf ? null : $asOf,
             );

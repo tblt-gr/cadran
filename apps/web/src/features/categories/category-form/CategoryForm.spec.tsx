@@ -117,7 +117,7 @@ describe('CategoryForm creation parent', () => {
     const parent: Category = { ...category, id: '00000000-0000-7000-8000-0000000000c2' };
     api.listCategories.mockImplementation(({ query }) => {
       const items = query.type === 'EXPENSE' ? [parent] : [];
-      return success({ items, page: 1, perPage: 50, total: items.length });
+      return success({ items, page: 1, pageSize: 50, total: items.length });
     });
     const onSubmit = vi.fn();
     render(

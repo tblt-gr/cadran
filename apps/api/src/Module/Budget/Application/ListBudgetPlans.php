@@ -15,17 +15,17 @@ final readonly class ListBudgetPlans
     ) {
     }
 
-    public function __invoke(int $page, int $perPage): BudgetPlanPage
+    public function __invoke(int $page, int $pageSize): BudgetPlanPage
     {
         $workspace = $this->caller->resolve();
         $present = new PresentBudgetPlan();
 
-        $plans = $this->plans->list($workspace, $perPage, ($page - 1) * $perPage);
+        $plans = $this->plans->list($workspace, $pageSize, ($page - 1) * $pageSize);
 
         return new BudgetPlanPage(
             items: array_map(static fn ($plan) => $present($plan), $plans),
             page: $page,
-            perPage: $perPage,
+            pageSize: $pageSize,
             total: $this->plans->count($workspace),
         );
     }

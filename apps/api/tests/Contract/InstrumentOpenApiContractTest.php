@@ -35,9 +35,22 @@ final class InstrumentOpenApiContractTest extends TestCase
         self::assertSame(4, self::map($request['pricePrecision'] ?? null)['default'] ?? null);
         self::assertSame(12, self::map($request['quantityPrecision'] ?? null)['maximum'] ?? null);
 
-        $problem = self::map(self::map($schemas['InstrumentProblem'] ?? null)['properties'] ?? null);
+        $problem = self::map(self::extension($schemas['InstrumentProblem'] ?? null));
         self::assertArrayHasKey('existingId', $problem);
         self::assertSame(5, self::map($problem['candidates'] ?? null)['maxItems'] ?? null);
+    }
+
+    /**
+     * Properties added by a specialised problem on top of the shared `Problem` it composes with allOf.
+     *
+     * @return array<string, mixed>
+     */
+    private static function extension(mixed $schema): array
+    {
+        $parts = self::map($schema)['allOf'] ?? null;
+        self::assertIsArray($parts);
+
+        return self::map(self::map($parts[1] ?? null)['properties'] ?? null);
     }
 
     /** @return array<string, mixed> */

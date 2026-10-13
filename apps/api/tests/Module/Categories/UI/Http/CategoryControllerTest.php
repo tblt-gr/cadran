@@ -74,7 +74,7 @@ final class CategoryControllerTest extends WebTestCase
         $parent = $this->createCategory(label: 'Alimentation');
         $this->createCategory(label: 'Restaurants', parentId: self::stringValue($parent, 'id'));
 
-        $this->client->request('GET', '/api/v1/categories?page=2&perPage=1');
+        $this->client->request('GET', '/api/v1/categories?page=2&pageSize=1');
         self::assertResponseIsSuccessful();
         $items = $this->items();
         self::assertCount(1, $items);
@@ -195,7 +195,7 @@ final class CategoryControllerTest extends WebTestCase
         self::assertFalse($levels[1]['typeEditable']);
         self::assertSame('CHILD', $levels[1]['typeEditReason']);
 
-        $this->client->request('GET', '/api/v1/categories?type=EXPENSE&search=Level&parentEligible=true&perPage=50');
+        $this->client->request('GET', '/api/v1/categories?type=EXPENSE&search=Level&parentEligible=true&pageSize=50');
         self::assertResponseIsSuccessful();
         $eligible = $this->items();
         self::assertCount(7, $eligible);

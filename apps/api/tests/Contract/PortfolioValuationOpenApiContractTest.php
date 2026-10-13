@@ -40,7 +40,7 @@ final class PortfolioValuationOpenApiContractTest extends TestCase
         self::assertFalse($request['additionalProperties'] ?? true);
         self::assertSame(['valuedOn', 'detail'], $request['required'] ?? null);
 
-        $codes = self::map(self::map(self::map($schemas['PortfolioValuationProblem'] ?? null)['properties'] ?? null)['code'] ?? null)['enum'] ?? null;
+        $codes = self::map(self::map(self::extension($schemas['PortfolioValuationProblem'] ?? null))['code'] ?? null)['enum'] ?? null;
         self::assertIsArray($codes);
         foreach ([
             'invalid_valuation_detail', 'valuation_field_not_allowed', 'invalid_valuation_total', 'invalid_valuation_date', 'valuation_price_entry_missing',
@@ -77,9 +77,22 @@ final class PortfolioValuationOpenApiContractTest extends TestCase
             $point['required'] ?? null,
         );
         self::assertSame(240, self::map(self::map($history['properties'] ?? null)['points'] ?? null)['maxItems'] ?? null);
-        $codes = self::map(self::map(self::map($schemas['PortfolioValuationProblem'] ?? null)['properties'] ?? null)['code'] ?? null)['enum'] ?? null;
+        $codes = self::map(self::map(self::extension($schemas['PortfolioValuationProblem'] ?? null))['code'] ?? null)['enum'] ?? null;
         self::assertIsArray($codes);
         self::assertContains('invalid_history_range', $codes);
+    }
+
+    /**
+     * Properties added by a specialised problem on top of the shared `Problem` it composes with allOf.
+     *
+     * @return array<string, mixed>
+     */
+    private static function extension(mixed $schema): array
+    {
+        $parts = self::map($schema)['allOf'] ?? null;
+        self::assertIsArray($parts);
+
+        return self::map(self::map($parts[1] ?? null)['properties'] ?? null);
     }
 
     /** @return array<string, mixed> */

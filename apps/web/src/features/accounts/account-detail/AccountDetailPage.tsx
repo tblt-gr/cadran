@@ -76,7 +76,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
     queryFn: async ({ signal }) => {
       const result = await listAccounts({
         ...authApiOptions(),
-        query: { includeArchived: false, includeClosed: false, page: 1, perPage: 100 },
+        query: { includeArchived: false, includeClosed: false, page: 1, pageSize: 100 },
         signal,
       });
       if (requestFailed(result)) {

@@ -17,7 +17,7 @@ export function ParentGroupField({ currentId, onChange, value }: ParentGroupFiel
     queryFn: async ({ signal }) => {
       const result = await listAccountGroups({
         ...authApiOptions(),
-        query: { parentEligible: true, page: 1, perPage: 100 },
+        query: { parentEligible: true, page: 1, pageSize: 100 },
         signal,
       });
       if (!result.response?.ok || !result.data) {

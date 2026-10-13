@@ -20,7 +20,7 @@ export function useOperations(accountId: string, filters: OperationFilterValues,
           instrumentId: filters.instrumentId ?? undefined,
           includeVoided: filters.includeVoided,
           page,
-          perPage: OPERATIONS_PER_PAGE,
+          pageSize: OPERATIONS_PER_PAGE,
         },
         signal,
       });

@@ -68,8 +68,8 @@ final readonly class AccountBalanceController
         }
 
         $page = $request->query->getString('page');
-        $perPage = $request->query->getString('perPage');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($perPage)) {
+        $pageSize = $request->query->getString('pageSize');
+        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_balance_query');
         }
 
@@ -77,7 +77,7 @@ final readonly class AccountBalanceController
             $snapshots = $listBalances(
                 $id,
                 '' === $page ? null : (int) $page,
-                '' === $perPage ? null : (int) $perPage,
+                '' === $pageSize ? null : (int) $pageSize,
             );
         } catch (InvalidAccountBalanceInput) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_balance_query');

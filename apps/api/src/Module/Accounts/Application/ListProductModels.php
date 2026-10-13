@@ -27,11 +27,11 @@ final readonly class ListProductModels
     ) {
     }
 
-    public function __invoke(bool $includeArchived, ?int $page, ?int $perPage): ProductModelPage
+    public function __invoke(bool $includeArchived, ?int $page, ?int $pageSize): ProductModelPage
     {
         $requestedPage = $page ?? 1;
-        $pageSize = $perPage ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
+        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
+        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
             throw new InvalidProductModelInput('The model page is outside its bounds.');
         }
 
@@ -40,10 +40,10 @@ final readonly class ListProductModels
         return new ProductModelPage(
             items: array_map(
                 ProductModelView::fromModel(...),
-                $this->models->list($workspace, $includeArchived, $pageSize, ($requestedPage - 1) * $pageSize),
+                $this->models->list($workspace, $includeArchived, $resolvedPageSize, ($requestedPage - 1) * $resolvedPageSize),
             ),
             page: $requestedPage,
-            perPage: $pageSize,
+            pageSize: $resolvedPageSize,
             total: $this->models->count($workspace, $includeArchived),
         );
     }

@@ -69,10 +69,10 @@ async function openStatus(verb = 'Désactiver', name = 'ETF Monde') {
 }
 function setup(items: Instrument[] = [instrument]) {
   api.listAssets.mockResolvedValue(
-    success({ items: [{ code: 'EUR', kind: 'FIAT' }], page: 1, perPage: 100, total: 1 }),
+    success({ items: [{ code: 'EUR', kind: 'FIAT' }], page: 1, pageSize: 100, total: 1 }),
   );
   api.listInstruments.mockImplementation(() =>
-    success({ items, page: 1, perPage: 20, total: items.length }),
+    success({ items, page: 1, pageSize: 20, total: items.length }),
   );
 }
 
@@ -84,7 +84,7 @@ describe('InstrumentsPage', () => {
   });
   it('replaces its one named cold-load skeleton and keeps instruments during a refetch', async () => {
     api.listAssets.mockResolvedValue(
-      success({ items: [{ code: 'EUR', kind: 'FIAT' }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', kind: 'FIAT' }], page: 1, pageSize: 100, total: 1 }),
     );
     let resolveInstruments: ((value: unknown) => void) | undefined;
     api.listInstruments.mockImplementation(
@@ -99,7 +99,7 @@ describe('InstrumentsPage', () => {
     expect(
       screen.getByTestId('instruments-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
-    resolveInstruments?.(await success({ items: [instrument], page: 1, perPage: 20, total: 1 }));
+    resolveInstruments?.(await success({ items: [instrument], page: 1, pageSize: 20, total: 1 }));
     expect(await screen.findByText(instrument.name)).toBeTruthy();
     expect(screen.queryByTestId('instruments-skeleton')).toBeNull();
 
@@ -118,7 +118,7 @@ describe('InstrumentsPage', () => {
 
     failed.unmount();
     api.listInstruments.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 20, total: 0 }),
+      success({ items: [], page: 1, pageSize: 20, total: 0 }),
     );
     renderPage();
     expect(await screen.findByText('Aucun instrument')).toBeTruthy();
@@ -288,6 +288,26 @@ describe('InstrumentsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect((await screen.findByRole('alert')).textContent).toContain(fragment);
   });
+  it('sends one Idempotency-Key per creation and reuses it when the same body is retried', async () => {
+    setup([]);
+    api.createInstrument
+      .mockRejectedValueOnce(new TypeError('offline'))
+      .mockImplementation(() => success(instrument, 201));
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier instrument' }));
+    fireEvent.change(screen.getByLabelText('Nom'), { target: { value: 'X' } });
+    fireEvent.change(screen.getByLabelText('Ticker'), { target: { value: 'X' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await screen.findByRole('alert');
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.createInstrument).toHaveBeenCalledTimes(2));
+
+    const keys = api.createInstrument.mock.calls.map(
+      ([options]) => options.headers['Idempotency-Key'],
+    );
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[1]).toBe(keys[0]);
+  });
   it('shows a network message when the save request fails', async () => {
     setup([]);
     api.createInstrument.mockRejectedValue(new TypeError('offline'));
@@ -316,8 +336,8 @@ describe('InstrumentsPage', () => {
     setup();
     api.listInstruments.mockImplementation((options: { query: { page: number } }) =>
       options.query.page === 2
-        ? success({ items: [], page: 2, perPage: 20, total: 1 })
-        : success({ items: [instrument], page: 1, perPage: 20, total: 21 }),
+        ? success({ items: [], page: 2, pageSize: 20, total: 1 })
+        : success({ items: [instrument], page: 1, pageSize: 20, total: 21 }),
     );
     renderPage();
     await screen.findByText('ETF Monde');

@@ -25,7 +25,7 @@ export function useAccountGroupLabel(groupId: string | null): AccountGroupLabelQ
     queryFn: async ({ signal }) => {
       const result = await listAccountGroups({
         ...authApiOptions(),
-        query: { includeArchived: true, page: 1, perPage: PAGE_SIZE },
+        query: { includeArchived: true, page: 1, pageSize: PAGE_SIZE },
         signal,
       });
       if (!result.response?.ok || !result.data) {

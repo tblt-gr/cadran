@@ -47,7 +47,7 @@ export function RecapPreferencesModal({
       for (let page = 1; page === 1 || items.length < total; page += 1) {
         const result = await listCategories({
           ...authApiOptions(),
-          query: { includeArchived: true, page, perPage: CATEGORY_PAGE_SIZE },
+          query: { includeArchived: true, page, pageSize: CATEGORY_PAGE_SIZE },
           signal,
         });
         if (!result.response?.ok || !result.data) throw new Error('recap-categories');

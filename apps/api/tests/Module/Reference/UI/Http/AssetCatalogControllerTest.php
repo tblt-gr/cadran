@@ -72,7 +72,7 @@ final class AssetCatalogControllerTest extends WebTestCase
         $body = $this->decode();
         self::assertSame(7, $body['total']);
         self::assertSame(1, $body['page']);
-        self::assertSame(50, $body['perPage']);
+        self::assertSame(50, $body['pageSize']);
 
         $euro = self::assetNamed($this->items(), 'EUR');
         self::assertSame([
@@ -105,20 +105,20 @@ final class AssetCatalogControllerTest extends WebTestCase
     {
         $this->signIn(WorkspaceFixture::OWNER_EMAIL);
 
-        $this->client->request('GET', '/api/v1/assets?page=2&perPage=2');
+        $this->client->request('GET', '/api/v1/assets?page=2&pageSize=2');
 
         self::assertResponseIsSuccessful();
         $body = $this->decode();
         self::assertSame(['ETH', 'EUR'], array_column($this->items(), 'code'));
         self::assertSame(2, $body['page']);
-        self::assertSame(2, $body['perPage']);
+        self::assertSame(2, $body['pageSize']);
     }
 
     public function testAnUnboundedPageIsRefused(): void
     {
         $this->signIn(WorkspaceFixture::OWNER_EMAIL);
 
-        $this->client->request('GET', '/api/v1/assets?perPage=5000');
+        $this->client->request('GET', '/api/v1/assets?pageSize=5000');
 
         self::assertResponseStatusCodeSame(400);
         self::assertResponseHeaderSame('content-type', 'application/problem+json');

@@ -245,7 +245,7 @@ describe('TransactionFilters', () => {
 
   it('falls back to the raw id on a category chip until a label is resolved', () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderFilters({
       accounts: [account],
@@ -259,7 +259,7 @@ describe('TransactionFilters', () => {
 
   it('shows the picked category label on its chip, including its screen-reader clear text', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [category], page: 1, perPage: 50, total: 1 }),
+      success({ items: [category], page: 1, pageSize: 50, total: 1 }),
     );
     renderControlledFilters({ accounts: [account], initialFilters: DEFAULT_FILTERS });
 

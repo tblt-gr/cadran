@@ -31,7 +31,7 @@ export function useTemplateOptions(): TemplateOptions {
     queryFn: async ({ signal }) => {
       const result = await listProductModels({
         ...authApiOptions(),
-        query: { includeArchived: false, page: 1, perPage: PAGE_SIZE },
+        query: { includeArchived: false, page: 1, pageSize: PAGE_SIZE },
         signal,
       });
       if (!result.response?.ok || !result.data) {

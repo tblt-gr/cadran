@@ -16,7 +16,7 @@ export function useProductModels(includeArchived: boolean, page: number) {
     queryFn: async ({ signal }) => {
       const result = await listProductModels({
         ...authApiOptions(),
-        query: { includeArchived, page, perPage: PRODUCT_MODELS_PAGE_SIZE },
+        query: { includeArchived, page, pageSize: PRODUCT_MODELS_PAGE_SIZE },
         signal,
       });
       if (requestFailed(result)) {

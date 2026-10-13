@@ -111,7 +111,7 @@ describe('CategoryLifecycleDialog', () => {
 
   it('waits for an operand before asking the backend for an impact', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [target], page: 1, perPage: 50, total: 1 }),
+      success({ items: [target], page: 1, pageSize: 50, total: 1 }),
     );
     api.previewCategoryImpact.mockImplementation(() => success(impact()));
     renderDialog('MERGE');
@@ -134,7 +134,7 @@ describe('CategoryLifecycleDialog', () => {
 
   it('reports a counted classification total rather than hiding it as unavailable', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [target], page: 1, perPage: 50, total: 1 }),
+      success({ items: [target], page: 1, pageSize: 50, total: 1 }),
     );
     api.previewCategoryImpact.mockImplementation(() => success(impact()));
     renderDialog('MERGE');
@@ -152,7 +152,7 @@ describe('CategoryLifecycleDialog', () => {
 
   it('lists every refusal reason and refuses to confirm', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [target], page: 1, perPage: 50, total: 1 }),
+      success({ items: [target], page: 1, pageSize: 50, total: 1 }),
     );
     api.previewCategoryImpact.mockImplementation(() =>
       success(impact({ allowed: false, blockers: ['DEPTH_EXCEEDED', 'SIBLING_LABEL_CONFLICT'] })),
@@ -204,7 +204,7 @@ describe('CategoryLifecycleDialog', () => {
 
   it('asks a dated replacement for both its target and its effective date', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [target], page: 1, perPage: 50, total: 1 }),
+      success({ items: [target], page: 1, pageSize: 50, total: 1 }),
     );
     api.previewCategoryImpact.mockImplementation(() =>
       success(
@@ -241,7 +241,7 @@ describe('CategoryLifecycleDialog', () => {
 
   it('shows the reasons a confirmed operation was refused by the backend', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [target], page: 1, perPage: 50, total: 1 }),
+      success({ items: [target], page: 1, pageSize: 50, total: 1 }),
     );
     api.previewCategoryImpact.mockImplementation(() => success(impact()));
     renderDialog(

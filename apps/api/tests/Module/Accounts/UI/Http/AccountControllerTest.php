@@ -805,10 +805,10 @@ final class AccountControllerTest extends WebTestCase
 
     public function testQueryBoundsAndPayloadSizeAreEnforced(): void
     {
-        $this->client->request('GET', '/api/v1/accounts?perPage=0');
+        $this->client->request('GET', '/api/v1/accounts?pageSize=0');
         self::assertResponseStatusCodeSame(400);
 
-        $this->client->request('GET', '/api/v1/accounts?perPage=101');
+        $this->client->request('GET', '/api/v1/accounts?pageSize=101');
         self::assertResponseStatusCodeSame(400);
 
         $this->client->request('GET', '/api/v1/accounts?page=1001');

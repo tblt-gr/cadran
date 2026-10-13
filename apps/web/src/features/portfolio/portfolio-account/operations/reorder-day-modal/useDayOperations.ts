@@ -21,7 +21,7 @@ export function useDayOperations(accountId: string, tradeDate: string) {
             from: tradeDate,
             to: tradeDate,
             page,
-            perPage: PAGE_SIZE,
+            pageSize: PAGE_SIZE,
             includeVoided: false,
           },
           signal,

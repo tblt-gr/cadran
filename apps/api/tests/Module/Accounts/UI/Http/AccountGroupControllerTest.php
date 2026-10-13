@@ -217,10 +217,10 @@ final class AccountGroupControllerTest extends WebTestCase
 
     public function testQueryBoundsAndPayloadSizeAreEnforced(): void
     {
-        $this->client->request('GET', '/api/v1/account-groups?perPage=0');
+        $this->client->request('GET', '/api/v1/account-groups?pageSize=0');
         self::assertResponseStatusCodeSame(400);
 
-        $this->client->request('GET', '/api/v1/account-groups?perPage=101');
+        $this->client->request('GET', '/api/v1/account-groups?pageSize=101');
         self::assertResponseStatusCodeSame(400);
 
         $this->client->request('GET', '/api/v1/account-groups?page=1001');

@@ -80,7 +80,7 @@ function addCategory(current: CategoryPage | undefined, category: Category) {
 
   return {
     ...current,
-    items: [category, ...current.items].slice(0, current.perPage),
+    items: [category, ...current.items].slice(0, current.pageSize),
     total: current.total + 1,
   };
 }

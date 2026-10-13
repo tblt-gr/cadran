@@ -23,7 +23,7 @@ final class ValuationRepresentation
         return [
             'items' => array_map(self::summary(...), $page->items),
             'page' => $page->page,
-            'perPage' => $page->perPage,
+            'pageSize' => $page->pageSize,
             'total' => $page->total,
         ];
     }

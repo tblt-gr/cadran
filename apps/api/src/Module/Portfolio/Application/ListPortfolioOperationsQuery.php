@@ -15,7 +15,7 @@ final readonly class ListPortfolioOperationsQuery
         public ?string $instrumentId = null,
         public ?string $includeVoided = null,
         public ?string $page = null,
-        public ?string $perPage = null,
+        public ?string $pageSize = null,
     ) {
     }
 }

@@ -69,7 +69,7 @@ final class ListGoalsTest extends TestCase
         $categories->expects(self::once())->method('list')->willReturn([self::category()]);
         $categories->expects(self::once())->method('find')->willReturn(self::category());
 
-        $items = $this->list($source, $categories)(2026, 'active');
+        $items = $this->list($source, $categories)(2026, 'active')->items;
 
         self::assertSame(1, $source->calls);
         self::assertCount(3, $items);
@@ -94,7 +94,7 @@ final class ListGoalsTest extends TestCase
             '2026-02' => [self::pair('00000000-0000-7000-8000-000000000402', self::ACCOUNT_A, self::ACCOUNT_B, '50.000000000000000000000001', '2026-02-03')],
         ]);
 
-        $items = $this->accountList($transfers)(2026, 'active');
+        $items = $this->accountList($transfers)(2026, 'active')->items;
 
         self::assertSame(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'], $transfers->months);
         self::assertSame([WorkspaceFixture::OWN_WORKSPACE], array_values(array_unique($transfers->workspaces)));
@@ -116,7 +116,7 @@ final class ListGoalsTest extends TestCase
         }
         $transfers = new CountingTransferPairReader(['2026-03' => $oversized]);
 
-        $items = $this->accountList($transfers)(2026, 'active');
+        $items = $this->accountList($transfers)(2026, 'active')->items;
 
         self::assertCount(9, $transfers->months);
         [$savings, $accountA, $accountB] = array_map(static fn ($item) => $item->status ?? self::fail('A listed goal carries its status.'), $items);
@@ -140,7 +140,7 @@ final class ListGoalsTest extends TestCase
 
         $items = $this->list($source, $this->createStub(CategoryRepository::class), [
             self::goal(self::ROLLING_ID, GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
-        ])(2027, 'active');
+        ])(2027, 'active')->items;
 
         self::assertCount(1, $items);
         $status = $items[0]->status ?? self::fail('A listed goal carries its status.');

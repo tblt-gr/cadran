@@ -22,11 +22,11 @@ final readonly class ListAuditTrail
     ) {
     }
 
-    public function __invoke(?int $limit, ?string $cursor): AuditTrailPage
+    public function __invoke(?int $pageSize, ?string $cursor): AuditTrailPage
     {
         $workspace = $this->callerWorkspace->resolve();
 
-        $pageSize = $this->boundedPageSize($limit);
+        $pageSize = $this->boundedPageSize($pageSize);
         $after = null === $cursor ? null : AuditTrailCursor::decode($cursor);
 
         // One extra row answers "is there a next page" without a second count
@@ -42,16 +42,16 @@ final readonly class ListAuditTrail
         return new AuditTrailPage($page, (new AuditTrailCursor($last->occurredAt, $last->id))->encode());
     }
 
-    private function boundedPageSize(?int $limit): int
+    private function boundedPageSize(?int $pageSize): int
     {
-        if (null === $limit) {
+        if (null === $pageSize) {
             return self::DEFAULT_PAGE_SIZE;
         }
 
-        if ($limit < 1 || $limit > self::MAX_PAGE_SIZE) {
+        if ($pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
             throw new InvalidAuditTrailQuery(sprintf('The page size must be between 1 and %d.', self::MAX_PAGE_SIZE));
         }
 
-        return $limit;
+        return $pageSize;
     }
 }

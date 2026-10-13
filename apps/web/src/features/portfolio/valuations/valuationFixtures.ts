@@ -126,7 +126,7 @@ export function summaryOf(valuation: PortfolioValuation): PortfolioValuationSumm
 export function valuationPageFixture(
   items: PortfolioValuation[] = [positionsValuationFixture(), totalValuationFixture()],
 ): PortfolioValuationPage {
-  return { items: items.map(summaryOf), page: 1, perPage: 24, total: items.length };
+  return { items: items.map(summaryOf), page: 1, pageSize: 24, total: items.length };
 }
 
 /** A draft with a buy-priced ETF and an industry share last valued on the 3rd. */

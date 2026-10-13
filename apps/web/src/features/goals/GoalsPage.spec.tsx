@@ -153,6 +153,30 @@ describe('GoalsPage', () => {
       ),
     );
   });
+  it('sends one Idempotency-Key per creation and reuses it when the same body is retried', async () => {
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [] }));
+    api.createGoal
+      .mockReturnValueOnce(
+        Promise.resolve({
+          error: { type: 'about:blank', title: 'Unavailable', status: 503 },
+          response: new Response(null, { status: 503 }),
+        }),
+      )
+      .mockReturnValue(ok(goal, 201));
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouvel objectif' }));
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Épargne' } });
+    fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '12000.00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.createGoal).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.createGoal).toHaveBeenCalledTimes(2));
+
+    const keys = api.createGoal.mock.calls.map(([options]) => options.headers['Idempotency-Key']);
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[1]).toBe(keys[0]);
+  });
   it('renders an accessible provisional status and opens its keyboard-usable monthly detail', async () => {
     mockSession();
     const originalWidth = window.innerWidth;

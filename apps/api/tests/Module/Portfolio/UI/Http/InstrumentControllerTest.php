@@ -55,16 +55,16 @@ final class InstrumentControllerTest extends WebTestCase
         $fixtures->euroFund($first);
         $fixtures->euroFund($second);
         $fixtures->euroFund('00000000-0000-7000-8000-000000009003', WorkspaceFixture::OTHER_WORKSPACE);
-        $this->client->request('GET', '/api/v1/instruments?instrumentType=EURO_FUND&perPage=1&page=1');
+        $this->client->request('GET', '/api/v1/instruments?instrumentType=EURO_FUND&pageSize=1&page=1');
         self::assertResponseIsSuccessful();
         self::assertSame(2, $this->decode()['total']);
         self::assertSame([$first], array_column(self::items($this->decode()), 'id'));
-        $this->client->request('GET', '/api/v1/instruments?instrumentType=EURO_FUND&perPage=1&page=2');
+        $this->client->request('GET', '/api/v1/instruments?instrumentType=EURO_FUND&pageSize=1&page=2');
         self::assertResponseIsSuccessful();
         self::assertSame([$second], array_column(self::items($this->decode()), 'id'));
-        foreach (['instrumentType=INVALID', 'instrumentType=', 'instrumentType=EURO_FUND&perPage=51', 'instrumentType=EURO_FUND&page=1001'] as $query) {
+        foreach (['instrumentType=INVALID', 'instrumentType=', 'instrumentType=EURO_FUND&pageSize=101', 'instrumentType=EURO_FUND&page=1001'] as $query) {
             $this->client->request('GET', '/api/v1/instruments?'.$query);
-            self::assertResponseStatusCodeSame(422);
+            self::assertResponseStatusCodeSame(400);
             self::assertSame('invalid_instrument_query', $this->decode()['code']);
         }
     }
@@ -213,7 +213,7 @@ final class InstrumentControllerTest extends WebTestCase
         self::assertSame('stale_instrument_version', $this->decode()['code']);
 
         $this->client->request('GET', '/api/v1/instruments?q='.str_repeat('x', 61));
-        self::assertResponseStatusCodeSame(422);
+        self::assertResponseStatusCodeSame(400);
         self::assertSame('invalid_instrument_query', $this->decode()['code']);
 
         $foreignId = '00000000-0000-7000-8000-0000000001ff';
@@ -275,7 +275,7 @@ final class InstrumentControllerTest extends WebTestCase
 
         foreach (['usd', 'E', 'EUR-1', str_repeat('A', 13)] as $invalid) {
             $this->client->request('GET', '/api/v1/instruments?currencyCode='.rawurlencode($invalid));
-            self::assertResponseStatusCodeSame(422, $invalid);
+            self::assertResponseStatusCodeSame(400, $invalid);
             self::assertSame('invalid_instrument_query', $this->decode()['code']);
         }
     }
@@ -448,5 +448,36 @@ final class InstrumentControllerTest extends WebTestCase
             'created_by' => WorkspaceFixture::OTHER_WORKSPACE === $workspaceId ? WorkspaceFixture::OTHER_OWNER_ID : WorkspaceFixture::OWNER_ID,
             'updated_at' => '2026-09-01 12:00:00+00', 'version' => 1,
         ]);
+    }
+
+    public function testCreationReplaysTheFirstResponseForTheSameKeyAndBodyAndRefusesAChangedBody(): void
+    {
+        $send = fn (array $body) => $this->client->request('POST', '/api/v1/instruments', server: [...self::jsonHeaders(), 'HTTP_IDEMPOTENCY_KEY' => 'instrument-key-00000001'], content: json_encode($body, JSON_THROW_ON_ERROR));
+        $count = fn (string $workspace): mixed => $this->connection->fetchOne('SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ?', [$workspace]);
+        $body = $this->payload(['isin' => null, 'ticker' => 'idem', 'name' => 'Idempotent ETF']);
+
+        $send($body);
+        self::assertResponseStatusCodeSame(201);
+        self::assertFalse($this->client->getResponse()->headers->has('Idempotency-Replayed'));
+        $first = $this->decode()['id'];
+
+        $send($body);
+        self::assertResponseStatusCodeSame(201);
+        self::assertResponseHeaderSame('Idempotency-Replayed', 'true');
+        self::assertSame($first, $this->decode()['id']);
+        self::assertSame(1, $count(WorkspaceFixture::OWN_WORKSPACE));
+
+        $send([...$body, 'name' => 'Another name']);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame(1, $count(WorkspaceFixture::OWN_WORKSPACE));
+
+        $this->request('POST', '/api/v1/session', ['email' => WorkspaceFixture::OTHER_OWNER_EMAIL, 'password' => WorkspaceFixture::OWNER_PASSWORD]);
+        self::assertResponseStatusCodeSame(204);
+        $send($body);
+        self::assertResponseStatusCodeSame(201);
+        self::assertFalse($this->client->getResponse()->headers->has('Idempotency-Replayed'));
+        self::assertNotSame($first, $this->decode()['id']);
+        self::assertSame(1, $count(WorkspaceFixture::OWN_WORKSPACE));
+        self::assertSame(1, $count(WorkspaceFixture::OTHER_WORKSPACE));
     }
 }

@@ -33,7 +33,7 @@ function renderForm(
     ok({
       items: [{ id: 'ins-1', name: 'ETF Monde', isin: 'FR0000120271', ticker: 'CW8' }],
       page: 1,
-      perPage: 20,
+      pageSize: 20,
       total: 1,
     }),
   );

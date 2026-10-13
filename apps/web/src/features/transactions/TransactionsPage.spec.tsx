@@ -131,7 +131,7 @@ describe('TransactionsPage', () => {
       valuationMode: 'PORTFOLIO' as const,
     };
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account, destination], page: 1, perPage: 100, total: 2 }),
+      success({ items: [account, destination], page: 1, pageSize: 100, total: 2 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.createTransfer.mockImplementation(() =>
@@ -168,7 +168,7 @@ describe('TransactionsPage', () => {
   it('replaces its sole cold-load status and keeps transactions during a refetch', async () => {
     let resolveTransactions: ((value: unknown) => void) | undefined;
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(
       () =>
@@ -196,7 +196,7 @@ describe('TransactionsPage', () => {
 
   it('opens the monthly closure flow from the header overflow menu', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     renderPage();
@@ -224,12 +224,12 @@ describe('TransactionsPage', () => {
       label: 'Salaire',
     } as Category;
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     // The server lists income first here: the picker still leads with what the sign expects.
     api.listCategories.mockImplementation(() =>
-      success({ items: [incomeCategory, expenseCategory], page: 1, perPage: 50, total: 2 }),
+      success({ items: [incomeCategory, expenseCategory], page: 1, pageSize: 50, total: 2 }),
     );
     renderPage();
 
@@ -275,11 +275,11 @@ describe('TransactionsPage', () => {
       label: 'Salaire',
     } as Category;
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [expenseCategory, incomeCategory], page: 1, perPage: 50, total: 2 }),
+      success({ items: [expenseCategory, incomeCategory], page: 1, pageSize: 50, total: 2 }),
     );
     renderPage();
 
@@ -306,11 +306,11 @@ describe('TransactionsPage', () => {
 
   it('quick-creates and selects a category without changing the transaction draft', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     const created = {
       ...expenseCategory,
@@ -378,11 +378,11 @@ describe('TransactionsPage', () => {
 
   it('keeps quick-create errors inside the nested dialog and leaves the draft untouched', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.createCategory.mockResolvedValue({
       error: { type: '/problems/category-label-conflict' },
@@ -422,7 +422,7 @@ describe('TransactionsPage', () => {
 
   it('prefills the axes of the picked category, resets them on a category change and sends an override', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     const abonnement = {
@@ -438,7 +438,7 @@ describe('TransactionsPage', () => {
       defaultAnalyticAxes: ['DISCRETIONARY'],
     } as Category;
     api.listCategories.mockImplementation(() =>
-      success({ items: [abonnement, loisirs], page: 1, perPage: 50, total: 2 }),
+      success({ items: [abonnement, loisirs], page: 1, pageSize: 50, total: 2 }),
     );
     api.createTransaction.mockImplementation(({ body }) =>
       success({ ...transaction, ...body, splits: [] }, 201),
@@ -485,11 +485,11 @@ describe('TransactionsPage', () => {
 
   it('cancels quick creation without touching the draft or the transaction focus trap', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -529,11 +529,11 @@ describe('TransactionsPage', () => {
 
   it('prefills the income type for a positive amount', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -554,11 +554,11 @@ describe('TransactionsPage', () => {
 
   it('selects a quick-created category of the other type and flags the sign', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.createCategory.mockImplementation(({ body }) =>
       success({ ...expenseCategory, ...body, id: '00000000-0000-7000-8000-0000000000c9' }, 201),
@@ -595,11 +595,11 @@ describe('TransactionsPage', () => {
 
   it('issues one category request for two rapid quick-create submissions', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.createCategory.mockImplementation(() => new Promise(() => undefined));
     renderPage();
@@ -622,11 +622,11 @@ describe('TransactionsPage', () => {
 
   it('covers the empty state and creates a signed expense', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.createTransaction.mockImplementation(({ body }) =>
       success({ ...transaction, ...body, splits: [] }, 201),
@@ -654,11 +654,11 @@ describe('TransactionsPage', () => {
 
   it('folds the rarely used fields, names the filled ones and opens them on an error', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -706,11 +706,11 @@ describe('TransactionsPage', () => {
 
   it('closes the advanced fields with the split, which takes over the category slot', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -745,7 +745,7 @@ describe('TransactionsPage', () => {
 
   it('switches to the to-categorise queue, requests it and shows its own empty state', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(({ query }) =>
       success({ items: query.categorization === 'NONE' ? [] : [transaction], nextCursor: null }),
@@ -769,7 +769,7 @@ describe('TransactionsPage', () => {
 
   it('names the signed amount and the voided state in words', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() =>
       success({
@@ -796,7 +796,7 @@ describe('TransactionsPage', () => {
 
   it('shows an explicit unauthorized state', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockResolvedValue({
       error: { status: 401 },
@@ -810,13 +810,13 @@ describe('TransactionsPage', () => {
 
   it('distinguishes a stale version from a terminal conflict', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() =>
       success({ items: [transaction], nextCursor: null }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.updateTransaction.mockResolvedValue({
       error: { type: '/problems/stale-version' },
@@ -838,7 +838,7 @@ describe('TransactionsPage', () => {
 
   it('asks for confirmation before voiding and keeps the confirm control unfocused', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() =>
       success({ items: [transaction], nextCursor: null }),
@@ -873,7 +873,7 @@ describe('TransactionsPage', () => {
 
   it('refreshes a stale void and retries with the current version', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions
       .mockImplementationOnce(() => success({ items: [transaction], nextCursor: null }))
@@ -911,7 +911,7 @@ describe('TransactionsPage', () => {
 
   it('duplicates from the row actions and reports a refused copy', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() =>
       success({ items: [transaction], nextCursor: null }),
@@ -934,7 +934,7 @@ describe('TransactionsPage', () => {
 
   it('keeps duplication single-flight while the request is pending', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() =>
       success({ items: [transaction], nextCursor: null }),
@@ -986,13 +986,13 @@ describe('TransactionsPage', () => {
       ],
     } satisfies Transaction;
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() =>
       success({ items: [categorized], nextCursor: null }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -1019,13 +1019,13 @@ describe('TransactionsPage', () => {
 
   it('edits a manual label and explains the fields that stay locked', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() =>
       success({ items: [transaction], nextCursor: null }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.updateTransaction.mockImplementation(({ body }) => success({ ...transaction, ...body }));
     renderPage();
@@ -1060,11 +1060,11 @@ describe('TransactionsPage', () => {
   it('keeps an imported source label read-only and explains why', async () => {
     const imported = { ...transaction, source: 'IMPORT' } satisfies Transaction;
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [imported], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -1095,17 +1095,17 @@ describe('TransactionsPage', () => {
     const historicalTransaction = { ...transaction, accountId: historicalAccount.id };
     api.listAccounts.mockImplementation(({ query }) => {
       if (!query.includeArchived) {
-        return success({ items: [account], page: 1, perPage: 100, total: 1 });
+        return success({ items: [account], page: 1, pageSize: 100, total: 1 });
       }
       return query.page === 1
-        ? success({ items: [account], page: 1, perPage: 100, total: 101 })
-        : success({ items: [historicalAccount], page: 2, perPage: 100, total: 101 });
+        ? success({ items: [account], page: 1, pageSize: 100, total: 101 })
+        : success({ items: [historicalAccount], page: 2, pageSize: 100, total: 101 });
     });
     api.listTransactions.mockImplementation(() =>
       success({ items: [historicalTransaction], nextCursor: null }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.updateTransaction.mockImplementation(({ body }) =>
       success({ ...historicalTransaction, ...body }),
@@ -1145,7 +1145,7 @@ describe('TransactionsPage', () => {
       assetCode: 'CHF',
     } as Account;
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account, savingsAccount, chfAccount], page: 1, perPage: 100, total: 3 }),
+      success({ items: [account, savingsAccount, chfAccount], page: 1, pageSize: 100, total: 3 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.createTransfer.mockImplementation(({ body }) =>
@@ -1222,7 +1222,7 @@ describe('TransactionsPage', () => {
       transferId: '00000000-0000-7000-8000-0000000000e1',
     };
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() =>
       success({ items: [transferLeg], nextCursor: null }),
@@ -1250,7 +1250,7 @@ describe('TransactionsPage', () => {
       refundedAmount: { value: '42.90', assetCode: 'EUR' },
     };
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [settled], nextCursor: null }));
     renderPage();
@@ -1268,11 +1268,11 @@ describe('TransactionsPage', () => {
   it('keeps the URL in sync with a filter change wired through the page', async () => {
     window.history.replaceState({}, '', '/transactions');
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -1296,10 +1296,10 @@ describe('TransactionsPage', () => {
 
   it('keeps the loaded rows and offers a reload when a page request finds the cursor stale', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listTransactions
       .mockImplementationOnce(() => success({ items: [transaction], nextCursor: 'cursor-1' }))
@@ -1328,10 +1328,10 @@ describe('TransactionsPage', () => {
 
   it('reloads from the first page after saving an edit made on a later page', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     const edited = { ...transaction, rawLabel: 'CARREFOUR MARKET', version: 2 };
     let saved = false;
@@ -1383,10 +1383,10 @@ describe('TransactionsPage', () => {
 
   it('changes the announced row count between two pages that load the same count', async () => {
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     const secondPageTransaction: Transaction = {
       ...transaction,

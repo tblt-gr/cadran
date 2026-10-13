@@ -128,14 +128,14 @@ describe('RecurrencesPage', () => {
         }),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     const { queryClient } = renderPage();
 
     expect(screen.getByTestId('recurrences-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveRecurrences?.({
-      data: { items: [archivedRecurrence], page: 1, perPage: 100, total: 1 },
+      data: { items: [archivedRecurrence], page: 1, pageSize: 100, total: 1 },
       response: new Response('{}', { status: 200 }),
     });
     expect(await screen.findByText(archivedRecurrence.label)).toBeTruthy();
@@ -151,10 +151,10 @@ describe('RecurrencesPage', () => {
   it('replaces the recurrences skeleton with an error state after a failed cold read', async () => {
     api.detectRecurrenceCandidates.mockRejectedValue(new TypeError('offline'));
     api.listRecurrences.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     renderPage();
 
@@ -165,10 +165,10 @@ describe('RecurrencesPage', () => {
   it('explains that a no-candidate scan leaves the books untouched', async () => {
     api.detectRecurrenceCandidates.mockImplementation(() => success({ items: [], partial: false }));
     api.listRecurrences.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     renderPage();
 
@@ -184,10 +184,10 @@ describe('RecurrencesPage', () => {
       success({ items: [candidate], partial: false }),
     );
     api.listRecurrences.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.confirmRecurrence.mockImplementation(({ body }) =>
       success({ id: 'recurrence', ...body }, 201),
@@ -208,18 +208,52 @@ describe('RecurrencesPage', () => {
     });
   });
 
+  it('sends one Idempotency-Key per confirmation and reuses it when the same body is retried', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() =>
+      success({ items: [candidate], partial: false }),
+    );
+    api.listRecurrences.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.confirmRecurrence
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          error: { type: 'about:blank', title: 'Unavailable', status: 503 },
+          response: new Response(null, { status: 503 }),
+        }),
+      )
+      .mockImplementation(({ body }) => success({ id: 'recurrence', ...body }, 201));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.confirmRecurrence).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.confirmRecurrence).toHaveBeenCalledTimes(2));
+
+    const keys = api.confirmRecurrence.mock.calls.map(
+      ([options]) => options.headers['Idempotency-Key'],
+    );
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[1]).toBe(keys[0]);
+  });
+
   it('shows archived recurrences on demand and opens occurrences in the shared modal', async () => {
     api.detectRecurrenceCandidates.mockImplementation(() => success({ items: [], partial: false }));
     api.listRecurrences.mockImplementation(({ query }) =>
       query.includeArchived
-        ? success({ items: [archivedRecurrence], page: 1, perPage: 100, total: 1 })
-        : success({ items: [], page: 1, perPage: 100, total: 0 }),
+        ? success({ items: [archivedRecurrence], page: 1, pageSize: 100, total: 1 })
+        : success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listRecurrenceOccurrences.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderPage();
     await waitFor(() => expect(screen.queryByTestId('recurrences-skeleton')).toBeNull());
@@ -240,13 +274,13 @@ describe('RecurrencesPage', () => {
         ? success({
             items: restored ? [] : [archivedRecurrence],
             page: 1,
-            perPage: 100,
+            pageSize: 100,
             total: restored ? 0 : 1,
           })
-        : success({ items: [], page: 1, perPage: 100, total: 0 }),
+        : success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, perPage: 100, total: 1 }),
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.restoreRecurrence.mockImplementation(() => {
       restored = true;

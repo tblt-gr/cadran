@@ -23,7 +23,7 @@ final class ListProductsTest extends TestCase
         $page = ($this->listProducts())(null, null, null);
 
         self::assertSame(1, $page->page);
-        self::assertSame(ListProducts::DEFAULT_PAGE_SIZE, $page->perPage);
+        self::assertSame(ListProducts::DEFAULT_PAGE_SIZE, $page->pageSize);
         self::assertSame(2, $page->total);
         self::assertSame('2026-09-02', $page->products[0]->asOf->format('Y-m-d'));
     }
@@ -65,11 +65,11 @@ final class ListProductsTest extends TestCase
     }
 
     #[DataProvider('unboundedQueries')]
-    public function testAnUnboundedQueryIsRefused(?int $page, ?int $perPage, ?string $asOf): void
+    public function testAnUnboundedQueryIsRefused(?int $page, ?int $pageSize, ?string $asOf): void
     {
         $this->expectException(InvalidProductQuery::class);
 
-        ($this->listProducts())($page, $perPage, $asOf);
+        ($this->listProducts())($page, $pageSize, $asOf);
     }
 
     /**

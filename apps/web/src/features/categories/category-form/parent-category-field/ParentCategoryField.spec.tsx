@@ -45,7 +45,7 @@ describe('ParentCategoryField', () => {
         data: {
           items: query.search === 'Loge' ? [parent] : [],
           page: 1,
-          perPage: 50,
+          pageSize: 50,
           total: query.search === 'Loge' ? 1 : 0,
         },
         response: new Response('{}', { status: 200 }),
@@ -69,7 +69,7 @@ describe('ParentCategoryField', () => {
           parentEligible: true,
           search: 'Loge',
           type: 'EXPENSE',
-          perPage: 50,
+          pageSize: 50,
         }),
       }),
     );

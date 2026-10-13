@@ -54,10 +54,10 @@ describe('SplitEditor', () => {
 
   it('shows the exact remaining amount as rows are added', async () => {
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
 
     renderEditor([
@@ -71,10 +71,10 @@ describe('SplitEditor', () => {
 
   it('adds an empty row on click of the add-row button', async () => {
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
 
     const rows = [{ ...emptySplitRow(), amount: '-62.10' }];
@@ -95,10 +95,10 @@ describe('SplitEditor', () => {
 
   it('disables the add-row button once the set reaches the twenty-row bound', async () => {
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
 
     const rows = Array.from({ length: 20 }, () => emptySplitRow());
@@ -110,10 +110,10 @@ describe('SplitEditor', () => {
 
   it('removes a row on click of its remove button', async () => {
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
 
     const rows = [
@@ -128,10 +128,10 @@ describe('SplitEditor', () => {
 
   it('announces a non-zero remainder as an error once submission is attempted', async () => {
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
 
     renderEditor([{ ...emptySplitRow(), amount: '-62.10' }], { showErrors: true });
@@ -144,10 +144,10 @@ describe('SplitEditor', () => {
 
   it('announces a zero-amount row as an error even though its sum still balances', async () => {
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
 
     renderEditor(
@@ -165,10 +165,10 @@ describe('SplitEditor', () => {
 
   it('assigns the remainder to a row so the allocation balances exactly', async () => {
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
 
     const rows = [
@@ -186,10 +186,10 @@ describe('SplitEditor', () => {
 
   it('splits evenly across the rows once the asset precision is known', async () => {
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
 
     const rows = [emptySplitRow(), emptySplitRow(), emptySplitRow()];
@@ -213,10 +213,10 @@ describe('SplitEditor', () => {
     const categoryB = { id: 'cat-b', label: 'Beauté', archivedAt: null } as Category;
     const categoryC = { id: 'cat-c', label: 'Culture', archivedAt: null } as Category;
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [categoryA, categoryB, categoryC], page: 1, perPage: 50, total: 3 }),
+      success({ items: [categoryA, categoryB, categoryC], page: 1, pageSize: 50, total: 3 }),
     );
 
     function ControlledEditor() {
@@ -306,10 +306,10 @@ describe('SplitEditor', () => {
       defaultAnalyticAxes: ['ESSENTIAL', 'VARIABLE'],
     } as Category;
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [groceries], page: 1, perPage: 50, total: 1 }),
+      success({ items: [groceries], page: 1, pageSize: 50, total: 1 }),
     );
     const rows = renderControlled([{ ...emptySplitRow(), amount: '-10.00' }], '-10.00');
 
@@ -341,10 +341,10 @@ describe('SplitEditor', () => {
       defaultAnalyticAxes: [] as Category['defaultAnalyticAxes'],
     } as Category;
     api.listAssets.mockImplementation(() =>
-      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, perPage: 100, total: 1 }),
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() =>
-      success({ items: [salary], page: 1, perPage: 50, total: 1 }),
+      success({ items: [salary], page: 1, pageSize: 50, total: 1 }),
     );
     renderControlled([{ ...emptySplitRow(), amount: '-10.00' }], '-10.00', true);
 

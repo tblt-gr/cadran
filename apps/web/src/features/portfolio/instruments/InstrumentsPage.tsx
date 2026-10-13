@@ -64,7 +64,7 @@ export function InstrumentsPage() {
     queryFn: async ({ signal }) => {
       const result = await listInstruments({
         ...authApiOptions(),
-        query: { status, q: query || undefined, page, perPage: PER_PAGE },
+        query: { status, q: query || undefined, page, pageSize: PER_PAGE },
         signal,
       });
       if (!result.response?.ok || !result.data) throw instrumentRequestError(result);

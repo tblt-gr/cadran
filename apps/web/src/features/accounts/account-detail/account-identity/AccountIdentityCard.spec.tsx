@@ -83,7 +83,7 @@ function renderCard(target: Account) {
 describe('AccountIdentityCard', () => {
   beforeEach(() => {
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
   });
 
@@ -116,7 +116,7 @@ describe('AccountIdentityCard', () => {
       success({
         items: [{ id: '00000000-0000-7000-8000-0000000000c1', label: 'Épargne' }],
         page: 1,
-        perPage: 100,
+        pageSize: 100,
         total: 1,
       }),
     );
@@ -139,7 +139,7 @@ describe('AccountIdentityCard', () => {
 
   it('shows the group as unavailable, not as no group, when it is not on the fetched page', async () => {
     api.listAccountGroups.mockImplementation(() =>
-      success({ items: [], page: 1, perPage: 100, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderCard({ ...account, primaryGroupId: '00000000-0000-7000-8000-0000000000c1' });
 
