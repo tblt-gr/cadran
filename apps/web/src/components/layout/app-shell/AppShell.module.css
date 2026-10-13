@@ -52,7 +52,8 @@
   min-width: 0;
 }
 
-/* Indeterminate bar at the top of the content area while the next page loads. */
+/* Indeterminate bar at the top of the content area while the next page loads. It stays hidden
+   for a short delay: a navigation whose chunk is already there would otherwise flash it. */
 .progress {
   position: absolute;
   z-index: 1;
@@ -62,6 +63,16 @@
   height: var(--border-width-focus);
   overflow: hidden;
   background: var(--border-subtle);
+  visibility: hidden;
+  animation-name: progress-reveal;
+  animation-delay: var(--duration-progress-delay);
+  animation-fill-mode: forwards;
+}
+
+@keyframes progress-reveal {
+  to {
+    visibility: visible;
+  }
 }
 
 .progress::after {
