@@ -75,3 +75,9 @@ describe('CurveChart', () => {
     expect(screen.getByRole('tooltip').textContent).toContain('note 3');
   });
 });
+
+it('marks the plot frame for the visual comparison mask', () => {
+  const { container } = renderChart();
+
+  expect(container.querySelector('[data-visual-mask]')).not.toBeNull();
+});

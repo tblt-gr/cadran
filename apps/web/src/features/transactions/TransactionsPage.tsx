@@ -115,9 +115,14 @@ export function TransactionsPage() {
   return (
     <div className={styles.page}>
       <HeaderActions>
-        <button className="primary-action" onClick={() => openEditor('create')} type="button">
+        <button
+          aria-label={t('transactions.add')}
+          className={`primary-action ${styles.add}`}
+          onClick={() => openEditor('create')}
+          type="button"
+        >
           <Icon name="add" size={18} />
-          {t('transactions.add')}
+          <span className={styles.addLabel}>{t('transactions.add')}</span>
         </button>
         <button
           aria-label={t('transactions.addTransfer')}

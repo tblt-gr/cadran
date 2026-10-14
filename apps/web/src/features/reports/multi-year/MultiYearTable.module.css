@@ -87,3 +87,10 @@
     display: block;
   }
 }
+
+@media (pointer: coarse) {
+  .table tbody th a {
+    min-inline-size: var(--touch-target-min);
+    justify-content: center;
+  }
+}

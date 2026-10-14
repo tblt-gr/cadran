@@ -21,7 +21,7 @@ export function DonutPlot({ label, slices, totalText }: DonutPlotProps) {
   const ready = size.width > 0 && size.height > 0;
 
   return (
-    <div className={styles.plot} ref={ref}>
+    <div className={styles.plot} data-visual-mask ref={ref}>
       {ready ? (
         <Suspense fallback={<SkeletonChartArea />}>
           <DonutChart

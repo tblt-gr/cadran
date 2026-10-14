@@ -48,7 +48,7 @@ export function BudgetPageSkeleton({
                 <h3>{t('budget.targets.title')}</h3>
                 <p>{t('budget.targets.description')}</p>
               </div>
-              <button className="primary-action" disabled type="button">
+              <button className="secondary-action" disabled type="button">
                 {t('budget.targets.add')}
               </button>
             </div>

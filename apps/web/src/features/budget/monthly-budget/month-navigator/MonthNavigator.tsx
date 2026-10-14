@@ -75,6 +75,7 @@ export function MonthNavigator({
           ) : (
             <a
               aria-current={active ? 'page' : undefined}
+              ref={active ? revealInStrip : undefined}
               className={active ? styles.active : undefined}
               href={monthHref(candidate, axis)}
               key={candidate}
@@ -87,6 +88,11 @@ export function MonthNavigator({
       </nav>
     </section>
   );
+}
+
+/** The strip scrolls on a narrow screen: bring the selected month into view, not the page. */
+function revealInStrip(link: HTMLAnchorElement | null) {
+  link?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
 }
 
 function capitalise(value: string, locale: string) {

@@ -39,7 +39,7 @@ export function ProfileSettingsPageSkeleton({ status }: { status: string }) {
           <SkeletonField label={t('settings.password.fields.newPassword')} />
           <p className={passwordStyles.hint}>{t('settings.password.hint', { min: MIN_LENGTH })}</p>
           <SkeletonField label={t('settings.password.fields.confirmPassword')} />
-          <button className={`primary-action ${passwordStyles.submit}`} disabled type="button">
+          <button className={`secondary-action ${passwordStyles.submit}`} disabled type="button">
             {t('settings.password.submit')}
           </button>
         </div>

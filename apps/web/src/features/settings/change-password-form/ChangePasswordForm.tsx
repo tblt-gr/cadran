@@ -119,7 +119,7 @@ export function ChangePasswordForm({ onSubmit, pending, submitError }: ChangePas
         error={showErrors && mismatch ? t('settings.password.errors.mismatch') : undefined}
       />
 
-      <button className={`primary-action ${styles.submit}`} type="submit" disabled={pending}>
+      <button className={`secondary-action ${styles.submit}`} type="submit" disabled={pending}>
         {pending ? t('settings.password.submitting') : t('settings.password.submit')}
       </button>
     </form>

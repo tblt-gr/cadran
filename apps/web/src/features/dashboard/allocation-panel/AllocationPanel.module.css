@@ -26,6 +26,7 @@
 }
 
 .link {
+  flex: none;
   color: var(--gold-300);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-strong);
@@ -55,7 +56,7 @@
 @media (max-width: 1279px) {
   .card,
   .card[data-allocation-view='pie'] {
-    grid-column: span 6;
+    grid-column: 1 / -1;
   }
 
   .pieLayout {

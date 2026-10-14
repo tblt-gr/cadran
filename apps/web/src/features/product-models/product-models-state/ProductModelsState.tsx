@@ -30,7 +30,7 @@ export function ProductModelsState({ kind, onCreate, onRetry }: ProductModelsSta
       <section className={`card ${styles.state}`}>
         <h2>{t('productModels.empty.title')}</h2>
         <p>{t('productModels.empty.description')}</p>
-        <button className="primary-action" onClick={onCreate} type="button">
+        <button className="secondary-action" onClick={onCreate} type="button">
           {t('productModels.addFirst')}
         </button>
       </section>

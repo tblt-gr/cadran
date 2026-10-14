@@ -13,10 +13,10 @@ test.describe('foundation smoke', () => {
     });
   });
 
-  test('serves the web shell and reaches a ready state', async ({ page }) => {
+  test('serves the web shell and asks an anonymous visitor to sign in', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(page.getByRole('status')).toContainText('prêt');
+    await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible();
+    await expect(page.getByLabel('Adresse e-mail')).toBeVisible();
   });
 });

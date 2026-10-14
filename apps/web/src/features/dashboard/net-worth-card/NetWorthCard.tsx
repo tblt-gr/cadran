@@ -35,7 +35,7 @@ export function NetWorthCard({ historyPending, historyPoints, netWorth }: NetWor
         </div>
         <div className={styles.context}>
           <FreshnessBadge netWorth={netWorth} />
-          <p className={styles.asOf}>
+          <p className={styles.asOf} data-visual-mask>
             {t('dashboard.netWorth.asOf', {
               date: formatCalendarDay(netWorth.asOf, i18n.language),
             })}

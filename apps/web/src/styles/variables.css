@@ -58,7 +58,9 @@
   --header-height: 5rem;
   --header-height-mobile: 6.25rem;
   --z-header: 20;
+  --touch-target-min: 2.75rem;
   --control-height: 2.25rem;
+  --control-height-compact: 2rem;
   --modal-width: 44rem;
   --navigation-link-height: 2.875rem;
   --mobile-navigation-height: 4.5rem;
@@ -151,4 +153,13 @@
   --duration-loading-spin: 900ms;
   --duration-skeleton-shimmer: 900ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A coarse pointer needs 44 px targets (WCAG 2.5.5): the control density tokens grow, a mouse keeps
+   36 px. Icon sizes also size decorative boxes, so interactive classes opt in to the minimum. */
+@media (pointer: coarse) {
+  :root {
+    --control-height: var(--touch-target-min);
+    --control-height-compact: var(--touch-target-min);
+  }
 }

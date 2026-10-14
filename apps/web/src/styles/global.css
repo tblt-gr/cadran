@@ -71,6 +71,31 @@ a {
   outline-offset: var(--outline-offset-focus);
 }
 
+/* Every pointer-operated control reaches the touch target minimum on a coarse pointer. Links set
+   inside a sentence (a paragraph or a caption) keep their line box: WCAG 2.5.8 exempts them.
+   Everything sits in :where(), so any component rule (its own display, min-height) still wins over
+   this baseline. No min-width here: it would replace the automatic minimum of a flex item and let
+   a nowrap tab shrink below its text. Narrow text controls set their own width. */
+@media (pointer: coarse) {
+  :where(a[href], button, summary, [role='tab'], [role='button'], [role='menuitem']):not(
+    :where(p, small, figcaption, legend) a
+  ) {
+    min-block-size: var(--touch-target-min);
+  }
+
+  /* A link alone in a cell or a nav item is an inline box, which ignores min-block-size. */
+  :where(a[href]):not(:where(p, small, figcaption, legend) a) {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  :where(label:has(> input[type='checkbox'], > input[type='radio'])) {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--touch-target-min);
+  }
+}
+
 * {
   scrollbar-color: var(--border-strong) var(--bg-shell);
   scrollbar-width: thin;

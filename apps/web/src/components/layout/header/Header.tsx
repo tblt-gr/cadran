@@ -15,12 +15,16 @@ export function Header({ accountSlot, freshnessLabel, headerDate, title }: Heade
   return (
     <header className={styles.header}>
       <div>
-        {headerDate ? <p className={styles.date}>{headerDate}</p> : null}
+        {headerDate ? (
+          <p className={styles.date} data-visual-mask>
+            {headerDate}
+          </p>
+        ) : null}
         <h1>{title}</h1>
       </div>
       <div className={styles.actions}>
         {freshnessLabel ? (
-          <span className={styles.freshness}>
+          <span className={styles.freshness} data-visual-mask>
             <span className={styles.freshnessDot} />
             {freshnessLabel}
           </span>

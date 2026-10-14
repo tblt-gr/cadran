@@ -32,6 +32,12 @@ describe('Skeleton primitives', () => {
     expect(document.querySelectorAll('[aria-hidden="true"]')).toHaveLength(14);
   });
 
+  it('tags every placeholder so the browser suite can wait for the data to replace it', () => {
+    const { container } = render(<SkeletonBlock />);
+
+    expect(container.querySelector('[data-skeleton]')).not.toBeNull();
+  });
+
   it('uses the shared reduced-motion treatment', async () => {
     const css = readFileSync('src/components/ui/skeleton/Skeleton.module.css', 'utf8');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');

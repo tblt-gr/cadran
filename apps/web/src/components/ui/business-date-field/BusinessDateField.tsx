@@ -33,7 +33,7 @@ export function BusinessDateField({
   const hintId = useId();
 
   return (
-    <div className={styles.field}>
+    <div className={styles.field} data-visual-mask>
       <label htmlFor={fieldId}>{label ?? t('catalog.asOf.label')}</label>
       <div className={styles.controls}>
         <input

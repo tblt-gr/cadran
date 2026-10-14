@@ -1,33 +1,20 @@
 import { expect, test, type Page } from '@playwright/test';
+import { navigateTo, settled } from './support/page';
 
 /**
  * Closing a past month must make an ordinary write against it refused in the
- * UI, and reopening must bring it back to normal — the guarded-write
+ * UI, and reopening must bring it back to normal: the guarded-write
  * invariant (CLS-001 / AssertPeriodOpen) as a user actually experiences it,
  * not just as an HTTP contract test.
  *
- * This spec needs a provisioned owner (`make cadran:identity:setup` / the
- * one-time `SetupIdentityCommand`), which is a per-install secret this repo
- * never stores. Point it at one with:
- *
- *   E2E_OWNER_EMAIL=owner@example.test E2E_OWNER_PASSWORD=... pnpm --filter @cadran/e2e e2e
- *
- * Without both variables the whole file is skipped rather than failing the
- * optional `make e2e` run.
+ * Runs signed in as the e2e owner provisioned by `make e2e-provision`.
  */
-const ownerEmail = process.env.E2E_OWNER_EMAIL;
-const ownerPassword = process.env.E2E_OWNER_PASSWORD;
-
 test.describe('period closure', () => {
-  test.skip(
-    !ownerEmail || !ownerPassword,
-    'Set E2E_OWNER_EMAIL and E2E_OWNER_PASSWORD to a provisioned owner to run this spec.',
-  );
-
   test('closing a past month refuses a write dated in it, and reopening restores it', async ({
     page,
   }) => {
-    await login(page);
+    await page.goto('/');
+    await settled(page);
 
     // A month far enough in the past to be over, but distinct run to run: a
     // month closed by an earlier run of this same spec is reopened first,
@@ -35,10 +22,7 @@ test.describe('period closure', () => {
     const target = monthsAgo(2);
     const targetLabel = frenchMonthYear(target);
 
-    await page
-      .getByRole('navigation', { name: 'Navigation principale' })
-      .getByRole('link', { name: 'Transactions', exact: true })
-      .click();
+    await navigateTo(page, 'Transactions');
 
     // Only one modal is ever open at a time in this flow, so an unnamed
     // `dialog` role locator stays valid across its title change (the panel
@@ -47,14 +31,18 @@ test.describe('period closure', () => {
     const closurePanel = page.getByRole('dialog');
 
     await test.step('open the period closure panel and select the target month', async () => {
-      await page.getByRole('button', { name: 'Clôture du mois' }).click();
+      await openClosurePanel(page);
       await expect(closurePanel).toBeVisible();
       await closurePanel.locator('input[type="month"]').fill(target);
     });
 
     await test.step('reopen the month first if an earlier run left it closed', async () => {
       const reopenAction = closurePanel.getByRole('button', { name: 'Rouvrir le mois' });
-      if (await reopenAction.isVisible().catch(() => false)) {
+      // The panel loads the month's state first: wait for either action before choosing.
+      await expect(
+        closurePanel.getByRole('button', { name: /^(Clôturer|Rouvrir) le mois$/ }),
+      ).toBeVisible();
+      if (await reopenAction.isVisible()) {
         await reopenAction.click();
         await closurePanel.getByLabel('Motif de la réouverture').fill('e2e: reset before re-run');
         await closurePanel.getByRole('button', { name: 'Confirmer la réouverture' }).click();
@@ -101,7 +89,7 @@ test.describe('period closure', () => {
     });
 
     await test.step('reopening with a reason makes the month writable again', async () => {
-      await page.getByRole('button', { name: 'Clôture du mois' }).click();
+      await openClosurePanel(page);
       await closurePanel.locator('input[type="month"]').fill(target);
       await closurePanel.getByRole('button', { name: 'Rouvrir le mois' }).click();
       await closurePanel
@@ -115,12 +103,10 @@ test.describe('period closure', () => {
   });
 });
 
-async function login(page: Page): Promise<void> {
-  await page.goto('/');
-  await page.getByLabel('Adresse e-mail').fill(ownerEmail!);
-  await page.getByLabel('Mot de passe').fill(ownerPassword!);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+/** The closure panel lives in the page header's overflow menu. */
+async function openClosurePanel(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Autres actions' }).click();
+  await page.getByRole('button', { name: 'Clôture du mois' }).click();
 }
 
 /** `YYYY-MM` for the first day of the month `count` months before today. */

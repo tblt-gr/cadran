@@ -13,7 +13,7 @@
 
 .segment {
   flex: none;
-  min-height: calc(var(--control-height) - var(--spacing-1));
+  min-height: var(--control-height-compact);
   padding: var(--spacing-1) var(--spacing-3);
   border: var(--border-line-transparent);
   border-radius: var(--radius-button);

@@ -51,7 +51,7 @@
 
 @media (max-width: 1279px) {
   .card {
-    grid-column: span 6;
+    grid-column: 1 / -1;
   }
 }
 

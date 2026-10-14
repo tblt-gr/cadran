@@ -121,7 +121,7 @@ export function CurveChart({ label, points, timeAxisLabel, valueAxisLabel }: Cur
       : { point: activePoint, plot: active, placement: tooltipEdge(active.x, active.y) };
 
   return (
-    <div className={styles.frame}>
+    <div className={styles.frame} data-visual-mask>
       <div className={styles.yAxis} role="group" aria-label={valueAxisLabel}>
         <span aria-hidden="true" className={styles.ySizer}>
           {yTicks.map((tick) => (
@@ -203,6 +203,7 @@ export function CurveChart({ label, points, timeAxisLabel, valueAxisLabel }: Cur
           <button
             aria-label={points[point.index].hitLabel}
             className={styles.hit}
+            data-chart-point
             key={`hit-${point.index}`}
             onBlur={() => setActiveIndex(null)}
             onFocus={() => setActiveIndex(point.index)}

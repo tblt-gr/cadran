@@ -67,6 +67,9 @@ export function AuthenticatedApp() {
     }
 
     window.addEventListener('popstate', updatePath);
+    // A redirect rendered on the first paint dispatches popstate from its own effect, which runs
+    // before this one registers the listener: catch up once, a no-op when the path is unchanged.
+    updatePath();
     return () => window.removeEventListener('popstate', updatePath);
   }, [navigateTo]);
 

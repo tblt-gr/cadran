@@ -15,6 +15,7 @@
       "project": ["src/**/*.ts", "!src/generated/**"]
     },
     "tests/e2e": {
+      "entry": ["tests/*.setup.ts"],
       "project": ["**/*.ts"]
     }
   }
