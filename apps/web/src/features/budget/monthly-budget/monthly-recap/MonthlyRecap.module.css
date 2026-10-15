@@ -41,6 +41,11 @@
   height: var(--font-size-kpi);
 }
 
+.skeletonLabel {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-label);
+}
+
 .skeletonAmount {
   width: calc(var(--spacing-12) * 1.5);
   height: var(--font-size-body);

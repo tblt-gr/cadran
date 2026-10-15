@@ -30,6 +30,7 @@ Closes #
 - [ ] Database migrations include a rollback or documented recovery plan
 - [ ] OpenAPI and the generated TypeScript client are synchronized if the API changed
 - [ ] Loading, empty, error and non-calculable UI states are handled
+- [ ] Each changed screen's skeleton was compared tag by tag with its loaded JSX
 - [ ] Keyboard, focus, contrast and responsive behavior are checked if the UI changed
 - [ ] Relevant formula, catalog, user and architecture documentation is updated
 - [ ] `pnpm quality` and all applicable application checks pass locally

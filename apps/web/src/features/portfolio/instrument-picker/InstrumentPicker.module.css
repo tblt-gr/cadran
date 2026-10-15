@@ -35,3 +35,8 @@
 .options a {
   color: var(--gold-300);
 }
+
+.skeletonOption {
+  width: 70%;
+  height: var(--font-size-label);
+}

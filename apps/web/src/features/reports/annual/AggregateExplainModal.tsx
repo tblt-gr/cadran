@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { AggregateExplainSkeleton } from './AggregateExplainSkeleton';
 import { AnnualCellValue } from './AnnualCellValue';
 import { monthLabel } from './annualRowLabels';
 import { useAnnualColumnExplanation } from './useAnnualReport';
@@ -26,7 +27,7 @@ export function AggregateExplainModal({
   return (
     <Modal close={close} eyebrow={t('reports.annual.explainEyebrow')} title={columnLabel}>
       {explanation.isPending ? (
-        <p role="status">{t('reports.explanationLoading')}</p>
+        <AggregateExplainSkeleton year={year} />
       ) : explanation.isError ? (
         <div role="alert">
           <p>{t('reports.explanationError')}</p>

@@ -7,11 +7,13 @@ import styles from './RecurrencesPage.module.css';
 function CandidateCardSkeleton() {
   const { t } = useTranslation();
   return (
-    <div aria-hidden="true" className={`card ${cardStyles.card}`}>
+    <article aria-hidden="true" className={`card ${cardStyles.card}`}>
       <div className={cardStyles.heading}>
         <div>
           <SkeletonTitle />
-          <SkeletonBlock className={styles.skeletonLine} />
+          <p>
+            <SkeletonBlock className={styles.skeletonLine} />
+          </p>
         </div>
         <SkeletonBlock className={styles.skeletonBadge} />
       </div>
@@ -35,43 +37,51 @@ function CandidateCardSkeleton() {
         <button className="secondary-action" disabled type="button">
           {t('recurrences.candidates.dismiss')}
         </button>
-        <button className="primary-action" disabled type="button">
+        <button className="secondary-action" disabled type="button">
           {t('recurrences.candidates.confirm')}
         </button>
       </div>
-    </div>
+    </article>
   );
 }
 
-function ScheduleCardSkeleton() {
-  const { t } = useTranslation();
+/** Mirrors RecurrenceCard: the actions are the list's own, real and disabled. */
+export function ScheduleCardSkeleton({ actions }: { actions: string[] }) {
   return (
-    <div aria-hidden="true" className={`card ${scheduleStyles.schedule}`}>
+    <article aria-hidden="true" className={`card ${scheduleStyles.schedule}`}>
       <div>
         <SkeletonTitle />
-        <SkeletonBlock className={styles.skeletonLine} />
-        <SkeletonBlock className={styles.skeletonLine} />
+        <p>
+          <SkeletonBlock className={styles.skeletonLine} />
+        </p>
+        <small>
+          <SkeletonBlock className={styles.skeletonLine} />
+        </small>
       </div>
       <div className={scheduleStyles.scheduleActions}>
-        <button className="secondary-action" disabled type="button">
-          {t('recurrences.confirmed.occurrences')}
-        </button>
-        <button className="secondary-action" disabled type="button">
-          {t('recurrences.confirmed.edit')}
-        </button>
-        <button className="secondary-action" disabled type="button">
-          {t('recurrences.confirmed.archive')}
-        </button>
+        {actions.map((action) => (
+          <button className="secondary-action" disabled key={action} type="button">
+            {action}
+          </button>
+        ))}
       </div>
-    </div>
+    </article>
   );
 }
 
-/** Static headings and buttons are real: they show at once, only the recurrences are pending. */
+/**
+ * Mirrors CandidatesSection and ConfirmedRecurrencesSection element for
+ * element: headings and buttons are real, only the recurrences are pending.
+ */
 export function RecurrencesPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
+  const confirmedActions = [
+    t('recurrences.confirmed.occurrences'),
+    t('recurrences.confirmed.edit'),
+    t('recurrences.confirmed.archive'),
+  ];
   return (
-    <div aria-busy="true" className={styles.section} data-testid="recurrences-skeleton">
+    <div aria-busy="true" className={styles.skeletonContents} data-testid="recurrences-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
       <section className={styles.section}>
         <div className={styles.sectionHeading}>
@@ -96,8 +106,8 @@ export function RecurrencesPageSkeleton({ status }: { status: string }) {
           </button>
         </div>
         <div className={styles.schedules}>
-          <ScheduleCardSkeleton />
-          <ScheduleCardSkeleton />
+          <ScheduleCardSkeleton actions={confirmedActions} />
+          <ScheduleCardSkeleton actions={confirmedActions} />
         </div>
       </section>
     </div>

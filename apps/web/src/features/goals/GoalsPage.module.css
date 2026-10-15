@@ -221,9 +221,9 @@
 .statusTable th:first-child {
   text-align: left;
 }
-.modalLoading {
-  margin: var(--spacing-none);
-  color: var(--text-secondary);
+/* Wrappers only carry the busy and disabled states: the frozen form keeps its own layout. */
+.frozen {
+  display: contents;
 }
 .state {
   display: flex;

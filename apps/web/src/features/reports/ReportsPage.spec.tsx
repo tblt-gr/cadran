@@ -138,6 +138,12 @@ function renderPage() {
   };
 }
 
+/** The skeleton draws the same table: wait for it to leave before reading the figures. */
+async function loadedTable() {
+  await waitFor(() => expect(screen.queryByTestId('monthly-report-skeleton')).toBeNull());
+  return screen.findByRole('table');
+}
+
 describe('ReportsPage', () => {
   beforeEach(() => {
     api.readMultiYearReport.mockResolvedValue({
@@ -167,7 +173,7 @@ describe('ReportsPage', () => {
       screen.getByTestId('monthly-report-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
     resolveReport?.({ data: report, response: new Response('{}', { status: 200 }) });
-    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(await loadedTable()).toBeTruthy();
     expect(screen.queryByTestId('monthly-report-skeleton')).toBeNull();
 
     api.readMonthlyProjection.mockImplementation(() => new Promise(() => undefined));
@@ -187,7 +193,7 @@ describe('ReportsPage', () => {
         <ReportsPage />
       </QueryClientProvider>,
     );
-    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(await loadedTable()).toBeTruthy();
     expect(screen.getByRole('table').textContent).toContain('Dépenses des avantages');
     expect(screen.getByRole('table').textContent).toContain('1 200,50 €');
     expect(screen.getByRole('table').textContent).toContain('12,35 %');
@@ -259,7 +265,7 @@ describe('ReportsPage', () => {
     );
     const august = await screen.findByRole('button', { name: 'Août 2026' });
     fireEvent.click(august);
-    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(await loadedTable()).toBeTruthy();
     expect(screen.getByTestId('header-title').textContent).toBe('Rapport mensuel Août 2026');
     expect(august.getAttribute('aria-current')).toBe('page');
   });
@@ -273,7 +279,7 @@ describe('ReportsPage', () => {
       </QueryClientProvider>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Août 2026' }));
-    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(await loadedTable()).toBeTruthy();
     expect(api.readMonthlyProjection).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: { month: '2026-08' } }),
     );
@@ -305,7 +311,7 @@ describe('ReportsPage', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('indisponible');
     expect(screen.getByRole('navigation', { name: 'Mois' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
-    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(await loadedTable()).toBeTruthy();
   });
 
   it('keeps the selector but does not offer retry when the workspace is unauthorized', async () => {
@@ -339,7 +345,7 @@ describe('ReportsPage', () => {
         <ReportsPage />
       </QueryClientProvider>,
     );
-    expect((await screen.findByRole('table')).textContent).toContain('-200,00 €');
+    expect((await loadedTable()).textContent).toContain('-200,00 €');
     fireEvent.click(
       screen.getByRole('button', { name: 'Expliquer : Épargne nette par virements' }),
     );

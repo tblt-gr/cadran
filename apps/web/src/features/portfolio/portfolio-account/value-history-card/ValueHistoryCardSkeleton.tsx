@@ -1,15 +1,12 @@
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
-import {
-  SkeletonChartArea,
-  SkeletonStatus,
-  SkeletonTableRows,
-} from '@/components/ui/skeleton/Skeleton';
+import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
+import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import { PeriodControl } from './PeriodControl';
 import { VALUE_HISTORY_COLUMNS } from './ValueHistoryTable';
 import tableStyles from './ValueHistoryTable.module.css';
 import styles from './ValueHistoryCard.module.css';
 
-/** The card's real title, period control and table toggle; only the chart and the values are blocks. */
+/** Mirrors ValueHistoryCard element for element: title, period control and table toggle are real; the curve and values pending. */
 export function ValueHistoryCardSkeleton({ status }: { status?: string }) {
   return (
     <section
@@ -23,7 +20,7 @@ export function ValueHistoryCardSkeleton({ status }: { status?: string }) {
         <h3 id="portfolio-value-history-title">Évolution de la valeur</h3>
         <PeriodControl disabled onChange={() => undefined} value="24" />
       </div>
-      <SkeletonChartArea />
+      <CurveChartSkeleton />
       <Disclosure onToggle={() => undefined} open={false} title="Voir le tableau">
         <div className={tableStyles.scroll}>
           <table>

@@ -1,4 +1,5 @@
 import type { PortfolioOverviewAccountCard } from '@cadran/api-client';
+import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -17,12 +18,20 @@ export function PortfolioAccountCard({
   if (!account) {
     return (
       <article aria-hidden="true" className={`card ${styles.card}`}>
-        <SkeletonBlock />
-        <SkeletonBlock />
-        <SkeletonBlock />
-        <SkeletonBlock />
-        <SkeletonBlock />
-        <SkeletonBlock className={styles.curve} />
+        <h3>
+          <SkeletonBlock className={styles.skeletonTitle} />
+        </h3>
+        <p>
+          <SkeletonBlock className={styles.skeletonLine} />
+        </p>
+        <p className={styles.value}>
+          <SkeletonBlock className={styles.skeletonValue} />
+        </p>
+        <p className={styles.gain}>
+          <SkeletonBlock className={styles.skeletonLine} />
+        </p>
+        <SkeletonBlock className={styles.skeletonLine} />
+        <CurveChartSkeleton />
       </article>
     );
   }

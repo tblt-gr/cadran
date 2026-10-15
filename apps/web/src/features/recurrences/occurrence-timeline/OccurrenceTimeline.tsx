@@ -61,7 +61,15 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
                   <th scope="col">{t('recurrences.occurrences.match')}</th>
                 </tr>
               </thead>
-              <SkeletonTableRows columns={4} rows={4} />
+              <SkeletonTableRows
+                labels={[
+                  t('recurrences.occurrences.date'),
+                  t('recurrences.fields.amount'),
+                  t('recurrences.occurrences.status'),
+                  t('recurrences.occurrences.match'),
+                ]}
+                rows={4}
+              />
             </table>
           </div>
         </section>

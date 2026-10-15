@@ -14,7 +14,10 @@ const DEFINITION_LABELS = [
   'metricPolicy.definition.netSavingsRate',
 ] as const;
 
-/** Card titles and labels are static and real: only the policy values and versions are pending. */
+/**
+ * Mirrors ActiveMetricPolicyCard and MetricPolicyHistory element for element:
+ * card titles and labels are real, only the policy values and versions are pending.
+ */
 export function MetricPolicyPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   return (
@@ -22,8 +25,12 @@ export function MetricPolicyPageSkeleton({ status }: { status: string }) {
       <SkeletonStatus>{status}</SkeletonStatus>
       <section className={`card ${styles.active}`}>
         <h3>{t('metricPolicy.active.title')}</h3>
-        <SkeletonBlock className={styles.skeletonName} />
-        <SkeletonBlock className={styles.skeletonName} />
+        <p className={styles.activeName}>
+          <SkeletonBlock className={styles.skeletonName} />
+        </p>
+        <p className={styles.since}>
+          <SkeletonBlock className={styles.skeletonName} />
+        </p>
         <dl className={definitionStyles.definition}>
           {DEFINITION_LABELS.map((label) => (
             <Fragment key={label}>
@@ -39,6 +46,7 @@ export function MetricPolicyPageSkeleton({ status }: { status: string }) {
         <h3>{t('metricPolicy.history.title')}</h3>
         <div className={styles.tableWrap}>
           <table>
+            <caption className={styles.srOnly}>{t('metricPolicy.history.title')}</caption>
             <thead>
               <tr>
                 <th scope="col">{t('metricPolicy.history.version')}</th>

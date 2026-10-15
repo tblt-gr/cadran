@@ -54,3 +54,12 @@
     grid-template-columns: 1fr;
   }
 }
+
+.skeletonAmount {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-body);
+}
+.skeletonSplits {
+  width: 100%;
+  height: calc(var(--control-height) * 2);
+}

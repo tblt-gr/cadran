@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import footerStyles from './transaction-list/TransactionListFooter.module.css';
 import styles from './transaction-list/TransactionList.module.css';
 
+/** Mirrors TransactionList and its footer element for element: only the rows are pending. */
 export function TransactionsPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   return (
     <>
-      <section
+      <div
         aria-busy="true"
         className={`card ${styles.panel}`}
         data-testid="transactions-page-skeleton"
@@ -15,6 +16,7 @@ export function TransactionsPageSkeleton({ status }: { status: string }) {
         <SkeletonStatus>{status}</SkeletonStatus>
         <div className={styles.tableScroll}>
           <table>
+            <caption className="sr-only">{t('transactions.list.caption')}</caption>
             <thead>
               <tr>
                 <th scope="col">{t('transactions.fields.bookedOn')}</th>
@@ -33,7 +35,7 @@ export function TransactionsPageSkeleton({ status }: { status: string }) {
             <SkeletonRows />
           </table>
         </div>
-      </section>
+      </div>
       <div aria-hidden="true" className={footerStyles.footer}>
         <SkeletonButton />
       </div>

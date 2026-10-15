@@ -71,6 +71,9 @@ inside the ticket, never deferred to a later "security phase".
   data is pending. Static chrome (titles, labels, table headers, buttons, links) is real text
   and real disabled controls; only query-driven values are placeholder blocks. On a full page
   reload, the real page is previewed under frozen queries while the session is checked.
+- Each skeleton mirrors its loaded component element for element (tags, nesting, classes,
+  caption, mobile labels); only query values are blocks, and both change in the same commit.
+  No panel, cell or modal loads behind a bare "Loading…" text.
 - Responsive and keyboard behaviour, visible focus, semantic labels and WCAG 2.2 AA
   contrast are verified. Critical meaning never relies on colour alone.
 - Every chart has an accessible tabular alternative.

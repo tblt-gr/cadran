@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
 import {
   SkeletonBlock,
   SkeletonChartArea,
   SkeletonStatus,
+  SkeletonText,
 } from '@/components/ui/skeleton/Skeleton';
 import { AnnualTableActions } from './AnnualTableActions';
 import { ChartFrame } from './ChartFrame';
@@ -18,16 +20,12 @@ const noop = () => undefined;
 /** The column set is the user's own choice: four placeholders stand for it until it is known. */
 const PLACEHOLDER_COLUMNS = [0, 1, 2, 3];
 
-const CHART_TITLES = [
-  'reports.annual.charts.flows',
-  'reports.annual.charts.netWorth',
-  'reports.annual.charts.topCategories',
-  'reports.annual.charts.allocation',
-] as const;
-
 const MONTHS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
 
-/** Title, month names and summary labels are static and real; the columns and every figure are pending. */
+/**
+ * Mirrors the loaded annual report element for element: title, month names,
+ * summary labels and chart frames are real; the columns and every figure are pending.
+ */
 export function AnnualReportPageSkeleton({ status, year }: { status: string; year: number }) {
   const { i18n, t } = useTranslation();
   return (
@@ -102,24 +100,38 @@ export function AnnualReportPageSkeleton({ status, year }: { status: string; yea
         ))}
         <li className={`card ${cardStyles.card}`}>
           <h3>{t('reports.annual.summaryTitle')}</h3>
-          <dl>
-            {SUMMARY_ROW_IDS.map((rowId) => (
-              <div key={rowId}>
-                <dt>{t(`reports.annual.summary.${rowId}`)}</dt>
-                <dd>
-                  <SkeletonBlock className={styles.skeletonCell} />
-                </dd>
-              </div>
-            ))}
-          </dl>
+          {PLACEHOLDER_COLUMNS.slice(0, 2).map((column) => (
+            <section key={column}>
+              <h4>
+                <SkeletonBlock className={styles.skeletonCell} />
+              </h4>
+              <dl>
+                {SUMMARY_ROW_IDS.map((rowId) => (
+                  <div key={rowId}>
+                    <dt>{t(`reports.annual.summary.${rowId}`)}</dt>
+                    <dd>
+                      <SkeletonBlock className={styles.skeletonCell} />
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
         </li>
       </ul>
       <div className={chartStyles.grid}>
-        {CHART_TITLES.map((title) => (
-          <ChartFrame key={title} title={t(title)}>
-            <SkeletonChartArea />
-          </ChartFrame>
-        ))}
+        <ChartFrame data={<SkeletonText lines={2} />} title={t('reports.annual.charts.flows')}>
+          <SkeletonChartArea />
+        </ChartFrame>
+        <ChartFrame data={<SkeletonText lines={2} />} title={t('reports.annual.charts.netWorth')}>
+          <CurveChartSkeleton />
+        </ChartFrame>
+        <ChartFrame title={t('reports.annual.charts.topCategories')}>
+          <SkeletonChartArea />
+        </ChartFrame>
+        <ChartFrame title={t('reports.annual.charts.allocation')}>
+          <SkeletonChartArea />
+        </ChartFrame>
       </div>
     </div>
   );

@@ -16,6 +16,7 @@ import {
   transactionRequestError,
 } from '@/features/transactions/transactionError';
 import { RefundForm } from './RefundForm';
+import { RefundFormSkeleton } from './RefundFormSkeleton';
 
 interface RefundEditorProps {
   accounts: Account[];
@@ -60,7 +61,7 @@ export function RefundEditor({ accounts, close, onSaved, transaction }: RefundEd
       eyebrow={t('transactions.refund.eyebrow')}
       title={t('transactions.refund.title')}
     >
-      {refundable.isPending ? <p role="status">{t('transactions.refund.loading')}</p> : null}
+      {refundable.isPending ? <RefundFormSkeleton /> : null}
       {refundable.isError ? <p role="alert">{t('transactions.refund.error')}</p> : null}
       {refundable.data ? (
         <RefundForm

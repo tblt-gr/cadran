@@ -10,7 +10,7 @@ import { MonthlyRecapPlaceholder } from './monthly-recap/MonthlyRecapSkeleton';
 
 type PanelKind = 'income' | 'expense' | 'account';
 
-/** Panel title, description, total label and add button are static and real; amounts and rows are pending. */
+/** Mirrors LedgerPanel element for element: title, description, total label and controls are real; amounts and rows are pending. */
 function LedgerPanelSkeleton({ kind }: { kind: PanelKind }) {
   const { t } = useTranslation();
   const titleId = `monthly-ledger-skeleton-${kind}`;
@@ -27,33 +27,37 @@ function LedgerPanelSkeleton({ kind }: { kind: PanelKind }) {
             <SkeletonBlock className={skeletonStyles.amount} />
           </p>
         </div>
-        {kind === 'account' ? null : (
-          <div className={panelStyles.headingActions}>
-            {kind === 'expense' ? (
-              <label>
-                <span>{t('budget.monthly.axis')}</span>
-                <select aria-label={t('budget.monthly.axis')} disabled>
-                  <option>{t('budget.monthly.allAxes')}</option>
-                </select>
-              </label>
-            ) : null}
+        <div className={panelStyles.headingActions}>
+          {kind === 'expense' ? (
+            <label>
+              <span>{t('budget.monthly.axis')}</span>
+              <select aria-label={t('budget.monthly.axis')} disabled>
+                <option>{t('budget.monthly.allAxes')}</option>
+              </select>
+            </label>
+          ) : null}
+          {kind === 'account' ? null : (
             <button aria-label={t(addLabel)} className={panelStyles.add} disabled type="button">
               <Icon name="add" size={18} />
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       <ul aria-hidden="true" className={panelStyles.rows}>
         {Array.from({ length: 4 }, (_, index) => (
           <li className={rowStyles.row} key={index}>
             <div className={rowStyles.summary}>
-              <SkeletonBlock className={skeletonStyles.icon} />
-              <div>
+              <span className={rowStyles.togglePlaceholder} />
+              <div className={rowStyles.identity}>
                 <SkeletonBlock className={skeletonStyles.line} />
                 <SkeletonBlock className={skeletonStyles.meta} />
               </div>
-              <SkeletonBlock className={skeletonStyles.amount} />
-              <SkeletonBlock className={skeletonStyles.icon} />
+              <span className={rowStyles.amount}>
+                <SkeletonBlock className={skeletonStyles.amount} />
+              </span>
+              <button className={rowStyles.add} disabled tabIndex={-1} type="button">
+                <Icon name="add" size={18} />
+              </button>
             </div>
           </li>
         ))}
@@ -64,9 +68,10 @@ function LedgerPanelSkeleton({ kind }: { kind: PanelKind }) {
 
 export function MonthlyBudgetPageSkeleton({ status }: { status: string }) {
   return (
-    <section aria-busy="true" className={styles.workbook} data-testid="monthly-budget-skeleton">
+    <div aria-busy="true" className={styles.workbook} data-testid="monthly-budget-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
       <div className={ledgerStyles.ledger}>
+        <div className={ledgerStyles.statuses} />
         <div className={ledgerStyles.panels}>
           <LedgerPanelSkeleton kind="income" />
           <LedgerPanelSkeleton kind="expense" />
@@ -74,6 +79,6 @@ export function MonthlyBudgetPageSkeleton({ status }: { status: string }) {
         </div>
       </div>
       <MonthlyRecapPlaceholder />
-    </section>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useSession } from '@/features/auth/useSession';
 import { AccountRecap } from './account-recap/AccountRecap';
 import { RecapInfo } from './recap-info/RecapInfo';
@@ -7,7 +8,7 @@ import { RecapPreferencesModal } from './recap-preferences/RecapPreferencesModal
 import { TotalsCard } from './totals-card/TotalsCard';
 import { useMonthlyRecap, useRecapPreferences } from './useMonthlyRecap';
 import { WealthCard } from './wealth-card/WealthCard';
-import { MonthlyRecapSkeleton } from './MonthlyRecapSkeleton';
+import { MonthlyRecapSkeleton, TotalsCardPlaceholder } from './MonthlyRecapSkeleton';
 import styles from './MonthlyRecap.module.css';
 
 export function MonthlyRecap({ month }: { month: string }) {
@@ -40,9 +41,10 @@ export function MonthlyRecap({ month }: { month: string }) {
       </div>
       <div className={styles.totals}>
         {preferences.isPending ? (
-          <section aria-busy="true" className={`card ${styles.preferenceState}`} role="status">
-            {t('budget.monthly.recap.preferences.loading')}
-          </section>
+          <div aria-busy="true">
+            <SkeletonStatus>{t('budget.monthly.recap.preferences.loading')}</SkeletonStatus>
+            <TotalsCardPlaceholder />
+          </div>
         ) : preferences.isError || !preferences.data ? (
           <section className={`card ${styles.preferenceState}`} role="alert">
             <p>{t('budget.monthly.recap.preferences.error')}</p>

@@ -3,9 +3,10 @@ import type {
   MonthlyProjection,
   MonthlyProjectionMetric,
 } from '@cadran/api-client';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { useMonthlyKpiExplanation } from './useMonthlyReport';
@@ -13,7 +14,8 @@ import styles from './ReportsPage.module.css';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
-const kpis: ExplainMonthlyKpiData['path']['kpi'][] = [
+/** The report's rows, in order: static, so the loading skeleton names them too. */
+export const MONTHLY_KPIS: ExplainMonthlyKpiData['path']['kpi'][] = [
   'cashIncome',
   'nonCashBenefits',
   'benefitSpending',
@@ -36,7 +38,7 @@ function NotCalculable({ reason }: { reason: string | null }) {
   return <EmptyValue label={t('states.notCalculable.label')} reason={reason} />;
 }
 
-function isRate(kpi: (typeof kpis)[number]): boolean {
+function isRate(kpi: (typeof MONTHLY_KPIS)[number]): boolean {
   return kpi === 'cashSavingsRate' || kpi === 'netSavingsRate';
 }
 
@@ -54,10 +56,46 @@ function MetricValue({ metric, rate }: { metric: MonthlyProjectionMetric; rate: 
   return <MoneyValue value={formatAmount(metric.value, metric.assetCode, i18n.language)} />;
 }
 
+const EXPLANATION_LABELS = [
+  'reports.formula',
+  'reports.scope',
+  'reports.period',
+  'reports.freshness',
+  'reports.quality',
+  'reports.transactionSources',
+  'reports.accountSources',
+  'reports.transferSources',
+] as const;
+
+/** Mirrors Explanation element for element: the labels are real, every answer pending. */
+function ExplanationSkeleton({ kpi }: { kpi: ExplainMonthlyKpiData['path']['kpi'] }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <SkeletonStatus>{t('reports.explanationLoading')}</SkeletonStatus>
+      <dl
+        aria-busy="true"
+        aria-label={t('reports.explanationLabel')}
+        className={styles.explanation}
+        id={`monthly-kpi-explanation-${kpi}`}
+      >
+        {EXPLANATION_LABELS.map((key) => (
+          <Fragment key={key}>
+            <dt>{t(key)}</dt>
+            <dd>
+              <SkeletonBlock className={styles.skeletonValue} />
+            </dd>
+          </Fragment>
+        ))}
+      </dl>
+    </>
+  );
+}
+
 function Explanation({ month, kpi }: { month: string; kpi: ExplainMonthlyKpiData['path']['kpi'] }) {
   const explanation = useMonthlyKpiExplanation(month, kpi);
   const { i18n, t } = useTranslation();
-  if (explanation.isPending) return <p role="status">{t('reports.explanationLoading')}</p>;
+  if (explanation.isPending) return <ExplanationSkeleton kpi={kpi} />;
   if (explanation.isError || !explanation.data)
     return <p role="alert">{t('reports.explanationError')}</p>;
   const value = explanation.data;
@@ -169,7 +207,7 @@ export function MonthlyKpiTable({ report }: { report: MonthlyProjection }) {
             </tr>
           </thead>
           <tbody>
-            {kpis.map((kpi) => (
+            {MONTHLY_KPIS.map((kpi) => (
               <tr key={kpi}>
                 <th scope="row">{t(`reports.metrics.${kpi}`)}</th>
                 <td>

@@ -3,21 +3,13 @@ import styles from './GroupsState.module.css';
 
 interface GroupsStateProps {
   includeArchived: boolean;
-  kind: 'loading' | 'error' | 'unauthorized' | 'empty';
+  kind: 'error' | 'unauthorized' | 'empty';
   onCreate: () => void;
   onRetry: () => void;
 }
 
 export function GroupsState({ includeArchived, kind, onCreate, onRetry }: GroupsStateProps) {
   const { t } = useTranslation();
-
-  if (kind === 'loading') {
-    return (
-      <section className={`card ${styles.state}`} aria-busy="true" role="status">
-        <h2>{t('accountGroups.loading')}</h2>
-      </section>
-    );
-  }
 
   if (kind === 'error' || kind === 'unauthorized') {
     return (

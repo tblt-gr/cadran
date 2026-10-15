@@ -7,7 +7,8 @@ type MetricValue =
   { kind: 'loading' } | { kind: 'money'; text: string } | { kind: 'unavailable'; text: string };
 
 interface MetricCardProps {
-  description: string;
+  /** `null` while the period is not known yet (page chunk still loading). */
+  description: string | null;
   icon: IconName;
   id: string;
   title: string;
@@ -35,7 +36,7 @@ export function MetricCard({ description, icon, id, title, tone, value }: Metric
         </p>
       )}
       <p className={styles.description} data-visual-mask>
-        {description}
+        {description ?? <SkeletonBlock className={styles.descriptionSkeleton} />}
       </p>
     </section>
   );

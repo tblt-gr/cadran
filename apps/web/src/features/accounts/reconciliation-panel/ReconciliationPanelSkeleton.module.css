@@ -1,0 +1,16 @@
+/* The skeleton's children sit directly in the panel's flex flow, like the loaded blocks. */
+.contents {
+  display: contents;
+}
+
+.amount {
+  width: calc(var(--spacing-12) * 2);
+  max-width: 100%;
+  height: var(--font-size-body);
+}
+
+.count {
+  width: calc(var(--spacing-12) * 3);
+  max-width: 100%;
+  height: var(--font-size-label);
+}

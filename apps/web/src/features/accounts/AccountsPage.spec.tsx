@@ -915,6 +915,7 @@ describe('AccountsPage', () => {
     );
     // The account follows a catalogue model, so its kind is the product's to
     // state rather than the form's to offer.
+    await waitFor(() => expect(screen.queryByTestId('account-editor-skeleton')).toBeNull());
     const kind = (await screen.findByLabelText('Nature du compte')) as HTMLSelectElement;
     expect(kind.disabled).toBe(true);
     expect(screen.getByText('La nature est imposée par le produit « Livret A ».')).toBeTruthy();

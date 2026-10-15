@@ -2,6 +2,8 @@ import type { Recurrence } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { RecurrenceCard } from '@/features/recurrences/recurrence-card/RecurrenceCard';
 import styles from '@/features/recurrences/RecurrencesPage.module.css';
+import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { ScheduleCardSkeleton } from '@/features/recurrences/RecurrencesPageSkeleton';
 
 interface ArchivedRecurrencesSectionProps {
   isError: boolean;
@@ -41,8 +43,14 @@ export function ArchivedRecurrencesSection({
         </div>
       </div>
       {isPending ? (
-        <div className={`card ${styles.state}`} role="status">
-          <h4>{t('recurrences.loading')}</h4>
+        <div aria-busy="true" className={styles.schedules}>
+          <SkeletonStatus>{t('recurrences.loading')}</SkeletonStatus>
+          <ScheduleCardSkeleton
+            actions={[t('recurrences.confirmed.occurrences'), t('recurrences.confirmed.restore')]}
+          />
+          <ScheduleCardSkeleton
+            actions={[t('recurrences.confirmed.occurrences'), t('recurrences.confirmed.restore')]}
+          />
         </div>
       ) : isError ? (
         <div className={`card ${styles.state}`} role="alert">

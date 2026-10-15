@@ -9,6 +9,8 @@ interface SortableHeaderProps {
   column: string;
   current: string;
   direction: SortDirection;
+  /** A loading skeleton draws the same header while there is nothing to sort yet. */
+  disabled?: boolean;
   onSort: (column: string) => void;
 }
 
@@ -17,6 +19,7 @@ export function SortableHeader({
   column,
   current,
   direction,
+  disabled = false,
   onSort,
 }: SortableHeaderProps) {
   const { t } = useTranslation();
@@ -32,6 +35,7 @@ export function SortableHeader({
           column: typeof children === 'string' ? children : column,
         })}
         className={styles.button}
+        disabled={disabled}
         onClick={() => onSort(column)}
         type="button"
       >

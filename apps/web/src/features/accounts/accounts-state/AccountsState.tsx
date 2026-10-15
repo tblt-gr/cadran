@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import styles from './AccountsState.module.css';
 
-type AccountsStateKind = 'loading' | 'error' | 'unauthorized' | 'empty';
+type AccountsStateKind = 'error' | 'unauthorized' | 'empty';
 
 interface AccountsStateProps {
   kind: AccountsStateKind;
@@ -10,20 +10,12 @@ interface AccountsStateProps {
 }
 
 /**
- * The states the accounts list can be in besides showing rows: still loading,
+ * The states the accounts list can be in besides showing rows or its skeleton:
  * unreadable, no longer authenticated, or empty. Each one names what happened
  * and offers the single action that resolves it.
  */
 export function AccountsState({ kind, onCreate, onRetry }: AccountsStateProps) {
   const { t } = useTranslation();
-
-  if (kind === 'loading') {
-    return (
-      <section className={`card ${styles.state}`} aria-busy="true" role="status">
-        <h2>{t('accounts.loading')}</h2>
-      </section>
-    );
-  }
 
   if (kind === 'empty') {
     return (

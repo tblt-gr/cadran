@@ -7,12 +7,13 @@
   min-width: 0;
   gap: var(--spacing-4);
 }
-.skeletonTable {
-  width: 100%;
-  border-spacing: var(--spacing-2);
+.skeletonValue {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-body);
 }
-.skeletonTable td {
-  padding: var(--spacing-none);
+.skeletonQuality {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-body);
 }
 .panel,
 .state {

@@ -1,9 +1,11 @@
 import type { NetWorth, NetWorthPoint } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { FreshnessBadge } from '@/features/dashboard/freshness-badge/FreshnessBadge';
 import { NetWorthDelta } from '@/features/dashboard/net-worth-delta/NetWorthDelta';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { WealthChart } from '@/features/dashboard/wealth-chart/WealthChart';
+import { WealthChartSkeleton } from '@/features/dashboard/wealth-chart/WealthChartSkeleton';
 import { formatCalendarDay } from '@/lib/decimal';
 import styles from './NetWorthCard.module.css';
 
@@ -42,9 +44,14 @@ export function NetWorthCard({ historyPending, historyPoints, netWorth }: NetWor
           </p>
         </div>
       </div>
-      {historyPoints === null ? (
-        <p className={styles.historyUnavailable} aria-busy={historyPending} role="status">
-          {t(historyPending ? 'dashboard.chart.loading' : 'dashboard.chart.unavailable')}
+      {historyPoints === null && historyPending ? (
+        <div aria-busy="true" className={styles.historyPending}>
+          <SkeletonStatus>{t('dashboard.chart.loading')}</SkeletonStatus>
+          <WealthChartSkeleton />
+        </div>
+      ) : historyPoints === null ? (
+        <p className={styles.historyUnavailable} role="status">
+          {t('dashboard.chart.unavailable')}
         </p>
       ) : (
         <WealthChart points={historyPoints} />

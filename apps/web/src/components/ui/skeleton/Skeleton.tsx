@@ -1,12 +1,16 @@
 import type { HTMLAttributes } from 'react';
 import styles from './Skeleton.module.css';
 
-type SkeletonBlockProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'>;
+type SkeletonBlockProps = Omit<HTMLAttributes<HTMLSpanElement>, 'children'>;
 
-/** Decorative animated surface shared by all query-loading layouts. */
+/**
+ * Decorative animated surface shared by all query-loading layouts. A span, so
+ * it can take a value's exact place inside the same `p`, `strong` or `dd` the
+ * loaded content uses.
+ */
 export function SkeletonBlock({ className, ...props }: SkeletonBlockProps) {
   return (
-    <div
+    <span
       aria-hidden="true"
       className={[styles.block, className].filter(Boolean).join(' ')}
       data-skeleton
@@ -79,16 +83,21 @@ export function SkeletonField({ className, label }: { className?: string; label?
 
 interface SkeletonTableRowsProps {
   columns?: number;
+  /**
+   * The `data-label` of each cell, for a table that stacks into labelled cards
+   * on mobile; when given, it also sets the column count.
+   */
+  labels?: string[];
   rows?: number;
 }
 
-export function SkeletonTableRows({ columns = 1, rows = 3 }: SkeletonTableRowsProps) {
+export function SkeletonTableRows({ columns = 1, labels, rows = 3 }: SkeletonTableRowsProps) {
   return (
     <tbody aria-hidden="true">
       {Array.from({ length: rows }, (_, row) => (
         <tr key={row}>
-          {Array.from({ length: columns }, (_, column) => (
-            <td key={column}>
+          {Array.from({ length: labels?.length ?? columns }, (_, column) => (
+            <td data-label={labels?.[column]} key={column}>
               <SkeletonBlock className={styles.tableCell} />
             </td>
           ))}

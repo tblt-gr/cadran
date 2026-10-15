@@ -106,3 +106,8 @@
     flex-direction: column;
   }
 }
+
+.totalSkeleton {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-card-title);
+}

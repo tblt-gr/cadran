@@ -65,6 +65,12 @@ function problem(status: number, body: object) {
 function page(items: PortfolioOperation[]) {
   return ok({ items, page: 1, pageSize: 50, total: items.length });
 }
+/** The skeleton draws the same table: wait for it to leave before reading rows. */
+async function loadedOperationsTable() {
+  await waitFor(() => expect(screen.queryByTestId('operations-skeleton')).toBeNull());
+  return screen.findByRole('table', { name: 'Opérations du portefeuille' });
+}
+
 function renderPage(timeZone = 'Europe/Paris', shell = false, frozen = false) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -357,6 +363,7 @@ describe('PortfolioAccountPage', () => {
     expect(screen.getByText('Valorisation de fin mars à saisir')).toBeTruthy();
     fireEvent.click(screen.getAllByRole('link', { name: 'Saisir la valorisation' })[0]!);
     const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
     await within(dialog).findByText(/Espèces calculées/);
     expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-02-28');
   });
@@ -380,7 +387,7 @@ describe('PortfolioAccountPage', () => {
       expect(api.readPortfolioAllocation.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28'),
     );
     fireEvent.click(screen.getByRole('link', { name: 'Opérations' }));
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
     fireEvent.click(screen.getByRole('link', { name: 'Espèces' }));
     await screen.findByRole('table', { name: 'Mouvements d’espèces' });
@@ -581,7 +588,7 @@ describe('PortfolioAccountPage', () => {
     expect(screen.getByRole('heading', { name: 'Évolution de la valeur' })).toBeTruthy();
     expect(screen.getByTestId('value-history-skeleton')).toBeTruthy();
     resolve?.(await ok(account));
-    expect(await screen.findByRole('table', { name: 'Opérations du portefeuille' })).toBeTruthy();
+    expect(await loadedOperationsTable()).toBeTruthy();
     expect(screen.queryByTestId('operations-skeleton')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
     expect(
@@ -658,7 +665,7 @@ describe('PortfolioAccountPage', () => {
     api.listPortfolioOperations.mockImplementation(() => page([operation]));
     renderPage();
 
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     expect(api.listPortfolioOperations).toHaveBeenCalledTimes(1);
     openAction('Réordonner la journée');
     expect(screen.getByRole('dialog', { name: /Réordonner la journée/ })).toBeTruthy();
@@ -668,12 +675,12 @@ describe('PortfolioAccountPage', () => {
     api.listPortfolioOperations.mockImplementationOnce(() => problem(500, {}));
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Réessayer' }));
-    expect(await screen.findByRole('table', { name: 'Opérations du portefeuille' })).toBeTruthy();
+    expect(await loadedOperationsTable()).toBeTruthy();
   });
 
   it('asks for voided operations only when the toggle is on', async () => {
     renderPage();
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.includeVoided).toBe(false);
     fireEvent.click(screen.getByLabelText('Afficher les opérations annulées'));
     await waitFor(() =>
@@ -683,7 +690,7 @@ describe('PortfolioAccountPage', () => {
 
   it('filters the period with native date inputs', async () => {
     renderPage();
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     expect((screen.getByLabelText('Du') as HTMLInputElement).type).toBe('date');
     expect((screen.getAllByLabelText('Au').at(-1) as HTMLInputElement).type).toBe('date');
     expect(screen.queryByRole('button', { name: 'Effacer' })).toBeNull();
@@ -699,7 +706,7 @@ describe('PortfolioAccountPage', () => {
 
   it('filters by type', async () => {
     renderPage();
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     fireEvent.click(screen.getByRole('button', { name: 'Types d’opération Tous les types' }));
     fireEvent.click(screen.getByRole('option', { name: 'Achat' }));
     await waitFor(() =>
@@ -710,7 +717,7 @@ describe('PortfolioAccountPage', () => {
   it('records a deposit with an idempotency key and refreshes the list', async () => {
     api.recordPortfolioOperation.mockImplementation(() => ok(deposit, 201));
     renderPage();
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     fireEvent.click(screen.getByRole('button', { name: 'Nouvelle opération' }));
     fireEvent.change(await screen.findByLabelText('Montant brut'), { target: { value: '1000' } });
     const calls = api.listPortfolioOperations.mock.calls.length;
@@ -735,7 +742,7 @@ describe('PortfolioAccountPage', () => {
       }),
     );
     renderPage();
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     fireEvent.click(screen.getByRole('button', { name: 'Nouvelle opération' }));
     fireEvent.change(await screen.findByLabelText('Montant brut'), {
       target: { value: '2305.70' },
@@ -747,7 +754,7 @@ describe('PortfolioAccountPage', () => {
   it('modifies an operation in one step through the correct endpoint', async () => {
     api.correctPortfolioOperation.mockImplementation(() => ok(deposit, 201));
     renderPage();
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     openAction('Modifier');
     const amount = (await screen.findByLabelText('Montant brut')) as HTMLInputElement;
     expect(amount.value).toBe('1000');
@@ -764,7 +771,7 @@ describe('PortfolioAccountPage', () => {
   it('voids an operation with a required reason', async () => {
     api.voidPortfolioOperation.mockImplementation(() => ok(deposit));
     renderPage();
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     openAction('Annuler');
     fireEvent.change(await screen.findByLabelText('Motif'), { target: { value: 'Doublon' } });
     fireEvent.click(screen.getByRole('button', { name: 'Annuler l’opération' }));
@@ -780,7 +787,7 @@ describe('PortfolioAccountPage', () => {
       problem(409, { code: 'stale_operation_version', type: '/p' }),
     );
     renderPage();
-    await screen.findByRole('table', { name: 'Opérations du portefeuille' });
+    await loadedOperationsTable();
     openAction('Annuler');
     fireEvent.change(await screen.findByLabelText('Motif'), { target: { value: 'Doublon' } });
     fireEvent.click(screen.getByRole('button', { name: 'Annuler l’opération' }));

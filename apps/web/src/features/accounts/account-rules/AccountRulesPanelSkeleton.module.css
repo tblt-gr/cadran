@@ -1,0 +1,5 @@
+.resolved {
+  width: calc(var(--spacing-12) * 4);
+  max-width: 100%;
+  height: var(--font-size-label);
+}

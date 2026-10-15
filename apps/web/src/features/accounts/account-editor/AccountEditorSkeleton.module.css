@@ -1,0 +1,4 @@
+/* Wrappers only carry the busy and disabled states: the form keeps its own layout. */
+.frozen {
+  display: contents;
+}

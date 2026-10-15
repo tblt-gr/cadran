@@ -3,11 +3,21 @@ import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skel
 import styles from './AccountMovementsTable.module.css';
 
 /**
- * The movements table's final layout while the query is pending: the column
- * headers are real text, only the row values are blocks.
+ * AccountMovementsTable while the query is pending: the column headers are
+ * real text, only the row values are blocks. `announce` is off when an
+ * enclosing page skeleton already owns the loading status.
  */
-export function AccountMovementsTableSkeleton() {
+export function AccountMovementsTableSkeleton({ announce = true }: { announce?: boolean }) {
   const { t } = useTranslation();
+  const columns = [
+    t('transactions.fields.bookedOn'),
+    t('transactions.fields.nature'),
+    t('transactions.fields.rawLabel'),
+    t('transactions.fields.category'),
+    t('accounts.detail.movements.counterpart'),
+    t('transactions.fields.amount'),
+    t('transactions.fields.state'),
+  ];
 
   return (
     <div
@@ -15,22 +25,20 @@ export function AccountMovementsTableSkeleton() {
       className={`card ${styles.panel}`}
       data-testid="account-movements-skeleton"
     >
-      <SkeletonStatus>{t('transactions.loading')}</SkeletonStatus>
+      {announce ? <SkeletonStatus>{t('transactions.loading')}</SkeletonStatus> : null}
       <div className={styles.tableScroll}>
         <table>
           <caption className="sr-only">{t('accounts.detail.movements.caption')}</caption>
           <thead>
             <tr>
-              <th scope="col">{t('transactions.fields.bookedOn')}</th>
-              <th scope="col">{t('transactions.fields.nature')}</th>
-              <th scope="col">{t('transactions.fields.rawLabel')}</th>
-              <th scope="col">{t('transactions.fields.category')}</th>
-              <th scope="col">{t('accounts.detail.movements.counterpart')}</th>
-              <th scope="col">{t('transactions.fields.amount')}</th>
-              <th scope="col">{t('transactions.fields.state')}</th>
+              {columns.map((column) => (
+                <th key={column} scope="col">
+                  {column}
+                </th>
+              ))}
             </tr>
           </thead>
-          <SkeletonTableRows columns={7} rows={5} />
+          <SkeletonTableRows labels={columns} rows={5} />
         </table>
       </div>
     </div>

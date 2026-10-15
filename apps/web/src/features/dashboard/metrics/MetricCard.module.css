@@ -55,6 +55,11 @@
   height: var(--font-size-metric);
 }
 
+.descriptionSkeleton {
+  width: 40%;
+  height: var(--font-size-sm);
+}
+
 .description {
   align-self: end;
   color: var(--text-muted);

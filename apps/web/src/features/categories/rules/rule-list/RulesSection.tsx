@@ -35,14 +35,6 @@ export function RulesSection({
     rules.query.error instanceof CategorizationRuleRequestError &&
     rules.query.error.kind === 'unauthorized';
 
-  if (rules.query.isPending) {
-    return (
-      <section className={`card ${styles.state}`} aria-busy="true" role="status">
-        <h2>{t('categorizationRules.loading')}</h2>
-      </section>
-    );
-  }
-
   if (rules.query.isError) {
     return (
       <section className={`card ${styles.state}`} role="alert">

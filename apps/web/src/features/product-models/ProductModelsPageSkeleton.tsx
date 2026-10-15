@@ -2,25 +2,23 @@ import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skel
 import { useTranslation } from 'react-i18next';
 import styles from './product-model-list/ProductModelList.module.css';
 
+/** Mirrors ProductModelList element for element: only the rows are pending. */
 export function ProductModelsPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   return (
-    <section
-      aria-busy="true"
-      className={`card ${styles.panel}`}
-      data-testid="product-models-skeleton"
-    >
+    <div aria-busy="true" className={`card ${styles.panel}`} data-testid="product-models-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
       <div className={styles.tableScroll}>
         <table>
+          <caption className="sr-only">{t('productModels.list.caption')}</caption>
           <thead>
             <tr>
-              <th>{t('productModels.list.name')}</th>
-              <th>{t('productModels.list.family')}</th>
-              <th>{t('productModels.list.yield')}</th>
-              <th>{t('productModels.list.periods')}</th>
-              <th>{t('productModels.list.status')}</th>
-              <th>
+              <th scope="col">{t('productModels.list.name')}</th>
+              <th scope="col">{t('productModels.list.family')}</th>
+              <th scope="col">{t('productModels.list.yield')}</th>
+              <th scope="col">{t('productModels.list.periods')}</th>
+              <th scope="col">{t('productModels.list.status')}</th>
+              <th scope="col">
                 <span className="sr-only">{t('productModels.list.actions')}</span>
               </th>
             </tr>
@@ -28,6 +26,6 @@ export function ProductModelsPageSkeleton({ status }: { status: string }) {
           <SkeletonTableRows columns={6} rows={5} />
         </table>
       </div>
-    </section>
+    </div>
   );
 }

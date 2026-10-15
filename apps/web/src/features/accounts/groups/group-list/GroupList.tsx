@@ -8,6 +8,7 @@ import type {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { SortableHeader } from '@/components/ui/sortable-header/SortableHeader';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { GroupMembers } from '@/features/accounts/groups/group-members/GroupMembers';
@@ -114,6 +115,9 @@ export function GroupList({
 
   return (
     <div className={`card ${styles.panel}`}>
+      {allocationStatus === 'pending' ? (
+        <SkeletonStatus>{t('accountGroups.list.totalLoading')}</SkeletonStatus>
+      ) : null}
       <div className={styles.tableScroll}>
         <table>
           <caption className="sr-only">{t('accountGroups.list.caption')}</caption>
@@ -188,14 +192,14 @@ export function GroupList({
                   <td>{parentLabel(group)}</td>
                   <td className={`money ${styles.total}`}>
                     {allocationStatus === 'pending' ? (
-                      <span className={styles.pending}>{t('accountGroups.list.totalLoading')}</span>
+                      <SkeletonBlock className={styles.cellSkeleton} />
                     ) : (
                       <NetWorthFigure amount={entry?.value ?? null} reason={netWorthReason} />
                     )}
                   </td>
                   <td>
                     {allocationStatus === 'pending' ? (
-                      <span className={styles.pending}>{t('accountGroups.list.shareLoading')}</span>
+                      <SkeletonBlock className={styles.cellSkeleton} />
                     ) : (
                       <ShareCell share={entry?.share ?? group.share} />
                     )}

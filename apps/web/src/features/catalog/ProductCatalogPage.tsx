@@ -80,7 +80,7 @@ export function ProductCatalogPage() {
       />
 
       {catalogue.isPending && catalogue.data === undefined ? (
-        <ProductCatalogPageSkeleton status={t('catalog.loading')} />
+        <ProductCatalogPageSkeleton asOf={asOf} status={t('catalog.loading')} />
       ) : catalogue.isError ? (
         <section className={`card ${styles.state}`} role="alert">
           <h2>{t(unauthorized ? 'catalog.unauthorized.title' : 'catalog.error.title')}</h2>

@@ -12,8 +12,12 @@
   gap: var(--spacing-1);
 }
 
-.button:hover {
+.button:hover:not(:disabled) {
   color: var(--text-primary);
+}
+
+.button:disabled {
+  cursor: default;
 }
 
 @media (pointer: coarse) {

@@ -20,6 +20,3 @@
   gap: var(--spacing-3);
   padding: var(--spacing-6);
 }
-.tableScroll {
-  overflow-x: auto;
-}

@@ -10,6 +10,7 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { budgetErrorKind } from '@/features/budget/budgetError';
 import { useSaveRecapPreferences } from '@/features/budget/monthly-budget/monthly-recap/useMonthlyRecap';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import styles from './RecapPreferencesModal.module.css';
 
 const axes: AnalyticAxes = [
@@ -106,7 +107,12 @@ export function RecapPreferencesModal({
         <fieldset disabled={categories.isPending || save.isPending}>
           <legend>{t('budget.monthly.recap.preferences.categories')}</legend>
           {categories.isPending ? (
-            <p role="status">{t('budget.monthly.recap.preferences.loading')}</p>
+            <div aria-busy="true" className={styles.options}>
+              <SkeletonStatus>{t('budget.monthly.recap.preferences.loading')}</SkeletonStatus>
+              {Array.from({ length: 6 }, (_, index) => (
+                <SkeletonBlock className={styles.skeletonOption} key={index} />
+              ))}
+            </div>
           ) : categories.isError ? (
             <div className={styles.alert} role="alert">
               <p>{t('budget.monthly.recap.preferences.categoriesError')}</p>

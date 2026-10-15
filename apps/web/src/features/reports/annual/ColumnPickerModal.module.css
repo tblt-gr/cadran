@@ -36,3 +36,12 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* The pending fieldsets sit in the form's grid, like the loaded ones. */
+.pendingGroups {
+  display: contents;
+}
+.skeletonOption {
+  width: 70%;
+  height: var(--font-size-label);
+}

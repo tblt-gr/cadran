@@ -2,17 +2,15 @@ import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skel
 import { useTranslation } from 'react-i18next';
 import styles from './category-list/CategoryList.module.css';
 
+/** Mirrors CategoryList element for element: only the rows are pending. */
 export function CategoryPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   return (
-    <section
-      aria-busy="true"
-      className={`card ${styles.panel}`}
-      data-testid="category-page-skeleton"
-    >
+    <div aria-busy="true" className={`card ${styles.panel}`} data-testid="category-page-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
       <div className={styles.tableScroll}>
         <table>
+          <caption className="sr-only">{t('categories.list.caption')}</caption>
           <thead>
             <tr>
               <th scope="col">{t('categories.fields.label')}</th>
@@ -29,6 +27,6 @@ export function CategoryPageSkeleton({ status }: { status: string }) {
           <SkeletonTableRows columns={7} rows={6} />
         </table>
       </div>
-    </section>
+    </div>
   );
 }

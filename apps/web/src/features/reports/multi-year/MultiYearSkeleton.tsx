@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
 import {
   SkeletonBlock,
   SkeletonChartArea,
   SkeletonStatus,
+  SkeletonText,
 } from '@/components/ui/skeleton/Skeleton';
 import { AnnualTableActions } from '@/features/reports/annual/AnnualTableActions';
 import { ChartFrame } from '@/features/reports/annual/ChartFrame';
@@ -36,7 +38,10 @@ function Cell() {
   return <SkeletonBlock className={styles.cell} />;
 }
 
-/** Selector, caption, year labels and summary labels are static and real; columns and figures are pending. */
+/**
+ * Mirrors the compact multi-year report element for element: selector, caption,
+ * year and summary labels are real; columns and figures are pending.
+ */
 export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps) {
   const { t } = useTranslation();
   const count = range ? Math.min(range.to - range.from + 1, MAX_ROWS) : 0;
@@ -155,14 +160,22 @@ export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps
           </dl>
         </li>
       </ul>
-      <div className={chartStyles.grid}>
-        <ChartFrame title={t('reports.multiYear.charts.flows')}>
-          <SkeletonChartArea />
-        </ChartFrame>
-        <ChartFrame title={t('reports.multiYear.charts.netWorth')}>
-          <SkeletonChartArea />
-        </ChartFrame>
-      </div>
+      <MultiYearChartsSkeleton />
+    </div>
+  );
+}
+
+/** Mirrors MultiYearCharts element for element: frame titles and data toggles real, plots pending. */
+export function MultiYearChartsSkeleton() {
+  const { t } = useTranslation();
+  return (
+    <div className={chartStyles.grid}>
+      <ChartFrame data={<SkeletonText lines={2} />} title={t('reports.multiYear.charts.flows')}>
+        <SkeletonChartArea />
+      </ChartFrame>
+      <ChartFrame data={<SkeletonText lines={2} />} title={t('reports.multiYear.charts.netWorth')}>
+        <CurveChartSkeleton />
+      </ChartFrame>
     </div>
   );
 }
