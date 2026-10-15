@@ -8,6 +8,9 @@ import {
 } from '@/components/layout/navigation-link/NavigationLink';
 import styles from './MobileBottomNav.module.css';
 
+/** Five destinations share a phone's width: a smaller glyph leaves room for their labels. */
+const MOBILE_ICON_SIZE = 18;
+
 interface MobileBottomNavProps {
   isMoreOpen: boolean;
   moreButton: RefObject<HTMLButtonElement | null>;
@@ -34,6 +37,7 @@ export function MobileBottomNav({
       {mobileItems.map((item) => (
         <NavigationLink
           className={styles.link}
+          iconSize={MOBILE_ICON_SIZE}
           item={item}
           key={item.href}
           onIntent={onNavigationIntent}
@@ -50,7 +54,7 @@ export function MobileBottomNav({
         ref={moreButton}
         type="button"
       >
-        <Icon name="more" />
+        <Icon name="more" size={MOBILE_ICON_SIZE} />
         <span>{t('actions.more')}</span>
       </button>
     </nav>

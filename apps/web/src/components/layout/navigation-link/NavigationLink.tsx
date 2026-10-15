@@ -8,6 +8,7 @@ export type NavigationHandler = (event: MouseEvent<HTMLAnchorElement>, href: str
 
 interface NavigationLinkProps {
   className?: string;
+  iconSize?: number;
   item: NavigationItem;
   /** The user shows interest in the target (hover, focus): lets the app warm it up. */
   onIntent?: (href: string) => void;
@@ -17,6 +18,7 @@ interface NavigationLinkProps {
 
 export function NavigationLink({
   className,
+  iconSize,
   item,
   onIntent,
   onNavigate,
@@ -36,7 +38,7 @@ export function NavigationLink({
       onClick={(event) => onNavigate(event, item.href)}
       title={label}
     >
-      <Icon name={item.icon} />
+      <Icon name={item.icon} size={iconSize} />
       <span>{label}</span>
     </a>
   );

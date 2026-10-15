@@ -35,6 +35,7 @@ export const navigationItems: NavigationItem[] = [
     icon: 'budget',
     labelKey: 'navigation.budget',
     match: (path) => path === '/budget' || path.startsWith('/budget/'),
+    mobile: true,
   },
   {
     href: '/accounts',

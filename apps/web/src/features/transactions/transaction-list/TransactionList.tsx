@@ -38,10 +38,11 @@ export function TransactionList({
             <tr>
               <th scope="col">{t('transactions.fields.bookedOn')}</th>
               <th scope="col">{t('transactions.fields.rawLabel')}</th>
-              <th scope="col">{t('transactions.fields.counterparty')}</th>
               <th scope="col">{t('transactions.fields.category')}</th>
               <th scope="col">{t('transactions.fields.account')}</th>
-              <th scope="col">{t('transactions.fields.amount')}</th>
+              <th className={styles.amount} scope="col">
+                {t('transactions.fields.amount')}
+              </th>
               <th scope="col">{t('transactions.fields.state')}</th>
               <th scope="col">
                 <span className="sr-only">{t('transactions.list.actions')}</span>
@@ -67,10 +68,10 @@ export function TransactionList({
 
               return (
                 <tr key={transaction.id}>
-                  <td data-label={t('transactions.fields.bookedOn')}>
+                  <td className={styles.date}>
                     {formatCalendarDay(transaction.bookedOn, i18n.language)}
                   </td>
-                  <th data-label={t('transactions.fields.rawLabel')} scope="row">
+                  <th className={styles.label} scope="row">
                     <span>{transaction.rawLabel}</span>
                     {transferLinked ? (
                       <>
@@ -81,35 +82,37 @@ export function TransactionList({
                               : 'transactions.list.transferMarker',
                           )}
                         </small>
-                        <small>{t('transactions.list.transferLocked')}</small>
+                        <small className={styles.detail}>
+                          {t('transactions.list.transferLocked')}
+                        </small>
                       </>
                     ) : null}
                     <RefundBadge transaction={transaction} />
                   </th>
-                  <td data-label={t('transactions.fields.counterparty')}>
-                    {transaction.counterparty ?? t('transactions.list.noCounterparty')}
-                  </td>
-                  <td data-label={t('transactions.fields.category')}>
+                  <td className={styles.category}>
                     <TransactionCategories splits={transaction.splits} />
                   </td>
-                  <td data-label={t('transactions.fields.account')}>
+                  <td className={styles.account}>
                     {account?.label ?? t('transactions.list.unknownAccount')}
                   </td>
-                  <td data-label={t('transactions.fields.amount')}>
+                  <td className={styles.amount}>
                     <TransactionAmount amount={transaction.amount} />
                   </td>
-                  <td data-label={t('transactions.fields.state')}>
-                    <StatusBadge
-                      tone={
-                        voided
-                          ? 'warning'
-                          : transaction.state === 'REJECTED'
-                            ? 'negative'
-                            : 'positive'
-                      }
-                    >
-                      {t(`transactions.states.${transaction.state}`)}
-                    </StatusBadge>
+                  <td className={styles.state}>
+                    {/* Booked is the normal case: only a state that departs from it is worth a badge. */}
+                    {transaction.state === 'BOOKED' ? null : (
+                      <StatusBadge
+                        tone={
+                          voided
+                            ? 'warning'
+                            : transaction.state === 'REJECTED'
+                              ? 'negative'
+                              : 'positive'
+                        }
+                      >
+                        {t(`transactions.states.${transaction.state}`)}
+                      </StatusBadge>
+                    )}
                   </td>
                   <td className={styles.actions}>
                     <ActionMenu
