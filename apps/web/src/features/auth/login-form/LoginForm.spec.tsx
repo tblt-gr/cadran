@@ -40,7 +40,7 @@ describe('LoginForm', () => {
   });
 
   it('keeps a direct private URL after login', async () => {
-    window.history.replaceState(null, '', '/transactions?month=2026-03');
+    window.history.replaceState({ returnTo: '/transactions?month=2026-03' }, '', '/connexion');
     respondWith(204);
     const onSuccess = vi.fn();
     render(<LoginForm onSuccess={onSuccess} />);
@@ -50,6 +50,18 @@ describe('LoginForm', () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
     expect(window.location.pathname).toBe('/transactions');
     expect(window.location.search).toBe('?month=2026-03');
+  });
+
+  it('ignores an invalid return path from browser history', async () => {
+    window.history.replaceState({ returnTo: '//other.example/path' }, '', '/connexion');
+    respondWith(204);
+    const onSuccess = vi.fn();
+    render(<LoginForm onSuccess={onSuccess} />);
+
+    fillAndSubmit();
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    expect(window.location.pathname).toBe('/');
   });
 
   it('shows a generic error for invalid credentials without revealing which field failed', async () => {

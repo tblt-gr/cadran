@@ -118,8 +118,9 @@ describe('AuthGate', () => {
     renderGate();
 
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeTruthy();
-    expect(window.location.pathname).toBe('/transactions');
-    expect(window.location.search).toBe('?month=2026-03');
+    expect(window.location.pathname).toBe('/connexion');
+    expect(window.location.search).toBe('');
+    expect(window.history.state).toEqual({ returnTo: '/transactions?month=2026-03' });
   });
 
   it('renders the application once authenticated', async () => {

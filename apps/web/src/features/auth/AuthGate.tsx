@@ -1,7 +1,7 @@
 import { useLayoutEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/features/auth/auth-layout/AuthLayout';
-import { loginPath } from '@/features/auth/authPath';
+import { loginPath, moveToLoginPath } from '@/features/auth/authPath';
 import { CreatePasswordForm } from '@/features/auth/create-password-form/CreatePasswordForm';
 import { LoginForm } from '@/features/auth/login-form/LoginForm';
 import { SessionProbeSkeleton } from '@/features/auth/session-probe-skeleton/SessionProbeSkeleton';
@@ -20,7 +20,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const refetch = () => void session.refetch();
 
   useLayoutEffect(() => {
-    if (session.data?.authenticated && window.location.pathname === loginPath) {
+    if (!session.data?.provisioned || session.data.setupRequired) return;
+
+    if (!session.data.authenticated) {
+      moveToLoginPath();
+    } else if (window.location.pathname === loginPath) {
       window.history.replaceState(null, '', '/');
     }
   }, [session.data]);

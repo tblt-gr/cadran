@@ -2,7 +2,7 @@ import { openSession } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import { loginPath } from '@/features/auth/authPath';
+import { leaveLoginPath } from '@/features/auth/authPath';
 import { FormField } from '@/features/auth/form-field/FormField';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import styles from './LoginForm.module.css';
@@ -43,9 +43,7 @@ export function LoginForm({
       }
 
       if (response.ok) {
-        if (window.location.pathname === loginPath) {
-          window.history.replaceState(null, '', '/');
-        }
+        leaveLoginPath();
         onSuccess();
 
         return;
