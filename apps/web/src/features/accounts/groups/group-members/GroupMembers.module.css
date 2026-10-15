@@ -43,3 +43,13 @@
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-normal);
 }
+
+.nameSkeleton {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-label);
+}
+
+.shareSkeleton {
+  width: var(--spacing-12);
+  height: var(--font-size-label);
+}

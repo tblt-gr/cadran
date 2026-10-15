@@ -107,3 +107,10 @@
     width: 100%;
   }
 }
+
+.skeletonInline {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-label);
+  vertical-align: middle;
+}

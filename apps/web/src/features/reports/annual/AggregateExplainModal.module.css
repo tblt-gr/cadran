@@ -31,3 +31,9 @@
   border-bottom: var(--border-line-subtle);
   text-align: left;
 }
+
+.skeletonValue {
+  width: calc(var(--spacing-12) * 2);
+  max-width: 100%;
+  height: var(--font-size-body);
+}

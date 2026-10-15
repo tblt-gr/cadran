@@ -56,3 +56,8 @@
     width: 100%;
   }
 }
+
+.skeletonOption {
+  width: 70%;
+  height: var(--font-size-label);
+}

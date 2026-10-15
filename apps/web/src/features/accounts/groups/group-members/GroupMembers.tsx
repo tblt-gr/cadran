@@ -1,5 +1,6 @@
 import type { Account, NetWorthShare, Product, ProductModel } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { AllocationBar } from '@/components/ui/charts/allocation-legend/AllocationBar';
@@ -35,7 +36,16 @@ export function GroupMembers({
   const { i18n, t } = useTranslation();
 
   if (status === 'pending') {
-    return <p className={styles.empty}>{t('accountGroups.list.accountsLoading')}</p>;
+    return (
+      <ul aria-hidden="true" className={styles.list}>
+        {Array.from({ length: 2 }, (_, index) => (
+          <li key={index}>
+            <SkeletonBlock className={styles.nameSkeleton} />
+            <SkeletonBlock className={styles.shareSkeleton} />
+          </li>
+        ))}
+      </ul>
+    );
   }
 
   if (status === 'error') {
@@ -57,7 +67,7 @@ export function GroupMembers({
             <span className={styles.name}>{account.label}</span>
             <span className={styles.share}>
               {sharesStatus === 'pending' ? (
-                t('accountGroups.list.shareLoading')
+                <SkeletonBlock className={styles.shareSkeleton} />
               ) : share === undefined ? null : (
                 <ShareCell share={share} />
               )}

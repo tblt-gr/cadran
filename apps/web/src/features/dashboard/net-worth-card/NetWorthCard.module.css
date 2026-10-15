@@ -39,6 +39,12 @@
   white-space: nowrap;
 }
 
+/* The pending chart takes the plot row exactly like the loaded figure. */
+.historyPending {
+  display: grid;
+  min-height: 0;
+}
+
 .historyUnavailable {
   display: flex;
   align-items: center;

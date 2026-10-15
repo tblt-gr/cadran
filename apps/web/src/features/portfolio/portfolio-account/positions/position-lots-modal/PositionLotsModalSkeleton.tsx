@@ -15,10 +15,10 @@ const lotHeaders = [
 ];
 const movementHeaders = ['Date', 'Opération', 'Δ quantité', 'Δ coût'];
 
-/** Keeps the modal's final headings and tables stable during its cold read. */
+/** Mirrors PositionLotsTables element for element: headings and headers are real, values pending. */
 export function PositionLotsModalSkeleton() {
   return (
-    <section aria-busy="true" data-testid="position-lots-skeleton">
+    <div aria-busy="true" className={styles.skeletonContents} data-testid="position-lots-skeleton">
       <SkeletonStatus>Chargement des lots…</SkeletonStatus>
       <h3>Lots ouverts</h3>
       <div className={styles.scroll}>
@@ -54,6 +54,6 @@ export function PositionLotsModalSkeleton() {
           <SkeletonTableRows columns={movementHeaders.length} rows={3} />
         </table>
       </div>
-    </section>
+    </div>
   );
 }

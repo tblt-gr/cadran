@@ -12,6 +12,7 @@ import { RouteLoadErrorState } from '@/features/foundation/RouteLoadErrorState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { getRouteTitleKey } from '@/lib/navigation';
+import { DashboardPageFallback } from '@/features/dashboard/DashboardPageFallback';
 import {
   buildAuthenticatedRoutes,
   DashboardPage,
@@ -112,7 +113,12 @@ export function AuthenticatedApp() {
         fallback={<RouteLoadErrorState titleKey={getRouteTitleKey(path)} />}
         resetKey={path}
       >
-        <RouteSuspense titleKey={getRouteTitleKey(path)}>{content}</RouteSuspense>
+        <RouteSuspense
+          fallback={path === '/' ? <DashboardPageFallback /> : undefined}
+          titleKey={getRouteTitleKey(path)}
+        >
+          {content}
+        </RouteSuspense>
       </RouteErrorBoundary>
     </AppShell>
   );

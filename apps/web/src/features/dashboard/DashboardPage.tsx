@@ -18,9 +18,7 @@ export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
   const netWorth = useNetWorth();
   const history = useNetWorthHistory();
   const missingValuationsOpen = useMissingValuationsOpen();
-  const failure = netWorth.isPending
-    ? 'loading'
-    : netWorthErrorKind(netWorth.error, netWorth.isError);
+  const failure = netWorthErrorKind(netWorth.error, netWorth.isError);
 
   return (
     <>

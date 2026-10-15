@@ -1,15 +1,12 @@
-import {
-  SkeletonBlock,
-  SkeletonButton,
-  SkeletonStatus,
-  SkeletonTitle,
-} from '@/components/ui/skeleton/Skeleton';
+import { useTranslation } from 'react-i18next';
+import { SkeletonBlock, SkeletonStatus, SkeletonTitle } from '@/components/ui/skeleton/Skeleton';
 import styles from './GoalsPage.module.css';
 import skeletonStyles from './GoalsPageSkeleton.module.css';
 
+/** Mirrors GoalCard element for element: every value depends on the goal, so all are pending. */
 function GoalCardSkeleton() {
   return (
-    <div aria-hidden="true" className={`card ${styles.goalCard}`}>
+    <article aria-hidden="true" className={`card ${styles.goalCard}`}>
       <div className={styles.cardHeading}>
         <div className={styles.goalIdentity}>
           <SkeletonTitle size="page" />
@@ -18,21 +15,33 @@ function GoalCardSkeleton() {
         <SkeletonBlock className={skeletonStyles.menu} />
       </div>
       <div className={styles.value}>
-        <SkeletonBlock className={skeletonStyles.direction} />
-        <SkeletonBlock className={skeletonStyles.amount} />
+        <span className={styles.direction}>
+          <SkeletonBlock className={skeletonStyles.direction} />
+        </span>
+        <strong className="money">
+          <SkeletonBlock className={skeletonStyles.amount} />
+        </strong>
       </div>
       <div className={styles.statusHeading}>
-        <SkeletonBlock className={skeletonStyles.direction} />
-        <SkeletonButton className={skeletonStyles.badge} />
+        <p className={styles.statusMonth}>
+          <SkeletonBlock className={skeletonStyles.direction} />
+        </p>
+        <SkeletonBlock className={skeletonStyles.badge} />
       </div>
       <SkeletonBlock className={skeletonStyles.progress} />
-    </div>
+    </article>
   );
 }
 
 export function GoalsPageSkeleton({ status }: { status: string }) {
+  const { t } = useTranslation();
   return (
-    <section aria-busy="true" className={styles.list} data-testid="goals-skeleton">
+    <section
+      aria-busy="true"
+      aria-label={t('goals.list')}
+      className={styles.list}
+      data-testid="goals-skeleton"
+    >
       <SkeletonStatus>{status}</SkeletonStatus>
       <div className={styles.grid}>
         {Array.from({ length: 2 }, (_, index) => (

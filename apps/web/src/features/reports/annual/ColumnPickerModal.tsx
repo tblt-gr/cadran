@@ -2,6 +2,7 @@ import type { AnnualReportPreferences } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { AXIS_IDS, INDICATOR_COLUMN_IDS, MAX_ANNUAL_COLUMNS } from './annualColumns';
 import { AnnualRequestError, useSaveAnnualReportPreferences } from './useAnnualReport';
 import { useColumnCatalogue, type CatalogueEntry } from './useColumnCatalogue';
@@ -72,6 +73,20 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
     );
   }
 
+  /** The same fieldset as `group` while the workspace's own entries load. */
+  function pendingGroup(legend: string) {
+    return (
+      <fieldset key={legend}>
+        <legend>{legend}</legend>
+        <div aria-hidden="true" className={styles.options}>
+          {Array.from({ length: 4 }, (_, index) => (
+            <SkeletonBlock className={styles.skeletonOption} key={index} />
+          ))}
+        </div>
+      </fieldset>
+    );
+  }
+
   return (
     <Modal
       close={close}
@@ -92,7 +107,12 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
           AXIS_IDS.map((id) => ({ id, label: t(`categories.axes.${id}`) })),
         )}
         {catalogue.isPending ? (
-          <p role="status">{t('reports.annual.picker.loading')}</p>
+          <div aria-busy="true" className={styles.pendingGroups}>
+            <SkeletonStatus>{t('reports.annual.picker.loading')}</SkeletonStatus>
+            {pendingGroup(t('reports.annual.picker.categories'))}
+            {pendingGroup(t('reports.annual.picker.groups'))}
+            {pendingGroup(t('reports.annual.picker.accounts'))}
+          </div>
         ) : catalogue.isError ? (
           <div role="alert">
             <p>{t('reports.annual.picker.catalogueError')}</p>

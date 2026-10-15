@@ -45,3 +45,8 @@
 .errorState p {
   color: var(--negative);
 }
+
+/* The skeleton's blocks sit directly in the modal body, like the loaded tables. */
+.skeletonContents {
+  display: contents;
+}

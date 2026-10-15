@@ -26,11 +26,85 @@ const TOTAL_LABELS = [
   'reports.metrics.netSavingsRate',
 ] as const;
 
-/** The recap column's shape without any announcement, so a page skeleton can embed it silently. */
-export function MonthlyRecapPlaceholder() {
+/** One TotalsCard row: the metric name and its explain button are real, the value pending. */
+function PendingMetricRow({ label }: { label?: string }) {
   const { t } = useTranslation();
   return (
-    <aside className={styles.recap}>
+    <li className={totalsStyles.row}>
+      <div>
+        <span className={totalsStyles.label}>
+          {label === undefined ? (
+            <SkeletonBlock className={styles.skeletonLabel} />
+          ) : (
+            <>
+              <span>{label}</span>
+              <InfoButton disabled label={t('reports.explainKpi', { kpi: label })} />
+            </>
+          )}
+        </span>
+        <SkeletonBlock className={styles.skeletonAmount} />
+      </div>
+    </li>
+  );
+}
+
+/** Mirrors TotalsCard element for element; MonthlyRecap also shows it while preferences load. */
+export function TotalsCardPlaceholder() {
+  const { t } = useTranslation();
+  return (
+    <section className={`card ${totalsStyles.panel}`}>
+      <header className={totalsStyles.heading}>
+        <div className={totalsStyles.headingTitle}>
+          <div className={totalsStyles.titleGroup}>
+            <h3>{t('budget.monthly.recap.totals.title')}</h3>
+            <InfoButton disabled label={t('budget.monthly.recap.info.open')} />
+          </div>
+          <button className="secondary-action" disabled type="button">
+            {t('budget.monthly.recap.preferences.open')}
+          </button>
+        </div>
+      </header>
+      <ul className={totalsStyles.rows}>
+        {TOTAL_LABELS.map((label) => (
+          <PendingMetricRow key={label} label={t(label)} />
+        ))}
+      </ul>
+      <h4>{t('budget.monthly.recap.totals.axes')}</h4>
+      <ul className={totalsStyles.rows}>
+        <PendingMetricRow />
+        <PendingMetricRow />
+      </ul>
+      <h4>{t('budget.monthly.recap.totals.categories')}</h4>
+      <ul className={totalsStyles.rows}>
+        <PendingMetricRow />
+        <PendingMetricRow />
+        <PendingMetricRow />
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Mirrors MonthlyRecap element for element. Without `status` it makes no
+ * announcement, so a page skeleton can embed it silently.
+ */
+export function MonthlyRecapPlaceholder({ status }: { status?: string }) {
+  const { t } = useTranslation();
+  const accountColumns = [
+    t('budget.monthly.recap.accounts.account'),
+    t('budget.monthly.recap.accounts.previousShort'),
+    t('budget.monthly.recap.accounts.currentShort'),
+    t('budget.monthly.recap.accounts.share'),
+  ];
+
+  return (
+    <aside
+      aria-busy={status === undefined ? undefined : true}
+      aria-label={t('budget.monthly.recap.label')}
+      className={styles.recap}
+      data-testid={status === undefined ? undefined : 'monthly-recap-skeleton'}
+    >
+      {status === undefined ? null : <SkeletonStatus>{status}</SkeletonStatus>}
       <div className={styles.wealth}>
         <section className={`card ${wealthStyles.panel}`}>
           <h3>{t('budget.monthly.recap.wealth.title')}</h3>
@@ -47,36 +121,14 @@ export function MonthlyRecapPlaceholder() {
         </section>
       </div>
       <div className={styles.totals}>
-        <section className={`card ${totalsStyles.panel}`}>
-          <header className={totalsStyles.heading}>
-            <div className={totalsStyles.headingTitle}>
-              <div className={totalsStyles.titleGroup}>
-                <h3>{t('budget.monthly.recap.totals.title')}</h3>
-                <InfoButton disabled label={t('budget.monthly.recap.info.open')} />
-              </div>
-              <button className="secondary-action" disabled type="button">
-                {t('budget.monthly.recap.preferences.open')}
-              </button>
-            </div>
-          </header>
-          <ul className={totalsStyles.rows}>
-            {TOTAL_LABELS.map((label) => (
-              <li className={totalsStyles.row} key={label}>
-                <div>
-                  <span className={totalsStyles.label}>{t(label)}</span>
-                  <SkeletonBlock className={styles.skeletonAmount} />
-                </div>
-              </li>
-            ))}
-          </ul>
-          <h4>{t('budget.monthly.recap.totals.axes')}</h4>
-        </section>
+        <TotalsCardPlaceholder />
       </div>
       <div className={styles.accounts}>
         <section className={`card ${accountStyles.panel}`}>
           <h3>{t('budget.monthly.recap.accounts.title')}</h3>
           <div className={accountStyles.tableScroll}>
             <table>
+              <caption className="sr-only">{t('budget.monthly.recap.accounts.caption')}</caption>
               <thead>
                 <tr>
                   <th scope="col">{t('budget.monthly.recap.accounts.account')}</th>
@@ -89,7 +141,7 @@ export function MonthlyRecapPlaceholder() {
                   <th scope="col">{t('budget.monthly.recap.accounts.share')}</th>
                 </tr>
               </thead>
-              <SkeletonTableRows columns={4} rows={4} />
+              <SkeletonTableRows labels={accountColumns} rows={4} />
             </table>
           </div>
         </section>
@@ -99,10 +151,5 @@ export function MonthlyRecapPlaceholder() {
 }
 
 export function MonthlyRecapSkeleton({ status }: { status: string }) {
-  return (
-    <div aria-busy="true" data-testid="monthly-recap-skeleton">
-      <SkeletonStatus>{status}</SkeletonStatus>
-      <MonthlyRecapPlaceholder />
-    </div>
-  );
+  return <MonthlyRecapPlaceholder status={status} />;
 }

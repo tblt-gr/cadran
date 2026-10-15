@@ -1,7 +1,6 @@
 import type { AnnualReport } from '@cadran/api-client';
 import { Suspense, useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
 import { Toast } from '@/components/ui/toast/Toast';
 import { lazyComponent } from '@/lib/lazyComponent';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
@@ -15,7 +14,7 @@ import {
 } from '@/features/reports/annual/useAnnualReport';
 import { MultiYearCards } from './MultiYearCards';
 import { DetailedAnnualReports } from './DetailedAnnualReports';
-import { MultiYearSkeleton } from './MultiYearSkeleton';
+import { MultiYearChartsSkeleton, MultiYearSkeleton } from './MultiYearSkeleton';
 import { MultiYearTable } from './MultiYearTable';
 import { MultiYearRequestError, useMultiYearReport } from './useMultiYearReport';
 import { YearRangeSelector, type MultiYearDisplayMode } from './YearRangeSelector';
@@ -157,7 +156,7 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
           <>
             <MultiYearTable report={report.data} />
             <MultiYearCards report={report.data} />
-            <Suspense fallback={<SkeletonChartArea />}>
+            <Suspense fallback={<MultiYearChartsSkeleton />}>
               <MultiYearCharts report={report.data} />
             </Suspense>
           </>
@@ -165,7 +164,7 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
           <>
             <DetailedAnnualReports onReportsReady={setReportsReady} report={report.data} />
             {detailedReports ? (
-              <Suspense fallback={<SkeletonChartArea />}>
+              <Suspense fallback={<MultiYearChartsSkeleton />}>
                 <MultiYearCharts annualReports={detailedReports} report={report.data} />
               </Suspense>
             ) : null}

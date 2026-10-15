@@ -48,6 +48,7 @@ export function AccountEditor({
   if (isPending && !catalogue.product && !template.template)
     return (
       <AccountEditorSkeleton
+        account={account}
         status={t(
           account.productModelId ? 'accounts.editor.templateLoading' : 'accounts.editor.loading',
         )}

@@ -38,6 +38,9 @@ import { goalErrorKind, goalErrorMismatch, goalRequestError } from './goalError'
 import { ReferenceIncomeNote } from './ReferenceIncomeNote';
 import styles from './GoalsPage.module.css';
 import { currentMonthIn } from './goalFormFields';
+import { GoalFormSkeleton } from './GoalFormSkeleton';
+import { GoalStatusTableSkeleton } from './GoalStatusTableSkeleton';
+import { GoalHistoryTableSkeleton } from './history/GoalHistoryTableSkeleton';
 
 // The server caps a year's goals at 50, so a single page always holds the whole list.
 const GOALS_PAGE_SIZE = 50;
@@ -333,9 +336,7 @@ export function GoalsPage() {
             />
           ) : null}
           {editingSummary && !latestDetail && detail.isPending ? (
-            <p className={styles.modalLoading} aria-busy="true" role="status">
-              {t('goals.loading')}
-            </p>
+            <GoalFormSkeleton baseCurrency={baseCurrency} goal={editingSummary} />
           ) : (
             <>
               <div hidden={correction !== null} ref={formArea}>
@@ -399,9 +400,7 @@ export function GoalsPage() {
             eyebrow={t('goals.history.eyebrow')}
             title={t('goals.history.title')}
           >
-            <p className={styles.modalLoading} aria-busy="true" role="status">
-              {t('goals.loading')}
-            </p>
+            <GoalHistoryTableSkeleton />
           </Modal>
         ) : history.data ? (
           <GoalHistoryModal
@@ -426,9 +425,7 @@ export function GoalsPage() {
             eyebrow={t('goals.detailEyebrow')}
             title={t('goals.detailTitle')}
           >
-            <p className={styles.modalLoading} aria-busy="true" role="status">
-              {t('goals.loading')}
-            </p>
+            <GoalStatusTableSkeleton />
           </Modal>
         ) : statusDetail.data ? (
           <GoalDetailModal

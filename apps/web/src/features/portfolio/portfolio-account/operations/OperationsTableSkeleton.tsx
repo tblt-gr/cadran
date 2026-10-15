@@ -2,13 +2,14 @@ import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skel
 import { OPERATION_COLUMNS } from './operations-table/operationColumns';
 import styles from './operations-table/OperationsTable.module.css';
 
-/** The table's real header and caption with value cells held by blocks. */
+/** Mirrors OperationsTable element for element: header and caption are real, values pending. */
 export function OperationsTableSkeleton({ status }: { status: string }) {
   return (
-    <section aria-busy="true" className={`card ${styles.panel}`} data-testid="operations-skeleton">
+    <div aria-busy="true" className={`card ${styles.panel}`} data-testid="operations-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
       <div className={styles.scroll}>
         <table>
+          <caption className="sr-only">Opérations du portefeuille</caption>
           <thead>
             <tr>
               {OPERATION_COLUMNS.map((text) => (
@@ -16,12 +17,14 @@ export function OperationsTableSkeleton({ status }: { status: string }) {
                   {text}
                 </th>
               ))}
-              <th aria-hidden="true" />
+              <th scope="col">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <SkeletonTableRows columns={OPERATION_COLUMNS.length + 1} rows={8} />
         </table>
       </div>
-    </section>
+    </div>
   );
 }

@@ -21,7 +21,7 @@ describe('RouteSuspense', () => {
     expect(screen.getByRole('status').textContent).toBe('Chargement de la page…');
   });
 
-  it('keeps the loading region busy and hides the decorative blocks from assistive technology', () => {
+  it('keeps the loading region busy without drawing a layout the page does not have', () => {
     const { container } = render(
       <RouteSuspense titleKey="navigation.goals">
         <PendingPage />
@@ -29,7 +29,18 @@ describe('RouteSuspense', () => {
     );
 
     expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
-    expect(container.querySelectorAll('[aria-hidden="true"]').length).toBeGreaterThan(0);
+    expect(container.querySelector('[data-skeleton]')).toBeNull();
+  });
+
+  it('shows the page-specific fallback when the route provides one', () => {
+    render(
+      <RouteSuspense fallback={<p>Squelette de la page</p>} titleKey="navigation.goals">
+        <PendingPage />
+      </RouteSuspense>,
+    );
+
+    expect(screen.getByText('Squelette de la page')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Objectifs' })).toBeNull();
   });
 
   it('renders the page itself, without any fallback, once nothing is pending', () => {

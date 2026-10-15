@@ -1,14 +1,16 @@
 import { useTranslation } from 'react-i18next';
-import {
-  SkeletonBlock,
-  SkeletonChartArea,
-  SkeletonStatus,
-} from '@/components/ui/skeleton/Skeleton';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { AllocationChartsSkeleton } from './allocation-charts/AllocationChartsSkeleton';
 import allocationStyles from './allocation-panel/AllocationPanel.module.css';
 import cardStyles from './net-worth-card/NetWorthCard.module.css';
+import { WealthChartSkeleton } from './wealth-chart/WealthChartSkeleton';
 import styles from './DashboardPageSkeleton.module.css';
 
-/** Titles, descriptions and links are static and real: only the figures and charts are pending. */
+/**
+ * Mirrors NetWorthCard and AllocationPanel element for element. Titles,
+ * descriptions, links and chart controls are static and real: only the
+ * figures and the plots are pending.
+ */
 export function DashboardPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   return (
@@ -31,11 +33,12 @@ export function DashboardPageSkeleton({ status }: { status: string }) {
             <SkeletonBlock className={styles.asOf} />
           </div>
         </div>
-        <SkeletonChartArea className={styles.chart} />
+        <WealthChartSkeleton />
       </section>
       <section
         aria-labelledby="allocation-skeleton-title"
         className={`card ${allocationStyles.card}`}
+        data-allocation-view="treemap"
       >
         <div className={allocationStyles.heading}>
           <div>
@@ -46,7 +49,9 @@ export function DashboardPageSkeleton({ status }: { status: string }) {
             {t('dashboard.allocation.viewGroups')}
           </a>
         </div>
-        <SkeletonChartArea />
+        <div className={allocationStyles.treeLayout}>
+          <AllocationChartsSkeleton />
+        </div>
       </section>
     </>
   );

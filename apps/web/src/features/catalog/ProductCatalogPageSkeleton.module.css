@@ -24,8 +24,7 @@
   height: var(--spacing-12);
 }
 
-.resolved {
-  width: 30%;
-  height: var(--font-size-label);
-  margin-bottom: var(--spacing-4);
+/* The skeleton's blocks sit directly in the page's flex flow, like the loaded ones. */
+.contents {
+  display: contents;
 }

@@ -1,4 +1,4 @@
-import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
+import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { useValueHistory } from '@/features/portfolio/portfolio-account/value-history-card/useValueHistory';
 import { ValueHistoryChart } from '@/features/portfolio/portfolio-account/value-history-card/ValueHistoryChart';
@@ -18,7 +18,7 @@ export function PortfolioCardCurve({
   const history = useValueHistory(accountId, today, historyFrom(today, '12'));
 
   if (history.isPending) {
-    return <SkeletonBlock className={styles.placeholder} />;
+    return <CurveChartSkeleton />;
   }
   if (history.isError) {
     return <p className={styles.note}>Courbe indisponible.</p>;

@@ -9,11 +9,11 @@ const FACTS = [
   'goals.emergencyFund.gap',
 ] as const;
 
-/** Heading, buttons and fact labels are static and real; only the coverage figures are pending. */
+/** Mirrors EmergencyFundCard element for element: heading, buttons and fact labels are real; figures pending. */
 export function EmergencyFundCardSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   return (
-    <section
+    <article
       aria-busy="true"
       className={`card ${styles.card}`}
       data-testid="emergency-fund-skeleton"
@@ -33,8 +33,13 @@ export function EmergencyFundCardSkeleton({ status }: { status: string }) {
           </button>
         </div>
       </div>
-      <SkeletonBlock className={skeletonStyles.covered} />
-      <SkeletonBlock className={skeletonStyles.meter} />
+      <p className={styles.covered}>
+        <SkeletonBlock className={skeletonStyles.covered} />
+      </p>
+      <div className={styles.meter}>
+        <SkeletonBlock className={skeletonStyles.fact} />
+        <SkeletonBlock className={skeletonStyles.meter} />
+      </div>
       <dl className={styles.facts}>
         {FACTS.map((fact) => (
           <div key={fact}>
@@ -45,6 +50,6 @@ export function EmergencyFundCardSkeleton({ status }: { status: string }) {
           </div>
         ))}
       </dl>
-    </section>
+    </article>
   );
 }

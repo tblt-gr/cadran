@@ -111,6 +111,13 @@ one branch protection requires.
 - Handle loading, empty, error, and non-calculable states.
 - Draw a loading skeleton of the whole final page: static chrome (titles, labels, table headers,
   buttons, links) stays real and only query-driven values are placeholder blocks.
+- Write each skeleton as a mirror of the loaded component's HTML, element for element: same tags,
+  nesting, classes, table caption and mobile `data-label`s. Only leaves holding a query value become
+  `SkeletonBlock`s, placed in the value's own tag. Prefer rendering the real component frozen
+  (`fieldset disabled inert`) when its values are already known, or letting the loaded component
+  render its own blocks for absent data; a separate `XxxSkeleton.tsx` stays next to its component,
+  reuses its static sub-components and changes in the same commit. Never replace a panel, cell or
+  modal with a bare "Loading…" text.
 - Meet WCAG 2.2 AA with semantic HTML, keyboard access, focus management, contrast, and chart
   alternatives.
 

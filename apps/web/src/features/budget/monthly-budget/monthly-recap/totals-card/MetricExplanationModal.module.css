@@ -32,3 +32,14 @@
   font-variant-numeric: tabular-nums;
   text-align: end;
 }
+
+.skeletonLabel {
+  width: calc(var(--spacing-12) * 3);
+  max-width: 100%;
+  height: var(--font-size-label);
+}
+
+.skeletonAmount {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-label);
+}

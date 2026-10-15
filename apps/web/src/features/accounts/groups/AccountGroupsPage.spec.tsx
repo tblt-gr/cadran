@@ -141,6 +141,12 @@ function openGroupActions(label: string) {
   fireEvent.click(screen.getByRole('button', { name: `Actions du groupe ${label}` }));
 }
 
+/** The skeleton draws the same table: wait for it to leave before reading rows. */
+async function loadedGroupsTable() {
+  await waitFor(() => expect(screen.queryByTestId('account-groups-skeleton')).toBeNull());
+  return screen.getByRole('table', { name: 'Groupes de comptes, comptes et totaux exclusifs' });
+}
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -457,9 +463,7 @@ describe('AccountGroupsPage', () => {
     );
     renderPage();
 
-    const groupsTable = await screen.findByRole('table', {
-      name: 'Groupes de comptes, comptes et totaux exclusifs',
-    });
+    const groupsTable = await loadedGroupsTable();
     const livretsRow = within(groupsTable).getByRole('row', { name: /Livrets/ });
     await waitFor(() => {
       expect(livretsRow.textContent).toContain(`42${NARROW}100,00${NBSP}€`);
@@ -588,9 +592,7 @@ describe('AccountGroupsPage', () => {
     );
     renderPage();
 
-    const groupsTable = await screen.findByRole('table', {
-      name: 'Groupes de comptes, comptes et totaux exclusifs',
-    });
+    const groupsTable = await loadedGroupsTable();
     const labelHeader = within(groupsTable).getByRole('columnheader', { name: /Libellé/ });
     expect(labelHeader.getAttribute('aria-sort')).toBe('ascending');
     fireEvent.click(within(labelHeader).getByRole('button'));

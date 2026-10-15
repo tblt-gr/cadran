@@ -8,7 +8,7 @@ export function PositionsTableSkeleton({
   status?: string;
 }) {
   return (
-    <section aria-busy="true" className={`card ${styles.panel}`} data-testid="positions-skeleton">
+    <div aria-busy="true" className={`card ${styles.panel}`} data-testid="positions-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
       <div className={styles.scroll}>
         <table aria-label="Positions du portefeuille" className={styles.table}>
@@ -29,6 +29,6 @@ export function PositionsTableSkeleton({
           <SkeletonTableRows columns={6} rows={6} />
         </table>
       </div>
-    </section>
+    </div>
   );
 }

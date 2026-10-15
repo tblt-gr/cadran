@@ -54,3 +54,8 @@
 .alert p {
   margin: var(--spacing-none);
 }
+
+.skeletonBadge {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--spacing-6);
+}

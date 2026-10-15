@@ -29,8 +29,17 @@
 .card .gain {
   font-size: var(--font-size-body);
 }
-.curve {
-  height: var(--chart-plot-height);
+.skeletonTitle {
+  width: 60%;
+  height: var(--font-size-card-title);
+}
+.skeletonLine {
+  width: 45%;
+  height: var(--font-size-body);
+}
+.skeletonValue {
+  width: 55%;
+  height: var(--font-size-kpi);
 }
 @media (min-width: 768px) {
   .card {

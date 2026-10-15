@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import styles from './ProductModelsState.module.css';
 
-type ProductModelsStateKind = 'loading' | 'error' | 'unauthorized' | 'empty';
+type ProductModelsStateKind = 'error' | 'unauthorized' | 'empty';
 
 interface ProductModelsStateProps {
   kind: ProductModelsStateKind;
@@ -10,20 +10,12 @@ interface ProductModelsStateProps {
 }
 
 /**
- * The states the list can be in besides showing rows: still loading,
+ * The states the list can be in besides showing rows or its skeleton:
  * unreadable, no longer authenticated, or empty. Each names what happened and
  * offers the one action that resolves it.
  */
 export function ProductModelsState({ kind, onCreate, onRetry }: ProductModelsStateProps) {
   const { t } = useTranslation();
-
-  if (kind === 'loading') {
-    return (
-      <section className={`card ${styles.state}`} aria-busy="true" role="status">
-        <h2>{t('productModels.loading')}</h2>
-      </section>
-    );
-  }
 
   if (kind === 'empty') {
     return (

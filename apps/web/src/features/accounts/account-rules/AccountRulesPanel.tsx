@@ -49,13 +49,15 @@ export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRu
   const outOfRange = failure?.kind === 'invalid';
   const retryable = !unauthorized && !outOfRange;
 
+  const dateField = <BusinessDateField onChange={setAsOf} today={today} value={asOf} />;
+
   if (rules.isPending || overrides.isPending) {
-    return <AccountRulesPanelSkeleton status={t('accounts.rules.loading')} />;
+    return <AccountRulesPanelSkeleton dateField={dateField} status={t('accounts.rules.loading')} />;
   }
 
   return (
     <div className={styles.panel}>
-      <BusinessDateField onChange={setAsOf} today={today} value={asOf} />
+      {dateField}
 
       {rules.isPlaceholderData && !rules.isError ? (
         // The table below still answers the previous date until the new one

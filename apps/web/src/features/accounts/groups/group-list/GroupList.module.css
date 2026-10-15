@@ -42,10 +42,9 @@
   white-space: nowrap;
 }
 
-.pending {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-normal);
+.cellSkeleton {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-body);
 }
 
 .panel tbody th > span,

@@ -116,6 +116,18 @@
 }
 
 .skeletonFigure {
-  width: 100%;
-  height: var(--spacing-8);
+  width: calc(var(--spacing-12) * 2);
+  max-width: 100%;
+  height: var(--font-size-body);
+}
+
+.skeletonBadge {
+  width: calc(var(--spacing-12) * 2);
+  height: var(--spacing-6);
+}
+
+.skeletonSources {
+  width: calc(var(--spacing-12) * 3);
+  max-width: 100%;
+  height: var(--font-size-label);
 }

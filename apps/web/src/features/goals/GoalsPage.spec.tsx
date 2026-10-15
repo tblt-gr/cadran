@@ -361,6 +361,7 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
     expect(
       await screen.findByText(/Revenu de référence.*10\/12 mois, septembre 2025 à août 2026/),
     ).toBeTruthy();
@@ -451,6 +452,7 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
     const ratioInput = await screen.findByLabelText(/^Pourcentage/);
     expect((ratioInput as HTMLInputElement).value).toBe('30');
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -475,6 +477,7 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
 
     expect(await screen.findByRole('table')).toBeTruthy();
     expect(screen.getByRole('rowheader', { name: 'janvier 2026' })).toBeTruthy();
@@ -491,6 +494,7 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
 
     expect(await screen.findByText('Aucun calendrier mensuel pour cet objectif.')).toBeTruthy();
   });
@@ -750,6 +754,7 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
     const ratioInput = await screen.findByLabelText(/^Pourcentage/);
     expect((ratioInput as HTMLInputElement).value).toBe('40');
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -775,6 +780,7 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
     fireEvent.change(await screen.findByLabelText('Libellé'), {
       target: { value: 'Projet 2027' },
     });
@@ -811,6 +817,7 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
     fireEvent.change(await screen.findByLabelText('Libellé'), {
       target: { value: 'Projet 2027' },
     });
@@ -869,6 +876,7 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
     fireEvent.change(await screen.findByLabelText('À partir de'), {
       target: { value: '2026-01' },
     });
@@ -933,6 +941,7 @@ describe('GoalsPage', () => {
       await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
+    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
     fireEvent.change(await screen.findByLabelText('À partir de'), {
       target: { value: '2026-01' },
     });

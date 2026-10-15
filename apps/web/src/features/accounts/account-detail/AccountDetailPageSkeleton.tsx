@@ -1,16 +1,13 @@
-import {
-  SkeletonBlock,
-  SkeletonStatus,
-  SkeletonTableRows,
-} from '@/components/ui/skeleton/Skeleton';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useTranslation } from 'react-i18next';
 import { AccountDetailActionsSkeleton } from './account-detail-actions/AccountDetailActions';
 import identityStyles from './account-identity/AccountIdentityCard.module.css';
-import movementsStyles from './account-movements/AccountMovementsTable.module.css';
+import { AccountMovementsTableSkeleton } from './account-movements/AccountMovementsTableSkeleton';
 import sectionStyles from './account-movements-section/AccountMovementsSection.module.css';
 import styles from './AccountDetailPage.module.css';
 import skeletonStyles from './AccountDetailPageSkeleton.module.css';
 
+/** Mirrors AccountDetailPage element for element: only account values are pending. */
 export function AccountDetailPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   return (
@@ -21,7 +18,9 @@ export function AccountDetailPageSkeleton({ status }: { status: string }) {
         <div className={identityStyles.top}>
           <div className={identityStyles.identity}>
             <p>{t('accounts.detail.identity.title')}</p>
-            <SkeletonBlock className={skeletonStyles.name} />
+            <div className={identityStyles.nameRow}>
+              <SkeletonBlock className={skeletonStyles.name} />
+            </div>
             <SkeletonBlock className={skeletonStyles.line} />
             <SkeletonBlock className={skeletonStyles.line} />
           </div>
@@ -35,24 +34,7 @@ export function AccountDetailPageSkeleton({ status }: { status: string }) {
       <div className={sectionStyles.movementsHeading}>
         <h3 className={sectionStyles.movementsTitle}>{t('accounts.detail.movements.title')}</h3>
       </div>
-      <div className={`card ${movementsStyles.panel}`}>
-        <div className={movementsStyles.tableScroll}>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">{t('transactions.fields.bookedOn')}</th>
-                <th scope="col">{t('transactions.fields.nature')}</th>
-                <th scope="col">{t('transactions.fields.rawLabel')}</th>
-                <th scope="col">{t('transactions.fields.category')}</th>
-                <th scope="col">{t('accounts.detail.movements.counterpart')}</th>
-                <th scope="col">{t('transactions.fields.amount')}</th>
-                <th scope="col">{t('transactions.fields.state')}</th>
-              </tr>
-            </thead>
-            <SkeletonTableRows columns={7} rows={5} />
-          </table>
-        </div>
-      </div>
+      <AccountMovementsTableSkeleton announce={false} />
     </div>
   );
 }

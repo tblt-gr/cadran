@@ -2,10 +2,11 @@ import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skel
 import { useTranslation } from 'react-i18next';
 import styles from './rule-list/RuleList.module.css';
 
+/** Mirrors RuleList element for element: only the rows are pending. */
 export function CategorizationRulesPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   return (
-    <section
+    <div
       aria-busy="true"
       className={`card ${styles.panel}`}
       data-testid="categorization-rules-skeleton"
@@ -13,6 +14,7 @@ export function CategorizationRulesPageSkeleton({ status }: { status: string }) 
       <SkeletonStatus>{status}</SkeletonStatus>
       <div className={styles.scroll}>
         <table>
+          <caption className="sr-only">{t('categorizationRules.list.caption')}</caption>
           <thead>
             <tr>
               <th scope="col">{t('categorizationRules.list.priority')}</th>
@@ -29,6 +31,6 @@ export function CategorizationRulesPageSkeleton({ status }: { status: string }) 
           <SkeletonTableRows columns={7} rows={5} />
         </table>
       </div>
-    </section>
+    </div>
   );
 }

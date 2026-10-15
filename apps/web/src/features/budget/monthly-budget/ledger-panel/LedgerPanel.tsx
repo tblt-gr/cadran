@@ -4,6 +4,7 @@ import type {
   MonthlyRecapMetric,
 } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { Icon } from '@/components/ui/icon/Icon';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { BUDGET_AXES, type BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
@@ -31,7 +32,14 @@ interface LedgerPanelProps {
 
 function HeaderTotal({ total, totalState }: Pick<LedgerPanelProps, 'total' | 'totalState'>) {
   const { i18n, t } = useTranslation();
-  if (totalState === 'loading') return <span>{t('budget.monthly.totalLoading')}</span>;
+  if (totalState === 'loading') {
+    return (
+      <span>
+        <SkeletonBlock className={styles.totalSkeleton} />
+        <span className="sr-only">{t('budget.monthly.totalLoading')}</span>
+      </span>
+    );
+  }
   if (totalState === 'unavailable' || !total || total.value === null || total.assetCode === null) {
     return <EmptyValue label={t('states.notCalculable.label')} />;
   }

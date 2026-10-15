@@ -102,3 +102,8 @@
   width: calc(var(--spacing-12) * 1.5);
   height: var(--spacing-6);
 }
+
+/* The skeleton's sections sit directly in the page's flow, like the loaded ones. */
+.skeletonContents {
+  display: contents;
+}

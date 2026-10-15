@@ -2,7 +2,7 @@ import type { PortfolioAnnualPerformance } from '@cadran/api-client';
 import { useId } from 'react';
 import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/CurveChart';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
+import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
 import { formatAmount } from '@/lib/decimal';
 import {
   emptyMonthLabel,
@@ -56,7 +56,7 @@ export function PerformanceValueChart({
             valueAxisLabel="Valeur"
           />
         ) : (
-          <SkeletonChartArea />
+          <CurveChartSkeleton />
         )}
       </figure>
     </section>

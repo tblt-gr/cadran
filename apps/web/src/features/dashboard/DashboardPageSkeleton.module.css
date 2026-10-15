@@ -20,8 +20,3 @@
   width: calc(var(--spacing-12) * 2);
   height: var(--font-size-sm);
 }
-
-.chart {
-  align-self: end;
-  min-height: var(--chart-plot-height);
-}

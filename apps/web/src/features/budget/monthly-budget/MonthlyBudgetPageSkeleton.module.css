@@ -14,9 +14,3 @@
   width: calc(var(--spacing-12) * 1.5);
   height: var(--font-size-body);
 }
-
-.icon {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
-  border-radius: var(--radius-circle);
-}

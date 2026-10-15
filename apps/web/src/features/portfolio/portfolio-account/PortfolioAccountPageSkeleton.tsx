@@ -5,6 +5,7 @@ import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { OperationFilters } from './operations/operation-filters/OperationFilters';
 import { noFilters } from './operations/operation-filters/operationFilterValues';
 import { OperationsTableSkeleton } from './operations/OperationsTableSkeleton';
+import operationsStyles from './operations/OperationsTab.module.css';
 import { CashTabSkeleton } from '@/features/portfolio/cash/CashTabSkeleton';
 import { PerformanceTabSkeleton } from '@/features/portfolio/performance/performance-tab/PerformanceTabSkeleton';
 import { performanceYear } from '@/features/portfolio/performance/performance-tab/performanceYear';
@@ -57,10 +58,10 @@ export function PortfolioAccountPageSkeleton({
       {active === 'contract' ? (
         <ContractTabSkeleton />
       ) : active === 'operations' ? (
-        <>
+        <div className={operationsStyles.tab}>
           <OperationFilters currencyCode="" disabled onChange={() => undefined} value={noFilters} />
           <OperationsTableSkeleton status={status} />
-        </>
+        </div>
       ) : active === 'cash' ? (
         <CashTabSkeleton asOf={asOf} />
       ) : active === 'valuations' ? (

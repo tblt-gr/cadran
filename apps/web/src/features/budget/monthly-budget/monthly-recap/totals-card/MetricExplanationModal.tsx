@@ -1,7 +1,9 @@
 import type { MonthlyKpiSourceTransaction, MonthlyRecapMetric } from '@cadran/api-client';
+import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useMonthlyKpiExplanation } from '@/features/reports/useMonthlyReport';
 import { formatAmount } from '@/lib/decimal';
 import styles from './MetricExplanationModal.module.css';
@@ -37,6 +39,26 @@ function SourceTransactions({ transactions }: { transactions: MonthlyKpiSourceTr
   );
 }
 
+/** Mirrors the explanation list: labels real, values pending. */
+function ExplanationSkeleton({ status }: { status: string }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <SkeletonStatus>{status}</SkeletonStatus>
+      <dl aria-busy="true" className={styles.details} data-testid="metric-explanation-skeleton">
+        {(['reports.formula', 'reports.period', 'reports.quality'] as const).map((key) => (
+          <Fragment key={key}>
+            <dt>{t(key)}</dt>
+            <dd>
+              <SkeletonBlock className={styles.skeletonLabel} />
+            </dd>
+          </Fragment>
+        ))}
+      </dl>
+    </>
+  );
+}
+
 export function MetricExplanationModal({
   close,
   kpi,
@@ -50,10 +72,13 @@ export function MetricExplanationModal({
     ? (explanation.data?.sourceTransactions ?? [])
     : (sourceTransactions ?? []);
 
+  const pending = Boolean(kpi) && explanation.isPending;
+
   return (
     <Modal close={close} title={t('reports.explainKpi', { kpi: label })}>
-      {kpi && explanation.isPending ? <p role="status">{t('reports.explanationLoading')}</p> : null}
-      {kpi && (explanation.isError || !explanation.data) ? (
+      {pending ? (
+        <ExplanationSkeleton status={t('reports.explanationLoading')} />
+      ) : kpi && (explanation.isError || !explanation.data) ? (
         <p role="alert">{t('reports.explanationError')}</p>
       ) : null}
       {kpi && explanation.data ? (
@@ -70,7 +95,18 @@ export function MetricExplanationModal({
       ) : null}
       <section aria-labelledby="monthly-recap-source-transactions">
         <h3 id="monthly-recap-source-transactions">{t('reports.transactionSources')}</h3>
-        <SourceTransactions transactions={transactions} />
+        {pending ? (
+          <ul aria-hidden="true" className={styles.transactions}>
+            {Array.from({ length: 3 }, (_, index) => (
+              <li key={index}>
+                <SkeletonBlock className={styles.skeletonLabel} />
+                <SkeletonBlock className={styles.skeletonAmount} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <SourceTransactions transactions={transactions} />
+        )}
       </section>
     </Modal>
   );

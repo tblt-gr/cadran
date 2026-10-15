@@ -78,6 +78,7 @@ async function openRecordModal() {
   const dialog = await screen.findByRole('dialog', { name: 'Enregistrer une valorisation' });
   changeValue('Date de valorisation', '2026-03-10', dialog);
   fireEvent.click(within(dialog).getByRole('button', { name: 'Continuer' }));
+  await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
   await within(dialog).findByText(/Espèces calculées/);
   return dialog;
 }
@@ -122,6 +123,7 @@ describe('ValuationsTab month end', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Valoriser une fin de mois' }));
     const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
     await within(dialog).findByText(/Espèces calculées/);
     expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-02-28');
     expect(
@@ -134,6 +136,7 @@ describe('ValuationsTab month end', () => {
     withDue(['2026-02']);
     renderTab();
     const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
     await within(dialog).findByText(/Espèces calculées/);
     expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-02-28');
     expect(
@@ -310,6 +313,7 @@ describe('ValuationsTab', () => {
     const dialog = await screen.findByRole('dialog', {
       name: 'Remplacer la valorisation du 10/03/2026',
     });
+    await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
     await within(dialog).findByText(/Espèces calculées/);
     changeValue('Valeur totale du compte', '3700', dialog);
     fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
@@ -386,6 +390,7 @@ describe('ValuationsTab robustness', () => {
     const dialog = await screen.findByRole('dialog', {
       name: 'Remplacer la valorisation du 10/03/2026',
     });
+    await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
     await within(dialog).findByText(/Espèces calculées/);
     return dialog;
   }
