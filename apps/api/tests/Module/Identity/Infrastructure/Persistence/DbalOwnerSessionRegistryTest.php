@@ -118,6 +118,7 @@ final class DbalOwnerSessionRegistryTest extends KernelTestCase
         $handler->open('', 'cadran_session');
         $data = $handler->read($id);
         $handler->close();
+        self::assertIsString($data);
 
         return $data;
     }
