@@ -1,0 +1,12 @@
+.action {
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  border-radius: var(--radius-full);
+  background: var(--color-transparent);
+  cursor: pointer;
+  font: inherit;
+}
+
+.action:hover > span {
+  text-decoration: underline;
+}

@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next';
+import { openMissingValuations } from '@/features/dashboard/missing-valuations/missingValuationsDialog';
 import { formatCalendarDay } from '@/lib/decimal';
 import { useNetWorth } from './useNetWorth';
 
 interface DashboardHeader {
   freshnessLabel?: string;
   headerDate?: string;
+  onFreshnessClick?: () => void;
 }
 
 /**
@@ -30,5 +32,6 @@ export function useDashboardHeader(enabled: boolean): DashboardHeader {
           ? t('header.staleFreshness', { count: netWorth.data.stalestAgeDays ?? 0 })
           : t('header.currentFreshness'),
     headerDate: formatCalendarDay(netWorth.data.asOf, i18n.language),
+    onFreshnessClick: netWorth.data.missingValuationCount > 0 ? openMissingValuations : undefined,
   };
 }
