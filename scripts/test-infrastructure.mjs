@@ -175,6 +175,15 @@ if (
   fail('The app runtime must keep Caddy administration and gRPC/xDS paths disabled');
 }
 
+if (
+  !caddyfile.includes("manifest-src 'self'") ||
+  !caddyfile.includes("worker-src 'self'") ||
+  !caddyfile.includes('Cache-Control "no-cache"') ||
+  !caddyfile.includes('Cache-Control "public, max-age=31536000, immutable"')
+) {
+  fail('The web runtime must allow its own manifest and worker and set the PWA cache headers');
+}
+
 const phpunitConfiguration = readFileSync(
   new URL('../apps/api/phpunit.dist.xml', import.meta.url),
   'utf8',

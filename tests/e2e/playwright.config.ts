@@ -31,6 +31,9 @@ export default defineConfig({
     // The local runtime terminates TLS with a Caddy-issued local CA that is not
     // in the system trust store; the smoke run only needs transport, not trust.
     ignoreHTTPSErrors: true,
+    // ignoreHTTPSErrors does not reach the service worker script fetch, which Chrome rejects over
+    // the untrusted local CA and would leave the PWA spec waiting for a worker that never installs.
+    launchOptions: { args: ['--ignore-certificate-errors'] },
     trace: 'on-first-retry',
     locale: 'fr-FR',
     timezoneId: 'Europe/Paris',

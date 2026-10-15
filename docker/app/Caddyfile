@@ -17,13 +17,24 @@ https://{$CADRAN_SERVER_NAME:localhost}:8443 {
 	handle {
 		root * /app/apps/web/dist
 		try_files {path} /index.html
+
+		# Every navigation answers with /index.html, the worker and the manifest: all are
+		# revalidated so an update is noticed. Only an existing hashed asset is immutable,
+		# never the index a missing one falls back to.
+		header Cache-Control "no-cache"
+		@immutable {
+			path /assets/*
+			file {path}
+		}
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+
 		file_server
 	}
 
 	header {
 		-Server
 		-X-Powered-By
-		Content-Security-Policy "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'"
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'self'; object-src 'none'; script-src 'self'; style-src 'self'; worker-src 'self'"
 		Permissions-Policy "camera=(), geolocation=(), microphone=()"
 		Referrer-Policy "no-referrer"
 		X-Content-Type-Options "nosniff"

@@ -1,7 +1,11 @@
 {
   "app": {
     "name": "Cadran Budget",
-    "shortName": "Cadran"
+    "shortName": "Cadran",
+    "update": {
+      "available": "Nouvelle version disponible",
+      "reload": "Recharger"
+    }
   },
   "accessibility": {
     "skipToContent": "Aller au contenu"
