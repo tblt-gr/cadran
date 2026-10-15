@@ -32,9 +32,11 @@ describe('LogoutButton', () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    window.history.replaceState(null, '', '/');
   });
 
   it('ends the session, marks it signed out and drops every other query', async () => {
+    window.history.replaceState(null, '', '/parameters/profile?tab=security');
     const fetchMock = vi.fn((_input: Request) =>
       Promise.resolve(new Response(null, { status: 204 })),
     );
@@ -44,6 +46,8 @@ describe('LogoutButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
 
     await waitFor(() => expect(signedOut()).toBe(true));
+    expect(window.location.pathname).toBe('/connexion');
+    expect(window.location.search).toBe('');
     expect(fetchMock).toHaveBeenCalledOnce();
     const request = fetchMock.mock.calls[0][0];
     expect(request.method).toBe('DELETE');
@@ -51,6 +55,7 @@ describe('LogoutButton', () => {
   });
 
   it('still signs out locally when the request fails', async () => {
+    window.history.replaceState(null, '', '/parameters/profile');
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => Promise.reject(new Error('offline'))),
@@ -60,5 +65,6 @@ describe('LogoutButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
 
     await waitFor(() => expect(signedOut()).toBe(true));
+    expect(window.location.pathname).toBe('/connexion');
   });
 });

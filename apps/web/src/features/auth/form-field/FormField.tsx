@@ -10,6 +10,7 @@ interface FormFieldProps {
   error?: string;
   required?: boolean;
   minLength?: number;
+  disabled?: boolean;
 }
 
 /**
@@ -26,6 +27,7 @@ export function FormField({
   error,
   required = true,
   minLength,
+  disabled = false,
 }: FormFieldProps) {
   const errorId = `${id}-error`;
 
@@ -39,6 +41,7 @@ export function FormField({
         autoComplete={autoComplete}
         required={required}
         minLength={minLength}
+        disabled={disabled}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
         onChange={(event) => onChange(event.target.value)}

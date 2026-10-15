@@ -24,9 +24,11 @@ describe('LoginForm', () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    window.history.replaceState(null, '', '/');
   });
 
   it('signals success once the server accepts the credentials', async () => {
+    window.history.replaceState(null, '', '/connexion');
     respondWith(204);
     const onSuccess = vi.fn();
     render(<LoginForm onSuccess={onSuccess} />);
@@ -34,6 +36,20 @@ describe('LoginForm', () => {
     fillAndSubmit();
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    expect(window.location.pathname).toBe('/');
+  });
+
+  it('keeps a direct private URL after login', async () => {
+    window.history.replaceState(null, '', '/transactions?month=2026-03');
+    respondWith(204);
+    const onSuccess = vi.fn();
+    render(<LoginForm onSuccess={onSuccess} />);
+
+    fillAndSubmit();
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    expect(window.location.pathname).toBe('/transactions');
+    expect(window.location.search).toBe('?month=2026-03');
   });
 
   it('shows a generic error for invalid credentials without revealing which field failed', async () => {

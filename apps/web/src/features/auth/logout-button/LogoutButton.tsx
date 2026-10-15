@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
+import { loginPath } from '@/features/auth/authPath';
 import { sessionQueryKey } from '@/features/auth/useSession';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import styles from './LogoutButton.module.css';
@@ -32,6 +33,7 @@ export function LogoutButton() {
     } catch {
       // Ignore: the cache reset below still returns the UI to a safe state.
     } finally {
+      window.history.replaceState(null, '', loginPath);
       queryClient.setQueryData<SessionState>(sessionQueryKey, (session) =>
         session === undefined
           ? undefined
