@@ -92,7 +92,7 @@ export function PlanDetail({
             <p>{t('budget.targets.description')}</p>
           </div>
           {detail.state !== 'CLOSED' ? (
-            <button className="primary-action" onClick={onNewTarget} type="button">
+            <button className="secondary-action" onClick={onNewTarget} type="button">
               {t('budget.targets.add')}
             </button>
           ) : null}

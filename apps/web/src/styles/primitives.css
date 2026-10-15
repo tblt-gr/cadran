@@ -18,6 +18,19 @@
   place-items: center;
 }
 
+/* Icon-only controls keep their 36 px circle for a mouse; a coarse pointer gets the touch minimum.
+   The element selector outweighs a component class that sets its own smaller box. */
+@media (pointer: coarse) {
+  button.icon-button,
+  a.icon-button,
+  button.icon-ghost {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+}
+
 .icon-button:hover:not(:disabled) {
   color: var(--text-primary);
   border-color: var(--border-strong);

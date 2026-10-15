@@ -304,6 +304,18 @@ describe('App', () => {
     expect(window.location.search + window.location.hash).toBe(legacy.slice(legacy.indexOf('?')));
   });
 
+  it('renders the current month when /budget is loaded directly, not only after in-app navigation', async () => {
+    window.history.replaceState({}, '', '/budget');
+    mockApi();
+
+    renderApp();
+
+    expect((await screen.findAllByRole('heading', { name: /^Budget de / })).length).toBeGreaterThan(
+      0,
+    );
+    expect(window.location.pathname).toMatch(/^\/budget\/\d{4}-\d{2}$/);
+  });
+
   it('redirects an old UUID-shaped budget link to the plan subroute', async () => {
     const id = '00000000-0000-7000-8000-000000000001';
     window.history.replaceState({}, '', `/budget/${id}`);

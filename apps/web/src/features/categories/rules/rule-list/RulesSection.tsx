@@ -82,7 +82,7 @@ export function RulesSection({
       <section className={`card ${styles.state}`}>
         <h2>{t('categorizationRules.empty.title')}</h2>
         <p>{t('categorizationRules.empty.description')}</p>
-        <button className="primary-action" disabled={!canEdit} onClick={onAddFirst} type="button">
+        <button className="secondary-action" disabled={!canEdit} onClick={onAddFirst} type="button">
           {t('categorizationRules.addFirst')}
         </button>
       </section>

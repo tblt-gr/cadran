@@ -60,7 +60,7 @@ export function ProductStep({
 
         <fieldset className={styles.group}>
           <legend>{t('accounts.wizard.product.catalogGroup')}</legend>
-          <p className={styles.resolved}>
+          <p className={styles.resolved} data-visual-mask>
             {t('accounts.wizard.product.resolvedOn', {
               date: formatCalendarDay(asOf, i18n.language),
             })}

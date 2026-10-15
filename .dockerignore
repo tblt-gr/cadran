@@ -8,6 +8,7 @@ apps/api/vendor
 apps/api/var
 apps/web/dist
 apps/web/node_modules
+packages/api-client/node_modules
 tests/e2e/node_modules
 tests/e2e/playwright-report
 tests/e2e/test-results

@@ -54,7 +54,7 @@ export function NetWorthDelta({ delta }: NetWorthDeltaProps) {
   const spoken = formatAmount(shown.value.replace(/^-/, ''), shown.assetCode, i18n.language);
 
   return (
-    <p className={styles.delta}>
+    <p className={styles.delta} data-visual-mask>
       <span
         aria-label={t(ACCESSIBLE_LABEL[direction], { amount: spoken })}
         className={styles[direction]}

@@ -17,7 +17,7 @@ export function FreshnessBadge({ netWorth }: FreshnessBadgeProps) {
 
   if (netWorth.quality === 'MISSING') {
     return (
-      <StatusBadge icon="alert" tone="negative">
+      <StatusBadge icon="alert" tone="negative" visualMask>
         {t('dashboard.netWorth.freshness.missing', { count: netWorth.missingValuationCount })}
       </StatusBadge>
     );
@@ -25,14 +25,14 @@ export function FreshnessBadge({ netWorth }: FreshnessBadgeProps) {
 
   if (netWorth.quality === 'STALE') {
     return (
-      <StatusBadge icon="alert" tone="warning">
+      <StatusBadge icon="alert" tone="warning" visualMask>
         {t('dashboard.netWorth.freshness.stale', { count: netWorth.stalestAgeDays ?? 0 })}
       </StatusBadge>
     );
   }
 
   return (
-    <StatusBadge tone="positive">
+    <StatusBadge tone="positive" visualMask>
       {t('dashboard.netWorth.freshness.current', { count: netWorth.valuedAccountCount })}
     </StatusBadge>
   );

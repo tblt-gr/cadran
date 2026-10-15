@@ -9,6 +9,7 @@ export function SkeletonBlock({ className, ...props }: SkeletonBlockProps) {
     <div
       aria-hidden="true"
       className={[styles.block, className].filter(Boolean).join(' ')}
+      data-skeleton
       {...props}
     />
   );

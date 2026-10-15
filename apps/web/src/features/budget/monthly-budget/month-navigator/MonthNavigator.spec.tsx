@@ -1,5 +1,5 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { MonthNavigator } from './MonthNavigator';
 
@@ -13,6 +13,17 @@ describe('MonthNavigator', () => {
     expect(future.disabled).toBe(true);
     expect(screen.getByRole('link', { name: 'Février' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Mars' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('scrolls the selected month into view so a narrow strip never hides it', () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    render(<MonthNavigator axis={null} currentMonth="2026-10" month="2026-10" />);
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('link', { name: 'Octobre' }));
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'center' });
   });
 
   function yearOptions() {

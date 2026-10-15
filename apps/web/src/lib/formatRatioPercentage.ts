@@ -8,13 +8,15 @@ export function formatRatioPercentage(ratio: string, locale: string): string {
   return `${formatPercentDecimal(ratioToPercent(ratio), locale)} %`;
 }
 
-/** Moves the decimal point two places by string surgery: `0.30` becomes `30`. */
+/** Moves the decimal point two places by string surgery: `0.30` becomes `30`, `-0.03` becomes `-3`. */
 export function ratioToPercent(ratio: string): string {
-  const [whole, fraction = ''] = ratio.split('.');
+  const negative = ratio.startsWith('-');
+  const [whole, fraction = ''] = (negative ? ratio.slice(1) : ratio).split('.');
   const shifted =
     fraction.length <= 2
       ? `${whole}${fraction.padEnd(2, '0')}`
       : `${whole}${fraction.slice(0, 2)}.${fraction.slice(2)}`;
+  const unsigned = shifted.replace(/^0+(?=\d)/, '');
 
-  return shifted.replace(/^0+(?=\d)/, '');
+  return negative && /[1-9]/.test(unsigned) ? `-${unsigned}` : unsigned;
 }

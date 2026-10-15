@@ -127,3 +127,11 @@
     transition-duration: var(--duration-reduced-motion);
   }
 }
+
+@media (pointer: coarse) {
+  .toggle,
+  .add,
+  .togglePlaceholder {
+    min-inline-size: var(--touch-target-min);
+  }
+}

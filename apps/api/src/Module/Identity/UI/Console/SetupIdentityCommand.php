@@ -17,9 +17,11 @@ use App\Module\Identity\Domain\WeakPassword;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * One-time local setup: the owner account, their workspace and their password.
@@ -28,6 +30,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * positional password would land in the shell history and in the process list
  * of every user on the host, and the other four values are typed once in the
  * lifetime of an install, so a prompt costs nothing and documents itself.
+ *
+ * `--from-env` is the one non-interactive path, for provisioning disposable dev
+ * and test stacks (browser end-to-end runs). It reads the same values from
+ * CADRAN_SETUP_* variables, is refused outside dev and test, and applies the
+ * very same domain validation as the prompts.
  */
 #[AsCommand(
     name: 'cadran:identity:setup',
@@ -44,17 +51,38 @@ final class SetupIdentityCommand extends Command
 
     private const string DEFAULT_BASE_CURRENCY = 'EUR';
 
+    private const array FROM_ENV_ENVIRONMENTS = ['dev', 'test'];
+
     public function __construct(
         private readonly ProvisionInitialWorkspace $provisionInitialWorkspace,
         private readonly DefineInitialPassword $defineInitialPassword,
         private readonly AuthenticationUserRepository $users,
+        #[Autowire('%kernel.environment%')]
+        private readonly string $environment = 'prod',
     ) {
         parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this->addOption(
+            'from-env',
+            null,
+            InputOption::VALUE_NONE,
+            'Read the owner values from CADRAN_SETUP_EMAIL, _DISPLAY_NAME, _WORKSPACE_NAME, _PASSWORD and optional _BASE_CURRENCY (dev and test only).',
+        );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+        $fromEnv = true === $input->getOption('from-env');
+
+        if ($fromEnv && !in_array($this->environment, self::FROM_ENV_ENVIRONMENTS, true)) {
+            $io->error('--from-env only runs in the dev and test environments.');
+
+            return Command::FAILURE;
+        }
 
         try {
             $owner = $this->users->findProvisionedOwner();
@@ -68,13 +96,15 @@ final class SetupIdentityCommand extends Command
             return Command::FAILURE;
         }
 
-        if (!$input->isInteractive()) {
+        if (!$fromEnv && !$input->isInteractive()) {
             $io->error('This command prompts for the owner credentials and needs an interactive terminal.');
 
             return Command::INVALID;
         }
 
-        $io->title('Cadran setup');
+        if (!$fromEnv) {
+            $io->title('Cadran setup');
+        }
 
         // An owner with no password is the debris of a run that died between
         // the two transactions below. Finishing it on the host is the whole
@@ -83,18 +113,17 @@ final class SetupIdentityCommand extends Command
         if (null !== $owner) {
             $io->note('An owner exists without a password. Setting it now completes the interrupted setup.');
 
-            return $this->completePassword($io);
+            return $this->completePassword($io, $fromEnv);
         }
 
         try {
-            $email = self::prompt($io, 'Owner email address', null, self::assertEmail(...));
-            $displayName = self::prompt($io, 'Owner display name', null, static fn (string $value): string => DisplayName::fromString($value)->value);
-            $workspaceName = self::prompt($io, 'Workspace name', null, self::assertNotBlank(...));
-            $baseCurrency = self::prompt($io, 'Workspace base currency (ISO 4217)', self::DEFAULT_BASE_CURRENCY, static fn (string $value): string => mb_strtoupper(trim($value)));
-            $password = self::askPassword($io);
-        } catch (\RuntimeException) {
-            // Aborted or mismatched prompt: nothing has been written yet.
-            $io->error('Setup was interrupted.');
+            [$email, $displayName, $workspaceName, $baseCurrency, $password] = $fromEnv
+                ? self::valuesFromEnvironment()
+                : self::valuesFromPrompts($io);
+        } catch (\RuntimeException $exception) {
+            // Nothing has been written yet. The message of a validation failure
+            // names a variable or describes a rule, never the rejected value.
+            $io->error($fromEnv ? $exception->getMessage() : 'Setup was interrupted.');
 
             return Command::INVALID;
         }
@@ -127,12 +156,12 @@ final class SetupIdentityCommand extends Command
     /**
      * Sets the password of an owner that was created by an interrupted run.
      */
-    private function completePassword(SymfonyStyle $io): int
+    private function completePassword(SymfonyStyle $io, bool $fromEnv): int
     {
         try {
-            $password = self::askPassword($io);
-        } catch (\RuntimeException) {
-            $io->error('Setup was interrupted.');
+            $password = $fromEnv ? self::passwordFromEnvironment() : self::askPassword($io);
+        } catch (\RuntimeException $exception) {
+            $io->error($fromEnv ? $exception->getMessage() : 'Setup was interrupted.');
 
             return Command::INVALID;
         }
@@ -150,6 +179,63 @@ final class SetupIdentityCommand extends Command
         $io->success('The owner password is set. Sign in from the web interface.');
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @return array{string, string, string, string, string}
+     */
+    private static function valuesFromPrompts(SymfonyStyle $io): array
+    {
+        return [
+            self::prompt($io, 'Owner email address', null, self::assertEmail(...)),
+            self::prompt($io, 'Owner display name', null, static fn (string $value): string => DisplayName::fromString($value)->value),
+            self::prompt($io, 'Workspace name', null, self::assertNotBlank(...)),
+            self::prompt($io, 'Workspace base currency (ISO 4217)', self::DEFAULT_BASE_CURRENCY, static fn (string $value): string => mb_strtoupper(trim($value))),
+            self::askPassword($io),
+        ];
+    }
+
+    /**
+     * Same domain rules as the prompts, so the two paths cannot drift.
+     *
+     * @return array{string, string, string, string, string}
+     */
+    private static function valuesFromEnvironment(): array
+    {
+        return [
+            self::fromEnvironment('CADRAN_SETUP_EMAIL', self::assertEmail(...)),
+            self::fromEnvironment('CADRAN_SETUP_DISPLAY_NAME', static fn (string $value): string => DisplayName::fromString($value)->value),
+            self::fromEnvironment('CADRAN_SETUP_WORKSPACE_NAME', self::assertNotBlank(...)),
+            self::optionalFromEnvironment('CADRAN_SETUP_BASE_CURRENCY') ?? self::DEFAULT_BASE_CURRENCY,
+            self::passwordFromEnvironment(),
+        ];
+    }
+
+    private static function passwordFromEnvironment(): string
+    {
+        return self::fromEnvironment('CADRAN_SETUP_PASSWORD', static fn (string $value): string => PlainPassword::fromString($value)->value);
+    }
+
+    /**
+     * @param \Closure(string): string $normalize
+     */
+    private static function fromEnvironment(string $name, \Closure $normalize): string
+    {
+        $value = self::optionalFromEnvironment($name) ?? throw new \RuntimeException(sprintf('The %s environment variable is required.', $name));
+
+        try {
+            return $normalize($value);
+        } catch (WeakPassword|\InvalidArgumentException $exception) {
+            // Rule description only: the value, a password above all, is never echoed.
+            throw new \RuntimeException(sprintf('%s is invalid: %s', $name, $exception->getMessage()));
+        }
+    }
+
+    private static function optionalFromEnvironment(string $name): ?string
+    {
+        $value = getenv($name);
+
+        return is_string($value) && '' !== $value ? $value : null;
     }
 
     private static function askPassword(SymfonyStyle $io): string

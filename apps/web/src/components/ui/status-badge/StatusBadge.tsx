@@ -7,11 +7,13 @@ interface StatusBadgeProps {
   children: string;
   icon?: IconName;
   tone: StatusTone;
+  /** The text follows the calendar or the ledger: visual comparisons skip it. */
+  visualMask?: boolean;
 }
 
-export function StatusBadge({ children, icon, tone }: StatusBadgeProps) {
+export function StatusBadge({ children, icon, tone, visualMask }: StatusBadgeProps) {
   return (
-    <span className={`${styles.badge} ${styles[tone]}`}>
+    <span className={`${styles.badge} ${styles[tone]}`} data-visual-mask={visualMask || undefined}>
       {icon ? <Icon name={icon} size={15} /> : null}
       <span>{children}</span>
     </span>

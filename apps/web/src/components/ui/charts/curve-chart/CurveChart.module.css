@@ -87,6 +87,10 @@
   position: absolute;
   width: var(--spacing-6);
   height: var(--spacing-6);
+  /* Points sit closer than 44 px, so a larger hit area would overlap the next one. The same data
+     is reachable in the equivalent table (WCAG 2.5.8 equivalent control). */
+  min-block-size: var(--spacing-none);
+  min-inline-size: var(--spacing-none);
   border: var(--border-none);
   border-radius: var(--radius-circle);
   background: var(--color-transparent);

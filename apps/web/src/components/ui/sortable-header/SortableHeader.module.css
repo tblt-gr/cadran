@@ -15,3 +15,9 @@
 .button:hover {
   color: var(--text-primary);
 }
+
+@media (pointer: coarse) {
+  .button {
+    min-inline-size: var(--touch-target-min);
+  }
+}

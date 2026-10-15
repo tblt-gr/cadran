@@ -99,7 +99,7 @@
 }
 
 .secondary .tab {
-  min-height: calc(var(--control-height) - var(--spacing-1));
+  min-height: var(--control-height-compact);
   padding: var(--spacing-1) var(--spacing-3);
   font-size: var(--font-size-label);
 }

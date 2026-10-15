@@ -34,7 +34,9 @@ export function AllocationLegend({ collapse, items, label }: AllocationLegendPro
           <li key={item.key}>
             <span className={styles.name}>{item.label}</span>
             <span className={styles.share}>{item.share}</span>
-            <strong className={`money ${styles.amount}`}>{item.amount}</strong>
+            <strong className={`money ${styles.amount}`} data-visual-mask>
+              {item.amount}
+            </strong>
             <AllocationBar percent={item.barPercent} />
           </li>
         ))}

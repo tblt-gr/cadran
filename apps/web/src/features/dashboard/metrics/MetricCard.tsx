@@ -27,11 +27,16 @@ export function MetricCard({ description, icon, id, title, tone, value }: Metric
       {value.kind === 'loading' ? (
         <SkeletonBlock className={styles.valueSkeleton} data-testid="metric-skeleton" />
       ) : (
-        <p className={value.kind === 'money' ? `money ${styles.value}` : styles.unavailable}>
+        <p
+          className={value.kind === 'money' ? `money ${styles.value}` : styles.unavailable}
+          data-visual-mask
+        >
           {value.text}
         </p>
       )}
-      <p className={styles.description}>{description}</p>
+      <p className={styles.description} data-visual-mask>
+        {description}
+      </p>
     </section>
   );
 }

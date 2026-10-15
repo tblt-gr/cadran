@@ -191,7 +191,7 @@ export function AllocationCharts({
         </button>
       </div>
       {slices.length === 0 ? null : (
-        <div className={styles.plot} ref={ref}>
+        <div className={styles.plot} data-visual-mask ref={ref}>
           {!ready ? null : view === 'treemap' ? (
             <Treemap
               content={TreemapTile}

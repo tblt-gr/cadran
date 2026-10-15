@@ -3,41 +3,50 @@
 }
 
 @media (max-width: 767px) {
+  /* Flush with the screen edges and bottom: a floating bar would let the content scroll past
+     visibly underneath it. */
   .navigation {
     position: fixed;
     z-index: 60;
-    right: var(--spacing-3);
-    bottom: calc(var(--spacing-3) + env(safe-area-inset-bottom));
-    left: var(--spacing-3);
+    right: var(--spacing-none);
+    bottom: var(--spacing-none);
+    left: var(--spacing-none);
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    min-height: var(--mobile-navigation-height);
-    padding: var(--spacing-1-5);
-    border: var(--border-line-strong);
-    border-radius: var(--radius-card);
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    padding: var(--spacing-1) var(--spacing-1) calc(var(--spacing-1) + env(safe-area-inset-bottom));
+    border-top: var(--border-line-strong);
     background: var(--bg-mobile-navigation);
-    box-shadow: var(--shadow-mobile-navigation);
   }
 
-  .link {
+  /* Doubled class: the shared link and the native button rules must both yield here. */
+  .navigation .link {
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
     min-width: 0;
-    min-height: 3.5rem;
-    padding: var(--spacing-1);
+    min-height: var(--mobile-navigation-height);
+    padding: var(--spacing-1) var(--spacing-none);
     border: var(--border-none);
-    border-radius: var(--radius-button);
     color: var(--text-secondary);
     background: var(--color-transparent);
     font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-tight);
     text-decoration: none;
     cursor: pointer;
     gap: var(--spacing-1);
   }
 
-  .link[aria-current='page'] {
+  .navigation .link span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .navigation .link[aria-current='page'] {
     color: var(--gold-300);
-    background: var(--gold-soft);
   }
 }

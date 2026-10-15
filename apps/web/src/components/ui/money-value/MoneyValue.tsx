@@ -9,7 +9,7 @@ export function MoneyValue({ className, value }: MoneyValueProps) {
   const groups = value.split('\u202f');
 
   return (
-    <span className={className}>
+    <span className={className} data-visual-mask>
       {groups.map((group, index) =>
         index === groups.length - 1 ? (
           <span className={styles.tail} key={group}>

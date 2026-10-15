@@ -794,6 +794,24 @@ describe('TransactionsPage', () => {
     expect(screen.getByLabelText(/Sortie de/)).toBeTruthy();
   });
 
+  it('badges only a state that departs from booked', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({
+        items: [transaction, { ...transaction, id: 'pending', state: 'PENDING' }],
+        nextCursor: null,
+      }),
+    );
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull());
+    const table = screen.getByRole('table');
+    expect(within(table).getByText('En attente')).toBeTruthy();
+    expect(within(table).queryByText('Comptabilisée')).toBeNull();
+  });
+
   it('shows an explicit unauthorized state', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),

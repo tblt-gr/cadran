@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Identity\UI\Console;
 
+use App\Module\Identity\Application\AuthenticationUserRepository;
+use App\Module\Identity\Application\DefineInitialPassword;
+use App\Module\Identity\Application\ProvisionInitialWorkspace;
+use App\Module\Identity\UI\Console\SetupIdentityCommand;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * The one-time interactive setup: it creates the owner, their workspace and
@@ -37,6 +43,10 @@ final class SetupIdentityCommandTest extends KernelTestCase
 
     protected function tearDown(): void
     {
+        foreach (['EMAIL', 'DISPLAY_NAME', 'WORKSPACE_NAME', 'PASSWORD', 'BASE_CURRENCY'] as $name) {
+            putenv('CADRAN_SETUP_'.$name);
+        }
+
         if ($this->databaseReady) {
             $this->clearIdentityData();
         }
@@ -118,6 +128,161 @@ final class SetupIdentityCommandTest extends KernelTestCase
 
         self::assertSame(Command::INVALID, $tester->getStatusCode());
         self::assertSame(0, $this->userCount());
+    }
+
+    public function testFromEnvProvisionsTheOwnerWithoutPrompting(): void
+    {
+        $this->setSetupEnvironment();
+
+        $tester = $this->runFromEnv();
+
+        self::assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $user = $this->connection->fetchAssociative('SELECT email, display_name, password_hash FROM identity_users');
+        self::assertIsArray($user);
+        self::assertSame(self::EMAIL, $user['email']);
+        self::assertSame('Marie Dupont', $user['display_name']);
+        self::assertNotEmpty($user['password_hash']);
+        self::assertSame('Household', $this->connection->fetchOne('SELECT name FROM identity_workspaces'));
+        self::assertSame('OWNER', $this->connection->fetchOne('SELECT role FROM identity_workspace_memberships'));
+        self::assertStringNotContainsString(self::PASSWORD, $tester->getDisplay());
+    }
+
+    public function testFromEnvDefaultsTheBaseCurrencyToEuro(): void
+    {
+        $this->setSetupEnvironment();
+
+        $this->runFromEnv();
+
+        self::assertSame('EUR', $this->connection->fetchOne('SELECT base_currency FROM identity_workspaces'));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function requiredVariables(): iterable
+    {
+        yield 'email' => ['CADRAN_SETUP_EMAIL'];
+        yield 'display name' => ['CADRAN_SETUP_DISPLAY_NAME'];
+        yield 'workspace name' => ['CADRAN_SETUP_WORKSPACE_NAME'];
+        yield 'password' => ['CADRAN_SETUP_PASSWORD'];
+    }
+
+    #[DataProvider('requiredVariables')]
+    public function testFromEnvNamesTheMissingVariableAndWritesNothing(string $missing): void
+    {
+        $this->setSetupEnvironment();
+        putenv($missing);
+
+        $tester = $this->runFromEnv();
+
+        self::assertSame(Command::INVALID, $tester->getStatusCode());
+        self::assertStringContainsString($missing, $tester->getDisplay());
+        self::assertSame(0, $this->userCount());
+    }
+
+    public function testFromEnvRejectsAWeakPasswordWithoutEchoingIt(): void
+    {
+        $this->setSetupEnvironment();
+        // A value no message or variable name can contain by accident.
+        $weak = 'Zz9!x';
+        putenv('CADRAN_SETUP_PASSWORD='.$weak);
+
+        $tester = $this->runFromEnv();
+
+        self::assertSame(Command::INVALID, $tester->getStatusCode());
+        self::assertStringNotContainsString($weak, $tester->getDisplay());
+        self::assertSame(0, $this->userCount());
+    }
+
+    public function testFromEnvFinishesAnInterruptedRunWithOnlyThePassword(): void
+    {
+        // The completePassword path: identity rows exist without a hash, so only the
+        // password variable is read and no second owner is created.
+        $this->provisionOwnerWithoutPassword();
+        putenv('CADRAN_SETUP_PASSWORD='.self::PASSWORD);
+
+        $tester = $this->runFromEnv();
+
+        self::assertSame(Command::SUCCESS, $tester->getStatusCode());
+        $hash = $this->connection->fetchOne('SELECT password_hash FROM identity_users');
+        self::assertIsString($hash);
+        self::assertNotSame('', $hash);
+        self::assertSame(1, $this->userCount());
+        self::assertStringNotContainsString(self::PASSWORD, $tester->getDisplay());
+    }
+
+    public function testFromEnvRejectsAnInvalidEmail(): void
+    {
+        $this->setSetupEnvironment();
+        putenv('CADRAN_SETUP_EMAIL=not-an-email');
+
+        $tester = $this->runFromEnv();
+
+        self::assertSame(Command::INVALID, $tester->getStatusCode());
+        self::assertSame(0, $this->userCount());
+    }
+
+    public function testFromEnvIsRefusedOutsideDevAndTest(): void
+    {
+        $this->setSetupEnvironment();
+        $container = self::getContainer();
+        $command = new SetupIdentityCommand(
+            self::service($container, ProvisionInitialWorkspace::class),
+            self::service($container, DefineInitialPassword::class),
+            self::service($container, AuthenticationUserRepository::class),
+            'prod',
+        );
+        $tester = new CommandTester($command);
+
+        $tester->execute(['--from-env' => true], ['interactive' => false]);
+
+        self::assertSame(Command::FAILURE, $tester->getStatusCode());
+        self::assertSame(0, $this->userCount());
+    }
+
+    public function testFromEnvReportsAnAlreadyProvisionedInstall(): void
+    {
+        $this->setSetupEnvironment();
+        self::assertSame(Command::SUCCESS, $this->runFromEnv()->getStatusCode());
+
+        $second = $this->runFromEnv();
+
+        self::assertSame(Command::FAILURE, $second->getStatusCode());
+        self::assertStringContainsString('already been completed', $second->getDisplay());
+        self::assertSame(1, $this->userCount());
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param class-string<T> $id
+     *
+     * @return T
+     */
+    private static function service(ContainerInterface $container, string $id): object
+    {
+        $service = $container->get($id);
+        self::assertInstanceOf($id, $service);
+
+        return $service;
+    }
+
+    private function setSetupEnvironment(): void
+    {
+        putenv('CADRAN_SETUP_EMAIL='.self::EMAIL);
+        putenv('CADRAN_SETUP_DISPLAY_NAME=Marie Dupont');
+        putenv('CADRAN_SETUP_WORKSPACE_NAME=Household');
+        putenv('CADRAN_SETUP_PASSWORD='.self::PASSWORD);
+        putenv('CADRAN_SETUP_BASE_CURRENCY');
+    }
+
+    private function runFromEnv(): CommandTester
+    {
+        $application = new Application(self::$kernel ?? self::bootKernel());
+        $tester = new CommandTester($application->find('cadran:identity:setup'));
+        $tester->execute(['--from-env' => true], ['interactive' => false]);
+
+        return $tester;
     }
 
     /**

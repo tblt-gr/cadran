@@ -332,6 +332,81 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm lint:docs
 
+  e2e_changes:
+    name: Detect application changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      changed: ${{ steps.paths.outputs.changed }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect changes under the application paths
+        id: paths
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            comparison_base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          else
+            comparison_base="$BEFORE_SHA"
+          fi
+
+          # A new branch push has no previous commit: nothing to compare against, so run the suite.
+          if [ -z "$comparison_base" ] || [ "$comparison_base" = "0000000000000000000000000000000000000000" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --quiet "$comparison_base" "$HEAD_SHA" -- apps/ packages/ docker/ tests/e2e/ scripts/ compose.yaml Makefile pnpm-lock.yaml package.json .github/workflows/ci.yml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  e2e:
+    name: Browser end-to-end
+    needs: e2e_changes
+    if: needs.e2e_changes.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Throwaway owner of this disposable stack; never a real credential.
+      E2E_OWNER_EMAIL: e2e-owner@example.test
+      E2E_OWNER_PASSWORD: e2e-ci-passphrase-not-a-secret
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Prepare local runtime files
+        run: sh scripts/init-local.sh
+      - name: Install the tooling dependencies
+        run: make install
+      - name: Provision the e2e owner and the demo ledger
+        run: make e2e-provision
+      - name: Build the stack and run the Playwright suite
+        run: |
+          started=$(date +%s)
+          status=0
+          make e2e || status=$?
+          elapsed=$(( $(date +%s) - started ))
+          printf '### Browser end-to-end\n\n`make e2e` (stack build, migrations and Playwright): %d min %d s, exit code %d.\n' \
+            "$((elapsed / 60))" "$((elapsed % 60))" "$status" >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - name: Upload the Playwright traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-test-results
+          path: var/e2e-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
   ci:
     name: CI gate
     needs:
@@ -346,6 +421,8 @@ jobs:
       - image-scan
       - markdown_changes
       - markdown
+      - e2e_changes
+      - e2e
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}

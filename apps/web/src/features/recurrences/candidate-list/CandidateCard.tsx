@@ -76,7 +76,7 @@ export function CandidateCard({ candidate, onConfirm, onDismiss, pending }: Cand
           {t('recurrences.candidates.dismiss')}
         </button>
         <button
-          className="primary-action"
+          className="secondary-action"
           disabled={pending}
           onClick={() => onConfirm(candidate)}
           type="button"

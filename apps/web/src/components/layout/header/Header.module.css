@@ -68,13 +68,17 @@
 }
 
 @media (max-width: 767px) {
+  /* The title keeps its own row when the page actions no longer fit beside it (four controls of
+     44 px on /transactions), instead of pushing them past the viewport. */
   .header {
+    flex-wrap: wrap;
     align-items: flex-start;
     min-height: var(--header-height-mobile);
     padding: var(--spacing-4);
   }
 
   .actions {
+    margin-inline-start: var(--spacing-auto);
     gap: var(--spacing-2);
   }
 
