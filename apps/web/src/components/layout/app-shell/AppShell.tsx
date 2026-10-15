@@ -11,6 +11,7 @@ import { HeaderActionsProvider } from '@/components/layout/header/HeaderActionsC
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav/MobileBottomNav';
 import { MobileMoreSheet } from '@/components/layout/mobile-more-sheet/MobileMoreSheet';
 import { Sidebar } from '@/components/layout/sidebar/Sidebar';
+import { UpdateBanner } from '@/components/layout/update-banner/UpdateBanner';
 import styles from './AppShell.module.css';
 import { BreadcrumbProvider } from '@/components/layout/breadcrumb/BreadcrumbProvider';
 import { RouteBreadcrumb } from '@/components/layout/breadcrumb/RouteBreadcrumb';
@@ -111,6 +112,8 @@ function AppShellContent({
         onOpenMore={() => setIsMoreOpen(true)}
         path={path}
       />
+
+      <UpdateBanner />
 
       {isMoreOpen ? (
         <MobileMoreSheet

@@ -1,0 +1,35 @@
+.banner {
+  position: fixed;
+  z-index: 60;
+  bottom: var(--spacing-4);
+  left: var(--spacing-4);
+  display: flex;
+  align-items: center;
+  width: min(var(--toast-width), calc(100% - var(--spacing-8)));
+  padding: var(--spacing-3) var(--spacing-3) var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-card);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  gap: var(--spacing-3);
+}
+
+.message {
+  min-width: 0;
+  margin: var(--spacing-none);
+  flex: 1;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.action {
+  min-height: var(--touch-target-min);
+  flex: 0 0 auto;
+}
+
+@media (max-width: 767px) {
+  .banner {
+    /* Keep the notice clear of the fixed bottom navigation. */
+    bottom: var(--mobile-content-bottom-offset);
+  }
+}
