@@ -20,6 +20,7 @@ interface AppShellProps {
   accountSlot?: ReactNode;
   contextPanel?: ReactNode;
   freshnessLabel?: string;
+  onFreshnessClick?: () => void;
   headerDate?: string;
   /** A navigation is waiting for its page: the content region is busy, not frozen. */
   isNavigating?: boolean;
@@ -46,6 +47,7 @@ function AppShellContent({
   accountSlot,
   contextPanel,
   freshnessLabel,
+  onFreshnessClick,
   headerDate,
   isNavigating = false,
   onNavigationIntent,
@@ -87,6 +89,7 @@ function AppShellContent({
         <Header
           accountSlot={accountSlot}
           freshnessLabel={freshnessLabel}
+          onFreshnessClick={onFreshnessClick}
           headerDate={headerDate}
           title={title}
         />

@@ -2,6 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { AllocationPanel } from './allocation-panel/AllocationPanel';
 import { DashboardState } from './dashboard-state/DashboardState';
 import { DashboardMetrics } from './metrics/DashboardMetrics';
+import {
+  closeMissingValuations,
+  useMissingValuationsOpen,
+} from './missing-valuations/missingValuationsDialog';
+import { MissingValuationsModal } from './missing-valuations/MissingValuationsModal';
 import { NetWorthCard } from './net-worth-card/NetWorthCard';
 import { DashboardPageSkeleton } from './DashboardPageSkeleton';
 import { netWorthErrorKind } from './net-worth/netWorthError';
@@ -12,6 +17,7 @@ export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
   const { t } = useTranslation();
   const netWorth = useNetWorth();
   const history = useNetWorthHistory();
+  const missingValuationsOpen = useMissingValuationsOpen();
   const failure = netWorth.isPending
     ? 'loading'
     : netWorthErrorKind(netWorth.error, netWorth.isError);
@@ -41,6 +47,13 @@ export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
         )}
         <DashboardMetrics />
       </div>
+
+      {missingValuationsOpen && netWorth.data ? (
+        <MissingValuationsModal
+          close={closeMissingValuations}
+          contributions={netWorth.data.contributions}
+        />
+      ) : null}
 
       {apiVersion === undefined ? null : (
         <p className="api-status sr-only" role="status">

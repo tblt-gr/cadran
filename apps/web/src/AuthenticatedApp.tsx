@@ -103,6 +103,7 @@ export function AuthenticatedApp() {
       freshnessLabel={path === '/' ? dashboardHeader.freshnessLabel : undefined}
       headerDate={path === '/' ? dashboardHeader.headerDate : undefined}
       isNavigating={isNavigating}
+      onFreshnessClick={path === '/' ? dashboardHeader.onFreshnessClick : undefined}
       onNavigationIntent={preloadRoute}
       path={path}
       setPath={navigateTo}

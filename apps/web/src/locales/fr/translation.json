@@ -1718,6 +1718,24 @@
     },
     "spending": {
       "title": "Dépenses"
+    },
+    "missingValuations": {
+      "open": "Voir les comptes sans valorisation",
+      "eyebrow": "Valorisations manquantes",
+      "title_one": "1 compte sans valorisation",
+      "title_other": "{{count}} comptes sans valorisation",
+      "hint": "Ces comptes n’ont aucun solde connu au jour affiché. Saisissez leur solde ou ouvrez-les pour compléter la valorisation.",
+      "empty": "Tous les comptes inclus sont valorisés.",
+      "record": "Saisir le solde",
+      "recordOf": "Saisir le solde de « {{label}} »",
+      "openAccount": "Voir le compte",
+      "openAccountOf": "Voir le compte « {{label}} »",
+      "openPortfolio": "Ouvrir le portefeuille",
+      "openPortfolioOf": "Ouvrir le portefeuille « {{label}} »",
+      "back": "Retour à la liste",
+      "loading": "Chargement du compte",
+      "loadError": "Le compte n’a pas pu être chargé.",
+      "notRecordable": "Ce compte ne se valorise pas par un solde saisi : ouvrez-le pour compléter sa valorisation."
     }
   },
   "settings": {

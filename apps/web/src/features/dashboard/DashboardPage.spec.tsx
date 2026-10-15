@@ -333,6 +333,31 @@ describe('DashboardPage', () => {
     expect(within(section as HTMLElement).getAllByText('Non calculable').length).toBeGreaterThan(0);
   });
 
+  it('opens the accounts behind the missing-valuation badge', async () => {
+    const missing = { ...netWorth.contributions[0]!, quality: 'MISSING' as const, amount: null };
+    api.readNetWorth.mockReturnValue(
+      success({
+        ...netWorth,
+        quality: 'MISSING',
+        missingValuationCount: 1,
+        contributions: [missing],
+      } satisfies NetWorth),
+    );
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard();
+    await loaded();
+
+    fireEvent.click(await screen.findByRole('button', { name: /1 valorisation manquante/ }));
+
+    const dialog = await screen.findByRole('dialog', { name: '1 compte sans valorisation' });
+    expect(
+      within(dialog).getByRole('link', { name: 'Voir le compte « Compte courant »' }),
+    ).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Fermer' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('keeps the delta and drops the rate on a negative base', async () => {
     api.readNetWorth.mockReturnValue(
       success({
