@@ -14,6 +14,8 @@ use App\Module\Identity\Application\OwnerAccountNotProvisioned;
 use App\Module\Identity\Application\OwnerProfileView;
 use App\Module\Identity\Application\UpdateOwnerProfile;
 use App\Module\Identity\Application\UpdateOwnerProfileInput;
+use App\Module\Identity\Domain\CommonPassword;
+use App\Module\Identity\Domain\CommonPasswordList;
 use App\Module\Identity\Domain\InvalidDisplayName;
 use App\Module\Identity\Domain\PlainPassword;
 use App\Module\Identity\Domain\WeakPassword;
@@ -39,6 +41,7 @@ final readonly class ProfileController
         // sign-in budget of an unauthenticated attacker.
         #[Autowire(service: 'limiter.password_change')]
         private RateLimiterFactoryInterface $passwordChangeLimiter,
+        private CommonPasswordList $commonPasswords,
     ) {
     }
 
@@ -103,11 +106,17 @@ final readonly class ProfileController
         }
 
         // The policy check comes before the budget is touched: a candidate that
-        // is the wrong length is a malformed request, not a guess at the current
+        // is the wrong length, or a common password, is a malformed request, not a guess at the current
         // password, and must not be able to lock its own owner out. The use case
         // re-runs it — it stays the authority — but by then no token is at stake.
         try {
-            PlainPassword::fromString($fields['newPassword']);
+            PlainPassword::chosen($fields['newPassword'], $this->commonPasswords);
+        } catch (CommonPassword) {
+            return $this->envelope->problem(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                'api.problem.common_password',
+                ProfileHttpEnvelope::TYPE_COMMON_PASSWORD,
+            );
         } catch (WeakPassword) {
             return $this->envelope->problem(
                 Response::HTTP_UNPROCESSABLE_ENTITY,
@@ -134,6 +143,12 @@ final readonly class ProfileController
                 newPassword: $fields['newPassword'],
                 sessionIdToKeep: self::sessionId($request),
             ));
+        } catch (CommonPassword) {
+            return $this->envelope->problem(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                'api.problem.common_password',
+                ProfileHttpEnvelope::TYPE_COMMON_PASSWORD,
+            );
         } catch (WeakPassword) {
             return $this->envelope->problem(
                 Response::HTTP_UNPROCESSABLE_ENTITY,

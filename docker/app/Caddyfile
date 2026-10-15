@@ -11,6 +11,13 @@ https://{$CADRAN_SERVER_NAME:localhost}:8443 {
 	@api path /api/*
 	handle @api {
 		root * /app/apps/api/public
+		# No upload exists: the largest accepted body is a few hundred kilobytes.
+		request_body {
+			max_size 1MB
+		}
+		# no-store is the strictest value: overriding the application never weakens it. The
+		# deferred form (>) replaces the application value instead of adding a second header.
+		header >Cache-Control "no-store"
 		php_server
 	}
 
@@ -39,5 +46,21 @@ https://{$CADRAN_SERVER_NAME:localhost}:8443 {
 		Referrer-Policy "no-referrer"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
 	}
+
+	# Not on localhost: a year-long policy would pin every http://localhost:* site in the
+	# browser. A real host name gets it, without subdomains or the preload list. Caddy compares the
+	# host without IPv6 brackets, hence both IPv6 spellings.
+	@publicHost not host localhost 127.0.0.1 [::1] ::1
+	header @publicHost Strict-Transport-Security "max-age=31536000"
+}
+
+# A request whose Host header names no configured site (a stray name, a bare IP) is refused
+# instead of answered with Caddy's empty 200.
+https://:8443 {
+	tls internal
+	header -Server
+	respond "Misdirected Request" 421
 }

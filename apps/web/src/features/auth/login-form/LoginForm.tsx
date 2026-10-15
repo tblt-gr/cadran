@@ -2,6 +2,7 @@ import { openSession } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
+import { leaveLoginPath } from '@/features/auth/authPath';
 import { FormField } from '@/features/auth/form-field/FormField';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import styles from './LoginForm.module.css';
@@ -12,7 +13,13 @@ type LoginError = 'invalidCredentials' | 'disabled' | 'throttled' | 'network';
  * Email and password sign-in. Emits `onSuccess` once the server has set the
  * session cookie; the caller refetches the session to enter the app.
  */
-export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
+export function LoginForm({
+  onSuccess,
+  disabled = false,
+}: {
+  onSuccess: () => void;
+  disabled?: boolean;
+}) {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,6 +43,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
       }
 
       if (response.ok) {
+        leaveLoginPath();
         onSuccess();
 
         return;
@@ -59,7 +67,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} noValidate>
+    <form className={styles.form} onSubmit={handleSubmit} noValidate aria-busy={disabled}>
       {error ? (
         <p className={styles.formError} role="alert">
           {t(`auth.login.errors.${error}`)}
@@ -73,6 +81,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         autoComplete="username"
         value={email}
         onChange={setEmail}
+        disabled={disabled}
       />
       <FormField
         id="login-password"
@@ -81,9 +90,14 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         autoComplete="current-password"
         value={password}
         onChange={setPassword}
+        disabled={disabled}
       />
 
-      <button className={`primary-action ${styles.submit}`} type="submit" disabled={submitting}>
+      <button
+        className={`primary-action ${styles.submit}`}
+        type="submit"
+        disabled={disabled || submitting}
+      >
         {submitting ? t('auth.login.submitting') : t('auth.login.submit')}
       </button>
     </form>

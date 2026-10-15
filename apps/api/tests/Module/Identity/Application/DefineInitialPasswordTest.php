@@ -20,6 +20,7 @@ use App\Module\Identity\Application\WorkspaceMembershipReader;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Module\Identity\Domain\PlainPassword;
 use App\Module\Identity\Domain\WeakPassword;
+use App\Module\Identity\Infrastructure\Security\FilePasswordList;
 use PHPUnit\Framework\TestCase;
 
 final class DefineInitialPasswordTest extends TestCase
@@ -103,6 +104,22 @@ final class DefineInitialPasswordTest extends TestCase
         }
     }
 
+    public function testItRejectsACommonPasswordWithoutHashingOrWriting(): void
+    {
+        $writer = new RecordingOwnerPasswordWriter(applied: true);
+        $hasher = new PrefixPasswordHasher();
+        $define = self::useCase(self::owner(hasPassword: false), $writer, $hasher);
+
+        $this->expectException(WeakPassword::class);
+
+        try {
+            $define(new DefineInitialPasswordInput('Pornographic'));
+        } finally {
+            self::assertSame(0, $hasher->calls);
+            self::assertNull($writer->userId);
+        }
+    }
+
     public function testItReportsAConcurrentCallThatWonTheCompareAndSet(): void
     {
         $define = self::useCase(self::owner(hasPassword: false), new RecordingOwnerPasswordWriter(applied: false));
@@ -143,6 +160,7 @@ final class DefineInitialPasswordTest extends TestCase
             $writer,
             $hasher ?? new PrefixPasswordHasher(),
             new RecordAuditEvent($auditEvents ?? new CollectingAuditEventRepository(), new SequenceUuidGenerator()),
+            new FilePasswordList(),
         );
     }
 

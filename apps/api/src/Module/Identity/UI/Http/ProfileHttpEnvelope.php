@@ -22,6 +22,7 @@ final readonly class ProfileHttpEnvelope
 {
     public const string TYPE_INVALID_CURRENT_PASSWORD = '/problems/invalid-current-password';
     public const string TYPE_WEAK_PASSWORD = '/problems/weak-password';
+    public const string TYPE_COMMON_PASSWORD = '/problems/common-password';
     public const string TYPE_REUSED_PASSWORD = '/problems/reused-password';
     public const string TYPE_INVALID_DISPLAY_NAME = '/problems/invalid-display-name';
 

@@ -301,6 +301,22 @@ final class ProfileControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(204);
     }
 
+    public function testACommonPasswordIsRefusedWithItsOwnProblemTypeWithoutTouchingTheCurrentOne(): void
+    {
+        $this->provisionOwner();
+        $this->signIn();
+
+        $this->client->request('PUT', '/api/v1/profile/password', server: self::jsonHeaders(), content: (string) json_encode([
+            'currentPassword' => self::PASSWORD,
+            'newPassword' => 'MotherFucker',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        $problem = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertIsArray($problem);
+        self::assertSame('/problems/common-password', $problem['type'] ?? null);
+    }
+
     public function testAWeakCandidateCannotRefillABudgetSpentOnWrongGuesses(): void
     {
         $this->provisionOwner();

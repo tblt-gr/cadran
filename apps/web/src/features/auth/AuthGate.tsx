@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/features/auth/auth-layout/AuthLayout';
+import { loginPath, moveToLoginPath } from '@/features/auth/authPath';
 import { CreatePasswordForm } from '@/features/auth/create-password-form/CreatePasswordForm';
 import { LoginForm } from '@/features/auth/login-form/LoginForm';
 import { SessionProbeSkeleton } from '@/features/auth/session-probe-skeleton/SessionProbeSkeleton';
@@ -9,15 +10,38 @@ import styles from './AuthGate.module.css';
 
 /**
  * The authentication boundary. No authenticated page or query runs until the
- * server reports an active session (only an inert shell skeleton shows meanwhile); first-run installs are routed to the
- * password-setup screen instead of the login screen.
+ * server reports an active session. A login URL shows the disabled login form
+ * during the probe; private URLs keep their inert page skeleton. First-run
+ * installs are routed to password setup.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const session = useSession();
   const refetch = () => void session.refetch();
 
+  useLayoutEffect(() => {
+    if (!session.data?.provisioned || session.data.setupRequired) return;
+
+    if (!session.data.authenticated) {
+      moveToLoginPath();
+    } else if (window.location.pathname === loginPath) {
+      window.history.replaceState(null, '', '/');
+    }
+  }, [session.data]);
+
   if (session.isPending) {
+    if (window.location.pathname === loginPath) {
+      return (
+        <AuthLayout
+          title={t('auth.login.title')}
+          subtitle={t('auth.login.description')}
+          headingId="auth-login-title"
+        >
+          <LoginForm onSuccess={refetch} disabled />
+        </AuthLayout>
+      );
+    }
+
     return <SessionProbeSkeleton />;
   }
 

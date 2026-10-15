@@ -137,6 +137,17 @@ final class SessionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertResponseHeaderSame('content-type', 'application/problem+json');
         self::assertSame(422, $this->decode()['status']);
+        self::assertSame('/problems/weak-password', $this->decode()['type']);
+    }
+
+    public function testItRejectsACommonPasswordWithItsOwnProblemType(): void
+    {
+        $this->provisionOwner(plainPassword: null);
+
+        $this->client->request('PUT', '/api/v1/session/password', server: self::jsonHeaders(), content: (string) json_encode(['password' => 'qwertyuiopasdfgh']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/common-password', $this->decode()['type']);
     }
 
     public function testItRejectsAMalformedPasswordPayload(): void

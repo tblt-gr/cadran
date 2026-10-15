@@ -6,6 +6,9 @@ node_modules
 .pnpm-store
 apps/api/vendor
 apps/api/var
+apps/api/tests
+apps/api/performance
+apps/api/phpunit.dist.xml
 apps/web/dist
 apps/web/node_modules
 packages/api-client/node_modules

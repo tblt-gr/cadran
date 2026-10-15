@@ -154,7 +154,14 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          description: >-
+            The password breaks the policy: `/problems/weak-password` when it is
+            outside 12 to 128 characters, `/problems/common-password` when it is
+            one of the most common passwords. Nothing is written.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/profile:
@@ -7477,9 +7484,10 @@ components:
       description: >-
         The change was refused. The `type` names which field caused it:
         `/problems/invalid-current-password`, `/problems/weak-password` when the
-        new password is outside 12 to 128 characters, or
+        new password is outside 12 to 128 characters, `/problems/common-password`
+        when it is one of the most common passwords, or
         `/problems/reused-password` when it equals the current one. Nothing is
-        written in any of the three cases.
+        written in any of the four cases.
       content:
         application/problem+json:
           schema:

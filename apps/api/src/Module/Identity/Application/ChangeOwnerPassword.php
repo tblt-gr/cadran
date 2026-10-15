@@ -9,6 +9,7 @@ use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceContext;
+use App\Module\Identity\Domain\CommonPasswordList;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Module\Identity\Domain\PlainPassword;
 
@@ -32,6 +33,7 @@ final readonly class ChangeOwnerPassword
         private CurrentSessionRenewal $currentSession,
         private PasswordHasher $hasher,
         private RecordAuditEvent $recordAuditEvent,
+        private CommonPasswordList $commonPasswords,
     ) {
     }
 
@@ -42,7 +44,7 @@ final readonly class ChangeOwnerPassword
         // Validate the candidate before touching a credential: a malformed
         // request must not cost an Argon2id verification, which is the very
         // work a brute-force attempt is trying to make the server do.
-        $newPassword = PlainPassword::fromString($input->newPassword);
+        $newPassword = PlainPassword::chosen($input->newPassword, $this->commonPasswords);
 
         $credentials = $this->users->findCredentialsById($context->actorId);
         if (null === $credentials) {

@@ -1,4 +1,4 @@
-.PHONY: upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit e2e e2e-image e2e-provision e2e-update-snapshots
+.PHONY: upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -174,18 +174,35 @@ audit: tools
 e2e-image:
 	docker build --file docker/e2e/Dockerfile --tag $(E2E_IMAGE) .
 
-# Dev and test stacks only: create the e2e owner (setup --from-env) then fill and top up
-# the demo ledger. The dev cache is rebuilt first because the console runs with --no-debug
-# (no freshness check) and a stale container would miss the new command wiring.
-# Idempotent: only the two "already done" refusals are tolerated (scripts/tolerate-refusal.sh); every other failure stops the target.
-e2e-provision: tools
+# Dev and test stacks only: create the e2e owner (setup --from-env). The dev cache is rebuilt
+# first because the console runs with --no-debug (no freshness check) and a stale container
+# would miss the new command wiring.
+# Idempotent: only the "already done" refusals are tolerated (scripts/tolerate-refusal.sh); every other failure stops the target.
+e2e-owner: tools
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) up --detach --wait db
 	$(MAKE) migrate
 	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console --no-debug cache:clear --env=dev --no-warmup
-	sh scripts/tolerate-refusal.sh 'Initial provisioning has already been completed' $(TOOLS_RUN_WITH_DB) env CADRAN_SETUP_EMAIL='$(E2E_OWNER_EMAIL)' CADRAN_SETUP_DISPLAY_NAME='E2E Owner' CADRAN_SETUP_WORKSPACE_NAME='E2E Household' CADRAN_SETUP_PASSWORD='$(E2E_OWNER_PASSWORD)' php apps/api/bin/console --no-debug cadran:identity:setup --from-env --no-interaction
+	@sh scripts/tolerate-refusal.sh 'Initial provisioning has already been completed' $(TOOLS_RUN_WITH_DB) env CADRAN_SETUP_EMAIL='$(E2E_OWNER_EMAIL)' CADRAN_SETUP_DISPLAY_NAME='E2E Owner' CADRAN_SETUP_WORKSPACE_NAME='E2E Household' CADRAN_SETUP_PASSWORD='$(E2E_OWNER_PASSWORD)' php apps/api/bin/console --no-debug cadran:identity:setup --from-env --no-interaction
+
+# Dev and test stacks only: the e2e owner, then fill and top up the demo ledger.
+e2e-provision: e2e-owner
 	sh scripts/tolerate-refusal.sh 'already holds accounts' $(TOOLS_RUN_WITH_DB) php apps/api/bin/console --no-debug app:demo:seed $(E2E_OWNER_EMAIL)
 	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console --no-debug app:demo:seed --extend $(E2E_OWNER_EMAIL)
+
+# Asserts the HTTP security headers and the session cookie flags of the running stack (the
+# CI image-scan job runs the same target). Two passes: on localhost (no HSTS, then a login
+# for the cookie flags) and under a public host name (HSTS). The second pass recreates the
+# app container under CADRAN_SERVER_NAME=$(HEADERS_PUBLIC_HOST) and the target puts it back.
+# Dev and test stacks only: it provisions the throwaway e2e owner.
+HEADERS_PUBLIC_HOST ?= cadran.test
+HEADERS_PORT := $(lastword $(subst :, ,$(E2E_BASE_URL)))
+check-http-headers: e2e-owner
+	$(COMPOSE) up --detach --wait --build
+	$(MAKE) tls-certificate
+	@CADRAN_CA_CERT=var/tls/cadran-local-ca.crt E2E_OWNER_EMAIL='$(E2E_OWNER_EMAIL)' E2E_OWNER_PASSWORD='$(E2E_OWNER_PASSWORD)' sh scripts/ci/check-http-headers.sh $(E2E_BASE_URL)
+	CADRAN_SERVER_NAME=$(HEADERS_PUBLIC_HOST) $(COMPOSE) up --detach --wait app
+	CADRAN_CA_CERT=var/tls/cadran-local-ca.crt CHECK_RESOLVE=$(HEADERS_PUBLIC_HOST):$(HEADERS_PORT):127.0.0.1 sh scripts/ci/check-http-headers.sh https://$(HEADERS_PUBLIC_HOST):$(HEADERS_PORT); status=$$?; $(COMPOSE) up --detach --wait app; exit $$status
 
 # Critical-path browser tests against the full local stack. Uses the host network
 # so the containerised runner reaches the published HTTPS port (Linux hosts).

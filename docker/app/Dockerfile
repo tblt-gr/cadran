@@ -65,6 +65,7 @@ COPY --chown=www-data:www-data apps/api apps/api
 COPY --from=php_dependencies --chown=www-data:www-data /build/vendor apps/api/vendor
 COPY --from=web_build --chown=www-data:www-data /workspace/apps/web/dist apps/web/dist
 COPY --chown=www-data:www-data docker/app/Caddyfile /etc/frankenphp/Caddyfile
+COPY docker/app/zz-cadran-security.ini $PHP_INI_DIR/conf.d/zz-cadran-security.ini
 COPY docker/app/entrypoint.sh /usr/local/bin/cadran-entrypoint
 COPY docker/app/healthcheck.php /usr/local/bin/healthcheck.php
 

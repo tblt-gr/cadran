@@ -1,4 +1,4 @@
-import { defineInitialPassword } from '@cadran/api-client';
+import { defineInitialPassword, type Problem } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -11,7 +11,7 @@ import styles from './CreatePasswordForm.module.css';
 const MIN_LENGTH = 12;
 const MAX_LENGTH = 128;
 
-type SubmitError = 'policy' | 'network';
+type SubmitError = 'common' | 'policy' | 'network';
 
 /**
  * First-run screen: the provisioned owner sets their password once. Emits
@@ -44,7 +44,7 @@ export function CreatePasswordForm({ onDone }: { onDone: () => void }) {
     setSubmitting(true);
 
     try {
-      const { response } = await withCsrfRetry(() =>
+      const { error, response } = await withCsrfRetry(() =>
         defineInitialPassword({ ...authApiOptions(), body: { password } }),
       );
 
@@ -63,8 +63,19 @@ export function CreatePasswordForm({ onDone }: { onDone: () => void }) {
       }
 
       // 422 is the server's own policy check; anything else (400, 5xx) is not
-      // about the password content.
-      setSubmitError(response.status === 422 ? 'policy' : 'network');
+      // about the password content. A common password gets its own message,
+      // since the length rule the form checks locally already passed.
+      if (response.status === 422) {
+        setSubmitError(
+          (error as Problem | undefined)?.type === '/problems/common-password'
+            ? 'common'
+            : 'policy',
+        );
+
+        return;
+      }
+
+      setSubmitError('network');
     } catch {
       setSubmitError('network');
     } finally {

@@ -1,0 +1,20 @@
+# Secret scanning (gitleaks) for pull requests and the nightly full-history scan.
+# Extends the default rule set; every allowlist names the literal it accepts.
+title = "Cadran gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Idempotency key literal of a reconciliation test, not a credential"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''(?:^|/)apps/api/tests/Module/Transactions/UI/Http/AccountReconciliationControllerTest\.php$''']
+regexes = ['''reconcile-idempotency-key-0001''']
+
+[[allowlists]]
+description = "Sentinel literals of the sensitive logging test, not credentials"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''(?:^|/)apps/api/tests/Security/SensitiveLoggingTest\.php$''']
+regexes = ['''(?i)zx9-(?:wrong-passphrase|sentinel-idempotency-key)[a-z0-9-]*''']

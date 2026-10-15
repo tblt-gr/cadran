@@ -61,7 +61,9 @@ export function ChangePasswordForm({ onSubmit, pending, submitError }: ChangePas
       ? t('settings.password.errors.reused')
       : submitError === 'weakPassword'
         ? t('settings.password.errors.length', { min: MIN_LENGTH, max: MAX_LENGTH })
-        : undefined;
+        : submitError === 'commonPassword'
+          ? t('settings.password.errors.commonPassword')
+          : undefined;
   const formError =
     submitError !== null && currentPasswordError === undefined && newPasswordError === undefined
       ? t(`settings.password.errors.${submitError}`)

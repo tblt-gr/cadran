@@ -12,7 +12,9 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-#[AsEventListener(event: KernelEvents::EXCEPTION)]
+// Below the framework's logging listener (priority 0): setting a response stops propagation, so a
+// listener at the same priority registered first would swallow every unhandled error unlogged.
+#[AsEventListener(event: KernelEvents::EXCEPTION, priority: -10)]
 final class ApiProblemResponseListener
 {
     public function __construct(private readonly TranslatorInterface $translator)

@@ -59,6 +59,48 @@ for (const [serviceName, service] of Object.entries(services)) {
   if (!service.pids_limit || service.pids_limit <= 0) {
     fail(`${serviceName} must declare a positive pids limit`);
   }
+
+  if (
+    JSON.stringify(service.cap_drop) !== JSON.stringify(['ALL']) ||
+    service.cap_add !== undefined
+  ) {
+    fail(`${serviceName} must drop every Linux capability and add none`);
+  }
+
+  if (service.privileged === true) {
+    fail(`${serviceName} must not run privileged`);
+  }
+
+  // A secret travels as a mounted file, never as a value in the environment.
+  const environment = service.environment ?? {};
+  for (const name of Object.keys(environment)) {
+    if (/(?:PASSWORD|SECRET|TOKEN|KEY)/i.test(name) && !name.endsWith('_FILE')) {
+      fail(`${serviceName} must not carry the secret ${name} in its environment`);
+    }
+  }
+
+  const mountedSecrets = (service.secrets ?? []).map((secret) => secret.source ?? secret);
+  if (!mountedSecrets.includes('db_password')) {
+    fail(`${serviceName} must read the database password from a mounted secret file`);
+  }
+}
+
+if (services.app.environment?.APP_ENV !== 'prod') {
+  fail('The app service must run with APP_ENV=prod');
+}
+
+if (!(services.app.secrets ?? []).some((secret) => (secret.source ?? secret) === 'app_secret')) {
+  fail('The app service must read APP_SECRET from a mounted secret file');
+}
+
+if (services.db.environment?.POSTGRES_PASSWORD_FILE !== '/run/secrets/db_password') {
+  fail('PostgreSQL must read its password through POSTGRES_PASSWORD_FILE');
+}
+
+for (const [name, secret] of Object.entries(configuration.secrets ?? {})) {
+  if (typeof secret.file !== 'string' || secret.file === '') {
+    fail(`Secret ${name} must come from a file`);
+  }
 }
 
 if (services.db.ports !== undefined) {
@@ -118,6 +160,18 @@ if (!dockerignore.split('\n').includes('**/.env*')) {
   fail('Environment files must be excluded recursively from Docker build contexts');
 }
 
+for (const testOnlyPath of [
+  'apps/api/tests',
+  'apps/api/performance',
+  'apps/api/phpunit.dist.xml',
+]) {
+  if (!dockerignore.split('\n').includes(testOnlyPath)) {
+    fail(
+      `${testOnlyPath} must stay out of the Docker build context: the runtime image ships no test code`,
+    );
+  }
+}
+
 if (!dockerignore.split('\n').includes('**/docker-secrets')) {
   fail('Docker secret directories must be excluded recursively from build contexts');
 }
@@ -163,8 +217,57 @@ if (!/^export CADRAN_VERSION\s*:=.*package\.json/m.test(makefile)) {
 
 const caddyfile = readFileSync(new URL('../docker/app/Caddyfile', import.meta.url), 'utf8');
 
-if (caddyfile.includes('Strict-Transport-Security')) {
-  fail('The localhost runtime must not persist an HSTS policy in the browser');
+// HSTS is sent only to a real host name: on localhost it would pin every http://localhost:*
+// site in the browser for a year. It never carries preload or includeSubDomains.
+const hstsLines = caddyfile
+  .split('\n')
+  .filter((line) => line.includes('Strict-Transport-Security'));
+
+if (
+  hstsLines.length !== 1 ||
+  !/^\s*header\s+@publicHost\s+Strict-Transport-Security\s+"max-age=31536000"\s*$/.test(
+    hstsLines[0],
+  ) ||
+  !/^\s*@publicHost\s+not\s+host\s+localhost\s+127\.0\.0\.1\s+\[::1\]\s+::1\s*$/m.test(caddyfile)
+) {
+  fail(
+    'HSTS (max-age=31536000, no preload or includeSubDomains) must be sent only behind a matcher excluding localhost, 127.0.0.1 and [::1] (bracketed or not)',
+  );
+}
+
+for (const policy of [
+  'Cross-Origin-Opener-Policy "same-origin"',
+  'Cross-Origin-Resource-Policy "same-origin"',
+]) {
+  if (!caddyfile.includes(policy)) {
+    fail(`The runtime must send ${policy}`);
+  }
+}
+
+if (!/handle\s+@api\s*\{[\s\S]*?request_body\s*\{\s*max_size\s+1MB\s*\}/.test(caddyfile)) {
+  fail('The /api/* handler must cap the request body at 1MB (request_body max_size)');
+}
+
+if (!/^https:\/\/:8443\s*\{[^}]*header\s+-Server[^}]*respond\s+"[^"]*"\s+421/m.test(caddyfile)) {
+  fail('A request for an unconfigured Host must be answered 421 without a Server header');
+}
+
+const phpHardening = readFileSync(
+  new URL('../docker/app/zz-cadran-security.ini', import.meta.url),
+  'utf8',
+);
+
+if (
+  !/^expose_php\s*=\s*(?:0|Off)\s*$/m.test(phpHardening) ||
+  !/COPY\s+docker\/app\/zz-cadran-security\.ini\s+\$PHP_INI_DIR\/conf\.d\//.test(appDockerfile)
+) {
+  fail('The app image must install a conf.d ini file with expose_php = 0');
+}
+
+if (!/handle\s+@api\s*\{[\s\S]*?header\s+>Cache-Control\s+"no-store"/.test(caddyfile)) {
+  fail(
+    'Every /api/* response must replace its Cache-Control with the deferred header >Cache-Control "no-store"',
+  );
 }
 
 if (
