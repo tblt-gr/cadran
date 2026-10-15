@@ -77,6 +77,11 @@ make status  # container healthcheck
 Override `CADRAN_HTTPS_PORT`, `CADRAN_HTTPS_BIND`, or `CADRAN_SERVER_NAME` in `.env.local` to
 change the published address.
 
+> **Exposure.** `CADRAN_HTTPS_BIND` defaults to `127.0.0.1` and must stay on loopback unless the
+> host sits behind a network you trust (a VPN, a private LAN). Complete the first owner setup
+> (`make setup`) before the stack is reachable from anywhere else, and do not publish it directly
+> to the internet.
+
 ## Vision
 
 Cadran Budget replaces a personal budgeting and wealth-tracking spreadsheet with a responsive,

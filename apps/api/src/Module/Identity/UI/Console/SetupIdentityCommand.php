@@ -11,6 +11,7 @@ use App\Module\Identity\Application\InitialPasswordAlreadyDefined;
 use App\Module\Identity\Application\InitialProvisioningAlreadyCompleted;
 use App\Module\Identity\Application\InitialWorkspaceProvisioningInput;
 use App\Module\Identity\Application\ProvisionInitialWorkspace;
+use App\Module\Identity\Domain\CommonPasswordList;
 use App\Module\Identity\Domain\DisplayName;
 use App\Module\Identity\Domain\PlainPassword;
 use App\Module\Identity\Domain\WeakPassword;
@@ -57,6 +58,7 @@ final class SetupIdentityCommand extends Command
         private readonly ProvisionInitialWorkspace $provisionInitialWorkspace,
         private readonly DefineInitialPassword $defineInitialPassword,
         private readonly AuthenticationUserRepository $users,
+        private readonly CommonPasswordList $commonPasswords,
         #[Autowire('%kernel.environment%')]
         private readonly string $environment = 'prod',
     ) {
@@ -118,8 +120,8 @@ final class SetupIdentityCommand extends Command
 
         try {
             [$email, $displayName, $workspaceName, $baseCurrency, $password] = $fromEnv
-                ? self::valuesFromEnvironment()
-                : self::valuesFromPrompts($io);
+                ? $this->valuesFromEnvironment()
+                : $this->valuesFromPrompts($io);
         } catch (\RuntimeException $exception) {
             // Nothing has been written yet. The message of a validation failure
             // names a variable or describes a rule, never the rejected value.
@@ -159,7 +161,7 @@ final class SetupIdentityCommand extends Command
     private function completePassword(SymfonyStyle $io, bool $fromEnv): int
     {
         try {
-            $password = $fromEnv ? self::passwordFromEnvironment() : self::askPassword($io);
+            $password = $fromEnv ? $this->passwordFromEnvironment() : $this->askPassword($io);
         } catch (\RuntimeException $exception) {
             $io->error($fromEnv ? $exception->getMessage() : 'Setup was interrupted.');
 
@@ -184,14 +186,14 @@ final class SetupIdentityCommand extends Command
     /**
      * @return array{string, string, string, string, string}
      */
-    private static function valuesFromPrompts(SymfonyStyle $io): array
+    private function valuesFromPrompts(SymfonyStyle $io): array
     {
         return [
             self::prompt($io, 'Owner email address', null, self::assertEmail(...)),
             self::prompt($io, 'Owner display name', null, static fn (string $value): string => DisplayName::fromString($value)->value),
             self::prompt($io, 'Workspace name', null, self::assertNotBlank(...)),
             self::prompt($io, 'Workspace base currency (ISO 4217)', self::DEFAULT_BASE_CURRENCY, static fn (string $value): string => mb_strtoupper(trim($value))),
-            self::askPassword($io),
+            $this->askPassword($io),
         ];
     }
 
@@ -200,20 +202,20 @@ final class SetupIdentityCommand extends Command
      *
      * @return array{string, string, string, string, string}
      */
-    private static function valuesFromEnvironment(): array
+    private function valuesFromEnvironment(): array
     {
         return [
             self::fromEnvironment('CADRAN_SETUP_EMAIL', self::assertEmail(...)),
             self::fromEnvironment('CADRAN_SETUP_DISPLAY_NAME', static fn (string $value): string => DisplayName::fromString($value)->value),
             self::fromEnvironment('CADRAN_SETUP_WORKSPACE_NAME', self::assertNotBlank(...)),
             self::optionalFromEnvironment('CADRAN_SETUP_BASE_CURRENCY') ?? self::DEFAULT_BASE_CURRENCY,
-            self::passwordFromEnvironment(),
+            $this->passwordFromEnvironment(),
         ];
     }
 
-    private static function passwordFromEnvironment(): string
+    private function passwordFromEnvironment(): string
     {
-        return self::fromEnvironment('CADRAN_SETUP_PASSWORD', static fn (string $value): string => PlainPassword::fromString($value)->value);
+        return self::fromEnvironment('CADRAN_SETUP_PASSWORD', fn (string $value): string => PlainPassword::chosen($value, $this->commonPasswords)->value);
     }
 
     /**
@@ -238,10 +240,10 @@ final class SetupIdentityCommand extends Command
         return is_string($value) && '' !== $value ? $value : null;
     }
 
-    private static function askPassword(SymfonyStyle $io): string
+    private function askPassword(SymfonyStyle $io): string
     {
         $password = $io->askQuestion(self::hiddenQuestion('Owner password', self::validateWith(
-            static fn (string $value): string => PlainPassword::fromString($value)->value,
+            fn (string $value): string => PlainPassword::chosen($value, $this->commonPasswords)->value,
         )));
         $confirmation = $io->askQuestion(self::hiddenQuestion('Confirm the password', null));
 

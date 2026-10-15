@@ -3,7 +3,8 @@ name: Image scan (nightly)
 # The pull-request gate in ci.yml ignores unfixable base-image CVEs so it only
 # blocks on regressions an author can act on. This job runs the same scans
 # without that exception, so an unpatched CRITICAL/HIGH in a base image is
-# surfaced daily rather than never.
+# surfaced daily rather than never. The same schedule re-scans the whole git history for
+# secrets (gitleaks), which the pull-request gate only checks on the changed commits.
 #
 # A failed scheduled run e-mails the account that last edited this file. GitHub
 # runs `schedule` only from the default branch and disables it after 60 days
@@ -49,3 +50,27 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: false
           exit-code: '1'
+      - name: Build the backup image
+        run: make backup-image
+      - name: Scan the backup image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: cadran_backup:local
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          exit-code: '1'
+
+  secrets:
+    name: Secret scan of the full history
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pinned so a gitleaks release cannot change the rules or the config schema without a diff.
+          GITLEAKS_VERSION: 8.30.1

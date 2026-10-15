@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Identity\Domain;
 
+use App\Module\Identity\Domain\CommonPasswordList;
 use App\Module\Identity\Domain\PlainPassword;
 use App\Module\Identity\Domain\WeakPassword;
 use PHPUnit\Framework\TestCase;
@@ -53,5 +54,33 @@ final class PlainPasswordTest extends TestCase
         } catch (WeakPassword $exception) {
             self::assertStringNotContainsString('short', $exception->getMessage());
         }
+    }
+
+    public function testAChosenPasswordMustNotBeOnTheCommonList(): void
+    {
+        $common = new class implements CommonPasswordList {
+            public function contains(string $candidate): bool
+            {
+                return 'a common passphrase' === mb_strtolower($candidate);
+            }
+        };
+
+        self::assertSame('an uncommon passphrase', PlainPassword::chosen('an uncommon passphrase', $common)->value);
+        $this->expectException(WeakPassword::class);
+
+        PlainPassword::chosen('A Common Passphrase', $common);
+    }
+
+    public function testAChosenPasswordStillObeysTheLengthPolicy(): void
+    {
+        $nothingIsCommon = new class implements CommonPasswordList {
+            public function contains(string $candidate): bool
+            {
+                return false;
+            }
+        };
+        $this->expectException(WeakPassword::class);
+
+        PlainPassword::chosen('short', $nothingIsCommon);
     }
 }

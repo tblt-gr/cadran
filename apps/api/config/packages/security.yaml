@@ -34,7 +34,9 @@ security:
   # so a new controller is fail-closed even before it adds its own #[IsGranted].
   access_control:
     - { path: ^/api/v1/status$, roles: PUBLIC_ACCESS }
-    - { path: ^/api/v1/session, roles: PUBLIC_ACCESS }
+    # Exactly the session resource (read, open, close) and the one-shot definition of the first owner
+    # password, which has no session to rely on yet. Anchored: a sub-route added later is not public by default.
+    - { path: '^/api/v1/session(/password)?$', roles: PUBLIC_ACCESS }
     - { path: ^/api/, roles: ROLE_USER }
 
 when@test:

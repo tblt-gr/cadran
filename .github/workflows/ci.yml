@@ -249,7 +249,11 @@ jobs:
   image-scan:
     name: Runtime image scan
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    env:
+      # Throwaway owner of this disposable stack, used to check the session cookie flags; never a real credential.
+      E2E_OWNER_EMAIL: header-check-owner@example.test
+      E2E_OWNER_PASSWORD: header-check-ci-passphrase-not-a-secret
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -275,6 +279,15 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
+      - name: Build the backup image
+        run: make backup-image
+      - name: Scan the backup image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: cadran_backup:local
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
       - name: Scan the Dockerfiles for misconfiguration
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -282,6 +295,28 @@ jobs:
           scan-ref: docker
           severity: CRITICAL,HIGH
           exit-code: '1'
+      - name: Install the tooling dependencies
+        run: make install
+      - name: Check the HTTP security headers and cookie flags on the running stack
+        run: make check-http-headers
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pinned so a gitleaks release cannot change the rules or the config schema without a diff.
+          GITLEAKS_VERSION: 8.30.1
 
   markdown_changes:
     name: Detect Markdown changes
@@ -419,6 +454,7 @@ jobs:
       - composer-audit
       - audit
       - image-scan
+      - secrets
       - markdown_changes
       - markdown
       - e2e_changes

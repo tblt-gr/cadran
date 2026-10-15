@@ -22,6 +22,7 @@ use App\Module\Identity\Application\OwnerCredentials;
 use App\Module\Identity\Application\OwnerPasswordWriter;
 use App\Module\Identity\Application\OwnerSessionRegistry;
 use App\Module\Identity\Domain\WeakPassword;
+use App\Module\Identity\Infrastructure\Security\FilePasswordList;
 use PHPUnit\Framework\TestCase;
 
 final class ChangeOwnerPasswordTest extends TestCase
@@ -110,6 +111,22 @@ final class ChangeOwnerPasswordTest extends TestCase
             'not the current password',
             (string) json_encode($auditEvents->events),
         );
+    }
+
+    public function testACommonNewPasswordIsRefusedBeforeAnyCredentialWork(): void
+    {
+        $writer = new ReplacingOwnerPasswordWriter(applied: true);
+        $hasher = new PrefixPasswordHasher();
+        $change = self::useCase($writer, hasher: $hasher);
+
+        $this->expectException(WeakPassword::class);
+
+        try {
+            $change(self::request(newPassword: 'MotherFucker'));
+        } finally {
+            self::assertNull($writer->userId, 'The stored hash must be left alone.');
+            self::assertSame(0, $hasher->calls);
+        }
     }
 
     public function testANewPasswordThatBreaksThePolicyIsRefusedBeforeAnyCredentialWork(): void
@@ -224,6 +241,7 @@ final class ChangeOwnerPasswordTest extends TestCase
             $renewal ?? new CountingCurrentSessionRenewal(),
             $hasher ?? new PrefixPasswordHasher(),
             new RecordAuditEvent($auditEvents ?? new CollectingAuditEventRepository(), new SequenceUuidGenerator()),
+            new FilePasswordList(),
         );
     }
 

@@ -116,6 +116,24 @@ final class SessionRevocationTest extends WebTestCase
         self::assertTrue($this->decode()['authenticated']);
     }
 
+    public function testAReplayedCookieIsRefusedAfterSigningOut(): void
+    {
+        $stolen = $this->signIn();
+        self::assertSame(1, $this->storedSessionCount());
+
+        $this->client->request('DELETE', '/api/v1/session');
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame(0, $this->storedSessionCount(), 'Signing out must delete the server-side record, not only the browser cookie.');
+
+        // An attacker (or a forgotten tab) replays the cookie that was valid a moment ago.
+        $this->useSession($stolen);
+        $this->client->request('GET', '/api/v1/accounts');
+
+        self::assertResponseStatusCodeSame(401);
+        $this->client->request('GET', '/api/v1/session');
+        self::assertFalse($this->decode()['authenticated']);
+    }
+
     /**
      * Signs in on a fresh jar and returns the session identifier it received.
      */

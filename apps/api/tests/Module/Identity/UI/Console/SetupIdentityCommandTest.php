@@ -7,6 +7,7 @@ namespace App\Tests\Module\Identity\UI\Console;
 use App\Module\Identity\Application\AuthenticationUserRepository;
 use App\Module\Identity\Application\DefineInitialPassword;
 use App\Module\Identity\Application\ProvisionInitialWorkspace;
+use App\Module\Identity\Infrastructure\Security\FilePasswordList;
 use App\Module\Identity\UI\Console\SetupIdentityCommand;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
@@ -194,6 +195,18 @@ final class SetupIdentityCommandTest extends KernelTestCase
         self::assertSame(0, $this->userCount());
     }
 
+    public function testFromEnvRejectsACommonPasswordBeforeProvisioningAnything(): void
+    {
+        $this->setSetupEnvironment();
+        putenv('CADRAN_SETUP_PASSWORD=Pornographic');
+
+        $tester = $this->runFromEnv();
+
+        self::assertSame(Command::INVALID, $tester->getStatusCode());
+        self::assertStringNotContainsString('Pornographic', $tester->getDisplay());
+        self::assertSame(0, $this->userCount(), 'A refused password must not leave a half-provisioned owner behind.');
+    }
+
     public function testFromEnvFinishesAnInterruptedRunWithOnlyThePassword(): void
     {
         // The completePassword path: identity rows exist without a hash, so only the
@@ -230,6 +243,7 @@ final class SetupIdentityCommandTest extends KernelTestCase
             self::service($container, ProvisionInitialWorkspace::class),
             self::service($container, DefineInitialPassword::class),
             self::service($container, AuthenticationUserRepository::class),
+            new FilePasswordList(),
             'prod',
         );
         $tester = new CommandTester($command);

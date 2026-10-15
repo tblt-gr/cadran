@@ -79,8 +79,8 @@ api:
       title: 'Compte désactivé'
       detail: "Ce compte est désactivé. Contactez l'administrateur du serveur."
     weak_password:
-      title: 'Mot de passe trop court'
-      detail: 'Le mot de passe doit comporter entre 12 et 128 caractères.'
+      title: 'Mot de passe refusé'
+      detail: 'Le mot de passe doit comporter entre 12 et 128 caractères et ne pas figurer parmi les mots de passe courants.'
     password_already_set:
       title: 'Mot de passe déjà défini'
       detail: 'Le mot de passe du compte a déjà été défini.'

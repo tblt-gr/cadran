@@ -10,6 +10,25 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 - Upgrade the FrankenPHP base image to 1.13.1 (Go binary free of known HIGH and CRITICAL findings)
   and drop the expired `.trivyignore` exceptions for kin-openapi, gRPC-Go and golang.org/x/crypto.
+- Send `Strict-Transport-Security` (one year, no preload) on any host name except localhost,
+  `Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy` set to `same-origin`, and
+  `Cache-Control: no-store` on every API response (SEC-003).
+- Check the security headers, the absence of `Server` and `X-Powered-By`, and the session cookie
+  flags on the running stack in the image-scan job (`make check-http-headers`), and scan the
+  repository and its history for secrets with gitleaks on pull requests and nightly (SEC-003).
+- Prove with tests that no amount, label, e-mail or password reaches the logs, and that an
+  unhandled exception in production answers a problem detail without class, path, trace or SQL
+  (SEC-003).
+- Log an unhandled exception by its class, SQLSTATE and location only: a database error message
+  quotes the refused row, and unhandled API errors were not logged at all before (SEC-003).
+- Cap API request bodies at 1 MB, answer a request for an unknown Host with 421 and no `Server`
+  banner, set `expose_php = 0`, and keep tests and the performance suite out of the runtime image
+  (SEC-003).
+- Refuse common passwords (SecLists top 3000 entries of 12 characters or more, matched
+  case-insensitively) when choosing the owner password (SEC-003).
+- Anchor the public session routes in the firewall rules and prove with a router-generated test
+  that every other API operation answers an anonymous caller with 401 (SEC-003).
+- Scan the backup image with Trivy in the pull-request gate and the nightly scan (SEC-003).
 
 ## [0.7.0] - 2026-10-08
 

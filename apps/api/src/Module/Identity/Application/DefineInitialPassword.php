@@ -7,6 +7,7 @@ namespace App\Module\Identity\Application;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
+use App\Module\Identity\Domain\CommonPasswordList;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Module\Identity\Domain\PlainPassword;
 
@@ -24,6 +25,7 @@ final readonly class DefineInitialPassword
         private OwnerPasswordWriter $passwords,
         private PasswordHasher $hasher,
         private RecordAuditEvent $recordAuditEvent,
+        private CommonPasswordList $commonPasswords,
     ) {
     }
 
@@ -47,7 +49,7 @@ final readonly class DefineInitialPassword
         }
 
         // Validate before hashing so a rejected policy check does no work.
-        $password = PlainPassword::fromString($input->plainPassword);
+        $password = PlainPassword::chosen($input->plainPassword, $this->commonPasswords);
         $hash = $this->hasher->hash($password);
 
         $this->transactionManager->transactional(function () use ($owner, $hash, $membership): void {
