@@ -301,7 +301,7 @@ final class ProfileControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(204);
     }
 
-    public function testACommonPasswordIsRefusedAsAWeakPasswordWithoutTouchingTheCurrentOne(): void
+    public function testACommonPasswordIsRefusedWithItsOwnProblemTypeWithoutTouchingTheCurrentOne(): void
     {
         $this->provisionOwner();
         $this->signIn();
@@ -314,7 +314,7 @@ final class ProfileControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         $problem = json_decode((string) $this->client->getResponse()->getContent(), true);
         self::assertIsArray($problem);
-        self::assertSame('/problems/weak-password', $problem['type'] ?? null);
+        self::assertSame('/problems/common-password', $problem['type'] ?? null);
     }
 
     public function testAWeakCandidateCannotRefillABudgetSpentOnWrongGuesses(): void

@@ -17,6 +17,7 @@ use App\Module\Identity\Application\UpdateOwnerProfileInput;
 use App\Module\Identity\Domain\CommonPasswordList;
 use App\Module\Identity\Domain\InvalidDisplayName;
 use App\Module\Identity\Domain\PlainPassword;
+use App\Module\Identity\Domain\CommonPassword;
 use App\Module\Identity\Domain\WeakPassword;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
@@ -110,6 +111,12 @@ final readonly class ProfileController
         // re-runs it — it stays the authority — but by then no token is at stake.
         try {
             PlainPassword::chosen($fields['newPassword'], $this->commonPasswords);
+        } catch (CommonPassword) {
+            return $this->envelope->problem(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                'api.problem.common_password',
+                ProfileHttpEnvelope::TYPE_COMMON_PASSWORD,
+            );
         } catch (WeakPassword) {
             return $this->envelope->problem(
                 Response::HTTP_UNPROCESSABLE_ENTITY,
@@ -136,6 +143,12 @@ final readonly class ProfileController
                 newPassword: $fields['newPassword'],
                 sessionIdToKeep: self::sessionId($request),
             ));
+        } catch (CommonPassword) {
+            return $this->envelope->problem(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                'api.problem.common_password',
+                ProfileHttpEnvelope::TYPE_COMMON_PASSWORD,
+            );
         } catch (WeakPassword) {
             return $this->envelope->problem(
                 Response::HTTP_UNPROCESSABLE_ENTITY,

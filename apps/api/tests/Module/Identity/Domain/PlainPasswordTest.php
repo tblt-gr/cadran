@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Identity\Domain;
 
+use App\Module\Identity\Domain\CommonPassword;
 use App\Module\Identity\Domain\CommonPasswordList;
 use App\Module\Identity\Domain\PlainPassword;
 use App\Module\Identity\Domain\WeakPassword;
@@ -66,7 +67,7 @@ final class PlainPasswordTest extends TestCase
         };
 
         self::assertSame('an uncommon passphrase', PlainPassword::chosen('an uncommon passphrase', $common)->value);
-        $this->expectException(WeakPassword::class);
+        $this->expectException(CommonPassword::class);
 
         PlainPassword::chosen('A Common Passphrase', $common);
     }

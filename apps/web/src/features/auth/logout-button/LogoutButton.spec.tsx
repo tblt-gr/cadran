@@ -6,7 +6,14 @@ import { LogoutButton } from './LogoutButton';
 
 function renderButton() {
   const queryClient = new QueryClient();
-  const clear = vi.spyOn(queryClient, 'clear');
+  queryClient.setQueryData(['session'], {
+    provisioned: true,
+    authenticated: true,
+    setupRequired: false,
+    user: { id: 'u1', email: 'owner@example.test', displayName: 'Owner' },
+    workspace: { id: 'w1', role: 'OWNER', timeZone: 'Europe/Paris', baseCurrency: 'EUR' },
+  });
+  queryClient.setQueryData(['accounts'], ['private']);
 
   render(
     <QueryClientProvider client={queryClient}>
@@ -14,7 +21,11 @@ function renderButton() {
     </QueryClientProvider>,
   );
 
-  return { clear };
+  const signedOut = () =>
+    queryClient.getQueryData<{ authenticated: boolean }>(['session'])?.authenticated === false &&
+    queryClient.getQueryData(['accounts']) === undefined;
+
+  return { signedOut };
 }
 
 describe('LogoutButton', () => {
@@ -23,31 +34,31 @@ describe('LogoutButton', () => {
     vi.unstubAllGlobals();
   });
 
-  it('ends the session and drops the query cache', async () => {
+  it('ends the session, marks it signed out and drops every other query', async () => {
     const fetchMock = vi.fn((_input: Request) =>
       Promise.resolve(new Response(null, { status: 204 })),
     );
     vi.stubGlobal('fetch', fetchMock);
-    const { clear } = renderButton();
+    const { signedOut } = renderButton();
 
     fireEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
 
-    await waitFor(() => expect(clear).toHaveBeenCalledOnce());
+    await waitFor(() => expect(signedOut()).toBe(true));
     expect(fetchMock).toHaveBeenCalledOnce();
     const request = fetchMock.mock.calls[0][0];
     expect(request.method).toBe('DELETE');
     expect(request.url).toContain('/api/v1/session');
   });
 
-  it('still clears the cache when the request fails', async () => {
+  it('still signs out locally when the request fails', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => Promise.reject(new Error('offline'))),
     );
-    const { clear } = renderButton();
+    const { signedOut } = renderButton();
 
     fireEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
 
-    await waitFor(() => expect(clear).toHaveBeenCalledOnce());
+    await waitFor(() => expect(signedOut()).toBe(true));
   });
 });

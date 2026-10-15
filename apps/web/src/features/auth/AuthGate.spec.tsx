@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AuthGate } from './AuthGate';
+import { LogoutButton } from './logout-button/LogoutButton';
 
 type SessionBody = {
   provisioned: boolean;
@@ -111,5 +112,46 @@ describe('AuthGate', () => {
     renderGate();
 
     expect(await screen.findByText('Espace authentifié')).toBeTruthy();
+  });
+  it('returns to the login screen as soon as the owner logs out', async () => {
+    let authenticated = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: Request) => {
+        if (input.method === 'DELETE') {
+          authenticated = false;
+
+          return new Response(null, { status: 204 });
+        }
+
+        return new Response(
+          JSON.stringify({
+            provisioned: true,
+            authenticated,
+            setupRequired: false,
+            user: authenticated
+              ? { id: 'u1', email: 'owner@example.test', displayName: 'Owner' }
+              : null,
+            workspace: authenticated
+              ? { id: 'w1', role: 'OWNER', timeZone: 'Europe/Paris', baseCurrency: 'EUR' }
+              : null,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthGate>
+          <LogoutButton />
+        </AuthGate>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Se déconnecter' }));
+
+    expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Se déconnecter' })).toBeNull();
   });
 });

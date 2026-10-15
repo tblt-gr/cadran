@@ -82,4 +82,24 @@ describe('CreatePasswordForm', () => {
 
     expect((await screen.findByRole('alert')).textContent).toContain('politique de sécurité');
   });
+
+  it('names a common password instead of the generic policy error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ type: '/problems/common-password', status: 422 }), {
+            status: 422,
+            headers: { 'Content-Type': 'application/problem+json' },
+          }),
+      ),
+    );
+    render(<CreatePasswordForm onDone={vi.fn()} />);
+
+    type('Nouveau mot de passe', STRONG);
+    type('Confirmer le mot de passe', STRONG);
+    fireEvent.submit(screen.getByRole('button', { name: 'Enregistrer le mot de passe' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('plus utilisés');
+  });
 });

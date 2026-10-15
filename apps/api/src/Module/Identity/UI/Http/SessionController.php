@@ -12,6 +12,7 @@ use App\Module\Identity\Application\InitialPasswordAlreadyDefined;
 use App\Module\Identity\Application\OwnerAccountNotProvisioned;
 use App\Module\Identity\Application\SessionAuditIntent;
 use App\Module\Identity\Application\SessionView;
+use App\Module\Identity\Domain\CommonPassword;
 use App\Module\Identity\Domain\WeakPassword;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -86,8 +87,10 @@ final class SessionController
 
         try {
             $defineInitialPassword(new DefineInitialPasswordInput($payload['password']));
+        } catch (CommonPassword) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.common_password', ProfileHttpEnvelope::TYPE_COMMON_PASSWORD);
         } catch (WeakPassword) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.weak_password');
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.weak_password', ProfileHttpEnvelope::TYPE_WEAK_PASSWORD);
         } catch (InitialPasswordAlreadyDefined) {
             return $this->problem(Response::HTTP_CONFLICT, 'api.problem.password_already_set');
         } catch (OwnerAccountNotProvisioned) {
@@ -120,11 +123,11 @@ final class SessionController
         );
     }
 
-    private function problem(int $status, string $translationKey): JsonResponse
+    private function problem(int $status, string $translationKey, string $type = 'about:blank'): JsonResponse
     {
         return new JsonResponse(
             data: [
-                'type' => 'about:blank',
+                'type' => $type,
                 'title' => $this->translator->trans($translationKey.'.title'),
                 'status' => $status,
                 'detail' => $this->translator->trans($translationKey.'.detail'),

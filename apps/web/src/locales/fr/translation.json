@@ -57,6 +57,7 @@
         "length": "Le mot de passe doit comporter entre {{min}} et {{max}} caractères.",
         "mismatch": "Les deux mots de passe ne correspondent pas.",
         "policy": "Le mot de passe ne respecte pas la politique de sécurité.",
+        "common": "Ce mot de passe figure parmi les plus utilisés. Choisissez-en un autre, par exemple une phrase de plusieurs mots.",
         "network": "L’enregistrement a échoué. Réessayez."
       }
     }
@@ -1777,7 +1778,8 @@
         "throttled": "Trop de tentatives. Patientez quelques minutes avant de réessayer.",
         "currentPassword": "Le mot de passe actuel est incorrect.",
         "reused": "Le nouveau mot de passe doit être différent de l’actuel.",
-        "weakPassword": "Le mot de passe ne respecte pas la politique de sécurité."
+        "weakPassword": "Le mot de passe ne respecte pas la politique de sécurité.",
+        "commonPassword": "Ce mot de passe figure parmi les plus utilisés. Choisissez-en un autre, par exemple une phrase de plusieurs mots."
       }
     },
     "session": {
@@ -1802,6 +1804,7 @@
         "mismatch": "Les deux mots de passe ne correspondent pas.",
         "reused": "Le nouveau mot de passe doit être différent de l’actuel.",
         "weakPassword": "Le mot de passe ne respecte pas la politique de sécurité.",
+        "commonPassword": "Ce mot de passe figure parmi les plus utilisés. Choisissez-en un autre, par exemple une phrase de plusieurs mots.",
         "displayName": "Le serveur a refusé la requête.",
         "network": "Le changement a échoué. Réessayez.",
         "throttled": "Trop de tentatives. Patientez quelques minutes avant de réessayer.",

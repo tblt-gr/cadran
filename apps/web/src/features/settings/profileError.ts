@@ -6,6 +6,7 @@ import type { Problem } from '@cadran/api-client';
  * different fields, and only the type tells them apart.
  */
 export type ProfileErrorKind =
+  | 'commonPassword'
   | 'currentPassword'
   | 'displayName'
   | 'network'
@@ -19,6 +20,7 @@ const PROBLEM_KINDS: Record<string, ProfileErrorKind> = {
   '/problems/invalid-display-name': 'displayName',
   '/problems/reused-password': 'reused',
   '/problems/weak-password': 'weakPassword',
+  '/problems/common-password': 'commonPassword',
 };
 
 export class ProfileRequestError extends Error {

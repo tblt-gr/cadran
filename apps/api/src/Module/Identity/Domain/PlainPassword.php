@@ -27,7 +27,7 @@ final readonly class PlainPassword
     {
         $password = self::fromString($value);
         if ($commonPasswords->contains($value)) {
-            throw new WeakPassword('This password is too common.');
+            throw new CommonPassword('This password is too common.');
         }
 
         return $password;
