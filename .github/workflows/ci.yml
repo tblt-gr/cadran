@@ -262,6 +262,12 @@ jobs:
         run: sh scripts/init-local.sh
       - name: Build the deployed images
         run: docker compose --env-file .env.local build app db
+      - name: Assert the runtime image has no toolchain
+        run: |
+          docker run --rm --entrypoint sh cadran_app:local -c '
+            for bin in gcc cc make ld curl; do command -v "$bin" && exit 1; done
+            ! dpkg-query -W -f="\${Package}\n" | grep -xE "gcc|cpp|g\+\+|make|binutils|libc6-dev|linux-libc-dev|autoconf|dpkg-dev|curl"
+          '
       - name: Scan the application image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:

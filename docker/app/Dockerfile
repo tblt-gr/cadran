@@ -39,21 +39,31 @@ RUN composer install \
     --ignore-platform-req=php \
     --ignore-platform-req=ext-bcmath
 
-FROM dunglas/frankenphp:1.13.1-php8.5-bookworm@sha256:cbe891d9411baf58a3da2b4e05b47edda54410a487a818b4e7605882d796b1bb AS runtime
+FROM dunglas/frankenphp:1.13.1-php8.5-trixie@sha256:a052ae7cccd4a025eca17767e7acac57a4fc660a4f3dfc790be9b9cd5182d6e6 AS php_extensions
 
-# Install patched Bookworm packages that are still stale in the FrankenPHP
-# base image. Keep the list explicit so unrelated runtime packages do not move.
-RUN apt-get update \
-    && apt-get install --no-install-recommends --yes --only-upgrade \
-        libpcre2-8-0 \
-        libperl5.36 \
-        libssh2-1 \
-        linux-libc-dev \
-        perl \
-        perl-base \
-        perl-modules-5.36 \
+# The compiler toolchain that install-php-extensions pulls in lives only in this
+# stage: the runtime image receives the built modules and nothing else.
+RUN install-php-extensions pdo_pgsql bcmath \
+    && mkdir -p /out/extensions /out/conf.d \
+    && cp "$(php -r 'echo ini_get("extension_dir");')"/pdo_pgsql.so "$(php -r 'echo ini_get("extension_dir");')"/bcmath.so /out/extensions/ \
+    && cp "$PHP_INI_DIR"/conf.d/docker-php-ext-pdo_pgsql.ini "$PHP_INI_DIR"/conf.d/docker-php-ext-bcmath.ini /out/conf.d/
+
+FROM dunglas/frankenphp:1.13.1-php8.5-trixie@sha256:a052ae7cccd4a025eca17767e7acac57a4fc660a4f3dfc790be9b9cd5182d6e6 AS runtime
+
+# The FrankenPHP base image ships a compiler toolchain, kernel headers, curl and
+# perl for building extensions. None of them is used at run time, so they are
+# purged to leave an attacker no tooling and the scanner nothing to flag.
+# libpq5 is the only shared library the extensions need. The security upgrade
+# picks up Debian fixes published after the base image digest.
+RUN --mount=type=bind,from=php_extensions,source=/out,target=/out \
+    apt-get update \
+    && apt-get install --no-install-recommends --yes libpq5 \
+    && apt-get purge --yes --auto-remove \
+        autoconf binutils cpp dpkg-dev g++ gcc make libc6-dev linux-libc-dev curl perl \
+    && apt-get upgrade --yes \
     && rm -rf /var/lib/apt/lists/* \
-    && install-php-extensions pdo_pgsql bcmath \
+    && cp /out/extensions/*.so "$(php -r 'echo ini_get("extension_dir");')/" \
+    && cp /out/conf.d/*.ini "$PHP_INI_DIR/conf.d/" \
     && setcap -r /usr/local/bin/frankenphp \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && mkdir -p /app/apps/api/var /app/apps/web/dist /data /config \

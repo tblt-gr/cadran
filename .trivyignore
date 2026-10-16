@@ -9,5 +9,60 @@
 # exposure with no upstream patch is surfaced daily rather than silently passed.
 #
 
-# No accepted findings: FrankenPHP 1.13.1 bundles fixed kin-openapi, gRPC-Go,
-# golang.org/x/crypto, x/net and Go stdlib versions.
+# Every entry below is a Debian 13 package finding with no fix available when
+# SEC-004 was written. The runtime is non-root (www-data), read-only,
+# `cap_drop: ALL` and `no-new-privileges`, so privileged-mount and setuid
+# paths cannot be reached. These reasons rest on those runtime flags (mount
+# and su stay setuid in the image), and the file also applies to the db and
+# backup scans. Review again before the date shown, or earlier when
+# Debian ships a fix, and delete the entry then.
+
+# review: 2026-12-31
+# util-linux family (util-linux, mount, login, bsdutils, libmount1, libblkid1,
+# libuuid1, libsmartcols1, liblastlog2-2): the four CVEs concern privileged
+# mount helpers, nsenter and X-mount options. The container has no
+# CAP_SYS_ADMIN, no setuid escalation and never runs mount or nsenter; the
+# application neither calls these binaries nor links the libraries for mounts.
+CVE-2026-76642
+CVE-2026-78408
+CVE-2026-78409
+CVE-2026-78410
+
+# review: 2026-12-31
+# libxml2: used by PHP only to read XML the operator provides through console
+# commands (workbook migration). No web route parses untrusted XML, request
+# bodies are JSON capped at 1 MB, and the process makes no outbound internet request.
+CVE-2026-6653
+CVE-2026-74860
+CVE-2026-86138
+CVE-2026-86139
+CVE-2026-86140
+CVE-2026-86142
+CVE-2026-86143
+CVE-2026-86144
+
+# review: 2026-12-31
+# libcurl4t64: the PHP curl extension is loaded but the application never
+# calls it or makes outbound HTTP requests; the curl CLI is purged.
+CVE-2026-12064
+CVE-2026-8458
+
+# review: 2026-12-31
+# libsystemd0 and libudev1: linked by system libraries only; no systemd or
+# udev daemon runs in the container and no device access is granted.
+CVE-2026-16742
+
+# review: 2026-12-31
+# ncurses (libtinfo6, ncurses-base, ncurses-bin): terminal library never used
+# by the web process and no interactive terminal is attached in production.
+CVE-2025-69720
+
+# review: 2026-12-31
+# libacl1: ACL helper used by dpkg and coreutils; the application never sets
+# or reads ACLs and the file system is read-only.
+CVE-2026-54369
+
+# review: 2026-12-31
+# perl-base: required by dpkg and cannot be removed. The affected module
+# (Archive::Tar) is never run, and no process in the container invokes perl.
+CVE-2026-9538
