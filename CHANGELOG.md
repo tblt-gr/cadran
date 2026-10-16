@@ -6,6 +6,31 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
+The upcoming release is **1.0.0 (MVP)**. It has not been published; the package version remains
+0.7.0 until release preparation. The existing accounts, transactions, budgets, closing, reports,
+goals, portfolios and multi-support life insurance features are described in the releases below.
+
+### Added
+
+- One-time console migration of supported historical annual workbooks, with validation and
+  reconciliation. This is a controlled migration, not a generic import assistant.
+- Encrypted PostgreSQL backups, daily/weekly/monthly retention, isolated restore verification,
+  guarded restoration and retained recovery databases.
+- Safe upgrades with a verified encrypted pre-upgrade backup, version checks, migration and
+  health checks, plus rollback that restores the matching schema before starting older code.
+- Installable responsive PWA with application-asset caching, update notification and explicit
+  offline handling; API responses and financial data are never cached for offline use.
+- Installation, operations and contribution guides, a reproducible release checklist and a
+  quality guard against undocumented Makefile targets.
+
+### MVP boundaries
+
+- Generic import, exports, tax tracking, banking synchronization and shared workspaces remain
+  outside 1.0.0. Real-time prices, payment initiation, financial advice, official tax filing,
+  full multi-currency support and native mobile apps are not delivered by this MVP.
+- A release still requires its complete final review and recorded fresh-machine installation;
+  this entry does not claim those release checks have already passed.
+
 ### Security
 
 - Upgrade the FrankenPHP base image to 1.13.1 (Go binary free of known HIGH and CRITICAL findings)
@@ -259,7 +284,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 - Recurring transaction detection: a bounded scan of the workspace history proposes candidates
   grouped by account and counterparty with a qualitative, nullable confidence, confirming one
   creates an editable recurrence and its forward occurrences, and a real movement is matched to
-  its expected occurrence — becoming `RECEIVED` or read back as `LATE` from the calendar — when
+  its expected occurrence, becoming `RECEIVED` or read back as `LATE` from the calendar, when
   created, edited or voided.
 - Split a transaction across zero to twenty categories, each with its own exact amount, optional
   analytic axes and note, summing exactly to the transaction amount or left empty. The transaction
@@ -300,7 +325,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   archive.
 - Net-worth sign convention on every account: an asset contributes positively and a liability
   negatively, stated by the API and displayed in words rather than by colour alone. No balance is
-  implied — an account carries no amount until valuations exist.
+  implied, an account carries no amount until valuations exist.
 - Account creation from a system catalogue product, in three steps: choose the model, describe the
   account, then review what it inherits. An account stores the product reference and the institution
   holding it, and nothing else the catalogue owns: ceilings, rates, accrual methods and their sources
@@ -316,7 +341,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   kind nor product.
 - Ceiling basis stated by the catalogue API on every product: a share savings plan is capped on the
   contributions paid into it, whatever the plan is worth, while a regulated passbook is capped on
-  what was deposited, credited interest excluded — so a passbook carried past its ceiling by its own
+  what was deposited, credited interest excluded, so a passbook carried past its ceiling by its own
   interest has broken no rule. A ceiling read on everything an account holds, credited interest
   included, is a distinct measure and is recorded as its own rule kind rather than resolved to the
   opposite verdict. Market products announce no promised yield anywhere in the creation flow.
@@ -353,9 +378,9 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   of every statement produced while it applied.
 - Explainable net worth on a business day, read through `/api/v1/net-worth`: the signed sum of the
   accounts included in net worth and open that day, where a liability keeps its positive outstanding
-  amount and carries the negative sign. Every source travels with the figure — the contributing
+  amount and carries the negative sign. Every source travels with the figure, the contributing
   accounts, their exclusive group weights, the freshness of each valuation and the movement since a
-  compared day — so the total can be challenged rather than trusted. A sum that cannot be produced
+  compared day, so the total can be challenged rather than trusted. A sum that cannot be produced
   is null beside its reason: no eligible account, a missing valuation, or eligible accounts
   denominated in several units, which are refused rather than added together.
 - Net-worth change: the delta since a compared day, and its rate when the base allows one. The two

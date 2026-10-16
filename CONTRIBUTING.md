@@ -5,10 +5,12 @@ vulnerability through a public issue or pull request; follow the [Security Polic
 
 ## Before you start
 
-Cadran Budget is in its foundation phase. Read the [README](./README.md) before proposing a change.
+Cadran Budget is preparing its 1.0.0 MVP. Read the [README](./README.md) before proposing a change.
 Open an issue before significant work to confirm scope and domain invariants.
 
-Current requirements are Node.js 22.22 or newer, pnpm 9 or newer, and Git.
+Use the Linux/WSL2 Docker installation in the README for the full stack. Host-only frontend
+checks require Node.js 22.22 or newer and the pnpm version pinned in `package.json`. Backend
+commands require PHP 8.5 in the tooling container; do not run them with host PHP.
 
 ```bash
 git clone git@github.com:tblt-gr/cadran.git
@@ -45,7 +47,7 @@ Do not list files to change. Describe expected behavior and testable acceptance 
 - Branch from `main`.
 - Use `feat/short-description`, `fix/short-description`, `docs/short-description`, or
   `chore/short-description`.
-- Keep each branch short and limited to one issue.
+- Use one issue, one branch and one pull request for a coherent capability. Keep branches short.
 - Never push directly to `main`.
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
@@ -75,14 +77,25 @@ The `commit-msg` hook enforces this locally, and CI validates every pull request
 ## Quality checks
 
 `make quality` and `make test` are the global entry points. `make quality` runs
-PHP-CS-Fixer, PHPStan, module-boundary checks, ESLint, strict TypeScript, the OpenAPI lint and
-the infrastructure checks; `make test` runs PHPUnit against PostgreSQL and the frontend suite.
+PHP-CS-Fixer, PHPStan, PHPUnit, module-boundary checks, ESLint, strict TypeScript, the OpenAPI
+lint, documented-command checks and infrastructure checks; `make test` runs PHPUnit against PostgreSQL and the frontend suite.
 Do not add a required quality tool without wiring it into the matching global command and into CI.
 
-`make e2e` keeps the Playwright scaffold available for explicit local experiments. Browser E2E
-tests are not required and do not run in pull-request CI before v1.0.0. They become part of the
-quality process once stable critical journeys exist and their runtime and resource cost has been
-measured.
+For the 1.0.0 MVP, browser checks are required for applicable application changes. CI selects
+critical browser journeys for frontend, API, client, tooling and runtime changes; documentation-only
+changes can skip the browser job according to its path filter. The aggregate gate accepts that
+intentional skip. To run browser checks on a **disposable development stack**, provision its
+throwaway owner and demo data first (never run these commands against personal data):
+
+```bash
+make e2e-provision
+make e2e
+```
+
+The runner uses the Linux host network. `E2E_BASE_URL` must match the published HTTPS URL;
+`E2E_OWNER_EMAIL` and `E2E_OWNER_PASSWORD` must match that disposable owner. These command
+arguments are test credentials, never production credentials. Failures leave sanitized-by-review
+traces and screenshots in `var/e2e-results/`; inspect them for sensitive content before sharing.
 
 Documentation and contract checks also run without Docker:
 
@@ -132,21 +145,27 @@ one branch protection requires.
 Hooks are only a local safety net and can be bypassed. Configure GitHub branch protection for
 `main` as well. The intended protection is versioned in `.github/rulesets/main.json`: it requires
 pull requests, a green `CI gate`, an up-to-date branch, resolved conversations, squash merges and
-linear history, with no permanent bypass. Add application checks to the aggregate gate during
-Sprint 0.
+linear history, with no permanent bypass. The aggregate gate includes the applicable browser job.
 
 ## Releases
 
-Create releases only from a commit already merged into `main` with a successful `CI gate`. The
-release workflow also requires the tag to match the root package version. Create annotated, signed
-tags and never move a published tag:
+Create releases only from a commit already merged into `main` with a successful `CI gate`.
+Follow the [release checklist](./.github/RELEASE_CHECKLIST.md), including a recorded clean-machine
+installation and operational recovery rehearsal. Keep the upcoming 1.0.0 capabilities under
+`Unreleased` until the release is actually prepared. Update the root package version as part of
+that preparation, not merely to document the upcoming release.
+
+Project policy requires a signed annotated `vMAJOR.MINOR.PATCH` tag. The release workflow
+checks that the tag matches the root package version and an eligible commit; it does not verify
+the signature or annotated tag type. Never move a published tag. For example, after the 1.0.0 release preparation is
+merged and verified:
 
 ```bash
 git switch main
 git pull --ff-only
-git tag -s v0.1.0 -m "cadran v0.1.0"
-git push origin v0.1.0
+git tag -s v1.0.0 -m "cadran v1.0.0"
+git push origin v1.0.0
 ```
 
-Maintain the `Unreleased` section of `CHANGELOG.md` only when it adds editorial context such as
-migrations, breaking changes, or operator actions.
+Maintain the `Unreleased` section of `CHANGELOG.md` for new capabilities, migrations, breaking
+changes and operator actions. Do not claim unfinished or unverified work has shipped.
