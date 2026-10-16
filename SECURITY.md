@@ -2,9 +2,10 @@
 
 ## Supported versions
 
-Cadran Budget is in its foundation phase, and no production release exists yet. After the first
-release, support will cover the latest stable version and any additional versions announced
-explicitly. The `main` branch may contain unreleased work and carries no stability guarantee.
+Security support targets the latest patch in the `1.0.x` release line once 1.0.0 is published.
+Earlier `0.x` versions are development releases and receive no ongoing security maintenance;
+upgrade to the supported line when available. The `main` branch contains unreleased work and
+carries no stability guarantee. This policy does not assert that 1.0.0 has already been released.
 
 ## Reporting a vulnerability
 

@@ -17,7 +17,8 @@
     "typecheck": "pnpm --recursive --if-present typecheck",
     "test": "pnpm generate:api && pnpm --recursive --if-present test",
     "build": "pnpm generate:api && pnpm --recursive --if-present build",
-    "quality": "pnpm generate:api && pnpm openapi:lint && pnpm openapi:csrf && pnpm format:check && pnpm lint && pnpm typecheck && pnpm deadcode",
+    "lint:commands": "sh scripts/ci/check-documented-commands.sh && node scripts/ci/test-documented-commands.mjs",
+    "quality": "pnpm lint:commands && pnpm generate:api && pnpm openapi:lint && pnpm openapi:csrf && pnpm format:check && pnpm lint && pnpm typecheck && pnpm deadcode",
     "openapi:lint": "redocly lint apps/api/openapi/openapi.yaml",
     "openapi:csrf": "node scripts/check-openapi-csrf.mjs apps/api/openapi/openapi.yaml",
     "e2e": "pnpm --filter @cadran/e2e e2e"
