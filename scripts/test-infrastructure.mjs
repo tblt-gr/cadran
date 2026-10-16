@@ -215,6 +215,62 @@ if (!/^export CADRAN_VERSION\s*:=.*package\.json/m.test(makefile)) {
   fail('The Makefile must export CADRAN_VERSION from the root package.json for every image build');
 }
 
+if (!/^FROM dunglas\/frankenphp:\S+-trixie@sha256:[0-9a-f]{64} AS runtime$/m.test(appDockerfile)) {
+  fail('The runtime stage must start from the FrankenPHP trixie variant pinned by digest');
+}
+
+if (
+  !/AS php_extensions$/m.test(appDockerfile) ||
+  !/install-php-extensions pdo_pgsql bcmath/.test(appDockerfile) ||
+  /install-php-extensions/.test(runtimeStage)
+) {
+  fail(
+    'pdo_pgsql and bcmath must be built in the php_extensions stage, never in the runtime stage',
+  );
+}
+
+// The base image ships a toolchain for building extensions; the runtime stage
+// has to purge it so no compiler or kernel header remains after a compromise.
+const purgeBlock = runtimeStage.match(/apt-get purge[^&]*/)?.[0] ?? '';
+
+for (const pkg of [
+  'autoconf',
+  'binutils',
+  'cpp',
+  'dpkg-dev',
+  'gcc',
+  'g++',
+  'make',
+  'libc6-dev',
+  'linux-libc-dev',
+  'curl',
+  'perl',
+]) {
+  if (!new RegExp(`(^|\\s)${pkg.replace(/[+]/g, '\\$&')}(\\s|\\\\|$)`).test(purgeBlock)) {
+    fail(`The runtime stage must purge ${pkg}`);
+  }
+}
+
+const trivyIgnore = readFileSync(new URL('../.trivyignore', import.meta.url), 'utf8');
+const trivyIgnoreLines = trivyIgnore.split('\n');
+
+trivyIgnoreLines.forEach((line, index) => {
+  if (!/^CVE-\d{4}-\d+$/.test(line)) {
+    return;
+  }
+  const block = [];
+  for (let i = index - 1; i >= 0 && /^(#|CVE-)/.test(trivyIgnoreLines[i]); i -= 1) {
+    block.push(trivyIgnoreLines[i]);
+  }
+  const review = block.join('\n').match(/# review: (\d{4}-\d{2}-\d{2})/);
+  const days = review ? (Date.parse(review[1]) - Date.now()) / 86_400_000 : Number.NaN;
+  if (!(days >= 0 && days <= 90)) {
+    fail(
+      `${line} in .trivyignore needs a "# review: YYYY-MM-DD" date at most 90 days ahead and not past`,
+    );
+  }
+});
+
 const caddyfile = readFileSync(new URL('../docker/app/Caddyfile', import.meta.url), 'utf8');
 
 // HSTS is sent only to a real host name: on localhost it would pin every http://localhost:*
