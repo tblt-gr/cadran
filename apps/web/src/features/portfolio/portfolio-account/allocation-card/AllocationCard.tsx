@@ -52,7 +52,12 @@ export function AllocationCard({
   // Without a chart the table is the only reading of the allocation, so it stays open.
   const charted = !allocation || (!allocation.reason && !signedShares);
   const table = (
-    <div className={styles.tableScroll}>
+    <div
+      className={styles.tableScroll}
+      role="region"
+      aria-label="Répartition détaillée"
+      tabIndex={0}
+    >
       <table>
         <caption className="sr-only">Répartition détaillée, toutes les lignes</caption>
         <thead>

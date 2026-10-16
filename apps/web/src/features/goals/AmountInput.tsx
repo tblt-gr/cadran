@@ -1,5 +1,6 @@
 interface Props {
   'aria-label'?: string;
+  'aria-describedby'?: string;
   disabled?: boolean;
   invalid: boolean;
   onChange: (value: string) => void;
@@ -8,6 +9,7 @@ interface Props {
 /** Exact amount entry: its value stays a canonical decimal string until the API request. */
 export function AmountInput({
   'aria-label': ariaLabel,
+  'aria-describedby': describedBy,
   disabled,
   invalid,
   onChange,
@@ -15,6 +17,7 @@ export function AmountInput({
 }: Props) {
   return (
     <input
+      aria-describedby={describedBy}
       aria-invalid={invalid ? true : undefined}
       aria-label={ariaLabel}
       disabled={disabled}

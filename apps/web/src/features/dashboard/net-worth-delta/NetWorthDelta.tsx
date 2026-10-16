@@ -56,6 +56,7 @@ export function NetWorthDelta({ delta }: NetWorthDeltaProps) {
   return (
     <p className={styles.delta} data-visual-mask>
       <span
+        role="img"
         aria-label={t(ACCESSIBLE_LABEL[direction], { amount: spoken })}
         className={styles[direction]}
         data-tone={direction}

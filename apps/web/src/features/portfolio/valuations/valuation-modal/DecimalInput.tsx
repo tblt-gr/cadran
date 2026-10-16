@@ -20,13 +20,16 @@ export function DecimalInput({
 }) {
   return (
     <FormField error={error} hint={hint} label={label} wide={wide}>
-      <input
-        autoComplete="off"
-        disabled={disabled}
-        inputMode="decimal"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      />
+      {(attributes) => (
+        <input
+          {...attributes}
+          autoComplete="off"
+          disabled={disabled}
+          inputMode="decimal"
+          onChange={(event) => onChange(event.target.value)}
+          value={value}
+        />
+      )}
     </FormField>
   );
 }

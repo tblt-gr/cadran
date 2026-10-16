@@ -37,7 +37,13 @@ export function PerformanceMonthTable({
   const yearContext: LineContext = { ...base, kind: 'year' };
 
   return (
-    <div className={styles.scroll} data-testid="performance-scroll">
+    <div
+      className={styles.scroll}
+      data-testid="performance-scroll"
+      role="region"
+      aria-label="Performance par mois"
+      tabIndex={0}
+    >
       <table aria-label="Performance par mois" className={styles.table}>
         <thead>
           <tr>

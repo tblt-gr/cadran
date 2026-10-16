@@ -17,6 +17,7 @@ export function TransactionAmount({ amount }: TransactionAmountProps) {
 
   return (
     <span
+      role="img"
       aria-label={t(negative ? 'transactions.amount.outflow' : 'transactions.amount.inflow', {
         amount: spoken,
       })}

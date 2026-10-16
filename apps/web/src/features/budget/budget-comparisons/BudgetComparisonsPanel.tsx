@@ -69,7 +69,18 @@ function ComparisonCard({
         <div>
           <dt>{t('budget.comparisons.variance')}</dt>
           <dd>
-            <Figure assetCode={assetCode} language={i18n.language} value={comparison.variance} />
+            <span
+              role="img"
+              aria-label={[
+                t('budget.comparisons.variance'),
+                comparison.variance === null
+                  ? t('budget.nonCalculable')
+                  : `${comparison.variance.startsWith('-') || /^0(?:\.0+)?$/.test(comparison.variance) ? '' : '+'}${formatAmount(comparison.variance, assetCode, i18n.language)}`,
+                t(`budget.comparisons.statuses.${comparison.status}`),
+              ].join(' : ')}
+            >
+              <Figure assetCode={assetCode} language={i18n.language} value={comparison.variance} />
+            </span>
           </dd>
         </div>
       </dl>

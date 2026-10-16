@@ -1,5 +1,10 @@
 .tab {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   gap: var(--spacing-6);
+}
+
+.tab > * {
+  min-width: 0;
 }

@@ -77,6 +77,21 @@ describe('MetricPolicyPage', () => {
     vi.resetAllMocks();
   });
 
+  it('keeps the history scroll region named and keyboard-reachable while loading and loaded', async () => {
+    api.listMetricPolicies.mockImplementation(() => new Promise(() => undefined));
+    const loading = renderPage();
+    const pending = screen.getByRole('region', { name: 'Tableau de l’historique des versions' });
+    expect(pending.tabIndex).toBe(0);
+    expect(pending.querySelector('table')).toBeTruthy();
+    loading.unmount();
+    api.listMetricPolicies.mockReturnValue(ok(withV2));
+    renderPage();
+    await screen.findByText('Tout compte');
+    const loaded = screen.getByRole('region', { name: 'Tableau de l’historique des versions' });
+    expect(loaded.tabIndex).toBe(0);
+    expect(loaded.querySelector('table')).toBeTruthy();
+  });
+
   it('replaces its one named cold-load skeleton and keeps the policy during a refetch', async () => {
     let resolvePolicies: ((value: unknown) => void) | undefined;
     api.listMetricPolicies.mockImplementation(

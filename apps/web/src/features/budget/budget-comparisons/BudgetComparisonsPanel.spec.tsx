@@ -65,6 +65,22 @@ describe('BudgetComparisonsPanel', () => {
     vi.clearAllMocks();
   });
 
+  it.each([
+    ['57.50', 'WITHIN_TARGET', /Écart.*\+57,50.*Dans le budget/],
+    ['-20.00', 'OVER_TARGET', /Écart.*-20,00.*Dépassement/],
+    ['0', 'ON_TARGET', /Écart.*0,00.*Objectif atteint/],
+  ] as const)(
+    'names variance %s and its server status without relying on color',
+    async (variance, status, name) => {
+      const data = result();
+      data.comparisons[0]!.variance = variance;
+      data.comparisons[0]!.status = status;
+      api.readBudgetComparisons.mockResolvedValue({ data, response: new Response('{}') });
+      mount();
+      expect(await screen.findByRole('img', { name })).toBeTruthy();
+    },
+  );
+
   it('replaces its one named cold-load skeleton and keeps comparisons during a refetch', async () => {
     let resolveComparisons: ((value: unknown) => void) | undefined;
     api.readBudgetComparisons.mockImplementation(

@@ -45,7 +45,7 @@ function Remaining({ count, shown }: { count: number; shown: number }) {
 
 function Table({ caption, head, rows }: { caption: string; head: string[]; rows: string[][] }) {
   return (
-    <div className={styles.scroll}>
+    <div className={styles.scroll} role="region" aria-label={caption} tabIndex={0}>
       <table className={styles.table}>
         <caption>{caption}</caption>
         <thead>

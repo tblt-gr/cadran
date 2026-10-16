@@ -71,19 +71,26 @@ export function BudgetPageSkeleton({
           </section>
         </>
       ) : (
-        <table aria-hidden="true" className={styles.table}>
-          <thead>
-            <tr>
-              <th>{t('budget.columns.period')}</th>
-              <th>{t('budget.columns.currency')}</th>
-              <th>{t('budget.columns.state')}</th>
-              <th>
-                <span className="sr-only">{t('actions.more')}</span>
-              </th>
-            </tr>
-          </thead>
-          <SkeletonTableRows columns={4} rows={4} />
-        </table>
+        <div
+          className={styles.tableScroll}
+          role="region"
+          aria-label={t('routes.budgetPlans')}
+          tabIndex={0}
+        >
+          <table aria-hidden="true" className={styles.table}>
+            <thead>
+              <tr>
+                <th>{t('budget.columns.period')}</th>
+                <th>{t('budget.columns.currency')}</th>
+                <th>{t('budget.columns.state')}</th>
+                <th>
+                  <span className="sr-only">{t('actions.more')}</span>
+                </th>
+              </tr>
+            </thead>
+            <SkeletonTableRows columns={4} rows={4} />
+          </table>
+        </div>
       )}
     </div>
   );

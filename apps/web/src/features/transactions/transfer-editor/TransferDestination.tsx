@@ -26,12 +26,14 @@ export function TransferDestination({
 }) {
   const { t } = useTranslation();
   const hintId = useId();
+  const errorId = useId();
   return (
     <section className={styles.destination}>
       <label>
         <span>{t('transactions.transfer.fields.targetAccount')}</span>
         <select
           disabled={disabled}
+          aria-describedby={invalid ? errorId : undefined}
           aria-invalid={invalid ? true : undefined}
           onChange={(event) => onDestinationChange(event.target.value)}
           value={targetAccountId}
@@ -43,7 +45,9 @@ export function TransferDestination({
             </option>
           ))}
         </select>
-        {invalid ? <small>{t('transactions.transfer.validation.targetAccount')}</small> : null}
+        {invalid ? (
+          <small id={errorId}>{t('transactions.transfer.validation.targetAccount')}</small>
+        ) : null}
       </label>
       {eligible ? (
         <>

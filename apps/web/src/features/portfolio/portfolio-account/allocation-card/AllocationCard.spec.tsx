@@ -84,6 +84,9 @@ describe('AllocationCard', () => {
     const change = vi.fn();
     render(<AllocationCard allocation={allocationFixture()} by="INSTRUMENT" onByChange={change} />);
     const table = screen.getByRole('table', { name: /toutes les lignes/ });
+    expect(table.parentElement?.getAttribute('role')).toBe('region');
+    expect(table.parentElement?.getAttribute('aria-label')).toBe('Répartition détaillée');
+    expect(table.parentElement?.tabIndex).toBe(0);
     expect((table.closest('details') as HTMLDetailsElement).open).toBe(false);
     expect(screen.getByText('Toutes les lignes').closest('summary')).toBeTruthy();
     expect(screen.getByRole('rowheader', { name: 'Non renseignée' })).toBeTruthy();

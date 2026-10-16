@@ -32,7 +32,12 @@ export function ValueHistoryTable({
     );
 
   return (
-    <div className={styles.scroll}>
+    <div
+      className={styles.scroll}
+      role="region"
+      aria-label="Valorisations du portefeuille par date"
+      tabIndex={0}
+    >
       <table>
         <caption className="sr-only">Valorisations du portefeuille par date</caption>
         <thead>

@@ -2137,6 +2137,8 @@
         "sourceAmount": "Indiquez un montant strictement positif.",
         "targetAmount": "Indiquez un montant strictement positif reçu sur le compte de destination.",
         "bookedOn": "La date doit être une date valide, non future.",
+        "valueOn": "Saisissez une date valide au format AAAA-MM-JJ, située au plus 90 jours avant ou après la date du virement.",
+        "note": "La note est facultative : 500 caractères Unicode au maximum, sans espaces au début ni à la fin.",
         "label": "Le libellé doit contenir entre 1 et 140 caractères.",
         "fee": "Indiquez un montant de frais strictement positif."
       },
@@ -2628,7 +2630,9 @@
     },
     "validation": {
       "scope": "Choisissez un périmètre.",
-      "form": "Vérifiez le libellé, le périmètre, la période et la valeur saisie."
+      "form": "Vérifiez le libellé, le périmètre, la période et la valeur saisie.",
+      "targetAmount": "Saisissez un montant décimal exact strictement supérieur à 0, avec au plus 8 décimales. Utilisez un point comme séparateur décimal.",
+      "ratio": "Saisissez un pourcentage strictement supérieur à 0 et inférieur ou égal à 100, avec au plus 6 décimales. Utilisez un point comme séparateur décimal."
     },
     "errors": {
       "conflict": "Cet objectif a changé et a été rechargé. Vérifiez vos valeurs puis réessayez.",
@@ -3130,6 +3134,7 @@
     },
     "history": {
       "title": "Historique des versions",
+      "tableLabel": "Tableau de l’historique des versions",
       "empty": "Aucune version personnalisée pour le moment.",
       "version": "Version",
       "label": "Libellé",

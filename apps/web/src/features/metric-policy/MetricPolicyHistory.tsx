@@ -23,7 +23,12 @@ export function MetricPolicyHistory({
       {versions.every((policy) => policy.system) ? (
         <p className={styles.empty}>{t('metricPolicy.history.empty')}</p>
       ) : null}
-      <div className={styles.tableWrap}>
+      <div
+        className={styles.tableWrap}
+        role="region"
+        aria-label={t('metricPolicy.history.tableLabel')}
+        tabIndex={0}
+      >
         <table>
           <caption className={styles.srOnly}>{t('metricPolicy.history.title')}</caption>
           <thead>

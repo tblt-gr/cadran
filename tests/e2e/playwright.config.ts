@@ -6,7 +6,7 @@ import { ownerStorageState } from './tests/support/session';
 const baseURL = process.env.E2E_BASE_URL ?? 'https://localhost:8443';
 
 /** Specs that compare pixels also run on the phone viewport (the audit spec drives its own widths). */
-const mobileSpecs = /visual\.spec\.ts/;
+const mobileSpecs = /(?:visual|a11y)\.spec\.ts/;
 
 export default defineConfig({
   testDir: './tests',

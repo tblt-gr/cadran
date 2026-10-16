@@ -14,7 +14,7 @@ export function ValuationPositionsTable({ valuation }: { valuation: PortfolioVal
   const notDetailed = <span>Non détaillé</span>;
 
   return (
-    <div className={styles.scroll}>
+    <div className={styles.scroll} role="region" aria-label="Positions valorisées" tabIndex={0}>
       <table aria-label="Positions valorisées" className={styles.positions}>
         <thead>
           <tr>

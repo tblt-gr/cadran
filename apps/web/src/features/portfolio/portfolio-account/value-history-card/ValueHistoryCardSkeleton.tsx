@@ -22,8 +22,14 @@ export function ValueHistoryCardSkeleton({ status }: { status?: string }) {
       </div>
       <CurveChartSkeleton />
       <Disclosure onToggle={() => undefined} open={false} title="Voir le tableau">
-        <div className={tableStyles.scroll}>
+        <div
+          className={tableStyles.scroll}
+          role="region"
+          aria-label="Valorisations du portefeuille par date"
+          tabIndex={0}
+        >
           <table>
+            <caption className="sr-only">Valorisations du portefeuille par date</caption>
             <thead>
               <tr>
                 {VALUE_HISTORY_COLUMNS.map((text) => (

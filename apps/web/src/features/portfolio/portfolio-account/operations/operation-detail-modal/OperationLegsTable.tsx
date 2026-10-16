@@ -13,7 +13,7 @@ export function OperationLegsTable({
 }) {
   const { i18n } = useTranslation();
   return (
-    <div className={styles.scroll}>
+    <div className={styles.scroll} role="region" aria-label={caption} tabIndex={0}>
       <table>
         <caption>{caption}</caption>
         <thead>

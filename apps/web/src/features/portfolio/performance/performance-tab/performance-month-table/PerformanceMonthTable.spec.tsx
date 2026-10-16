@@ -28,6 +28,16 @@ function rowOf(name: string) {
 }
 
 describe('PerformanceMonthTable', () => {
+  it.each([null, annualFixture()])(
+    'names the keyboard-scrollable monthly data region %#',
+    (annual) => {
+      render(<PerformanceMonthTable annual={annual} onExplain={vi.fn()} />);
+      const region = screen.getByRole('region', { name: 'Performance par mois' });
+      expect(region.tabIndex).toBe(0);
+      expect(region.querySelector('table')).toBeTruthy();
+    },
+  );
+
   it('lists the fourteen columns, twelve months and the year footer', () => {
     render(<PerformanceMonthTable annual={annualFixture()} onExplain={() => undefined} />);
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);

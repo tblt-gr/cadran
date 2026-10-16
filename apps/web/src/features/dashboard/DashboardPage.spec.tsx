@@ -302,7 +302,7 @@ describe('DashboardPage', () => {
     renderDashboard();
     await loaded();
 
-    const chart = await screen.findByRole('img');
+    const chart = await screen.findByRole('img', { name: /Évolution du patrimoine net/ });
     expect(chart.querySelectorAll('circle')).toHaveLength(1);
   });
 
@@ -412,6 +412,7 @@ describe('DashboardPage', () => {
       section?.querySelector('[aria-label="Patrimoine stable, aucune variation"]'),
     ).toBeTruthy();
     expect(section?.querySelector('[aria-label^="Hausse"]')).toBeNull();
+    expect(screen.getByRole('img', { name: 'Patrimoine stable, aucune variation' })).toBeTruthy();
   });
 
   it('speaks a decrease without a double negative', async () => {

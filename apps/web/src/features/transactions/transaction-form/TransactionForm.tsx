@@ -4,7 +4,7 @@ import type {
   Transaction,
   UpdateTransactionRequest,
 } from '@cadran/api-client';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
@@ -64,6 +64,7 @@ export function TransactionForm({
   transaction,
 }: TransactionFormProps) {
   const { t } = useTranslation();
+  const errorId = useId();
   const workspaceTimeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), workspaceTimeZone);
   const [values, setValues] = useState(() => {
@@ -125,7 +126,14 @@ export function TransactionForm({
         <label>
           <span>{t('transactions.fields.account')}</span>
           <select
-            aria-describedby={editing ? 'transaction-account-hint' : undefined}
+            aria-describedby={
+              [
+                editing ? 'transaction-account-hint' : undefined,
+                showErrors && errors.accountId ? `${errorId}-accountId` : undefined,
+              ]
+                .filter(Boolean)
+                .join(' ') || undefined
+            }
             aria-invalid={showErrors && errors.accountId ? true : undefined}
             aria-label={t('transactions.fields.account')}
             disabled={editing}
@@ -142,7 +150,7 @@ export function TransactionForm({
             ))}
           </select>
           {showErrors && errors.accountId ? (
-            <small>{t('transactions.validation.account')}</small>
+            <small id={`${errorId}-accountId`}>{t('transactions.validation.account')}</small>
           ) : null}
           {editing ? (
             <small className={styles.hint} id="transaction-account-hint">
@@ -154,19 +162,23 @@ export function TransactionForm({
         <label>
           <span>{t('transactions.fields.bookedOn')}</span>
           <input
+            aria-describedby={showErrors && errors.bookedOn ? `${errorId}-bookedOn` : undefined}
             aria-invalid={showErrors && errors.bookedOn ? true : undefined}
             onChange={(event) => set('bookedOn', event.target.value)}
             type="date"
             value={values.bookedOn}
           />
           {showErrors && errors.bookedOn ? (
-            <small>{t('transactions.validation.bookedOn')}</small>
+            <small id={`${errorId}-bookedOn`}>{t('transactions.validation.bookedOn')}</small>
           ) : null}
         </label>
 
         <label>
           <span>{t('transactions.fields.amount')}</span>
           <input
+            aria-describedby={
+              showErrors && errors.amountValue ? `${errorId}-amountValue` : undefined
+            }
             aria-invalid={showErrors && errors.amountValue ? true : undefined}
             autoComplete="off"
             data-autofocus
@@ -176,13 +188,14 @@ export function TransactionForm({
             value={values.amountValue}
           />
           {showErrors && errors.amountValue ? (
-            <small>{t('transactions.validation.amount')}</small>
+            <small id={`${errorId}-amountValue`}>{t('transactions.validation.amount')}</small>
           ) : null}
         </label>
 
         <label>
           <span>{t('transactions.fields.nature')}</span>
           <select
+            aria-describedby={showErrors && errors.nature ? `${errorId}-nature` : undefined}
             aria-invalid={showErrors && errors.nature ? true : undefined}
             onChange={(event) =>
               set('nature', event.target.value as TransactionFormValues['nature'])
@@ -196,7 +209,7 @@ export function TransactionForm({
             ))}
           </select>
           {showErrors && errors.nature ? (
-            <small>{t('transactions.validation.nature')}</small>
+            <small id={`${errorId}-nature`}>{t('transactions.validation.nature')}</small>
           ) : null}
         </label>
 
@@ -205,7 +218,14 @@ export function TransactionForm({
             {t(rawLabelLocked ? 'transactions.fields.rawLabel' : 'transactions.fields.label')}
           </span>
           <input
-            aria-describedby={rawLabelLocked ? 'transaction-raw-label-hint' : undefined}
+            aria-describedby={
+              [
+                rawLabelLocked ? 'transaction-raw-label-hint' : undefined,
+                showErrors && errors.rawLabel ? `${errorId}-rawLabel` : undefined,
+              ]
+                .filter(Boolean)
+                .join(' ') || undefined
+            }
             aria-invalid={showErrors && errors.rawLabel ? true : undefined}
             aria-label={t(
               rawLabelLocked ? 'transactions.fields.rawLabel' : 'transactions.fields.label',
@@ -215,7 +235,7 @@ export function TransactionForm({
             value={values.rawLabel}
           />
           {showErrors && errors.rawLabel ? (
-            <small>{t('transactions.validation.rawLabel')}</small>
+            <small id={`${errorId}-rawLabel`}>{t('transactions.validation.rawLabel')}</small>
           ) : null}
           {rawLabelLocked ? (
             <small className={styles.hint} id="transaction-raw-label-hint">

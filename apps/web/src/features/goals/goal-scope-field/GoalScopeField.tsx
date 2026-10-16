@@ -1,6 +1,7 @@
 import type { Account, GoalScopeType, GoalSummary } from '@cadran/api-client';
 import { listAccounts } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -45,6 +46,7 @@ export function GoalScopeField({
   showErrors,
 }: Props) {
   const { t } = useTranslation();
+  const errorId = useId();
   const accountQuery = useQuery({
     enabled: !goal && scopeType === 'ACCOUNT',
     queryKey: ['goal-accounts'],
@@ -75,6 +77,7 @@ export function GoalScopeField({
       <label>
         <span>{t('goals.scope')}</span>
         <select
+          aria-describedby={flag(scopeValid) ? errorId : undefined}
           aria-invalid={flag(scopeValid)}
           disabled={Boolean(goal)}
           onChange={(e) => setScope(e.target.value)}
@@ -87,6 +90,7 @@ export function GoalScopeField({
             </option>
           ))}
         </select>
+        {flag(scopeValid) ? <small id={errorId}>{t('goals.validation.scope')}</small> : null}
       </label>
     );
   }
@@ -103,6 +107,7 @@ export function GoalScopeField({
           <label>
             <span>{t('goals.scope')}</span>
             <select
+              aria-describedby={flag(scopeValid) ? errorId : undefined}
               aria-invalid={flag(scopeValid)}
               disabled={Boolean(goal) || accountQuery.isPending}
               onChange={(e) => setScope(e.target.value)}
@@ -115,6 +120,7 @@ export function GoalScopeField({
                 </option>
               ))}
             </select>
+            {flag(scopeValid) ? <small id={errorId}>{t('goals.validation.scope')}</small> : null}
           </label>
         )}
         {!goal && accountQuery.isPending ? <small>{t('goals.accountsLoading')}</small> : null}

@@ -11,10 +11,10 @@ WORKDIR /e2e
 RUN chown pwuser:pwuser /e2e
 USER pwuser
 
-# Install exactly the test runner, nothing else. The base image already carries
+# Install the test runner and accessibility engine. The base image already carries
 # the browsers; oxlint and tsc are workspace-only dev tooling and stay out of the
 # runner image. An exact version keeps the build reproducible without a lockfile.
-RUN npm install --no-save --no-audit --no-fund --omit=optional "@playwright/test@${PLAYWRIGHT_VERSION}"
+RUN npm install --no-save --no-audit --no-fund --omit=optional "@playwright/test@${PLAYWRIGHT_VERSION}" "@axe-core/playwright@4.11.1" "axe-core@4.11.4"
 
 COPY --chown=pwuser:pwuser tests/e2e/playwright.config.ts ./playwright.config.ts
 COPY --chown=pwuser:pwuser tests/e2e/tests ./tests
