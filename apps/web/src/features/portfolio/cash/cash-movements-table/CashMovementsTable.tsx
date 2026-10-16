@@ -18,7 +18,13 @@ export function CashMovementsTable({ cash }: { cash: PortfolioCash | null }) {
   return (
     <section className={`card ${styles.panel}`}>
       {cash ? null : <SkeletonStatus>Chargement des espèces…</SkeletonStatus>}
-      <div className={styles.scroll} data-testid="cash-movements-scroll">
+      <div
+        className={styles.scroll}
+        data-testid="cash-movements-scroll"
+        role="region"
+        aria-label="Mouvements d’espèces"
+        tabIndex={0}
+      >
         <table aria-label="Mouvements d’espèces" className={styles.table}>
           <thead>
             <tr>

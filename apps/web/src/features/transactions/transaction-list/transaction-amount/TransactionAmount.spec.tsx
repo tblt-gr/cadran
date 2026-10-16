@@ -11,7 +11,7 @@ describe('TransactionAmount', () => {
   it('names an outflow in words and keeps an explicit minus', () => {
     render(<TransactionAmount amount={{ value: '-42.90', assetCode: 'EUR' }} />);
 
-    const amount = screen.getByLabelText(/Sortie de/);
+    const amount = screen.getByRole('img', { name: /Sortie de/ });
     expect(amount.textContent).toMatch(/−|-/);
     expect(amount.getAttribute('data-sign')).toBe('outflow');
   });
@@ -19,7 +19,7 @@ describe('TransactionAmount', () => {
   it('names an inflow in words and keeps an explicit plus', () => {
     render(<TransactionAmount amount={{ value: '42.90', assetCode: 'EUR' }} />);
 
-    const amount = screen.getByLabelText(/Entrée de/);
+    const amount = screen.getByRole('img', { name: /Entrée de/ });
     expect(amount.textContent).toMatch(/\+/);
     expect(amount.getAttribute('data-sign')).toBe('inflow');
   });

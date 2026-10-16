@@ -139,11 +139,14 @@ export function ValuationForm({
         </>
       )}
       <FormField error={errors['/note']} label="Note" wide>
-        <input
-          maxLength={200}
-          onChange={(event) => set('note', event.target.value)}
-          value={values.note}
-        />
+        {(attributes) => (
+          <input
+            {...attributes}
+            maxLength={200}
+            onChange={(event) => set('note', event.target.value)}
+            value={values.note}
+          />
+        )}
       </FormField>
       <div className={styles.actions}>
         <button className="primary-action" disabled={pending} type="submit">

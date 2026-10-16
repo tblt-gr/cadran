@@ -137,47 +137,54 @@ export function BudgetPage({ planId }: { planId?: string }) {
           </button>
         </section>
       ) : (
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>{t('budget.columns.period')}</th>
-              <th>{t('budget.columns.currency')}</th>
-              <th>{t('budget.columns.state')}</th>
-              <th>
-                <span className="sr-only">{t('actions.more')}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {planItems.map((plan) => (
-              <tr key={plan.id}>
-                <td>
-                  <a
-                    href={`/budget/plans/${plan.id}`}
-                    onClick={(event) => handleClientNavigation(event, `/budget/plans/${plan.id}`)}
-                  >
-                    {plan.period}
-                  </a>
-                </td>
-                <td>{plan.assetCode}</td>
-                <td>
-                  <StatusBadge tone={tones[plan.state]}>
-                    {t(`budget.states.${plan.state}`)}
-                  </StatusBadge>
-                </td>
-                <td>
-                  <button
-                    className="secondary-action"
-                    onClick={() => setPlanEditor(plan)}
-                    type="button"
-                  >
-                    {t('budget.edit')}
-                  </button>
-                </td>
+        <div
+          className={styles.tableScroll}
+          role="region"
+          aria-label={t('routes.budgetPlans')}
+          tabIndex={0}
+        >
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>{t('budget.columns.period')}</th>
+                <th>{t('budget.columns.currency')}</th>
+                <th>{t('budget.columns.state')}</th>
+                <th>
+                  <span className="sr-only">{t('actions.more')}</span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {planItems.map((plan) => (
+                <tr key={plan.id}>
+                  <td>
+                    <a
+                      href={`/budget/plans/${plan.id}`}
+                      onClick={(event) => handleClientNavigation(event, `/budget/plans/${plan.id}`)}
+                    >
+                      {plan.period}
+                    </a>
+                  </td>
+                  <td>{plan.assetCode}</td>
+                  <td>
+                    <StatusBadge tone={tones[plan.state]}>
+                      {t(`budget.states.${plan.state}`)}
+                    </StatusBadge>
+                  </td>
+                  <td>
+                    <button
+                      className="secondary-action"
+                      onClick={() => setPlanEditor(plan)}
+                      type="button"
+                    >
+                      {t('budget.edit')}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {planEditor ? (
         <Modal

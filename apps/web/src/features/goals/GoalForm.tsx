@@ -6,7 +6,7 @@ import type {
   GoalSummary,
   UpdateGoalRequest,
 } from '@cadran/api-client';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { formatAmount, isCanonicalUnsignedDecimal } from '@/lib/decimal';
@@ -52,6 +52,8 @@ export function GoalForm({
   onSubmit,
 }: Props) {
   const { t, i18n } = useTranslation();
+  const validationId = useId();
+  const targetErrorId = useId();
   const timeZone = useWorkspaceTimeZone();
   const version = goal?.currentVersion;
   const workspaceMonth = currentMonthIn(timeZone);
@@ -204,6 +206,7 @@ export function GoalForm({
       <label>
         <span>{t('goals.label')}</span>
         <input
+          aria-describedby={flag(labelValid) ? validationId : undefined}
           aria-invalid={flag(labelValid)}
           data-autofocus
           maxLength={80}
@@ -255,6 +258,7 @@ export function GoalForm({
           <label>
             <span>{t('goals.effectiveFrom')}</span>
             <input
+              aria-describedby={flag(effectiveMonthValid) ? validationId : undefined}
               aria-invalid={flag(effectiveMonthValid)}
               max={latestEffectiveMonth}
               min={minEffectiveMonth}
@@ -267,6 +271,7 @@ export function GoalForm({
             <label>
               <span>{t('goals.correctionReason')}</span>
               <textarea
+                aria-describedby={flag(reasonValid) ? validationId : undefined}
                 aria-invalid={flag(reasonValid)}
                 maxLength={200}
                 minLength={3}
@@ -282,6 +287,7 @@ export function GoalForm({
         <label>
           <span>{t('goals.year')}</span>
           <input
+            aria-describedby={flag(yearValid) ? validationId : undefined}
             aria-invalid={flag(yearValid)}
             disabled={Boolean(goal)}
             inputMode="numeric"
@@ -293,6 +299,7 @@ export function GoalForm({
         <label>
           <span>{t('goals.startMonth')}</span>
           <input
+            aria-describedby={flag(periodValid) ? validationId : undefined}
             aria-invalid={flag(periodValid)}
             disabled={Boolean(goal)}
             onChange={(e) => setStartMonth(e.target.value)}
@@ -305,9 +312,17 @@ export function GoalForm({
         <label>
           <span>{t(kind === 'ANNUAL' ? 'goals.targetAmount' : 'goals.ratio')}</span>
           {kind === 'ANNUAL' ? (
-            <AmountInput invalid={Boolean(flag(decimalValid))} onChange={setValue} value={value} />
+            <AmountInput
+              aria-label={t('goals.targetAmount')}
+              aria-describedby={flag(decimalValid) ? targetErrorId : undefined}
+              invalid={Boolean(flag(decimalValid))}
+              onChange={setValue}
+              value={value}
+            />
           ) : (
             <input
+              aria-label={t('goals.ratio')}
+              aria-describedby={flag(decimalValid) ? targetErrorId : undefined}
               aria-invalid={flag(decimalValid)}
               inputMode="decimal"
               onChange={(e) => setValue(e.target.value)}
@@ -316,6 +331,11 @@ export function GoalForm({
           )}
           {kind === 'ROLLING_RATIO' ? <small>{t('goals.ratioHint')}</small> : null}
         </label>
+      ) : null}
+      {!futureGoal && flag(decimalValid) ? (
+        <p className={styles.alert} id={targetErrorId} role="alert">
+          {t(kind === 'ANNUAL' ? 'goals.validation.targetAmount' : 'goals.validation.ratio')}
+        </p>
       ) : null}
       {kind === 'ANNUAL' && !futureGoal ? (
         <GoalScheduleEditor
@@ -327,7 +347,7 @@ export function GoalForm({
         />
       ) : null}
       {invalid ? (
-        <p className={styles.alert} role="alert">
+        <p className={styles.alert} id={validationId} role="alert">
           {t('goals.validation.form')}
         </p>
       ) : null}

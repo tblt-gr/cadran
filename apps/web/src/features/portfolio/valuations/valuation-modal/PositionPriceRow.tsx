@@ -48,12 +48,15 @@ export function PositionPriceRow({
         value={value.unknown ? '' : value.price}
       />
       <FormField error={errors[`/prices/${index}/priceDate`]} label="Date du prix">
-        <input
-          disabled={value.unknown}
-          onChange={(event) => onChange({ ...value, priceDate: event.target.value })}
-          type="date"
-          value={value.unknown ? '' : value.priceDate}
-        />
+        {(attributes) => (
+          <input
+            {...attributes}
+            disabled={value.unknown}
+            onChange={(event) => onChange({ ...value, priceDate: event.target.value })}
+            type="date"
+            value={value.unknown ? '' : value.priceDate}
+          />
+        )}
       </FormField>
       <label className={styles.unknown}>
         <input

@@ -44,7 +44,12 @@ export function MetricPolicyPageSkeleton({ status }: { status: string }) {
       </section>
       <section className={`card ${styles.history}`}>
         <h3>{t('metricPolicy.history.title')}</h3>
-        <div className={styles.tableWrap}>
+        <div
+          className={styles.tableWrap}
+          role="region"
+          aria-label={t('metricPolicy.history.tableLabel')}
+          tabIndex={0}
+        >
           <table>
             <caption className={styles.srOnly}>{t('metricPolicy.history.title')}</caption>
             <thead>

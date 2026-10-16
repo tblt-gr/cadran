@@ -43,6 +43,35 @@ function values(overrides: Partial<ReturnType<typeof initialTransferValues>> = {
 }
 
 describe('transferFormValues', () => {
+  // 1 June +/- 90 calendar days is 3 March / 30 August in 2026.
+  it.each([
+    ['2026-03-03', false],
+    ['2026-08-30', false],
+    ['2026-03-02', true],
+    ['2026-08-31', true],
+  ] as const)(
+    'checks the value date boundary %s without forbidding future value dates',
+    (valueOn, rejected) => {
+      const errors = validateTransferValues(
+        values({ bookedOn: '2026-06-01', valueOn }),
+        [source, target],
+        '2026-06-01',
+      );
+      expect(errors).toEqual(rejected ? { valueOn: true } : {});
+    },
+  );
+
+  it.each([
+    [' note', true],
+    ['note ', true],
+    ['😀'.repeat(500), false],
+    ['😀'.repeat(501), true],
+  ] as const)('checks trimmed notes and their Unicode code-point bound %#', (note, rejected) => {
+    expect(validateTransferValues(values({ note }), [source, target], '2026-09-08')).toEqual(
+      rejected ? { note: true } : {},
+    );
+  });
+
   it('shows the second amount field only when the accounts do not share an asset', () => {
     expect(isCrossAssetTransfer(values(), [source, target, chfTarget])).toBe(false);
     expect(

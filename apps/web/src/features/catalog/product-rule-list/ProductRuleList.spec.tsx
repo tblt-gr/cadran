@@ -45,6 +45,13 @@ const product: Product = {
 describe('ProductRuleList', () => {
   afterEach(cleanup);
 
+  it('makes the sourced rules scroll region reachable by keyboard', () => {
+    render(<ProductRuleList product={product} />);
+    const region = screen.getByRole('region', { name: /Livret A/ });
+    expect(region.tabIndex).toBe(0);
+    expect(region.querySelector('table')).toBeTruthy();
+  });
+
   it('shows the exact value, verification words and official source without an implicit alert icon', () => {
     const { container } = render(<ProductRuleList product={product} />);
 

@@ -34,6 +34,7 @@ export function BudgetTargetForm({ target, pending, submitError, onSubmit }: Pro
   const [showErrors, setShowErrors] = useState(false);
   const ratioHintId = useId();
   const valueErrorId = useId();
+  const scopeErrorId = useId();
   const scopeValid =
     target !== undefined ||
     (scopeType === 'AXIS'
@@ -83,6 +84,8 @@ export function BudgetTargetForm({ target, pending, submitError, onSubmit }: Pro
                 <span>{t('budget.fields.scope')}</span>
                 <select
                   aria-label={t('budget.fields.scope')}
+                  aria-invalid={showErrors && !scopeValid ? true : undefined}
+                  aria-describedby={showErrors && !scopeValid ? scopeErrorId : undefined}
                   onChange={(e) => setScopeId(e.target.value)}
                   value={scopeId}
                 >
@@ -106,7 +109,7 @@ export function BudgetTargetForm({ target, pending, submitError, onSubmit }: Pro
               />
             )}
             {showErrors && !scopeValid && scopeType === 'AXIS' ? (
-              <small>{t('budget.validation.scope')}</small>
+              <small id={scopeErrorId}>{t('budget.validation.scope')}</small>
             ) : null}
           </div>
         </>

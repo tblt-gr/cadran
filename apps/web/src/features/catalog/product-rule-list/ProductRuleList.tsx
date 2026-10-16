@@ -26,7 +26,12 @@ export function ProductRuleList({ product }: ProductRuleListProps) {
   }
 
   return (
-    <div className={styles.tableScroll}>
+    <div
+      className={styles.tableScroll}
+      role="region"
+      aria-label={t('catalog.list.caption', { product: product.displayName })}
+      tabIndex={0}
+    >
       <table>
         <caption className="sr-only">
           {t('catalog.list.caption', { product: product.displayName })}

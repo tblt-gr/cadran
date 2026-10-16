@@ -76,6 +76,15 @@ describe('BudgetPage', () => {
     cleanup();
     vi.clearAllMocks();
   });
+  it('keeps the plan table in a named keyboard-accessible scroll region', async () => {
+    api.listBudgetPlans.mockReturnValue(ok({ items: [plan], page: 1, pageSize: 100, total: 1 }));
+    renderPage();
+    await screen.findByText(plan.period);
+    const region = screen.getByRole('region', { name: 'Plans budgétaires' });
+    expect(region.tabIndex).toBe(0);
+    expect(region.querySelector('table')).toBeTruthy();
+  });
+
   it('replaces its one named cold-load skeleton and keeps plans during a refetch', async () => {
     let resolvePlans: ((value: unknown) => void) | undefined;
     api.listBudgetPlans.mockImplementation(

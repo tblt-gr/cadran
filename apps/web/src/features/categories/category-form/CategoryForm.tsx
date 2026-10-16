@@ -4,7 +4,7 @@ import type {
   CreateCategoryRequest,
   UpdateCategoryRequest,
 } from '@cadran/api-client';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
 import { CategoryColorPicker } from '@/features/categories/category-color-picker/CategoryColorPicker';
@@ -42,6 +42,7 @@ export function CategoryForm({
   onSubmit,
 }: CategoryFormProps) {
   const { t } = useTranslation();
+  const errorId = useId();
   const [type, setType] = useState<CategoryType>(category?.type ?? 'EXPENSE');
   const [label, setLabel] = useState(category?.label ?? '');
   const [parentId, setParentId] = useState(category?.parentId ?? '');
@@ -125,6 +126,7 @@ export function CategoryForm({
         <label>
           <span>{t('categories.fields.label')}</span>
           <input
+            aria-describedby={showErrors && labelInvalid ? `${errorId}-label` : undefined}
             aria-invalid={showErrors && labelInvalid ? true : undefined}
             autoComplete="off"
             data-autofocus
@@ -133,7 +135,9 @@ export function CategoryForm({
             required
             value={label}
           />
-          {showErrors && labelInvalid ? <small>{t('categories.validation.label')}</small> : null}
+          {showErrors && labelInvalid ? (
+            <small id={`${errorId}-label`}>{t('categories.validation.label')}</small>
+          ) : null}
         </label>
 
         {!category ? (
@@ -143,12 +147,15 @@ export function CategoryForm({
         <label>
           <span>{t('categories.fields.order')}</span>
           <input
+            aria-describedby={showErrors && orderInvalid ? `${errorId}-order` : undefined}
             aria-invalid={showErrors && orderInvalid ? true : undefined}
             inputMode="numeric"
             onChange={(event) => setSortOrder(event.target.value)}
             value={sortOrder}
           />
-          {showErrors && orderInvalid ? <small>{t('categories.validation.order')}</small> : null}
+          {showErrors && orderInvalid ? (
+            <small id={`${errorId}-order`}>{t('categories.validation.order')}</small>
+          ) : null}
         </label>
       </div>
 

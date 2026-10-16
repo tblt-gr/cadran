@@ -1,3 +1,4 @@
+import { CashMovementsTable } from './cash-movements-table/CashMovementsTable';
 import { CashSummary } from './cash-summary/CashSummary';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -51,6 +52,16 @@ afterEach(() => {
 });
 
 describe('CashTab', () => {
+  it.each([null, cashFixture()])(
+    'makes the cash movement scroller reachable while pending and loaded %#',
+    (cash) => {
+      render(<CashMovementsTable cash={cash} />);
+      const region = screen.getByRole('region', { name: 'Mouvements d’espèces' });
+      expect(region.tabIndex).toBe(0);
+      expect(within(region).getByRole('table', { name: 'Mouvements d’espèces' })).toBeTruthy();
+    },
+  );
+
   it('shows the skeleton chrome then the balance, period totals and running movements', async () => {
     renderTab();
     expect(screen.getByRole('button', { name: 'Cette année' })).toBeTruthy();

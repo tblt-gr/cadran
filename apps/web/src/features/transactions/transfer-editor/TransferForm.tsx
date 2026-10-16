@@ -1,5 +1,5 @@
 import type { Account, CreateTransferRequest } from '@cadran/api-client';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { TransferAdditionalFields } from './TransferAdditionalFields';
 import { TransferDestination } from './TransferDestination';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +53,7 @@ export function TransferForm({
   submitError,
 }: TransferFormProps) {
   const { t } = useTranslation();
+  const errorId = useId();
   const workspaceTimeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), workspaceTimeZone);
   const [values, setValues] = useState(() => {
@@ -130,6 +131,9 @@ export function TransferForm({
           <span>{t('transactions.transfer.fields.sourceAccount')}</span>
           <select
             disabled={pending || transferCreated}
+            aria-describedby={
+              showErrors && errors.sourceAccountId ? `${errorId}-sourceAccountId` : undefined
+            }
             aria-invalid={showErrors && errors.sourceAccountId ? true : undefined}
             data-autofocus
             onChange={(event) => set('sourceAccountId', event.target.value)}
@@ -143,7 +147,9 @@ export function TransferForm({
             ))}
           </select>
           {showErrors && errors.sourceAccountId ? (
-            <small>{t('transactions.transfer.validation.sourceAccount')}</small>
+            <small id={`${errorId}-sourceAccountId`}>
+              {t('transactions.transfer.validation.sourceAccount')}
+            </small>
           ) : null}
         </label>
 
@@ -162,6 +168,9 @@ export function TransferForm({
           <span>{withAssetCode(t('transactions.transfer.fields.sourceAmount'), sourceAsset)}</span>
           <input
             disabled={pending || transferCreated}
+            aria-describedby={
+              showErrors && errors.sourceAmountValue ? `${errorId}-sourceAmountValue` : undefined
+            }
             aria-invalid={showErrors && errors.sourceAmountValue ? true : undefined}
             autoComplete="off"
             inputMode="decimal"
@@ -170,7 +179,9 @@ export function TransferForm({
             value={values.sourceAmountValue}
           />
           {showErrors && errors.sourceAmountValue ? (
-            <small>{t('transactions.transfer.validation.sourceAmount')}</small>
+            <small id={`${errorId}-sourceAmountValue`}>
+              {t('transactions.transfer.validation.sourceAmount')}
+            </small>
           ) : null}
         </label>
 
@@ -181,6 +192,9 @@ export function TransferForm({
             </span>
             <input
               disabled={pending || transferCreated}
+              aria-describedby={
+                showErrors && errors.targetAmountValue ? `${errorId}-targetAmountValue` : undefined
+              }
               aria-invalid={showErrors && errors.targetAmountValue ? true : undefined}
               autoComplete="off"
               inputMode="decimal"
@@ -189,7 +203,9 @@ export function TransferForm({
               value={values.targetAmountValue}
             />
             {showErrors && errors.targetAmountValue ? (
-              <small>{t('transactions.transfer.validation.targetAmount')}</small>
+              <small id={`${errorId}-targetAmountValue`}>
+                {t('transactions.transfer.validation.targetAmount')}
+              </small>
             ) : null}
           </label>
         ) : null}
@@ -198,13 +214,16 @@ export function TransferForm({
           <span>{t('transactions.transfer.fields.bookedOn')}</span>
           <input
             disabled={pending || transferCreated}
+            aria-describedby={showErrors && errors.bookedOn ? `${errorId}-bookedOn` : undefined}
             aria-invalid={showErrors && errors.bookedOn ? true : undefined}
             onChange={(event) => set('bookedOn', event.target.value)}
             type="date"
             value={values.bookedOn}
           />
           {showErrors && errors.bookedOn ? (
-            <small>{t('transactions.transfer.validation.bookedOn')}</small>
+            <small id={`${errorId}-bookedOn`}>
+              {t('transactions.transfer.validation.bookedOn')}
+            </small>
           ) : null}
         </label>
 
