@@ -18,3 +18,10 @@ condition = "AND"
 targetRules = ["generic-api-key"]
 paths = ['''(?:^|/)apps/api/tests/Security/SensitiveLoggingTest\.php$''']
 regexes = ['''(?i)zx9-(?:wrong-passphrase|sentinel-idempotency-key)[a-z0-9-]*''']
+
+[[allowlists]]
+description = "Category path in invalid YAML mapping fixtures, not a credential"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''(?:^|/)apps/api/tests/Module/Import/Infrastructure/YamlMappingReaderTest\.php$''']
+regexes = ['''^Income/Salary$''']

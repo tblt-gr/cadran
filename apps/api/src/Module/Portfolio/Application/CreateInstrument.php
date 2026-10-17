@@ -35,8 +35,9 @@ final readonly class CreateInstrument
     {
         $context = $this->caller->resolveContext();
         $parsed = $this->parser->parse($context->workspace, $input);
+        $source = InstrumentSource::tryFrom($input->source) ?? throw new InvalidInstrumentInput('The instrument source is invalid.', 'invalid_instrument_source');
 
-        return $this->transactions->transactional(function () use ($context, $parsed, $input): InstrumentView {
+        return $this->transactions->transactional(function () use ($context, $parsed, $input, $source): InstrumentView {
             $this->instruments->lockWorkspace($context->workspace);
             if ($this->instruments->countAll($context->workspace) >= self::MAX_INSTRUMENTS) {
                 throw new InstrumentLimitReached('The workspace instrument limit is reached.');
@@ -47,7 +48,7 @@ final readonly class CreateInstrument
                     $this->uuid->generate(), $context->workspace, $parsed->name, $parsed->isin, $parsed->ticker,
                     $parsed->venueMic, $parsed->instrumentType, $parsed->assetClass, $parsed->region,
                     $parsed->currencyCode, $parsed->quantityPrecision, $parsed->pricePrecision,
-                    InstrumentSource::MANUAL, $now, $context->actorId, InstrumentStatus::ACTIVE,
+                    $source, $now, $context->actorId, InstrumentStatus::ACTIVE,
                     null, $now, $context->actorId, $now, 1,
                 );
             } catch (InvalidInstrument $exception) {

@@ -1,4 +1,4 @@
-.PHONY: upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
+.PHONY: upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend import-workbook init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -58,6 +58,15 @@ demo-seed: tools
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) up --detach --wait db
 	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console --no-debug app:demo:seed $(EMAIL)
+
+# Transitional (IMP-006, removed by IMP-007): import the yearly budget workbooks, or write a mapping skeleton, through
+# the tooling container. Paths come from the command line, must lie outside the repository and are bind-mounted by
+# scripts/import-workbook.sh. See that script for the variables (FILE, FILES, MAPPING, EMIT_MAPPING, DRY_RUN, VERBOSE, EMAIL, YEAR),
+# which make passes through the environment as command-line variables.
+import-workbook: tools
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait db
+	TOOLS_IMAGE=$(TOOLS_IMAGE) bash scripts/import-workbook.sh
 
 # Dev only: bring an already seeded workspace up to today (idempotent). Writes
 # the open month of the deterministic demo plan and never touches closed months.

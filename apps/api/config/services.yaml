@@ -31,6 +31,19 @@ services:
   App\Module\Categories\Application\CategoryClassificationCounter:
     alias: App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository
 
+  # Ports of the transitional workbook import (removed with the module by IMP-007).
+  App\Module\Import\Application\WorkbookReader:
+    alias: App\Module\Import\Infrastructure\Xlsx\XlsxWorkbookReader
+
+  App\Module\Import\Application\MappingReader:
+    alias: App\Module\Import\Infrastructure\Mapping\YamlMappingReader
+
+  App\Module\Import\Application\ImportActor:
+    alias: App\Module\Import\Infrastructure\ConsoleOwnerActor
+
+  App\Module\Import\Application\ImportReferences:
+    alias: App\Module\Import\Infrastructure\Workspace\ServiceImportReferences
+
   App\Module\Demo\Application\DemoActor:
     alias: App\Module\Demo\Infrastructure\TokenDemoActor
 
@@ -65,3 +78,16 @@ services:
       - '@limiter.login_global'
       - '@limiter.login_local'
       - '%env(APP_SECRET)%'
+
+when@test:
+  services:
+    _defaults:
+      autowire: true
+      autoconfigure: true
+
+    # The import integration tests assume the owner and run the executor on a hand-built plan.
+    App\Module\Import\Application\ImportExecutor:
+      public: true
+
+    App\Module\Import\Application\ImportWorkbook:
+      public: true

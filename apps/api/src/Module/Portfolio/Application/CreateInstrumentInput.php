@@ -18,6 +18,8 @@ final readonly class CreateInstrumentInput
         public ?int $quantityPrecision = null,
         public ?int $pricePrecision = null,
         public bool $confirmDuplicate = false,
+        /** `MANUAL` for a person typing it, `IMPORT` for the one-shot workbook import. */
+        public string $source = 'MANUAL',
     ) {
     }
 }
