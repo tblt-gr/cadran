@@ -17,8 +17,10 @@ return (new Configuration())
     ->ignoreErrorsOnPackage('symfony/lock', [ErrorType::UNUSED_DEPENDENCY])
     // Components the container needs at runtime; only the tests name their classes.
     ->ignoreErrorsOnPackage('symfony/translation', [ErrorType::PROD_DEPENDENCY_ONLY_IN_DEV])
-    ->ignoreErrorsOnPackage('symfony/yaml', [ErrorType::PROD_DEPENDENCY_ONLY_IN_DEV])
     // PHP extensions required at runtime without a direct call: brick/math picks BCMath when present, and the
     // polyfill-iconv replacement in composer.json relies on the native extension.
     ->ignoreErrorsOnExtension('ext-bcmath', [ErrorType::UNUSED_DEPENDENCY])
-    ->ignoreErrorsOnExtension('ext-iconv', [ErrorType::UNUSED_DEPENDENCY]);
+    ->ignoreErrorsOnExtension('ext-iconv', [ErrorType::UNUSED_DEPENDENCY])
+    // The one-shot workbook import reads .xlsx archives with ZipArchive. The tools image installs ext-zip; the hardened
+    // runtime image does not, so it cannot be a platform requirement. The command checks for it and exits 2 when absent.
+    ->ignoreErrorsOnExtension('ext-zip', [ErrorType::SHADOW_DEPENDENCY]);

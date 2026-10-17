@@ -1,5 +1,7 @@
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -514,3 +516,50 @@ if (
 if (/—/.test(upgradeScript)) {
   fail('The upgrade script must not contain an em dash');
 }
+
+// Workbook import (IMP-006, transitional): one Make target over scripts/import-workbook.sh, which refuses repository paths
+// before any container starts and mounts every input read-only.
+const importScript = readFileSync(
+  new URL('../scripts/import-workbook.sh', import.meta.url),
+  'utf8',
+);
+
+if (
+  !/^import-workbook:.*\n(?:\t.*\n)*?\t.*scripts\/import-workbook\.sh$/m.test(makefile) ||
+  !/^\.PHONY:.* import-workbook /.test(makefile)
+) {
+  fail('make import-workbook must be a phony target running scripts/import-workbook.sh');
+}
+
+if (!/readonly"/.test(importScript) || /\beval\b/.test(importScript.replace(/^\s*#.*$/gm, ''))) {
+  fail('The import script must mount every input read-only and never eval its arguments');
+}
+
+const importDirectory = mkdtempSync(join(tmpdir(), 'cadran-import-'));
+const outsideWorkbook = join(importDirectory, '2025.xlsx');
+const outsideMapping = join(importDirectory, 'mapping.yaml');
+writeFileSync(outsideWorkbook, 'x');
+writeFileSync(outsideMapping, 'x');
+
+for (const [name, environment] of [
+  ['FILE', { FILE: `${repositoryRoot}README.md`, MAPPING: outsideMapping }],
+  ['MAPPING', { FILE: outsideWorkbook, MAPPING: `${repositoryRoot}package.json` }],
+  ['EMIT_MAPPING', { FILES: outsideWorkbook, EMIT_MAPPING: `${repositoryRoot}mapping.yaml` }],
+  [
+    'FILES',
+    { FILES: `'${repositoryRoot}README.md'`, EMIT_MAPPING: join(importDirectory, 'skeleton.yaml') },
+  ],
+  ['a relative FILE', { FILE: './README.md', MAPPING: outsideMapping }],
+]) {
+  const run = spawnSync('bash', ['scripts/import-workbook.sh'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: { PATH: process.env.PATH, ...environment },
+  });
+
+  if (run.status !== 2 || !run.stderr.includes('outside the repository')) {
+    fail(`The import script must refuse a ${name} inside the repository with exit code 2`);
+  }
+}
+
+rmSync(importDirectory, { recursive: true, force: true });
