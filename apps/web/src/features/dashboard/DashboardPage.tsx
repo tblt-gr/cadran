@@ -7,6 +7,7 @@ import {
   useMissingValuationsOpen,
 } from './missing-valuations/missingValuationsDialog';
 import { MissingValuationsModal } from './missing-valuations/MissingValuationsModal';
+import { useNetWorthPeriod } from './net-worth-period/useNetWorthPeriod';
 import { NetWorthCard } from './net-worth-card/NetWorthCard';
 import { DashboardPageSkeleton } from './DashboardPageSkeleton';
 import { netWorthErrorKind } from './net-worth/netWorthError';
@@ -16,7 +17,8 @@ import styles from './DashboardPage.module.css';
 export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
   const { t } = useTranslation();
   const netWorth = useNetWorth();
-  const history = useNetWorthHistory();
+  const { period, changePeriod } = useNetWorthPeriod();
+  const history = useNetWorthHistory(period);
   const missingValuationsOpen = useMissingValuationsOpen();
   const failure = netWorthErrorKind(netWorth.error, netWorth.isError);
 
@@ -24,7 +26,7 @@ export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
     <>
       <div className={styles.grid}>
         {netWorth.isPending && netWorth.data === undefined ? (
-          <DashboardPageSkeleton status={t('dashboard.netWorth.loading')} />
+          <DashboardPageSkeleton period={period} status={t('dashboard.netWorth.loading')} />
         ) : failure !== null || netWorth.data === undefined ? (
           <DashboardState
             kind={failure ?? 'error'}
@@ -37,6 +39,10 @@ export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
           <>
             <NetWorthCard
               historyPending={history.isPending}
+              historyFetching={history.isFetching}
+              period={period}
+              onPeriodChange={changePeriod}
+              truncated={history.data?.truncated ?? false}
               historyPoints={history.data?.points ?? null}
               netWorth={netWorth.data}
             />

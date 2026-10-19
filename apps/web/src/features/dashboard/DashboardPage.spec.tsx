@@ -106,6 +106,9 @@ const netWorth: NetWorth = {
 const history: NetWorthHistory = {
   asOf: '2026-09-05',
   granularity: 'MONTH',
+  period: 'LAST_12_MONTHS',
+  firstDataMonth: '2026-07',
+  truncated: false,
   points: [
     { on: '2026-07-31', total: null, reason: 'MISSING_VALUATION', quality: 'MISSING' },
     { on: '2026-08-31', total: amount('122940.00'), reason: null, quality: 'STALE' },
@@ -163,6 +166,7 @@ describe('DashboardPage', () => {
   afterEach(() => {
     cleanup();
     vi.resetAllMocks();
+    window.history.replaceState({}, '', '/');
   });
 
   it('replaces its one named cold-load skeleton and keeps data during a refetch', async () => {
@@ -189,6 +193,91 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(api.readNetWorth).toHaveBeenCalledTimes(2));
     expect(screen.getByRole('heading', { name: 'Patrimoine net' })).toBeTruthy();
     expect(screen.queryByTestId('dashboard-skeleton')).toBeNull();
+  });
+
+  it.each([
+    ['', '12 mois', 'LAST_12_MONTHS'],
+    ['?periode=ytd', 'Depuis janvier', 'YTD'],
+    ['?periode=tout', 'Tout', 'ALL'],
+    ['?periode=invalid', '12 mois', 'LAST_12_MONTHS'],
+  ])('restores %s from the URL', async (query, label, period) => {
+    window.history.replaceState({}, '', `/${query}`);
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+    renderDashboard();
+    await loaded();
+    expect(screen.getByRole('radiogroup', { name: 'Période du graphique' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: label, checked: true })).toBeTruthy();
+    expect(api.readNetWorthHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { period } }),
+    );
+  });
+
+  it('keeps the previous series busy until the selected period arrives and updates its table', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValueOnce(success(history));
+    let resolveHistory:
+      ((value: Awaited<ReturnType<typeof success<NetWorthHistory>>>) => void) | undefined;
+    api.readNetWorthHistory.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveHistory = resolve;
+        }),
+    );
+    renderDashboard();
+    await loaded();
+    await screen.findByRole('img', { name: /Évolution du patrimoine net/ });
+    fireEvent.click(screen.getByRole('radio', { name: 'Tout' }));
+    expect(window.location.search).toBe('?periode=tout');
+    const chart = screen.getByRole('figure', { name: 'Évolution du patrimoine' });
+    expect(chart.closest('[aria-busy]')?.getAttribute('aria-busy')).toBe('true');
+    expect(chart.textContent).toContain('Juillet 2026');
+    await waitFor(() => expect(resolveHistory).toBeDefined());
+    resolveHistory?.(
+      await success({ ...history, period: 'ALL', truncated: true, points: [history.points[2]] }),
+    );
+    await waitFor(() =>
+      expect(chart.closest('[aria-busy]')?.getAttribute('aria-busy')).toBe('false'),
+    );
+    expect(chart.textContent).not.toContain('Juillet 2026');
+    expect(chart.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(screen.getByText('Seuls les 60 derniers mois sont affichés.')).toBeTruthy();
+  });
+
+  it('preserves unrelated URL state and responds to browser navigation', async () => {
+    window.history.replaceState({}, '', '/?other=kept#chart');
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+    renderDashboard();
+    await loaded();
+    fireEvent.click(screen.getByRole('radio', { name: 'Depuis janvier' }));
+    expect(window.location.search).toBe('?other=kept&periode=ytd');
+    expect(window.location.hash).toBe('#chart');
+    window.history.replaceState({}, '', '/?periode=tout');
+    fireEvent(window, new PopStateEvent('popstate'));
+    expect(screen.getByRole('radio', { name: 'Tout', checked: true })).toBeTruthy();
+  });
+
+  it('allows another selection after a history request fails', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValueOnce(problem(500));
+    renderDashboard();
+    await loaded();
+    await screen.findByText('Historique indisponible pour le moment.');
+    api.readNetWorthHistory.mockReturnValue(success(history));
+    fireEvent.click(screen.getByRole('radio', { name: 'Tout' }));
+    await screen.findByRole('figure', { name: 'Évolution du patrimoine' });
+  });
+
+  it('renders the selected disabled radios in the first-load skeleton', () => {
+    window.history.replaceState({}, '', '/?periode=ytd');
+    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
+    api.readNetWorthHistory.mockImplementation(() => new Promise(() => undefined));
+    renderDashboard();
+    const radios = within(screen.getByTestId('dashboard-skeleton')).getAllByRole('radio');
+    expect(radios).toHaveLength(3);
+    expect(radios.every((radio) => (radio as HTMLInputElement).disabled)).toBe(true);
+    expect(screen.getByRole('radio', { name: 'Depuis janvier', checked: true })).toBeTruthy();
   });
 
   it('shows the backend total, delta and rate without recomputing them', async () => {

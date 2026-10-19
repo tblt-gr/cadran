@@ -13,6 +13,9 @@ final readonly class NetWorthHistoryView
         public string $asOf,
         public string $granularity,
         public array $points,
+        public ?string $period,
+        public ?string $firstDataMonth,
+        public bool $truncated,
     ) {
     }
 }

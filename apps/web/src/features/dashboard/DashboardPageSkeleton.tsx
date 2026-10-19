@@ -3,6 +3,8 @@ import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton
 import { AllocationChartsSkeleton } from './allocation-charts/AllocationChartsSkeleton';
 import allocationStyles from './allocation-panel/AllocationPanel.module.css';
 import cardStyles from './net-worth-card/NetWorthCard.module.css';
+import { NetWorthPeriodControl } from './net-worth-period/NetWorthPeriodControl';
+import type { NetWorthPeriod } from './net-worth-period/useNetWorthPeriod';
 import { WealthChartSkeleton } from './wealth-chart/WealthChartSkeleton';
 import styles from './DashboardPageSkeleton.module.css';
 
@@ -11,7 +13,13 @@ import styles from './DashboardPageSkeleton.module.css';
  * descriptions, links and chart controls are static and real: only the
  * figures and the plots are pending.
  */
-export function DashboardPageSkeleton({ status }: { status: string }) {
+export function DashboardPageSkeleton({
+  status,
+  period = 'LAST_12_MONTHS',
+}: {
+  status: string;
+  period?: NetWorthPeriod;
+}) {
   const { t } = useTranslation();
   return (
     <>
@@ -33,7 +41,11 @@ export function DashboardPageSkeleton({ status }: { status: string }) {
             <SkeletonBlock className={styles.asOf} />
           </div>
         </div>
-        <WealthChartSkeleton />
+        <div className={cardStyles.history} aria-busy="true">
+          <NetWorthPeriodControl period={period} disabled />
+          <WealthChartSkeleton />
+          <p className={cardStyles.notice} />
+        </div>
       </section>
       <section
         aria-labelledby="allocation-skeleton-title"

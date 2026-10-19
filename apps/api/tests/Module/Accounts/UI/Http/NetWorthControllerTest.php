@@ -6,6 +6,7 @@ namespace App\Tests\Module\Accounts\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\PortfolioFixture;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -182,6 +183,106 @@ final class NetWorthControllerTest extends WebTestCase
         self::assertSame('12000.00', self::nested($points[1], 'total', 'value'));
         self::assertSame('STALE', $points[1]['quality']);
         self::assertSame('12500.00', self::nested($points[2], 'total', 'value'));
+    }
+
+    public function testNamedHistoryPeriodsAndLegacyMetadata(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::CASH, WorkspaceFixture::OWN_WORKSPACE, 'Compte');
+        $this->insertSnapshot(self::CASH, '2026-07-15', '12000.00');
+        $all = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
+        self::assertSame('ALL', $all['period']);
+        self::assertSame('2026-07', $all['firstDataMonth']);
+        self::assertFalse($all['truncated']);
+        self::assertSame(['2026-07-31', '2026-08-31', '2026-09-05'], array_column($this->rows($all, 'points'), 'on'));
+        $legacy = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&months=12');
+        self::assertNull($legacy['period']);
+        $default = $this->read('/api/v1/net-worth/history?asOf=2026-09-05');
+        self::assertSame('LAST_12_MONTHS', $default['period']);
+        self::assertSame($legacy['points'], $default['points']);
+        $january = $this->read('/api/v1/net-worth/history?asOf=2026-01-07&period=YTD');
+        self::assertCount(1, $this->rows($january, 'points'));
+    }
+
+    public function testAllHistoryExcludesForeignFutureAndSupersededSnapshots(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::CASH, WorkspaceFixture::OWN_WORKSPACE, 'Compte');
+        $this->insertAccount(self::FOREIGN, WorkspaceFixture::OTHER_WORKSPACE, 'Private');
+        $this->insertSnapshot(self::FOREIGN, '2000-01-01', '999999.00', WorkspaceFixture::OTHER_WORKSPACE);
+        $this->insertSnapshot(self::CASH, '2027-01-01', '1.00');
+        $this->insertSnapshot(self::CASH, '2020-01-01', '1.00');
+        $this->connection->update('account_balance_snapshots', ['superseded_at' => '2026-09-05 12:00:00+00'], [
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => self::CASH, 'as_of' => '2020-01-01',
+        ]);
+        $empty = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
+        self::assertNull($empty['firstDataMonth']);
+        self::assertCount(1, $this->rows($empty, 'points'));
+        self::assertNull($this->rows($empty, 'points')[0]['total']);
+        $this->insertSnapshot(self::CASH, '2026-08-15', '12.00');
+        self::assertSame('2026-08', $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL')['firstDataMonth']);
+    }
+
+    public function testAllStartsFromBookedTransactionsButExcludesVoidedPendingFutureAndForeignRows(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::CASH, WorkspaceFixture::OWN_WORKSPACE, 'Compte');
+        $this->insertAccount(self::FOREIGN, WorkspaceFixture::OTHER_WORKSPACE, 'Private');
+        $fixture = new PortfolioFixture($this->connection);
+        $fixture->transferLeg('00000000-0000-7000-8000-000000001001', self::CASH, '1.00', '2020-01-01', state: 'VOIDED');
+        $fixture->transferLeg('00000000-0000-7000-8000-000000001002', self::CASH, '1.00', '2020-02-01', state: 'PENDING');
+        $fixture->transferLeg('00000000-0000-7000-8000-000000001003', self::CASH, '1.00', '2027-01-01');
+        $fixture->transferLeg('00000000-0000-7000-8000-000000001004', self::FOREIGN, '1.00', '2000-01-01', workspace: WorkspaceFixture::OTHER_WORKSPACE);
+        $empty = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
+        self::assertNull($empty['firstDataMonth']);
+        $fixture->transferLeg('00000000-0000-7000-8000-000000001005', self::CASH, '1.00', '2026-06-05');
+        $history = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
+        self::assertSame('2026-06', $history['firstDataMonth']);
+        self::assertCount(4, $this->rows($history, 'points'));
+        $this->insertSnapshot(self::CASH, '2026-05-15', '12.00');
+        self::assertSame('2026-05', $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL')['firstDataMonth']);
+    }
+
+    public function testAllStartsFromActivePortfolioValuationsAndPublishesTruncation(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::CASH, WorkspaceFixture::OWN_WORKSPACE, 'Compte');
+        $this->insertAccount(self::FOREIGN, WorkspaceFixture::OTHER_WORKSPACE, 'Private');
+        $this->insertPortfolioValuation('00000000-0000-7000-8000-000000002001', '2000-01-01', self::FOREIGN, WorkspaceFixture::OTHER_WORKSPACE);
+        $this->insertPortfolioValuation('00000000-0000-7000-8000-000000002002', '2027-01-01');
+        $this->insertPortfolioValuation('00000000-0000-7000-8000-000000002003', '2019-01-01');
+        $this->connection->update('portfolio_valuations', ['superseded_at' => '2026-09-05 12:00:00+00'], [
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => '00000000-0000-7000-8000-000000002003',
+        ]);
+        self::assertNull($this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL')['firstDataMonth']);
+        $this->insertPortfolioValuation('00000000-0000-7000-8000-000000002004', '2026-07-10');
+        $history = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
+        self::assertSame('2026-07', $history['firstDataMonth']);
+        self::assertCount(3, $this->rows($history, 'points'));
+        $this->insertPortfolioValuation('00000000-0000-7000-8000-000000002005', '2020-01-10');
+        $truncated = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
+        self::assertTrue($truncated['truncated']);
+        self::assertSame('2020-01', $truncated['firstDataMonth']);
+        self::assertCount(60, $this->rows($truncated, 'points'));
+        self::assertSame('2021-10-31', $this->rows($truncated, 'points')[0]['on']);
+    }
+
+    public function testInvalidNamedPeriodsAndCombinedParametersReturn422(): void
+    {
+        $this->signIn();
+        foreach (['period=invalid', 'period=', 'period[]=ALL', 'period=ALL&months=12', 'period=YTD&months=', 'period=ALL&months[]=12'] as $query) {
+            $this->client->request('GET', '/api/v1/net-worth/history?'.$query);
+            self::assertResponseStatusCodeSame(422);
+            self::assertResponseHeaderSame('content-type', 'application/problem+json');
+        }
+        $this->client->request('GET', '/api/v1/net-worth/history?period=ALL&asOf=2026-02-31');
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testAnonymousHistoryAccessIsRefused(): void
+    {
+        $this->client->request('GET', '/api/v1/net-worth/history?period=ALL');
+        self::assertResponseStatusCodeSame(401);
     }
 
     public function testAMalformedOrOutOfBoundsQueryIsRefused(): void
@@ -376,6 +477,17 @@ final class NetWorthControllerTest extends WebTestCase
             'recorded_at' => $asOf.' 12:00:00+00',
             'recorded_by' => WorkspaceFixture::OWNER_ID,
             'superseded_at' => null,
+        ]);
+    }
+
+    private function insertPortfolioValuation(string $id, string $on, string $account = self::CASH, string $workspace = WorkspaceFixture::OWN_WORKSPACE): void
+    {
+        $this->connection->insert('portfolio_valuations', [
+            'id' => $id, 'workspace_id' => $workspace, 'account_id' => $account,
+            'valued_on' => $on, 'asset_code' => 'EUR', 'cash_value' => '1.00', 'cash_scale' => 2,
+            'derived_cash_value' => '1.00', 'derived_cash_scale' => 2, 'cash_source' => 'DERIVED',
+            'detail' => 'TOTAL', 'completeness' => 'PARTIAL', 'source' => 'MANUAL',
+            'recorded_at' => '2026-09-05 12:00:00+00', 'recorded_by' => WorkspaceFixture::OWNER_ID, 'version' => 1,
         ]);
     }
 

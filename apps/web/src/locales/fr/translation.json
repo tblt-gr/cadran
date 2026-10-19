@@ -1663,6 +1663,13 @@
       "pie": "Camembert"
     },
     "chart": {
+      "periodLabel": "Période du graphique",
+      "periods": {
+        "ALL": "Tout",
+        "LAST_12_MONTHS": "12 mois",
+        "YTD": "Depuis janvier"
+      },
+      "truncated": "Seuls les 60 derniers mois sont affichés.",
       "empty": "Aucun point calculable sur la période.",
       "loading": "Chargement de l’historique…",
       "monthColumn": "Mois",

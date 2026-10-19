@@ -1,10 +1,9 @@
 import { readNetWorth, readNetWorthHistory } from '@cadran/api-client';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { netWorthRequestError } from './netWorthError';
 
-/** Points of the history curve, the current day included. */
-const HISTORY_MONTHS = 12;
+import type { NetWorthPeriod } from '@/features/dashboard/net-worth-period/useNetWorthPeriod';
 
 /**
  * The aggregate is workspace-wide and reads every account, so callers that
@@ -27,13 +26,14 @@ export function useNetWorth(enabled = true) {
   });
 }
 
-export function useNetWorthHistory() {
+export function useNetWorthHistory(period: NetWorthPeriod) {
   return useQuery({
-    queryKey: ['net-worth-history', HISTORY_MONTHS],
+    queryKey: ['net-worth-history', period],
+    placeholderData: keepPreviousData,
     queryFn: async ({ signal }) => {
       const result = await readNetWorthHistory({
         ...authApiOptions(),
-        query: { months: HISTORY_MONTHS },
+        query: { period },
         signal,
       });
       if (!result.response?.ok || !result.data) {

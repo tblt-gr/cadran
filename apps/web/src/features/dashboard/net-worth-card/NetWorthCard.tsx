@@ -7,10 +7,16 @@ import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFi
 import { WealthChart } from '@/features/dashboard/wealth-chart/WealthChart';
 import { WealthChartSkeleton } from '@/features/dashboard/wealth-chart/WealthChartSkeleton';
 import { formatCalendarDay } from '@/lib/decimal';
+import { NetWorthPeriodControl } from '@/features/dashboard/net-worth-period/NetWorthPeriodControl';
+import type { NetWorthPeriod } from '@/features/dashboard/net-worth-period/useNetWorthPeriod';
 import styles from './NetWorthCard.module.css';
 
 interface NetWorthCardProps {
   historyPending: boolean;
+  historyFetching: boolean;
+  period: NetWorthPeriod;
+  onPeriodChange: (period: NetWorthPeriod) => void;
+  truncated: boolean;
   historyPoints: NetWorthPoint[] | null;
   netWorth: NetWorth;
 }
@@ -20,7 +26,15 @@ interface NetWorthCardProps {
  * sources are, and the curve behind it. The card computes nothing: the whole
  * aggregate arrives from the backend already signed, summed and rounded.
  */
-export function NetWorthCard({ historyPending, historyPoints, netWorth }: NetWorthCardProps) {
+export function NetWorthCard({
+  historyPending,
+  historyFetching,
+  historyPoints,
+  netWorth,
+  period,
+  onPeriodChange,
+  truncated,
+}: NetWorthCardProps) {
   const { i18n, t } = useTranslation();
 
   return (
@@ -44,18 +58,26 @@ export function NetWorthCard({ historyPending, historyPoints, netWorth }: NetWor
           </p>
         </div>
       </div>
-      {historyPoints === null && historyPending ? (
-        <div aria-busy="true" className={styles.historyPending}>
-          <SkeletonStatus>{t('dashboard.chart.loading')}</SkeletonStatus>
-          <WealthChartSkeleton />
-        </div>
-      ) : historyPoints === null ? (
-        <p className={styles.historyUnavailable} role="status">
-          {t('dashboard.chart.unavailable')}
-        </p>
-      ) : (
-        <WealthChart points={historyPoints} />
-      )}
+      <div className={styles.history} aria-busy={historyFetching}>
+        <NetWorthPeriodControl
+          period={period}
+          onChange={onPeriodChange}
+          disabled={historyPoints === null && historyPending}
+        />
+        {historyPoints === null && historyPending ? (
+          <div aria-busy="true" className={styles.historyPending}>
+            <SkeletonStatus>{t('dashboard.chart.loading')}</SkeletonStatus>
+            <WealthChartSkeleton />
+          </div>
+        ) : historyPoints === null ? (
+          <p className={styles.historyUnavailable} role="status">
+            {t('dashboard.chart.unavailable')}
+          </p>
+        ) : (
+          <WealthChart points={historyPoints} />
+        )}
+        <p className={styles.notice}>{truncated ? t('dashboard.chart.truncated') : null}</p>
+      </div>
     </section>
   );
 }
