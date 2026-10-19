@@ -6,7 +6,6 @@ import { NetWorthDelta } from '@/features/dashboard/net-worth-delta/NetWorthDelt
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { WealthChart } from '@/features/dashboard/wealth-chart/WealthChart';
 import { WealthChartSkeleton } from '@/features/dashboard/wealth-chart/WealthChartSkeleton';
-import { formatCalendarDay } from '@/lib/decimal';
 import { NetWorthPeriodControl } from '@/features/dashboard/net-worth-period/NetWorthPeriodControl';
 import type { NetWorthPeriod } from '@/features/dashboard/net-worth-period/useNetWorthPeriod';
 import styles from './NetWorthCard.module.css';
@@ -35,35 +34,32 @@ export function NetWorthCard({
   onPeriodChange,
   truncated,
 }: NetWorthCardProps) {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
 
   return (
     <section className={`card ${styles.card}`} aria-labelledby="net-worth-title">
       <div className={styles.header}>
-        <div>
-          <h2 id="net-worth-title">{t('dashboard.netWorth.title')}</h2>
-          <NetWorthFigure
-            amount={netWorth.total}
-            className={`money ${styles.amount}`}
-            reason={netWorth.reason}
+        <h2 id="net-worth-title">{t('dashboard.netWorth.title')}</h2>
+        <div className={styles.period}>
+          <NetWorthPeriodControl
+            period={period}
+            onChange={onPeriodChange}
+            disabled={historyPoints === null && historyPending}
           />
-          <NetWorthDelta delta={netWorth.delta} />
-        </div>
-        <div className={styles.context}>
-          <FreshnessBadge netWorth={netWorth} />
-          <p className={styles.asOf} data-visual-mask>
-            {t('dashboard.netWorth.asOf', {
-              date: formatCalendarDay(netWorth.asOf, i18n.language),
-            })}
-          </p>
         </div>
       </div>
-      <div className={styles.history} aria-busy={historyFetching}>
-        <NetWorthPeriodControl
-          period={period}
-          onChange={onPeriodChange}
-          disabled={historyPoints === null && historyPending}
+      <div>
+        <NetWorthFigure
+          amount={netWorth.total}
+          className={`money ${styles.amount}`}
+          reason={netWorth.reason}
         />
+        <NetWorthDelta delta={netWorth.delta} />
+        <p className={styles.metadata}>
+          <FreshnessBadge netWorth={netWorth} />
+        </p>
+      </div>
+      <div className={styles.history} aria-busy={historyFetching}>
         {historyPoints === null && historyPending ? (
           <div aria-busy="true" className={styles.historyPending}>
             <SkeletonStatus>{t('dashboard.chart.loading')}</SkeletonStatus>

@@ -31,18 +31,19 @@ export function DashboardPageSkeleton({
       >
         <SkeletonStatus>{status}</SkeletonStatus>
         <div className={cardStyles.header}>
-          <div>
-            <h2 id="net-worth-skeleton-title">{t('dashboard.netWorth.title')}</h2>
-            <SkeletonBlock className={styles.amount} />
-            <SkeletonBlock className={styles.delta} />
-          </div>
-          <div className={cardStyles.context}>
-            <SkeletonBlock className={styles.badge} />
-            <SkeletonBlock className={styles.asOf} />
+          <h2 id="net-worth-skeleton-title">{t('dashboard.netWorth.title')}</h2>
+          <div className={cardStyles.period}>
+            <NetWorthPeriodControl period={period} disabled />
           </div>
         </div>
+        <div>
+          <SkeletonBlock className={styles.amount} />
+          <SkeletonBlock className={styles.delta} />
+          <p className={cardStyles.metadata}>
+            <SkeletonBlock className={styles.freshness} />
+          </p>
+        </div>
         <div className={cardStyles.history} aria-busy="true">
-          <NetWorthPeriodControl period={period} disabled />
           <WealthChartSkeleton />
           <p className={cardStyles.notice} />
         </div>

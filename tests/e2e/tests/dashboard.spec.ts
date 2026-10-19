@@ -12,9 +12,9 @@ test.describe('dashboard', () => {
 
     const netWorth = page.getByRole('region', { name: 'Patrimoine net' });
     await expect(netWorth).toContainText('€');
-    // Provenance stays visible next to the figure: a freshness badge and the valuation day.
+    // Valuation quality remains visible as supporting metadata.
     await expect(netWorth).toContainText(/Valorisation|à jour|Valorisations/);
-    await expect(netWorth).toContainText(/Au \d{1,2} \p{L}+ \d{4}/u);
+    await expect(netWorth).not.toContainText(/Au \d{1,2} \p{L}+ \d{4}/u);
 
     await expect(page.getByRole('region', { name: 'Allocation' })).toBeVisible();
     for (const indicator of ['Revenus', 'Dépenses', 'Taux d’épargne']) {

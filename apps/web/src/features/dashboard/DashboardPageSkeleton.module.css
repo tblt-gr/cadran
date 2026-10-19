@@ -11,12 +11,8 @@
   margin-top: var(--spacing-2);
 }
 
-.badge {
-  width: calc(var(--spacing-12) * 2);
-  height: var(--spacing-6);
-}
-
-.asOf {
-  width: calc(var(--spacing-12) * 2);
+.freshness {
+  width: calc(var(--spacing-12) * 4);
+  max-width: 100%;
   height: var(--font-size-sm);
 }

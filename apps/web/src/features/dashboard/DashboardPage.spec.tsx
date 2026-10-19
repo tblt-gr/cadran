@@ -292,6 +292,7 @@ describe('DashboardPage', () => {
     expect(section?.textContent).toContain(`124${NARROW}680,00${NBSP}€`);
     expect(section?.textContent).toContain(`1${NARROW}740,00${NBSP}€`);
     expect(section?.textContent).toContain('1,42 %');
+    expect(section?.textContent).not.toContain('Au 5 septembre 2026');
     expect(section?.textContent).not.toContain('1,415365137180803644054 %');
     expect(
       section
