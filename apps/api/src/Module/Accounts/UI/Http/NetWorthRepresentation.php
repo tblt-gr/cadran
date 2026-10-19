@@ -47,6 +47,10 @@ final readonly class NetWorthRepresentation
             'asOf' => $history->asOf,
             'granularity' => $history->granularity,
             'points' => array_map(self::point(...), $history->points),
+            'period' => $history->period,
+            'firstDataMonth' => $history->firstDataMonth,
+            'truncated' => $history->truncated,
+            'delta' => self::delta($history->delta),
         ];
     }
 

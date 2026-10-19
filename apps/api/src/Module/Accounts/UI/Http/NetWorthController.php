@@ -58,13 +58,19 @@ final readonly class NetWorthController
     public function history(Request $request, ReadNetWorthHistory $readHistory): Response
     {
         $asOf = $request->query->getString('asOf');
+        $period = $request->query->all()['period'] ?? null;
+        if ($request->query->has('period') && (!is_string($period)
+            || !in_array($period, ['ALL', 'LAST_12_MONTHS', 'YTD'], true)
+            || $request->query->has('months'))) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_net_worth_query');
+        }
         $months = $request->query->getString('months');
         if (!self::isoDayOrEmpty($asOf) || !self::unsignedIntegerOrEmpty($months)) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_net_worth_query');
         }
 
         try {
-            $history = $readHistory($asOf ?: null, '' === $months ? null : (int) $months);
+            $history = $readHistory($asOf ?: null, '' === $months ? null : (int) $months, is_string($period) ? $period : null);
         } catch (InvalidNetWorthQuery) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_net_worth_query');
         } catch (NetWorthScopeTooLarge) {

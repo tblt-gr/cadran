@@ -29,4 +29,16 @@ final readonly class NetWorthContributionSet
     {
         return $this->byDate[$date->format('Y-m-d')] ?? [];
     }
+
+    /** @return list<string> */
+    public function sourceAccountIds(\DateTimeImmutable $date): array
+    {
+        $ids = array_map(
+            static fn (NetWorthContribution $contribution): string => $contribution->accountId,
+            array_filter($this->on($date), static fn (NetWorthContribution $contribution): bool => $contribution->eligible),
+        );
+        sort($ids, SORT_STRING);
+
+        return $ids;
+    }
 }

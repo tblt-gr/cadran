@@ -108,9 +108,9 @@ test('invalid transaction and transfer errors describe their controls', async ({
 test('dashboard and report charts retain readable data equivalents', async ({ page }) => {
   await page.goto('/');
   await settled(page);
-  await page.getByText('Voir les données sous forme de tableau', { exact: true }).click();
   const wealth = page.locator('figure').filter({ has: page.locator('#wealth-chart-title') });
-  await expect(wealth.getByRole('table')).toBeVisible();
+  await expect(wealth.getByRole('table')).toBeAttached();
+  await expect(wealth.getByRole('table')).toHaveAccessibleName('Évolution du patrimoine');
   expect(await wealth.getByRole('table').getByRole('row').count()).toBeGreaterThan(1);
   await page.getByRole('button', { name: 'Camembert', exact: true }).click();
   const allocation = page.getByRole('region', { name: 'Allocation', exact: true });

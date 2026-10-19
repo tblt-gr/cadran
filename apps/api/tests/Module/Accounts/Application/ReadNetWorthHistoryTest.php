@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Accounts\Application;
 
+use App\Module\Accounts\Application\FirstNetWorthDataDayReader;
 use App\Module\Accounts\Application\InvalidNetWorthQuery;
 use App\Module\Accounts\Application\ReadNetWorthHistory;
 use App\Module\Accounts\Application\ResolveNetWorthContributions;
@@ -90,8 +91,55 @@ final class ReadNetWorthHistoryTest extends TestCase
         ($this->read())(months: 0);
     }
 
-    private function read(): ReadNetWorthHistory
+    public function testNamedDefaultHasExactlyTheLegacyTwelvePoints(): void
     {
+        $read = $this->read();
+        self::assertEquals($read(months: 12)->points, $read(period: 'LAST_12_MONTHS')->points);
+        self::assertSame('LAST_12_MONTHS', $read()->period);
+        self::assertNull($read(months: 12)->period);
+    }
+
+    public function testYearToDateIncludesJanuaryAndEndsOnAsOf(): void
+    {
+        $history = ($this->read())(asOf: '2026-03-07', period: 'YTD');
+        self::assertSame(['2026-01-31', '2026-02-28', '2026-03-07'], array_map(static fn ($point): string => $point->on, $history->points));
+        self::assertCount(1, ($this->read())(asOf: '2026-01-07', period: 'YTD')->points);
+        self::assertNull($history->points[0]->total);
+    }
+
+    public function testAllStartsAtTheFirstDataMonthAndCapsAtSixty(): void
+    {
+        $history = ($this->read(firstMonth: '2026-07'))(period: 'ALL');
+        self::assertCount(3, $history->points);
+        self::assertSame('2026-07', $history->firstDataMonth);
+        self::assertFalse($history->truncated);
+        $truncated = ($this->read(firstMonth: '2000-01'))(period: 'ALL');
+        self::assertCount(60, $truncated->points);
+        self::assertSame('2021-10-31', $truncated->points[0]->on);
+        self::assertTrue($truncated->truncated);
+        self::assertFalse(($this->read(firstMonth: '2021-10'))(period: 'ALL')->truncated);
+    }
+
+    public function testAllWithoutDataKeepsASingleNonComputablePoint(): void
+    {
+        $history = ($this->read(firstMonth: null))(asOf: '2025-01-07', period: 'ALL');
+        self::assertCount(1, $history->points);
+        self::assertNull($history->points[0]->total);
+        self::assertNull($history->firstDataMonth);
+        self::assertFalse($history->truncated);
+    }
+
+    public function testNamedPeriodAndLegacySpanCannotBeCombined(): void
+    {
+        $this->expectException(InvalidNetWorthQuery::class);
+        ($this->read())(months: 12, period: 'ALL');
+    }
+
+    private function read(?string $firstMonth = '2026-07'): ReadNetWorthHistory
+    {
+        $first = $this->createStub(FirstNetWorthDataDayReader::class);
+        $first->method('onOrBefore')->willReturn(null === $firstMonth ? null : new \DateTimeImmutable($firstMonth.'-01'));
+
         return new ReadNetWorthHistory(
             new FixedCallerWorkspace(self::WORKSPACE),
             new ResolveNetWorthContributions(
@@ -105,6 +153,7 @@ final class ReadNetWorthHistoryTest extends TestCase
             ),
             InMemoryAssetCatalog::withCodes('EUR'),
             new MockClock('2026-09-05 09:00:00', 'UTC'),
+            $first,
         );
     }
 

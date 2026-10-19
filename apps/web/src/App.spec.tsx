@@ -159,7 +159,15 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
       }
 
       if (url.includes('/api/v1/net-worth/history')) {
-        return jsonResponse({ asOf: '2026-09-05', granularity: 'MONTH', points: [] });
+        return jsonResponse({
+          asOf: '2026-09-05',
+          granularity: 'MONTH',
+          points: [],
+          delta: netWorth.delta,
+          period: 'LAST_12_MONTHS',
+          firstDataMonth: null,
+          truncated: false,
+        });
       }
 
       if (url.includes('/api/v1/net-worth')) {

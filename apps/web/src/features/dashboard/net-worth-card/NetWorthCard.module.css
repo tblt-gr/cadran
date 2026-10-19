@@ -1,7 +1,7 @@
 .card {
   display: grid;
   grid-column: span 7;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   min-width: 0;
   min-height: 24rem;
   padding: var(--spacing-6);
@@ -9,7 +9,8 @@
 
 .header {
   display: flex;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: var(--spacing-4);
 }
@@ -25,18 +26,16 @@
   overflow-wrap: anywhere;
 }
 
-.context {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--spacing-2);
+.period {
+  max-width: 100%;
+  margin-left: var(--spacing-auto);
 }
 
-.asOf {
-  margin: var(--spacing-none);
-  color: var(--text-muted);
+.card .metadata {
+  margin: var(--spacing-4) var(--spacing-none) var(--spacing-none);
+  color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  white-space: nowrap;
+  line-height: var(--line-height-context);
 }
 
 /* The pending chart takes the plot row exactly like the loaded figure. */
@@ -68,16 +67,22 @@
     padding: var(--spacing-4);
   }
 
-  .header {
-    flex-direction: column;
-  }
-
   .amount {
     max-width: 100%;
     font-size: var(--font-size-display-mobile);
   }
+}
 
-  .context {
-    align-items: flex-start;
-  }
+.history {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  min-width: 0;
+  margin-top: var(--spacing-4);
+}
+
+.notice {
+  min-height: var(--font-size-body);
+  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
 }
