@@ -16,6 +16,7 @@ final readonly class NetWorthHistoryView
         public ?string $period,
         public ?string $firstDataMonth,
         public bool $truncated,
+        public NetWorthDeltaView $delta,
     ) {
     }
 }

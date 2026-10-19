@@ -217,6 +217,9 @@ final class NetWorthControllerTest extends WebTestCase
         ]);
         $empty = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
         self::assertNull($empty['firstDataMonth']);
+        $delta = self::fields((array) $empty['delta']);
+        self::assertSame('2026-09-05', $delta['comparedOn']);
+        self::assertNull($delta['amount']);
         self::assertCount(1, $this->rows($empty, 'points'));
         self::assertNull($this->rows($empty, 'points')[0]['total']);
         $this->insertSnapshot(self::CASH, '2026-08-15', '12.00');
@@ -239,6 +242,10 @@ final class NetWorthControllerTest extends WebTestCase
         $history = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
         self::assertSame('2026-06', $history['firstDataMonth']);
         self::assertCount(4, $this->rows($history, 'points'));
+        $delta = self::fields((array) $history['delta']);
+        self::assertSame('2026-06-05', $delta['comparedOn']);
+        self::assertNull($delta['previousTotal']);
+        self::assertSame('MISSING_VALUATION', $delta['previousReason']);
         $this->insertSnapshot(self::CASH, '2026-05-15', '12.00');
         self::assertSame('2026-05', $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL')['firstDataMonth']);
     }
@@ -263,8 +270,38 @@ final class NetWorthControllerTest extends WebTestCase
         $truncated = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
         self::assertTrue($truncated['truncated']);
         self::assertSame('2020-01', $truncated['firstDataMonth']);
+        self::assertSame('2020-01-10', self::fields((array) $truncated['delta'])['comparedOn']);
         self::assertCount(60, $this->rows($truncated, 'points'));
         self::assertSame('2021-10-31', $this->rows($truncated, 'points')[0]['on']);
+    }
+
+    public function testHistoryPublishesExactDeltaForEachCalendarPeriodAndPreservesTheStandaloneDefault(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::CASH, WorkspaceFixture::OWN_WORKSPACE, 'Compte');
+        $this->connection->update('account_financial_accounts', ['opened_on' => '2020-01-01'], [
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::CASH,
+        ]);
+        foreach (['2020-05-15' => '500.00', '2025-09-05' => '800.00', '2026-01-01' => '1000.00', '2026-01-31' => '1100.00', '2026-09-05' => '1200.00'] as $day => $amount) {
+            $this->insertSnapshot(self::CASH, $day, $amount);
+        }
+        foreach ([
+            'ALL' => ['2020-05-15', '500.00', '700.00', '140.00'],
+            'LAST_12_MONTHS' => ['2025-09-05', '800.00', '400.00', '50.00'],
+            'YTD' => ['2026-01-01', '1000.00', '200.00', '20.00'],
+        ] as $period => [$day, $base, $amount, $percent]) {
+            $history = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period='.$period);
+            $delta = self::fields((array) $history['delta']);
+            self::assertSame($day, $delta['comparedOn']);
+            self::assertSame($base, self::nested($delta, 'previousTotal', 'value'));
+            self::assertSame($amount, self::nested($delta, 'amount', 'value'));
+            self::assertSame($percent, $delta['ratePercentDisplay']);
+            self::assertNull($delta['amountReason']);
+            self::assertNull($delta['rateReason']);
+        }
+        $standalone = self::fields((array) $this->read('/api/v1/net-worth?asOf=2026-09-05')['delta']);
+        self::assertSame('2026-08-05', $standalone['comparedOn']);
+        self::assertSame('100.00', self::nested($standalone, 'amount', 'value'));
     }
 
     public function testInvalidNamedPeriodsAndCombinedParametersReturn422(): void

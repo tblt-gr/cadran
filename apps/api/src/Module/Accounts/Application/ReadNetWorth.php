@@ -88,29 +88,13 @@ final readonly class ReadNetWorth
                 NetWorthDelta::between($current, $previous),
                 $previous,
                 $references,
-                self::sourceAccountIds($previousContributions),
-                self::sourceAccountIds($currentContributions),
+                $set->sourceAccountIds($comparedOn),
+                $set->sourceAccountIds($requestedOn),
             ),
             self::contributionViews($set, $current, $groups, $shares, $references),
             self::allocationViews($current, $groups, $lineages, $shareInputs, $shares, $references),
             $references->for($current->asset),
         );
-    }
-
-    /**
-     * @param list<NetWorthContribution> $contributions
-     *
-     * @return list<string>
-     */
-    private static function sourceAccountIds(array $contributions): array
-    {
-        $ids = array_map(
-            static fn (NetWorthContribution $contribution): string => $contribution->accountId,
-            array_filter($contributions, static fn (NetWorthContribution $contribution): bool => $contribution->eligible),
-        );
-        sort($ids, SORT_STRING);
-
-        return $ids;
     }
 
     /**

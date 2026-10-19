@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\NetWorthCalculator;
+use App\Module\Accounts\Domain\NetWorthDelta;
 use App\Module\Foundation\Application\CallerWorkspace;
 use App\Module\Reference\Application\AssetCatalog;
 use Symfony\Component\Clock\ClockInterface;
@@ -28,7 +29,7 @@ final readonly class ReadNetWorthHistory
         private ResolveNetWorthContributions $contributions,
         private AssetCatalog $assets,
         private ClockInterface $clock,
-        private FirstNetWorthDataMonthReader $firstData,
+        private FirstNetWorthDataDayReader $firstData,
     ) {
     }
 
@@ -46,7 +47,8 @@ final readonly class ReadNetWorthHistory
 
         $requestedOn = NetWorthDay::parse($asOf, $this->clock);
         $workspace = $this->caller->resolve();
-        $firstDataMonth = $this->firstData->onOrBefore($workspace, $requestedOn);
+        $firstDataDay = $this->firstData->onOrBefore($workspace, $requestedOn);
+        $firstDataMonth = $firstDataDay?->format('Y-m');
         if ('YTD' === $resolvedPeriod) {
             $span = (int) $requestedOn->format('n');
         } elseif ('ALL' === $resolvedPeriod) {
@@ -57,7 +59,17 @@ final readonly class ReadNetWorthHistory
         $truncated = $span > self::MAX_MONTHS;
         $dates = NetWorthDay::monthEndsUpTo($requestedOn, min($span, self::MAX_MONTHS));
 
-        $set = $this->contributions->on($workspace, $dates);
+        $comparedOn = match ($resolvedPeriod) {
+            'ALL' => $firstDataDay ?? $requestedOn,
+            'YTD' => $requestedOn->setDate((int) $requestedOn->format('Y'), 1, 1),
+            default => NetWorthDay::monthsEarlier($requestedOn, $months ?? self::DEFAULT_MONTHS),
+        };
+        // The baseline is independent of the displayed range, including when ALL is truncated.
+        $readDates = $dates;
+        if (!in_array($comparedOn, $readDates, false)) {
+            $readDates[] = $comparedOn;
+        }
+        $set = $this->contributions->on($workspace, $readDates);
         $references = new NetWorthAssetReferences($this->assets);
 
         $points = [];
@@ -66,6 +78,16 @@ final readonly class ReadNetWorthHistory
             $points[] = NetWorthPointView::fromNetWorth($netWorth, $references->for($netWorth->asset));
         }
 
+        $current = NetWorthCalculator::compute($set->on($requestedOn), $requestedOn);
+        $previous = NetWorthCalculator::compute($set->on($comparedOn), $comparedOn);
+        $delta = NetWorthDeltaView::fromDelta(
+            NetWorthDelta::between($current, $previous),
+            $previous,
+            $references,
+            $set->sourceAccountIds($comparedOn),
+            $set->sourceAccountIds($requestedOn),
+        );
+
         return new NetWorthHistoryView(
             asOf: $requestedOn->format('Y-m-d'),
             granularity: self::GRANULARITY,
@@ -73,6 +95,7 @@ final readonly class ReadNetWorthHistory
             period: $resolvedPeriod,
             firstDataMonth: $firstDataMonth,
             truncated: $truncated,
+            delta: $delta,
         );
     }
 }

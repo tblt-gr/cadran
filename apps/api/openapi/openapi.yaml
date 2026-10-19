@@ -4842,7 +4842,11 @@ paths:
         Each point is recomputed from the valuations that were valid on its own
         day, so a figure recorded late lands on the day it describes. A month
         that cannot be computed keeps its place with a null total and a reason,
-        never a fall to zero.
+        never a fall to zero. The delta compares the requested day against the
+        exact first active source day for ALL (independent of the 60-point cap),
+        the same calendar day twelve months earlier for LAST_12_MONTHS (clamped
+        to the target month), and January 1 for YTD. Legacy months-only requests
+        compare against the same calendar day that many months earlier.
       tags:
         - Net worth
       security:
@@ -15312,6 +15316,7 @@ components:
         - period
         - firstDataMonth
         - truncated
+        - delta
       properties:
         asOf:
           type: string
@@ -15331,6 +15336,8 @@ components:
         truncated:
           description: True when ALL was limited to the latest 60 months.
           type: boolean
+        delta:
+          $ref: '#/components/schemas/NetWorthDelta'
         points:
           description: Oldest first. The last point is the requested day itself.
           type: array

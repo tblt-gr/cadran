@@ -50,6 +50,7 @@ final readonly class NetWorthRepresentation
             'period' => $history->period,
             'firstDataMonth' => $history->firstDataMonth,
             'truncated' => $history->truncated,
+            'delta' => self::delta($history->delta),
         ];
     }
 

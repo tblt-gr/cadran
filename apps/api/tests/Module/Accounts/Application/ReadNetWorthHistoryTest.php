@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Accounts\Application;
 
-use App\Module\Accounts\Application\FirstNetWorthDataMonthReader;
+use App\Module\Accounts\Application\FirstNetWorthDataDayReader;
 use App\Module\Accounts\Application\InvalidNetWorthQuery;
 use App\Module\Accounts\Application\ReadNetWorthHistory;
 use App\Module\Accounts\Application\ResolveNetWorthContributions;
@@ -137,8 +137,8 @@ final class ReadNetWorthHistoryTest extends TestCase
 
     private function read(?string $firstMonth = '2026-07'): ReadNetWorthHistory
     {
-        $first = $this->createStub(FirstNetWorthDataMonthReader::class);
-        $first->method('onOrBefore')->willReturn($firstMonth);
+        $first = $this->createStub(FirstNetWorthDataDayReader::class);
+        $first->method('onOrBefore')->willReturn(null === $firstMonth ? null : new \DateTimeImmutable($firstMonth.'-01'));
 
         return new ReadNetWorthHistory(
             new FixedCallerWorkspace(self::WORKSPACE),

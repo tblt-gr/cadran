@@ -38,6 +38,7 @@ export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
         ) : (
           <>
             <NetWorthCard
+              historyDelta={history.data?.delta ?? null}
               historyPending={history.isPending}
               historyFetching={history.isFetching}
               period={period}

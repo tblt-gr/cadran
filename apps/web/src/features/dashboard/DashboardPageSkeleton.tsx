@@ -3,6 +3,7 @@ import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton
 import { AllocationChartsSkeleton } from './allocation-charts/AllocationChartsSkeleton';
 import allocationStyles from './allocation-panel/AllocationPanel.module.css';
 import cardStyles from './net-worth-card/NetWorthCard.module.css';
+import { PeriodNetWorthDelta } from './period-net-worth-delta/PeriodNetWorthDelta';
 import { NetWorthPeriodControl } from './net-worth-period/NetWorthPeriodControl';
 import type { NetWorthPeriod } from './net-worth-period/useNetWorthPeriod';
 import { WealthChartSkeleton } from './wealth-chart/WealthChartSkeleton';
@@ -38,13 +39,13 @@ export function DashboardPageSkeleton({
         </div>
         <div>
           <SkeletonBlock className={styles.amount} />
-          <SkeletonBlock className={styles.delta} />
-          <p className={cardStyles.metadata}>
-            <SkeletonBlock className={styles.freshness} />
-          </p>
+          <PeriodNetWorthDelta delta={null} pending fetching />
         </div>
         <div className={cardStyles.history} aria-busy="true">
           <WealthChartSkeleton />
+          <p className={cardStyles.metadata}>
+            <SkeletonBlock className={styles.freshness} />
+          </p>
           <p className={cardStyles.notice} />
         </div>
       </section>

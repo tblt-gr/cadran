@@ -5,14 +5,8 @@
   margin-top: var(--spacing-3);
 }
 
-.delta {
-  width: calc(var(--spacing-12) * 2);
-  height: var(--font-size-body);
-  margin-top: var(--spacing-2);
-}
-
 .freshness {
   width: calc(var(--spacing-12) * 4);
   max-width: 100%;
-  height: var(--font-size-sm);
+  height: calc(var(--spacing-6) + var(--spacing-1));
 }

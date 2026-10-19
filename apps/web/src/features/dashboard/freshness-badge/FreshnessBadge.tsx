@@ -36,15 +36,15 @@ export function FreshnessBadge({ netWorth }: FreshnessBadgeProps) {
 
   if (netWorth.quality === 'STALE') {
     return (
-      <span data-visual-mask>
+      <StatusBadge icon="alert" tone="warning" visualMask>
         {t('dashboard.netWorth.freshness.stale', { count: netWorth.stalestAgeDays ?? 0 })}
-      </span>
+      </StatusBadge>
     );
   }
 
   return (
-    <span data-visual-mask>
+    <StatusBadge tone="positive" visualMask>
       {t('dashboard.netWorth.freshness.current', { count: netWorth.valuedAccountCount })}
-    </span>
+    </StatusBadge>
   );
 }

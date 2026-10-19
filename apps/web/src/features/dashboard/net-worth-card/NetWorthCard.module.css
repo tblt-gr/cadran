@@ -31,8 +31,8 @@
   margin-left: var(--spacing-auto);
 }
 
-.metadata {
-  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
+.card .metadata {
+  margin: var(--spacing-4) var(--spacing-none) var(--spacing-none);
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-context);
@@ -75,7 +75,7 @@
 
 .history {
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 1fr auto auto;
   min-width: 0;
   margin-top: var(--spacing-4);
 }

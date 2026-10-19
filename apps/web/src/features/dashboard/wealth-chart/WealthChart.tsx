@@ -1,13 +1,14 @@
 import type { NetWorthPoint } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/CurveChart';
-import { Icon } from '@/components/ui/icon/Icon';
+import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { formatAmount, formatCalendarMonth, formatCalendarNumericDay } from '@/lib/decimal';
 import styles from './WealthChart.module.css';
 
 interface WealthChartProps {
-  points: NetWorthPoint[];
+  points: NetWorthPoint[] | null;
 }
 
 function pointValueLabel(point: NetWorthPoint, locale: string): string | null {
@@ -32,7 +33,7 @@ function pointValueLabel(point: NetWorthPoint, locale: string): string | null {
  */
 export function WealthChart({ points }: WealthChartProps) {
   const { i18n, t } = useTranslation();
-  const curvePoints: CurvePoint[] = points.map((point) => {
+  const curvePoints: CurvePoint[] = (points ?? []).map((point) => {
     const value = pointValueLabel(point, i18n.language);
     const date = formatCalendarNumericDay(point.on);
 
@@ -49,8 +50,12 @@ export function WealthChart({ points }: WealthChartProps) {
 
   return (
     <figure className={styles.chart} aria-labelledby="wealth-chart-title">
-      <figcaption id="wealth-chart-title">{t('dashboard.chart.title')}</figcaption>
-      {!hasCurve ? (
+      <figcaption className="sr-only" id="wealth-chart-title">
+        {t('dashboard.chart.title')}
+      </figcaption>
+      {points === null ? (
+        <CurveChartSkeleton />
+      ) : !hasCurve ? (
         <p className={styles.emptyPlot}>{t('dashboard.chart.empty')}</p>
       ) : (
         <CurveChart
@@ -63,34 +68,36 @@ export function WealthChart({ points }: WealthChartProps) {
           valueAxisLabel={t('dashboard.chart.valueColumn')}
         />
       )}
-      <details className={styles.details}>
-        <summary>
-          <span className={styles.disclosure}>
-            <Icon name="chevron-right" size={14} />
-          </span>
-          {t('dashboard.chart.showTable')}
-        </summary>
-        <div className={styles.tableWrap}>
-          <table aria-label={t('dashboard.chart.title')} className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">{t('dashboard.chart.monthColumn')}</th>
-                <th scope="col">{t('dashboard.chart.valueColumn')}</th>
+      <table className="sr-only">
+        <caption>{t('dashboard.chart.title')}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{t('dashboard.chart.monthColumn')}</th>
+            <th scope="col">{t('dashboard.chart.valueColumn')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {points === null ? (
+            <tr>
+              <th scope="row">
+                <SkeletonBlock />
+              </th>
+              <td>
+                <SkeletonBlock />
+              </td>
+            </tr>
+          ) : (
+            points.map((point) => (
+              <tr key={point.on}>
+                <th scope="row">{formatCalendarMonth(point.on, i18n.language)}</th>
+                <td>
+                  <NetWorthFigure amount={point.total} reason={point.reason} />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {points.map((point) => (
-                <tr key={point.on}>
-                  <th scope="row">{formatCalendarMonth(point.on, i18n.language)}</th>
-                  <td>
-                    <NetWorthFigure amount={point.total} reason={point.reason} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
+            ))
+          )}
+        </tbody>
+      </table>
     </figure>
   );
 }

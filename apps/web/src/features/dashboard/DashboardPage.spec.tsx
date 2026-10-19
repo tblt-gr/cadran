@@ -106,6 +106,7 @@ const netWorth: NetWorth = {
 const history: NetWorthHistory = {
   asOf: '2026-09-05',
   granularity: 'MONTH',
+  delta: netWorth.delta,
   period: 'LAST_12_MONTHS',
   firstDataMonth: '2026-07',
   truncated: false,
@@ -232,6 +233,9 @@ describe('DashboardPage', () => {
     const chart = screen.getByRole('figure', { name: 'Évolution du patrimoine' });
     expect(chart.closest('[aria-busy]')?.getAttribute('aria-busy')).toBe('true');
     expect(chart.textContent).toContain('Juillet 2026');
+    expect(screen.getByText('1,42 %').closest('[aria-busy]')?.getAttribute('aria-busy')).toBe(
+      'true',
+    );
     await waitFor(() => expect(resolveHistory).toBeDefined());
     resolveHistory?.(
       await success({ ...history, period: 'ALL', truncated: true, points: [history.points[2]] }),
@@ -242,6 +246,63 @@ describe('DashboardPage', () => {
     expect(chart.textContent).not.toContain('Juillet 2026');
     expect(chart.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(screen.getByText('Seuls les 60 derniers mois sont affichés.')).toBeTruthy();
+  });
+
+  it('shows each server comparison for its selected period instead of the standalone monthly delta', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    const comparisons = {
+      LAST_12_MONTHS: { value: '400.00', rate: '50.00', on: '2025-09-05' },
+      ALL: { value: '600.00', rate: '100.00', on: '2020-03-12' },
+      YTD: { value: '200.00', rate: '20.00', on: '2026-01-01' },
+    };
+    api.readNetWorthHistory.mockImplementation(
+      ({ query }: { query: { period: keyof typeof comparisons } }) => {
+        const comparison = comparisons[query.period];
+        return success({
+          ...history,
+          delta: {
+            ...history.delta,
+            comparedOn: comparison.on,
+            amount: amount(comparison.value),
+            ratePercentDisplay: comparison.rate,
+          },
+        });
+      },
+    );
+    renderDashboard();
+    await loaded();
+    const card = screen.getByRole('region', { name: 'Patrimoine net' });
+    await waitFor(() => expect(within(card).getByText('50,00 %')).toBeTruthy());
+    expect(within(card).getByRole('img', { name: `Hausse de 400,00${NBSP}€` })).toBeTruthy();
+    expect(card.textContent).toContain('depuis le 5 septembre 2025');
+    fireEvent.click(screen.getByRole('radio', { name: 'Tout' }));
+    await waitFor(() => expect(within(card).getByText('100,00 %')).toBeTruthy());
+    expect(within(card).getByRole('img', { name: `Hausse de 600,00${NBSP}€` })).toBeTruthy();
+    expect(card.textContent).toContain('depuis le 12 mars 2020');
+    fireEvent.click(screen.getByRole('radio', { name: 'Depuis janvier' }));
+    await waitFor(() => expect(within(card).getByText('20,00 %')).toBeTruthy());
+    expect(within(card).getByRole('img', { name: `Hausse de 200,00${NBSP}€` })).toBeTruthy();
+    expect(card.textContent).toContain('depuis le 1 janvier 2026');
+    expect(card.textContent).not.toContain('1,42 %');
+  });
+
+  it('keeps the history comparison pending and reports its failure without borrowing the standalone delta', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    let resolveHistory: ((value: Awaited<ReturnType<typeof problem>>) => void) | undefined;
+    api.readNetWorthHistory.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveHistory = resolve;
+        }),
+    );
+    renderDashboard();
+    await loaded();
+    const card = screen.getByRole('region', { name: 'Patrimoine net' });
+    expect(card.textContent).not.toContain('1,42 %');
+    expect(card.querySelector('[data-skeleton]')).toBeTruthy();
+    resolveHistory?.(await problem(500));
+    await screen.findByText('Évolution indisponible pour le moment.');
+    expect(card.textContent).not.toContain('1,42 %');
   });
 
   it('preserves unrelated URL state and responds to browser navigation', async () => {
@@ -278,6 +339,11 @@ describe('DashboardPage', () => {
     expect(radios).toHaveLength(3);
     expect(radios.every((radio) => (radio as HTMLInputElement).disabled)).toBe(true);
     expect(screen.getByRole('radio', { name: 'Depuis janvier', checked: true })).toBeTruthy();
+    const table = within(screen.getByTestId('dashboard-skeleton')).getByRole('table', {
+      name: 'Évolution du patrimoine',
+    });
+    expect(within(table).getByRole('columnheader', { name: 'Mois' })).toBeTruthy();
+    expect(within(table).getByRole('columnheader', { name: 'Patrimoine net' })).toBeTruthy();
   });
 
   it('shows the backend total, delta and rate without recomputing them', async () => {
@@ -369,7 +435,7 @@ describe('DashboardPage', () => {
     renderDashboard();
     await loaded();
 
-    fireEvent.click(await screen.findByText('Voir les données sous forme de tableau'));
+    expect(screen.queryByText('Voir les données sous forme de tableau')).toBeNull();
     const table = screen.getByRole('table', { name: 'Évolution du patrimoine' });
     expect(within(table).getByText('Juillet 2026')).toBeTruthy();
     expect(within(table).getAllByText('Non calculable').length).toBe(1);
@@ -453,6 +519,11 @@ describe('DashboardPage', () => {
       success({
         ...netWorth,
         total: amount('-150000.00'),
+      } satisfies NetWorth),
+    );
+    api.readNetWorthHistory.mockReturnValue(
+      success({
+        ...history,
         delta: {
           ...netWorth.delta,
           previousTotal: amount('-202050.00'),
@@ -462,9 +533,8 @@ describe('DashboardPage', () => {
           ratePercentDisplay: null,
           rateReason: 'NEGATIVE_BASE',
         },
-      } satisfies NetWorth),
+      }),
     );
-    api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
     await loaded();
@@ -481,6 +551,11 @@ describe('DashboardPage', () => {
     api.readNetWorth.mockReturnValue(
       success({
         ...netWorth,
+      } satisfies NetWorth),
+    );
+    api.readNetWorthHistory.mockReturnValue(
+      success({
+        ...history,
         delta: {
           ...netWorth.delta,
           amount: amount('0.00'),
@@ -488,9 +563,8 @@ describe('DashboardPage', () => {
           ratePercent: '0',
           ratePercentDisplay: '0.00',
         },
-      } satisfies NetWorth),
+      }),
     );
-    api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
     await loaded();
@@ -509,6 +583,11 @@ describe('DashboardPage', () => {
     api.readNetWorth.mockReturnValue(
       success({
         ...netWorth,
+      } satisfies NetWorth),
+    );
+    api.readNetWorthHistory.mockReturnValue(
+      success({
+        ...history,
         delta: {
           ...netWorth.delta,
           amount: amount('-1740.00'),
@@ -516,9 +595,8 @@ describe('DashboardPage', () => {
           ratePercent: '-1.415365137180803644054000',
           ratePercentDisplay: '-1.42',
         },
-      } satisfies NetWorth),
+      }),
     );
-    api.readNetWorthHistory.mockReturnValue(success(history));
 
     renderDashboard();
     await loaded();

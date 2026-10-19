@@ -35,7 +35,13 @@ final readonly class NetWorthDay
      */
     public static function previousMonth(\DateTimeImmutable $day): \DateTimeImmutable
     {
-        $month = $day->modify('first day of previous month');
+        return self::monthsEarlier($day, 1);
+    }
+
+    /** A calendar-month offset that clamps the day rather than overflowing the target month. */
+    public static function monthsEarlier(\DateTimeImmutable $day, int $months): \DateTimeImmutable
+    {
+        $month = $day->modify(sprintf('first day of -%d month', $months));
         $target = min((int) $day->format('d'), (int) $month->format('t'));
 
         return $month->setDate((int) $month->format('Y'), (int) $month->format('m'), $target);

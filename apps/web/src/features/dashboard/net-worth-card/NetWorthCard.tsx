@@ -1,8 +1,8 @@
-import type { NetWorth, NetWorthPoint } from '@cadran/api-client';
+import type { NetWorth, NetWorthPoint, NetWorthDelta } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { FreshnessBadge } from '@/features/dashboard/freshness-badge/FreshnessBadge';
-import { NetWorthDelta } from '@/features/dashboard/net-worth-delta/NetWorthDelta';
+import { PeriodNetWorthDelta } from '@/features/dashboard/period-net-worth-delta/PeriodNetWorthDelta';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { WealthChart } from '@/features/dashboard/wealth-chart/WealthChart';
 import { WealthChartSkeleton } from '@/features/dashboard/wealth-chart/WealthChartSkeleton';
@@ -11,6 +11,7 @@ import type { NetWorthPeriod } from '@/features/dashboard/net-worth-period/useNe
 import styles from './NetWorthCard.module.css';
 
 interface NetWorthCardProps {
+  historyDelta: NetWorthDelta | null;
   historyPending: boolean;
   historyFetching: boolean;
   period: NetWorthPeriod;
@@ -26,6 +27,7 @@ interface NetWorthCardProps {
  * aggregate arrives from the backend already signed, summed and rounded.
  */
 export function NetWorthCard({
+  historyDelta,
   historyPending,
   historyFetching,
   historyPoints,
@@ -54,10 +56,11 @@ export function NetWorthCard({
           className={`money ${styles.amount}`}
           reason={netWorth.reason}
         />
-        <NetWorthDelta delta={netWorth.delta} />
-        <p className={styles.metadata}>
-          <FreshnessBadge netWorth={netWorth} />
-        </p>
+        <PeriodNetWorthDelta
+          delta={historyDelta}
+          pending={historyPending}
+          fetching={historyFetching}
+        />
       </div>
       <div className={styles.history} aria-busy={historyFetching}>
         {historyPoints === null && historyPending ? (
@@ -72,6 +75,9 @@ export function NetWorthCard({
         ) : (
           <WealthChart points={historyPoints} />
         )}
+        <p className={styles.metadata}>
+          <FreshnessBadge netWorth={netWorth} />
+        </p>
         <p className={styles.notice}>{truncated ? t('dashboard.chart.truncated') : null}</p>
       </div>
     </section>
