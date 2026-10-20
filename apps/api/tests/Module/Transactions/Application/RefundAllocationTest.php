@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Transactions\Application;
 
+use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -71,6 +72,21 @@ final class RefundAllocationTest extends TestCase
         self::assertSame('0.01', $allocation[0]['amount']->value->toString());
     }
 
+    public function testEachRowKeepsTheAnalyticAxesOfItsOriginalSplit(): void
+    {
+        $proposal = (new RefundAllocation())->propose(
+            $this->original('-80.00', [
+                $this->split(self::GROCERIES, '-60.00', 0, [AnalyticAxis::FIXED]),
+                $this->split(self::HOUSEHOLD, '-20.00', 1, [AnalyticAxis::VARIABLE, AnalyticAxis::ESSENTIAL]),
+            ]),
+            $this->amount('40.00'),
+            2,
+        );
+
+        self::assertSame([AnalyticAxis::FIXED], $proposal[0]['analyticAxes']);
+        self::assertSame([AnalyticAxis::VARIABLE, AnalyticAxis::ESSENTIAL], $proposal[1]['analyticAxes']);
+    }
+
     /** @param list<TransactionSplit> $splits */
     private function original(string $amount, array $splits): Transaction
     {
@@ -84,11 +100,12 @@ final class RefundAllocationTest extends TestCase
         );
     }
 
-    private function split(string $categoryId, string $amount, int $position): TransactionSplit
+    /** @param list<AnalyticAxis> $analyticAxes */
+    private function split(string $categoryId, string $amount, int $position, array $analyticAxes = []): TransactionSplit
     {
         return new TransactionSplit(
             '00000000-0000-7000-8000-0000000000a'.($position + 1), WorkspaceFixture::own(), '00000000-0000-7000-8000-0000000000f1',
-            $categoryId, $this->amount($amount), [], null, new \DateTimeImmutable('2026-03-14T09:12:04+00:00'), $position,
+            $categoryId, $this->amount($amount), $analyticAxes, null, new \DateTimeImmutable('2026-03-14T09:12:04+00:00'), $position,
         );
     }
 
@@ -102,7 +119,7 @@ final class RefundAllocationTest extends TestCase
     }
 
     /**
-     * @param list<array{categoryId: string, amount: AssetAmount}> $proposal
+     * @param list<array{categoryId: string, amount: AssetAmount, analyticAxes: list<AnalyticAxis>}> $proposal
      *
      * @return array<string, string>
      */
