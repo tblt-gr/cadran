@@ -1,14 +1,15 @@
 import type { Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { formatCalendarDay } from '@/lib/decimal';
 import { TransactionAmount } from '@/features/transactions/transaction-list/transaction-amount/TransactionAmount';
 import { TransactionCategories } from '@/features/transactions/transaction-list/transaction-categories/TransactionCategories';
+import {
+  TransactionInspectButton,
+  TransactionRowActions,
+} from '@/features/transactions/transaction-workflow/transaction-row-actions/TransactionRowActions';
 import styles from './AccountMovementsTable.module.css';
-
-interface AccountMovementsTableProps {
-  transactions: Transaction[];
-}
 
 const STATE_TONE = {
   PENDING: 'info',
@@ -17,66 +18,107 @@ const STATE_TONE = {
   REJECTED: 'negative',
 } as const;
 
-/**
- * This account's own movements, newest first: date, nature, label, signed
- * amount, category and state, with the transfer counterpart named when the
- * row is one leg of a transfer. No row from another account ever reaches
- * this table; the account boundary is enforced by the query that feeds it,
- * not by anything filtered here.
- */
-export function AccountMovementsTable({ transactions }: AccountMovementsTableProps) {
+/** Nullable rows keep the loading table an element-for-element mirror of the loaded table. */
+export function AccountMovementsTable({
+  transactions,
+  announce = true,
+}: {
+  transactions: Transaction[] | null;
+  announce?: boolean;
+}) {
   const { i18n, t } = useTranslation();
-
+  const labels = [
+    t('transactions.fields.bookedOn'),
+    t('transactions.fields.nature'),
+    t('transactions.fields.rawLabel'),
+    t('transactions.fields.category'),
+    t('accounts.detail.movements.counterpart'),
+    t('transactions.fields.amount'),
+    t('transactions.fields.state'),
+    t('transactions.list.actions'),
+  ];
+  const rows: Array<Transaction | null> = transactions ?? Array.from({ length: 5 }, () => null);
   return (
-    <div className={`card ${styles.panel}`}>
+    <div
+      className={`card ${styles.panel}`}
+      aria-busy={transactions === null || undefined}
+      data-testid={transactions === null ? 'account-movements-skeleton' : undefined}
+    >
+      {transactions === null && announce ? (
+        <SkeletonStatus>{t('transactions.loading')}</SkeletonStatus>
+      ) : null}
       <div className={styles.tableScroll}>
         <table>
           <caption className="sr-only">{t('accounts.detail.movements.caption')}</caption>
           <thead>
             <tr>
-              <th scope="col">{t('transactions.fields.bookedOn')}</th>
-              <th scope="col">{t('transactions.fields.nature')}</th>
-              <th scope="col">{t('transactions.fields.rawLabel')}</th>
-              <th scope="col">{t('transactions.fields.category')}</th>
-              <th scope="col">{t('accounts.detail.movements.counterpart')}</th>
-              <th scope="col">{t('transactions.fields.amount')}</th>
-              <th scope="col">{t('transactions.fields.state')}</th>
+              {labels.map((label, index) => (
+                <th scope="col" key={label}>
+                  {index === 7 ? <span className="sr-only">{label}</span> : label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {transactions.map((transaction) => {
-              const transferLinked = transaction.transferId !== null;
-
-              return (
-                <tr key={transaction.id}>
-                  <td data-label={t('transactions.fields.bookedOn')}>
-                    {formatCalendarDay(transaction.bookedOn, i18n.language)}
-                  </td>
-                  <td data-label={t('transactions.fields.nature')}>
-                    {t(`transactions.natures.${transaction.nature}`)}
-                  </td>
-                  <th data-label={t('transactions.fields.rawLabel')} scope="row">
-                    {transaction.rawLabel}
-                  </th>
-                  <td data-label={t('transactions.fields.category')}>
+            {rows.map((transaction, index) => (
+              <tr key={transaction?.id ?? index}>
+                <td data-label={labels[0]}>
+                  {transaction ? (
+                    formatCalendarDay(transaction.bookedOn, i18n.language)
+                  ) : (
+                    <SkeletonBlock />
+                  )}
+                </td>
+                <td data-label={labels[1]}>
+                  {transaction ? (
+                    t(`transactions.natures.${transaction.nature}`)
+                  ) : (
+                    <SkeletonBlock />
+                  )}
+                </td>
+                <th data-label={labels[2]} scope="row">
+                  <TransactionInspectButton transaction={transaction} />
+                </th>
+                <td data-label={labels[3]}>
+                  {transaction ? (
                     <TransactionCategories splits={transaction.splits} />
-                  </td>
-                  <td data-label={t('accounts.detail.movements.counterpart')}>
-                    {transferLinked
-                      ? (transaction.counterparty ?? t('transactions.list.transferMarker'))
-                      : (transaction.counterparty ?? t('transactions.list.noCounterparty'))}
-                  </td>
-                  <td data-label={t('transactions.fields.amount')}>
+                  ) : (
+                    <SkeletonBlock />
+                  )}
+                </td>
+                <td data-label={labels[4]}>
+                  {transaction ? (
+                    (transaction.counterparty ??
+                    t(
+                      transaction.transferId !== null
+                        ? 'transactions.list.transferMarker'
+                        : 'transactions.list.noCounterparty',
+                    ))
+                  ) : (
+                    <SkeletonBlock />
+                  )}
+                </td>
+                <td data-label={labels[5]}>
+                  {transaction ? (
                     <TransactionAmount amount={transaction.amount} />
-                  </td>
-                  <td data-label={t('transactions.fields.state')}>
-                    <StatusBadge tone={STATE_TONE[transaction.state]}>
-                      {t(`transactions.states.${transaction.state}`)}
-                    </StatusBadge>
-                  </td>
-                </tr>
-              );
-            })}
+                  ) : (
+                    <SkeletonBlock />
+                  )}
+                </td>
+                <td data-label={labels[6]}>
+                  <StatusBadge tone={transaction ? STATE_TONE[transaction.state] : 'positive'}>
+                    {transaction ? (
+                      t(`transactions.states.${transaction.state}`)
+                    ) : (
+                      <SkeletonBlock />
+                    )}
+                  </StatusBadge>
+                </td>
+                <td data-label={labels[7]}>
+                  <TransactionRowActions transaction={transaction} />
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

@@ -4,4 +4,5 @@ import type { Transaction } from '@cadran/api-client';
 export type Editor = Transaction | 'create' | null;
 
 /** The toast shown after a write settles, keyed by which one just happened. */
-export type Saved = 'duplicated' | 'saved' | 'transferSaved' | 'voided' | null;
+export type Saved =
+  'duplicated' | 'reconciled' | 'saved' | 'transferSaved' | 'transferVoided' | 'voided' | null;

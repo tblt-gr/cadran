@@ -1,0 +1,18 @@
+.inspect {
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  border-radius: var(--radius-button);
+  color: var(--text-primary);
+  background: var(--color-transparent);
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.inspect:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.inspect:disabled {
+  cursor: default;
+}

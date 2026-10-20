@@ -49,7 +49,9 @@ export function AccountMovementsSection({
   return (
     <>
       <div className={styles.movementsHeading}>
-        <h3 className={styles.movementsTitle}>{t('accounts.detail.movements.title')}</h3>
+        <h3 className={styles.movementsTitle} tabIndex={-1} data-transaction-focus-fallback>
+          {t('accounts.detail.movements.title')}
+        </h3>
         {month !== null ? (
           <p className={styles.periodNotice}>
             {t('accounts.detail.movements.periodActive', {
@@ -64,7 +66,7 @@ export function AccountMovementsSection({
 
       {transactions.isPending ? (
         <AccountMovementsTableSkeleton />
-      ) : transactions.isError && !staleCursorError ? (
+      ) : transactions.isError && !staleCursorError && (items.length === 0 || unauthorized) ? (
         <TransactionsState
           canCreate={canCreate}
           kind={unauthorized ? 'unauthorized' : 'error'}
@@ -81,13 +83,27 @@ export function AccountMovementsSection({
       ) : (
         <>
           <AccountMovementsTable transactions={items} />
-          <TransactionListFooter
-            hasMore={!staleCursorError && displayedPageHasMore}
-            loadingMore={loadingMore}
-            onLoadMore={onLoadMore}
-            onReloadFromFirstPage={onReloadFromFirstPage}
-            stale={staleCursorError}
-          />
+          {transactions.isError && !staleCursorError ? (
+            <div role="alert">
+              <p>{t('transactions.error.description')}</p>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => void transactions.refetch()}
+              >
+                {t('foundation.retry')}
+              </button>
+            </div>
+          ) : (
+            <TransactionListFooter
+              hideEndOfList
+              hasMore={!staleCursorError && displayedPageHasMore}
+              loadingMore={loadingMore}
+              onLoadMore={onLoadMore}
+              onReloadFromFirstPage={onReloadFromFirstPage}
+              stale={staleCursorError}
+            />
+          )}
         </>
       )}
     </>

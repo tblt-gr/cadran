@@ -15,6 +15,7 @@ interface ActionMenuItem {
 interface ActionMenuProps {
   items: ActionMenuItem[];
   label: string;
+  disabled?: boolean;
 }
 
 /**
@@ -22,7 +23,7 @@ interface ActionMenuProps {
  * accessible name the former text buttons used, so a screen reader still hears
  * which row is about to change.
  */
-export function ActionMenu({ items, label }: ActionMenuProps) {
+export function ActionMenu({ items, label, disabled = false }: ActionMenuProps) {
   const menuId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -88,6 +89,7 @@ export function ActionMenu({ items, label }: ActionMenuProps) {
   return (
     <div className={styles.wrap}>
       <button
+        disabled={disabled}
         aria-controls={open ? menuId : undefined}
         aria-expanded={open}
         aria-haspopup="true"
@@ -118,6 +120,7 @@ export function ActionMenu({ items, label }: ActionMenuProps) {
                   disabled={item.disabled}
                   key={item.id}
                   onClick={() => {
+                    trigger.current?.focus();
                     item.onSelect();
                     setOpen(false);
                   }}

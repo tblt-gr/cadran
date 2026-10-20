@@ -82,17 +82,7 @@ const transaction: Transaction = {
 };
 
 function rows(transactions: Transaction[]) {
-  return (
-    <TransactionList
-      accounts={[]}
-      duplicatingIds={new Set()}
-      onDuplicate={vi.fn()}
-      onEdit={vi.fn()}
-      onRefund={vi.fn()}
-      onVoid={vi.fn()}
-      transactions={transactions}
-    />
-  );
+  return <TransactionList accounts={[]} transactions={transactions} />;
 }
 
 function success<T>(data: T) {

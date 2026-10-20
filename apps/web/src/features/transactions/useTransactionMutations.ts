@@ -74,10 +74,10 @@ export function useTransactionMutations({
       return result.data;
     },
     onSuccess: async () => {
-      onSaved();
-      setSaved('saved');
       await reloadAfterWrite();
       await invalidateAccountBalances(queryClient);
+      onSaved();
+      setSaved('saved');
     },
     onError: refreshOnStaleTransaction,
   });
@@ -112,10 +112,10 @@ export function useTransactionMutations({
     },
     onError: refreshOnStaleTransaction,
     onSuccess: async () => {
-      onVoided();
-      setSaved('voided');
       await reloadAfterWrite();
       await invalidateAccountBalances(queryClient);
+      onVoided();
+      setSaved('voided');
     },
   });
 

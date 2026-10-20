@@ -1923,7 +1923,9 @@
       "saved": "La transaction a été enregistrée.",
       "voided": "La transaction a été annulée. Elle reste dans l’historique.",
       "duplicated": "La transaction a été dupliquée à la date du jour.",
-      "transferSaved": "Le virement a été enregistré."
+      "transferSaved": "Le virement a été enregistré.",
+      "transferVoided": "Le virement a été annulé. Il reste dans l’historique.",
+      "reconciled": "La transaction a été rapprochée."
     },
     "fields": {
       "account": "Compte",
@@ -1938,7 +1940,8 @@
       "counterparty": "Tiers",
       "note": "Note",
       "paymentMethod": "Moyen de paiement",
-      "category": "Catégorie"
+      "category": "Catégorie",
+      "bankReference": "Référence bancaire"
     },
     "natures": {
       "INCOME": "Revenu",
@@ -2183,6 +2186,39 @@
       "depositHint": "Le virement seul n’alimente pas les espèces du portefeuille.",
       "depositPartial": "Le virement est enregistré. Le versement reste à enregistrer : réessayez uniquement le versement.",
       "retryDeposit": "Réessayer le versement"
+    },
+    "workflow": {
+      "inspect": "Consulter",
+      "inspectFor": "Consulter la transaction « {{label}} »",
+      "details": "Détails de la transaction",
+      "edit": "Modifier",
+      "duplicate": "Dupliquer",
+      "void": "Annuler",
+      "refund": "Rembourser",
+      "reconcile": "Rapprocher",
+      "unspecified": "Non renseigné",
+      "editTransfer": "Modifier le virement",
+      "voidTransfer": "Annuler le virement",
+      "confirmVoidTransfer": "Confirmer l’annulation du virement",
+      "voidTransferNotice": "Les deux mouvements et les frais du virement seront annulés ensemble.",
+      "transferImmutable": "Les comptes et les montants du virement sont conservés.",
+      "legs": {
+        "source": "Montant débité",
+        "target": "Montant reçu",
+        "fee": "Frais"
+      },
+      "reconcileTitle": "Rapprocher la transaction",
+      "match": "Autorisation en attente correspondante",
+      "newMovement": "Nouveau mouvement, sans autorisation correspondante",
+      "matchNotice": "Vérifiez le mouvement avant de confirmer. Le rapprochement conserve une seule transaction comptabilisée.",
+      "confirmReconcile": "Confirmer le rapprochement",
+      "locked": {
+        "closed": "Cette période est clôturée.",
+        "terminal": "Cette transaction ne peut plus être modifiée.",
+        "portfolio": "Cette écriture se gère depuis les opérations du portefeuille.",
+        "archived": "Ce compte est archivé."
+      },
+      "portfolioLink": "Ouvrir les opérations du portefeuille"
     }
   },
   "recurrences": {

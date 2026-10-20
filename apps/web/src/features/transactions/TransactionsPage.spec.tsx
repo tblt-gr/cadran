@@ -1235,7 +1235,7 @@ describe('TransactionsPage', () => {
     expect(within(reopened).getByLabelText('Montant reçu (CHF)')).toBeTruthy();
   });
 
-  it('marks a transfer leg in the list and disables editing, duplicating and voiding it directly', async () => {
+  it('routes transfer edits and voids to the complete workflow and forbids standalone duplication', async () => {
     const transferLeg: Transaction = {
       ...transaction,
       nature: 'TRANSFER',
@@ -1254,13 +1254,13 @@ describe('TransactionsPage', () => {
       screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
     );
     expect((screen.getByRole('button', { name: /^Modifier/ }) as HTMLButtonElement).disabled).toBe(
-      true,
+      false,
     );
     expect((screen.getByRole('button', { name: /^Dupliquer/ }) as HTMLButtonElement).disabled).toBe(
       true,
     );
     expect((screen.getByRole('button', { name: /^Annuler/ }) as HTMLButtonElement).disabled).toBe(
-      true,
+      false,
     );
   });
 
