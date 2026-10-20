@@ -1,0 +1,22 @@
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  margin: var(--spacing-none);
+  gap: var(--spacing-2) var(--spacing-6);
+}
+
+.facts div {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.facts dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+}
+
+.facts dd {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-label);
+}

@@ -25,7 +25,6 @@ export function OverrideHistory({ overrides }: OverrideHistoryProps) {
   return (
     <details className={styles.history}>
       <summary>{t('accounts.overrides.historyTitle')}</summary>
-      <p className={styles.hint}>{t('accounts.overrides.historyHint')}</p>
       {overrides.length === 0 ? (
         <p className={styles.hint}>{t('accounts.overrides.historyEmpty')}</p>
       ) : (

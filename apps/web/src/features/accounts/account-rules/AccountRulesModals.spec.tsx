@@ -30,6 +30,8 @@ const account = {
   label: 'Livret A Banque X',
   assetCode: 'EUR',
   productCode: 'FR_LIVRET_A',
+  openedOn: '2020-01-15',
+  closedOn: null,
 } as Account;
 
 const ceiling = {
@@ -143,6 +145,7 @@ describe('AccountRulesModals', () => {
     openRules();
 
     await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
+    fireEvent.click(screen.getByRole('button', { name: 'Détails : Plafond de dépôt' }));
     fireEvent.click(screen.getByRole('button', { name: 'Déroger' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer la dérogation' }));
 
@@ -162,11 +165,12 @@ describe('AccountRulesModals', () => {
     const opener = openRules();
 
     await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
+    fireEvent.click(screen.getByRole('button', { name: 'Détails : Plafond de dépôt' }));
     fireEvent.click(screen.getByRole('button', { name: 'Déroger' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Fermer' }));
 
     await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
-    const action = screen.getByRole('button', { name: 'Déroger' });
+    const action = screen.getByRole('button', { name: 'Détails : Plafond de dépôt' });
     await waitFor(() => expect(document.activeElement).toBe(action));
 
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
@@ -178,11 +182,12 @@ describe('AccountRulesModals', () => {
     openRules();
 
     await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
+    fireEvent.click(screen.getByRole('button', { name: 'Détails : Plafond de dépôt' }));
     fireEvent.click(screen.getByRole('button', { name: 'Retirer la dérogation' }));
     expect(await screen.findByText('Retirer cette dérogation')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
     await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
-    const action = screen.getByRole('button', { name: 'Déroger' });
+    const action = screen.getByRole('button', { name: 'Détails : Plafond de dépôt' });
     await waitFor(() => expect(document.activeElement).toBe(action));
     expect(api.withdrawAccountRuleOverride).not.toHaveBeenCalled();
   });

@@ -17,13 +17,10 @@ interface AccountRuleLayerProps {
 }
 
 /**
- * What one authority states for a rule: origin, value and validity up front,
- * then a labelled disclosure for the measure, the verification and the source.
- *
- * The layer in force keeps its disclosure open, because its measure carries the
- * constraint and the warning that decide how the figure is read; a layer shown
- * only for comparison starts closed. A local claim keeps its reason and its
- * withdrawal beside the value instead of behind the disclosure.
+ * What one authority states for a rule, read in full: origin, value, validity,
+ * measure, verification and source, with the local claim's reason and its
+ * withdrawal. It only appears behind the rule's details button, so the main
+ * reading path keeps the value in force alone.
  */
 export function AccountRuleLayer({ effectiveLayer, layer, onWithdraw }: AccountRuleLayerProps) {
   const { t } = useTranslation();
@@ -50,27 +47,24 @@ export function AccountRuleLayer({ effectiveLayer, layer, onWithdraw }: AccountR
         </div>
       </dl>
       {layer.claim ? <RuleClaim claim={layer.claim} onWithdraw={onWithdraw} /> : null}
-      <details className={styles.details} open={inForce}>
-        <summary>{t('accounts.rules.details')}</summary>
-        <dl className={styles.reading}>
-          <div>
-            <dt>{t('accounts.rules.fields.measure')}</dt>
-            <dd>{layer.measure}</dd>
-          </div>
-          <div>
-            <dt>{t('accounts.rules.fields.verification')}</dt>
-            <dd>
-              <RuleVerificationBadge verification={layer.verification} />
-            </dd>
-          </div>
-          <div>
-            <dt>{t('accounts.rules.fields.source')}</dt>
-            <dd>
-              <RuleSourceReading source={layer.source} />
-            </dd>
-          </div>
-        </dl>
-      </details>
+      <dl className={styles.reading}>
+        <div>
+          <dt>{t('accounts.rules.fields.measure')}</dt>
+          <dd>{layer.measure}</dd>
+        </div>
+        <div>
+          <dt>{t('accounts.rules.fields.verification')}</dt>
+          <dd>
+            <RuleVerificationBadge verification={layer.verification} />
+          </dd>
+        </div>
+        <div>
+          <dt>{t('accounts.rules.fields.source')}</dt>
+          <dd>
+            <RuleSourceReading source={layer.source} />
+          </dd>
+        </div>
+      </dl>
     </li>
   );
 }

@@ -1,0 +1,6 @@
+.alert {
+  margin: var(--spacing-none);
+  color: var(--warning);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}

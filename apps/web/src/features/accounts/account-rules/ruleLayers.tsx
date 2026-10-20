@@ -14,6 +14,7 @@ import type { ReactNode } from 'react';
 import { CeilingMeasure } from '@/features/accounts/account-rules/ceiling-measure/CeilingMeasure';
 import { RateBrackets } from '@/features/accounts/account-rules/rate-brackets/RateBrackets';
 import { RateMeasure } from '@/features/accounts/account-rules/rate-measure/RateMeasure';
+import { RuleAlert } from '@/features/accounts/account-rules/rule-alert/RuleAlert';
 import { TermMeasure } from '@/features/accounts/account-rules/term-measure/TermMeasure';
 import { TermWording } from '@/features/accounts/account-rules/term-wording/TermWording';
 import { formatAmount } from '@/lib/decimal';
@@ -26,6 +27,8 @@ import { formatAmount } from '@/lib/decimal';
  * normalised here rather than in three near-identical row components.
  */
 export interface RuleLayerView {
+  /** One short line when this layer carries a warning the reader needs beside the value; null otherwise. */
+  alert: ReactNode;
   claim: AccountRuleClaim | null;
   layer: AccountRuleLayer;
   measure: ReactNode;
@@ -44,6 +47,10 @@ export function ceilingLayers(
   return present<AccountCeiling>(rule).map(([layer, ceiling]) => ({
     ...provenance(layer, ceiling),
     value: formatAmount(ceiling.amount.value, ceiling.amount.assetCode, language),
+    alert:
+      layer === rule.effectiveLayer ? (
+        <RuleAlert check={rule.check ?? null} comparable={ceiling.measurable} language={language} />
+      ) : null,
     measure: (
       <CeilingMeasure
         accountAsset={accountAsset}
@@ -59,6 +66,10 @@ export function rateLayers(rule: AccountRateRule, accountAsset: string): RuleLay
   return present<AccountRate>(rule).map(([layer, rate]) => ({
     ...provenance(layer, rate),
     value: <RateBrackets assetCode={accountAsset} rate={rate} />,
+    alert:
+      layer === rule.effectiveLayer && rule.applied?.rateShiftsAboveFirstBracket ? (
+        <RuleAlert shifted />
+      ) : null,
     measure: (
       <RateMeasure
         applied={rule.applied}
@@ -74,7 +85,8 @@ export function termLayers(rule: AccountTermRule): RuleLayerView[] {
   return present<AccountTerm>(rule).map(([layer, term]) => ({
     ...provenance(layer, term),
     value: <TermWording token={term.token} />,
-    measure: <TermMeasure />,
+    alert: null,
+    measure: <TermMeasure token={term.token} />,
   }));
 }
 
@@ -111,7 +123,7 @@ interface ProvenanceCarrier {
 function provenance(
   layer: AccountRuleLayer,
   carrier: ProvenanceCarrier,
-): Omit<RuleLayerView, 'measure' | 'value'> {
+): Omit<RuleLayerView, 'alert' | 'measure' | 'value'> {
   return {
     claim: carrier.claim,
     layer,

@@ -664,14 +664,15 @@
         "NEGATIVE_BALANCE": "Solde négatif : un barème d’épargne ne se lit pas à l’envers."
       },
       "yield": {
-        "title": "Lecture du rendement",
-        "hint": "Trois lectures distinctes. Une hypothèse de projection n’est pas un taux de produit, et deux valorisations ne font pas une performance.",
-        "contractual": "Taux contractuel ou réglementé",
+        "title": "Rendement",
         "assumption": "Hypothèse de projection",
         "observed": "Performance observée",
         "noContractual": "Aucun taux contractuel en vigueur à cette date.",
         "assumptionEmpty": "Non enregistrée : une hypothèse n’est jamais stockée comme taux d’un produit de marché.",
-        "observedEmpty": "Aucune série de rendements : inventer un rendement à partir de deux stocks présenterait un mouvement comme un rendement."
+        "observedEmpty": "Aucune série de rendements : inventer un rendement à partir de deux stocks présenterait un mouvement comme un rendement.",
+        "guaranteed": "Taux garanti",
+        "revisable": "Taux révisable, jamais un rendement acquis",
+        "detailsLabel": "Détails : lecture du rendement"
       },
       "bracketFrom": "À partir de {{from}}",
       "bracketRange": "De {{from}} à {{to}}",
@@ -702,7 +703,7 @@
         "OVERRIDE": "Dérogation locale"
       },
       "listTitle": "Règles du compte",
-      "details": "Mesure, vérification et source",
+      "details": "Détails",
       "unavailable": "Non disponible au {{date}} : aucune valeur sourcée pour cette date.",
       "fields": {
         "rule": "Règle",
@@ -712,6 +713,23 @@
         "measure": "Mesure",
         "verification": "Vérification",
         "source": "Source"
+      },
+      "detailsOf": "Détails : {{rule}}",
+      "termOther": "Condition particulière",
+      "sourceWording": "Libellé source : {{wording}}",
+      "facts": {
+        "opened": "Ouverture",
+        "closed": "Clôture"
+      },
+      "origin": {
+        "override": "Dérogation",
+        "inherited": "Hérité"
+      },
+      "alerts": {
+        "exceeded": "Plafond dépassé (autorisé)",
+        "exceededBy": "Plafond dépassé de {{excess}} (autorisé)",
+        "notComparable": "Plafond non comparable à ce compte",
+        "shifted": "Le barème change le rendement au-delà de la première tranche"
       }
     },
     "pagination": {
@@ -795,8 +813,7 @@
       "withdrawConfirm": "Retirer la dérogation",
       "withdrawing": "Retrait…",
       "withdrawnOn": "Retirée le {{date}}",
-      "historyTitle": "Dérogations de ce compte",
-      "historyHint": "Toutes les dérogations jamais enregistrées sur ce compte, retirées comprises, quelle que soit la date consultée.",
+      "historyTitle": "Historique",
       "historyEmpty": "Aucune dérogation n’a jamais été enregistrée sur ce compte.",
       "historyError": "Les dérogations de ce compte n’ont pas pu être lues.",
       "unknownAuthor": "Auteur inconnu",

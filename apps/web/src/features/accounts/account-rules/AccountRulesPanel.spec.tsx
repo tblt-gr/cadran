@@ -36,6 +36,8 @@ const account = {
   label: 'Livret A Banque X',
   assetCode: 'EUR',
   productCode: 'FR_LIVRET_A',
+  openedOn: '2020-01-15',
+  closedOn: null,
 } as Account;
 
 const source = {
@@ -132,6 +134,11 @@ function failure(status: number) {
   return Promise.resolve({ data: undefined, response: new Response('{}', { status }) });
 }
 
+/** Opens the details behind a rule's (or the yield's) "i" button. */
+function openDetails(name: string) {
+  fireEvent.click(screen.getByRole('button', { name: `Détails : ${name}` }));
+}
+
 const onOverride = vi.fn();
 const onWithdraw = vi.fn();
 
@@ -191,20 +198,46 @@ describe('AccountRulesPanel', () => {
     expect(screen.queryByTestId('account-rules-skeleton')).toBeNull();
   });
 
-  it('shows the ceiling with the measure it is checked against and the rate of the day', async () => {
+  it('reads each rule as a name, the value in force and since when', async () => {
     api.readAccountRules.mockImplementation(() => success(passbook));
     renderPanel();
 
     expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
     expect(screen.getByText(/22\s950,00\s€/)).toBeTruthy();
-    // One headed section per rule: the Modal is the only scroll area and no
-    // table is left to scroll sideways inside it.
+    // The Modal is the only scroll area and no table is left to scroll sideways.
     expect(
       screen.getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent),
     ).toEqual(['Plafond de dépôt', 'Taux annuel']);
     expect(screen.queryByRole('table')).toBeNull();
-    expect(screen.getAllByText('Origine')).toHaveLength(2);
-    expect(screen.getAllByText('Validité')).toHaveLength(2);
+    // A period left open is in force for every later date, so it is shown as a
+    // start and never as an expiry.
+    expect(screen.getByText('Depuis le 25 avril 2025')).toBeTruthy();
+    expect(screen.getByText('Du 1 août 2026 au 31 janvier 2027')).toBeTruthy();
+    expect(screen.getByText('1,70 %')).toBeTruthy();
+    // One bracket covering every amount reads the same under both application modes.
+    expect(screen.queryByText(/tranche/i)).toBeNull();
+    expect(screen.getAllByText('Hérité')).toHaveLength(2);
+    expect(screen.getByText('Ouverture')).toBeTruthy();
+    expect(screen.getByText('15 janvier 2020')).toBeTruthy();
+    expect(screen.queryByText('Clôture')).toBeNull();
+
+    // Nothing else is on the main path: measure, verification, source and
+    // their prose wait behind the details button.
+    expect(screen.queryByText('Sommes déposées, hors intérêts')).toBeNull();
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.queryByText('Source')).toBeNull();
+    expect(screen.queryByText('Vérifié')).toBeNull();
+  });
+
+  it('keeps the measure, the verification and the publication behind the details button', async () => {
+    api.readAccountRules.mockImplementation(() => success(passbook));
+    renderPanel();
+
+    await screen.findByText('Plafond de dépôt');
+    const button = screen.getByRole('button', { name: 'Détails : Plafond de dépôt' });
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(button);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
 
     // The amount alone would settle nothing: a passbook carried past 22 950 €
     // by its own interest has broken no rule, so the measure is stated.
@@ -214,20 +247,26 @@ describe('AccountRulesPanel', () => {
         'Les intérêts versés n’entrent pas dans la mesure : ils peuvent porter le compte au-delà du plafond sans qu’aucune règle soit enfreinte.',
       ),
     ).toBeTruthy();
-    // A period left open is in force for every later date, so it is shown as a
-    // start and never as an expiry.
-    expect(screen.getByText('Depuis le 25 avril 2025')).toBeTruthy();
-    expect(screen.getByText('Du 1 août 2026 au 31 janvier 2027')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Livret A' }).getAttribute('href')).toBe(source.url);
 
-    expect(screen.getByText('1,70 %')).toBeTruthy();
-    // One bracket covering every amount reads the same under both application
-    // modes, so naming the mode beside it would be noise.
-    expect(screen.queryByText(/tranche/i)).toBeNull();
+    openDetails('Taux annuel');
     expect(screen.getAllByText('Taux dû au titulaire').length).toBeGreaterThan(0);
     expect(
       screen.getByText('Aucun solde observé : le barème n’est pas appliqué à un exemple tapé.'),
     ).toBeTruthy();
-    expect(screen.getByText('Lecture du rendement')).toBeTruthy();
+    // Every figure travels with the publication it was read from.
+    expect(
+      screen.getAllByRole('link', { name: 'Livret A' }).map((link) => link.getAttribute('href')),
+    ).toEqual([source.url, source.url]);
+  });
+
+  it('lightens the yield reading and keeps the other two readings behind its button', async () => {
+    api.readAccountRules.mockImplementation(() => success(passbook));
+    renderPanel();
+
+    expect(await screen.findByText('Taux garanti')).toBeTruthy();
+    expect(screen.queryByText(/Non enregistrée/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Détails : lecture du rendement' }));
     expect(
       screen.getByText(
         'Non enregistrée : une hypothèse n’est jamais stockée comme taux d’un produit de marché.',
@@ -238,11 +277,24 @@ describe('AccountRulesPanel', () => {
         'Aucune série de rendements : inventer un rendement à partir de deux stocks présenterait un mouvement comme un rendement.',
       ),
     ).toBeTruthy();
-    // Every figure travels with the publication it was read from, so the
-    // ceiling and the rate each carry their own link.
-    expect(
-      screen.getAllByRole('link', { name: 'Livret A' }).map((link) => link.getAttribute('href')),
-    ).toEqual([source.url, source.url]);
+  });
+
+  it('shows the closing date when the account states one', async () => {
+    api.readAccountRules.mockImplementation(() => success(passbook));
+    const view = renderPanel();
+    view.unmount();
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AccountRulesPanel
+          account={{ ...account, closedOn: '2026-06-30' }}
+          onOverride={onOverride}
+          onWithdraw={onWithdraw}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Clôture')).toBeTruthy();
+    expect(screen.getByText('30 juin 2026')).toBeTruthy();
   });
 
   it('resolves the rules again on the business date the reader chooses', async () => {
@@ -313,6 +365,9 @@ describe('AccountRulesPanel', () => {
     );
     renderPanel();
 
+    await screen.findByText('Plafond de versements');
+    openDetails('Plafond de versements');
+    openDetails('Plafond de versements commun');
     expect(await screen.findByText('Versements cumulés')).toBeTruthy();
     expect(screen.getByText('Versements cumulés de plusieurs comptes')).toBeTruthy();
     expect(
@@ -363,6 +418,8 @@ describe('AccountRulesPanel', () => {
     renderPanel();
 
     expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
+    openDetails('Plafond de dépôt');
+    openDetails('Taux annuel');
     // Nobody published a workspace template's periods: no freshness is graded
     // and no publication is named for either row.
     expect(screen.getAllByText('Déclaré par l’espace de travail')).toHaveLength(2);
@@ -384,7 +441,10 @@ describe('AccountRulesPanel', () => {
     renderPanel();
 
     // No conversion rate ships with the application, so no verdict is produced
-    // rather than a converted one.
+    // rather than a converted one. The short line stays on the main path, the
+    // full wording behind the button.
+    expect(await screen.findByText('Plafond non comparable à ce compte')).toBeTruthy();
+    openDetails('Plafond de dépôt');
     expect(
       await screen.findByText(
         'Plafond publié en EUR et compte tenu en USD : non comparable, aucune conversion n’est appliquée.',
@@ -484,11 +544,18 @@ describe('AccountRulesPanel', () => {
     );
     renderPanel();
 
-    // The three authorities answer the same question and none of them is
-    // hidden behind the winner.
-    expect(await screen.findByText(/22\s950,00\s€/)).toBeTruthy();
+    // The main path states the value in force and that it is the account's own.
+    expect(await screen.findByText(/30\s000,00\s€/)).toBeTruthy();
+    expect(screen.getByText('Dérogation')).toBeTruthy();
+    expect(screen.queryByText(/25\s000,00\s€/)).toBeNull();
+    expect(screen.queryByText(/22\s950,00\s€/)).toBeNull();
+    expect(screen.queryByText('La banque a confirmé un plafond plus élevé par écrit.')).toBeNull();
+
+    // The three authorities answer the same question; none is lost, they are
+    // folded behind the rule's details button.
+    openDetails('Plafond de dépôt');
+    expect(screen.getByText(/22\s950,00\s€/)).toBeTruthy();
     expect(screen.getByText(/25\s000,00\s€/)).toBeTruthy();
-    expect(screen.getByText(/30\s000,00\s€/)).toBeTruthy();
     expect(screen.getByText('Catalogue système')).toBeTruthy();
     expect(screen.getByText("Modèle de l'espace")).toBeTruthy();
     expect(screen.getByText('Dérogation locale')).toBeTruthy();
@@ -496,21 +563,6 @@ describe('AccountRulesPanel', () => {
     // Which one applies is stated in words, never by position or by shade.
     expect(screen.getAllByText('En vigueur')).toHaveLength(1);
     expect(screen.getAllByText('Pour comparaison')).toHaveLength(2);
-
-    // Inherited and overridden values are told apart by text inside each layer.
-    const layers = screen.getAllByRole('listitem').filter((item) => item.querySelector('dl'));
-    const byOrigin = (origin: string) =>
-      layers.find((item) => item.textContent?.includes(origin) ?? false);
-    expect(byOrigin('Dérogation locale')?.textContent).toContain('En vigueur');
-    expect(byOrigin('Dérogation locale')?.textContent).toContain('30');
-    expect(byOrigin("Modèle de l'espace")?.textContent).toContain('Pour comparaison');
-    // The layer in force keeps its measure and warnings open; the others are
-    // available under the same labelled disclosure, closed.
-    const disclosures = [...document.querySelectorAll('details')];
-    expect(disclosures.map((details) => details.open)).toEqual([false, false, true, false]);
-    expect(disclosures[0]?.querySelector('summary')?.textContent).toBe(
-      'Mesure, vérification et source',
-    );
 
     // A local figure with no reason beside it would be indistinguishable from
     // a sourced one at a glance.
@@ -526,6 +578,9 @@ describe('AccountRulesPanel', () => {
     renderPanel();
 
     await screen.findByText('Plafond de dépôt');
+    openDetails('Plafond de dépôt');
+    openDetails('Taux annuel');
+    openDetails('Taux minimum');
     const actions = screen.getAllByRole('button', { name: 'Déroger' });
     // One per rule the account carries, plus the gap it is expected to carry
     // and does not: a claim is exactly how that gap gets filled.
@@ -554,7 +609,9 @@ describe('AccountRulesPanel', () => {
     );
     renderPanel();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Retirer la dérogation' }));
+    await screen.findByText('Plafond de dépôt');
+    openDetails('Plafond de dépôt');
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer la dérogation' }));
 
     expect(onWithdraw).toHaveBeenCalledWith(claim, 'DEPOSIT_CEILING');
   });
@@ -640,8 +697,16 @@ describe('AccountRulesPanel', () => {
     );
     renderPanel();
 
+    // The short lines stay beside the value; the full explanation is behind the button.
+    expect(await screen.findByText(/Plafond dépassé de .* \(autorisé\)/)).toBeTruthy();
     expect(
-      await screen.findByText(
+      screen.getByText('Le barème change le rendement au-delà de la première tranche'),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Le barème peut changer le rendement/)).toBeNull();
+    openDetails('Plafond de dépôt');
+    openDetails('Taux annuel');
+    expect(
+      screen.getByText(
         /Au-dessus du plafond de .* : autorisé. Le barème peut changer le rendement/,
       ),
     ).toBeTruthy();
@@ -695,13 +760,13 @@ describe('AccountRulesPanel', () => {
     );
     renderPanel();
 
+    await screen.findByText('Plafond de dépôt');
+    expect(screen.queryByRole('link')).toBeNull();
+    openDetails('Plafond de dépôt');
     const link = await screen.findByRole('link', { name: longTitle });
     expect(link.getAttribute('href')).toBe(longUrl);
     expect(link.getAttribute('rel')).toBe('noreferrer noopener');
     expect(link.getAttribute('target')).toBe('_blank');
-    expect(link.closest('details')?.querySelector('summary')?.textContent).toBe(
-      'Mesure, vérification et source',
-    );
   });
 
   it('keeps an unknown rule unavailable with its reason and never as zero', async () => {
@@ -717,6 +782,8 @@ describe('AccountRulesPanel', () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByText(/0\s?%/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Déroger' })).toBeNull();
+    openDetails('Taux minimum');
     expect(screen.getByRole('button', { name: 'Déroger' })).toBeTruthy();
   });
 
@@ -724,14 +791,46 @@ describe('AccountRulesPanel', () => {
     api.readAccountRules.mockImplementation(() => new Promise(() => undefined));
     renderPanel();
 
+    expect(screen.getByText('Ouverture')).toBeTruthy();
     expect(screen.getByRole('heading', { level: 3, name: 'Règles du compte' })).toBeTruthy();
-    expect(
-      screen
-        .getAllByRole('button', { name: 'Déroger' })
-        .every((button) => (button as HTMLButtonElement).disabled),
-    ).toBe(true);
-    expect(screen.getAllByText('Valeur').length).toBeGreaterThan(0);
-    expect(screen.getByText('Dérogations de ce compte')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 3, name: 'Rendement' })).toBeTruthy();
+    const buttons = screen.getAllByRole('button', { name: /^Détails/ });
+    expect(buttons.length).toBeGreaterThan(0);
+    expect(buttons.every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
+    expect(screen.getByText('Historique')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
+  });
+
+  it('never prints a raw rule token and quotes an untranslated one in words under the details', async () => {
+    api.readAccountRules.mockImplementation(() =>
+      success({
+        ...passbook,
+        ceilings: [],
+        rates: [],
+        terms: [
+          {
+            kind: 'INTEREST_ACCRUAL_METHOD',
+            effectiveLayer: 'CATALOG',
+            catalog: {
+              token: 'FORTNIGHTLY_ANNUAL_CAPITALISATION',
+              validFrom: '2025-04-25',
+              validTo: null,
+              verification: 'VERIFIED',
+              source,
+              claim: null,
+            },
+            inherited: null,
+            override: null,
+          },
+        ],
+      }),
+    );
+    renderPanel();
+
+    expect(await screen.findByText('Condition particulière')).toBeTruthy();
+    expect(screen.queryByText(/FORTNIGHTLY/)).toBeNull();
+    openDetails('Méthode de calcul des intérêts');
+    expect(screen.getByText('Libellé source : Fortnightly annual capitalisation')).toBeTruthy();
+    expect(screen.queryByText(/FORTNIGHTLY/)).toBeNull();
   });
 });

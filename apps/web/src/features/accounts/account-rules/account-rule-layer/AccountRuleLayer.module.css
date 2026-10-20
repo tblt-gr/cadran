@@ -64,17 +64,6 @@
   font-size: var(--font-size-body);
 }
 
-.details summary {
-  margin-bottom: var(--spacing-2);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: var(--font-size-label);
-}
-
-.details summary:focus-visible {
-  outline: var(--outline-focus);
-}
-
 @media (max-width: 30rem) {
   .reading > div {
     grid-template-columns: minmax(0, 1fr);

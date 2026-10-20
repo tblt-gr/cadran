@@ -2,6 +2,7 @@ import type { Account, AccountRuleClaim, AccountRules, ProductRuleKind } from '@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
+import { AccountKeyFacts } from '@/features/accounts/account-rules/account-key-facts/AccountKeyFacts';
 import { AccountRuleList } from '@/features/accounts/account-rules/account-rule-list/AccountRuleList';
 import { AccountRulesPanelSkeleton } from './AccountRulesPanelSkeleton';
 import { OverrideHistory } from '@/features/accounts/account-rules/override-history/OverrideHistory';
@@ -59,11 +60,18 @@ export function AccountRulesPanel({
   const dateField = <BusinessDateField onChange={setAsOf} today={today} value={asOf} />;
 
   if (rules.isPending || overrides.isPending) {
-    return <AccountRulesPanelSkeleton dateField={dateField} status={t('accounts.rules.loading')} />;
+    return (
+      <AccountRulesPanelSkeleton
+        account={account}
+        dateField={dateField}
+        status={t('accounts.rules.loading')}
+      />
+    );
   }
 
   return (
     <div className={styles.panel}>
+      <AccountKeyFacts account={account} />
       {dateField}
 
       {rules.isPlaceholderData && !rules.isError ? (
