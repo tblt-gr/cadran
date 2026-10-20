@@ -7,7 +7,7 @@ import { formatAmount, formatCalendarDay, formatPercentDecimal } from '@/lib/dec
 import styles from './RuleHistory.module.css';
 
 interface RuleHistoryProps {
-  /** The override already read as the value in force: not repeated here. */
+  /** The override read as the value in force: listed, and marked in words. */
   inForceId: string | null;
   kind: ProductRuleKind;
   onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind) => void;
@@ -15,18 +15,22 @@ interface RuleHistoryProps {
 }
 
 /**
- * The earlier values of one rule on this account, standing or withdrawn.
+ * Every claim ever recorded on one rule of this account, newest period first:
+ * the one in force, past and future ones, and withdrawn ones.
  *
  * A withdrawn claim is kept and shown rather than removed: it is the
- * provenance of every past statement produced while it applied. It is marked
- * in words, not by a shade. A rule never overridden, or whose only override is
- * the one in force, has no history and renders nothing.
+ * provenance of every past statement produced while it applied. Each status is
+ * written in words, not carried by a shade. A rule never overridden has no
+ * history and renders nothing. The claim in force is withdrawn from the rule's
+ * menu; a standing claim that is not in force is withdrawn from its own entry.
  */
 export function RuleHistory({ inForceId, kind, onWithdraw, overrides }: RuleHistoryProps) {
   const { i18n, t } = useTranslation();
-  const earlier = overrides.filter((override) => override.id !== inForceId);
+  const entries = [...overrides].sort(
+    (a, b) => b.validFrom.localeCompare(a.validFrom) || b.recordedAt.localeCompare(a.recordedAt),
+  );
 
-  if (earlier.length === 0) {
+  if (entries.length === 0) {
     return null;
   }
 
@@ -34,7 +38,7 @@ export function RuleHistory({ inForceId, kind, onWithdraw, overrides }: RuleHist
     <details className={styles.history}>
       <summary>{t('accounts.overrides.historyTitle')}</summary>
       <ul className={styles.list}>
-        {earlier.map((override) => (
+        {entries.map((override) => (
           <li key={override.id}>
             <span className={styles.value}>
               <OverrideValue override={override} />
@@ -43,16 +47,18 @@ export function RuleHistory({ inForceId, kind, onWithdraw, overrides }: RuleHist
               <RulePeriod validFrom={override.validFrom} validTo={override.validTo} />
               {' · '}
               {t(
-                override.standing
+                override.id === inForceId
                   ? 'accounts.overrides.statuses.standing'
-                  : 'accounts.overrides.statuses.withdrawn',
+                  : override.standing
+                    ? 'accounts.overrides.statuses.recorded'
+                    : 'accounts.overrides.statuses.withdrawn',
               )}
               {override.withdrawnAt === null
                 ? null
                 : ` ${formatCalendarDay(override.withdrawnAt.slice(0, 10), i18n.language)}`}
             </small>
             {override.reason === '' ? null : <small>{override.reason}</small>}
-            {override.standing ? (
+            {override.standing && override.id !== inForceId ? (
               <button
                 className={`secondary-action ${styles.action}`}
                 onClick={() =>

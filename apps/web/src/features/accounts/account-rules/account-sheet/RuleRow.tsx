@@ -1,11 +1,10 @@
 import type { AccountRuleClaim, AccountRuleOverride, ProductRuleKind } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { OverrideAction } from '@/features/accounts/account-rules/account-sheet/OverrideAction';
+import { RuleActions } from '@/features/accounts/account-rules/account-sheet/RuleActions';
 import { RuleHistory } from '@/features/accounts/account-rules/rule-history/RuleHistory';
 import type { RuleLine } from '@/features/accounts/account-rules/ruleLayers';
 import { SheetRow } from '@/features/accounts/account-rules/sheet-row/SheetRow';
 import { RulePeriod } from '@/features/catalog-rules/rule-provenance/RuleProvenance';
-import styles from './AccountSheet.module.css';
 
 interface RuleRowProps {
   focusAction: boolean;
@@ -44,19 +43,13 @@ export function RuleRow({
   return (
     <SheetRow
       actions={
-        <>
-          <OverrideAction focusAction={focusAction} name={name} onClick={() => onOverride(kind)} />
-          {claim ? (
-            <button
-              aria-label={t('accounts.rules.withdrawRule', { rule: name })}
-              className={`secondary-action ${styles.action}`}
-              onClick={() => onWithdraw(claim, kind)}
-              type="button"
-            >
-              {t('accounts.rules.withdraw')}
-            </button>
-          ) : null}
-        </>
+        <RuleActions
+          focusAction={focusAction}
+          kind={kind}
+          name={name}
+          onOverride={onOverride}
+          onWithdraw={claim ? () => onWithdraw(claim, kind) : undefined}
+        />
       }
       alert={line.alert}
       below={

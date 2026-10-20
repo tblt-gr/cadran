@@ -1,5 +1,4 @@
 import type { Account, AccountRuleClaim, AccountRules, ProductRuleKind } from '@cadran/api-client';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { AccountSheet } from '@/features/accounts/account-rules/account-sheet/AccountSheet';
@@ -7,7 +6,6 @@ import { AccountRulesPanelSkeleton } from './AccountRulesPanelSkeleton';
 import { useAccountRuleOverrides } from '@/features/accounts/account-rules/useAccountRuleOverrides';
 import { useAccountRules } from '@/features/accounts/account-rules/useAccountRules';
 import type { OverrideDraft } from '@/features/accounts/account-rules/overrideTarget';
-import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { todayInBrowser } from '@/lib/businessDay';
 import { Icon } from '@/components/ui/icon/Icon';
 import { formatCalendarDay } from '@/lib/decimal';
@@ -22,15 +20,13 @@ interface AccountRulesPanelProps {
 }
 
 /**
- * The ceilings, rates and terms in force for one account, resolved on a
- * business date the reader chooses, and every claim the account has ever made.
+ * The ceilings, rates and terms in force today for one account, and every claim
+ * the account has ever made on them.
  *
- * The date is a deliberate control and not the day the panel happens to be
- * opened: a ceiling raised in April and a rate set for one semester are read by
- * the date of the operation being looked at. Nothing here computes a financial
- * figure; the API resolves every value with its period, its publication and its
- * local claim, and a rule no layer covers stays unavailable rather than
- * becoming a zero.
+ * Nothing here computes a financial figure; the API resolves every value with
+ * its period and its local claim, and a rule no layer covers stays unavailable
+ * rather than becoming a zero. The sheet always answers for the reader's own
+ * calendar day, the one the browser reports.
  */
 export function AccountRulesPanel({
   account,
@@ -39,68 +35,22 @@ export function AccountRulesPanel({
   onWithdraw,
 }: AccountRulesPanelProps) {
   const { i18n, t } = useTranslation();
-  // The reader's own calendar day, not the server's: the field they are about
-  // to move is theirs, and every answer echoes the date it was resolved for, so
-  // the two never disagree silently.
-  const today = todayInBrowser();
-  const [asOf, setAsOf] = useState(today);
-  const rules = useAccountRules(account.id, asOf);
+  const rules = useAccountRules(account.id, todayInBrowser());
   const overrides = useAccountRuleOverrides(account.id);
 
   const failure = rules.error instanceof AccountRequestError ? rules.error : null;
   const unauthorized = failure?.status === 401;
-  // The date field bounds are advisory outside a form, so a year typed
-  // digit by digit reaches the API. Repeating a request the API already
-  // refused would fail identically, so this one is stated, not retried.
-  const outOfRange = failure?.kind === 'invalid';
-  const retryable = !unauthorized && !outOfRange;
-
-  const dateField = (
-    <BusinessDateField
-      hint={null}
-      label={t('accounts.rules.asOf')}
-      onChange={setAsOf}
-      today={today}
-      value={asOf}
-    />
-  );
 
   if (rules.isPending || overrides.isPending) {
-    return (
-      <AccountRulesPanelSkeleton
-        account={account}
-        dateField={dateField}
-        status={t('accounts.rules.loading')}
-      />
-    );
+    return <AccountRulesPanelSkeleton account={account} status={t('accounts.rules.loading')} />;
   }
 
   return (
     <div className={styles.panel}>
-      {dateField}
-
-      {rules.isPlaceholderData && !rules.isError ? (
-        // The list below still answers the previous date until the new one
-        // resolves; saying so is what keeps it from being read as the answer to
-        // the date now in the field. A refused date is stated by the block
-        // below instead: nothing is being resolved any more.
-        <p aria-busy="true" className={styles.state} role="status">
-          {t('accounts.rules.resolving', { date: formatCalendarDay(asOf, i18n.language) })}
-        </p>
-      ) : null}
-
       {rules.isError ? (
         <div className={styles.failure} role="alert">
-          <p>
-            {t(
-              unauthorized
-                ? 'accounts.rules.unauthorized'
-                : outOfRange
-                  ? 'accounts.rules.outOfRange'
-                  : 'accounts.rules.error',
-            )}
-          </p>
-          {retryable ? (
+          <p>{t(unauthorized ? 'accounts.rules.unauthorized' : 'accounts.rules.error')}</p>
+          {!unauthorized ? (
             <button className="secondary-action" onClick={() => void rules.refetch()} type="button">
               {t('foundation.retry')}
             </button>

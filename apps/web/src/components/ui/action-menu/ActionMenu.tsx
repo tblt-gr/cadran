@@ -13,6 +13,8 @@ interface ActionMenuItem {
 }
 
 interface ActionMenuProps {
+  /** Takes focus on mount: the caller's way to return focus here after a modal. */
+  autoFocus?: boolean;
   items: ActionMenuItem[];
   label: string;
   disabled?: boolean;
@@ -23,7 +25,7 @@ interface ActionMenuProps {
  * accessible name the former text buttons used, so a screen reader still hears
  * which row is about to change.
  */
-export function ActionMenu({ items, label, disabled = false }: ActionMenuProps) {
+export function ActionMenu({ autoFocus = false, items, label, disabled = false }: ActionMenuProps) {
   const menuId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -62,10 +64,27 @@ export function ActionMenu({ items, label, disabled = false }: ActionMenuProps) 
       setOpen(false);
     }
 
+    // Captured on the window and stopped there: inside a modal, the same Escape
+    // must close the menu and not the dialog behind it.
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        event.stopPropagation();
         setOpen(false);
         trigger.current?.focus();
+
+        return;
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        const buttons = [
+          ...(menu.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []),
+        ];
+        if (buttons.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        buttons[(index + step + buttons.length) % buttons.length]?.focus();
       }
     }
 
@@ -74,13 +93,13 @@ export function ActionMenu({ items, label, disabled = false }: ActionMenuProps) 
     }
 
     document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('resize', onReposition);
     window.addEventListener('scroll', onReposition, true);
 
     return () => {
       document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', onKeyDown, true);
       window.removeEventListener('resize', onReposition);
       window.removeEventListener('scroll', onReposition, true);
     };
@@ -95,6 +114,7 @@ export function ActionMenu({ items, label, disabled = false }: ActionMenuProps) 
         aria-haspopup="true"
         aria-label={label}
         className={`icon-ghost ${styles.trigger}`}
+        data-autofocus={autoFocus || undefined}
         onClick={() => setOpen((current) => !current)}
         ref={trigger}
         type="button"

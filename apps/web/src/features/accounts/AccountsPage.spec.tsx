@@ -1114,7 +1114,8 @@ describe('AccountsPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Déroger : Plafond de dépôt' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Actions : Plafond de dépôt' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Déroger : Plafond de dépôt' }));
 
     // Recording a claim replaces the rules dialog rather than stacking a second
     // one over it, so focus and the escape key still have one owner.
@@ -1177,7 +1178,8 @@ describe('AccountsPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Déroger : Plafond de dépôt' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Actions : Plafond de dépôt' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Déroger : Plafond de dépôt' }));
     fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '30000' } });
     fireEvent.change(screen.getByLabelText('Date de début'), { target: { value: '2026-01-01' } });
     fireEvent.change(screen.getByLabelText('Motif'), { target: { value: 'Accord de la banque.' } });
@@ -1205,8 +1207,9 @@ describe('AccountsPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
     );
+    fireEvent.click(await screen.findByRole('button', { name: 'Actions : Plafond de dépôt' }));
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Retirer la dérogation : Plafond de dépôt' }),
+      screen.getByRole('button', { name: 'Retirer la dérogation : Plafond de dépôt' }),
     );
 
     const dialog = screen.getByRole('dialog', { name: 'Retirer cette dérogation' });

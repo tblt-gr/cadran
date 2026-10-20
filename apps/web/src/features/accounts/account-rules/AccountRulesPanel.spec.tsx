@@ -135,6 +135,11 @@ function failure(status: number) {
   return Promise.resolve({ data: undefined, response: new Response('{}', { status }) });
 }
 
+/** Opens the three-dot menu that ends a rule's line. */
+function openActions(rule: string) {
+  fireEvent.click(screen.getByRole('button', { name: `Actions : ${rule}` }));
+}
+
 const onOverride = vi.fn();
 const onWithdraw = vi.fn();
 
@@ -224,6 +229,11 @@ describe('AccountRulesPanel', () => {
     expect(screen.queryByText('Dérogation')).toBeNull();
     expect(screen.queryByText('Hérité')).toBeNull();
     expect(screen.queryByText(/Historique/)).toBeNull();
+    // Nothing is withdrawable on a rule that was never overridden.
+    openActions('Plafond de dépôt');
+    expect(screen.getByRole('button', { name: 'Déroger : Plafond de dépôt' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Retirer la dérogation/ })).toBeNull();
+    expect(screen.queryByLabelText('Situation au')).toBeNull();
   });
 
   it('shows the closing date when the account states one', async () => {
@@ -242,45 +252,6 @@ describe('AccountRulesPanel', () => {
 
     expect(await screen.findByText('Clôture')).toBeTruthy();
     expect(screen.getByText('30 juin 2026')).toBeTruthy();
-  });
-
-  it('resolves the rules again on the business date the reader chooses', async () => {
-    api.readAccountRules.mockImplementation(({ query }: { query: { asOf: string } }) =>
-      success(
-        query.asOf === '2026-09-03'
-          ? passbook
-          : { ...passbook, asOf: query.asOf, rates: [], unavailableRuleKinds: ['ANNUAL_RATE'] },
-      ),
-    );
-    renderPanel();
-
-    expect(await screen.findByText('1,70 %')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Situation au'), { target: { value: '2025-06-01' } });
-
-    // The answer of the previous date stays on screen while the next one is
-    // resolved, and it is labelled as the earlier answer.
-    expect(screen.getByText('1,70 %')).toBeTruthy();
-    expect(
-      screen.getByText(
-        'Résolution des règles au 1 juin 2025 : la liste montre encore la date précédente.',
-      ),
-    ).toBeTruthy();
-
-    // The rate of a past semester is not the rate of today, and a semester no
-    // publication covers is unknown rather than nought per cent.
-    expect(
-      await screen.findByText(
-        'Non disponible au 1 juin 2025 : aucune valeur sourcée pour cette date.',
-      ),
-    ).toBeTruthy();
-    expect(screen.queryByText('1,70 %')).toBeNull();
-    expect(screen.getByText(/22\s950,00\s€/)).toBeTruthy();
-    await waitFor(() =>
-      expect(api.readAccountRules.mock.calls.map((call) => call[0].query.asOf)).toEqual([
-        TODAY,
-        '2025-06-01',
-      ]),
-    );
   });
 
   it('says an account described by hand inherits no rule in one state line', async () => {
@@ -346,26 +317,6 @@ describe('AccountRulesPanel', () => {
     expect(
       await screen.findByText('Reconnectez-vous pour consulter les règles de ce compte.'),
     ).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
-  });
-
-  it('names a business date the API refuses instead of calling it a failed read', async () => {
-    api.readAccountRules.mockImplementationOnce(() => success(passbook));
-    api.readAccountRules.mockImplementation(() => failure(400));
-    renderPanel();
-
-    expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Situation au'), { target: { value: '0202-06-01' } });
-
-    expect(
-      await screen.findByText(
-        'Cette date n’est pas une date d’activité que l’application couvre. Choisissez une autre date.',
-      ),
-    ).toBeTruthy();
-    expect(
-      screen.queryByText('Les règles de ce compte n’ont pas pu être lues. Réessayez.'),
-    ).toBeNull();
-    expect(screen.queryByText(/Résolution des règles au/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
   });
 
@@ -446,6 +397,7 @@ describe('AccountRulesPanel', () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByText(/0\s?%/)).toBeNull();
+    openActions('Taux minimum');
     expect(screen.getByRole('button', { name: 'Déroger : Taux minimum' })).toBeTruthy();
   });
 
@@ -458,7 +410,8 @@ describe('AccountRulesPanel', () => {
     await screen.findByText('Plafond de dépôt');
     // One per rule the account carries, plus the gap it is expected to carry
     // and does not: a claim is exactly how that gap gets filled.
-    expect(screen.getAllByRole('button', { name: /^Déroger : / })).toHaveLength(3);
+    expect(screen.getAllByRole('button', { name: /^Actions : / })).toHaveLength(3);
+    openActions('Plafond de dépôt');
     fireEvent.click(screen.getByRole('button', { name: 'Déroger : Plafond de dépôt' }));
 
     expect(onOverride).toHaveBeenCalledWith({
@@ -496,16 +449,17 @@ describe('AccountRulesPanel', () => {
     expect(screen.queryByText(/25\s000,00\s€/)).toBeNull();
     expect(screen.queryByText(/22\s950,00\s€/)).toBeNull();
     expect(screen.queryByText('Dérogation')).toBeNull();
-    // The value in force is not repeated in a history that has nothing earlier.
+    // No claim is listed for this rule, so there is no history accordion.
     expect(screen.queryByText('Historique des dérogations')).toBeNull();
 
+    openActions('Plafond de dépôt');
     fireEvent.click(
       screen.getByRole('button', { name: 'Retirer la dérogation : Plafond de dépôt' }),
     );
     expect(onWithdraw).toHaveBeenCalledWith(claim, 'DEPOSIT_CEILING');
   });
 
-  it('lists the earlier values of one rule under a closed history, without the value in force', async () => {
+  it('lists every claim of one rule, newest first, the one in force marked in words', async () => {
     const earlier: AccountRuleOverride = {
       id: '00000000-0000-7000-8000-0000000000c0',
       accountId: account.id,
@@ -559,9 +513,13 @@ describe('AccountRulesPanel', () => {
     expect(within(history).getByText(/28\s000,00\s€/)).toBeTruthy();
     expect(within(history).getByText('Ancien accord écrit')).toBeTruthy();
     expect(within(history).getByText(/Retirée/)).toBeTruthy();
-    // The value in force (30 000) appears once, on the line, not in the history.
-    expect(screen.getAllByText(/30\s000,00\s€/)).toHaveLength(1);
-    // The earlier claim is withdrawn: nothing to withdraw in the history.
+    // The value in force is listed too, marked in words, newest period first.
+    expect(within(history).getByText(/30\s000,00\s€/)).toBeTruthy();
+    expect(within(history).getByText(/En vigueur/)).toBeTruthy();
+    const items = within(history).getAllByRole('listitem');
+    expect(items[0]?.textContent).toContain('30');
+    expect(items[1]?.textContent).toContain('28');
+    // Withdrawing the claim in force goes through the rule's menu, not the history.
     expect(within(history).queryByRole('button')).toBeNull();
   });
 
@@ -638,8 +596,7 @@ describe('AccountRulesPanel', () => {
 
     expect(screen.getByText('Ouverture')).toBeTruthy();
     expect(screen.getByText('Rendement')).toBeTruthy();
-    expect(screen.getByLabelText('Situation au')).toBeTruthy();
-    const actions = screen.getAllByRole('button', { name: 'Déroger' });
+    const actions = screen.getAllByRole('button', { name: 'Actions' });
     expect(actions.every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });

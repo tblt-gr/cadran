@@ -962,7 +962,6 @@ describe('AccountDetailPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir les règles' }));
 
-    expect(await screen.findByLabelText('Situation au')).toBeTruthy();
     expect(await screen.findByText('Ouverture')).toBeTruthy();
     expect(api.readAccountRules).toHaveBeenCalledWith(
       expect.objectContaining({ path: { id: account.id } }),

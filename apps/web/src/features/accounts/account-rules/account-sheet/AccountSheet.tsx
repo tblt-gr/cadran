@@ -8,7 +8,7 @@ import type {
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { AccountFactRows } from '@/features/accounts/account-rules/account-sheet/AccountFactRows';
-import { OverrideAction } from '@/features/accounts/account-rules/account-sheet/OverrideAction';
+import { RuleActions } from '@/features/accounts/account-rules/account-sheet/RuleActions';
 import { RuleRow } from '@/features/accounts/account-rules/account-sheet/RuleRow';
 import { AlertLine } from '@/features/accounts/account-rules/rule-alert/RuleAlert';
 import { RuleHistory } from '@/features/accounts/account-rules/rule-history/RuleHistory';
@@ -101,10 +101,11 @@ export function AccountSheet({
       {rules.unavailableRuleKinds.map((kind) => (
         <SheetRow
           actions={
-            <OverrideAction
+            <RuleActions
               focusAction={focusKind === kind}
+              kind={kind}
               name={t(`catalog.rules.kinds.${kind}`)}
-              onClick={() => onOverride(kind)}
+              onOverride={onOverride}
             />
           }
           alert={

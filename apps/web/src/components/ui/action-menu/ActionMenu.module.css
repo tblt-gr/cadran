@@ -12,7 +12,7 @@
 
 .menu {
   position: fixed;
-  z-index: 20;
+  z-index: 100;
   display: flex;
   min-width: 12rem;
   flex-direction: column;
