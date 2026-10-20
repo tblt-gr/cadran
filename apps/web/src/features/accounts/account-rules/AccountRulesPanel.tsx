@@ -2,7 +2,7 @@ import type { Account, AccountRuleClaim, AccountRules, ProductRuleKind } from '@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
-import { AccountRuleTable } from '@/features/accounts/account-rules/account-rule-table/AccountRuleTable';
+import { AccountRuleList } from '@/features/accounts/account-rules/account-rule-list/AccountRuleList';
 import { AccountRulesPanelSkeleton } from './AccountRulesPanelSkeleton';
 import { OverrideHistory } from '@/features/accounts/account-rules/override-history/OverrideHistory';
 import { YieldReading } from '@/features/accounts/account-rules/yield-reading/YieldReading';
@@ -17,7 +17,9 @@ import styles from './AccountRulesPanel.module.css';
 interface AccountRulesPanelProps {
   account: Account;
   onOverride: (draft: OverrideDraft) => void;
-  onWithdraw: (claim: AccountRuleClaim) => void;
+  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind) => void;
+  /** The rule whose action regains focus when the reader returns from a modal. */
+  focusKind?: ProductRuleKind | null;
 }
 
 /**
@@ -31,7 +33,12 @@ interface AccountRulesPanelProps {
  * local claim, and a rule no layer covers stays unavailable rather than
  * becoming a zero.
  */
-export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRulesPanelProps) {
+export function AccountRulesPanel({
+  account,
+  focusKind = null,
+  onOverride,
+  onWithdraw,
+}: AccountRulesPanelProps) {
   const { i18n, t } = useTranslation();
   // The reader's own calendar day, not the server's: the field they are about
   // to move is theirs, and every answer echoes the date it was resolved for, so
@@ -60,7 +67,7 @@ export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRu
       {dateField}
 
       {rules.isPlaceholderData && !rules.isError ? (
-        // The table below still answers the previous date until the new one
+        // The list below still answers the previous date until the new one
         // resolves; saying so is what keeps it from being read as the answer to
         // the date now in the field. A refused date is stated by the block
         // below instead: nothing is being resolved any more.
@@ -116,7 +123,8 @@ export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRu
               </p>
             )
           ) : (
-            <AccountRuleTable
+            <AccountRuleList
+              focusKind={focusKind}
               onOverride={(kind) => onOverride({ kind, kinds: statableKinds(rules.data) })}
               onWithdraw={onWithdraw}
               rules={rules.data}
@@ -127,17 +135,13 @@ export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRu
         </>
       )}
 
-      <section className={styles.history} aria-labelledby="account-override-history">
-        <h3 id="account-override-history">{t('accounts.overrides.historyTitle')}</h3>
-        <p className={styles.note}>{t('accounts.overrides.historyHint')}</p>
-        {overrides.isError ? (
-          <p className={styles.note} role="alert">
-            {t('accounts.overrides.historyError')}
-          </p>
-        ) : (
-          <OverrideHistory overrides={overrides.data.overrides} />
-        )}
-      </section>
+      {overrides.isError ? (
+        <p className={styles.note} role="alert">
+          {t('accounts.overrides.historyError')}
+        </p>
+      ) : (
+        <OverrideHistory overrides={overrides.data.overrides} />
+      )}
     </div>
   );
 }

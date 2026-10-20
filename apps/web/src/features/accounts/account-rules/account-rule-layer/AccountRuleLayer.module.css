@@ -1,0 +1,83 @@
+.layer,
+.inForce {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  gap: var(--spacing-3);
+}
+
+.inForce {
+  background: var(--bg-surface-2);
+}
+
+.reading {
+  display: grid;
+  min-width: 0;
+  margin: var(--spacing-none);
+  gap: var(--spacing-2);
+}
+
+.reading > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr);
+  gap: var(--spacing-3);
+}
+
+.reading dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-card);
+  text-transform: uppercase;
+}
+
+.reading dd {
+  min-width: 0;
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  overflow-wrap: anywhere;
+}
+
+.reading small {
+  display: block;
+  margin-top: var(--spacing-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.reading a {
+  color: var(--gold-300);
+}
+
+.reading a:focus-visible {
+  outline: var(--outline-focus);
+}
+
+.value {
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-body);
+}
+
+.details summary {
+  margin-bottom: var(--spacing-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-label);
+}
+
+.details summary:focus-visible {
+  outline: var(--outline-focus);
+}
+
+@media (max-width: 30rem) {
+  .reading > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-1);
+  }
+}

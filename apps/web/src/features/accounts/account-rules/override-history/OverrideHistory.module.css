@@ -1,21 +1,56 @@
-.tableScroll {
-  overflow-x: auto;
+.history {
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
 }
 
-.tableScroll table {
-  width: 100%;
-  border-collapse: collapse;
+.history summary {
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
 }
 
-.tableScroll th,
-.tableScroll td {
+.history summary:focus-visible {
+  outline: var(--outline-focus);
+}
+
+.hint {
+  margin: var(--spacing-3) var(--spacing-none) var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}
+
+.list {
+  display: flex;
+  margin: var(--spacing-3) var(--spacing-none) var(--spacing-none);
+  padding: var(--spacing-none);
+  flex-direction: column;
+  gap: var(--spacing-4);
+  list-style: none;
+}
+
+.list li {
   padding: var(--spacing-3) var(--spacing-4);
-  border-bottom: var(--border-line-subtle);
-  text-align: left;
-  vertical-align: top;
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
 }
 
-.tableScroll thead th {
+.reading {
+  display: grid;
+  min-width: 0;
+  margin: var(--spacing-none);
+  gap: var(--spacing-2);
+}
+
+.reading > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr);
+  gap: var(--spacing-3);
+}
+
+.reading dt {
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
@@ -23,31 +58,24 @@
   text-transform: uppercase;
 }
 
-.tableScroll tbody th {
-  color: var(--text-primary);
-  font-size: var(--font-size-label);
-}
-
-.tableScroll td {
+.reading dd {
+  min-width: 0;
+  margin: var(--spacing-none);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
+  overflow-wrap: anywhere;
 }
 
-.tableScroll tbody tr:last-child th,
-.tableScroll tbody tr:last-child td {
-  border-bottom: var(--border-none);
-}
-
-.tableScroll small {
+.reading small {
   display: block;
   margin-top: var(--spacing-1);
   color: var(--text-muted);
   font-size: var(--font-size-xs);
 }
 
-.empty {
-  margin: var(--spacing-none);
-  color: var(--text-muted);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-body);
+@media (max-width: 30rem) {
+  .reading > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-1);
+  }
 }

@@ -3,3 +3,16 @@
   max-width: 100%;
   height: var(--font-size-label);
 }
+
+.ruleName {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 3);
+  max-width: 100%;
+  height: var(--font-size-body);
+}
+
+.field {
+  width: calc(var(--spacing-12) * 3);
+  max-width: 100%;
+  height: var(--font-size-label);
+}

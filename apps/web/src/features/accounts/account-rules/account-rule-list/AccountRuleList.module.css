@@ -1,0 +1,21 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.section h3 {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+}
+
+.rules {
+  display: flex;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  flex-direction: column;
+  gap: var(--spacing-6);
+  list-style: none;
+}

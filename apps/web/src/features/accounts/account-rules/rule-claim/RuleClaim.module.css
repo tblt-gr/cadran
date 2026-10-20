@@ -7,6 +7,7 @@
 }
 
 .claim p {
+  overflow-wrap: anywhere;
   margin: var(--spacing-none);
   color: var(--text-primary);
   font-size: var(--font-size-xs);

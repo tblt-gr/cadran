@@ -23,6 +23,57 @@ interface RuleProvenanceProps {
   verification: RuleVerification | null;
 }
 
+interface RulePeriodProps {
+  validFrom: RuleValidFrom;
+  validTo: RuleValidTo;
+}
+
+/** An open end is in force for every later date, not an expiry. */
+export function RulePeriod({ validFrom, validTo }: RulePeriodProps) {
+  const { i18n, t } = useTranslation();
+  const from = formatCalendarDay(validFrom, i18n.language);
+
+  return validTo === null
+    ? t('catalog.rules.openPeriod', { from })
+    : t('catalog.rules.closedPeriod', { from, to: formatCalendarDay(validTo, i18n.language) });
+}
+
+/** Null verification means declared by the workspace: nobody published it, so no freshness is graded. */
+export function RuleVerificationBadge({ verification }: { verification: RuleVerification | null }) {
+  const { t } = useTranslation();
+
+  return verification === null ? (
+    <StatusBadge tone="info">{t('accounts.rules.declared')}</StatusBadge>
+  ) : (
+    <StatusBadge tone={verificationTone[verification]}>
+      {t(`catalog.verification.${verification}`)}
+    </StatusBadge>
+  );
+}
+
+/** The publication a rule was read from, as a link and its trace; the one place a source URL is rendered. */
+export function RuleSourceReading({ source }: { source: ProductRuleSource | null }) {
+  const { i18n, t } = useTranslation();
+
+  if (source === null) {
+    return <span>{t('accounts.rules.noSource')}</span>;
+  }
+
+  return (
+    <>
+      <a href={source.url} rel="noreferrer noopener" target="_blank">
+        {source.title}
+      </a>
+      <small>
+        {t('catalog.source.trace', {
+          publisher: source.publisher,
+          retrieved: formatCalendarDay(source.retrievedOn, i18n.language),
+        })}
+      </small>
+    </>
+  );
+}
+
 /**
  * The three cells every account rule carries: the period it covers, how
  * fresh its verification is and the publication it was read from — or, for a
@@ -36,45 +87,16 @@ interface RuleProvenanceProps {
  * and inherit the styles of whichever table hosts them.
  */
 export function RuleProvenance({ source, validFrom, validTo, verification }: RuleProvenanceProps) {
-  const { i18n, t } = useTranslation();
-  const from = formatCalendarDay(validFrom, i18n.language);
-
   return (
     <>
       <td>
-        {/* An open end is in force for every later date, not an expiry. */}
-        {validTo === null
-          ? t('catalog.rules.openPeriod', { from })
-          : t('catalog.rules.closedPeriod', {
-              from,
-              to: formatCalendarDay(validTo, i18n.language),
-            })}
+        <RulePeriod validFrom={validFrom} validTo={validTo} />
       </td>
       <td>
-        {verification === null ? (
-          <StatusBadge tone="info">{t('accounts.rules.declared')}</StatusBadge>
-        ) : (
-          <StatusBadge tone={verificationTone[verification]}>
-            {t(`catalog.verification.${verification}`)}
-          </StatusBadge>
-        )}
+        <RuleVerificationBadge verification={verification} />
       </td>
       <td>
-        {source === null ? (
-          <span>{t('accounts.rules.noSource')}</span>
-        ) : (
-          <>
-            <a href={source.url} rel="noreferrer noopener" target="_blank">
-              {source.title}
-            </a>
-            <small>
-              {t('catalog.source.trace', {
-                publisher: source.publisher,
-                retrieved: formatCalendarDay(source.retrievedOn, i18n.language),
-              })}
-            </small>
-          </>
-        )}
+        <RuleSourceReading source={source} />
       </td>
     </>
   );

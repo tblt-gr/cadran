@@ -197,9 +197,14 @@ describe('AccountRulesPanel', () => {
 
     expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
     expect(screen.getByText(/22\s950,00\s€/)).toBeTruthy();
-    // One tbody per rule so a spanning header with scope="rowgroup" names
-    // only that rule's cells, not every later rate or term in the table.
-    expect(screen.getByRole('table').querySelectorAll('tbody')).toHaveLength(2);
+    // One headed section per rule: the Modal is the only scroll area and no
+    // table is left to scroll sideways inside it.
+    expect(
+      screen.getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent),
+    ).toEqual(['Plafond de dépôt', 'Taux annuel']);
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.getAllByText('Origine')).toHaveLength(2);
+    expect(screen.getAllByText('Validité')).toHaveLength(2);
 
     // The amount alone would settle nothing: a passbook carried past 22 950 €
     // by its own interest has broken no rule, so the measure is stated.
@@ -261,7 +266,7 @@ describe('AccountRulesPanel', () => {
     expect(screen.queryByText('Résolution des règles du compte…')).toBeNull();
     expect(
       screen.getByText(
-        'Résolution des règles au 1 juin 2025 : le tableau montre encore la date précédente.',
+        'Résolution des règles au 1 juin 2025 : la liste montre encore la date précédente.',
       ),
     ).toBeTruthy();
 
@@ -269,7 +274,7 @@ describe('AccountRulesPanel', () => {
     // publication covers is unknown rather than nought per cent.
     expect(
       await screen.findByText(
-        '— Non disponible au 1 juin 2025 : aucune valeur sourcée pour cette date.',
+        'Non disponible au 1 juin 2025 : aucune valeur sourcée pour cette date.',
       ),
     ).toBeTruthy();
     expect(screen.queryByText('1,70 %')).toBeNull();
@@ -492,6 +497,21 @@ describe('AccountRulesPanel', () => {
     expect(screen.getAllByText('En vigueur')).toHaveLength(1);
     expect(screen.getAllByText('Pour comparaison')).toHaveLength(2);
 
+    // Inherited and overridden values are told apart by text inside each layer.
+    const layers = screen.getAllByRole('listitem').filter((item) => item.querySelector('dl'));
+    const byOrigin = (origin: string) =>
+      layers.find((item) => item.textContent?.includes(origin) ?? false);
+    expect(byOrigin('Dérogation locale')?.textContent).toContain('En vigueur');
+    expect(byOrigin('Dérogation locale')?.textContent).toContain('30');
+    expect(byOrigin("Modèle de l'espace")?.textContent).toContain('Pour comparaison');
+    // The layer in force keeps its measure and warnings open; the others are
+    // available under the same labelled disclosure, closed.
+    const disclosures = [...document.querySelectorAll('details')];
+    expect(disclosures.map((details) => details.open)).toEqual([false, false, true, false]);
+    expect(disclosures[0]?.querySelector('summary')?.textContent).toBe(
+      'Mesure, vérification et source',
+    );
+
     // A local figure with no reason beside it would be indistinguishable from
     // a sourced one at a glance.
     expect(screen.getByText('La banque a confirmé un plafond plus élevé par écrit.')).toBeTruthy();
@@ -505,7 +525,8 @@ describe('AccountRulesPanel', () => {
     );
     renderPanel();
 
-    const actions = await screen.findAllByRole('button', { name: 'Déroger' });
+    await screen.findByText('Plafond de dépôt');
+    const actions = screen.getAllByRole('button', { name: 'Déroger' });
     // One per rule the account carries, plus the gap it is expected to carry
     // and does not: a claim is exactly how that gap gets filled.
     expect(actions).toHaveLength(3);
@@ -535,7 +556,7 @@ describe('AccountRulesPanel', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Retirer la dérogation' }));
 
-    expect(onWithdraw).toHaveBeenCalledWith(claim);
+    expect(onWithdraw).toHaveBeenCalledWith(claim, 'DEPOSIT_CEILING');
   });
 
   it('keeps a withdrawn claim visible in the history it no longer applies to', async () => {
@@ -655,5 +676,62 @@ describe('AccountRulesPanel', () => {
     // The kept table is not still "being resolved" once the date was refused.
     expect(screen.queryByText(/Résolution des règles au/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
+  });
+
+  it('wraps a long publication title and keeps its link safe under the disclosure', async () => {
+    const longTitle = `Livret A ${'réglementé '.repeat(30)}`.trim();
+    const longUrl = `https://www.service-public.fr/${'très-long-chemin/'.repeat(20)}F2365`;
+    api.readAccountRules.mockImplementation(() =>
+      success({
+        ...passbook,
+        rates: [],
+        ceilings: [
+          {
+            ...passbook.ceilings[0]!,
+            catalog: { ...publishedCeiling, source: { ...source, title: longTitle, url: longUrl } },
+          },
+        ],
+      }),
+    );
+    renderPanel();
+
+    const link = await screen.findByRole('link', { name: longTitle });
+    expect(link.getAttribute('href')).toBe(longUrl);
+    expect(link.getAttribute('rel')).toBe('noreferrer noopener');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.closest('details')?.querySelector('summary')?.textContent).toBe(
+      'Mesure, vérification et source',
+    );
+  });
+
+  it('keeps an unknown rule unavailable with its reason and never as zero', async () => {
+    api.readAccountRules.mockImplementation(() =>
+      success({ ...passbook, ceilings: [], rates: [], unavailableRuleKinds: ['MIN_RATE'] }),
+    );
+    renderPanel();
+
+    expect(await screen.findByRole('heading', { level: 4, name: 'Taux minimum' })).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Non disponible au 3 septembre 2026 : aucune valeur sourcée pour cette date.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/0\s?%/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Déroger' })).toBeTruthy();
+  });
+
+  it('keeps the known labels and the final section order while the rules load', () => {
+    api.readAccountRules.mockImplementation(() => new Promise(() => undefined));
+    renderPanel();
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Règles du compte' })).toBeTruthy();
+    expect(
+      screen
+        .getAllByRole('button', { name: 'Déroger' })
+        .every((button) => (button as HTMLButtonElement).disabled),
+    ).toBe(true);
+    expect(screen.getAllByText('Valeur').length).toBeGreaterThan(0);
+    expect(screen.getByText('Dérogations de ce compte')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 });

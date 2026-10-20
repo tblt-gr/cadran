@@ -627,15 +627,14 @@
     "rules": {
       "eyebrow": "Règles applicables",
       "title": "Règles de « {{label}} »",
-      "caption": "Plafonds, taux et conditions applicables au compte",
       "loading": "Résolution des règles du compte…",
       "error": "Les règles de ce compte n’ont pas pu être lues. Réessayez.",
       "unauthorized": "Reconnectez-vous pour consulter les règles de ce compte.",
       "outOfRange": "Cette date n’est pas une date d’activité que l’application couvre. Choisissez une autre date.",
-      "resolving": "Résolution des règles au {{date}} : le tableau montre encore la date précédente.",
-      "resolvedOn": "Règles résolues au {{date}}. Chaque valeur ne répond que pour cette date.",
+      "resolving": "Résolution des règles au {{date}} : la liste montre encore la date précédente.",
+      "resolvedOn": "Règles en vigueur au {{date}}.",
       "none": "Aucune règle en vigueur au {{date}} pour ce compte.",
-      "noMeasure": "— Sans mesure chiffrée",
+      "noMeasure": "Sans mesure chiffrée",
       "guaranteed": "Taux dû au titulaire",
       "revisable": "Taux publié, révisable : jamais un rendement acquis",
       "declared": "Déclaré par l’espace de travail",
@@ -676,15 +675,6 @@
       },
       "bracketFrom": "À partir de {{from}}",
       "bracketRange": "De {{from}} à {{to}}",
-      "columns": {
-        "rule": "Règle",
-        "value": "Valeur",
-        "measure": "Mesure",
-        "period": "Période d’effet",
-        "verification": "Vérification",
-        "source": "Source officielle",
-        "origin": "Origine"
-      },
       "bases": {
         "NONE": "Aucune mesure suivie",
         "BALANCE_EXCLUDING_INTEREST": "Sommes déposées, hors intérêts",
@@ -710,6 +700,18 @@
         "CATALOG": "Catalogue système",
         "INHERITED": "Modèle de l'espace",
         "OVERRIDE": "Dérogation locale"
+      },
+      "listTitle": "Règles du compte",
+      "details": "Mesure, vérification et source",
+      "unavailable": "Non disponible au {{date}} : aucune valeur sourcée pour cette date.",
+      "fields": {
+        "rule": "Règle",
+        "origin": "Origine",
+        "value": "Valeur",
+        "validity": "Validité",
+        "measure": "Mesure",
+        "verification": "Vérification",
+        "source": "Source"
       }
     },
     "pagination": {
@@ -795,15 +797,8 @@
       "withdrawnOn": "Retirée le {{date}}",
       "historyTitle": "Dérogations de ce compte",
       "historyHint": "Toutes les dérogations jamais enregistrées sur ce compte, retirées comprises, quelle que soit la date consultée.",
-      "historyCaption": "Historique des dérogations du compte",
       "historyEmpty": "Aucune dérogation n’a jamais été enregistrée sur ce compte.",
-      "historyLoading": "Chargement des dérogations…",
       "historyError": "Les dérogations de ce compte n’ont pas pu être lues.",
-      "columns": {
-        "status": "État",
-        "reason": "Motif",
-        "author": "Auteur"
-      },
       "unknownAuthor": "Auteur inconnu",
       "statuses": {
         "standing": "En vigueur",
@@ -816,6 +811,11 @@
         "stale": "Le compte a été modifié par une autre requête. Rechargez-le puis réappliquez la modification.",
         "reason": "Le motif est obligatoire et ne dépasse pas 200 caractères.",
         "network": "La demande n’a pas abouti. Réessayez."
+      },
+      "fields": {
+        "status": "État",
+        "author": "Auteur",
+        "reason": "Motif"
       }
     },
     "detail": {
