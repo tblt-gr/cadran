@@ -115,8 +115,8 @@ final class ResolveAccountValuationsTest extends TestCase
         $assets = \App\Tests\Module\Reference\Application\Double\InMemoryAssetCatalog::withCodes('EUR');
         $clock = new \Symfony\Component\Clock\MockClock('2026-10-10', 'UTC');
         $timezone = new Double\FixedWorkspaceTimezoneReader();
-        $single = new \App\Module\Accounts\Application\ResolveAccountValuation($resolver, $assets, $clock);
-        $list = (new \App\Module\Accounts\Application\ListAccounts($caller, $accounts, $resolver, $assets, $clock))(false, false, null, null);
+        $single = new \App\Module\Accounts\Application\ResolveAccountValuation($resolver, $assets, new \App\Module\Foundation\Application\WorkspaceCalendar($clock, $caller, $timezone));
+        $list = (new \App\Module\Accounts\Application\ListAccounts($caller, $accounts, $resolver, $assets, new \App\Module\Foundation\Application\WorkspaceCalendar($clock, $caller, $timezone)))(false, false, null, null);
         $detail = (new \App\Module\Accounts\Application\ReadAccount($caller, $accounts, $single))($account->id);
         $worth = (new \App\Module\Accounts\Application\ResolveNetWorthContributions($accounts, $resolver, $timezone))->on($account->workspace, [$day]);
         $monthly = (new \App\Module\Accounts\Application\ReadMonthlyAccountFacts($accounts, $resolver, $timezone))($account->workspace, new \App\Module\Accounts\Domain\CalendarMonth(2026, 10), $day);

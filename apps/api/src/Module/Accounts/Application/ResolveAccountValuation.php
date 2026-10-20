@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
-use App\Module\Catalog\Domain\BusinessDay;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reference\Application\AssetCatalog;
-use Symfony\Component\Clock\ClockInterface;
 
 /**
  * The current-day valuation of one account. Listings batch this in SQL;
@@ -20,13 +19,13 @@ final readonly class ResolveAccountValuation
     public function __construct(
         private ResolveAccountValuations $valuations,
         private AssetCatalog $assets,
-        private ClockInterface $clock,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
     public function current(WorkspaceScope $workspace, Account $account): ValuationView
     {
-        return $this->on($workspace, $account, BusinessDay::fromDateTime($this->clock->now())->date);
+        return $this->on($workspace, $account, $this->calendar->today());
     }
 
     public function on(WorkspaceScope $workspace, Account $account, \DateTimeImmutable $requestedOn): ValuationView

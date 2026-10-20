@@ -189,6 +189,104 @@ final class AccountBalanceControllerTest extends WebTestCase
         self::assertSame('1750.40', $this->fields($this->decode()['total'])['value']);
     }
 
+    public function testHistoryResolvesEndOfDayStepsAndSnapshotReplacement(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'History');
+        $this->record(self::LIVRET, $this->body('2026-10-01', '1000'));
+        $this->insertMovement('01', '2026-10-01', '999', 'BOOKED');
+        $this->insertMovement('02', '2026-10-10', '300', 'BOOKED');
+        $this->insertMovement('03', '2026-10-10', '100', 'BOOKED');
+        $this->insertMovement('04', '2026-10-11', '999', 'PENDING');
+        $this->insertMovement('05', '2026-10-12', '999', 'VOIDED');
+        $history = $this->history('2026-10-01', '2026-10-15');
+        self::assertTrue($history['hasHistory']);
+        $points = array_column($history['points'], null, 'date');
+        self::assertSame('1000', $points['2026-10-01']['amount']);
+        self::assertSame('1000', $points['2026-10-02']['amount']);
+        self::assertSame('STALE', $points['2026-10-02']['quality']);
+        self::assertSame('1400', $points['2026-10-10']['amount']);
+        self::assertArrayNotHasKey('2026-10-11', $points);
+        self::assertArrayNotHasKey('2026-10-12', $points);
+        self::assertSame('1400', $points['2026-10-15']['amount']);
+        $recorded = $this->record(self::LIVRET, $this->body('2026-10-10', '2000'));
+        $this->record(self::LIVRET, [...$this->body('2026-10-10', '2100'), 'version' => $recorded['version']]);
+        $points = array_column($this->history('2026-10-05', '2026-10-15')['points'], null, 'date');
+        self::assertSame('1000', $points['2026-10-05']['amount']);
+        self::assertSame('2100', $points['2026-10-10']['amount']);
+        self::assertSame('2026-10-10', $points['2026-10-15']['asOf']);
+    }
+
+    public function testHistoryMissingMixedAssetsAndWorkspaceIsolation(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'History');
+        $empty = $this->history('2026-10-01', '2026-10-15');
+        self::assertFalse($empty['hasHistory']);
+        self::assertNull($empty['points'][0]['amount']);
+        self::assertSame('NO_ANCHOR', $empty['points'][0]['reason']);
+        $this->record(self::LIVRET, $this->body('2026-10-01', '1000'));
+        $this->insertMovement('01', '2026-10-10', '400', 'BOOKED');
+        $this->connection->update('transaction_transactions', ['asset_code' => 'USD'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => '00000000-0000-7000-8000-000000000a01']);
+        $points = array_column($this->history('2026-10-01', '2026-10-15')['points'], null, 'date');
+        self::assertNull($points['2026-10-10']['amount']);
+        self::assertSame('MIXED_ASSETS', $points['2026-10-10']['reason']);
+        $this->insertAccount(self::FOREIGN, WorkspaceFixture::OTHER_WORKSPACE, 'Foreign');
+        foreach ([self::FOREIGN, '00000000-0000-7000-8000-000000000099'] as $id) {
+            foreach (['', '?from[]=invalid', '?from=2026-10-01&to=2026-10-15'] as $query) {
+                $this->client->request('GET', '/api/v1/accounts/'.$id.'/valuation-history'.$query);
+                self::assertResponseStatusCodeSame(404);
+            }
+        }
+    }
+
+    public function testHistoryKeepsZeroNetBookedDaysAndSnapshotFreshness(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'History');
+        $this->record(self::LIVRET, $this->body('2026-10-01', '1000'));
+        $this->insertMovement('01', '2026-10-10', '400', 'BOOKED');
+        $this->insertMovement('02', '2026-10-11', '100', 'BOOKED');
+        $this->insertMovement('03', '2026-10-11', '-100', 'BOOKED');
+        $points = array_column($this->history('2026-10-05', '2026-10-15')['points'], null, 'date');
+        self::assertSame('1400', $points['2026-10-11']['amount']);
+        self::assertSame(3, $this->fields($points['2026-10-11']['derivation'])['movementCount']);
+        $this->connection->update('account_financial_accounts', ['valuation_mode' => 'SNAPSHOTS'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::LIVRET]);
+        $points = array_column($this->history('2026-10-01', '2026-10-15')['points'], null, 'date');
+        self::assertSame(['2026-10-01', '2026-10-02', '2026-10-15'], array_keys($points));
+        self::assertSame('1000', $points['2026-10-15']['amount']);
+        self::assertSame('2026-10-01', $points['2026-10-15']['asOf']);
+        self::assertSame(14, $points['2026-10-15']['ageDays']);
+        self::assertSame('STALE', $points['2026-10-15']['quality']);
+        self::assertSame('MANUAL', $points['2026-10-15']['source']);
+    }
+
+    public function testHistoryRejectsInvalidRangesAndAcceptsTheFullBound(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'History');
+        foreach (['from=2026-02-30&to=2026-10-15', 'from=2026-10-15&to=2026-10-01', 'from=2025-01-01&to=2026-10-15', 'from=2026-10-01&to=2099-01-01', 'from[]=2026-10-01&to=2026-10-15', 'to=2026-10-15'] as $query) {
+            $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/valuation-history?'.$query);
+            self::assertResponseStatusCodeSame(422);
+        }
+        $history = $this->history('2025-10-14', '2026-10-15');
+        self::assertCount(2, $history['points']);
+        self::assertSame('2025-10-14', $history['points'][0]['date']);
+        self::assertSame('2026-10-15', $history['points'][1]['date']);
+    }
+
+    /** @return array{hasHistory: bool, points: list<array<string, mixed>>} */
+    private function history(string $from, string $to): array
+    {
+        $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/valuation-history?from='.$from.'&to='.$to);
+        self::assertResponseIsSuccessful();
+
+        /** @var array{hasHistory: bool, points: list<array<string, mixed>>} $history */
+        $history = $this->decode();
+
+        return $history;
+    }
+
     private function insertMovement(string $suffix, string $day, string $amount, string $state): void
     {
         $this->connection->insert('transaction_transactions', [

@@ -1975,6 +1975,36 @@ export type Account = {
     valuation: AccountValuation;
 };
 
+export type AccountValuationHistory = {
+    accountId: string;
+    from: string;
+    to: string;
+    /**
+     * Whether an active anchor exists on any requested day, even if movements make its value non-calculable.
+     */
+    hasHistory: boolean;
+    points: Array<AccountValuationHistoryPoint>;
+};
+
+export type AccountValuationHistoryPoint = {
+    date: string;
+    /**
+     * Exact server decimal, never a rounded chart coordinate. Null for a gap.
+     */
+    amount: string | null;
+    assetCode: string | null;
+    quality: ValuationQuality;
+    source: BalanceSnapshotSource | null;
+    reason: 'NO_ANCHOR' | 'MIXED_ASSETS' | null;
+    /**
+     * Original observation date for held snapshots, requested day for transaction-derived balances.
+     */
+    asOf: string | null;
+    ageDays: number | null;
+    basis: ValuationBasis | null;
+    derivation: ValuationDerivation | null;
+};
+
 export type AccountValuation = {
     accountId: string;
     requestedOn: string;
@@ -9491,6 +9521,58 @@ export type ReadAccountValuationResponses = {
 };
 
 export type ReadAccountValuationResponse = ReadAccountValuationResponses[keyof ReadAccountValuationResponses];
+
+export type ReadAccountValuationHistoryData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query: {
+        /**
+         * Inclusive ISO calendar day. Must not follow to.
+         */
+        from: string;
+        /**
+         * Inclusive ISO calendar day, at most 366 days after from and no later than workspace-local today.
+         */
+        to: string;
+    };
+    url: '/api/v1/accounts/{id}/valuation-history';
+};
+
+export type ReadAccountValuationHistoryErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The password does not satisfy the account password policy.
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadAccountValuationHistoryError = ReadAccountValuationHistoryErrors[keyof ReadAccountValuationHistoryErrors];
+
+export type ReadAccountValuationHistoryResponses = {
+    /**
+     * Exact chronological steps and provenance, including null gaps.
+     */
+    200: AccountValuationHistory;
+};
+
+export type ReadAccountValuationHistoryResponse = ReadAccountValuationHistoryResponses[keyof ReadAccountValuationHistoryResponses];
 
 export type ListAccountBalancesData = {
     body?: never;

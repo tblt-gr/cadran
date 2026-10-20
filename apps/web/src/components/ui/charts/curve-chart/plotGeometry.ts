@@ -33,7 +33,11 @@ export interface PlotArea {
  * line instead of being drawn through, so a gap reads as a gap rather than as
  * a fall to zero.
  */
-export function plotRuns(values: readonly (string | null)[], area: PlotArea): PlotPoint[][] {
+export function plotRuns(
+  values: readonly (string | null)[],
+  area: PlotArea,
+  dates?: readonly string[],
+): PlotPoint[][] {
   const known = values
     .map((value, index) => ({ index, value }))
     .filter((entry): entry is { index: number; value: string } => entry.value !== null);
@@ -59,7 +63,11 @@ export function plotRuns(values: readonly (string | null)[], area: PlotArea): Pl
       entry.index,
       {
         index: entry.index,
-        x: values.length > 1 ? entry.index * step : area.width / 2,
+        x: dates
+          ? datePosition(dates, entry.index, area.width)
+          : values.length > 1
+            ? entry.index * step
+            : area.width / 2,
         // A flat series has no span to scale against; it sits on the middle
         // line rather than dividing by zero.
         y: isZeroDecimal(span)
@@ -128,5 +136,21 @@ export function smoothPath(run: readonly PlotPoint[]): string {
     parts.push(`C${control1x},${control1y} ${control2x},${control2y} ${next.x},${next.y}`);
   }
 
+  return parts.join(' ');
+}
+
+/** Calendar timestamps affect SVG geometry only, never monetary source data. */
+export function datePosition(dates: readonly string[], index: number, width: number): number {
+  const start = Date.parse(dates[0]);
+  const end = Date.parse(dates[dates.length - 1]);
+  return start === end ? width / 2 : ((Date.parse(dates[index]) - start) / (end - start)) * width;
+}
+
+/** Hold the old balance until the change date; stop at the first missing date. */
+export function stepAfterPath(run: readonly PlotPoint[], until?: number): string {
+  if (run.length === 0) return '';
+  const parts = [`M${run[0].x},${run[0].y}`];
+  for (const point of run.slice(1)) parts.push(`H${point.x} V${point.y}`);
+  if (until !== undefined) parts.push(`H${until}`);
   return parts.join(' ');
 }

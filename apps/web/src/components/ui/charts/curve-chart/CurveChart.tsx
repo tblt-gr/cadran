@@ -1,6 +1,13 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { plotRuns, smoothPath, type PlotArea, type PlotPoint } from './plotGeometry';
+import {
+  datePosition,
+  plotRuns,
+  smoothPath,
+  stepAfterPath,
+  type PlotArea,
+  type PlotPoint,
+} from './plotGeometry';
 import styles from './CurveChart.module.css';
 
 const AREA: PlotArea = { height: 170, padding: 16, width: 620 };
@@ -9,6 +16,8 @@ export interface CurvePoint {
   /** Text announced for the point's focus target, e.g. "12/03/2026, 1 000,00 €". */
   hitLabel: string;
   key: string;
+  /** ISO calendar date for proportional placement in step charts. */
+  date?: string;
   /** Short label under the axis when the point is one of the ticks. */
   axisLabel: string;
   /**
@@ -32,6 +41,7 @@ interface CurveChartProps {
   /** Name of the group of labels on the horizontal axis. */
   timeAxisLabel: string;
   points: CurvePoint[];
+  interpolation?: 'smooth' | 'step-after';
 }
 
 function plotX(index: number, count: number): number {
@@ -104,11 +114,33 @@ function yExtent(placed: readonly PlotPoint[]): PlotPoint[] {
  * few time ticks. Purely presentational: the caller supplies exact strings for placement
  * and ready-made nodes for every visible figure.
  */
-export function CurveChart({ label, points, timeAxisLabel, valueAxisLabel }: CurveChartProps) {
+export function CurveChart({
+  label,
+  points,
+  timeAxisLabel,
+  valueAxisLabel,
+  interpolation = 'smooth',
+}: CurveChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const dates =
+    interpolation === 'step-after' && points.every((point) => point.date !== undefined)
+      ? points.map((point) => point.date!)
+      : undefined;
+  const xAt = (index: number) =>
+    dates ? datePosition(dates, index, AREA.width) : plotX(index, points.length);
+  const linePath = (run: PlotPoint[]) =>
+    interpolation === 'step-after'
+      ? stepAfterPath(
+          run,
+          points[run.at(-1)!.index + 1]?.geometryValue === null
+            ? xAt(run.at(-1)!.index + 1)
+            : undefined,
+        )
+      : smoothPath(run);
   const runs = plotRuns(
     points.map((point) => point.geometryValue),
     AREA,
+    dates,
   );
   const placed = runs.flat();
   const yTicks = yExtent(placed);
@@ -121,7 +153,11 @@ export function CurveChart({ label, points, timeAxisLabel, valueAxisLabel }: Cur
       : { point: activePoint, plot: active, placement: tooltipEdge(active.x, active.y) };
 
   return (
-    <div className={styles.frame} data-visual-mask>
+    <div
+      className={styles.frame}
+      data-visual-mask
+      data-interpolation={interpolation === 'step-after' ? interpolation : undefined}
+    >
       <div className={styles.yAxis} role="group" aria-label={valueAxisLabel}>
         <span aria-hidden="true" className={styles.ySizer}>
           {yTicks.map((tick) => (
@@ -131,6 +167,11 @@ export function CurveChart({ label, points, timeAxisLabel, valueAxisLabel }: Cur
         {yTicks.map((tick) => (
           <span
             className={styles.yTick}
+            title={
+              typeof points[tick.index].value === 'string'
+                ? (points[tick.index].value as string)
+                : undefined
+            }
             key={`y-${tick.index}`}
             style={{ top: `${(tick.y / AREA.height) * 100}%` }}
           >
@@ -169,20 +210,20 @@ export function CurveChart({ label, points, timeAxisLabel, valueAxisLabel }: Cur
             <path d={`M0 30H${AREA.width}M0 90H${AREA.width}`} />
           </g>
           {runs.map((run) => {
-            const line = smoothPath(run);
+            const line = linePath(run);
             const first = run[0];
             const last = run[run.length - 1];
 
             return (
               <path
                 className={styles.area}
-                d={`${line} L${last.x},${AREA.height} L${first.x},${AREA.height} Z`}
+                d={`${line} L${interpolation === 'step-after' && points[last.index + 1]?.geometryValue === null ? xAt(last.index + 1) : last.x},${AREA.height} L${first.x},${AREA.height} Z`}
                 key={`area-${first.index}`}
               />
             );
           })}
           {runs.map((run) => (
-            <path className={styles.line} d={smoothPath(run)} key={`line-${run[0].index}`} />
+            <path className={styles.line} d={linePath(run)} key={`line-${run[0].index}`} />
           ))}
           {/* A month standing alone between two uncomputable ones has no
               segment to belong to. Without a mark it would read as no data at
@@ -213,7 +254,7 @@ export function CurveChart({ label, points, timeAxisLabel, valueAxisLabel }: Cur
               left: `${(point.x / AREA.width) * 100}%`,
               top: `${(point.y / AREA.height) * 100}%`,
             }}
-            tabIndex={-1}
+            tabIndex={interpolation === 'step-after' ? 0 : -1}
             type="button"
           />
         ))}
@@ -255,7 +296,7 @@ export function CurveChart({ label, points, timeAxisLabel, valueAxisLabel }: Cur
             className={styles.xTick}
             data-edge={order === 0 ? 'start' : order === ticks.length - 1 ? 'end' : 'mid'}
             key={`x-${index}`}
-            style={{ left: `${(plotX(index, points.length) / AREA.width) * 100}%` }}
+            style={{ left: `${(xAt(index) / AREA.width) * 100}%` }}
           >
             {points[index].axisLabel}
           </span>

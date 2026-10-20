@@ -11,6 +11,7 @@ use App\Module\Accounts\Application\InvalidAccountBalanceInput;
 use App\Module\Accounts\Application\ListAccountBalances;
 use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
 use App\Module\Accounts\Application\ReadAccountValuation;
+use App\Module\Accounts\Application\ReadAccountValuationHistory;
 use App\Module\Accounts\Application\RecordAccountBalance;
 use App\Module\Accounts\Application\RecordAccountBalanceInput;
 use App\Module\Accounts\Application\StaleAccountVersion;
@@ -58,6 +59,30 @@ final readonly class AccountBalanceController
         }
 
         return self::json(AccountValuationRepresentation::of($valuation));
+    }
+
+    #[Route('/api/v1/accounts/{id}/valuation-history', name: 'api_v1_accounts_valuation_history', methods: ['GET'])]
+    public function history(string $id, Request $request, ReadAccountValuationHistory $readHistory): Response
+    {
+        if (!self::identifier($id)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+        }
+        $query = $request->query->all();
+        try {
+            $history = $readHistory(
+                $id,
+                is_string($query['from'] ?? null) ? $query['from'] : '',
+                is_string($query['to'] ?? null) ? $query['to'] : '',
+            );
+        } catch (InvalidAccountBalanceInput) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_valuation_history_query');
+        } catch (AccountNotFound) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        }
+
+        return self::json(AccountValuationHistoryRepresentation::of($history));
     }
 
     #[Route('/api/v1/accounts/{id}/balances', name: 'api_v1_accounts_balances_list', methods: ['GET'])]

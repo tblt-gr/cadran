@@ -119,7 +119,7 @@ final class ReadAccountTest extends TestCase
             new InMemoryAccountRepository($account ?? AccountFixture::account()),
             new ResolveAccountValuation(new \App\Module\Accounts\Application\ResolveAccountValuations(new InMemoryAccountBalanceSnapshotRepository(...$snapshots), new Double\EmptyBookedMovementTotals()),
                 InMemoryAssetCatalog::withCodes('EUR'),
-                new MockClock(self::NOW, 'UTC'),
+                new \App\Module\Foundation\Application\WorkspaceCalendar(new MockClock(self::NOW, 'UTC'), new FixedCallerWorkspace($caller), new Double\FixedWorkspaceTimezoneReader()),
             ),
         );
     }
