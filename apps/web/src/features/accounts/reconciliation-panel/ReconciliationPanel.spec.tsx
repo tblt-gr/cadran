@@ -176,6 +176,31 @@ describe('ReconciliationPanel', () => {
     });
   });
 
+  it('invalidates all balance and report queries after a reconciliation adjustment', async () => {
+    api.resolveAccountReconciliation.mockResolvedValue(
+      ok(view({ reconciliationStatus: 'RECONCILED' })),
+    );
+    const { queryClient, onReconciled } = mount();
+    const keys = [
+      'accounts',
+      'account',
+      'account-rules',
+      'net-worth',
+      'net-worth-history',
+      'monthly-recap',
+      'annual-report',
+      'multi-year-report',
+    ];
+    keys.forEach((key) => queryClient.setQueryData([key, 'cached'], {}));
+    await screen.findByTestId('discrepancy');
+    fireEvent.click(screen.getByRole('radio', { name: /Ajuster/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Rapprocher/ }));
+    await waitFor(() => expect(onReconciled).toHaveBeenCalled());
+    expect(api.resolveAccountReconciliation.mock.calls[0]?.[0].body.resolution).toBe('ADJUST');
+    for (const key of keys)
+      expect(queryClient.getQueryState([key, 'cached'])?.isInvalidated, key).toBe(true);
+  });
+
   it('states that an adjustment is neither income nor expense', async () => {
     mount();
     await screen.findByTestId('discrepancy');

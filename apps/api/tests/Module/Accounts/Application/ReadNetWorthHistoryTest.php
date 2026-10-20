@@ -143,12 +143,11 @@ final class ReadNetWorthHistoryTest extends TestCase
         return new ReadNetWorthHistory(
             new FixedCallerWorkspace(self::WORKSPACE),
             new ResolveNetWorthContributions(
-                new InMemoryAccountRepository($this->account()),
-                new InMemoryAccountBalanceSnapshotRepository(
+                new InMemoryAccountRepository($this->account()), new \App\Module\Accounts\Application\ResolveAccountValuations(new InMemoryAccountBalanceSnapshotRepository(
                     $this->snapshot('2026-07-20', '10000.00'),
                     $this->snapshot('2026-08-15', '12000.00'),
                     $this->snapshot('2026-09-05', '12500.00'),
-                ),
+                ), new Double\EmptyBookedMovementTotals()),
                 new FixedWorkspaceTimezoneReader(),
             ),
             InMemoryAssetCatalog::withCodes('EUR'),

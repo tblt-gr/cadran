@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
-use App\Module\Accounts\Domain\AccountBalanceSnapshot;
-use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
-use App\Module\Accounts\Domain\AccountBalanceSnapshots;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Catalog\Domain\BusinessDay;
@@ -24,7 +21,7 @@ final readonly class ListAccounts
     public function __construct(
         private CallerWorkspace $caller,
         private AccountRepository $accounts,
-        private AccountBalanceSnapshotRepository $snapshots,
+        private ResolveAccountValuations $valuations,
         private AssetCatalog $assets,
         private ClockInterface $clock,
     ) {
@@ -57,17 +54,13 @@ final readonly class ListAccounts
             $accountKind,
         );
 
-        $latest = $this->snapshots->findLatestForAccounts(
-            $workspace,
-            array_map(static fn (Account $account): string => $account->id, $accounts),
-            $requestedOn,
-        );
+        $latest = $this->valuations->forAccounts($workspace, $accounts, [$requestedOn])[$requestedOn->format('Y-m-d')];
 
         return new AccountPage(
             items: array_map(
                 fn (Account $account): AccountView => AccountView::fromAccount(
                     $account,
-                    valuation: $this->valuation($account, $requestedOn, $latest[$account->id] ?? null),
+                    valuation: $this->valuation($account, $requestedOn, $latest[$account->id]),
                 ),
                 $accounts,
             ),
@@ -77,19 +70,9 @@ final readonly class ListAccounts
         );
     }
 
-    private function valuation(Account $account, \DateTimeImmutable $requestedOn, ?AccountBalanceSnapshot $snapshot): ValuationView
+    private function valuation(Account $account, \DateTimeImmutable $requestedOn, AccountValuation $valuation): ValuationView
     {
-        $valuation = AccountValuation::of(
-            new AccountBalanceSnapshots(null === $snapshot ? [] : [$snapshot]),
-            $requestedOn,
-        );
-
-        return ValuationView::of(
-            $account->id,
-            $requestedOn,
-            $valuation,
-            $this->assets->findByCode($account->assetCode),
-        );
+        return ValuationView::of($account->id, $requestedOn, $valuation, $this->assets->findByCode($account->assetCode));
     }
 
     private function requestedOn(?string $asOf): \DateTimeImmutable

@@ -105,6 +105,7 @@ export function AccountList({
                           ? null
                           : depositCeilingOf(account, products.items, models.items)
                       }
+                      startingBalanceHint={account.valuationMode === 'TRANSACTIONS'}
                       valuation={account.valuation}
                     />
                   </td>

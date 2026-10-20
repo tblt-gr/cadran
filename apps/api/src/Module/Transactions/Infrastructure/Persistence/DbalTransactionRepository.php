@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
+use App\Module\Accounts\Application\BookedMovementTotals;
+use App\Module\Accounts\Application\NetWorthScopeTooLarge;
+use App\Module\Accounts\Domain\MovementTotal;
+use App\Module\Accounts\Domain\MovementWindow;
 use App\Module\Categories\Application\CategoryClassificationCounter;
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Domain\AssetAmount;
@@ -28,7 +32,7 @@ use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
 #[AsAlias(TransactionRepository::class)]
-final readonly class DbalTransactionRepository implements CategoryClassificationCounter, TransactionRepository
+final readonly class DbalTransactionRepository implements BookedMovementTotals, CategoryClassificationCounter, TransactionRepository
 {
     private const string COLUMNS = 'id, workspace_id, account_id, asset_code, amount_value, amount_scale, original_amount_value, original_amount_scale, original_asset_code, exchange_rate, state, nature, source, source_ref, booked_on, value_on, authorized_on, raw_label, counterparty, note, payment_method, mcc, masked_card, bank_reference, version, created_at, updated_at, voided_at, last_editor_id, review_reason';
 
@@ -253,6 +257,55 @@ final readonly class DbalTransactionRepository implements CategoryClassification
         return $this->hydrateMany($workspace, $rows);
     }
 
+    public function forWindows(WorkspaceScope $workspace, array $windows): array
+    {
+        if (count($windows) > BookedMovementTotals::MAX_WINDOWS) {
+            throw new NetWorthScopeTooLarge('A movement batch accepts at most 30000 windows.');
+        }
+        if ([] === $windows) {
+            return [];
+        }
+        $result = [];
+        $unique = [];
+        foreach ($windows as $window) {
+            $result[$window->key()] = new MovementTotal(null, 0, 0, false);
+            $unique[$window->key()] = $window;
+        }
+        $windows = array_values($unique);
+        $rows = $this->connection->fetchAllAssociative(
+            <<<'SQL'
+                SELECT w.account_id, w.after_exclusive, w.up_to_inclusive,
+                       SUM(t.amount_value) FILTER (WHERE t.state = 'BOOKED' AND t.voided_at IS NULL AND t.asset_code = w.asset_code)::text AS total,
+                       COUNT(*) FILTER (WHERE t.state = 'BOOKED' AND t.voided_at IS NULL AND t.asset_code = w.asset_code) AS booked_count,
+                       COUNT(*) FILTER (WHERE t.state = 'BOOKED' AND t.voided_at IS NULL AND t.asset_code <> w.asset_code) AS foreign_count,
+                       COUNT(*) FILTER (WHERE t.state = 'PENDING') AS pending_count
+                FROM unnest(:account_ids::uuid[], :afters::date[], :ups::date[], :assets::varchar[])
+                    AS w(account_id, after_exclusive, up_to_inclusive, asset_code)
+                JOIN transaction_transactions t ON t.workspace_id = :workspace_id AND t.account_id = w.account_id
+                    AND t.booked_on > w.after_exclusive AND t.booked_on <= w.up_to_inclusive
+                GROUP BY w.account_id, w.after_exclusive, w.up_to_inclusive
+                SQL,
+            [
+                'workspace_id' => $workspace->id,
+                'account_ids' => self::postgresArray(array_map(static fn (MovementWindow $w): string => $w->accountId, $windows)),
+                'afters' => self::postgresArray(array_map(static fn (MovementWindow $w): string => $w->afterExclusive->format('Y-m-d'), $windows)),
+                'ups' => self::postgresArray(array_map(static fn (MovementWindow $w): string => $w->upToInclusive->format('Y-m-d'), $windows)),
+                'assets' => self::postgresArray(array_map(static fn (MovementWindow $w): string => $w->assetCode->toString(), $windows)),
+            ],
+        );
+        foreach ($rows as $row) {
+            $key = TransactionRow::text($row['account_id']).'|'.TransactionRow::text($row['after_exclusive']).'|'.TransactionRow::text($row['up_to_inclusive']);
+            $result[$key] = new MovementTotal(
+                null === $row['total'] ? null : DecimalValue::fromString(self::canonicalNumeric(TransactionRow::text($row['total']))),
+                (int) TransactionRow::text($row['booked_count']),
+                (int) TransactionRow::text($row['pending_count']),
+                0 < (int) TransactionRow::text($row['foreign_count']),
+            );
+        }
+
+        return $result;
+    }
+
     public function sumBookedMovements(
         WorkspaceScope $workspace,
         string $accountId,
@@ -348,6 +401,13 @@ final readonly class DbalTransactionRepository implements CategoryClassification
                 'to_date' => $to->format('Y-m-d'),
             ],
         ));
+    }
+
+    /** @param list<string> $values */
+    private static function postgresArray(array $values): string
+    {
+        // Quote array elements independently; all literals remain bound parameters.
+        return '{'.implode(',', array_map(static fn (string $value): string => '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"', $values)).'}';
     }
 
     private static function canonicalNumeric(string $numeric): string

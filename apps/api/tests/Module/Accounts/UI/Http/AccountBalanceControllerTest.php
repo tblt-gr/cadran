@@ -90,7 +90,7 @@ final class AccountBalanceControllerTest extends WebTestCase
         $valuation = $this->valuation(self::LIVRET, '2026-09-05');
         self::assertSame([
             'accountId', 'requestedOn', 'asOf', 'amount', 'display', 'belowDisplayStep',
-            'source', 'ageDays', 'quality', 'reconciliationStatus', 'snapshotId', 'version',
+            'source', 'ageDays', 'quality', 'reconciliationStatus', 'snapshotId', 'version', 'basis', 'reason', 'derivation',
         ], array_keys($valuation));
         self::assertSame(self::LIVRET, $valuation['accountId']);
         self::assertSame('2026-09-05', $valuation['requestedOn']);
@@ -106,6 +106,108 @@ final class AccountBalanceControllerTest extends WebTestCase
         $listed = $this->items('/api/v1/accounts?asOf=2026-09-05');
         self::assertCount(1, $listed);
         self::assertSame($valuation, $listed[0]['valuation']);
+    }
+
+    public function testDerivedBalanceContractAndLaterAnchorAreSharedByReadListAndNetWorth(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'Compte dérivé');
+        $this->record(self::LIVRET, $this->body('2026-09-30', '1250.40'));
+        foreach ([['01', '2026-09-30', '-20.00', 'BOOKED'], ['02', '2026-10-02', '-42.10', 'BOOKED'], ['03', '2026-10-05', '1800.00', 'BOOKED'], ['04', '2026-10-07', '-300.00', 'BOOKED'], ['05', '2026-10-08', '-15.00', 'PENDING'], ['06', '2026-10-09', '-9.99', 'VOIDED'], ['07', '2026-10-15', '-60.00', 'BOOKED']] as [$suffix, $day, $amount, $state]) {
+            $this->insertMovement($suffix, $day, $amount, $state);
+        }
+        $valuation = $this->valuation(self::LIVRET, '2026-10-10');
+        self::assertSame('2708.30', $this->fields($valuation['amount'])['value']);
+        self::assertSame('SNAPSHOT_PLUS_MOVEMENTS', $valuation['basis']);
+        self::assertSame('2026-10-10', $valuation['asOf']);
+        self::assertSame('CURRENT', $valuation['quality']);
+        self::assertSame(['anchorAsOf' => '2026-09-30', 'anchorAgeDays' => 10, 'movementCount' => 3, 'pendingCount' => 1], $valuation['derivation']);
+        self::assertSame($valuation, $this->items('/api/v1/accounts?asOf=2026-10-10')[0]['valuation']);
+        $this->client->request('GET', '/api/v1/net-worth?asOf=2026-10-10');
+        self::assertResponseIsSuccessful();
+        self::assertSame('2708.30', $this->fields($this->decode()['total'])['value']);
+        $this->record(self::LIVRET, $this->body('2026-10-20', '2650.00'));
+        self::assertSame('2650.00', $this->fields($this->valuation(self::LIVRET, '2026-10-31')['amount'])['value']);
+        self::assertSame($valuation, $this->valuation(self::LIVRET, '2026-10-10'));
+        $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET);
+        self::assertResponseIsSuccessful();
+        self::assertArrayHasKey('basis', $this->fields($this->decode()['valuation']));
+        self::assertArrayHasKey('derivation', $this->fields($this->decode()['valuation']));
+    }
+
+    public function testMovementsWithoutAnAnchorStayMissingAndForeignAssetsHaveAnExplicitReason(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'Compte dérivé');
+        $this->insertMovement('01', '2026-10-02', '-1.00', 'BOOKED');
+        $missing = $this->valuation(self::LIVRET, '2026-10-10');
+        self::assertNull($missing['amount']);
+        self::assertNull($missing['basis']);
+        self::assertNull($missing['derivation']);
+        $this->record(self::LIVRET, $this->body('2026-09-30', '10.00'));
+        $this->connection->update('transaction_transactions', ['asset_code' => 'USD'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => '00000000-0000-7000-8000-000000000a01']);
+        $mixed = $this->valuation(self::LIVRET, '2026-10-10');
+        self::assertNull($mixed['amount']);
+        self::assertSame('MIXED_ASSETS', $mixed['reason']);
+        self::assertNull($mixed['derivation']);
+    }
+
+    public function testSnapshotAndPortfolioModesIgnoreLaterMovements(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'Compte valorisé');
+        $this->record(self::LIVRET, $this->body('2026-09-30', '1250.40'));
+        $this->insertMovement('01', '2026-10-02', '-42.10', 'BOOKED');
+        $this->connection->update('account_financial_accounts', ['valuation_mode' => 'SNAPSHOTS'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::LIVRET]);
+        $snapshot = $this->valuation(self::LIVRET, '2026-10-10');
+        self::assertSame('1250.40', $this->fields($snapshot['amount'])['value']);
+        self::assertSame('SNAPSHOT', $snapshot['basis']);
+        self::assertNull($snapshot['derivation']);
+        $this->connection->update('account_financial_accounts', ['valuation_mode' => 'PORTFOLIO', 'kind' => 'PORTFOLIO', 'product_code' => null], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::LIVRET]);
+        $this->connection->update('account_balance_snapshots', ['source' => 'CALCULATED'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => self::LIVRET]);
+        $portfolio = $this->valuation(self::LIVRET, '2026-10-10');
+        self::assertSame('1250.40', $this->fields($portfolio['amount'])['value']);
+        self::assertSame('PORTFOLIO_VALUATION', $portfolio['basis']);
+        self::assertSame('STALE', $portfolio['quality']);
+        self::assertNull($portfolio['derivation']);
+    }
+
+    public function testOppositeTransferLegsMoveBothBalancesAndLeaveNetWorthUnchanged(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'Compte source');
+        $this->insertAccount(self::FOREIGN, WorkspaceFixture::OWN_WORKSPACE, 'Compte cible');
+        $this->record(self::LIVRET, $this->body('2026-09-30', '1250.40'));
+        $this->record(self::FOREIGN, $this->body('2026-09-30', '500.00'));
+        $this->insertMovement('01', '2026-10-02', '-300.00', 'BOOKED');
+        $this->insertMovement('02', '2026-10-02', '300.00', 'BOOKED');
+        $this->connection->update('transaction_transactions', ['account_id' => self::FOREIGN], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => '00000000-0000-7000-8000-000000000a02']);
+        self::assertSame('950.40', $this->fields($this->valuation(self::LIVRET, '2026-10-10')['amount'])['value']);
+        self::assertSame('800.00', $this->fields($this->valuation(self::FOREIGN, '2026-10-10')['amount'])['value']);
+        $this->client->request('GET', '/api/v1/net-worth?asOf=2026-10-10');
+        self::assertResponseIsSuccessful();
+        self::assertSame('1750.40', $this->fields($this->decode()['total'])['value']);
+    }
+
+    private function insertMovement(string $suffix, string $day, string $amount, string $state): void
+    {
+        $this->connection->insert('transaction_transactions', [
+            'id' => '00000000-0000-7000-8000-000000000a'.$suffix,
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+            'account_id' => self::LIVRET,
+            'asset_code' => 'EUR',
+            'amount_value' => $amount,
+            'amount_scale' => 2,
+            'state' => $state,
+            'nature' => 'ADJUSTMENT',
+            'source' => 'MANUAL',
+            'booked_on' => $day,
+            'raw_label' => 'Movement',
+            'version' => 1,
+            'created_at' => '2026-10-20 00:00:00+00',
+            'updated_at' => '2026-10-20 00:00:00+00',
+            'voided_at' => 'VOIDED' === $state ? '2026-10-20 00:00:00+00' : null,
+        ]);
     }
 
     public function testAMissingValuationIsNullNeverASilentZero(): void

@@ -29,6 +29,9 @@ final readonly class ValuationView
         public ?string $reconciliationStatus,
         public ?string $snapshotId,
         public ?int $version,
+        public ?string $basis = null,
+        public ?ValuationDerivationView $derivation = null,
+        public ?string $reason = null,
     ) {
     }
 
@@ -54,6 +57,9 @@ final readonly class ValuationView
             reconciliationStatus: $valuation->snapshot?->reconciliationStatus->value,
             snapshotId: $valuation->snapshot?->id,
             version: $valuation->snapshot?->version,
+            basis: $valuation->basis?->value,
+            reason: $valuation->reason,
+            derivation: null === $valuation->derivation ? null : new ValuationDerivationView($valuation->derivation->anchorAsOf->format('Y-m-d'), $valuation->derivation->anchorAgeDays, $valuation->derivation->movementCount, $valuation->derivation->pendingCount),
         );
     }
 

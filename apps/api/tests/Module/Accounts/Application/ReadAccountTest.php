@@ -117,8 +117,7 @@ final class ReadAccountTest extends TestCase
         return new ReadAccount(
             new FixedCallerWorkspace($caller),
             new InMemoryAccountRepository($account ?? AccountFixture::account()),
-            new ResolveAccountValuation(
-                new InMemoryAccountBalanceSnapshotRepository(...$snapshots),
+            new ResolveAccountValuation(new \App\Module\Accounts\Application\ResolveAccountValuations(new InMemoryAccountBalanceSnapshotRepository(...$snapshots), new Double\EmptyBookedMovementTotals()),
                 InMemoryAssetCatalog::withCodes('EUR'),
                 new MockClock(self::NOW, 'UTC'),
             ),

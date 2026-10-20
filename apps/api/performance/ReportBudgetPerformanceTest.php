@@ -104,6 +104,13 @@ final class ReportBudgetPerformanceTest extends WebTestCase
         $representativeMonth = self::representativeMonth($summary, $today);
 
         $plans = $this->assertQueryPlansUseIndexes($representativeMonth, $summary->heavyMonth);
+        // Sparse anchors force both current balances and historical points through movement windows.
+        $this->connection->executeStatement(
+            'DELETE FROM account_balance_snapshots s USING account_financial_accounts a '
+            .'WHERE s.workspace_id = :workspace_id AND a.workspace_id = :workspace_id AND s.account_id = a.id '
+            ."AND a.valuation_mode = 'TRANSACTIONS' AND (EXTRACT(MONTH FROM s.as_of)::int % 2 = 0 OR s.as_of >= :current_month)",
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'current_month' => $today->format('Y-m-01')],
+        );
         $this->signIn();
 
         $year = (int) $today->format('Y');
@@ -121,6 +128,14 @@ final class ReportBudgetPerformanceTest extends WebTestCase
             }],
             'multi-year report' => [sprintf('/api/v1/reports/multi-year?from=%d&to=%d', $year - self::YEARS + 1, $year), static function (array $body): void {
                 self::assertCount(self::YEARS, self::items($body['years']));
+            }],
+            'monthly recap' => ['/api/v1/reports/monthly/recap?month='.$representativeMonth, static function (array $body): void {
+                self::assertCount(12, self::items($body['accounts']));
+            }],
+            'account list' => ['/api/v1/accounts?pageSize=100', static function (array $body): void {
+                self::assertCount(12, self::items($body['items']));
+                self::assertSame(12, $body['total']);
+                self::assertContains('SNAPSHOT_PLUS_MOVEMENTS', array_column(array_column(self::items($body['items']), 'valuation'), 'basis'));
             }],
             'net worth' => ['/api/v1/net-worth', static function (array $body): void {
                 self::assertNotEmpty($body);
@@ -146,6 +161,9 @@ final class ReportBudgetPerformanceTest extends WebTestCase
         fwrite(STDOUT, "\n".$this->render($summary, $representativeMonth, $seedSeconds, $results, $plans, $memory));
 
         if ('1' === getenv('PERF_ASSERT')) {
+            self::assertLessThanOrEqual(self::MONTHLY_REPORT_P95_BUDGET_MS * 1.2, $results['monthly recap']['p95'], 'Monthly recap p95 budget: 360 ms (monthly baseline plus 20 percent).');
+            self::assertLessThan(150.0, $results['account list']['p95'], 'Account list p95 budget: 150 ms.');
+            self::assertLessThan(800.0, $results['net worth history']['p95'], '60-point net worth history p95 budget: 800 ms.');
             self::assertLessThanOrEqual(
                 self::MONTHLY_REPORT_P95_BUDGET_MS,
                 $results['monthly report']['p95'],

@@ -1,5 +1,6 @@
 import type { AccountValuation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { ceilingFillPercent } from '@/lib/depositCeiling';
 import { formatAmount, formatCalendarDay } from '@/lib/decimal';
@@ -9,11 +10,12 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 interface AccountValuationCellProps {
   ceiling?: { assetCode: string; value: string } | null;
   size?: 'md' | 'lg';
-  valuation: AccountValuation;
+  startingBalanceHint?: boolean;
+  valuation: AccountValuation | null;
 }
 
 /**
- * Latest valid observed balance on the requested date.
+ * Resolved balance and its snapshot or movement provenance.
  *
  * Source and display stay distinct: the backend already rounded. A missing
  * figure is a reason, never `0`. Quality is named in words so colour is not
@@ -23,21 +25,53 @@ export function AccountValuationCell({
   ceiling = null,
   size = 'md',
   valuation,
+  startingBalanceHint = false,
 }: AccountValuationCellProps) {
   const { i18n, t } = useTranslation();
   const cellClassName = size === 'lg' ? `${styles.cell} ${styles.large}` : styles.cell;
+
+  if (valuation === null) {
+    return (
+      <div className={cellClassName}>
+        {ceiling !== null ? (
+          <div className={styles.ceiling}>
+            <MoneyValue value={null} skeletonClassName={styles.skeletonFigure} />
+            <span className={styles.track} aria-hidden="true">
+              <span className={styles.fill} style={{ visibility: 'hidden' }} />
+            </span>
+          </div>
+        ) : size === 'lg' ? (
+          <span>
+            <MoneyValue value={null} skeletonClassName={styles.skeletonFigure} />
+          </span>
+        ) : (
+          <MoneyValue value={null} skeletonClassName={styles.skeletonFigure} />
+        )}
+        <small>
+          <SkeletonBlock className={styles.skeletonProvenance} />
+        </small>
+      </div>
+    );
+  }
 
   if (valuation.quality === 'MISSING') {
     return (
       <div className={cellClassName}>
         <EmptyValue
           label={t('accounts.balances.missing')}
-          reason={t('accounts.balances.qualities.MISSING')}
+          reason={t(
+            valuation.reason === 'MIXED_ASSETS'
+              ? 'accounts.balances.mixedAssets'
+              : startingBalanceHint
+                ? 'accounts.balances.startingBalanceHint'
+                : 'accounts.balances.qualities.MISSING',
+          )}
         />
       </div>
     );
   }
 
+  const derivation = valuation.basis === 'SNAPSHOT_PLUS_MOVEMENTS' ? valuation.derivation : null;
   const negative = valuation.display !== null && valuation.display.value.startsWith('-');
   const figure = valuation.belowDisplayStep
     ? t('accounts.balances.belowStep')
@@ -92,12 +126,22 @@ export function AccountValuationCell({
       )}
       <small>
         {t(`accounts.balances.qualities.${valuation.quality}`)}
-        {valuation.asOf
+        {valuation.asOf && !derivation
           ? ` · ${t('accounts.balances.asOf', {
               date: formatCalendarDay(valuation.asOf, i18n.language),
             })}`
           : null}
-        {valuation.source ? ` · ${t(`accounts.balances.sources.${valuation.source}`)}` : null}
+        {derivation
+          ? ` · ${t('accounts.balances.derivation', {
+              date: formatCalendarDay(derivation.anchorAsOf, i18n.language),
+              count: derivation.movementCount,
+            })}`
+          : valuation.source
+            ? ` · ${t(`accounts.balances.sources.${valuation.source}`)}`
+            : null}
+        {derivation && derivation.pendingCount > 0
+          ? ` · ${t('accounts.balances.pending', { count: derivation.pendingCount })}`
+          : null}
         {valuation.quality === 'STALE' && valuation.ageDays !== null
           ? ` · ${t('accounts.balances.age', { count: valuation.ageDays })}`
           : null}

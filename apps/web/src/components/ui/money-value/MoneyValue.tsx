@@ -1,11 +1,22 @@
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import styles from './MoneyValue.module.css';
 
 interface MoneyValueProps {
   className?: string;
-  value: string;
+  value: string | null;
+  skeletonClassName?: string;
 }
 
-export function MoneyValue({ className, value }: MoneyValueProps) {
+export function MoneyValue({ className, value, skeletonClassName }: MoneyValueProps) {
+  if (value === null) {
+    return (
+      <span className={className} data-visual-mask>
+        <span className={styles.tail}>
+          <SkeletonBlock className={skeletonClassName} />
+        </span>
+      </span>
+    );
+  }
   const groups = value.split('\u202f');
 
   return (

@@ -199,7 +199,14 @@ final class MonthlyProjectionControllerTest extends WebTestCase
         self::assertSame('MISSING_VALUATION', self::fields($report['netWorthDelta'])['reason']);
         $accounts = $report['accounts'];
         self::assertIsArray($accounts);
-        self::assertSame('STALE', self::fields(self::fields($accounts[0])['endValue'])['quality']);
+        $beginning = self::fields(self::fields($accounts[0])['beginningValue']);
+        $end = self::fields(self::fields($accounts[0])['endValue']);
+        self::assertSame('STALE', $beginning['quality']);
+        self::assertSame('-100.00', $beginning['value']);
+        self::assertSame('CURRENT', $end['quality']);
+        self::assertSame('4900.00', $end['value']);
+        self::assertSame(0, $end['ageDays']);
+        self::assertSame($this->periodEnd->format('Y-m-d'), $end['valuedOn']);
         self::assertSame('MISSING', self::fields(self::fields($accounts[1])['endValue'])['quality']);
 
         $cash = $this->read('/api/v1/reports/monthly/cashIncome/explain?month='.$this->month);

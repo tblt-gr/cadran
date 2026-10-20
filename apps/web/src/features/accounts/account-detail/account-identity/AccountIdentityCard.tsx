@@ -93,7 +93,12 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
 
         <div className={styles.balancePanel}>
           <span className={styles.balanceLabel}>{t('accounts.fields.balance')}</span>
-          <AccountValuationCell ceiling={ceiling} size="lg" valuation={account.valuation} />
+          <AccountValuationCell
+            ceiling={ceiling}
+            size="lg"
+            startingBalanceHint={account.valuationMode === 'TRANSACTIONS'}
+            valuation={account.valuation}
+          />
           <span className={styles.openedOn}>
             {t('accounts.detail.identity.openedOn', {
               date: formatCalendarDay(account.openedOn, i18n.language),

@@ -36,6 +36,9 @@ const missingValuation = {
   amount: null,
   display: null,
   belowDisplayStep: false,
+  basis: null,
+  derivation: null,
+  reason: null,
   source: null,
   ageDays: null,
   quality: 'MISSING' as const,
@@ -1259,7 +1262,7 @@ describe('AccountsPage', () => {
     renderPage();
 
     expect(await screen.findByText('Non calculable')).toBeTruthy();
-    expect(screen.getByText('Aucune valorisation')).toBeTruthy();
+    expect(screen.getByText('Enregistrez un solde de départ pour calculer ce solde')).toBeTruthy();
     expect(screen.queryByText('0,00')).toBeNull();
   });
 

@@ -6,6 +6,7 @@ import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
+import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
 import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
 import { TransactionList } from './transaction-list/TransactionList';
 import { TransactionsPageSkeleton } from './TransactionsPageSkeleton';
@@ -110,6 +111,7 @@ export function TransactionsPage() {
         queryKey: ['transaction-refundable', refundTarget.id],
       });
     }
+    await invalidateAccountBalances(queryClient);
   }
 
   return (

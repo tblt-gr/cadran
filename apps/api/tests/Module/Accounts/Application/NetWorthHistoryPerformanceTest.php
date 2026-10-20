@@ -116,28 +116,30 @@ final class NetWorthHistoryPerformanceTest extends TestCase
         }
     }
 
-    public function testTruncatedHistoryResolvesAtMostSixtyPointsAndOneUniqueBaselineInOneBatch(): void
+    public function testTruncatedHistoryResolvesSixtyPointsAndAnIndependentBaselineInBoundedBatches(): void
     {
         $snapshots = $this->createMock(AccountBalanceSnapshotRepository::class);
-        $snapshots->expects(self::once())->method('findLatestForAccountsOnDates')->willReturnCallback(
+        $seen = [];
+        $snapshots->expects(self::exactly(2))->method('findLatestForAccountsOnDates')->willReturnCallback(
             /**
              * @param list<string>             $accounts
              * @param list<\DateTimeImmutable> $dates
              */
-            static function (WorkspaceScope $workspace, array $accounts, array $dates): array {
-                self::assertCount(61, $dates);
+            static function (WorkspaceScope $workspace, array $accounts, array $dates) use (&$seen): array {
+                self::assertLessThanOrEqual(60, count($dates));
                 $days = [];
                 foreach ($dates as $date) {
                     self::assertInstanceOf(\DateTimeImmutable::class, $date);
                     $days[] = $date->format('Y-m-d');
                 }
-                self::assertCount(61, array_unique($days));
-                self::assertContains('2020-05-15', $days);
+                $seen = [...$seen, ...$days];
 
                 return [];
             },
         );
         ($this->read(['2026-09-05' => '1200.00'], '2020-05-15', $snapshots))(period: 'ALL');
+        self::assertCount(61, array_unique($seen));
+        self::assertContains('2020-05-15', $seen);
     }
 
     /** @param array<string, string> $amounts */
@@ -167,7 +169,7 @@ final class NetWorthHistoryPerformanceTest extends TestCase
 
         return new ReadNetWorthHistory(
             new FixedCallerWorkspace(WorkspaceFixture::OWN_WORKSPACE),
-            new ResolveNetWorthContributions(new InMemoryAccountRepository(...([] === $amounts ? [] : [$account])), $repository ?? new InMemoryAccountBalanceSnapshotRepository(...$snapshots), new FixedWorkspaceTimezoneReader()),
+            new ResolveNetWorthContributions(new InMemoryAccountRepository(...([] === $amounts ? [] : [$account])), new \App\Module\Accounts\Application\ResolveAccountValuations($repository ?? new InMemoryAccountBalanceSnapshotRepository(...$snapshots), new Double\EmptyBookedMovementTotals()), new FixedWorkspaceTimezoneReader()),
             InMemoryAssetCatalog::withCodes('EUR'), new MockClock($now), $first,
         );
     }

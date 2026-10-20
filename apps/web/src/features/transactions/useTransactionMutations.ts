@@ -9,10 +9,11 @@ import {
   type Transaction,
   type UpdateTransactionRequest,
 } from '@cadran/api-client';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
+import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
 import type { Editor, Saved } from './transactionEditorState';
 import {
   TransactionRequestError,
@@ -42,6 +43,7 @@ export function useTransactionMutations({
   onVoided,
   reloadAfterWrite,
 }: UseTransactionMutationsOptions) {
+  const queryClient = useQueryClient();
   const [saved, setSaved] = useState<Saved>(null);
   const duplicatingIdsRef = useRef(new Set<string>());
   const [duplicatingIds, setDuplicatingIds] = useState<ReadonlySet<string>>(new Set());
@@ -75,6 +77,7 @@ export function useTransactionMutations({
       onSaved();
       setSaved('saved');
       await reloadAfterWrite();
+      await invalidateAccountBalances(queryClient);
     },
     onError: refreshOnStaleTransaction,
   });
@@ -87,7 +90,10 @@ export function useTransactionMutations({
       }
       return result.data;
     },
-    onSuccess: reloadAfterWrite,
+    onSuccess: async () => {
+      await reloadAfterWrite();
+      await invalidateAccountBalances(queryClient);
+    },
   });
 
   const voidMutation = useMutation({
@@ -109,6 +115,7 @@ export function useTransactionMutations({
       onVoided();
       setSaved('voided');
       await reloadAfterWrite();
+      await invalidateAccountBalances(queryClient);
     },
   });
 
@@ -128,6 +135,7 @@ export function useTransactionMutations({
     onSuccess: async () => {
       setSaved('duplicated');
       await reloadAfterWrite();
+      await invalidateAccountBalances(queryClient);
     },
     onSettled: (_data, _error, transaction) => {
       duplicatingIdsRef.current.delete(transaction.id);

@@ -8,6 +8,8 @@ import { TransactionsPage } from './TransactionsPage';
 const api = vi.hoisted(() => ({
   createCategory: vi.fn(),
   createTransaction: vi.fn(),
+  createTransactionRefund: vi.fn(),
+  getTransactionRefundable: vi.fn(),
   createTransfer: vi.fn(),
   recordPortfolioOperation: vi.fn(),
   duplicateTransaction: vi.fn(),
@@ -1260,6 +1262,53 @@ describe('TransactionsPage', () => {
     expect((screen.getByRole('button', { name: /^Annuler/ }) as HTMLButtonElement).disabled).toBe(
       true,
     );
+  });
+
+  it('invalidates all balance and report queries after saving a refund', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    api.getTransactionRefundable.mockImplementation(() =>
+      success({
+        originalId: transaction.id,
+        originalAmount: transaction.amount,
+        refunded: { value: '0', assetCode: 'EUR' },
+        refundable: { value: '42.90', assetCode: 'EUR' },
+        proposedSplits: [],
+      }),
+    );
+    api.createTransactionRefund.mockImplementation(() =>
+      success({ ...transaction, nature: 'REFUND' }),
+    );
+    const { queryClient } = renderPage();
+    const keys = [
+      'accounts',
+      'account',
+      'account-rules',
+      'net-worth',
+      'net-worth-history',
+      'monthly-recap',
+      'annual-report',
+      'multi-year-report',
+    ];
+    keys.forEach((key) => queryClient.setQueryData([key, 'cached'], {}));
+    await screen.findByText('CB CARREFOUR 1234');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Créer un remboursement/ }));
+    await screen.findByLabelText('Montant');
+    fireEvent.change(screen.getByLabelText('Date comptable'), { target: { value: '2026-03-14' } });
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Remboursement' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le remboursement' }));
+    await waitFor(() => expect(api.createTransactionRefund).toHaveBeenCalledOnce());
+    await waitFor(() => {
+      for (const key of keys)
+        expect(queryClient.getQueryState([key, 'cached'])?.isInvalidated, key).toBe(true);
+    });
   });
 
   it('disables refunding an expense already refunded for its full amount', async () => {

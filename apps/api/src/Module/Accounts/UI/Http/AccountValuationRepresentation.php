@@ -33,6 +33,9 @@ final readonly class AccountValuationRepresentation
             'reconciliationStatus' => $valuation->reconciliationStatus,
             'snapshotId' => $valuation->snapshotId,
             'version' => $valuation->version,
+            'basis' => $valuation->basis,
+            'reason' => $valuation->reason,
+            'derivation' => null === $valuation->derivation ? null : get_object_vars($valuation->derivation),
         ];
     }
 
