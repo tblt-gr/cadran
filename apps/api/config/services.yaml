@@ -65,3 +65,6 @@ services:
       - '@limiter.login_global'
       - '@limiter.login_local'
       - '%env(APP_SECRET)%'
+
+  App\Module\Accounts\Application\BookedMovementTotals:
+    alias: App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository

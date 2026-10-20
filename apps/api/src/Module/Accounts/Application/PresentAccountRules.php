@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
-use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\AccountCeiling;
 use App\Module\Accounts\Domain\AccountRate;
+use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountRules;
 use App\Module\Accounts\Domain\AccountTerm;
-use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Foundation\Application\CallerWorkspace;
 
 /**
@@ -21,7 +20,8 @@ final readonly class PresentAccountRules
 {
     public function __construct(
         private CallerWorkspace $caller,
-        private AccountBalanceSnapshotRepository $snapshots,
+        private AccountRepository $accounts,
+        private ResolveAccountValuations $valuations,
         private ResolveAuthorNames $authors,
     ) {
     }
@@ -29,8 +29,8 @@ final readonly class PresentAccountRules
     public function __invoke(AccountRules $rules): AccountRulePresentation
     {
         $workspace = $this->caller->resolve();
-        $snapshots = $this->snapshots->findForAccount($workspace, $rules->accountId);
-        $valuation = AccountValuation::of($snapshots, $rules->asOf);
+        $account = $this->accounts->find($workspace, $rules->accountId) ?? throw new AccountNotFound();
+        $valuation = $this->valuations->forAccounts($workspace, [$account], [$rules->asOf])[$rules->asOf->format('Y-m-d')][$account->id];
 
         return new AccountRulePresentation($valuation, $this->authors->forIds(self::authorIds($rules)));
     }

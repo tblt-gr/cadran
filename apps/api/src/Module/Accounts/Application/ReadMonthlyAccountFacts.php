@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
-use App\Module\Accounts\Domain\AccountBalanceSnapshot;
-use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
-use App\Module\Accounts\Domain\AccountBalanceSnapshots;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Accounts\Domain\CalendarMonth;
@@ -22,7 +19,7 @@ final readonly class ReadMonthlyAccountFacts
 
     public function __construct(
         private AccountRepository $accounts,
-        private AccountBalanceSnapshotRepository $snapshots,
+        private ResolveAccountValuations $valuations,
         private WorkspaceTimezoneReader $timezones,
     ) {
     }
@@ -48,18 +45,14 @@ final readonly class ReadMonthlyAccountFacts
         if (count($accounts) > self::MAX_ACCOUNTS) {
             throw new NetWorthScopeTooLarge('A monthly projection reads at most 500 accounts.');
         }
-        $latest = $this->snapshots->findLatestForAccountsOnDates(
-            $workspace,
-            array_map(static fn (Account $account): string => $account->id, $accounts),
-            [$first, $last],
-        );
+        $latest = $this->valuations->forAccounts($workspace, $accounts, [$first, $last]);
 
         $facts = array_map(function (Account $account) use ($latest, $first, $last, $workspaceTimezone): MonthlyAccountFact {
-            $beginning = $latest[$first->format('Y-m-d')][$account->id] ?? null;
-            $end = $latest[$last->format('Y-m-d')][$account->id] ?? null;
-            $reconciled = null !== $end
-                && $end->asOf >= $first
-                && ReconciliationStatus::RECONCILED === $end->reconciliationStatus;
+            $beginning = $latest[$first->format('Y-m-d')][$account->id];
+            $end = $latest[$last->format('Y-m-d')][$account->id];
+            $reconciled = null !== $end->snapshot
+                && $end->snapshot->asOf >= $first
+                && ReconciliationStatus::RECONCILED === $end->snapshot->reconciliationStatus;
 
             return new MonthlyAccountFact(
                 $account->id,
@@ -84,12 +77,13 @@ final readonly class ReadMonthlyAccountFacts
 
     private static function valuation(
         Account $account,
-        ?AccountBalanceSnapshot $snapshot,
+        AccountValuation $valuation,
         \DateTimeImmutable $on,
         \DateTimeZone $workspaceTimezone,
     ): MonthlyAccountValuationFact {
-        $eligibleSnapshot = $account->isActiveOn($on, $workspaceTimezone) ? $snapshot : null;
-        $valuation = AccountValuation::of(new AccountBalanceSnapshots(null === $eligibleSnapshot ? [] : [$eligibleSnapshot]), $on);
+        if (!$account->isActiveOn($on, $workspaceTimezone)) {
+            return new MonthlyAccountValuationFact(null, 'MISSING', null, null);
+        }
 
         return new MonthlyAccountValuationFact(
             $valuation->amount,

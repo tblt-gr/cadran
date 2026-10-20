@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSubmissionKey } from '@/hooks/use-submission-key';
+import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import type { Editor } from './recurrenceEditorState';
@@ -77,6 +78,9 @@ export function useRecurrenceMutations({
       onSaved();
       setNotice(t('recurrences.toasts.saved'));
       await queryClient.invalidateQueries({ queryKey: ['recurrences'] });
+      if (!editor || editor === 'create' || !('id' in editor)) {
+        await invalidateAccountBalances(queryClient);
+      }
     },
   });
 

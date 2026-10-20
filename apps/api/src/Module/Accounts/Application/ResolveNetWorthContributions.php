@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
-use App\Module\Accounts\Domain\AccountBalanceSnapshot;
-use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
-use App\Module\Accounts\Domain\AccountBalanceSnapshots;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Accounts\Domain\NetWorthContribution;
@@ -33,7 +30,7 @@ final readonly class ResolveNetWorthContributions
 
     public function __construct(
         private AccountRepository $accounts,
-        private AccountBalanceSnapshotRepository $snapshots,
+        private ResolveAccountValuations $valuations,
         private WorkspaceTimezoneReader $timezones,
     ) {
     }
@@ -47,6 +44,9 @@ final readonly class ResolveNetWorthContributions
     {
         if ([] === $dates) {
             throw new \InvalidArgumentException('A net-worth contribution read needs at least one date.');
+        }
+        if (count($dates) > 61) {
+            throw new NetWorthScopeTooLarge('A net-worth read accepts at most 60 points and one comparison baseline.');
         }
         $orderedDates = $dates;
         usort($orderedDates, static fn (\DateTimeImmutable $left, \DateTimeImmutable $right): int => $left <=> $right);
@@ -62,11 +62,12 @@ final readonly class ResolveNetWorthContributions
             throw new NetWorthScopeTooLarge('This workspace holds more accounts than one net-worth aggregate reads.');
         }
 
-        $latest = $this->snapshots->findLatestForAccountsOnDates(
-            $workspace,
-            array_map(static fn (Account $account): string => $account->id, $accounts),
-            $dates,
-        );
+        // A 60-point curve may also need its independent comparison baseline.
+        // Keep each valuation batch within its resource bound.
+        $latest = [];
+        foreach (array_chunk($dates, 60) as $batch) {
+            $latest += $this->valuations->forAccounts($workspace, $accounts, $batch);
+        }
 
         $byDate = [];
         foreach ($dates as $date) {
@@ -75,7 +76,7 @@ final readonly class ResolveNetWorthContributions
                 static fn (Account $account): NetWorthContribution => self::contribution(
                     $account,
                     $date,
-                    $latest[$day][$account->id] ?? null,
+                    $latest[$day][$account->id],
                     $workspaceTimezone,
                 ),
                 $accounts,
@@ -88,13 +89,9 @@ final readonly class ResolveNetWorthContributions
     private static function contribution(
         Account $account,
         \DateTimeImmutable $on,
-        ?AccountBalanceSnapshot $snapshot,
+        AccountValuation $valuation,
         \DateTimeZone $workspaceTimezone,
     ): NetWorthContribution {
-        $valuation = AccountValuation::of(
-            new AccountBalanceSnapshots(null === $snapshot ? [] : [$snapshot]),
-            $on,
-        );
         $eligible = $account->isActiveOn($on, $workspaceTimezone);
 
         return new NetWorthContribution(

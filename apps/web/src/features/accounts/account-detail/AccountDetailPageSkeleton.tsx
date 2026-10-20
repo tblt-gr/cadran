@@ -1,5 +1,6 @@
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useTranslation } from 'react-i18next';
+import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
 import { AccountDetailActionsSkeleton } from './account-detail-actions/AccountDetailActions';
 import identityStyles from './account-identity/AccountIdentityCard.module.css';
 import { AccountMovementsTableSkeleton } from './account-movements/AccountMovementsTableSkeleton';
@@ -26,8 +27,10 @@ export function AccountDetailPageSkeleton({ status }: { status: string }) {
           </div>
           <div className={identityStyles.balancePanel}>
             <span className={identityStyles.balanceLabel}>{t('accounts.fields.balance')}</span>
-            <SkeletonBlock className={skeletonStyles.balance} />
-            <SkeletonBlock className={skeletonStyles.line} />
+            <AccountValuationCell size="lg" valuation={null} />
+            <span className={identityStyles.openedOn}>
+              <SkeletonBlock className={skeletonStyles.line} />
+            </span>
           </div>
         </div>
       </div>

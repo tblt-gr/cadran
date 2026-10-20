@@ -247,8 +247,7 @@ final class ReadNetWorthTest extends TestCase
         return new ReadNetWorth(
             new FixedCallerWorkspace($caller),
             new ResolveNetWorthContributions(
-                new InMemoryAccountRepository(...($accounts ?? $this->accounts($closedOn))),
-                new InMemoryAccountBalanceSnapshotRepository(...($snapshots ?? $this->snapshots())),
+                new InMemoryAccountRepository(...($accounts ?? $this->accounts($closedOn))), new \App\Module\Accounts\Application\ResolveAccountValuations(new InMemoryAccountBalanceSnapshotRepository(...($snapshots ?? $this->snapshots())), new Double\EmptyBookedMovementTotals()),
                 new FixedWorkspaceTimezoneReader(),
             ),
             new InMemoryAccountGroupRepository(...($groups ?? [

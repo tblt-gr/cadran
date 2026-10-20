@@ -96,6 +96,19 @@ final class AccountValuationTest extends TestCase
         self::assertSame(ValuationQuality::CURRENT, $valuation->quality);
     }
 
+    public function testDerivedReferenceUsesExactMovementsAndPreservesAnchor(): void
+    {
+        $anchor = $this->snapshot('00000000-0000-7000-8000-0000000000b1', '2026-09-30', '1250.40', BalanceSnapshotSource::MANUAL, '2026-09-30T10:00:00+00:00');
+        $valuation = AccountValuation::derived($anchor, $this->day('2026-10-10'), new \App\Module\Accounts\Domain\MovementTotal(DecimalValue::fromString('1457.90'), 3, 1, false));
+        self::assertSame('2708.30', $valuation->amount?->value->toString());
+        self::assertSame(ValuationQuality::CURRENT, $valuation->quality);
+        self::assertSame('SNAPSHOT_PLUS_MOVEMENTS', $valuation->basis?->value);
+        self::assertSame(10, $valuation->derivation?->anchorAgeDays);
+        self::assertSame(3, $valuation->derivation->movementCount);
+        self::assertSame(1, $valuation->derivation->pendingCount);
+        self::assertSame($anchor, $valuation->snapshot);
+    }
+
     private function example(): AccountBalanceSnapshots
     {
         return new AccountBalanceSnapshots([

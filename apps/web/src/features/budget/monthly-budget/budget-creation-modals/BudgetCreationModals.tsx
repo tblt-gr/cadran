@@ -6,9 +6,10 @@ import {
   type MonthlyLedgerAccountRow,
   type MonthlyLedgerCategoryRow,
 } from '@cadran/api-client';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
@@ -42,6 +43,7 @@ export function BudgetCreationModals({
   today,
 }: BudgetCreationModalsProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const accounts = useActiveBudgetAccounts(draft !== null);
   const transaction = useMutation({
     mutationFn: async (body: CreateTransactionRequest) => {
@@ -52,6 +54,7 @@ export function BudgetCreationModals({
     onSuccess: async () => {
       close();
       await onSaved();
+      await invalidateAccountBalances(queryClient);
     },
   });
   const transfer = useMutation({
@@ -62,6 +65,7 @@ export function BudgetCreationModals({
     },
     onSuccess: async () => {
       await onSaved();
+      await invalidateAccountBalances(queryClient);
     },
   });
 

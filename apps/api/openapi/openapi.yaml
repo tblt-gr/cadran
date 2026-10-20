@@ -12408,6 +12408,9 @@ components:
         - reconciliationStatus
         - snapshotId
         - version
+        - basis
+        - derivation
+        - reason
       properties:
         accountId:
           type: string
@@ -12416,13 +12419,14 @@ components:
           type: string
           format: date
         asOf:
-          description: Date of the snapshot that answers, or null when missing.
+          description: >-
+            Date the figure is valid on: the snapshot date, or the requested day for a derived balance.
           oneOf:
             - type: string
               format: date
             - type: 'null'
         amount:
-          description: Exact source figure. Null when no snapshot answers.
+          description: Exact snapshot or derived figure. Null when the balance cannot be calculated.
           oneOf:
             - $ref: '#/components/schemas/DecimalAmount'
             - type: 'null'
@@ -12436,6 +12440,7 @@ components:
         belowDisplayStep:
           type: boolean
         source:
+          description: Source of the anchor snapshot.
           oneOf:
             - $ref: '#/components/schemas/BalanceSnapshotSource'
             - type: 'null'
@@ -12460,6 +12465,40 @@ components:
             - type: integer
               minimum: 1
             - type: 'null'
+        basis:
+          oneOf:
+            - $ref: '#/components/schemas/ValuationBasis'
+            - type: 'null'
+        derivation:
+          oneOf:
+            - $ref: '#/components/schemas/ValuationDerivation'
+            - type: 'null'
+        reason:
+          description: Why a balance cannot be calculated from its anchor.
+          oneOf:
+            - type: string
+              enum: [MIXED_ASSETS]
+            - type: 'null'
+    ValuationBasis:
+      type: string
+      enum: [SNAPSHOT, SNAPSHOT_PLUS_MOVEMENTS, PORTFOLIO_VALUATION]
+    ValuationDerivation:
+      type: object
+      additionalProperties: false
+      required: [anchorAsOf, anchorAgeDays, movementCount, pendingCount]
+      properties:
+        anchorAsOf:
+          type: string
+          format: date
+        anchorAgeDays:
+          type: integer
+          minimum: 0
+        movementCount:
+          type: integer
+          minimum: 0
+        pendingCount:
+          type: integer
+          minimum: 0
     ValuationQuality:
       type: string
       enum:

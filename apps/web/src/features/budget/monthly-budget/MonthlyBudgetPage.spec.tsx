@@ -363,8 +363,9 @@ describe('MonthlyBudgetPage', () => {
       }),
     );
     renderPage();
+    await loaded();
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Ajouter un virement vers Compte courant' }),
+      screen.getByRole('button', { name: 'Ajouter un virement vers Compte courant' }),
     );
     const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
     await screen.findByLabelText('Compte source');

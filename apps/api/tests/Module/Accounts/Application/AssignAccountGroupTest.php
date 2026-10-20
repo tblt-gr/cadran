@@ -124,8 +124,7 @@ final class AssignAccountGroupTest extends TestCase
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),
             $clock,
-            new ResolveAccountValuation(
-                new InMemoryAccountBalanceSnapshotRepository(),
+            new ResolveAccountValuation(new \App\Module\Accounts\Application\ResolveAccountValuations(new InMemoryAccountBalanceSnapshotRepository(), new Double\EmptyBookedMovementTotals()),
                 InMemoryAssetCatalog::withCodes('EUR'),
                 $clock,
             ),

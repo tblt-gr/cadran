@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
-use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
-use App\Module\Accounts\Domain\AccountBalanceSnapshots;
-use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reference\Application\AssetCatalog;
@@ -21,7 +18,7 @@ use Symfony\Component\Clock\ClockInterface;
 final readonly class ResolveAccountValuation
 {
     public function __construct(
-        private AccountBalanceSnapshotRepository $snapshots,
+        private ResolveAccountValuations $valuations,
         private AssetCatalog $assets,
         private ClockInterface $clock,
     ) {
@@ -34,15 +31,10 @@ final readonly class ResolveAccountValuation
 
     public function on(WorkspaceScope $workspace, Account $account, \DateTimeImmutable $requestedOn): ValuationView
     {
-        $latest = $this->snapshots->findLatestForAccounts($workspace, [$account->id], $requestedOn)[$account->id] ?? null;
-
         return ValuationView::of(
             $account->id,
             $requestedOn,
-            AccountValuation::of(
-                new AccountBalanceSnapshots(null === $latest ? [] : [$latest]),
-                $requestedOn,
-            ),
+            $this->valuations->forAccounts($workspace, [$account], [$requestedOn])[$requestedOn->format('Y-m-d')][$account->id],
             $this->assets->findByCode($account->assetCode),
         );
     }

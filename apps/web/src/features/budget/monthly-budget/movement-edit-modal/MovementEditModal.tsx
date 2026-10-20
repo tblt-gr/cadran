@@ -3,9 +3,10 @@ import {
   updateTransaction,
   type UpdateTransactionRequest,
 } from '@cadran/api-client';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { useActiveBudgetAccounts } from '@/features/budget/monthly-budget/budget-creation-modals/useActiveBudgetAccounts';
@@ -33,6 +34,7 @@ interface MovementEditModalProps {
  */
 export function MovementEditModal({ close, onSaved, transactionId }: MovementEditModalProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const transaction = useQuery({
     gcTime: 0,
     queryKey: ['monthly-budget-movement', transactionId],
@@ -67,6 +69,7 @@ export function MovementEditModal({ close, onSaved, transactionId }: MovementEdi
     onSuccess: async () => {
       close();
       await onSaved();
+      await invalidateAccountBalances(queryClient);
     },
     onError: async (error) => {
       if (error instanceof TransactionRequestError && error.kind === 'stale') {

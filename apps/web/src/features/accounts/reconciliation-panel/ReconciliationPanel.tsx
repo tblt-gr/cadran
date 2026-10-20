@@ -7,6 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import {
@@ -118,6 +119,7 @@ export function ReconciliationPanel({ account, onReconciled }: ReconciliationPan
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await invalidateAccountBalances(queryClient);
       onReconciled();
     },
   });

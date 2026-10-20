@@ -74,7 +74,7 @@ final class ReadAccountValuationTest extends TestCase
         return new ReadAccountValuation(
             new FixedCallerWorkspace($caller),
             new InMemoryAccountRepository(AccountFixture::account()),
-            new ResolveAccountValuation($stored, $catalog, $clock),
+            new ResolveAccountValuation(new \App\Module\Accounts\Application\ResolveAccountValuations($stored, new Double\EmptyBookedMovementTotals()), $catalog, $clock),
         );
     }
 
