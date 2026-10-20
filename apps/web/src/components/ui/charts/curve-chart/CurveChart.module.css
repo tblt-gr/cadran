@@ -248,3 +248,35 @@
     clip-path: none;
   }
 }
+
+/* Exact history values can contain fifty digits. Keep the plot usable without
+   shortening the accessible source text, tooltip or tabular alternative. */
+.frame[data-interpolation='step-after'] {
+  grid-template-columns: minmax(0, min(30%, 10rem)) minmax(0, 1fr);
+}
+
+.frame[data-interpolation='step-after'] .ySizer,
+.frame[data-interpolation='step-after'] .yTick {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.frame[data-interpolation='step-after'] .ySizer > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.frame[data-interpolation='step-after'] .tooltip {
+  width: max-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 479px) {
+  .frame[data-interpolation='step-after'] .xTick[data-edge='mid'] {
+    display: none;
+  }
+}

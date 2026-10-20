@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { plotRuns, polylinePoints, smoothPath, type PlotArea } from './plotGeometry';
+import { plotRuns, polylinePoints, smoothPath, stepAfterPath, type PlotArea } from './plotGeometry';
 
 const area: PlotArea = { height: 100, padding: 10, width: 300 };
 
@@ -53,4 +53,15 @@ describe('smoothPath', () => {
       ]),
     ).toBe('M0,10 L20,30');
   });
+});
+
+it('keeps a deposit flat until its effective date, with calendar-spaced positions', () => {
+  const runs = plotRuns(['1000', '1400', '1400'], area, ['2026-10-01', '2026-10-10', '2026-10-31']);
+  expect(runs[0].map((point) => point.x)).toEqual([0, 90, 300]);
+  expect(stepAfterPath(runs[0])).toBe('M0,90 H90 V10 H300 V10');
+});
+it('holds a known balance only until the missing date', () => {
+  const runs = plotRuns(['1000', null, '1400'], area, ['2026-10-01', '2026-10-10', '2026-10-31']);
+  expect(stepAfterPath(runs[0], 90)).toBe('M0,90 H90');
+  expect(stepAfterPath(runs[1])).toBe('M300,10');
 });

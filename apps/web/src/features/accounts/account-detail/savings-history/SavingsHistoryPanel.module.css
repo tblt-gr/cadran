@@ -1,0 +1,42 @@
+.card {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+.card h3,
+.card p {
+  margin: var(--spacing-none);
+}
+.card h3 {
+  font-size: var(--font-size-card-title);
+}
+.notice {
+  color: var(--text-secondary);
+}
+.scroll {
+  overflow-x: auto;
+}
+.scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.scroll th,
+.scroll td {
+  padding: var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+}
+.scroll td {
+  font-variant-numeric: tabular-nums;
+}
+.scroll td:nth-child(2),
+.scroll th:first-child {
+  white-space: nowrap;
+}

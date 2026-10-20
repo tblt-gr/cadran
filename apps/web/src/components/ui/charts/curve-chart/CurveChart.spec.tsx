@@ -81,3 +81,54 @@ it('marks the plot frame for the visual comparison mask', () => {
 
   expect(container.querySelector('[data-visual-mask]')).not.toBeNull();
 });
+
+it('makes step points keyboard reachable and preserves step geometry across a gap', () => {
+  const { container } = render(
+    <CurveChart
+      label="Steps"
+      points={points.map((point, index) => ({
+        ...point,
+        date: ['2026-10-01', '2026-10-10', '2026-10-31'][index],
+      }))}
+      interpolation="step-after"
+      timeAxisLabel="Date"
+      valueAxisLabel="Balance"
+    />,
+  );
+  const hit = screen.getByRole('button', { name: 'mars, 300 €' });
+  expect(hit.tabIndex).toBe(0);
+  act(() => hit.focus());
+  expect(screen.getByRole('tooltip').textContent).toContain('300 €');
+  expect(
+    [...container.querySelectorAll('svg path')].some((path) =>
+      path.getAttribute('d')?.includes(' H186'),
+    ),
+  ).toBe(true);
+});
+
+it('constrains only step axes while retaining every digit in accessible labels and titles', () => {
+  const exact = '12345678901234567890123456.123456789012345678901234 EUR';
+  const list = points.map((point) => ({ ...point, value: exact }));
+  const { container, rerender } = render(
+    <CurveChart
+      label="Balance"
+      points={list}
+      interpolation="step-after"
+      timeAxisLabel="Date"
+      valueAxisLabel="Exact balance"
+    />,
+  );
+  expect(container.querySelector('[data-interpolation="step-after"]')).toBeTruthy();
+  const axis = screen.getByRole('group', { name: 'Exact balance' });
+  expect(axis.textContent).toContain(exact);
+  expect(axis.querySelector('[title]')?.getAttribute('title')).toBe(exact);
+  rerender(
+    <CurveChart
+      label="Balance"
+      points={list}
+      timeAxisLabel="Date"
+      valueAxisLabel="Exact balance"
+    />,
+  );
+  expect(container.querySelector('[data-interpolation="step-after"]')).toBeNull();
+});

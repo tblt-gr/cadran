@@ -19,6 +19,9 @@ import { AccountDetailActions } from './account-detail-actions/AccountDetailActi
 import { AccountIdentityCard } from './account-identity/AccountIdentityCard';
 import { AccountMovementsSection } from './account-movements-section/AccountMovementsSection';
 import { useAccountMovements } from './account-movements/useAccountMovements';
+import { SavingsHistoryPanel } from './savings-history/SavingsHistoryPanel';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
+import { workspaceToday } from '@/lib/workspaceTime';
 import { useAccountDetail } from './useAccountDetail';
 import { useAccountDetailMutations } from './useAccountDetailMutations';
 import styles from './AccountDetailPage.module.css';
@@ -45,6 +48,7 @@ interface AccountDetailPageProps {
 export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   const { i18n, t } = useTranslation();
   const queryClient = useQueryClient();
+  const today = workspaceToday(new Date(), useWorkspaceTimeZone());
   const [month, setMonth] = useState(initialMonthFromLocation);
   const [transactionEditorOpen, setTransactionEditorOpen] = useState(false);
   const [transferEditorOpen, setTransferEditorOpen] = useState(false);
@@ -183,6 +187,9 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
       ) : null}
 
       <AccountIdentityCard account={current} />
+      {current.kind === 'SAVINGS' ? (
+        <SavingsHistoryPanel accountId={accountId} today={today} />
+      ) : null}
 
       {rulesOpen ? (
         <AccountRulesModals

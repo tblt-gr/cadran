@@ -3775,6 +3775,52 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{id}/valuation-history:
+    get:
+      operationId: readAccountValuationHistory
+      x-cadran-bounded: At most 367 chronological points over 366 elapsed days, resolved in batches of at most 60 dates.
+      summary: Read exact end-of-day account balance steps
+      description: >-
+        Uses the shared valuation strategy, including the latest snapshot before the window.
+        Returns the boundaries and effective balance, snapshot, booked-count or quality changes.
+        Snapshot-day movements are excluded. Pending and voided movements never create steps.
+        Held snapshot values retain their original asOf date and freshness; no interest or interpolation
+        is invented. Missing intervals are null with a reason. No aggregation or truncation occurs.
+      tags: [Accounts]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          required: true
+          description: Inclusive ISO calendar day. Must not follow to.
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          description: Inclusive ISO calendar day, at most 366 days after from and no later than workspace-local today.
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Exact chronological steps and provenance, including null gaps.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountValuationHistory'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{id}/balances:
     get:
       operationId: listAccountBalances
@@ -12392,6 +12438,57 @@ components:
           $ref: '#/components/schemas/NetWorthShare'
         valuation:
           $ref: '#/components/schemas/AccountValuation'
+    AccountValuationHistory:
+      type: object
+      additionalProperties: false
+      required: [accountId, from, to, hasHistory, points]
+      properties:
+        accountId: { type: string, format: uuid }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        hasHistory:
+          type: boolean
+          description: Whether an active anchor exists on any requested day, even if movements make its value non-calculable.
+        points:
+          type: array
+          minItems: 1
+          maxItems: 367
+          items:
+            $ref: '#/components/schemas/AccountValuationHistoryPoint'
+    AccountValuationHistoryPoint:
+      type: object
+      additionalProperties: false
+      required: [date, amount, assetCode, quality, source, reason, asOf, ageDays, basis, derivation]
+      properties:
+        date: { type: string, format: date }
+        amount:
+          type: [string, 'null']
+          description: Exact server decimal, never a rounded chart coordinate. Null for a gap.
+        assetCode: { type: [string, 'null'] }
+        quality:
+          $ref: '#/components/schemas/ValuationQuality'
+        source:
+          oneOf:
+            - $ref: '#/components/schemas/BalanceSnapshotSource'
+            - type: 'null'
+        reason:
+          type: [string, 'null']
+          enum: [NO_ANCHOR, MIXED_ASSETS, null]
+        asOf:
+          type: [string, 'null']
+          format: date
+          description: Original observation date for held snapshots, requested day for transaction-derived balances.
+        ageDays:
+          type: [integer, 'null']
+          minimum: 0
+        basis:
+          oneOf:
+            - $ref: '#/components/schemas/ValuationBasis'
+            - type: 'null'
+        derivation:
+          oneOf:
+            - $ref: '#/components/schemas/ValuationDerivation'
+            - type: 'null'
     AccountValuation:
       type: object
       additionalProperties: false

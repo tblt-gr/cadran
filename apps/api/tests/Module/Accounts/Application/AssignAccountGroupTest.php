@@ -126,7 +126,7 @@ final class AssignAccountGroupTest extends TestCase
             $clock,
             new ResolveAccountValuation(new \App\Module\Accounts\Application\ResolveAccountValuations(new InMemoryAccountBalanceSnapshotRepository(), new Double\EmptyBookedMovementTotals()),
                 InMemoryAssetCatalog::withCodes('EUR'),
-                $clock,
+                new \App\Module\Foundation\Application\WorkspaceCalendar($clock, new FixedCallerWorkspace(AccountFixture::WORKSPACE), new Double\FixedWorkspaceTimezoneReader()),
             ),
             new AssertPeriodOpen($this->createStub(PeriodClosureRepository::class)),
         );

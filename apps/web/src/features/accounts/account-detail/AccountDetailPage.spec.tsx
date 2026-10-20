@@ -14,6 +14,7 @@ const api = vi.hoisted(() => ({
   listAccountRuleOverrides: vi.fn(),
   listTransactions: vi.fn(),
   readAccount: vi.fn(),
+  readAccountValuationHistory: vi.fn(),
   readAccountRules: vi.fn(),
 }));
 
@@ -205,6 +206,10 @@ describe('AccountDetailPage', () => {
     expect(window.location.search).toBe('?month=2026-03');
   });
   beforeEach(() => {
+    api.readAccountValuationHistory.mockResolvedValue({
+      data: { accountId: account.id, from: TODAY, to: TODAY, hasHistory: false, points: [] },
+      response: new Response('{}', { status: 200 }),
+    });
     vi.clearAllMocks();
     api.readAccount.mockImplementation(() => success(account));
     api.listTransactions.mockImplementation(() =>
@@ -642,5 +647,10 @@ describe('AccountDetailPage', () => {
       expect(secondCall).toBeDefined();
       expect(secondCall![0].query.accountId).toEqual([account.id]);
     });
+  });
+  it('mounts savings history independently of the account identity read', async () => {
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Historique du solde' })).toBeTruthy();
+    expect(api.readAccountValuationHistory).toHaveBeenCalled();
   });
 });

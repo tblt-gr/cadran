@@ -489,6 +489,9 @@ api:
     account_rule_override_not_found:
       title: 'Dérogation introuvable'
       detail: 'Aucune dérogation ne porte cet identifiant sur ce compte.'
+    invalid_account_valuation_history_query:
+      title: Période invalide
+      detail: Indiquez deux dates calendaires ISO ordonnées, sans date future, séparées de 366 jours au maximum.
     invalid_account_valuation_query:
       title: 'Date de valorisation invalide'
       detail: 'La date de lecture doit être un jour calendaire ISO 8601, compris entre 1900-01-01 et 2100-12-31.'

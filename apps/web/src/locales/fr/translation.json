@@ -877,6 +877,28 @@
         "reconciled": "Le solde a été rapproché."
       },
       "refreshError": "Actualisation du compte impossible. Les dernières données disponibles restent affichées."
+    },
+    "history": {
+      "title": "Historique du solde",
+      "nonCalculable": "Aucun solde calculable à tracer. Les raisons sont disponibles dans le tableau.",
+      "loading": "Chargement de l’historique du solde…",
+      "period": "Période de l’historique",
+      "rolling": "12 mois",
+      "year": "Année en cours",
+      "date": "Date",
+      "balance": "Solde exact",
+      "quality": "Qualité",
+      "provenance": "Source et fraîcheur",
+      "table": "Soldes du compte par date",
+      "showTable": "Voir le tableau",
+      "held": "Dernier solde connu",
+      "description": "Le solde change à sa date effective. Les soldes enregistrés sont maintenus jusqu’à la prochaine observation, sans projection d’intérêts.",
+      "error": "L’historique du solde est indisponible.",
+      "empty": "Aucun solde enregistré sur cette période.",
+      "reasons": {
+        "NO_ANCHOR": "Aucun solde de référence",
+        "MIXED_ASSETS": "Actifs incompatibles"
+      }
     }
   },
   "accountGroups": {

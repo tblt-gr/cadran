@@ -6,6 +6,7 @@ interface DisclosureProps {
   children: ReactNode;
   /** Smaller summary, for a disclosure nested inside a dense row. */
   compact?: boolean;
+  disabled?: boolean;
   /** Short state shown beside the title, readable while the content is hidden. */
   meta?: ReactNode;
   onToggle: (open: boolean) => void;
@@ -21,6 +22,7 @@ interface DisclosureProps {
 export function Disclosure({
   children,
   compact = false,
+  disabled = false,
   meta,
   onToggle,
   open,
@@ -32,7 +34,11 @@ export function Disclosure({
       onToggle={(event) => onToggle(event.currentTarget.open)}
       open={open}
     >
-      <summary>
+      <summary
+        aria-disabled={disabled || undefined}
+        tabIndex={disabled ? -1 : undefined}
+        onClick={disabled ? (event) => event.preventDefault() : undefined}
+      >
         <span aria-hidden="true" className={styles.chevron}>
           <Icon name="chevron-right" size={compact ? 12 : 14} />
         </span>

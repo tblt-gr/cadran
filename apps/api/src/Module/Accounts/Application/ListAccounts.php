@@ -9,8 +9,8 @@ use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Reference\Application\AssetCatalog;
-use Symfony\Component\Clock\ClockInterface;
 
 final readonly class ListAccounts
 {
@@ -23,7 +23,7 @@ final readonly class ListAccounts
         private AccountRepository $accounts,
         private ResolveAccountValuations $valuations,
         private AssetCatalog $assets,
-        private ClockInterface $clock,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
@@ -78,7 +78,7 @@ final readonly class ListAccounts
     private function requestedOn(?string $asOf): \DateTimeImmutable
     {
         if (null === $asOf || '' === $asOf) {
-            return BusinessDay::fromDateTime($this->clock->now())->date;
+            return $this->calendar->today();
         }
 
         try {
