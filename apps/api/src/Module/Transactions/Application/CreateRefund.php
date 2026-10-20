@@ -117,7 +117,7 @@ final readonly class CreateRefund
             try {
                 $splitInputs = null === $input->splits
                     ? array_map(static fn (array $row): TransactionSplitInput => new TransactionSplitInput(
-                        $row['categoryId'], $row['amount'], null, null,
+                        $row['categoryId'], $row['amount'], $row['analyticAxes'], null,
                     ), $proposal)
                     : array_map(static fn (TransactionSplitInput $row): TransactionSplitInput => new TransactionSplitInput(
                         $row->categoryId, $row->amount, $row->analyticAxes, $row->note,
