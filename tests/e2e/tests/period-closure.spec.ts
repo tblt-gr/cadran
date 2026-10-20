@@ -83,7 +83,7 @@ test.describe('period closure', () => {
       await editor.getByRole('button', { name: 'Enregistrer' }).click();
 
       await expect(editor.getByRole('alert')).toContainText(
-        'Cette période est clôturée : la modification est refusée.',
+        'Cette opération touche une période clôturée. Rouvrez la période avant de modifier ses mouvements.',
       );
       await editor.getByRole('button', { name: 'Fermer' }).click();
     });
