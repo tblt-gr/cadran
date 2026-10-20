@@ -14,7 +14,7 @@ import styles from './AccountRulesPanel.module.css';
 interface AccountRulesPanelProps {
   account: Account;
   onOverride: (draft: OverrideDraft) => void;
-  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind) => void;
+  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind, description: string) => void;
   /** The rule whose action regains focus when the reader returns from a modal. */
   focusKind?: ProductRuleKind | null;
 }

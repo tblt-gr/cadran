@@ -1,8 +1,7 @@
 import type { AccountRuleClaim, AccountRuleOverride, ProductRuleKind } from '@cadran/api-client';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { ruleTextKey } from '@/features/catalog-rules/ruleText';
-import { RulePeriod } from '@/features/catalog-rules/rule-provenance/RuleProvenance';
 import { formatAmount, formatCalendarDay, formatPercentDecimal } from '@/lib/decimal';
 import styles from './RuleHistory.module.css';
 
@@ -10,7 +9,10 @@ interface RuleHistoryProps {
   /** The override read as the value in force: listed, and marked in words. */
   inForceId: string | null;
   kind: ProductRuleKind;
-  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind) => void;
+  /** The rule's name, to say which claim a withdrawal is about. */
+  name: string;
+  /** `description` names the claim (rule, value, period) for the confirmation. */
+  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind, description: string) => void;
   overrides: AccountRuleOverride[];
 }
 
@@ -21,10 +23,11 @@ interface RuleHistoryProps {
  * A withdrawn claim is kept and shown rather than removed: it is the
  * provenance of every past statement produced while it applied. Each status is
  * written in words, not carried by a shade. A rule never overridden has no
- * history and renders nothing. The claim in force is withdrawn from the rule's
- * menu; a standing claim that is not in force is withdrawn from its own entry.
+ * history and renders nothing. Each claim that can still be withdrawn carries
+ * its own button, named after its value and period, so no withdrawal is
+ * ambiguous.
  */
-export function RuleHistory({ inForceId, kind, onWithdraw, overrides }: RuleHistoryProps) {
+export function RuleHistory({ inForceId, kind, name, onWithdraw, overrides }: RuleHistoryProps) {
   const { i18n, t } = useTranslation();
   const entries = [...overrides].sort(
     (a, b) => b.validFrom.localeCompare(a.validFrom) || b.recordedAt.localeCompare(a.recordedAt),
@@ -38,77 +41,80 @@ export function RuleHistory({ inForceId, kind, onWithdraw, overrides }: RuleHist
     <details className={styles.history}>
       <summary>{t('accounts.overrides.historyTitle')}</summary>
       <ul className={styles.list}>
-        {entries.map((override) => (
-          <li key={override.id}>
-            <span className={styles.value}>
-              <OverrideValue override={override} />
-            </span>
-            <small>
-              <RulePeriod validFrom={override.validFrom} validTo={override.validTo} />
-              {' · '}
-              {t(
-                override.id === inForceId
-                  ? 'accounts.overrides.statuses.standing'
-                  : override.standing
-                    ? 'accounts.overrides.statuses.recorded'
-                    : 'accounts.overrides.statuses.withdrawn',
-              )}
-              {override.withdrawnAt === null
-                ? null
-                : ` ${formatCalendarDay(override.withdrawnAt.slice(0, 10), i18n.language)}`}
-            </small>
-            {override.reason === '' ? null : <small>{override.reason}</small>}
-            {override.standing && override.id !== inForceId ? (
-              <button
-                className={`secondary-action ${styles.action}`}
-                onClick={() =>
-                  onWithdraw(
-                    {
-                      overrideId: override.id,
-                      reason: override.reason,
-                      authorId: override.authorId,
-                      authorDisplayName: override.authorDisplayName,
-                      recordedAt: override.recordedAt,
-                    },
-                    kind,
-                  )
-                }
-                type="button"
-              >
-                {t('accounts.rules.withdraw')}
-              </button>
-            ) : null}
-          </li>
-        ))}
+        {entries.map((override) => {
+          const value = overrideValueText(override, i18n.language, t);
+          const period = periodText(override, i18n.language, t);
+
+          return (
+            <li key={override.id}>
+              <span className={styles.value}>{value}</span>
+              <small>{period}</small>
+              {override.reason === '' ? null : <small>{override.reason}</small>}
+              <small>
+                {t(
+                  override.id === inForceId
+                    ? 'accounts.overrides.statuses.standing'
+                    : override.standing
+                      ? 'accounts.overrides.statuses.recorded'
+                      : 'accounts.overrides.statuses.withdrawn',
+                )}
+                {override.withdrawnAt === null
+                  ? null
+                  : ` ${formatCalendarDay(override.withdrawnAt.slice(0, 10), i18n.language)}`}
+              </small>
+              {override.standing ? (
+                <button
+                  aria-label={t('accounts.overrides.withdrawEntry', { value, period })}
+                  className={`secondary-action ${styles.action}`}
+                  onClick={() =>
+                    onWithdraw(
+                      {
+                        overrideId: override.id,
+                        reason: override.reason,
+                        authorId: override.authorId,
+                        authorDisplayName: override.authorDisplayName,
+                        recordedAt: override.recordedAt,
+                      },
+                      kind,
+                      t('accounts.overrides.withdrawSubject', { rule: name, value, period }),
+                    )
+                  }
+                  type="button"
+                >
+                  {t('accounts.overrides.withdrawShort')}
+                </button>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </details>
   );
 }
 
-/** The value a past claim stated, in the same words as the value in force. */
-function OverrideValue({ override }: { override: AccountRuleOverride }) {
-  const { i18n, t } = useTranslation();
+function periodText(override: AccountRuleOverride, language: string, t: TFunction): string {
+  const from = formatCalendarDay(override.validFrom, language);
 
+  return override.validTo === null
+    ? t('catalog.rules.openPeriod', { from })
+    : t('catalog.rules.closedPeriod', { from, to: formatCalendarDay(override.validTo, language) });
+}
+
+/** The value a claim stated, in the same words as the value in force. */
+function overrideValueText(override: AccountRuleOverride, language: string, t: TFunction): string {
   if (override.amount !== null) {
-    return <>{formatAmount(override.amount.value, override.amount.assetCode, i18n.language)}</>;
+    return formatAmount(override.amount.value, override.amount.assetCode, language);
   }
   if (override.brackets !== null && override.brackets.length > 0) {
-    return (
-      <>
-        {override.brackets
-          .map((bracket) =>
-            t('catalog.rules.percentValue', {
-              value: formatPercentDecimal(bracket.percentage, i18n.language),
-            }),
-          )
-          .join(' / ')}
-      </>
-    );
+    return override.brackets
+      .map((bracket) =>
+        t('catalog.rules.percentValue', {
+          value: formatPercentDecimal(bracket.percentage, language),
+        }),
+      )
+      .join(' / ');
   }
   const wording = override.text === null ? null : ruleTextKey(override.text);
-  if (wording !== null) {
-    return <>{t(wording)}</>;
-  }
 
-  return <EmptyValue label={t('accounts.rules.unavailableValue')} />;
+  return wording === null ? t('accounts.rules.unavailableValue') : t(wording);
 }

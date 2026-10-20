@@ -179,13 +179,35 @@ describe('AccountRulesModals', () => {
 
   it('returns focus to the rule action after the withdrawal modal closes', async () => {
     api.readAccountRules.mockImplementation(() => success(rules(true)));
+    api.listAccountRuleOverrides.mockImplementation(() =>
+      success({
+        overrides: [
+          {
+            id: '00000000-0000-7000-8000-0000000000c1',
+            accountId: account.id,
+            kind: 'DEPOSIT_CEILING' as const,
+            valueType: 'AMOUNT' as const,
+            amount: { value: '30000', assetCode: 'EUR' },
+            text: null,
+            application: null,
+            brackets: null,
+            validFrom: '2026-01-01',
+            validTo: null,
+            standing: true,
+            withdrawnAt: null,
+            withdrawnBy: null,
+            reason: 'La banque a confirmé un plafond plus élevé par écrit.',
+            authorId: '00000000-0000-7000-8000-000000000001',
+            authorDisplayName: 'Owner',
+            recordedAt: '2026-09-04T09:00:00+00:00',
+          },
+        ],
+      }),
+    );
     openRules();
 
-    await screen.findByRole('button', { name: 'Actions : Plafond de dépôt' });
-    fireEvent.click(screen.getByRole('button', { name: 'Actions : Plafond de dépôt' }));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Retirer la dérogation : Plafond de dépôt' }),
-    );
+    fireEvent.click(await screen.findByText('Historique des dérogations'));
+    fireEvent.click(screen.getByRole('button', { name: /^Retirer la dérogation de / }));
     expect(await screen.findByText('Retirer cette dérogation')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
     await screen.findByRole('button', { name: 'Actions : Plafond de dépôt' });

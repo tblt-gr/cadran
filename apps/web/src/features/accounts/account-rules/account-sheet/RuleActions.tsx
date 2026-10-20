@@ -11,18 +11,18 @@ interface RuleActionsProps {
   /** The rule's name, for the accessible names "Actions : <règle>", "Déroger : <règle>". */
   name?: string;
   onOverride?: (kind: ProductRuleKind) => void;
-  /** Present only when a claim can be withdrawn; absent, the entry does not exist. */
-  onWithdraw?: () => void;
 }
 
-/** The three-dot menu that ends a rule's line: override it and, when one stands, withdraw the claim. */
+/**
+ * The three-dot menu that ends a rule's line. It holds the one entry point to
+ * override the rule; withdrawing a claim is the history entry's own button.
+ */
 export function RuleActions({
   disabled = false,
   focusAction = false,
   kind,
   name = '',
   onOverride,
-  onWithdraw,
 }: RuleActionsProps) {
   const { t } = useTranslation();
 
@@ -38,17 +38,6 @@ export function RuleActions({
           onSelect: () => (kind === undefined ? undefined : onOverride?.(kind)),
           text: t('accounts.rules.override'),
         },
-        ...(onWithdraw
-          ? [
-              {
-                icon: 'delete' as const,
-                id: 'withdraw',
-                label: t('accounts.rules.withdrawRule', { rule: name }),
-                onSelect: onWithdraw,
-                text: t('accounts.rules.withdraw'),
-              },
-            ]
-          : []),
       ]}
       label={
         name === ''

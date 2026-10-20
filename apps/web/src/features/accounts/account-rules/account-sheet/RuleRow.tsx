@@ -13,7 +13,7 @@ interface RuleRowProps {
   label?: string;
   line: RuleLine;
   onOverride: (kind: ProductRuleKind) => void;
-  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind) => void;
+  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind, description: string) => void;
   /** Every claim this account ever recorded on this rule. */
   overrides: AccountRuleOverride[];
   /** Words in front of the value, such as "Taux garanti". */
@@ -43,19 +43,14 @@ export function RuleRow({
   return (
     <SheetRow
       actions={
-        <RuleActions
-          focusAction={focusAction}
-          kind={kind}
-          name={name}
-          onOverride={onOverride}
-          onWithdraw={claim ? () => onWithdraw(claim, kind) : undefined}
-        />
+        <RuleActions focusAction={focusAction} kind={kind} name={name} onOverride={onOverride} />
       }
       alert={line.alert}
       below={
         <RuleHistory
           inForceId={claim?.overrideId ?? null}
           kind={kind}
+          name={name}
           onWithdraw={onWithdraw}
           overrides={overrides}
         />

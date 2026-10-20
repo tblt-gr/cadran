@@ -27,7 +27,7 @@ interface AccountSheetProps {
   /** The rule kind whose "Déroger" action regains focus after an override or withdrawal modal closes. */
   focusKind: ProductRuleKind | null;
   onOverride: (kind: ProductRuleKind) => void;
-  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind) => void;
+  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind, description: string) => void;
   /** Every claim ever recorded on the account, withdrawn ones included. */
   overrides: AccountRuleOverride[];
   rules: AccountRules;
@@ -119,6 +119,7 @@ export function AccountSheet({
             <RuleHistory
               inForceId={null}
               kind={kind}
+              name={t(`catalog.rules.kinds.${kind}`)}
               onWithdraw={onWithdraw}
               overrides={overrides.filter((override) => override.kind === kind)}
             />

@@ -48,7 +48,10 @@ export function AccountRulesModals({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [overriding, setOverriding] = useState<OverrideDraft | null>(null);
-  const [withdrawing, setWithdrawing] = useState<AccountRuleClaim | null>(null);
+  const [withdrawing, setWithdrawing] = useState<{
+    claim: AccountRuleClaim;
+    description: string;
+  } | null>(null);
   // The rule the reader acted on: its action takes focus when the rules modal
   // is mounted again, because the button they pressed left the page with it.
   const [focusKind, setFocusKind] = useState<ProductRuleKind | null>(null);
@@ -146,9 +149,10 @@ export function AccountRulesModals({
       >
         <WithdrawOverrideDialog
           onCancel={closeWithdraw}
-          onConfirm={() => withdrawOverride.mutate(withdrawing.overrideId)}
+          onConfirm={() => withdrawOverride.mutate(withdrawing.claim.overrideId)}
           pending={withdrawOverride.isPending}
-          reason={withdrawing.reason}
+          description={withdrawing.description}
+          reason={withdrawing.claim.reason}
           submitError={accountErrorKind(withdrawOverride.error, withdrawOverride.isError)}
         />
       </Modal>
@@ -170,9 +174,9 @@ export function AccountRulesModals({
           setFocusKind(draft.kind);
           setOverriding(draft);
         }}
-        onWithdraw={(claim, kind) => {
+        onWithdraw={(claim, kind, description) => {
           setFocusKind(kind);
-          setWithdrawing(claim);
+          setWithdrawing({ claim, description });
         }}
       />
     </Modal>

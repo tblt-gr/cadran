@@ -11,7 +11,7 @@ interface SheetRowProps {
   actions?: ReactNode;
   /** A short sentence under the value; the line's warning, with its icon. */
   alert?: ReactNode;
-  /** Folded content under the whole line, such as the rule's history. */
+  /** Folded content in the value column, under the date: the rule's history. */
   below?: ReactNode;
   label: ReactNode;
   /** "Depuis le X" or "Du X au Y", in small muted text under the value. */
@@ -28,9 +28,9 @@ export function SheetRow({ actions, alert, below, label, since, value }: SheetRo
         <div className={styles.figure}>{value}</div>
         {since ? <small>{since}</small> : null}
         {alert}
+        {below}
       </dd>
       <dd className={styles.actions}>{actions}</dd>
-      {below ? <dd className={styles.below}>{below}</dd> : null}
     </div>
   );
 }

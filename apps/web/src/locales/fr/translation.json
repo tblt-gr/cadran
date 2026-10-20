@@ -650,7 +650,6 @@
         "PRODUCT_WITHDRAWN": "Le produit « {{product}} » ne figure plus au catalogue système. La référence du compte est conservée, mais aucune règle ne peut être résolue."
       },
       "override": "Déroger",
-      "withdraw": "Retirer la dérogation",
       "unavailable": "Non disponible au {{date}} : aucune valeur sourcée pour cette date.",
       "facts": {
         "opened": "Ouverture",
@@ -664,7 +663,6 @@
       },
       "unavailableValue": "Non disponible",
       "overrideRule": "Déroger : {{rule}}",
-      "withdrawRule": "Retirer la dérogation : {{rule}}",
       "guaranteed": "Taux dû au titulaire",
       "revisable": "Taux publié, révisable : jamais un rendement acquis",
       "applied": {
@@ -771,7 +769,10 @@
         "stale": "Le compte a été modifié par une autre requête. Rechargez-le puis réappliquez la modification.",
         "reason": "Le motif est obligatoire et ne dépasse pas 200 caractères.",
         "network": "La demande n’a pas abouti. Réessayez."
-      }
+      },
+      "withdrawEntry": "Retirer la dérogation de {{value}} : {{period}}",
+      "withdrawSubject": "{{rule}} : {{value}}, {{period}}",
+      "withdrawShort": "Retirer"
     },
     "detail": {
       "loading": "Chargement du compte…",

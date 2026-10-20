@@ -56,11 +56,6 @@
   gap: var(--spacing-2);
 }
 
-.below {
-  grid-column: 1 / -1;
-  padding-top: var(--spacing-2);
-}
-
 @media (max-width: 30rem) {
   .row {
     grid-template-columns: minmax(0, 1fr) auto;

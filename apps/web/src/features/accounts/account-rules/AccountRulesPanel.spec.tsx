@@ -420,7 +420,7 @@ describe('AccountRulesPanel', () => {
     });
   });
 
-  it('shows the value in force of an override with no badge and hands its claim to the withdrawal', async () => {
+  it('shows the value in force of an override with no badge and no menu entry to withdraw it', async () => {
     api.readAccountRules.mockImplementation(() =>
       success({
         ...passbook,
@@ -431,13 +431,7 @@ describe('AccountRulesPanel', () => {
             effectiveLayer: 'OVERRIDE',
             catalog: publishedCeiling,
             inherited: { ...publishedCeiling, amount: { value: '25000', assetCode: 'EUR' } },
-            override: {
-              ...publishedCeiling,
-              amount: { value: '30000', assetCode: 'EUR' },
-              verification: null,
-              source: null,
-              claim,
-            },
+            override: { ...publishedCeiling, amount: { value: '30000', assetCode: 'EUR' }, claim },
           },
         ],
       }),
@@ -449,14 +443,11 @@ describe('AccountRulesPanel', () => {
     expect(screen.queryByText(/25\s000,00\s€/)).toBeNull();
     expect(screen.queryByText(/22\s950,00\s€/)).toBeNull();
     expect(screen.queryByText('Dérogation')).toBeNull();
-    // No claim is listed for this rule, so there is no history accordion.
-    expect(screen.queryByText('Historique des dérogations')).toBeNull();
 
+    // The menu holds "Déroger" once and nothing to withdraw: that is the history's.
     openActions('Plafond de dépôt');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Retirer la dérogation : Plafond de dépôt' }),
-    );
-    expect(onWithdraw).toHaveBeenCalledWith(claim, 'DEPOSIT_CEILING');
+    expect(screen.getAllByText('Déroger')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /^Retirer/ })).toBeNull();
   });
 
   it('lists every claim of one rule, newest first, the one in force marked in words', async () => {
@@ -519,8 +510,19 @@ describe('AccountRulesPanel', () => {
     const items = within(history).getAllByRole('listitem');
     expect(items[0]?.textContent).toContain('30');
     expect(items[1]?.textContent).toContain('28');
-    // Withdrawing the claim in force goes through the rule's menu, not the history.
-    expect(within(history).queryByRole('button')).toBeNull();
+    // The claim in force is withdrawable from its own entry, named by value and
+    // period; the withdrawn one carries no button.
+    const withdraw = within(history).getAllByRole('button');
+    expect(withdraw).toHaveLength(1);
+    expect(withdraw[0]?.getAttribute('aria-label')).toMatch(
+      /^Retirer la dérogation de 30.000,00.€ : Depuis le 1 janvier 2026$/,
+    );
+    fireEvent.click(withdraw[0]!);
+    expect(onWithdraw).toHaveBeenCalledWith(
+      expect.objectContaining({ overrideId: claim.overrideId }),
+      'DEPOSIT_CEILING',
+      expect.stringContaining('Plafond de dépôt : '),
+    );
   });
 
   it('offers to withdraw a standing claim that is not the one in force from the history', async () => {
@@ -549,12 +551,15 @@ describe('AccountRulesPanel', () => {
 
     const summary = await screen.findByText('Historique des dérogations');
     fireEvent.click(
-      within(summary.closest('details')!).getByRole('button', { name: 'Retirer la dérogation' }),
+      within(summary.closest('details')!).getByRole('button', {
+        name: /^Retirer la dérogation de /,
+      }),
     );
 
     expect(onWithdraw).toHaveBeenCalledWith(
       expect.objectContaining({ overrideId: future.id, reason: 'Prévu pour 2027' }),
       'DEPOSIT_CEILING',
+      expect.any(String),
     );
   });
 

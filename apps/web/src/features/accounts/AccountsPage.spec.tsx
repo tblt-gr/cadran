@@ -1198,6 +1198,31 @@ describe('AccountsPage', () => {
       success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     api.readAccountRules.mockImplementation(() => success(claimedRules));
+    api.listAccountRuleOverrides.mockImplementation(() =>
+      success({
+        overrides: [
+          {
+            id: '00000000-0000-7000-8000-0000000000c1',
+            accountId: account.id,
+            kind: 'DEPOSIT_CEILING' as const,
+            valueType: 'AMOUNT' as const,
+            amount: { value: '30000', assetCode: 'EUR' },
+            text: null,
+            application: null,
+            brackets: null,
+            validFrom: '2026-01-01',
+            validTo: null,
+            standing: true,
+            withdrawnAt: null,
+            withdrawnBy: null,
+            reason: 'La banque a confirmé un plafond plus élevé par écrit.',
+            authorId: '00000000-0000-7000-8000-000000000001',
+            authorDisplayName: 'Owner',
+            recordedAt: '2026-09-04T09:00:00+00:00',
+          },
+        ],
+      }),
+    );
     api.withdrawAccountRuleOverride.mockImplementation(() =>
       success({ id: '00000000-0000-7000-8000-0000000000c1' }),
     );
@@ -1207,13 +1232,13 @@ describe('AccountsPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Règles applicables au compte Livret A Banque X' }),
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Actions : Plafond de dépôt' }));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Retirer la dérogation : Plafond de dépôt' }),
-    );
+    fireEvent.click(await screen.findByText('Historique des dérogations'));
+    fireEvent.click(screen.getByRole('button', { name: /^Retirer la dérogation de .*30.*000,00/ }));
 
     const dialog = screen.getByRole('dialog', { name: 'Retirer cette dérogation' });
     expect(dialog.textContent).toContain('y compris passées');
+    // The confirmation names the claim: rule, value and period.
+    expect(dialog.textContent).toMatch(/Plafond de dépôt : 30.000,00.€, Depuis le 1 janvier 2026/);
     // The claim being taken back is quoted, so the confirmation is about a
     // specific figure rather than about "the override".
     expect(dialog.textContent).toContain('La banque a confirmé un plafond plus élevé par écrit.');
