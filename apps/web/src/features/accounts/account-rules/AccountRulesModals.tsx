@@ -3,10 +3,11 @@ import {
   withdrawAccountRuleOverride,
   type Account,
   type AccountRuleClaim,
+  type ProductRuleKind,
   type RecordAccountRuleOverrideRequest,
 } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -47,7 +48,18 @@ export function AccountRulesModals({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [overriding, setOverriding] = useState<OverrideDraft | null>(null);
-  const [withdrawing, setWithdrawing] = useState<AccountRuleClaim | null>(null);
+  const [withdrawing, setWithdrawing] = useState<{
+    claim: AccountRuleClaim;
+    description: string;
+  } | null>(null);
+  // The rule the reader acted on: its action takes focus when the rules modal
+  // is mounted again, because the button they pressed left the page with it.
+  const [focusKind, setFocusKind] = useState<ProductRuleKind | null>(null);
+  // The control that opened the rules. Each replacement modal would otherwise
+  // read `document.body` as its opener and drop focus there on the final close.
+  const [opener] = useState<RefObject<HTMLElement | null>>(() => ({
+    current: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  }));
 
   async function refreshRules() {
     await Promise.all([
@@ -108,6 +120,8 @@ export function AccountRulesModals({
     return (
       <Modal
         close={closeOverride}
+        key="override"
+        returnFocus={opener}
         eyebrow={t('accounts.overrides.eyebrow')}
         title={t('accounts.overrides.title', { label: account.label })}
       >
@@ -128,14 +142,17 @@ export function AccountRulesModals({
     return (
       <Modal
         close={closeWithdraw}
+        key="withdraw"
+        returnFocus={opener}
         eyebrow={t('accounts.overrides.eyebrow')}
         title={t('accounts.overrides.withdrawTitle')}
       >
         <WithdrawOverrideDialog
           onCancel={closeWithdraw}
-          onConfirm={() => withdrawOverride.mutate(withdrawing.overrideId)}
+          onConfirm={() => withdrawOverride.mutate(withdrawing.claim.overrideId)}
           pending={withdrawOverride.isPending}
-          reason={withdrawing.reason}
+          description={withdrawing.description}
+          reason={withdrawing.claim.reason}
           submitError={accountErrorKind(withdrawOverride.error, withdrawOverride.isError)}
         />
       </Modal>
@@ -146,9 +163,22 @@ export function AccountRulesModals({
     <Modal
       close={close}
       eyebrow={t('accounts.rules.eyebrow')}
+      key="rules"
+      returnFocus={opener}
       title={t('accounts.rules.title', { label: account.label })}
     >
-      <AccountRulesPanel account={account} onOverride={setOverriding} onWithdraw={setWithdrawing} />
+      <AccountRulesPanel
+        account={account}
+        focusKind={focusKind}
+        onOverride={(draft) => {
+          setFocusKind(draft.kind);
+          setOverriding(draft);
+        }}
+        onWithdraw={(claim, kind, description) => {
+          setFocusKind(kind);
+          setWithdrawing({ claim, description });
+        }}
+      />
     </Modal>
   );
 }

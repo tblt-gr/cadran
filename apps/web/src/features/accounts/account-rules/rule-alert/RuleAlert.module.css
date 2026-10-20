@@ -1,0 +1,14 @@
+.alert {
+  display: inline-flex;
+  align-items: flex-start;
+  color: var(--warning);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  gap: var(--spacing-1);
+  line-height: var(--line-height-body);
+}
+
+.alert svg {
+  flex: none;
+  margin-top: var(--spacing-1);
+}

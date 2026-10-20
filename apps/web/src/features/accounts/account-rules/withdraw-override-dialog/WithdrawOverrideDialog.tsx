@@ -3,6 +3,8 @@ import type { AccountErrorKind } from '@/features/accounts/accountError';
 import styles from './WithdrawOverrideDialog.module.css';
 
 interface WithdrawOverrideDialogProps {
+  /** Names the claim being withdrawn: its rule, value and period. */
+  description: string;
   onCancel: () => void;
   onConfirm: () => void;
   pending: boolean;
@@ -20,6 +22,7 @@ interface WithdrawOverrideDialogProps {
  * offered as a deletion.
  */
 export function WithdrawOverrideDialog({
+  description,
   onCancel: _onCancel,
   onConfirm,
   pending,
@@ -36,6 +39,7 @@ export function WithdrawOverrideDialog({
         </p>
       ) : null}
       <p>{t('accounts.overrides.withdrawDescription')}</p>
+      <p className={styles.subject}>{description}</p>
       <p className={styles.quote}>{reason}</p>
       <p className={styles.hint}>{t('accounts.overrides.withdrawConsequences')}</p>
       <div className={styles.actions}>

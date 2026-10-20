@@ -1,123 +1,90 @@
 import type {
-  AccountCeiling,
   AccountCeilingRule,
-  AccountRate,
   AccountRateRule,
   AccountRuleClaim,
   AccountRuleLayer,
-  AccountTerm,
   AccountTermRule,
-  ProductRuleSource,
-  RuleVerification,
+  RuleValidFrom,
+  RuleValidTo,
 } from '@cadran/api-client';
 import type { ReactNode } from 'react';
-import { CeilingMeasure } from '@/features/accounts/account-rules/ceiling-measure/CeilingMeasure';
 import { RateBrackets } from '@/features/accounts/account-rules/rate-brackets/RateBrackets';
-import { RateMeasure } from '@/features/accounts/account-rules/rate-measure/RateMeasure';
-import { TermMeasure } from '@/features/accounts/account-rules/term-measure/TermMeasure';
+import { RuleAlert } from '@/features/accounts/account-rules/rule-alert/RuleAlert';
 import { TermWording } from '@/features/accounts/account-rules/term-wording/TermWording';
 import { formatAmount } from '@/lib/decimal';
 
 /**
- * One authority's answer for one rule, flattened into what a table row needs.
- *
- * The three rule families produce different cells — an amount and its measure,
- * a bracket scale and its application, a translated token — so they are
- * normalised here rather than in three near-identical row components.
+ * What the sheet reads of one rule: the value of the layer in force, since
+ * when, and the short warning that changes how the figure is read. The other
+ * authorities, the measure and the sources are the product catalogue's to show.
  */
-export interface RuleLayerView {
+export interface RuleLine {
+  alert: ReactNode;
+  /** The local claim when the value in force is the account's own: what a withdrawal needs. */
   claim: AccountRuleClaim | null;
-  layer: AccountRuleLayer;
-  measure: ReactNode;
-  source: ProductRuleSource | null;
-  validFrom: string;
-  validTo: string | null;
+  validFrom: RuleValidFrom;
+  validTo: RuleValidTo;
   value: ReactNode;
-  verification: RuleVerification | null;
-}
-
-export function ceilingLayers(
-  rule: AccountCeilingRule,
-  accountAsset: string,
-  language: string,
-): RuleLayerView[] {
-  return present<AccountCeiling>(rule).map(([layer, ceiling]) => ({
-    ...provenance(layer, ceiling),
-    value: formatAmount(ceiling.amount.value, ceiling.amount.assetCode, language),
-    measure: (
-      <CeilingMeasure
-        accountAsset={accountAsset}
-        ceiling={ceiling}
-        check={layer === rule.effectiveLayer ? (rule.check ?? null) : null}
-        rule={rule}
-      />
-    ),
-  }));
-}
-
-export function rateLayers(rule: AccountRateRule, accountAsset: string): RuleLayerView[] {
-  return present<AccountRate>(rule).map(([layer, rate]) => ({
-    ...provenance(layer, rate),
-    value: <RateBrackets assetCode={accountAsset} rate={rate} />,
-    measure: (
-      <RateMeasure
-        applied={rule.applied}
-        assetCode={accountAsset}
-        rate={rate}
-        showApplied={layer === rule.effectiveLayer}
-      />
-    ),
-  }));
-}
-
-export function termLayers(rule: AccountTermRule): RuleLayerView[] {
-  return present<AccountTerm>(rule).map(([layer, term]) => ({
-    ...provenance(layer, term),
-    value: <TermWording token={term.token} />,
-    measure: <TermMeasure />,
-  }));
 }
 
 interface LayeredRule<T> {
   catalog: T | null;
+  effectiveLayer: AccountRuleLayer;
   inherited: T | null;
   override: T | null;
 }
 
-/**
- * The authorities that actually answered, in reading order: what is published,
- * what the account follows, then what it claims locally. An absent layer is
- * left out rather than rendered as an empty row, which would read as "this
- * authority says nothing" when it says nothing because it is not in the chain.
- */
-function present<T>(rule: LayeredRule<T>): Array<[AccountRuleLayer, T]> {
-  const layers: Array<[AccountRuleLayer, T | null]> = [
-    ['CATALOG', rule.catalog],
-    ['INHERITED', rule.inherited],
-    ['OVERRIDE', rule.override],
-  ];
-
-  return layers.filter((entry): entry is [AccountRuleLayer, T] => entry[1] !== null);
-}
-
-interface ProvenanceCarrier {
+interface Carrier {
   claim: AccountRuleClaim | null;
-  source: ProductRuleSource | null;
-  validFrom: string;
-  validTo: string | null;
-  verification: RuleVerification | null;
+  validFrom: RuleValidFrom;
+  validTo: RuleValidTo;
 }
 
-function provenance(
-  layer: AccountRuleLayer,
-  carrier: ProvenanceCarrier,
-): Omit<RuleLayerView, 'measure' | 'value'> {
+/** The answer of the layer the API named as in force, or null if it carries none. */
+function inForce<T>(rule: LayeredRule<T>): T | null {
+  return { CATALOG: rule.catalog, INHERITED: rule.inherited, OVERRIDE: rule.override }[
+    rule.effectiveLayer
+  ];
+}
+
+function line(carrier: Carrier, value: ReactNode, alert: ReactNode): RuleLine {
   return {
+    alert,
     claim: carrier.claim,
-    layer,
-    source: carrier.source,
     validFrom: carrier.validFrom,
     validTo: carrier.validTo,
-    verification: carrier.verification,
+    value,
   };
+}
+
+export function ceilingLine(rule: AccountCeilingRule, language: string): RuleLine | null {
+  const ceiling = inForce(rule);
+  if (ceiling === null) {
+    return null;
+  }
+
+  return line(
+    ceiling,
+    formatAmount(ceiling.amount.value, ceiling.amount.assetCode, language),
+    <RuleAlert check={rule.check ?? null} comparable={ceiling.measurable} language={language} />,
+  );
+}
+
+export function rateLine(rule: AccountRateRule, accountAsset: string): RuleLine | null {
+  const rate = inForce(rule);
+  if (rate === null) {
+    return null;
+  }
+
+  return line(
+    rate,
+    <RateBrackets assetCode={accountAsset} rate={rate} />,
+    rule.applied?.rateShiftsAboveFirstBracket ? <RuleAlert shifted /> : null,
+  );
+}
+
+export function termLine(rule: AccountTermRule): RuleLine | null {
+  const term = inForce(rule);
+
+  return term === null ? null : line(term, <TermWording token={term.token} />, null);
 }

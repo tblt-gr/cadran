@@ -1,86 +1,56 @@
 import type { Account, AccountRuleClaim, AccountRules, ProductRuleKind } from '@cadran/api-client';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
-import { AccountRuleTable } from '@/features/accounts/account-rules/account-rule-table/AccountRuleTable';
+import { AccountSheet } from '@/features/accounts/account-rules/account-sheet/AccountSheet';
 import { AccountRulesPanelSkeleton } from './AccountRulesPanelSkeleton';
-import { OverrideHistory } from '@/features/accounts/account-rules/override-history/OverrideHistory';
-import { YieldReading } from '@/features/accounts/account-rules/yield-reading/YieldReading';
 import { useAccountRuleOverrides } from '@/features/accounts/account-rules/useAccountRuleOverrides';
 import { useAccountRules } from '@/features/accounts/account-rules/useAccountRules';
 import type { OverrideDraft } from '@/features/accounts/account-rules/overrideTarget';
-import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { todayInBrowser } from '@/lib/businessDay';
+import { Icon } from '@/components/ui/icon/Icon';
 import { formatCalendarDay } from '@/lib/decimal';
 import styles from './AccountRulesPanel.module.css';
 
 interface AccountRulesPanelProps {
   account: Account;
   onOverride: (draft: OverrideDraft) => void;
-  onWithdraw: (claim: AccountRuleClaim) => void;
+  onWithdraw: (claim: AccountRuleClaim, kind: ProductRuleKind, description: string) => void;
+  /** The rule whose action regains focus when the reader returns from a modal. */
+  focusKind?: ProductRuleKind | null;
 }
 
 /**
- * The ceilings, rates and terms in force for one account, resolved on a
- * business date the reader chooses, and every claim the account has ever made.
+ * The ceilings, rates and terms in force today for one account, and every claim
+ * the account has ever made on them.
  *
- * The date is a deliberate control and not the day the panel happens to be
- * opened: a ceiling raised in April and a rate set for one semester are read by
- * the date of the operation being looked at. Nothing here computes a financial
- * figure; the API resolves every value with its period, its publication and its
- * local claim, and a rule no layer covers stays unavailable rather than
- * becoming a zero.
+ * Nothing here computes a financial figure; the API resolves every value with
+ * its period and its local claim, and a rule no layer covers stays unavailable
+ * rather than becoming a zero. The sheet always answers for the reader's own
+ * calendar day, the one the browser reports.
  */
-export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRulesPanelProps) {
+export function AccountRulesPanel({
+  account,
+  focusKind = null,
+  onOverride,
+  onWithdraw,
+}: AccountRulesPanelProps) {
   const { i18n, t } = useTranslation();
-  // The reader's own calendar day, not the server's: the field they are about
-  // to move is theirs, and every answer echoes the date it was resolved for, so
-  // the two never disagree silently.
-  const today = todayInBrowser();
-  const [asOf, setAsOf] = useState(today);
-  const rules = useAccountRules(account.id, asOf);
+  const rules = useAccountRules(account.id, todayInBrowser());
   const overrides = useAccountRuleOverrides(account.id);
 
   const failure = rules.error instanceof AccountRequestError ? rules.error : null;
   const unauthorized = failure?.status === 401;
-  // The date field bounds are advisory outside a form, so a year typed
-  // digit by digit reaches the API. Repeating a request the API already
-  // refused would fail identically, so this one is stated, not retried.
-  const outOfRange = failure?.kind === 'invalid';
-  const retryable = !unauthorized && !outOfRange;
-
-  const dateField = <BusinessDateField onChange={setAsOf} today={today} value={asOf} />;
 
   if (rules.isPending || overrides.isPending) {
-    return <AccountRulesPanelSkeleton dateField={dateField} status={t('accounts.rules.loading')} />;
+    return <AccountRulesPanelSkeleton account={account} status={t('accounts.rules.loading')} />;
   }
 
   return (
     <div className={styles.panel}>
-      {dateField}
-
-      {rules.isPlaceholderData && !rules.isError ? (
-        // The table below still answers the previous date until the new one
-        // resolves; saying so is what keeps it from being read as the answer to
-        // the date now in the field. A refused date is stated by the block
-        // below instead: nothing is being resolved any more.
-        <p aria-busy="true" className={styles.state} role="status">
-          {t('accounts.rules.resolving', { date: formatCalendarDay(asOf, i18n.language) })}
-        </p>
-      ) : null}
-
       {rules.isError ? (
-        <div className={styles.state} role="alert">
-          <p>
-            {t(
-              unauthorized
-                ? 'accounts.rules.unauthorized'
-                : outOfRange
-                  ? 'accounts.rules.outOfRange'
-                  : 'accounts.rules.error',
-            )}
-          </p>
-          {retryable ? (
+        <div className={styles.failure} role="alert">
+          <p>{t(unauthorized ? 'accounts.rules.unauthorized' : 'accounts.rules.error')}</p>
+          {!unauthorized ? (
             <button className="secondary-action" onClick={() => void rules.refetch()} type="button">
               {t('foundation.retry')}
             </button>
@@ -88,56 +58,45 @@ export function AccountRulesPanel({ account, onOverride, onWithdraw }: AccountRu
         </div>
       ) : (
         <>
-          <p className={styles.resolved} role="status">
-            {t('accounts.rules.resolvedOn', {
-              date: formatCalendarDay(rules.data.asOf, i18n.language),
-            })}
-          </p>
-
           {rules.data.origin === 'NO_PRODUCT' ? (
-            <p className={styles.note}>{t('accounts.rules.origins.NO_PRODUCT')}</p>
+            <p className={styles.state}>
+              <Icon name="info" size={14} />
+              {t('accounts.rules.origins.NO_PRODUCT')}
+            </p>
           ) : rules.data.origin === 'PRODUCT_WITHDRAWN' ? (
-            <p className={styles.warning} role="alert">
+            <p className={styles.state} role="alert">
+              <Icon name="alert" size={14} />
               {t('accounts.rules.origins.PRODUCT_WITHDRAWN', { product: rules.data.productCode })}
             </p>
           ) : null}
 
-          {isEmpty(rules.data) ? (
-            // A withdrawn product resolves nothing whatever the date, and the
-            // alert above already says so. Adding "no rule sourced on this
-            // date" beneath it would blame the date for an emptiness the date
-            // has nothing to do with, and read as "this account has no
-            // ceiling".
-            rules.data.origin === 'PRODUCT_WITHDRAWN' ? null : (
-              <p className={styles.note}>
-                {t('accounts.rules.none', {
-                  date: formatCalendarDay(rules.data.asOf, i18n.language),
-                })}
-              </p>
-            )
-          ) : (
-            <AccountRuleTable
-              onOverride={(kind) => onOverride({ kind, kinds: statableKinds(rules.data) })}
-              onWithdraw={onWithdraw}
-              rules={rules.data}
-            />
-          )}
+          <AccountSheet
+            account={account}
+            focusKind={focusKind}
+            onOverride={(kind) => onOverride({ kind, kinds: statableKinds(rules.data) })}
+            onWithdraw={onWithdraw}
+            overrides={overrides.isError ? [] : overrides.data.overrides}
+            rules={rules.data}
+          />
 
-          <YieldReading reading={rules.data.yieldReading} />
+          {isEmpty(rules.data) &&
+          rules.data.origin !== 'NO_PRODUCT' &&
+          rules.data.origin !== 'PRODUCT_WITHDRAWN' ? (
+            <p className={styles.note}>
+              {t('accounts.rules.none', {
+                date: formatCalendarDay(rules.data.asOf, i18n.language),
+              })}
+            </p>
+          ) : null}
         </>
       )}
 
-      <section className={styles.history} aria-labelledby="account-override-history">
-        <h3 id="account-override-history">{t('accounts.overrides.historyTitle')}</h3>
-        <p className={styles.note}>{t('accounts.overrides.historyHint')}</p>
-        {overrides.isError ? (
-          <p className={styles.note} role="alert">
-            {t('accounts.overrides.historyError')}
-          </p>
-        ) : (
-          <OverrideHistory overrides={overrides.data.overrides} />
-        )}
-      </section>
+      {overrides.isError ? (
+        <p className={styles.state} role="alert">
+          <Icon name="alert" size={14} />
+          {t('accounts.overrides.historyError')}
+        </p>
+      ) : null}
     </div>
   );
 }

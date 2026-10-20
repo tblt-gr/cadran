@@ -37,3 +37,8 @@
   color: var(--negative);
   background: var(--negative-soft);
 }
+
+.subject {
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}

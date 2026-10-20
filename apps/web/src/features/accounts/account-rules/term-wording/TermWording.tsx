@@ -10,12 +10,12 @@ interface TermWordingProps {
  *
  * Regulatory wording belongs to the publication it was read from and to the
  * translation catalogue, never to the API payload, which is why the value
- * travels as a token. A token nothing translates is shown as it stands rather
- * than silently dropped: an untranslated term is still a term that applies.
+ * travels as a token. A token this locale has no wording for renders nothing:
+ * the sheet leaves such a term out instead of printing the raw identifier.
  */
 export function TermWording({ token }: TermWordingProps) {
   const { t } = useTranslation();
   const wording = ruleTextKey(token);
 
-  return <>{wording === null ? token : t(wording)}</>;
+  return wording === null ? null : <>{t(wording)}</>;
 }

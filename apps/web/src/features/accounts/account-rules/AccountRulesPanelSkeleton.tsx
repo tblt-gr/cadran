@@ -1,66 +1,46 @@
-import type { ReactNode } from 'react';
+import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import {
-  SkeletonBlock,
-  SkeletonStatus,
-  SkeletonTableRows,
-} from '@/components/ui/skeleton/Skeleton';
-import tableStyles from './account-rule-table/AccountRuleTable.module.css';
-import historyStyles from './override-history/OverrideHistory.module.css';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { AccountFactRows } from './account-sheet/AccountFactRows';
+import { RuleActions } from './account-sheet/RuleActions';
+import { Sheet, SheetRow } from './sheet-row/SheetRow';
 import styles from './AccountRulesPanel.module.css';
 import skeletonStyles from './AccountRulesPanelSkeleton.module.css';
 
 interface AccountRulesPanelSkeletonProps {
-  /** The panel's own date field, live while the rules resolve. */
-  dateField: ReactNode;
+  account: Account;
   status: string;
 }
 
-/** Mirrors AccountRulesPanel element for element: only resolved rules and claims are pending. */
-export function AccountRulesPanelSkeleton({ dateField, status }: AccountRulesPanelSkeletonProps) {
+/**
+ * Mirrors AccountRulesPanel element for element: the account's
+ * own opening and closing lines and the yield label are real; only the rule
+ * lines, whose names and values come from the request, are pending.
+ */
+export function AccountRulesPanelSkeleton({ account, status }: AccountRulesPanelSkeletonProps) {
   const { t } = useTranslation();
 
   return (
     <div aria-busy="true" className={styles.panel} data-testid="account-rules-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
-      {dateField}
-      <SkeletonBlock className={skeletonStyles.resolved} />
-      <div className={tableStyles.tableScroll}>
-        <table>
-          <caption className="sr-only">{t('accounts.rules.caption')}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{t('accounts.rules.columns.rule')}</th>
-              <th scope="col">{t('accounts.rules.columns.origin')}</th>
-              <th scope="col">{t('accounts.rules.columns.value')}</th>
-              <th scope="col">{t('accounts.rules.columns.measure')}</th>
-              <th scope="col">{t('accounts.rules.columns.period')}</th>
-              <th scope="col">{t('accounts.rules.columns.verification')}</th>
-              <th scope="col">{t('accounts.rules.columns.source')}</th>
-            </tr>
-          </thead>
-          <SkeletonTableRows columns={7} rows={3} />
-        </table>
-      </div>
-      <section className={styles.history} aria-labelledby="account-override-history-skeleton">
-        <h3 id="account-override-history-skeleton">{t('accounts.overrides.historyTitle')}</h3>
-        <p className={styles.note}>{t('accounts.overrides.historyHint')}</p>
-        <div className={historyStyles.tableScroll}>
-          <table>
-            <caption className="sr-only">{t('accounts.overrides.historyCaption')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{t('accounts.rules.columns.rule')}</th>
-                <th scope="col">{t('accounts.rules.columns.period')}</th>
-                <th scope="col">{t('accounts.overrides.columns.status')}</th>
-                <th scope="col">{t('accounts.overrides.columns.author')}</th>
-                <th scope="col">{t('accounts.overrides.columns.reason')}</th>
-              </tr>
-            </thead>
-            <SkeletonTableRows columns={5} rows={2} />
-          </table>
-        </div>
-      </section>
+      <Sheet>
+        <AccountFactRows account={account} />
+        <SheetRow
+          label={t('accounts.rules.yield.title')}
+          actions={<RuleActions disabled />}
+          since={<SkeletonBlock className={skeletonStyles.field} />}
+          value={<SkeletonBlock className={skeletonStyles.field} />}
+        />
+        {[0, 1].map((index) => (
+          <SheetRow
+            key={index}
+            label={<SkeletonBlock className={skeletonStyles.field} />}
+            actions={<RuleActions disabled />}
+            since={<SkeletonBlock className={skeletonStyles.field} />}
+            value={<SkeletonBlock className={skeletonStyles.field} />}
+          />
+        ))}
+      </Sheet>
     </div>
   );
 }
