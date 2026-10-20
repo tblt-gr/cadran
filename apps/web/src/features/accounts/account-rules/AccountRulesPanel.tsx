@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { AccountSheet } from '@/features/accounts/account-rules/account-sheet/AccountSheet';
 import { AccountRulesPanelSkeleton } from './AccountRulesPanelSkeleton';
-import { OverrideHistory } from '@/features/accounts/account-rules/override-history/OverrideHistory';
 import { useAccountRuleOverrides } from '@/features/accounts/account-rules/useAccountRuleOverrides';
 import { useAccountRules } from '@/features/accounts/account-rules/useAccountRules';
 import type { OverrideDraft } from '@/features/accounts/account-rules/overrideTarget';
@@ -126,6 +125,7 @@ export function AccountRulesPanel({
             focusKind={focusKind}
             onOverride={(kind) => onOverride({ kind, kinds: statableKinds(rules.data) })}
             onWithdraw={onWithdraw}
+            overrides={overrides.isError ? [] : overrides.data.overrides}
             rules={rules.data}
           />
 
@@ -142,12 +142,11 @@ export function AccountRulesPanel({
       )}
 
       {overrides.isError ? (
-        <p className={styles.note} role="alert">
+        <p className={styles.state} role="alert">
+          <Icon name="alert" size={14} />
           {t('accounts.overrides.historyError')}
         </p>
-      ) : (
-        <OverrideHistory overrides={overrides.data.overrides} />
-      )}
+      ) : null}
     </div>
   );
 }

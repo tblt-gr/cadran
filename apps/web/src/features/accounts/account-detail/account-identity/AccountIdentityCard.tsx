@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
-import { rateLayers } from '@/features/accounts/account-rules/ruleLayers';
+import { RateBrackets } from '@/features/accounts/account-rules/rate-brackets/RateBrackets';
+import { RateMeasure } from '@/features/accounts/account-rules/rate-measure/RateMeasure';
 import { useAccountRules } from '@/features/accounts/account-rules/useAccountRules';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
 import { depositCeilingOf } from '@/lib/depositCeiling';
@@ -48,12 +49,14 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
     rulesData === null
       ? null
       : (rulesData.rates.find((rate) => rate.kind === 'ANNUAL_RATE') ?? rulesData.rates[0] ?? null);
-  const headlineRateMeasure =
-    headlineRate === null || rulesData === null
+  const headlineRateLayer =
+    headlineRate === null
       ? null
-      : rateLayers(headlineRate, rulesData.assetCode).find(
-          (layer) => layer.layer === headlineRate.effectiveLayer,
-        );
+      : {
+          catalog: headlineRate.catalog,
+          INHERITED: headlineRate.inherited,
+          OVERRIDE: headlineRate.override,
+        }[headlineRate.effectiveLayer === 'CATALOG' ? 'catalog' : headlineRate.effectiveLayer];
 
   // An absent primary group and one this hook could not resolve must read
   // differently: the first is a fact about the account, the second is a read
@@ -104,13 +107,22 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
               date: formatCalendarDay(account.openedOn, i18n.language),
             })}
           </span>
-          {headlineRate && headlineRateMeasure ? (
+          {headlineRate && headlineRateLayer && rulesData ? (
             <div className={styles.rateStat}>
               <span className={styles.balanceLabel}>
                 {t(`catalog.rules.kinds.${headlineRate.kind}`)}
               </span>
-              <div>{headlineRateMeasure.value}</div>
-              <div className={styles.rateMeasure}>{headlineRateMeasure.measure}</div>
+              <div>
+                <RateBrackets assetCode={rulesData.assetCode} rate={headlineRateLayer} />
+              </div>
+              <div className={styles.rateMeasure}>
+                <RateMeasure
+                  applied={headlineRate.applied}
+                  assetCode={rulesData.assetCode}
+                  rate={headlineRateLayer}
+                  showApplied
+                />
+              </div>
             </div>
           ) : null}
         </div>

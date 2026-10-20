@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { AccountFactRows } from './account-sheet/AccountFactRows';
+import { OverrideAction } from './account-sheet/OverrideAction';
 import { Sheet, SheetRow } from './sheet-row/SheetRow';
 import styles from './AccountRulesPanel.module.css';
 import skeletonStyles from './AccountRulesPanelSkeleton.module.css';
@@ -34,7 +35,7 @@ export function AccountRulesPanelSkeleton({
         <AccountFactRows account={account} />
         <SheetRow
           label={t('accounts.rules.yield.title')}
-          pending
+          actions={<OverrideAction disabled />}
           since={<SkeletonBlock className={skeletonStyles.field} />}
           value={<SkeletonBlock className={skeletonStyles.field} />}
         />
@@ -42,7 +43,7 @@ export function AccountRulesPanelSkeleton({
           <SheetRow
             key={index}
             label={<SkeletonBlock className={skeletonStyles.field} />}
-            pending
+            actions={<OverrideAction disabled />}
             since={<SkeletonBlock className={skeletonStyles.field} />}
             value={<SkeletonBlock className={skeletonStyles.field} />}
           />

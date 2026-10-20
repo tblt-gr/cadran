@@ -11,7 +11,7 @@
   padding: var(--spacing-3) var(--spacing-none);
   border-bottom: var(--border-line-subtle);
   column-gap: var(--spacing-4);
-  grid-template-columns: minmax(6rem, 11rem) minmax(0, 1fr) var(--icon-size-sm);
+  grid-template-columns: minmax(6rem, 11rem) minmax(0, 1fr) auto;
 }
 
 .row:last-child {
@@ -49,14 +49,21 @@
   font-size: var(--font-size-xs);
 }
 
-.detail {
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-2);
+}
+
+.below {
   grid-column: 1 / -1;
-  padding-top: var(--spacing-3);
+  padding-top: var(--spacing-2);
 }
 
 @media (max-width: 30rem) {
   .row {
-    grid-template-columns: minmax(0, 1fr) var(--icon-size-sm);
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .row dt {
