@@ -1,7 +1,7 @@
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { SheetRow } from '@/features/accounts/account-rules/sheet-row/SheetRow';
 import { formatCalendarDay } from '@/lib/decimal';
-import styles from './AccountKeyFacts.module.css';
 
 /**
  * What the account itself states about its life: when it opened and, once it
@@ -9,21 +9,21 @@ import styles from './AccountKeyFacts.module.css';
  * date a product rule would impose (a youth savings plan ending at a given
  * age) is not an account field and is not worked out here.
  */
-export function AccountKeyFacts({ account }: { account: Account }) {
+export function AccountFactRows({ account }: { account: Account }) {
   const { i18n, t } = useTranslation();
 
   return (
-    <dl className={styles.facts}>
-      <div>
-        <dt>{t('accounts.rules.facts.opened')}</dt>
-        <dd>{formatCalendarDay(account.openedOn, i18n.language)}</dd>
-      </div>
+    <>
+      <SheetRow
+        label={t('accounts.rules.facts.opened')}
+        value={formatCalendarDay(account.openedOn, i18n.language)}
+      />
       {account.closedOn === null ? null : (
-        <div>
-          <dt>{t('accounts.rules.facts.closed')}</dt>
-          <dd>{formatCalendarDay(account.closedOn, i18n.language)}</dd>
-        </div>
+        <SheetRow
+          label={t('accounts.rules.facts.closed')}
+          value={formatCalendarDay(account.closedOn, i18n.language)}
+        />
       )}
-    </dl>
+    </>
   );
 }

@@ -1,0 +1,65 @@
+.sheet {
+  display: flex;
+  margin: var(--spacing-none);
+  flex-direction: column;
+}
+
+.row {
+  display: grid;
+  min-width: 0;
+  align-items: start;
+  padding: var(--spacing-3) var(--spacing-none);
+  border-bottom: var(--border-line-subtle);
+  column-gap: var(--spacing-4);
+  grid-template-columns: minmax(6rem, 11rem) minmax(0, 1fr) var(--icon-size-sm);
+}
+
+.row:last-child {
+  border-bottom: var(--border-none);
+}
+
+.row dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  overflow-wrap: anywhere;
+}
+
+.row dd {
+  min-width: 0;
+  margin: var(--spacing-none);
+}
+
+.value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: var(--text-primary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-1);
+  overflow-wrap: anywhere;
+}
+
+.figure {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+}
+
+.value small {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.detail {
+  grid-column: 1 / -1;
+  padding-top: var(--spacing-3);
+}
+
+@media (max-width: 30rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) var(--icon-size-sm);
+  }
+
+  .row dt {
+    grid-column: 1 / -1;
+  }
+}

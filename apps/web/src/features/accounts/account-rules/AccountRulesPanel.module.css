@@ -1,45 +1,46 @@
 .panel {
   display: flex;
   min-width: 0;
-  overflow-wrap: anywhere;
   flex-direction: column;
   gap: var(--spacing-4);
+  overflow-wrap: anywhere;
 }
 
 .state {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   margin: var(--spacing-none);
-  gap: var(--spacing-3);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
+  gap: var(--spacing-2);
   line-height: var(--line-height-body);
 }
 
-.state p {
-  margin: var(--spacing-none);
-}
-
-.resolved,
-.note,
-.warning {
-  margin: var(--spacing-none);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-body);
-}
-
-.resolved {
-  color: var(--text-secondary);
+.state svg {
+  flex: none;
+  margin-top: var(--spacing-1);
 }
 
 .note {
+  margin: var(--spacing-none);
   color: var(--text-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
 }
 
-.warning {
-  padding: var(--spacing-3) var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-card);
-  color: var(--warning);
-  background: var(--warning-soft);
+.failure {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-3);
+  line-height: var(--line-height-body);
+}
+
+.failure p {
+  margin: var(--spacing-none);
+}
+
+.failure button {
+  align-self: flex-start;
 }

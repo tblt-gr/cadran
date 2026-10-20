@@ -3,14 +3,15 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  padding: var(--spacing-3) var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-card);
+  padding: var(--spacing-3) var(--spacing-none);
+  border-top: var(--border-line-subtle);
   gap: var(--spacing-3);
 }
 
-.inForce {
-  background: var(--bg-surface-2);
+.layer:first-child,
+.inForce:first-child {
+  border-top: var(--border-none);
+  padding-top: var(--spacing-none);
 }
 
 .reading {

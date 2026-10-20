@@ -14,13 +14,6 @@
   outline: var(--outline-focus);
 }
 
-.hint {
-  margin: var(--spacing-3) var(--spacing-none) var(--spacing-none);
-  color: var(--text-muted);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-body);
-}
-
 .list {
   display: flex;
   margin: var(--spacing-3) var(--spacing-none) var(--spacing-none);

@@ -2,16 +2,15 @@ import type { Account, AccountRuleClaim, AccountRules, ProductRuleKind } from '@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
-import { AccountKeyFacts } from '@/features/accounts/account-rules/account-key-facts/AccountKeyFacts';
-import { AccountRuleList } from '@/features/accounts/account-rules/account-rule-list/AccountRuleList';
+import { AccountSheet } from '@/features/accounts/account-rules/account-sheet/AccountSheet';
 import { AccountRulesPanelSkeleton } from './AccountRulesPanelSkeleton';
 import { OverrideHistory } from '@/features/accounts/account-rules/override-history/OverrideHistory';
-import { YieldReading } from '@/features/accounts/account-rules/yield-reading/YieldReading';
 import { useAccountRuleOverrides } from '@/features/accounts/account-rules/useAccountRuleOverrides';
 import { useAccountRules } from '@/features/accounts/account-rules/useAccountRules';
 import type { OverrideDraft } from '@/features/accounts/account-rules/overrideTarget';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { todayInBrowser } from '@/lib/businessDay';
+import { Icon } from '@/components/ui/icon/Icon';
 import { formatCalendarDay } from '@/lib/decimal';
 import styles from './AccountRulesPanel.module.css';
 
@@ -57,7 +56,15 @@ export function AccountRulesPanel({
   const outOfRange = failure?.kind === 'invalid';
   const retryable = !unauthorized && !outOfRange;
 
-  const dateField = <BusinessDateField onChange={setAsOf} today={today} value={asOf} />;
+  const dateField = (
+    <BusinessDateField
+      hint={null}
+      label={t('accounts.rules.asOf')}
+      onChange={setAsOf}
+      today={today}
+      value={asOf}
+    />
+  );
 
   if (rules.isPending || overrides.isPending) {
     return (
@@ -71,7 +78,6 @@ export function AccountRulesPanel({
 
   return (
     <div className={styles.panel}>
-      <AccountKeyFacts account={account} />
       {dateField}
 
       {rules.isPlaceholderData && !rules.isError ? (
@@ -85,7 +91,7 @@ export function AccountRulesPanel({
       ) : null}
 
       {rules.isError ? (
-        <div className={styles.state} role="alert">
+        <div className={styles.failure} role="alert">
           <p>
             {t(
               unauthorized
@@ -103,43 +109,35 @@ export function AccountRulesPanel({
         </div>
       ) : (
         <>
-          <p className={styles.resolved} role="status">
-            {t('accounts.rules.resolvedOn', {
-              date: formatCalendarDay(rules.data.asOf, i18n.language),
-            })}
-          </p>
-
           {rules.data.origin === 'NO_PRODUCT' ? (
-            <p className={styles.note}>{t('accounts.rules.origins.NO_PRODUCT')}</p>
+            <p className={styles.state}>
+              <Icon name="info" size={14} />
+              {t('accounts.rules.origins.NO_PRODUCT')}
+            </p>
           ) : rules.data.origin === 'PRODUCT_WITHDRAWN' ? (
-            <p className={styles.warning} role="alert">
+            <p className={styles.state} role="alert">
+              <Icon name="alert" size={14} />
               {t('accounts.rules.origins.PRODUCT_WITHDRAWN', { product: rules.data.productCode })}
             </p>
           ) : null}
 
-          {isEmpty(rules.data) ? (
-            // A withdrawn product resolves nothing whatever the date, and the
-            // alert above already says so. Adding "no rule sourced on this
-            // date" beneath it would blame the date for an emptiness the date
-            // has nothing to do with, and read as "this account has no
-            // ceiling".
-            rules.data.origin === 'PRODUCT_WITHDRAWN' ? null : (
-              <p className={styles.note}>
-                {t('accounts.rules.none', {
-                  date: formatCalendarDay(rules.data.asOf, i18n.language),
-                })}
-              </p>
-            )
-          ) : (
-            <AccountRuleList
-              focusKind={focusKind}
-              onOverride={(kind) => onOverride({ kind, kinds: statableKinds(rules.data) })}
-              onWithdraw={onWithdraw}
-              rules={rules.data}
-            />
-          )}
+          <AccountSheet
+            account={account}
+            focusKind={focusKind}
+            onOverride={(kind) => onOverride({ kind, kinds: statableKinds(rules.data) })}
+            onWithdraw={onWithdraw}
+            rules={rules.data}
+          />
 
-          <YieldReading reading={rules.data.yieldReading} />
+          {isEmpty(rules.data) &&
+          rules.data.origin !== 'NO_PRODUCT' &&
+          rules.data.origin !== 'PRODUCT_WITHDRAWN' ? (
+            <p className={styles.note}>
+              {t('accounts.rules.none', {
+                date: formatCalendarDay(rules.data.asOf, i18n.language),
+              })}
+            </p>
+          ) : null}
         </>
       )}
 

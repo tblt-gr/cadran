@@ -1,17 +1,29 @@
 import type { CeilingCheck } from '@cadran/api-client';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { formatAmount } from '@/lib/decimal';
 import styles from './RuleAlert.module.css';
+
+/** One short sentence with its icon: the warning never rests on colour alone. */
+export function AlertLine({ children, status = false }: { children: ReactNode; status?: boolean }) {
+  return (
+    <span className={styles.alert} role={status ? 'status' : undefined}>
+      <Icon name="alert" size={14} />
+      <span>{children}</span>
+    </span>
+  );
+}
 
 type RuleAlertProps =
   | { check: CeilingCheck | null; comparable: boolean; language: string; shifted?: never }
   | { check?: never; comparable?: never; language?: never; shifted: true };
 
 /**
- * The one short line a rule keeps beside its value when the figure alone would
+ * The one short line a rule keeps under its value when the figure alone would
  * mislead: a ceiling exceeded (allowed, never a refusal), a ceiling that cannot
  * be compared to the account, or a rate that changes above its first bracket.
- * The full explanation stays behind the rule's details button.
+ * The full explanation stays behind the line's details button.
  */
 export function RuleAlert(props: RuleAlertProps) {
   const { t } = useTranslation();
@@ -31,9 +43,5 @@ export function RuleAlert(props: RuleAlertProps) {
           });
   }
 
-  return line === null ? null : (
-    <p className={styles.alert} role="status">
-      {line}
-    </p>
-  );
+  return line === null ? null : <AlertLine status>{line}</AlertLine>;
 }

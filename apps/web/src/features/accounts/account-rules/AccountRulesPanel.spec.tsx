@@ -205,9 +205,11 @@ describe('AccountRulesPanel', () => {
     expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
     expect(screen.getByText(/22\s950,00\s€/)).toBeTruthy();
     // The Modal is the only scroll area and no table is left to scroll sideways.
-    expect(
-      screen.getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent),
-    ).toEqual(['Plafond de dépôt', 'Taux annuel']);
+    expect([...document.querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
+      'Ouverture',
+      'Rendement',
+      'Plafond de dépôt',
+    ]);
     expect(screen.queryByRole('table')).toBeNull();
     // A period left open is in force for every later date, so it is shown as a
     // start and never as an expiry.
@@ -216,7 +218,11 @@ describe('AccountRulesPanel', () => {
     expect(screen.getByText('1,70 %')).toBeTruthy();
     // One bracket covering every amount reads the same under both application modes.
     expect(screen.queryByText(/tranche/i)).toBeNull();
-    expect(screen.getAllByText('Hérité')).toHaveLength(2);
+    // An inherited value is the default: only a local claim carries a badge.
+    expect(screen.queryByText('Hérité')).toBeNull();
+    expect(screen.queryByText('Dérogation')).toBeNull();
+    // No claim was ever recorded: no empty history accordion either.
+    expect(screen.queryByText('Historique des dérogations')).toBeNull();
     expect(screen.getByText('Ouverture')).toBeTruthy();
     expect(screen.getByText('15 janvier 2020')).toBeTruthy();
     expect(screen.queryByText('Clôture')).toBeNull();
@@ -249,7 +255,7 @@ describe('AccountRulesPanel', () => {
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Livret A' }).getAttribute('href')).toBe(source.url);
 
-    openDetails('Taux annuel');
+    openDetails('Rendement');
     expect(screen.getAllByText('Taux dû au titulaire').length).toBeGreaterThan(0);
     expect(
       screen.getByText('Aucun solde observé : le barème n’est pas appliqué à un exemple tapé.'),
@@ -266,7 +272,7 @@ describe('AccountRulesPanel', () => {
 
     expect(await screen.findByText('Taux garanti')).toBeTruthy();
     expect(screen.queryByText(/Non enregistrée/)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Détails : lecture du rendement' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Détails : Rendement' }));
     expect(
       screen.getByText(
         'Non enregistrée : une hypothèse n’est jamais stockée comme taux d’un produit de marché.',
@@ -308,7 +314,7 @@ describe('AccountRulesPanel', () => {
     renderPanel();
 
     expect(await screen.findByText('1,70 %')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Date métier'), { target: { value: '2025-06-01' } });
+    fireEvent.change(screen.getByLabelText('Situation au'), { target: { value: '2025-06-01' } });
 
     // The answer of the previous date stays on screen while the next one is
     // resolved — walking a year digit by digit would otherwise tear the table
@@ -419,7 +425,7 @@ describe('AccountRulesPanel', () => {
 
     expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
     openDetails('Plafond de dépôt');
-    openDetails('Taux annuel');
+    openDetails('Rendement');
     // Nobody published a workspace template's periods: no freshness is graded
     // and no publication is named for either row.
     expect(screen.getAllByText('Déclaré par l’espace de travail')).toHaveLength(2);
@@ -469,9 +475,8 @@ describe('AccountRulesPanel', () => {
         'Ce compte est décrit à la main : aucun produit du catalogue ne lui rattache de plafond ni de taux.',
       ),
     ).toBeTruthy();
-    expect(
-      screen.getByText('Aucune règle en vigueur au 3 septembre 2026 pour ce compte.'),
-    ).toBeTruthy();
+    // The state line already says it: no second sentence about an empty list.
+    expect(screen.queryByText(/Aucune règle en vigueur/)).toBeNull();
     expect(screen.queryByRole('table')).toBeNull();
   });
 
@@ -579,7 +584,7 @@ describe('AccountRulesPanel', () => {
 
     await screen.findByText('Plafond de dépôt');
     openDetails('Plafond de dépôt');
-    openDetails('Taux annuel');
+    openDetails('Rendement');
     openDetails('Taux minimum');
     const actions = screen.getAllByRole('button', { name: 'Déroger' });
     // One per rule the account carries, plus the gap it is expected to carry
@@ -588,7 +593,7 @@ describe('AccountRulesPanel', () => {
     fireEvent.click(actions[0]!);
 
     expect(onOverride).toHaveBeenCalledWith({
-      kind: 'DEPOSIT_CEILING',
+      kind: 'ANNUAL_RATE',
       kinds: ['DEPOSIT_CEILING', 'ANNUAL_RATE', 'MIN_RATE'],
     });
   });
@@ -648,6 +653,7 @@ describe('AccountRulesPanel', () => {
     // The claim no longer applies on any date — the table above resolves the
     // published ceiling — and it is still readable, because it explains the
     // statements produced while it did apply.
+    expect(await screen.findByText('Historique des dérogations')).toBeTruthy();
     expect(await screen.findByText('Retirée')).toBeTruthy();
     expect(screen.getByText('Retirée le 10 septembre 2026')).toBeTruthy();
     expect(screen.getByText(claim.reason)).toBeTruthy();
@@ -704,7 +710,7 @@ describe('AccountRulesPanel', () => {
     ).toBeTruthy();
     expect(screen.queryByText(/Le barème peut changer le rendement/)).toBeNull();
     openDetails('Plafond de dépôt');
-    openDetails('Taux annuel');
+    openDetails('Rendement');
     expect(
       screen.getByText(
         /Au-dessus du plafond de .* : autorisé. Le barème peut changer le rendement/,
@@ -728,7 +734,7 @@ describe('AccountRulesPanel', () => {
     renderPanel();
 
     expect(await screen.findByText('Plafond de dépôt')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Date métier'), { target: { value: '0202-06-01' } });
+    fireEvent.change(screen.getByLabelText('Situation au'), { target: { value: '0202-06-01' } });
 
     expect(
       await screen.findByText(
@@ -775,7 +781,7 @@ describe('AccountRulesPanel', () => {
     );
     renderPanel();
 
-    expect(await screen.findByRole('heading', { level: 4, name: 'Taux minimum' })).toBeTruthy();
+    expect(await screen.findByText('Taux minimum')).toBeTruthy();
     expect(
       screen.getByText(
         'Non disponible au 3 septembre 2026 : aucune valeur sourcée pour cette date.',
@@ -792,12 +798,11 @@ describe('AccountRulesPanel', () => {
     renderPanel();
 
     expect(screen.getByText('Ouverture')).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 3, name: 'Règles du compte' })).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 3, name: 'Rendement' })).toBeTruthy();
+    expect(screen.getByText('Rendement')).toBeTruthy();
+    expect(screen.getByLabelText('Situation au')).toBeTruthy();
     const buttons = screen.getAllByRole('button', { name: /^Détails/ });
     expect(buttons.length).toBeGreaterThan(0);
     expect(buttons.every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
-    expect(screen.getByText('Historique')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 
@@ -827,7 +832,10 @@ describe('AccountRulesPanel', () => {
     );
     renderPanel();
 
-    expect(await screen.findByText('Condition particulière')).toBeTruthy();
+    // A term without French wording leaves the main path for one closed disclosure.
+    const others = await screen.findByText('Autres conditions (1)');
+    expect(others.closest('details')?.open).toBe(false);
+    expect(screen.getByText('Condition particulière')).toBeTruthy();
     expect(screen.queryByText(/FORTNIGHTLY/)).toBeNull();
     openDetails('Méthode de calcul des intérêts');
     expect(screen.getByText('Libellé source : Fortnightly annual capitalisation')).toBeTruthy();

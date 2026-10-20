@@ -144,7 +144,7 @@ describe('AccountRulesModals', () => {
     api.readAccountRules.mockImplementation(() => success(rules(false)));
     openRules();
 
-    await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
+    await screen.findByRole('button', { name: 'Détails : Plafond de dépôt' });
     fireEvent.click(screen.getByRole('button', { name: 'Détails : Plafond de dépôt' }));
     fireEvent.click(screen.getByRole('button', { name: 'Déroger' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer la dérogation' }));
@@ -164,12 +164,12 @@ describe('AccountRulesModals', () => {
     api.readAccountRules.mockImplementation(() => success(rules(false)));
     const opener = openRules();
 
-    await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
+    await screen.findByRole('button', { name: 'Détails : Plafond de dépôt' });
     fireEvent.click(screen.getByRole('button', { name: 'Détails : Plafond de dépôt' }));
     fireEvent.click(screen.getByRole('button', { name: 'Déroger' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Fermer' }));
 
-    await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
+    await screen.findByRole('button', { name: 'Détails : Plafond de dépôt' });
     const action = screen.getByRole('button', { name: 'Détails : Plafond de dépôt' });
     await waitFor(() => expect(document.activeElement).toBe(action));
 
@@ -181,12 +181,12 @@ describe('AccountRulesModals', () => {
     api.readAccountRules.mockImplementation(() => success(rules(true)));
     openRules();
 
-    await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
+    await screen.findByRole('button', { name: 'Détails : Plafond de dépôt' });
     fireEvent.click(screen.getByRole('button', { name: 'Détails : Plafond de dépôt' }));
     fireEvent.click(screen.getByRole('button', { name: 'Retirer la dérogation' }));
     expect(await screen.findByText('Retirer cette dérogation')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
-    await screen.findByRole('heading', { level: 4, name: 'Plafond de dépôt' });
+    await screen.findByRole('button', { name: 'Détails : Plafond de dépôt' });
     const action = screen.getByRole('button', { name: 'Détails : Plafond de dépôt' });
     await waitFor(() => expect(document.activeElement).toBe(action));
     expect(api.withdrawAccountRuleOverride).not.toHaveBeenCalled();
