@@ -19,6 +19,7 @@ interface TransactionEditorProps {
   onSubmit: (body: CreateTransactionRequest | UpdateTransactionRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
+  submitErrorDetail?: string | null;
   transaction?: Transaction;
 }
 
@@ -29,6 +30,7 @@ export function TransactionEditor({
   onSubmit,
   pending,
   submitError,
+  submitErrorDetail,
   transaction,
 }: TransactionEditorProps) {
   const { t } = useTranslation();
@@ -47,6 +49,7 @@ export function TransactionEditor({
         onSubmit={onSubmit}
         pending={pending}
         submitError={submitError}
+        submitErrorDetail={submitErrorDetail}
         transaction={transaction}
       />
     </Modal>

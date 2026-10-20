@@ -1,8 +1,11 @@
 import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
+import {
+  TransactionRowActions,
+  TransactionInspectButton,
+} from '@/features/transactions/transaction-workflow/transaction-row-actions/TransactionRowActions';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { compareDecimals, formatCalendarDay } from '@/lib/decimal';
+import { formatCalendarDay } from '@/lib/decimal';
 import { RefundBadge } from '@/features/transactions/refund-editor/refund-badge/RefundBadge';
 import { TransactionAmount } from './transaction-amount/TransactionAmount';
 import { TransactionCategories } from './transaction-categories/TransactionCategories';
@@ -10,23 +13,10 @@ import styles from './TransactionList.module.css';
 
 interface TransactionListProps {
   accounts: Account[];
-  duplicatingIds: ReadonlySet<string>;
-  onDuplicate: (transaction: Transaction) => void;
-  onEdit: (transaction: Transaction) => void;
-  onRefund: (transaction: Transaction) => void;
-  onVoid: (transaction: Transaction) => void;
   transactions: Transaction[];
 }
 
-export function TransactionList({
-  accounts,
-  duplicatingIds,
-  onDuplicate,
-  onEdit,
-  onRefund,
-  onVoid,
-  transactions,
-}: TransactionListProps) {
+export function TransactionList({ accounts, transactions }: TransactionListProps) {
   const { i18n, t } = useTranslation();
 
   return (
@@ -53,18 +43,7 @@ export function TransactionList({
             {transactions.map((transaction) => {
               const account = accounts.find((candidate) => candidate.id === transaction.accountId);
               const voided = transaction.state === 'VOIDED';
-              const terminal = voided || transaction.state === 'REJECTED';
               const transferLinked = transaction.transferId !== null;
-              const linked = transferLinked || transaction.nature === 'REFUND';
-              const originalMagnitude = transaction.amount.value.replace(/^-/, '');
-              const alreadySettled =
-                transaction.refundedAmount !== null &&
-                compareDecimals(transaction.refundedAmount.value, originalMagnitude) >= 0;
-              const refundable =
-                transaction.state === 'BOOKED' &&
-                !transferLinked &&
-                !alreadySettled &&
-                (transaction.nature === 'EXPENSE' || transaction.nature === 'FEE');
 
               return (
                 <tr key={transaction.id}>
@@ -72,7 +51,7 @@ export function TransactionList({
                     {formatCalendarDay(transaction.bookedOn, i18n.language)}
                   </td>
                   <th className={styles.label} scope="row">
-                    <span>{transaction.rawLabel}</span>
+                    <TransactionInspectButton transaction={transaction} />
                     {transferLinked ? (
                       <>
                         <small>
@@ -115,55 +94,7 @@ export function TransactionList({
                     )}
                   </td>
                   <td className={styles.actions}>
-                    <ActionMenu
-                      items={[
-                        {
-                          disabled: !refundable,
-                          icon: 'replace',
-                          id: 'refund',
-                          label: t('transactions.list.actionFor', {
-                            action: t('transactions.list.refund'),
-                            label: transaction.rawLabel,
-                          }),
-                          onSelect: () => onRefund(transaction),
-                          text: t('transactions.list.refund'),
-                        },
-                        {
-                          disabled: terminal || linked,
-                          icon: 'edit',
-                          id: 'edit',
-                          label: t('transactions.list.actionFor', {
-                            action: t('transactions.list.edit'),
-                            label: transaction.rawLabel,
-                          }),
-                          onSelect: () => onEdit(transaction),
-                          text: t('transactions.list.edit'),
-                        },
-                        {
-                          disabled: duplicatingIds.has(transaction.id) || linked,
-                          icon: 'copy',
-                          id: 'duplicate',
-                          label: t('transactions.list.actionFor', {
-                            action: t('transactions.list.duplicate'),
-                            label: transaction.rawLabel,
-                          }),
-                          onSelect: () => onDuplicate(transaction),
-                          text: t('transactions.list.duplicate'),
-                        },
-                        {
-                          disabled: terminal || transferLinked,
-                          icon: 'archive',
-                          id: 'void',
-                          label: t('transactions.list.actionFor', {
-                            action: t('transactions.list.void'),
-                            label: transaction.rawLabel,
-                          }),
-                          onSelect: () => onVoid(transaction),
-                          text: t('transactions.list.void'),
-                        },
-                      ]}
-                      label={t('transactions.list.openActions', { label: transaction.rawLabel })}
-                    />
+                    <TransactionRowActions transaction={transaction} />
                   </td>
                 </tr>
               );

@@ -7,6 +7,7 @@ interface VoidTransactionDialogProps {
   onConfirm: () => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
+  submitErrorDetail?: string | null;
   transaction: Transaction;
 }
 
@@ -14,6 +15,7 @@ export function VoidTransactionDialog({
   onConfirm,
   pending,
   submitError,
+  submitErrorDetail,
   transaction,
 }: VoidTransactionDialogProps) {
   const { t } = useTranslation();
@@ -22,7 +24,7 @@ export function VoidTransactionDialog({
     <div className={styles.dialog}>
       {submitError ? (
         <p className={styles.alert} role="alert">
-          {t(`transactions.errors.${submitError}`)}
+          {submitErrorDetail ?? t(`transactions.errors.${submitError}`)}
         </p>
       ) : null}
       <p>{t('transactions.void.description', { label: transaction.rawLabel })}</p>

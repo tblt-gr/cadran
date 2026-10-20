@@ -7,6 +7,18 @@ import { AccountDetailPage } from './AccountDetailPage';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 
 const api = vi.hoisted(() => ({
+  getTransaction: vi.fn(),
+  updateTransaction: vi.fn(),
+  voidTransaction: vi.fn(),
+  duplicateTransaction: vi.fn(),
+  getTransfer: vi.fn(),
+  updateTransfer: vi.fn(),
+  voidTransfer: vi.fn(),
+  reconcileTransaction: vi.fn(),
+  getTransactionRefundable: vi.fn(),
+  createTransactionRefund: vi.fn(),
+  readPeriodStatus: vi.fn(),
+  listCategories: vi.fn(),
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
   recordPortfolioOperation: vi.fn(),
@@ -211,6 +223,9 @@ describe('AccountDetailPage', () => {
       response: new Response('{}', { status: 200 }),
     });
     vi.clearAllMocks();
+    api.readPeriodStatus.mockImplementation(() => success({ closed: false }));
+    api.getTransaction.mockImplementation(() => success(movement));
+    api.listCategories.mockImplementation(() => success({ items: [], total: 0 }));
     api.readAccount.mockImplementation(() => success(account));
     api.listTransactions.mockImplementation(() =>
       success({ items: [movement], nextCursor: null, hasMore: false, pageSize: 50 }),
@@ -224,6 +239,418 @@ describe('AccountDetailPage', () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('inspects authoritative details and restores keyboard focus to the row', async () => {
+    api.getTransaction.mockImplementation(() => success({ ...movement, note: 'Note vérifiée' }));
+    renderPage();
+    await loaded();
+    const inspect = await screen.findByRole('button', {
+      name: 'Consulter la transaction « Supermarché »',
+    });
+    inspect.focus();
+    fireEvent.click(inspect);
+    const dialog = await screen.findByRole('dialog', { name: 'Détails de la transaction' });
+    expect(await within(dialog).findByText('Note vérifiée')).toBeTruthy();
+    expect(api.getTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ path: { id: movement.id } }),
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(inspect));
+    expect(
+      screen.queryByText('La liste n’a pas d’autre mouvement à charger pour ces filtres.'),
+    ).toBeNull();
+  });
+
+  it('edits through the shared mutation, retains scope and removes a row moved to another period', async () => {
+    const moved = { ...movement, bookedOn: '2026-08-10', version: 2 };
+    api.updateTransaction.mockImplementation(() => {
+      api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+      return success(moved);
+    });
+    const { queryClient } = renderPage(account.id, '?month=2026-09');
+    await loaded();
+    await screen.findByText('Supermarché');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « Supermarché »' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Modifier la transaction « Supermarché »' }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Modifier la transaction' });
+    fireEvent.change(within(dialog).getByLabelText('Date comptable'), {
+      target: { value: '2026-08-10' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.updateTransaction).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.queryByText('Supermarché')).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Mouvements' })),
+    );
+    expect(api.listTransactions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          accountId: [account.id],
+          from: '2026-09-01',
+          to: '2026-09-30',
+          cursor: undefined,
+        }),
+      }),
+    );
+    expect(
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .some((q) => q.queryKey[0] === 'transactions'),
+    ).toBe(true);
+  });
+
+  it('voids the complete transfer instead of a standalone movement', async () => {
+    const leg = { ...movement, nature: 'TRANSFER' as const, transferId: 'transfer-id' };
+    api.listTransactions.mockImplementation(() => success({ items: [leg], nextCursor: null }));
+    const transfer = {
+      id: 'transfer-id',
+      source: leg,
+      target: { ...leg, id: 'target', accountId: otherAccount.id },
+      fee: null,
+      version: 7,
+      voidedAt: null,
+    };
+    api.getTransfer.mockImplementation(() => success(transfer));
+    api.voidTransfer.mockImplementation(() =>
+      success({ ...transfer, voidedAt: '2026-09-20T00:00:00Z' }),
+    );
+    renderPage();
+    await loaded();
+    await screen.findByText('Supermarché');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « Supermarché »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler la transaction « Supermarché »' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Annuler le virement' });
+    await waitFor(() =>
+      expect(
+        within(dialog)
+          .getByRole('button', { name: 'Confirmer l’annulation du virement' })
+          .closest('fieldset')?.disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Confirmer l’annulation du virement' }),
+    );
+    await waitFor(() =>
+      expect(api.voidTransfer).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'transfer-id' }, body: { version: 7 } }),
+      ),
+    );
+    expect(api.voidTransaction).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText('Le virement a été annulé. Il reste dans l’historique.'),
+    ).toBeTruthy();
+  });
+
+  it('reconciles a reviewed pending row using fresh same-account candidates', async () => {
+    const reviewed = {
+      ...movement,
+      state: 'PENDING' as const,
+      reviewReason: 'AMBIGUOUS_MATCH' as const,
+      reconciliationCandidateIds: ['candidate', 'foreign'],
+    };
+    const candidate = {
+      ...movement,
+      id: 'candidate',
+      rawLabel: 'Autorisation carte',
+      state: 'PENDING' as const,
+    };
+    api.listTransactions.mockImplementation(() => success({ items: [reviewed], nextCursor: null }));
+    api.getTransaction.mockImplementation(({ path }: { path: { id: string } }) =>
+      success(
+        path.id === reviewed.id
+          ? reviewed
+          : path.id === 'candidate'
+            ? candidate
+            : { ...candidate, id: 'foreign', accountId: otherAccount.id, rawLabel: 'Autre compte' },
+      ),
+    );
+    api.reconcileTransaction.mockImplementation(() =>
+      success({ ...reviewed, state: 'BOOKED', version: 2 }),
+    );
+    renderPage();
+    await loaded();
+    await screen.findByText('Supermarché');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « Supermarché »' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Rapprocher la transaction « Supermarché »' }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Rapprocher la transaction' });
+    await within(dialog).findByRole('option', { name: /Autorisation carte/ });
+    expect(within(dialog).queryByRole('option', { name: /Autre compte/ })).toBeNull();
+    fireEvent.change(within(dialog).getByLabelText('Autorisation en attente correspondante'), {
+      target: { value: 'candidate' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmer le rapprochement' }));
+    await waitFor(() =>
+      expect(api.reconcileTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: reviewed.id },
+          body: { version: 1, matchedTransactionId: 'candidate' },
+        }),
+      ),
+    );
+    expect(await screen.findByText('La transaction a été rapprochée.')).toBeTruthy();
+  });
+
+  async function openRowAction(label: string, action: string) {
+    await screen.findByText(label);
+    fireEvent.click(screen.getByRole('button', { name: `Actions de la transaction « ${label} »` }));
+    fireEvent.click(screen.getByRole('button', { name: `${action} la transaction « ${label} »` }));
+  }
+
+  it('removes a row the server moved to another account and keeps the account boundary', async () => {
+    api.updateTransaction.mockImplementation(() => {
+      api.listTransactions.mockImplementation(() =>
+        success({ items: [], nextCursor: null, hasMore: false, pageSize: 50 }),
+      );
+      return success({ ...movement, accountId: otherAccount.id, version: 2 });
+    });
+    renderPage();
+    await loaded();
+    await openRowAction('Supermarché', 'Modifier');
+    const dialog = await screen.findByRole('dialog', { name: 'Modifier la transaction' });
+    fireEvent.change(within(dialog).getByLabelText('Libellé'), { target: { value: 'Déplacée' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.updateTransaction).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.queryByText('Supermarché')).toBeNull());
+    expect(screen.queryByText('Déplacée')).toBeNull();
+    expect(api.listTransactions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ accountId: [account.id], cursor: undefined }),
+      }),
+    );
+    expect(await screen.findByText('La transaction a été enregistrée.')).toBeTruthy();
+  });
+
+  it('voids a plain movement with its version and confirms with a toast', async () => {
+    api.voidTransaction.mockImplementation(() => {
+      api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+      return success({ ...movement, state: 'VOIDED', voidedAt: '2026-09-20T00:00:00Z' });
+    });
+    renderPage();
+    await loaded();
+    await openRowAction('Supermarché', 'Annuler');
+    const dialog = await screen.findByRole('dialog', { name: 'Annuler la transaction' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Annuler la transaction' }));
+    await waitFor(() =>
+      expect(api.voidTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: movement.id }, body: { version: 1 } }),
+      ),
+    );
+    expect(api.voidTransfer).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText('La transaction a été annulée. Elle reste dans l’historique.'),
+    ).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText('Supermarché')).toBeNull());
+  });
+
+  it('creates a refund from the account page and reloads the movements', async () => {
+    api.getTransactionRefundable.mockImplementation(() =>
+      success({
+        originalId: movement.id,
+        originalAmount: movement.amount,
+        refunded: { value: '0', assetCode: 'EUR' },
+        refundable: { value: '42.50', assetCode: 'EUR' },
+        proposedSplits: [],
+      }),
+    );
+    api.createTransactionRefund.mockImplementation(() =>
+      success({ ...movement, id: 'refund', nature: 'REFUND' }),
+    );
+    renderPage();
+    await loaded();
+    await openRowAction('Supermarché', 'Créer un remboursement');
+    await screen.findByLabelText('Montant');
+    fireEvent.change(screen.getByLabelText('Date comptable'), { target: { value: '2026-09-12' } });
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Remboursement' } });
+    const callsBefore = api.listTransactions.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le remboursement' }));
+    await waitFor(() => expect(api.createTransactionRefund).toHaveBeenCalledOnce());
+    expect(api.createTransactionRefund.mock.calls[0]![0]).toMatchObject({
+      path: { id: movement.id },
+    });
+    await waitFor(() =>
+      expect(api.listTransactions.mock.calls.length).toBeGreaterThan(callsBefore),
+    );
+  });
+
+  it('duplicates from the account page once and reloads the movements', async () => {
+    api.duplicateTransaction.mockImplementation(() =>
+      success({ ...movement, id: 'copy', bookedOn: TODAY }, 201),
+    );
+    renderPage();
+    await loaded();
+    await screen.findByText('Supermarché');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « Supermarché »' }),
+    );
+    const callsBefore = api.listTransactions.mock.calls.length;
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dupliquer la transaction « Supermarché »' }),
+    );
+    await waitFor(() => expect(api.duplicateTransaction).toHaveBeenCalledOnce());
+    expect(api.duplicateTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ path: { id: movement.id } }),
+    );
+    expect(
+      await screen.findByText('La transaction a été dupliquée à la date du jour.'),
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(api.listTransactions.mock.calls.length).toBeGreaterThan(callsBefore),
+    );
+  });
+
+  it('shows the actual error when inspecting a transaction of another workspace (404)', async () => {
+    const body = {
+      type: '/problems/not-found',
+      title: 'Introuvable',
+      status: 404,
+      detail: 'Cette transaction est introuvable.',
+    };
+    api.getTransaction.mockImplementation(() =>
+      Promise.resolve({
+        error: body,
+        response: new Response(JSON.stringify(body), { status: 404 }),
+      }),
+    );
+    renderPage();
+    await loaded();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Consulter la transaction « Supermarché »' }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Détails de la transaction' });
+    expect(await within(dialog).findByText('Cette transaction est introuvable.')).toBeTruthy();
+    expect(within(dialog).queryByText('Supermarché')).toBeNull();
+  });
+
+  it('resets the cursor to the first page after a write made from page 2', async () => {
+    const older: Transaction = {
+      ...movement,
+      id: '00000000-0000-7000-8000-000000000e02',
+      rawLabel: 'Plus ancien',
+    };
+    api.listTransactions.mockImplementation(({ query }: { query: { cursor?: string } }) =>
+      query.cursor === 'page-2'
+        ? success({ items: [older], nextCursor: null, hasMore: false, pageSize: 50 })
+        : success({ items: [movement], nextCursor: 'page-2', hasMore: true, pageSize: 50 }),
+    );
+    api.updateTransaction.mockImplementation(() => success({ ...older, version: 2 }));
+    renderPage();
+    await loaded();
+    fireEvent.click(await screen.findByRole('button', { name: 'Mouvements plus anciens' }));
+    await openRowAction('Plus ancien', 'Modifier');
+    const dialog = await screen.findByRole('dialog', { name: 'Modifier la transaction' });
+    fireEvent.change(within(dialog).getByLabelText('Libellé'), { target: { value: 'Modifié' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.updateTransaction).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.queryByText('Plus ancien')).toBeNull());
+    expect(api.listTransactions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ cursor: undefined }) }),
+    );
+    expect(await screen.findByRole('button', { name: 'Mouvements plus anciens' })).toBeTruthy();
+  });
+
+  it('confirms a saved transfer with a toast', async () => {
+    const leg = { ...movement, nature: 'TRANSFER' as const, transferId: 'transfer-id' };
+    api.listTransactions.mockImplementation(() => success({ items: [leg], nextCursor: null }));
+    const transfer = {
+      id: 'transfer-id',
+      source: leg,
+      target: { ...leg, id: 'target', accountId: otherAccount.id },
+      fee: null,
+      version: 7,
+      voidedAt: null,
+    };
+    api.getTransfer.mockImplementation(() => success(transfer));
+    api.updateTransfer.mockImplementation(() => success({ ...transfer, version: 8 }));
+    renderPage();
+    await loaded();
+    await openRowAction('Supermarché', 'Modifier');
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() =>
+      expect(
+        within(dialog).getByRole('button', { name: 'Enregistrer' }).closest('fieldset')?.disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() =>
+      expect(api.updateTransfer).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'transfer-id' } }),
+      ),
+    );
+    expect(await screen.findByText('Le virement a été enregistré.')).toBeTruthy();
+  });
+
+  it('keeps the entered draft and actual closure error after a refused account-entry edit', async () => {
+    api.updateTransaction.mockImplementation(() => {
+      const error = {
+        type: '/problems/period-closed',
+        title: 'Clôture',
+        status: 409,
+        detail: 'Septembre a été clôturé ailleurs.',
+      };
+      return Promise.resolve({
+        error,
+        response: new Response(JSON.stringify(error), { status: 409 }),
+      });
+    });
+    renderPage();
+    await loaded();
+    await screen.findByText('Supermarché');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « Supermarché »' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Modifier la transaction « Supermarché »' }),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Modifier la transaction' });
+    fireEvent.change(within(dialog).getByLabelText('Libellé'), {
+      target: { value: 'Libellé conservé' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+    expect(await within(dialog).findByText('Septembre a été clôturé ailleurs.')).toBeTruthy();
+    expect((within(dialog).getByLabelText('Libellé') as HTMLInputElement).value).toBe(
+      'Libellé conservé',
+    );
+  });
+
+  it('explains closed-period restrictions while inspection remains available', async () => {
+    api.readPeriodStatus.mockImplementation(() => success({ closed: true }));
+    renderPage();
+    await loaded();
+    expect(await screen.findByText('Cette période est clôturée.')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « Supermarché »' }),
+    );
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Modifier la transaction « Supermarché »',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Annuler la transaction « Supermarché »',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      screen
+        .getAllByRole('button', { name: 'Consulter la transaction « Supermarché »' })
+        .every((button) => !(button as HTMLButtonElement).disabled),
+    ).toBe(true);
   });
 
   it('keeps the shared transfer modal open until the opted-in deposit succeeds', async () => {
@@ -648,6 +1075,42 @@ describe('AccountDetailPage', () => {
       expect(secondCall![0].query.accountId).toEqual([account.id]);
     });
   });
+  it('keeps loaded movements after a recoverable pagination failure and retries with the same account and month', async () => {
+    let fail = true;
+    api.listTransactions.mockImplementation(({ query }: { query: { cursor?: string } }) => {
+      if (query.cursor !== 'page-2') return success({ items: [movement], nextCursor: 'page-2' });
+      if (fail) return failure(503);
+      return success({
+        items: [{ ...movement, id: 'older', rawLabel: 'Plus ancien' }],
+        nextCursor: null,
+      });
+    });
+    renderPage(account.id, '?month=2026-09');
+    await loaded();
+    fireEvent.click(await screen.findByRole('button', { name: 'Mouvements plus anciens' }));
+    expect(
+      await screen.findByText('La liste des transactions n’a pas pu être chargée.'),
+    ).toBeTruthy();
+    expect(screen.getByText('Supermarché')).toBeTruthy();
+    fail = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+    expect(await screen.findByText('Plus ancien')).toBeTruthy();
+    expect(api.listTransactions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          accountId: [account.id],
+          from: '2026-09-01',
+          to: '2026-09-30',
+          cursor: 'page-2',
+        }),
+      }),
+    );
+    expect(screen.queryByRole('button', { name: 'Mouvements plus anciens' })).toBeNull();
+    expect(
+      screen.queryByText('La liste n’a pas d’autre mouvement à charger pour ces filtres.'),
+    ).toBeNull();
+  });
+
   it('mounts savings history independently of the account identity read', async () => {
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Historique du solde' })).toBeTruthy();

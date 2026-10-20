@@ -3,6 +3,7 @@ import styles from './TransactionListFooter.module.css';
 
 interface TransactionListFooterProps {
   hasMore: boolean;
+  hideEndOfList?: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;
   onReloadFromFirstPage: () => void;
@@ -18,6 +19,7 @@ interface TransactionListFooterProps {
  */
 export function TransactionListFooter({
   hasMore,
+  hideEndOfList = false,
   loadingMore,
   onLoadMore,
   onReloadFromFirstPage,
@@ -35,6 +37,8 @@ export function TransactionListFooter({
       </div>
     );
   }
+
+  if (!hasMore && hideEndOfList) return null;
 
   if (!hasMore) {
     return (

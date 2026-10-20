@@ -13,6 +13,7 @@ import { RefundEditor } from '@/features/transactions/refund-editor/RefundEditor
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
 import type { Editor } from '@/features/transactions/transactionEditorState';
 import {
+  transactionErrorDetail,
   transactionErrorKind,
   type TransactionErrorKind,
 } from '@/features/transactions/transactionError';
@@ -89,6 +90,7 @@ export function TransactionModals({
           onSubmit={(body) => save.mutate(body)}
           pending={save.isPending}
           submitError={submitError}
+          submitErrorDetail={transactionErrorDetail(save.error)}
           transaction={editor === 'create' ? undefined : editor}
         />
       ) : null}
@@ -112,6 +114,7 @@ export function TransactionModals({
             onConfirm={() => voidMutation.mutate(voiding)}
             pending={voidMutation.isPending}
             submitError={voidError}
+            submitErrorDetail={transactionErrorDetail(voidMutation.error)}
             transaction={voiding}
           />
         </Modal>

@@ -12,6 +12,7 @@ import {
 } from '@/features/accounts/accountError';
 import { AccountRulesModals } from '@/features/accounts/account-rules/AccountRulesModals';
 import { AccountReconciliationModal } from '@/features/accounts/reconciliation-panel/AccountReconciliationModal';
+import { TransactionWorkflow } from '@/features/transactions/transaction-workflow/TransactionWorkflow';
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
 import { TransferEditor } from '@/features/transactions/transfer-editor/TransferEditor';
 import { transactionErrorKind } from '@/features/transactions/transactionError';
@@ -75,7 +76,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   } = movements;
 
   const activeAccounts = useQuery({
-    enabled: transferEditorOpen,
+    enabled: transferEditorOpen || account.data !== undefined,
     queryKey: ['accounts', 'account-detail-transfer'],
     queryFn: async ({ signal }) => {
       const result = await listAccounts({
@@ -241,21 +242,27 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
         />
       ) : null}
 
-      <AccountMovementsSection
-        canCreate={creatable}
-        displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
-        items={items}
-        language={i18n.language}
-        loadingMore={transactions.isFetching && !transactions.isPending}
-        month={month}
-        onClearMonth={() => setMonth(null)}
-        onCreate={openTransactionEditor}
-        onLoadMore={loadMore}
-        onReloadFromFirstPage={reloadFromFirstPage}
-        staleCursorError={staleCursorError}
-        transactions={transactions}
-        unauthorized={movementsUnauthorized}
-      />
+      <TransactionWorkflow
+        accounts={transferAccounts}
+        transactions={items}
+        reloadAfterWrite={reloadAfterWrite}
+      >
+        <AccountMovementsSection
+          canCreate={creatable}
+          displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
+          items={items}
+          language={i18n.language}
+          loadingMore={transactions.isFetching && !transactions.isPending}
+          month={month}
+          onClearMonth={() => setMonth(null)}
+          onCreate={openTransactionEditor}
+          onLoadMore={loadMore}
+          onReloadFromFirstPage={reloadFromFirstPage}
+          staleCursorError={staleCursorError}
+          transactions={transactions}
+          unauthorized={movementsUnauthorized}
+        />
+      </TransactionWorkflow>
     </div>
   );
 }

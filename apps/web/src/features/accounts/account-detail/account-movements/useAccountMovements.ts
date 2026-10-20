@@ -1,5 +1,5 @@
 import { listTransactions, type TransactionPage } from '@cadran/api-client';
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import {
@@ -34,13 +34,20 @@ function monthBounds(month: string | null): { from?: string; to?: string } {
 export function useAccountMovements(accountId: string, initialMonth: string | null) {
   const queryClient = useQueryClient();
   const [cursor, setCursor] = useState<string | null>(null);
+  const scope = `${accountId}:${initialMonth ?? ''}`;
+  const [previousScope, setPreviousScope] = useState(scope);
+  const scopeChanged = previousScope !== scope;
+  if (scopeChanged) {
+    setPreviousScope(scope);
+    setCursor(null);
+  }
   const { from, to } = monthBounds(initialMonth);
 
   const filters = {
     accountId: [accountId],
     from,
     to,
-    cursor: cursor ?? undefined,
+    cursor: scopeChanged ? undefined : (cursor ?? undefined),
     pageSize: PAGE_SIZE,
   };
 
@@ -57,20 +64,33 @@ export function useAccountMovements(accountId: string, initialMonth: string | nu
       }
       return result.data;
     },
-    placeholderData: keepPreviousData,
+    placeholderData: (previousData, previousQuery) => {
+      const previousFilters = previousQuery?.queryKey[2] as typeof filters | undefined;
+      return previousFilters?.accountId[0] === accountId &&
+        previousFilters.from === from &&
+        previousFilters.to === to
+        ? previousData
+        : undefined;
+    },
     retry: false,
   });
 
   const staleCursorError =
     transactions.error instanceof TransactionRequestError &&
     transactions.error.kind === 'staleCursor';
-  const [lastGoodPage, setLastGoodPage] = useState<TransactionPage | null>(
-    transactions.data ?? null,
-  );
-  if (transactions.data && transactions.data !== lastGoodPage) {
-    setLastGoodPage(transactions.data);
+  const [lastGood, setLastGood] = useState<{ scope: string; page: TransactionPage } | null>(null);
+  if (
+    transactions.data &&
+    !transactions.isPlaceholderData &&
+    (lastGood?.page !== transactions.data || lastGood.scope !== scope)
+  ) {
+    setLastGood({ scope, page: transactions.data });
   }
-  const displayedPage = transactions.data ?? (staleCursorError ? lastGoodPage : null);
+  const displayedPage = scopeChanged
+    ? null
+    : (transactions.data ??
+      ((cursor !== null || staleCursorError) && lastGood?.scope === scope ? lastGood.page : null));
+
   const items = displayedPage?.items ?? [];
   const unauthorized =
     transactions.error instanceof TransactionRequestError &&
@@ -81,7 +101,7 @@ export function useAccountMovements(accountId: string, initialMonth: string | nu
       setCursor(null);
     }
     await queryClient.invalidateQueries({
-      queryKey: ['transactions', 'account-detail'],
+      queryKey: ['transactions'],
       refetchType: 'none',
     });
     await queryClient.refetchQueries(

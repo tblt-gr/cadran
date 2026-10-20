@@ -1,0 +1,33 @@
+.details,
+.form {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.details {
+  margin: var(--spacing-none);
+}
+
+.details > div,
+.form label {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.details dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.details dd {
+  margin: var(--spacing-none);
+  overflow-wrap: anywhere;
+}
+
+.form fieldset {
+  display: grid;
+  gap: var(--spacing-4);
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  border: var(--border-none);
+}

@@ -41,6 +41,7 @@ interface TransactionFormProps {
   onSubmit: (body: CreateTransactionRequest | UpdateTransactionRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
+  submitErrorDetail?: string | null;
   transaction?: Transaction;
 }
 
@@ -61,6 +62,7 @@ export function TransactionForm({
   onSubmit,
   pending,
   submitError,
+  submitErrorDetail,
   transaction,
 }: TransactionFormProps) {
   const { t } = useTranslation();
@@ -119,6 +121,7 @@ export function TransactionForm({
           accountId={resolved.accountId}
           className={styles.alert}
           kind={submitError}
+          detail={submitErrorDetail}
         />
       ) : null}
 
