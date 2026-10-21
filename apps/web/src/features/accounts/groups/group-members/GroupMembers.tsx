@@ -1,3 +1,4 @@
+import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import type { Account, NetWorthShare, Product, ProductModel } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -11,6 +12,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface GroupMembersProps {
   accounts: Account[];
+  color?: string;
   models: readonly ProductModel[];
   products: readonly Product[];
   shareByAccount: ReadonlyMap<string, NetWorthShare>;
@@ -27,6 +29,7 @@ interface GroupMembersProps {
  */
 export function GroupMembers({
   accounts,
+  color,
   models,
   products,
   shareByAccount,
@@ -37,11 +40,17 @@ export function GroupMembers({
 
   if (status === 'pending') {
     return (
-      <ul aria-hidden="true" className={styles.list}>
+      <ul aria-hidden="true" aria-label={t('accountGroups.list.accounts')} className={styles.list}>
         {Array.from({ length: 2 }, (_, index) => (
           <li key={index}>
-            <SkeletonBlock className={styles.nameSkeleton} />
-            <SkeletonBlock className={styles.shareSkeleton} />
+            <span className={styles.name}>
+              <GroupMarker color={color} />
+              <SkeletonBlock className={styles.nameSkeleton} />
+            </span>
+            <span className={styles.share}>
+              <SkeletonBlock className={styles.shareSkeleton} />
+            </span>
+            <MoneyValue className={styles.amount} value={null} />
           </li>
         ))}
       </ul>
@@ -64,7 +73,10 @@ export function GroupMembers({
 
         return (
           <li key={account.id}>
-            <span className={styles.name}>{account.label}</span>
+            <span className={styles.name}>
+              <GroupMarker color={color} />
+              {account.label}
+            </span>
             <span className={styles.share}>
               {sharesStatus === 'pending' ? (
                 <SkeletonBlock className={styles.shareSkeleton} />

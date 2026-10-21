@@ -12,6 +12,40 @@ use PHPUnit\Framework\TestCase;
 
 final class AccountGroupTest extends TestCase
 {
+    public function testColorsNormalizeAndSurviveNonColorChanges(): void
+    {
+        $group = $this->group(color: '#aabbcc');
+        self::assertSame('#AABBCC', $group->color);
+        self::assertSame('#AABBCC', $group->rebaseDepth(2, new \DateTimeImmutable())->color);
+        self::assertSame('#AABBCC', $group->archive(new \DateTimeImmutable())->color);
+        self::assertSame('#AABBCC', $group->reconfigure('Renamed', null, 2, 1, new \DateTimeImmutable(), '#AABBCC')->color);
+        self::assertNull($group->reconfigure('Renamed', null, 2, 1, new \DateTimeImmutable(), null)->color);
+    }
+
+    #[DataProvider('invalidColors')]
+    public function testColorsRejectExecutableOrMalformedValues(string $color): void
+    {
+        $this->expectException(InvalidAccountGroup::class);
+        $this->group(color: $color);
+    }
+
+    /** @return iterable<array{string}> */
+    public static function invalidColors(): iterable
+    {
+        foreach (['red', '#abc', '#12345678', ' #123456', '#123456 ', 'url(https://example.org)', '#12345G', "#123456\n"] as $color) {
+            yield [$color];
+        }
+    }
+
+    public function testDefaultColorsDependOnlyOnTheImmutableIdentifier(): void
+    {
+        $group = $this->group();
+        $before = \App\Module\Accounts\Domain\AccountGroupColor::resolve($group);
+        $renamed = $group->reconfigure('Other', null, 9, 1, new \DateTimeImmutable());
+        self::assertSame($before, \App\Module\Accounts\Domain\AccountGroupColor::resolve($renamed));
+        self::assertContains($before, \App\Module\Accounts\Domain\AccountGroupColor::PALETTE);
+    }
+
     public function testItCarriesAWorkspaceScopedLabelAndOptionalParent(): void
     {
         $group = $this->group();
@@ -106,6 +140,7 @@ final class AccountGroupTest extends TestCase
         ?string $parentId = null,
         int $depth = 1,
         ?\DateTimeImmutable $archivedAt = null,
+        ?string $color = null,
     ): AccountGroup {
         $now = new \DateTimeImmutable('2026-09-05T10:00:00+00:00');
 
@@ -120,6 +155,7 @@ final class AccountGroupTest extends TestCase
             createdAt: $now,
             updatedAt: $now,
             archivedAt: $archivedAt,
+            color: $color,
         );
     }
 }

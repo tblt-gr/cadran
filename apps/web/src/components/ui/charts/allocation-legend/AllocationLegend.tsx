@@ -6,7 +6,8 @@ interface AllocationLegendItem {
   /** Formatted exact amount, or an empty-value marker. */
   amount: ReactNode;
   key: string;
-  label: string;
+  label: ReactNode;
+  color?: string;
   /** Decimal percent (0-100) driving the bar width; null draws an empty track. */
   barPercent: string | null;
   /** Formatted share text, or an empty-value marker. */
@@ -37,7 +38,7 @@ export function AllocationLegend({ collapse, items, label }: AllocationLegendPro
             <strong className={`money ${styles.amount}`} data-visual-mask>
               {item.amount}
             </strong>
-            <AllocationBar percent={item.barPercent} />
+            <AllocationBar color={item.color} percent={item.barPercent} />
           </li>
         ))}
       </ul>

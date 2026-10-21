@@ -101,3 +101,8 @@
 .more:hover {
   color: var(--text-primary);
 }
+
+.colorFill {
+  display: block;
+  height: 100%;
+}

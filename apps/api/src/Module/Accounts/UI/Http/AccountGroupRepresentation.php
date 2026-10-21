@@ -16,6 +16,9 @@ final readonly class AccountGroupRepresentation
         return [
             'id' => $group->id,
             'label' => $group->label,
+            'color' => $group->color,
+            'resolvedColor' => $group->resolvedColor,
+            'defaultColor' => $group->defaultColor,
             'parentId' => $group->parentId,
             'parentLabel' => $group->parentLabel,
             'sortOrder' => $group->sortOrder,

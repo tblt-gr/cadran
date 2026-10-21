@@ -116,6 +116,7 @@ const recap = {
       netWorthSign: 1 as const,
       primaryGroupId: 'group-1',
       primaryGroupLabel: 'Liquidités',
+      primaryGroupColor: '#FFFFFF',
       eligible: true,
       previousValue: {
         value: '100.00',
@@ -142,6 +143,7 @@ const recap = {
   groups: [
     {
       groupId: 'group-1',
+      color: '#FFFFFF',
       label: 'Liquidités',
       parentId: null,
       depth: 1,
@@ -974,6 +976,12 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
 
     expect(await screen.findByText('Valeurs provisoires à la date du jour.')).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', { name: 'Compte courant' })
+        .querySelector('rect')
+        ?.getAttribute('fill'),
+    ).toBe('#FFFFFF');
     expect(screen.getByRole('link', { name: 'Compte courant' }).getAttribute('href')).toBe(
       `/accounts/${accountId}`,
     );

@@ -15,6 +15,7 @@ use App\Module\Accounts\Application\ListAccountGroups;
 use App\Module\Accounts\Application\StaleAccountGroupVersion;
 use App\Module\Accounts\Application\UpdateAccountGroup;
 use App\Module\Accounts\Application\UpdateAccountGroupInput;
+use App\Module\Accounts\Domain\AccountGroupColor;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -74,12 +75,22 @@ final readonly class AccountGroupController
             return $body;
         }
 
+        if (!AccountGroupColor::isValid($body['color'] ?? null)) {
+            return ApiProblem::response(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                $this->translator->trans('api.problem.invalid_account_group.title'),
+                $this->translator->trans('api.problem.invalid_account_group.detail'),
+                extensions: ['errors' => [['field' => 'color', 'code' => 'INVALID_COLOR']]],
+            );
+        }
+
         try {
-            $payload = AccountGroupPayload::of($body, self::CREATE_FIELDS);
+            $payload = AccountGroupPayload::of($body, self::CREATE_FIELDS, ['color']);
             $group = $createAccountGroup(new CreateAccountGroupInput(
                 label: $payload->string('label'),
                 parentId: $payload->nullableString('parentId'),
                 sortOrder: $payload->integer('sortOrder'),
+                color: $payload->nullableString('color'),
             ));
         } catch (InvalidAccountGroupInput|\UnexpectedValueException) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_group');
@@ -104,13 +115,24 @@ final readonly class AccountGroupController
             return $body;
         }
 
+        if (!AccountGroupColor::isValid($body['color'] ?? null)) {
+            return ApiProblem::response(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                $this->translator->trans('api.problem.invalid_account_group.title'),
+                $this->translator->trans('api.problem.invalid_account_group.detail'),
+                extensions: ['errors' => [['field' => 'color', 'code' => 'INVALID_COLOR']]],
+            );
+        }
+
         try {
-            $payload = AccountGroupPayload::of($body, self::UPDATE_FIELDS);
+            $payload = AccountGroupPayload::of($body, self::UPDATE_FIELDS, ['color']);
             $group = $updateAccountGroup($id, new UpdateAccountGroupInput(
                 label: $payload->string('label'),
                 parentId: $payload->nullableString('parentId'),
                 sortOrder: $payload->integer('sortOrder'),
+                color: $payload->nullableString('color'),
                 version: $payload->integer('version'),
+                colorProvided: array_key_exists('color', $body),
             ));
         } catch (AccountGroupArchived) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_group_archived', self::TYPE_ARCHIVED);

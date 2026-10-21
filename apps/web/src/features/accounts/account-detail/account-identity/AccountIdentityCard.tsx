@@ -1,3 +1,4 @@
+import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -90,7 +91,8 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
               .join(' · ') || t('accounts.detail.identity.noInstitution')}
           </span>
           <span className={styles.meta}>
-            {t(`accounts.kinds.${account.kind}`)} • {groupLabel}
+            {t(`accounts.kinds.${account.kind}`)} • <GroupMarker color={group.color} />
+            {groupLabel}
           </span>
         </div>
 

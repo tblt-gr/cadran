@@ -22,6 +22,9 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
 }));
 
 const group: AccountGroup = {
+  color: null,
+  resolvedColor: '#486DF0',
+  defaultColor: '#803078',
   id: '00000000-0000-7000-8000-0000000000b1',
   label: 'Épargne',
   parentId: null,
@@ -244,10 +247,56 @@ describe('AccountGroupsPage', () => {
     await waitFor(() => expect(api.createAccountGroup).toHaveBeenCalledOnce());
     expect(api.createAccountGroup.mock.calls[0]?.[0].body).toMatchObject({
       label: 'Épargne',
+      color: null,
       parentId: null,
       sortOrder: 0,
     });
     expect(await screen.findByText('Le groupe a été enregistré.')).toBeTruthy();
+  });
+
+  it('retains a custom color after failure and resets to the stable default', async () => {
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
+    );
+    api.updateAccountGroup.mockImplementation(() => problem(422, '/problems/validation'));
+    renderPage();
+    await loadedGroupsTable();
+    openGroupActions('Épargne');
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le groupe Épargne' }));
+    const color = screen.getByLabelText('Couleur du groupe');
+    fireEvent.change(color, { target: { value: '#ffffff' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.updateAccountGroup).toHaveBeenCalledOnce());
+    expect(api.updateAccountGroup.mock.calls[0]?.[0].body.color).toBe('#FFFFFF');
+    expect((color as HTMLInputElement).value.toUpperCase()).toBe('#FFFFFF');
+    await screen.findByRole('alert');
+    fireEvent.click(screen.getByRole('button', { name: 'Rétablir la couleur par défaut' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.updateAccountGroup).toHaveBeenCalledTimes(2));
+    expect(api.updateAccountGroup.mock.calls[1]?.[0].body.color).toBeNull();
+  });
+
+  it('associates server validation with the color field and preserves its value', async () => {
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
+    );
+    api.updateAccountGroup.mockResolvedValue({
+      error: { type: '/problems/validation', errors: [{ field: 'color', code: 'INVALID_COLOR' }] },
+      response: new Response('{}', { status: 422 }),
+    });
+    renderPage();
+    await loadedGroupsTable();
+    openGroupActions('Épargne');
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le groupe Épargne' }));
+    fireEvent.change(screen.getByLabelText('Couleur du groupe'), { target: { value: '#000000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() =>
+      expect(screen.getByLabelText('Couleur du groupe').getAttribute('aria-invalid')).toBe('true'),
+    );
+    expect((screen.getByLabelText('Couleur du groupe') as HTMLInputElement).value).toBe('#000000');
+    expect(screen.getByLabelText('Couleur du groupe').getAttribute('aria-describedby')).toBe(
+      'account-group-color-error',
+    );
   });
 
   it('shows a share reason instead of 0%', async () => {
@@ -355,6 +404,7 @@ describe('AccountGroupsPage', () => {
               kind: 'SAVINGS',
               netWorthSign: 1,
               primaryGroupId: LIVRETS_ID,
+              primaryGroupColor: '#486DF0',
               primaryGroupLabel: 'Livrets',
               eligible: true,
               amount: amount('20100.00'),
@@ -375,6 +425,7 @@ describe('AccountGroupsPage', () => {
               kind: 'SAVINGS',
               netWorthSign: 1,
               primaryGroupId: LIVRETS_ID,
+              primaryGroupColor: '#486DF0',
               primaryGroupLabel: 'Livrets',
               eligible: true,
               amount: amount('1000.00'),
@@ -392,6 +443,7 @@ describe('AccountGroupsPage', () => {
           ],
           allocation: [
             {
+              color: '#486DF0',
               groupId: LIVRETS_ID,
               label: 'Livrets',
               parentId: null,
@@ -405,6 +457,7 @@ describe('AccountGroupsPage', () => {
               },
             },
             {
+              color: '#486DF0',
               groupId: INVEST_ID,
               label: 'Investissements',
               parentId: null,
@@ -505,6 +558,7 @@ describe('AccountGroupsPage', () => {
         netWorth({
           allocation: [
             {
+              color: '#486DF0',
               groupId: LIVRETS_ID,
               label: 'Livrets',
               parentId: null,
@@ -562,6 +616,7 @@ describe('AccountGroupsPage', () => {
           reason: 'MISSING_VALUATION',
           allocation: [
             {
+              color: '#486DF0',
               groupId: group.id,
               label: group.label,
               parentId: null,
@@ -614,6 +669,7 @@ describe('AccountGroupsPage', () => {
         netWorth({
           allocation: [
             {
+              color: '#486DF0',
               groupId: group.id,
               label: group.label,
               parentId: null,

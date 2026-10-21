@@ -133,6 +133,20 @@ final class MonthlyRecapControllerTest extends WebTestCase
         self::assertStringNotContainsString('999999', (string) $this->client->getResponse()->getContent());
     }
 
+    public function testCustomGroupColorsReachBothRecapGroupsAndTheirPrimaryAccounts(): void
+    {
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->connection->update('account_groups', ['color' => '#000000'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::GROUP_LIVRETS]);
+        $recap = $this->read();
+        $groups = self::index($recap['groups'], 'groupId');
+        $accounts = self::index($recap['accounts'], 'accountId');
+        self::assertSame('#000000', $groups[self::GROUP_LIVRETS]['color']);
+        self::assertSame('#000000', $accounts[self::LIVRET_A]['primaryGroupColor']);
+        self::assertSame('#000000', $accounts[self::LDDS]['primaryGroupColor']);
+        self::assertSame('9000.00', self::fields(self::fields($recap['netWorth'])['current'])['value']);
+    }
+
     public function testTheComparedDayIsThePrecedingMonthEndAndNeverTheFirstDayOfTheMonth(): void
     {
         $this->signIn();

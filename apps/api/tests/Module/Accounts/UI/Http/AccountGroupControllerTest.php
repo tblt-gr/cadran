@@ -50,6 +50,67 @@ final class AccountGroupControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testColorNormalizesPersistsResetsAndStaysStableAfterReorder(): void
+    {
+        $group = $this->createGroup('Empty group');
+        self::assertNull($group['color']);
+        self::assertIsString($group['resolvedColor']);
+        self::assertSame($group['defaultColor'], $group['resolvedColor']);
+        $id = self::stringValue($group, 'id');
+        $this->requestUpdate($id, [...$group, 'color' => '#aabbcc']);
+        self::assertResponseIsSuccessful();
+        $updated = $this->decode();
+        self::assertSame('#AABBCC', $updated['color']);
+        self::assertSame('#AABBCC', $updated['resolvedColor']);
+        $this->requestUpdate($id, [...$updated, 'color' => null, 'sortOrder' => 42, 'label' => 'Renamed']);
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->decode()['color']);
+        $this->client->request('GET', '/api/v1/account-groups');
+        self::assertSame($group['resolvedColor'], $this->items()[0]['resolvedColor']);
+    }
+
+    public function testAReorderWithoutColorPreservesTheExistingAssignment(): void
+    {
+        $group = $this->createGroup('Group');
+        $id = self::stringValue($group, 'id');
+        $this->requestUpdate($id, [...$group, 'color' => '#000000']);
+        self::assertResponseIsSuccessful();
+        $this->client->request('PUT', '/api/v1/account-groups/'.$id, server: self::jsonHeaders(), content: json_encode([
+            'label' => 'Renamed', 'parentId' => null, 'sortOrder' => 42, 'version' => 2,
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseIsSuccessful();
+        self::assertSame('#000000', $this->decode()['color']);
+    }
+
+    public function testCreationAcceptsDuplicateColorsAndRejectsInvalidColorWithAFieldError(): void
+    {
+        foreach (['First', 'Second'] as $label) {
+            $this->client->request('POST', '/api/v1/account-groups', server: self::jsonHeaders(), content: json_encode([
+                ...$this->payload($label), 'color' => '#aabbcc',
+            ], JSON_THROW_ON_ERROR));
+            self::assertResponseStatusCodeSame(201);
+            self::assertSame('#AABBCC', $this->decode()['color']);
+        }
+        $this->client->request('POST', '/api/v1/account-groups', server: self::jsonHeaders(), content: json_encode([
+            ...$this->payload('Invalid'), 'color' => 'red',
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([['field' => 'color', 'code' => 'INVALID_COLOR']], $this->decode()['errors']);
+        self::assertSame(2, $this->ownGroupCount());
+    }
+
+    public function testInvalidColorReturnsAFieldErrorWithoutWriting(): void
+    {
+        $group = $this->createGroup('Empty group');
+        foreach (['url(https://example.org)', '#123', 42, ['#000000']] as $color) {
+            $this->requestUpdate(self::stringValue($group, 'id'), [...$group, 'color' => $color]);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame([['field' => 'color', 'code' => 'INVALID_COLOR']], $this->decode()['errors']);
+        }
+        $this->client->request('GET', '/api/v1/account-groups');
+        self::assertSame(1, $this->items()[0]['version']);
+    }
+
     public function testTheOwnerCreatesAParentAndChildAndListsThem(): void
     {
         $parent = $this->createGroup(label: 'Épargne');
@@ -129,11 +190,12 @@ final class AccountGroupControllerTest extends WebTestCase
     {
         $group = $this->createGroup(label: 'Épargne');
         $id = self::stringValue($group, 'id');
-        $this->requestUpdate($id, [...$group, 'label' => 'Liquidités']);
+        $this->requestUpdate($id, [...$group, 'label' => 'Liquidités', 'color' => '#000000']);
         self::assertResponseIsSuccessful();
         self::assertSame(2, $this->decode()['version']);
+        self::assertSame('#000000', $this->decode()['color']);
 
-        $this->requestUpdate($id, [...$group, 'label' => 'Ancien onglet']);
+        $this->requestUpdate($id, [...$group, 'label' => 'Ancien onglet', 'color' => '#FFFFFF']);
         self::assertResponseStatusCodeSame(409);
     }
 
@@ -276,6 +338,7 @@ final class AccountGroupControllerTest extends WebTestCase
                 'parentId' => $group['parentId'] ?? null,
                 'sortOrder' => $group['sortOrder'],
                 'version' => $group['version'],
+                'color' => $group['color'] ?? null,
             ], JSON_THROW_ON_ERROR),
         );
     }
@@ -308,6 +371,7 @@ final class AccountGroupControllerTest extends WebTestCase
             'parentId' => null,
             'sortOrder' => 0,
             'version' => 1,
+            'color' => '#000000',
         ];
     }
 

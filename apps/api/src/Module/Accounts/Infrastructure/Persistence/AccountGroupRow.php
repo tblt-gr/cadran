@@ -29,6 +29,7 @@ final readonly class AccountGroupRow
             createdAt: new \DateTimeImmutable(self::text($row['created_at'] ?? null)),
             updatedAt: new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
             archivedAt: self::instant($row['archived_at'] ?? null),
+            color: self::nullableText($row['color'] ?? null),
         );
     }
 
@@ -37,6 +38,7 @@ final readonly class AccountGroupRow
     {
         return [
             'label' => $group->label,
+            'color' => $group->color,
             'parent_id' => $group->parentId,
             'sort_order' => $group->sortOrder,
             'depth' => $group->depth,

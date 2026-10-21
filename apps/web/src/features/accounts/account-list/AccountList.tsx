@@ -1,3 +1,5 @@
+import { useAccountGroupIdentities } from '@/features/accounts/useAccountGroupIdentities';
+import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
@@ -40,6 +42,8 @@ export function AccountList({
   const products = useProductOptions(asOf ?? '');
   const models = useTemplateOptions();
   const netWorth = useNetWorth();
+  const hasGroupedAccounts = accounts.some((account) => account.primaryGroupId !== null);
+  const groups = useAccountGroupIdentities(hasGroupedAccounts);
   const shareByAccount = new Map(
     (netWorth.data?.contributions ?? []).map((contribution) => [
       contribution.accountId,
@@ -49,8 +53,16 @@ export function AccountList({
 
   return (
     <div className={`card ${styles.panel}`}>
-      {netWorth.isPending ? (
+      {netWorth.isPending || (hasGroupedAccounts && groups.isPending) ? (
         <SkeletonStatus>{t('accountGroups.list.shareLoading')}</SkeletonStatus>
+      ) : null}
+      {hasGroupedAccounts && groups.isError ? (
+        <p role="alert">
+          {t('accounts.list.groupColorsUnavailable')}{' '}
+          <button className="secondary-action" onClick={() => void groups.refetch()} type="button">
+            {t('accounts.list.retryGroupColors')}
+          </button>
+        </p>
       ) : null}
       <div className={styles.tableScroll}>
         <table>
@@ -82,6 +94,14 @@ export function AccountList({
                       href={`/accounts/${account.id}`}
                       onClick={(event) => handleClientNavigation(event, `/accounts/${account.id}`)}
                     >
+                      <GroupMarker
+                        color={
+                          account.primaryGroupId === null
+                            ? null
+                            : groups.data?.get(account.primaryGroupId)?.resolvedColor
+                        }
+                        pending={account.primaryGroupId !== null && groups.isPending}
+                      />
                       {account.label}
                     </a>
                     {account.institution || account.maskedIdentifier ? (

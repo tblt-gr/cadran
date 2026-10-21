@@ -1,3 +1,4 @@
+import { groupColor, groupColorInk } from '@/features/accounts/group-color';
 import type { NetWorthAmount, NetWorthAllocationEntry, NetWorthReason } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,13 +11,6 @@ import { formatSharePercent } from '@/lib/formatSharePercent';
 import { allocationSize } from './allocationSize';
 import { sliceCaption } from './sliceCaption';
 import styles from './AllocationCharts.module.css';
-
-const SLICE_COLORS = [
-  'var(--chart-allocation-1)',
-  'var(--chart-allocation-2)',
-  'var(--chart-allocation-3)',
-  'var(--chart-allocation-4)',
-] as const;
 
 type ChartView = 'pie' | 'treemap';
 
@@ -39,7 +33,7 @@ interface AllocationChartsProps {
   total?: NetWorthAmount | null;
 }
 
-function sliceFromEntry(entry: NetWorthAllocationEntry, index: number): AllocationSlice | null {
+function sliceFromEntry(entry: NetWorthAllocationEntry): AllocationSlice | null {
   if (entry.depth !== 1 || entry.share.percent === null) {
     return null;
   }
@@ -50,7 +44,7 @@ function sliceFromEntry(entry: NetWorthAllocationEntry, index: number): Allocati
   }
 
   return {
-    fill: SLICE_COLORS[index % SLICE_COLORS.length],
+    fill: groupColor(entry.color),
     groupId: entry.groupId,
     label: entry.label,
     name: entry.label,
@@ -111,14 +105,19 @@ function TreemapTile(node: {
     <g>
       <rect
         className={styles.tile}
-        fill={SLICE_COLORS[node.index % SLICE_COLORS.length]}
+        fill={groupColor(slice?.fill)}
         height={node.height}
         width={node.width}
         x={node.x}
         y={node.y}
       />
       {node.width > 48 && node.height > 24 ? (
-        <text className={styles.tileLabel} x={node.x + 8} y={node.y + 16}>
+        <text
+          fill={groupColorInk(slice?.fill)}
+          className={styles.tileLabel}
+          x={node.x + 8}
+          y={node.y + 16}
+        >
           {node.name}
           {percent ? ` · ${percent}` : ''}
         </text>
@@ -143,7 +142,7 @@ export function AllocationCharts({
   const { ref, size } = useBoxSize();
   const roots = allocation.filter((entry) => entry.depth === 1);
   const slices = roots
-    .map((entry, index) => sliceFromEntry(entry, index))
+    .map(sliceFromEntry)
     .filter((slice): slice is AllocationSlice => slice !== null);
 
   function changeView(next: ChartView) {

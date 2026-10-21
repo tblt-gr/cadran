@@ -1,3 +1,4 @@
+import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useTranslation } from 'react-i18next';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
@@ -22,8 +23,14 @@ export function AccountDetailPageSkeleton({ status }: { status: string }) {
             <div className={identityStyles.nameRow}>
               <SkeletonBlock className={skeletonStyles.name} />
             </div>
-            <SkeletonBlock className={skeletonStyles.line} />
-            <SkeletonBlock className={skeletonStyles.line} />
+            <span>
+              <SkeletonBlock className={skeletonStyles.line} />
+            </span>
+            <span className={identityStyles.meta}>
+              <SkeletonBlock className={skeletonStyles.line} />
+              <GroupMarker color={null} pending />
+              <SkeletonBlock className={skeletonStyles.line} />
+            </span>
           </div>
           <div className={identityStyles.balancePanel}>
             <span className={identityStyles.balanceLabel}>{t('accounts.fields.balance')}</span>

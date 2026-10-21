@@ -1,3 +1,4 @@
+import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import type {
   Account,
   AccountGroup,
@@ -178,10 +179,14 @@ export function GroupList({
               return (
                 <tr key={group.id}>
                   <th scope="row">
-                    <span>{group.label}</span>
+                    <span>
+                      <GroupMarker color={group.resolvedColor} />
+                      {group.label}
+                    </span>
                     <small>{t('accountGroups.list.depth', { depth: group.depth })}</small>
                     <GroupMembers
                       accounts={members}
+                      color={group.resolvedColor}
                       models={models.items}
                       products={products.items}
                       shareByAccount={shareByAccount}

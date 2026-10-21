@@ -1,3 +1,5 @@
+import { groupColor } from '@/features/accounts/group-color';
+import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import type { NetWorthAllocationEntry, NetWorthReason } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { AllocationLegend as Legend } from '@/components/ui/charts/allocation-legend/AllocationLegend';
@@ -20,7 +22,13 @@ export function AllocationLegend({ entries, reason }: AllocationLegendProps) {
         amount: <NetWorthFigure amount={entry.value} reason={reason} />,
         barPercent: entry.share.percentDisplay,
         key: entry.groupId,
-        label: entry.label,
+        label: (
+          <>
+            <GroupMarker color={entry.color} />
+            {entry.label}
+          </>
+        ),
+        color: groupColor(entry.color),
         share:
           entry.share.percentDisplay === null ? (
             <EmptyValue label={t('states.notCalculable.label')} />

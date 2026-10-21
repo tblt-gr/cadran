@@ -25,6 +25,7 @@ function contribution(overrides: Partial<NetWorthContribution>): NetWorthContrib
     kind: 'SAVINGS',
     netWorthSign: 1,
     primaryGroupId: null,
+    primaryGroupColor: '#486DF0',
     primaryGroupLabel: null,
     eligible: true,
     amount: null,

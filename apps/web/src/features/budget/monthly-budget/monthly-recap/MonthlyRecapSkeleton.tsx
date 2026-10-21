@@ -1,10 +1,7 @@
+import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import { useTranslation } from 'react-i18next';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
-import {
-  SkeletonBlock,
-  SkeletonStatus,
-  SkeletonTableRows,
-} from '@/components/ui/skeleton/Skeleton';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import accountStyles from './account-recap/AccountRecap.module.css';
 import totalsStyles from './totals-card/TotalsCard.module.css';
 import wealthStyles from './wealth-card/WealthCard.module.css';
@@ -141,7 +138,43 @@ export function MonthlyRecapPlaceholder({ status }: { status?: string }) {
                   <th scope="col">{t('budget.monthly.recap.accounts.share')}</th>
                 </tr>
               </thead>
-              <SkeletonTableRows labels={accountColumns} rows={4} />
+              <tbody aria-hidden="true">
+                <tr className={accountStyles.groupRow}>
+                  <th colSpan={2} data-label={accountColumns[0]} scope="rowgroup">
+                    <GroupMarker color={null} pending />
+                    <SkeletonBlock />
+                  </th>
+                  <td data-label={accountColumns[2]}>
+                    <SkeletonBlock />
+                  </td>
+                  <td data-label={accountColumns[3]}>
+                    <SkeletonBlock />
+                  </td>
+                </tr>
+                {Array.from({ length: 3 }, (_, index) => (
+                  <tr key={index}>
+                    <th data-label={accountColumns[0]} scope="row">
+                      <a>
+                        <GroupMarker color={null} pending />
+                        <SkeletonBlock />
+                      </a>
+                    </th>
+                    <td data-label={accountColumns[1]}>
+                      <span>
+                        <SkeletonBlock />
+                      </span>
+                    </td>
+                    <td data-label={accountColumns[2]}>
+                      <span>
+                        <SkeletonBlock />
+                      </span>
+                    </td>
+                    <td data-label={accountColumns[3]}>
+                      <SkeletonBlock />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </section>

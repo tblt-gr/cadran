@@ -25,6 +25,7 @@ final class AccountGroupFixture
         ?string $parentId = null,
         int $depth = 1,
         ?\DateTimeImmutable $archivedAt = null,
+        ?string $color = null,
     ): AccountGroup {
         $now = new \DateTimeImmutable('2026-09-05T10:00:00+00:00');
 
@@ -39,6 +40,7 @@ final class AccountGroupFixture
             createdAt: $now,
             updatedAt: $now,
             archivedAt: $archivedAt,
+            color: $color,
         );
     }
 }

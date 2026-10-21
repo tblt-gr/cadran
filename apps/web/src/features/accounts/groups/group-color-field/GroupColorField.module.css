@@ -1,0 +1,26 @@
+.field {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-2);
+}
+
+.field input {
+  width: var(--control-height);
+  cursor: pointer;
+}
+
+.field button {
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-button);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  font: inherit;
+  cursor: pointer;
+}
+
+.field p {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
