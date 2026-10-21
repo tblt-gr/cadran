@@ -2,7 +2,7 @@ FROM node:22.22.0-bookworm-slim@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca
 
 FROM composer:2.9@sha256:b09bccd91a78fe8a9ab4b33d707b862e8fe54fec17782e32683ad2a69c46867d AS composer
 
-FROM dunglas/frankenphp:1.13.1-php8.5-bookworm@sha256:cbe891d9411baf58a3da2b4e05b47edda54410a487a818b4e7605882d796b1bb
+FROM dunglas/frankenphp:1.13.1-php8.5-bookworm@sha256:0e36938ef0ec00d872c1cbadecf3fdcea15e445b9d86e0f2fc8ab07ed17686de
 
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
