@@ -44,7 +44,11 @@ final class NetWorthShareCalculator
                 : NetWorthShare::none($reason);
         }
 
-        return new NetWorthShares($accountShares, $groupShares);
+        $ungrouped = null === $reason
+            ? self::ratio(ExclusiveGroupRollup::ungroupedTotal($included), self::eligibleNetWorth($included))
+            : NetWorthShare::none($reason);
+
+        return new NetWorthShares($accountShares, $groupShares, $ungrouped);
     }
 
     /**

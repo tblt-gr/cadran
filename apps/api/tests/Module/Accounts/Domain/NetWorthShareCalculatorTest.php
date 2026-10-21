@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Domain;
 
 use App\Module\Accounts\Domain\AccountShareInput;
+use App\Module\Accounts\Domain\ExclusiveGroupRollup;
 use App\Module\Accounts\Domain\GroupLineage;
 use App\Module\Accounts\Domain\NetWorthShareCalculator;
 use App\Module\Accounts\Domain\NetWorthShareReason;
@@ -127,6 +128,45 @@ final class NetWorthShareCalculatorTest extends TestCase
 
         self::assertSame('0.600000000000000000000000', $shares->group($child)->ratio?->toString());
         self::assertSame('0.600000000000000000000000', $shares->group($parent)->ratio?->toString());
+    }
+
+    /**
+     * Eligible net worth is 1 000: A 600 in Épargne (child of Liquidités),
+     * B 300 directly in Liquidités, C 100 without group and D 50 excluded.
+     * Épargne is 60 %, Liquidités rolls A and B up to 90 %, the ungrouped
+     * section is 10 %.
+     */
+    public function testTheUngroupedSectionIsAnExclusiveBucketOfTheSameDenominator(): void
+    {
+        $inputs = [
+            $this->valued(self::CHECKING, self::SAVINGS, '600'),
+            $this->valued(self::LIVRET, self::LIQUID, '300'),
+            new AccountShareInput(self::LOAN, true, 1, null, DecimalValue::fromString('100'), AssetCode::fromString('EUR')),
+            new AccountShareInput(self::PIGGY, false, 1, null, DecimalValue::fromString('50'), AssetCode::fromString('EUR')),
+        ];
+        $lineages = [
+            new GroupLineage(self::LIQUID, [self::LIQUID]),
+            new GroupLineage(self::SAVINGS, [self::SAVINGS, self::LIQUID]),
+        ];
+
+        $shares = NetWorthShareCalculator::compute($inputs, $lineages);
+
+        self::assertSame('60.000000000000000000000000', $shares->group(self::SAVINGS)->percent?->toString());
+        self::assertSame('90.000000000000000000000000', $shares->group(self::LIQUID)->percent?->toString());
+        self::assertSame('10.000000000000000000000000', $shares->ungrouped()->percent?->toString());
+        self::assertSame('100', ExclusiveGroupRollup::ungroupedTotal($inputs)->toString());
+        self::assertSame('30.000000000000000000000000', $shares->account(self::LIVRET)->percent?->toString());
+    }
+
+    public function testTheUngroupedShareFollowsTheNullWithReasonPolicy(): void
+    {
+        $shares = NetWorthShareCalculator::compute([
+            $this->valued(self::CHECKING, self::LIQUID, '1000'),
+            new AccountShareInput(self::LOAN, true, -1, null, DecimalValue::fromString('1000'), AssetCode::fromString('EUR')),
+        ], $this->lineages());
+
+        self::assertNull($shares->ungrouped()->percent);
+        self::assertSame(NetWorthShareReason::ZERO_ELIGIBLE_NET_WORTH, $shares->ungrouped()->reason);
     }
 
     /** @return list<AccountShareInput> */

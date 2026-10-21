@@ -1,0 +1,16 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-3);
+}
+
+.alert {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+}
+
+.group > button {
+  align-self: flex-start;
+}

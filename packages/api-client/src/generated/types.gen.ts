@@ -1851,6 +1851,66 @@ export type AccountPage = {
     total: number;
 };
 
+export type AccountOverview = {
+    asOf: string;
+    /**
+     * Every account of the workspace whatever the lifecycle filters, to tell an empty filter from no account.
+     */
+    accountCount: number;
+    groups: Array<AccountOverviewGroup>;
+};
+
+/**
+ * The heading of one table: a primary group, or the ungrouped section when `groupId` is null (then label, colors and parent are null).
+ */
+export type AccountOverviewGroup = {
+    groupId: string | null;
+    label: string | null;
+    parentId: string | null;
+    depth: number;
+    color: string | null;
+    resolvedColor: string | null;
+    defaultColor: string | null;
+    /**
+     * A parent whose total already contains its children; never add the two.
+     */
+    isRollup: boolean;
+    /**
+     * Members visible under the lifecycle filters.
+     */
+    memberCount: number;
+    total: NetWorthAmount | null;
+    totalReason: NetWorthReason | null;
+    share: NetWorthShare;
+    quality: ValuationQuality;
+    /**
+     * Version to send back with a move inside this group.
+     */
+    orderVersion: number;
+    archivedAt: string | null;
+};
+
+export type AccountOverviewRows = {
+    items: Array<Account>;
+    nextCursor: string | null;
+    orderVersion: number;
+};
+
+export type MoveAccountRequest = {
+    groupId: string | null;
+    beforeAccountId: string | null;
+    orderVersion: number;
+};
+
+export type AccountMove = {
+    groupId: string | null;
+    orderVersion: number;
+    /**
+     * 1-based position of the moved account among every member of its group.
+     */
+    rank: number;
+};
+
 /**
  * Backend-owned weight of one account or exclusive group. Both the ratio and the percent are canonical decimal strings. When the share cannot be computed it is null with a reason, never `0%`.
  */
@@ -9334,6 +9394,110 @@ export type CreateAccountResponses = {
 
 export type CreateAccountResponse = CreateAccountResponses[keyof CreateAccountResponses];
 
+export type ReadAccountOverviewData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * ISO 8601 calendar day, today in the workspace when omitted.
+         */
+        asOf?: string;
+        includeClosed?: boolean;
+        includeArchived?: boolean;
+    };
+    url: '/api/v1/accounts/overview';
+};
+
+export type ReadAccountOverviewErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * The workspace holds more accounts or groups than one overview reads (`type: /problems/net-worth-scope-too-large`).
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadAccountOverviewError = ReadAccountOverviewErrors[keyof ReadAccountOverviewErrors];
+
+export type ReadAccountOverviewResponses = {
+    /**
+     * The ordered group headings.
+     */
+    200: AccountOverview;
+};
+
+export type ReadAccountOverviewResponse = ReadAccountOverviewResponses[keyof ReadAccountOverviewResponses];
+
+export type ReadAccountOverviewRowsData = {
+    body?: never;
+    path: {
+        groupKey: string;
+    };
+    query?: {
+        cursor?: string;
+        asOf?: string;
+        includeClosed?: boolean;
+        includeArchived?: boolean;
+    };
+    url: '/api/v1/accounts/overview/{groupKey}/accounts';
+};
+
+export type ReadAccountOverviewRowsErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The order changed since the cursor was issued (`type: /problems/stale-account-order`).
+     */
+    409: Problem;
+    /**
+     * The workspace holds more accounts or groups than one overview reads (`type: /problems/net-worth-scope-too-large`).
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadAccountOverviewRowsError = ReadAccountOverviewRowsErrors[keyof ReadAccountOverviewRowsErrors];
+
+export type ReadAccountOverviewRowsResponses = {
+    /**
+     * The members of the table, in saved order.
+     */
+    200: AccountOverviewRows;
+};
+
+export type ReadAccountOverviewRowsResponse = ReadAccountOverviewRowsResponses[keyof ReadAccountOverviewRowsResponses];
+
 export type ReadAccountData = {
     body?: never;
     path: {
@@ -9502,6 +9666,71 @@ export type ArchiveAccountResponses = {
 };
 
 export type ArchiveAccountResponse = ArchiveAccountResponses[keyof ArchiveAccountResponses];
+
+export type MoveAccountData = {
+    body: MoveAccountRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/accounts/{id}/move';
+};
+
+export type MoveAccountErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * Either the CSRF / Origin check failed (`type: /problems/csrf-token`), or the authenticated session belongs to no workspace (`type: about:blank`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The order version is stale (`type: /problems/stale-account-order`).
+     */
+    409: Problem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * The account is not a member of `groupId`, the anchor is not another member of that group, or the body is malformed.
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type MoveAccountError = MoveAccountErrors[keyof MoveAccountErrors];
+
+export type MoveAccountResponses = {
+    /**
+     * The new order version and the rank of the moved account.
+     */
+    200: AccountMove;
+};
+
+export type MoveAccountResponse = MoveAccountResponses[keyof MoveAccountResponses];
 
 export type ReadAccountValuationData = {
     body?: never;

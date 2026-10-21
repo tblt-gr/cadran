@@ -2,7 +2,6 @@ import {
   archiveAccountGroup,
   createAccountGroup,
   listAccountGroups,
-  listAccounts,
   updateAccountGroup,
   type AccountGroup,
   type CreateAccountGroupRequest,
@@ -21,21 +20,13 @@ import { ArchiveGroupDialog } from '@/features/accounts/groups/archive-group-dia
 import { GroupForm } from '@/features/accounts/groups/group-form/GroupForm';
 import { GroupList } from '@/features/accounts/groups/group-list/GroupList';
 import {
-  AllocationCharts,
-  type ChartView,
-} from '@/features/dashboard/allocation-charts/AllocationCharts';
-import { AllocationLegend } from '@/features/dashboard/allocation-panel/AllocationLegend';
-import {
   groupErrorKind,
   GroupRequestError,
   groupRequestError,
 } from '@/features/accounts/groups/groupError';
 import { GroupsState } from '@/features/accounts/groups/groups-state/GroupsState';
 import { AccountGroupsPageSkeleton } from './AccountGroupsPageSkeleton';
-import { useNetWorth } from '@/features/dashboard/net-worth/useNetWorth';
 import styles from './AccountGroupsPage.module.css';
-
-const ACCOUNT_PAGE_SIZE = 100;
 
 type Editor = AccountGroup | 'create' | null;
 
@@ -47,7 +38,6 @@ export function AccountGroupsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<AccountGroup | null>(null);
   const [saved, setSaved] = useState<'saved' | 'archived' | null>(null);
-  const [allocationView, setAllocationView] = useState<ChartView>('treemap');
 
   function openEditor(target: Exclude<Editor, null>) {
     setSaved(null);
@@ -66,28 +56,6 @@ export function AccountGroupsPage() {
       const result = await listAccountGroups({
         ...authApiOptions(),
         query: { includeArchived, page, pageSize: 50 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) {
-        throw groupRequestError(result);
-      }
-      return result.data;
-    },
-    retry: false,
-  });
-
-  const netWorth = useNetWorth();
-  const accounts = useQuery({
-    queryKey: ['accounts', 'for-groups'],
-    queryFn: async ({ signal }) => {
-      const result = await listAccounts({
-        ...authApiOptions(),
-        query: {
-          includeArchived: false,
-          includeClosed: true,
-          page: 1,
-          pageSize: ACCOUNT_PAGE_SIZE,
-        },
         signal,
       });
       if (!result.response?.ok || !result.data) {
@@ -169,11 +137,7 @@ export function AccountGroupsPage() {
   const unauthorized = groups.error instanceof GroupRequestError && groups.error.status === 401;
   const items = groups.data?.items ?? [];
   const totalPages = Math.max(1, Math.ceil((groups.data?.total ?? 0) / 50));
-  const allocationRoots = (netWorth.data?.allocation ?? []).filter((entry) => entry.depth === 1);
-  const pagePending =
-    (groups.isPending && groups.data === undefined) ||
-    (netWorth.isPending && netWorth.data === undefined) ||
-    (accounts.isPending && accounts.data === undefined);
+  const pagePending = groups.isPending && groups.data === undefined;
 
   if (groups.data && page > totalPages) {
     setPage(totalPages);
@@ -272,41 +236,7 @@ export function AccountGroupsPage() {
           onRetry={() => void groups.refetch()}
         />
       ) : (
-        <>
-          {netWorth.isError ? (
-            <section className={`card ${styles.allocation}`} role="alert">
-              {t('accountGroups.list.allocationUnavailable')}
-            </section>
-          ) : allocationRoots.length > 0 ? (
-            <section className={`card ${styles.allocation}`} data-allocation-view={allocationView}>
-              <div className={allocationView === 'pie' ? styles.pieLayout : undefined}>
-                <AllocationCharts
-                  allocation={netWorth.data?.allocation ?? []}
-                  onViewChange={setAllocationView}
-                  reason={netWorth.data?.reason ?? null}
-                  total={netWorth.data?.total ?? null}
-                />
-                {allocationView === 'pie' ? (
-                  <AllocationLegend
-                    entries={allocationRoots}
-                    reason={netWorth.data?.reason ?? null}
-                  />
-                ) : null}
-              </div>
-            </section>
-          ) : null}
-          <GroupList
-            accounts={accounts.data?.items ?? []}
-            accountsStatus={accounts.isPending ? 'pending' : accounts.isError ? 'error' : 'ready'}
-            allocation={netWorth.data?.allocation ?? []}
-            allocationStatus={netWorth.isPending ? 'pending' : netWorth.isError ? 'error' : 'ready'}
-            contributions={netWorth.data?.contributions ?? []}
-            groups={items}
-            netWorthReason={netWorth.data?.reason ?? null}
-            onArchive={setArchiving}
-            onEdit={openEditor}
-          />
-        </>
+        <GroupList groups={items} onArchive={setArchiving} onEdit={openEditor} />
       )}
 
       {groups.isSuccess && (totalPages > 1 || page > 1) ? (

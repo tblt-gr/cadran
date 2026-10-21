@@ -6,6 +6,8 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountGroupRepository;
+use App\Module\Accounts\Domain\AccountOrdering;
+use App\Module\Accounts\Domain\AccountOrderRepository;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Accounts\Domain\InvalidAccount;
@@ -33,6 +35,7 @@ final readonly class UpdateAccount
         private ClockInterface $clock,
         private ResolveAccountValuation $valuations,
         private AssertPeriodOpen $periods,
+        private AccountOrderRepository $orders,
     ) {
     }
 
@@ -128,6 +131,17 @@ final readonly class UpdateAccount
 
             if (!$this->accounts->update($updated, $current->version)) {
                 throw new StaleAccountVersion('The account was changed by another request.');
+            }
+
+            if ($current->primaryGroupId !== $updated->primaryGroupId) {
+                // Leaving or entering a group shifts the ranks of its members; the
+                // versions are the only thing that makes an older cursor stale.
+                // Locked in key order so two regroupings cannot deadlock.
+                $groupIds = [$current->primaryGroupId, $updated->primaryGroupId];
+                usort($groupIds, static fn (?string $left, ?string $right): int => AccountOrdering::key($left) <=> AccountOrdering::key($right));
+                foreach ($groupIds as $groupId) {
+                    $this->orders->bump($context->workspace, $groupId);
+                }
             }
 
             $this->audit($context, $current, $updated);

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Application\Double;
 
 use App\Module\Accounts\Domain\Account;
+use App\Module\Accounts\Domain\AccountOrdering;
 use App\Module\Accounts\Domain\AccountRepository;
+use App\Module\Accounts\Domain\RankedAccount;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
@@ -19,9 +21,18 @@ final class InMemoryAccountRepository implements AccountRepository
     /** @var list<Account> */
     private array $accounts;
 
+    private ?InMemoryAccountOrderRepository $orders = null;
+
     public function __construct(Account ...$accounts)
     {
         $this->accounts = array_values($accounts);
+    }
+
+    public function orderedBy(InMemoryAccountOrderRepository $orders): self
+    {
+        $this->orders = $orders;
+
+        return $this;
     }
 
     public function find(WorkspaceScope $workspace, string $id): ?Account
@@ -100,6 +111,62 @@ final class InMemoryAccountRepository implements AccountRepository
                 && (null === $account->closedOn || $account->closedOn >= $from)
                 && (null === $account->archivedAt || $account->archivedAt->setTimezone($workspaceTimezone)->format('Y-m-d') > $from->format('Y-m-d')),
         )), 0, $limit);
+    }
+
+    public function listInGroupOrder(
+        WorkspaceScope $workspace,
+        ?string $groupId,
+        bool $includeArchived,
+        bool $includeClosed,
+        int $afterRank,
+        int $limit,
+    ): array {
+        $ranked = [];
+        foreach ($this->members($workspace, $groupId) as $index => $account) {
+            if ($index + 1 > $afterRank
+                && ($includeArchived || null === $account->archivedAt)
+                && ($includeClosed || !$account->isClosed())) {
+                $ranked[] = new RankedAccount($account, $index + 1);
+            }
+        }
+
+        return array_slice($ranked, 0, $limit);
+    }
+
+    public function memberIdsInOrder(WorkspaceScope $workspace, ?string $groupId, int $limit): array
+    {
+        return array_slice(array_map(static fn (Account $account): string => $account->id, $this->members($workspace, $groupId)), 0, $limit);
+    }
+
+    public function countByPrimaryGroup(WorkspaceScope $workspace, bool $includeArchived, bool $includeClosed): array
+    {
+        $counts = [];
+        foreach ($this->matching($workspace, $includeArchived, $includeClosed, null) as $account) {
+            $key = AccountOrdering::key($account->primaryGroupId);
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @return list<Account> saved order first, then creation order, like the database
+     */
+    private function members(WorkspaceScope $workspace, ?string $groupId): array
+    {
+        $members = array_values(array_filter(
+            $this->accounts,
+            static fn (Account $account): bool => $account->workspace->equals($workspace) && $account->primaryGroupId === $groupId,
+        ));
+        $positions = $this->orders?->positions($workspace, $groupId) ?? [];
+        usort($members, static function (Account $left, Account $right) use ($positions): int {
+            $leftPosition = $positions[$left->id] ?? PHP_INT_MAX;
+            $rightPosition = $positions[$right->id] ?? PHP_INT_MAX;
+
+            return [$leftPosition, $left->createdAt, $left->id] <=> [$rightPosition, $right->createdAt, $right->id];
+        });
+
+        return $members;
     }
 
     public function hasActiveLabel(WorkspaceScope $workspace, string $label, ?string $excludingId = null): bool

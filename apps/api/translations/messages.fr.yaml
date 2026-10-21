@@ -456,6 +456,15 @@ api:
     account_forbidden:
       title: 'Comptes inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    invalid_account_overview_query:
+      title: 'Requête de vue des comptes invalide'
+      detail: 'La date doit être un jour ISO 8601, les filtres valent true ou false, la taille de page est comprise entre 1 et 50 et le curseur doit provenir de ce groupe.'
+    invalid_account_move:
+      title: 'Déplacement de compte invalide'
+      detail: "Le compte, son groupe et le compte de repère doivent appartenir au même groupe de cet espace, et la version d'ordre doit être un entier positif."
+    account_stale_order:
+      title: 'Ordre modifié entre-temps'
+      detail: "L'ordre des comptes de ce groupe a été modifié par une autre requête. Rechargez l'ordre enregistré puis réappliquez le déplacement."
     invalid_account_group_query:
       title: 'Requête de groupes invalide'
       detail: 'Le numéro de page doit être compris entre 1 et 1000 et la taille de page entre 1 et 100.'

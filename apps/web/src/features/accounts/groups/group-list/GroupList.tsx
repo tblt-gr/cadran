@@ -1,78 +1,27 @@
 import { canonicalGroupColor } from '@/features/accounts/group-color';
-import type {
-  Account,
-  AccountGroup,
-  NetWorthAllocationEntry,
-  NetWorthContribution,
-  NetWorthReason,
-} from '@cadran/api-client';
+import type { AccountGroup } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
-import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { SortableHeader } from '@/components/ui/sortable-header/SortableHeader';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { GroupMembers } from '@/features/accounts/groups/group-members/GroupMembers';
-import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
-import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
-import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
-import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
-import { compareDecimalString, compareText, toggleSort, type SortDirection } from '@/lib/tableSort';
+import { compareText, toggleSort, type SortDirection } from '@/lib/tableSort';
 import styles from './GroupList.module.css';
 
-type LoadStatus = 'error' | 'pending' | 'ready';
-type GroupSortColumn = 'label' | 'parent' | 'share' | 'status' | 'total';
+type GroupSortColumn = 'label' | 'parent' | 'status';
 
 interface GroupListProps {
-  accounts: Account[];
-  accountsStatus: LoadStatus;
-  allocation: NetWorthAllocationEntry[];
-  allocationStatus: LoadStatus;
-  contributions: NetWorthContribution[];
   groups: AccountGroup[];
-  netWorthReason: NetWorthReason | null;
   onArchive: (group: AccountGroup) => void;
   onEdit: (group: AccountGroup) => void;
 }
 
-function totalSortKey(entry: NetWorthAllocationEntry | undefined): string | null {
-  return entry?.value?.display?.value ?? entry?.value?.value ?? null;
-}
-
-export function GroupList({
-  accounts,
-  accountsStatus,
-  allocation,
-  allocationStatus,
-  contributions,
-  groups,
-  netWorthReason,
-  onArchive,
-  onEdit,
-}: GroupListProps) {
+export function GroupList({ groups, onArchive, onEdit }: GroupListProps) {
   const { i18n, t } = useTranslation();
   const [sort, setSort] = useState<{ column: GroupSortColumn; direction: SortDirection }>({
     column: 'label',
     direction: 'asc',
   });
-  const asOf = accounts.find((account) => account.valuation.requestedOn)?.valuation.requestedOn;
-  const products = useProductOptions(asOf ?? '');
-  const models = useTemplateOptions();
-  const allocationByGroup = new Map(allocation.map((entry) => [entry.groupId, entry]));
-  const shareByAccount = new Map(
-    contributions.map((contribution) => [contribution.accountId, contribution.share]),
-  );
-  const accountsByGroup = new Map<string, Account[]>();
-  for (const account of accounts) {
-    if (account.primaryGroupId === null) {
-      continue;
-    }
-
-    const members = accountsByGroup.get(account.primaryGroupId) ?? [];
-    members.push(account);
-    accountsByGroup.set(account.primaryGroupId, members);
-  }
-
   function parentLabel(group: AccountGroup): string {
     return group.parentId
       ? (group.parentLabel ?? t('accountGroups.list.unavailableParent'))
@@ -89,26 +38,11 @@ export function GroupList({
   }
 
   const rows = [...groups].sort((left, right) => {
-    const leftEntry = allocationByGroup.get(left.id);
-    const rightEntry = allocationByGroup.get(right.id);
-
     switch (sort.column) {
       case 'label':
         return compareText(left.label, right.label, i18n.language, sort.direction);
       case 'parent':
         return compareText(parentLabel(left), parentLabel(right), i18n.language, sort.direction);
-      case 'total':
-        return compareDecimalString(
-          totalSortKey(leftEntry),
-          totalSortKey(rightEntry),
-          sort.direction,
-        );
-      case 'share':
-        return compareDecimalString(
-          leftEntry?.share.percent ?? left.share.percent,
-          rightEntry?.share.percent ?? right.share.percent,
-          sort.direction,
-        );
       case 'status':
         return compareText(statusLabel(left), statusLabel(right), i18n.language, sort.direction);
     }
@@ -116,9 +50,6 @@ export function GroupList({
 
   return (
     <div className={`card ${styles.panel}`}>
-      {allocationStatus === 'pending' ? (
-        <SkeletonStatus>{t('accountGroups.list.totalLoading')}</SkeletonStatus>
-      ) : null}
       <div className={styles.tableScroll}>
         <table>
           <caption className="sr-only">{t('accountGroups.list.caption')}</caption>
@@ -141,22 +72,6 @@ export function GroupList({
                 {t('accountGroups.fields.parent')}
               </SortableHeader>
               <SortableHeader
-                column="total"
-                current={sort.column}
-                direction={sort.direction}
-                onSort={onSort}
-              >
-                {t('accountGroups.fields.total')}
-              </SortableHeader>
-              <SortableHeader
-                column="share"
-                current={sort.column}
-                direction={sort.direction}
-                onSort={onSort}
-              >
-                {t('accountGroups.fields.share')}
-              </SortableHeader>
-              <SortableHeader
                 column="status"
                 current={sort.column}
                 direction={sort.direction}
@@ -171,11 +86,6 @@ export function GroupList({
           </thead>
           <tbody>
             {rows.map((group) => {
-              const entry = allocationByGroup.get(group.id);
-              const members = [...(accountsByGroup.get(group.id) ?? [])].sort((left, right) =>
-                left.label.localeCompare(right.label, i18n.language),
-              );
-
               return (
                 <tr
                   className={styles.groupRow}
@@ -187,30 +97,8 @@ export function GroupList({
                   <th scope="row">
                     <span>{group.label}</span>
                     <small>{t('accountGroups.list.depth', { depth: group.depth })}</small>
-                    <GroupMembers
-                      accounts={members}
-                      models={models.items}
-                      products={products.items}
-                      shareByAccount={shareByAccount}
-                      sharesStatus={allocationStatus}
-                      status={accountsStatus}
-                    />
                   </th>
                   <td>{parentLabel(group)}</td>
-                  <td className={`money ${styles.total}`}>
-                    {allocationStatus === 'pending' ? (
-                      <SkeletonBlock className={styles.cellSkeleton} />
-                    ) : (
-                      <NetWorthFigure amount={entry?.value ?? null} reason={netWorthReason} />
-                    )}
-                  </td>
-                  <td>
-                    {allocationStatus === 'pending' ? (
-                      <SkeletonBlock className={styles.cellSkeleton} />
-                    ) : (
-                      <ShareCell share={entry?.share ?? group.share} />
-                    )}
-                  </td>
                   <td>
                     <StatusBadge tone={group.archivedAt ? 'warning' : 'positive'}>
                       {statusLabel(group)}

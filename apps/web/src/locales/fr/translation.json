@@ -496,8 +496,6 @@
       "description": "Reconnectez-vous pour consulter les comptes de cet espace."
     },
     "list": {
-      "groupColorsUnavailable": "Les couleurs des groupes sont indisponibles.",
-      "retryGroupColors": "Recharger les couleurs des groupes",
       "caption": "Comptes de l’espace de travail",
       "status": "Statut",
       "actions": "Actions",
@@ -877,6 +875,32 @@
       "confirmHint": "Ce relevé ne servira plus à calculer le solde. La ligne reste visible comme retirée.",
       "confirming": "Retrait…",
       "confirmAction": "Retirer le relevé"
+    },
+    "overview": {
+      "ungrouped": "Sans groupe",
+      "sole": "Comptes",
+      "rollup": "Cumul des sous-groupes",
+      "caption": "Comptes du groupe {{label}}",
+      "total": "Total",
+      "quality": "Qualité",
+      "columnIdentity": "Établissement et produit",
+      "assetWarning": "Libellé en {{asset}}",
+      "loadMore": "Afficher plus de comptes",
+      "loadingMore": "Chargement des comptes suivants…",
+      "moveUp": "Monter le compte {{label}}",
+      "moveDown": "Descendre le compte {{label}}",
+      "moved": "{{label}} déplacé en position {{rank}} sur {{count}}.",
+      "stale": "L’ordre a changé depuis votre dernière lecture. L’ordre enregistré reste inchangé.",
+      "reloadOrder": "Recharger l’ordre",
+      "moveFailed": "Le déplacement n’a pas été enregistré. L’ordre affiché est l’ordre enregistré.",
+      "retryMove": "Réessayer le déplacement",
+      "rowsUnavailable": "Les comptes de ce groupe sont indisponibles.",
+      "rowsReload": "Recharger les comptes",
+      "emptyFilter": {
+        "title": "Aucun compte ne correspond aux filtres",
+        "description": "Les filtres actifs masquent tous les comptes de l’espace de travail.",
+        "reset": "Réinitialiser les filtres"
+      }
     }
   },
   "accountGroups": {
@@ -892,9 +916,7 @@
       "color": "Couleur du groupe",
       "label": "Libellé",
       "parent": "Groupe parent",
-      "order": "Ordre d’affichage",
-      "share": "Poids patrimonial",
-      "total": "Total"
+      "order": "Ordre d’affichage"
     },
     "form": {
       "resetColor": "Rétablir la couleur par défaut",
@@ -938,14 +960,7 @@
       "description": "Reconnectez-vous pour accéder aux groupes de votre espace."
     },
     "list": {
-      "caption": "Groupes de comptes, comptes et totaux exclusifs",
-      "accounts": "Comptes du groupe",
-      "accountsLoading": "Chargement des comptes…",
-      "accountsUnavailable": "Comptes indisponibles",
-      "noAccounts": "Aucun compte dans ce groupe",
-      "totalLoading": "Chargement du total…",
-      "shareLoading": "Chargement du poids…",
-      "allocationUnavailable": "Allocation indisponible",
+      "caption": "Groupes de comptes",
       "status": "État",
       "actions": "Actions",
       "active": "Actif",
@@ -955,7 +970,6 @@
       "editGroup": "Modifier le groupe {{label}}",
       "archiveGroup": "Archiver le groupe {{label}}",
       "openActions": "Actions du groupe {{label}}",
-      "accountsCaption": "Comptes rattachés aux groupes affichés",
       "accountGroup": "Groupe",
       "sortBy": "Trier par {{column}}",
       "depth": "Niveau {{depth}}",

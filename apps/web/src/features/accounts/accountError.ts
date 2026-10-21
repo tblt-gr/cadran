@@ -21,6 +21,7 @@ export class AccountRequestError extends Error {
 function classify(status: number, problemType: string | undefined): AccountErrorKind {
   switch (problemType) {
     case '/problems/stale-version':
+    case '/problems/stale-account-order':
       return 'stale';
     case '/problems/account-label-taken':
       return 'conflict';
