@@ -1,4 +1,4 @@
-import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
+import { canonicalGroupColor } from '@/features/accounts/group-color';
 import type {
   Account,
   AccountGroup,
@@ -177,16 +177,18 @@ export function GroupList({
               );
 
               return (
-                <tr key={group.id}>
+                <tr
+                  className={styles.groupRow}
+                  key={group.id}
+                  style={{
+                    borderInlineStartColor: canonicalGroupColor(group.resolvedColor) ?? undefined,
+                  }}
+                >
                   <th scope="row">
-                    <span>
-                      <GroupMarker color={group.resolvedColor} />
-                      {group.label}
-                    </span>
+                    <span>{group.label}</span>
                     <small>{t('accountGroups.list.depth', { depth: group.depth })}</small>
                     <GroupMembers
                       accounts={members}
-                      color={group.resolvedColor}
                       models={models.items}
                       products={products.items}
                       shareByAccount={shareByAccount}

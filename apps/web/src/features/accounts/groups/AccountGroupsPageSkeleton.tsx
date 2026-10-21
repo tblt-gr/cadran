@@ -1,4 +1,3 @@
-import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import { GroupMembers } from '@/features/accounts/groups/group-members/GroupMembers';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { SortableHeader } from '@/components/ui/sortable-header/SortableHeader';
@@ -48,10 +47,9 @@ export function AccountGroupsPageSkeleton({ status }: { status: string }) {
             </thead>
             <tbody aria-hidden="true">
               {Array.from({ length: 4 }, (_, index) => (
-                <tr key={index}>
+                <tr className={styles.groupRow} key={index}>
                   <th scope="row">
                     <span>
-                      <GroupMarker color={null} pending />
                       <SkeletonBlock />
                     </span>
                     <small>
