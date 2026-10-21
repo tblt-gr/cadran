@@ -18,26 +18,6 @@ export const navigationItems: NavigationItem[] = [
     mobile: true,
   },
   {
-    href: '/transactions',
-    icon: 'transactions',
-    labelKey: 'navigation.transactions',
-    match: (path) =>
-      [
-        '/transactions',
-        '/transactions/recurrences',
-        '/transactions/categories',
-        '/transactions/categories/rules',
-      ].includes(path),
-    mobile: true,
-  },
-  {
-    href: '/budget',
-    icon: 'budget',
-    labelKey: 'navigation.budget',
-    match: (path) => path === '/budget' || path.startsWith('/budget/'),
-    mobile: true,
-  },
-  {
     href: '/accounts',
     icon: 'accounts',
     labelKey: 'navigation.accounts',
@@ -51,10 +31,11 @@ export const navigationItems: NavigationItem[] = [
     match: (path) => path.startsWith('/portfolios') || /^\/life-insurance\/[^/]+$/.test(path),
   },
   {
-    href: '/goals',
-    icon: 'goals',
-    labelKey: 'navigation.goals',
-    match: (path) => path === '/goals',
+    href: '/budget',
+    icon: 'budget',
+    labelKey: 'navigation.budget',
+    match: (path) => path === '/budget' || path.startsWith('/budget/'),
+    mobile: true,
   },
   {
     href: '/reports',
@@ -64,6 +45,25 @@ export const navigationItems: NavigationItem[] = [
       path === '/reports' ||
       /^\/reports\/annual\/\d{4}$/.test(path) ||
       path === '/reports/all-years',
+  },
+  {
+    href: '/goals',
+    icon: 'goals',
+    labelKey: 'navigation.goals',
+    match: (path) => path === '/goals',
+  },
+  {
+    href: '/transactions',
+    icon: 'transactions',
+    labelKey: 'navigation.transactions',
+    match: (path) =>
+      [
+        '/transactions',
+        '/transactions/recurrences',
+        '/transactions/categories',
+        '/transactions/categories/rules',
+      ].includes(path),
+    mobile: true,
   },
   {
     href: '/parameters/profile',

@@ -127,6 +127,21 @@ describe('AuthenticatedApp lazy navigation', () => {
     });
 
     await screen.findByText('Contenu des transactions');
+    const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
+    const current = () => within(sidebar).getByRole('link', { current: 'page' }).textContent;
+    expect(current()).toBe('Transactions');
+
+    fireEvent.click(within(sidebar).getByRole('link', { name: 'Objectifs' }));
+    await act(async () => {
+      gates.goals.open();
+    });
+    await screen.findByText('Contenu des objectifs');
+    expect(current()).toBe('Objectifs');
+
+    window.history.back();
+    await waitFor(() => expect(current()).toBe('Transactions'));
+    window.history.forward();
+    await waitFor(() => expect(current()).toBe('Objectifs'));
   });
 
   it('shows the shell with the real route title while an initial page chunk is pending', async () => {

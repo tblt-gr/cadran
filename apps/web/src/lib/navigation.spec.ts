@@ -2,6 +2,57 @@ import { describe, expect, it } from 'vitest';
 import { getRouteTitleKey, navigationItems } from './navigation';
 
 describe('navigationItems', () => {
+  it('orders the primary, direct mobile and overflow destinations consistently', () => {
+    expect(navigationItems.map((item) => item.href)).toEqual([
+      '/',
+      '/accounts',
+      '/portfolios',
+      '/budget',
+      '/reports',
+      '/goals',
+      '/transactions',
+      '/parameters/profile',
+    ]);
+    expect(navigationItems.filter((item) => item.mobile).map((item) => item.href)).toEqual([
+      '/',
+      '/accounts',
+      '/budget',
+      '/transactions',
+    ]);
+    expect(navigationItems.filter((item) => !item.mobile).map((item) => item.href)).toEqual([
+      '/portfolios',
+      '/reports',
+      '/goals',
+      '/parameters/profile',
+    ]);
+  });
+
+  it.each([
+    ['/accounts/account-id', '/accounts'],
+    ['/accounts/groups', '/accounts'],
+    ['/portfolios/portfolio-id', '/portfolios'],
+    ['/portfolios/instruments', '/portfolios'],
+    ['/life-insurance/contract-id', '/portfolios'],
+    ['/budget/plans/plan-id', '/budget'],
+    ['/reports/annual/2026', '/reports'],
+    ['/reports/all-years', '/reports'],
+    ['/transactions/categories', '/transactions'],
+    ['/transactions/categories/rules', '/transactions'],
+    ['/transactions/recurrences', '/transactions'],
+    ['/parameters/metric-policy', '/parameters/profile'],
+  ])('selects only %s parent %s', (path, parent) => {
+    expect(navigationItems.filter((item) => item.match(path)).map((item) => item.href)).toEqual([
+      parent,
+    ]);
+  });
+
+  it.each(['/unknown', '/transactions/unknown', '/accounts/id/unknown', '/reports/unknown'])(
+    'does not select a destination for unrelated route %s',
+    (path) => {
+      expect(navigationItems.some((item) => item.match(path))).toBe(false);
+    },
+  );
+
   it('nests category management under Transactions', () => {
     const transactions = navigationItems.find((item) => item.href === '/transactions');
 
