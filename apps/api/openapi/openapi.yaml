@@ -3938,6 +3938,77 @@ paths:
                   - $ref: '#/components/schemas/AmountInputProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{id}/balances/{snapshotId}/withdraw:
+    post:
+      operationId: withdrawAccountBalance
+      x-cadran-idempotency: 'A replay finds the snapshot already withdrawn and answers 409.'
+      summary: Withdraw an observed balance
+      description: >-
+        Stops one manual or imported snapshot from anchoring the account
+        balance. The row stays on the trail. Later days fall back to the
+        previous active snapshot. A calculated snapshot is refused: it is
+        withdrawn with its portfolio valuation. A second withdrawal is refused.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: snapshotId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawAccountBalanceRequest'
+      responses:
+        '200':
+          description: The snapshot as withdrawn.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalanceSnapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The snapshot was already withdrawn or its version is stale
+            (`type: /problems/account-balance-conflict` or `/problems/stale-version`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The version is invalid or the account is archived
+            (`type: /problems/account-archived`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{id}/rules:
     get:
       operationId: readAccountRules
@@ -12707,6 +12778,15 @@ components:
         total:
           type: integer
           minimum: 0
+    WithdrawAccountBalanceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          minimum: 1
     RecordAccountBalanceRequest:
       type: object
       additionalProperties: false

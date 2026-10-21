@@ -510,6 +510,9 @@ api:
     account_balance_stale_version:
       title: 'Solde modifié entre-temps'
       detail: 'Le solde a été modifié par une autre requête. Rechargez le solde puis réappliquez la modification.'
+    account_balance_not_found:
+      title: 'Relevé introuvable'
+      detail: 'Aucun relevé ne porte cet identifiant sur ce compte.'
     invalid_net_worth_query:
       title: 'Requête de patrimoine invalide'
       detail: "Les dates doivent être des jours calendaires ISO 8601, la date comparée doit précéder la date demandée et l'historique couvre 1 à 60 mois."

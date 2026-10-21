@@ -1503,4 +1503,69 @@ describe('AccountsPage', () => {
     });
     expect(await screen.findByText('Le solde observé a été enregistré.')).toBeTruthy();
   });
+
+  it('records a derived balance as a new day instead of the anchor version', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({
+        items: [
+          {
+            ...account,
+            valuation: {
+              ...staleValuation,
+              requestedOn: '2026-10-21',
+              asOf: '2026-10-21',
+              amount: { value: '47.74', assetCode: 'EUR' },
+              display: { value: '47.74', assetCode: 'EUR' },
+              ageDays: 0,
+              quality: 'CURRENT' as const,
+              basis: 'SNAPSHOT_PLUS_MOVEMENTS' as const,
+              version: 4,
+              derivation: {
+                anchorAsOf: '2026-09-30',
+                anchorAgeDays: 21,
+                movementCount: 30,
+                pendingCount: 0,
+              },
+            },
+          },
+        ],
+        page: 1,
+        pageSize: 50,
+        total: 1,
+      }),
+    );
+    api.recordAccountBalance.mockImplementation(({ body }) =>
+      success(
+        {
+          id: '00000000-0000-7000-8000-0000000000b3',
+          accountId: account.id,
+          asOf: body.asOf,
+          amount: { value: body.amount, assetCode: body.amountAssetCode },
+          source: 'MANUAL',
+          reconciliationStatus: 'UNRECONCILED',
+          comment: body.comment,
+          active: true,
+          version: 1,
+          recordedAt: '2026-10-21T12:00:00+00:00',
+          supersededAt: null,
+        },
+        201,
+      ),
+    );
+    renderPage();
+
+    await openAccountActions('Livret A Banque X');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Enregistrer un solde sur Livret A Banque X' }),
+    );
+    fireEvent.change(screen.getByLabelText('Montant observé'), { target: { value: '138.19' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le solde' }));
+
+    await waitFor(() => expect(api.recordAccountBalance).toHaveBeenCalledOnce());
+    expect(api.recordAccountBalance.mock.calls[0]?.[0].body).toMatchObject({
+      asOf: '2026-10-21',
+      amount: '138.19',
+      version: null,
+    });
+  });
 });

@@ -7,6 +7,7 @@ export async function invalidateAccountBalances(queryClient: QueryClient): Promi
       'accounts',
       'account',
       'account-valuation-history',
+      'account-balances',
       'account-rules',
       'net-worth',
       'net-worth-history',

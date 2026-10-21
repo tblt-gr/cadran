@@ -104,6 +104,10 @@ export function AccountsPage() {
   const reconcilingLive = reconciling
     ? (items.find((item) => item.id === reconciling.id) ?? reconciling)
     : null;
+  // Withdrawing a snapshot from the modal changes the version the form must present.
+  const recordingLive = recording
+    ? (items.find((item) => item.id === recording.id) ?? recording)
+    : null;
   const totalPages = Math.max(1, Math.ceil((accounts.data?.total ?? 0) / PAGE_SIZE));
 
   // The result set can shrink under the current page (a concurrent archive, a refetch on focus).
@@ -157,7 +161,7 @@ export function AccountsPage() {
         reconciling={reconciling}
         reconcilingLive={reconcilingLive}
         recordBalance={recordBalance}
-        recording={recording}
+        recording={recordingLive}
         save={save}
         setInspecting={setInspecting}
         setReconciling={setReconciling}

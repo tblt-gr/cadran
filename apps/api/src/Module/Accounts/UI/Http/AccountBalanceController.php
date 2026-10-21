@@ -6,6 +6,7 @@ namespace App\Module\Accounts\UI\Http;
 
 use App\Module\Accounts\Application\AccountArchived;
 use App\Module\Accounts\Application\AccountBalanceConflict;
+use App\Module\Accounts\Application\AccountBalanceNotFound;
 use App\Module\Accounts\Application\AccountNotFound;
 use App\Module\Accounts\Application\InvalidAccountBalanceInput;
 use App\Module\Accounts\Application\ListAccountBalances;
@@ -15,6 +16,7 @@ use App\Module\Accounts\Application\ReadAccountValuationHistory;
 use App\Module\Accounts\Application\RecordAccountBalance;
 use App\Module\Accounts\Application\RecordAccountBalanceInput;
 use App\Module\Accounts\Application\StaleAccountVersion;
+use App\Module\Accounts\Application\WithdrawAccountBalance;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -153,6 +155,50 @@ final readonly class AccountBalanceController
         }
 
         return self::json(AccountBalanceSnapshotRepresentation::one($snapshot), Response::HTTP_CREATED);
+    }
+
+    /**
+     * Withdrawing keeps the row on the trail and stops it from anchoring the
+     * balance. A calculated snapshot belongs to the portfolio valuation.
+     */
+    #[Route(
+        '/api/v1/accounts/{id}/balances/{snapshotId}/withdraw',
+        name: 'api_v1_accounts_balances_withdraw',
+        methods: ['POST'],
+    )]
+    public function withdraw(
+        string $id,
+        string $snapshotId,
+        Request $request,
+        WithdrawAccountBalance $withdrawBalance,
+    ): Response {
+        if (!self::identifier($id) || !self::identifier($snapshotId)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_balance_not_found');
+        }
+
+        $body = $this->readBody($request);
+        if ($body instanceof Response) {
+            return $body;
+        }
+
+        try {
+            $payload = AccountPayload::of($body, ['version']);
+            $snapshot = $withdrawBalance($id, $snapshotId, $payload->integer('version'));
+        } catch (AccountArchived) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);
+        } catch (InvalidAccountBalanceInput|\UnexpectedValueException) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_balance');
+        } catch (AccountNotFound|AccountBalanceNotFound) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_balance_not_found');
+        } catch (StaleAccountVersion) {
+            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_balance_stale_version', self::TYPE_STALE_VERSION);
+        } catch (AccountBalanceConflict) {
+            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_balance_conflict', self::TYPE_SNAPSHOT_CONFLICT);
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        }
+
+        return self::json(AccountBalanceSnapshotRepresentation::one($snapshot));
     }
 
     /** @return array<mixed>|Response */

@@ -48,6 +48,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
     private const array TYPE_BY_SEGMENT = [
         'account-groups' => 'accountGroup',
         'audit-events' => 'auditEvent',
+        'balances' => 'snapshot',
         'budget-plans' => 'budgetPlan',
         'budget-targets' => 'budgetTarget',
         'comparisons' => 'budgetTarget',
@@ -94,6 +95,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
     private const string FEE_TERM = '00000000-0000-7000-8000-00000000f018';
     private const string GOAL_VERSION = '00000000-0000-7000-8000-00000000f019';
     private const string DISMISSAL = '00000000-0000-7000-8000-00000000f01a';
+    private const string SNAPSHOT = '00000000-0000-7000-8000-00000000f01b';
     private const string FINGERPRINT = 'abababababababababababababababababababababababababababababababab';
     private const string UNKNOWN_FINGERPRINT = 'cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd';
     private const string UNKNOWN = '00000000-0000-7000-8000-00000000ffff';
@@ -107,6 +109,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
     private const string OWN_OVERRIDE = '00000000-0000-7000-8000-00000000e007';
     private const string OWN_PLAN = '00000000-0000-7000-8000-00000000e008';
     private const string OWN_TARGET = '00000000-0000-7000-8000-00000000e009';
+    private const string OWN_SNAPSHOT = '00000000-0000-7000-8000-00000000e00a';
     private const string AT = '2026-09-01 12:00:00+00';
 
     private KernelBrowser $client;
@@ -328,7 +331,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
         return match ($method.' '.$template) {
             'POST /api/v1/budget-plans/{id}/activate', 'POST /api/v1/budget-plans/{id}/close',
             'POST /api/v1/accounts/{id}/rule-overrides/{overrideId}/withdraw', 'POST /api/v1/transactions/{id}/duplicate' => new \stdClass(),
-            'DELETE /api/v1/budget-targets/{id}' => ['version' => 1],
+            'POST /api/v1/accounts/{id}/balances/{snapshotId}/withdraw', 'DELETE /api/v1/budget-targets/{id}' => ['version' => 1],
             'POST /api/v1/budget-plans/{planId}/targets' => ['scopeType' => 'AXIS', 'scopeId' => 'ESSENTIAL', 'valueType' => 'AMOUNT', 'amount' => '300.00', 'ratio' => null],
             'PUT /api/v1/budget-plans/{id}' => ['periodType' => 'YEAR', 'period' => '2027', 'assetCode' => 'USD', 'version' => 1],
             'PUT /api/v1/budget-targets/{id}' => ['valueType' => 'AMOUNT', 'amount' => '450.125', 'ratio' => null, 'version' => 1],
@@ -407,6 +410,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
             'portfolioAccount' => self::OWN_PORTFOLIO_ACCOUNT,
             'instrument' => self::OWN_INSTRUMENT,
             'override' => self::OWN_OVERRIDE,
+            'snapshot' => self::OWN_SNAPSHOT,
             'budgetPlan' => self::OWN_PLAN,
             'budgetTarget' => self::OWN_TARGET,
         ];
@@ -434,6 +438,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
             'productModel' => self::PRODUCT_MODEL,
             'recurrence' => self::RECURRENCE,
             'rule' => self::RULE,
+            'snapshot' => self::SNAPSHOT,
             'transaction' => self::TRANSACTION,
             'transfer' => self::TRANSFER,
             'valuation' => self::VALUATION,
@@ -451,6 +456,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
         $portfolio->account(self::OWN_PORTFOLIO_ACCOUNT, $own, 'Own portfolio');
         $portfolio->instrument(self::OWN_INSTRUMENT, $own, 'Own ETF', isin: 'IE00B4L5Y984');
         $this->connection->insert('account_rule_overrides', ['id' => self::OWN_OVERRIDE, 'account_id' => self::OWN_ACCOUNT, 'workspace_id' => $own, 'rule_kind' => 'DEPOSIT_CEILING', 'amount_value' => '30000', 'amount_asset' => 'EUR', 'valid_from' => '2026-01-01', 'valid_to' => null, 'reason' => 'Negotiated with the branch.', 'author_id' => WorkspaceFixture::OWNER_ID, 'recorded_at' => self::AT]);
+        $this->connection->insert('account_balance_snapshots', ['id' => self::OWN_SNAPSHOT, 'workspace_id' => $own, 'account_id' => self::OWN_ACCOUNT, 'as_of' => '2026-03-31', 'amount_value' => '10', 'amount_literal' => '10', 'amount_asset' => 'EUR', 'source' => 'MANUAL', 'reconciliation_status' => 'UNRECONCILED', 'comment' => null, 'version' => 1, 'recorded_at' => self::AT, 'recorded_by' => WorkspaceFixture::OWNER_ID, 'superseded_at' => null]);
         $this->connection->insert('category_categories', ['id' => self::OWN_CATEGORY, 'workspace_id' => $own, 'type' => 'EXPENSE', 'label' => 'Own', 'parent_id' => null, 'icon' => null, 'color' => null, 'default_analytic_axes' => '[]', 'budget_included' => true, 'sort_order' => 0, 'depth' => 1, 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT, 'archived_at' => null], ['budget_included' => ParameterType::BOOLEAN]);
         $this->connection->insert('budget_plans', ['id' => self::OWN_PLAN, 'workspace_id' => $own, 'period_type' => 'MONTH', 'period' => '2026-09-01', 'asset_code' => 'EUR', 'state' => 'DRAFT', 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT]);
         $this->connection->insert('budget_targets', ['id' => self::OWN_TARGET, 'workspace_id' => $own, 'plan_id' => self::OWN_PLAN, 'scope_type' => 'CATEGORY', 'scope_id' => self::OWN_CATEGORY, 'value_type' => 'AMOUNT', 'amount_value' => '10', 'amount_scale' => 0, 'ratio_value' => null, 'ratio_scale' => null, 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT]);
@@ -477,6 +483,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
             'created_at' => self::AT, 'updated_at' => self::AT, 'used_at' => null, 'archived_at' => null,
         ], ['include_in_net_worth' => ParameterType::BOOLEAN, 'include_in_emergency_fund' => ParameterType::BOOLEAN]);
 
+        $db->insert('account_balance_snapshots', ['id' => self::SNAPSHOT, 'workspace_id' => $other, 'account_id' => self::ACCOUNT, 'as_of' => '2026-03-31', 'amount_value' => '10', 'amount_literal' => '10', 'amount_asset' => 'EUR', 'source' => 'MANUAL', 'reconciliation_status' => 'UNRECONCILED', 'comment' => null, 'version' => 1, 'recorded_at' => self::AT, 'recorded_by' => $owner, 'superseded_at' => null]);
         $db->insert('budget_plans', ['id' => self::PLAN, 'workspace_id' => $other, 'period_type' => 'MONTH', 'period' => '2026-09-01', 'asset_code' => 'EUR', 'state' => 'DRAFT', 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT]);
         $db->insert('budget_targets', ['id' => self::TARGET, 'workspace_id' => $other, 'plan_id' => self::PLAN, 'scope_type' => 'CATEGORY', 'scope_id' => self::CATEGORY, 'value_type' => 'AMOUNT', 'amount_value' => '10', 'amount_scale' => 0, 'ratio_value' => null, 'ratio_scale' => null, 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT]);
         $db->insert('transaction_categorization_rules', [

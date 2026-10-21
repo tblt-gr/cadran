@@ -2085,6 +2085,10 @@ export type AccountBalanceSnapshotPage = {
     total: number;
 };
 
+export type WithdrawAccountBalanceRequest = {
+    version: number;
+};
+
 export type RecordAccountBalanceRequest = {
     asOf: string;
     amount: string;
@@ -9709,6 +9713,72 @@ export type RecordAccountBalanceResponses = {
 };
 
 export type RecordAccountBalanceResponse = RecordAccountBalanceResponses[keyof RecordAccountBalanceResponses];
+
+export type WithdrawAccountBalanceData = {
+    body: WithdrawAccountBalanceRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path: {
+        id: string;
+        snapshotId: string;
+    };
+    query?: never;
+    url: '/api/v1/accounts/{id}/balances/{snapshotId}/withdraw';
+};
+
+export type WithdrawAccountBalanceErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * Either the CSRF / Origin check failed (`type: /problems/csrf-token`), or the authenticated session belongs to no workspace (`type: about:blank`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The snapshot was already withdrawn or its version is stale (`type: /problems/account-balance-conflict` or `/problems/stale-version`).
+     */
+    409: Problem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * The version is invalid or the account is archived (`type: /problems/account-archived`).
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type WithdrawAccountBalanceError = WithdrawAccountBalanceErrors[keyof WithdrawAccountBalanceErrors];
+
+export type WithdrawAccountBalanceResponses = {
+    /**
+     * The snapshot as withdrawn.
+     */
+    200: AccountBalanceSnapshot;
+};
+
+export type WithdrawAccountBalanceResponse = WithdrawAccountBalanceResponses[keyof WithdrawAccountBalanceResponses];
 
 export type ReadAccountRulesData = {
     body?: never;

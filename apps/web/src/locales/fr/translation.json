@@ -850,13 +850,33 @@
       "table": "Soldes du compte par date",
       "showTable": "Voir le tableau",
       "held": "Dernier solde connu",
-      "description": "Le solde change à sa date effective. Les soldes enregistrés sont maintenus jusqu’à la prochaine observation, sans projection d’intérêts.",
+      "description": "Chaque point est le dernier relevé actif à cette date, plus les mouvements comptabilisés après ce relevé.",
       "error": "L’historique du solde est indisponible.",
       "empty": "Aucun solde enregistré sur cette période.",
       "reasons": {
         "NO_ANCHOR": "Aucun solde de référence",
         "MIXED_ASSETS": "Actifs incompatibles"
       }
+    },
+    "snapshots": {
+      "title": "Relevés enregistrés",
+      "description": "Un relevé ancre le solde à sa date. Les mouvements strictement postérieurs s’y ajoutent. Retirer un relevé le garde dans le fil, et le solde repart du relevé actif précédent.",
+      "loading": "Chargement des relevés…",
+      "empty": "Aucun relevé enregistré.",
+      "error": "Les relevés n’ont pas pu être lus.",
+      "caption": "Relevés enregistrés sur ce compte",
+      "date": "Date",
+      "amount": "Montant",
+      "source": "Source",
+      "state": "État",
+      "active": "Actif",
+      "withdrawn": "Retiré",
+      "withdraw": "Retirer",
+      "withdrawOf": "Retirer le relevé du {{date}}",
+      "truncated": "{{shown}} relevés affichés sur {{total}}. Les plus anciens ne sont pas listés.",
+      "confirmHint": "Ce relevé ne servira plus à calculer le solde. La ligne reste visible comme retirée.",
+      "confirming": "Retrait…",
+      "confirmAction": "Retirer le relevé"
     }
   },
   "accountGroups": {
