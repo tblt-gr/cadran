@@ -27,6 +27,5 @@
 }
 
 .tileLabel {
-  fill: var(--text-primary);
   font-size: var(--font-size-xs);
 }

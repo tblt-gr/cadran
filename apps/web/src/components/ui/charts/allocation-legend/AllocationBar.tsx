@@ -1,8 +1,10 @@
+import { svgColor } from '@/lib/svg-color';
 import { compareDecimals, decimalRatioForGeometry } from '@/lib/decimal';
 import styles from './AllocationLegend.module.css';
 
 interface AllocationBarProps {
   percent: string | null;
+  color?: string;
 }
 
 /**
@@ -13,7 +15,7 @@ interface AllocationBarProps {
  * produced. A share outside 0–100 % — a group weighed against a small eligible
  * base — is clamped so the bar cannot overflow its track.
  */
-export function AllocationBar({ percent }: AllocationBarProps) {
+export function AllocationBar({ color, percent }: AllocationBarProps) {
   if (percent === null) {
     return <span className={styles.track} aria-hidden="true" />;
   }
@@ -27,7 +29,18 @@ export function AllocationBar({ percent }: AllocationBarProps) {
 
   return (
     <span className={styles.track} aria-hidden="true">
-      <span className={styles.fill} style={{ width: `${width}%` }} />
+      {color === undefined ? (
+        <span className={styles.fill} style={{ width: `${width}%` }} />
+      ) : (
+        <svg
+          className={styles.colorFill}
+          width={`${width}%`}
+          height="100%"
+          preserveAspectRatio="none"
+        >
+          <rect fill={svgColor(color)} height="100%" width="100%" />
+        </svg>
+      )}
     </span>
   );
 }

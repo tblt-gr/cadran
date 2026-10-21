@@ -82,6 +82,7 @@ final readonly class UpdateAccountGroup
                     sortOrder: $input->sortOrder,
                     depth: $depth,
                     updatedAt: $now,
+                    color: $input->colorProvided ? $input->color : $current->color,
                 );
             } catch (InvalidAccountGroup $exception) {
                 throw new InvalidAccountGroupInput($exception->getMessage(), previous: $exception);

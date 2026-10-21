@@ -15,6 +15,8 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  */
 final readonly class AccountGroup
 {
+    public ?string $color;
+
     public const int MAX_LABEL_LENGTH = 80;
     public const int MAX_TREE_DEPTH = 8;
     public const int MAX_SORT_ORDER = 32767;
@@ -30,7 +32,9 @@ final readonly class AccountGroup
         public \DateTimeImmutable $createdAt,
         public \DateTimeImmutable $updatedAt,
         public ?\DateTimeImmutable $archivedAt = null,
+        ?string $color = null,
     ) {
+        $this->color = AccountGroupColor::normalize($color);
         self::assertIdentifier($id);
         if (null !== $parentId) {
             self::assertIdentifier($parentId);
@@ -60,6 +64,7 @@ final readonly class AccountGroup
         int $sortOrder,
         int $depth,
         \DateTimeImmutable $updatedAt,
+        ?string $color = null,
     ): self {
         if (null !== $this->archivedAt) {
             throw new InvalidAccountGroup('An archived group is read-only.');
@@ -76,6 +81,7 @@ final readonly class AccountGroup
             createdAt: $this->createdAt,
             updatedAt: $updatedAt,
             archivedAt: $this->archivedAt,
+            color: $color,
         );
     }
 
@@ -96,6 +102,7 @@ final readonly class AccountGroup
             createdAt: $this->createdAt,
             updatedAt: $archivedAt,
             archivedAt: $archivedAt,
+            color: $this->color,
         );
     }
 
@@ -117,6 +124,7 @@ final readonly class AccountGroup
             createdAt: $this->createdAt,
             updatedAt: $updatedAt,
             archivedAt: $this->archivedAt,
+            color: $this->color,
         );
     }
 

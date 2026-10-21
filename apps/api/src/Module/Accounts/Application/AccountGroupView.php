@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountGroup;
+use App\Module\Accounts\Domain\AccountGroupColor;
 use App\Module\Accounts\Domain\NetWorthShare;
 use App\Module\Accounts\Domain\NetWorthShareReason;
 
@@ -22,6 +23,9 @@ final readonly class AccountGroupView
         public bool $canAcceptChildren,
         public ShareView $share,
         public ?string $archivedAt,
+        public ?string $color,
+        public string $resolvedColor,
+        public string $defaultColor,
     ) {
     }
 
@@ -45,6 +49,9 @@ final readonly class AccountGroupView
                 null === $group->archivedAt ? NetWorthShareReason::MISSING_VALUATION : null,
             )),
             archivedAt: $group->archivedAt?->format(DATE_ATOM),
+            color: $group->color,
+            resolvedColor: AccountGroupColor::resolve($group),
+            defaultColor: AccountGroupColor::defaultFor($group->id),
         );
     }
 }

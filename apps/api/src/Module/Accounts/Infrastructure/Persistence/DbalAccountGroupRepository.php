@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(AccountGroupRepository::class)]
 final readonly class DbalAccountGroupRepository implements AccountGroupRepository
 {
-    private const string COLUMNS = 'id, workspace_id, label, parent_id, sort_order, depth, version, created_at, updated_at, archived_at';
+    private const string COLUMNS = 'id, workspace_id, label, color, parent_id, sort_order, depth, version, created_at, updated_at, archived_at';
 
     public function __construct(private Connection $connection)
     {

@@ -48,6 +48,23 @@ final class ReadNetWorthTest extends TestCase
     private const string LIQUID = AccountGroupFixture::ID;
     private const string SAVINGS = AccountGroupFixture::CHILD_ID;
 
+    public function testCustomColorsFollowPrimaryMembershipWithoutChangingFinancialResults(): void
+    {
+        $default = ($this->read())();
+        $custom = ($this->read(groups: [
+            AccountGroupFixture::group(id: self::LIQUID, label: 'Liquidités', color: '#000000'),
+            AccountGroupFixture::group(id: self::SAVINGS, label: 'Épargne', parentId: self::LIQUID, depth: 2, color: '#FFFFFF'),
+        ]))();
+        self::assertEquals($default->total, $custom->total);
+        self::assertEquals($default->delta, $custom->delta);
+        self::assertSame(['#000000', '#FFFFFF'], array_column($custom->allocation, 'color'));
+        self::assertEquals(array_column($default->allocation, 'value'), array_column($custom->allocation, 'value'));
+        $byAccount = array_column($custom->contributions, null, 'accountId');
+        self::assertSame('#000000', $byAccount[self::CASH]->primaryGroupColor);
+        self::assertSame('#FFFFFF', $byAccount[self::LIVRET]->primaryGroupColor);
+        self::assertNull($byAccount[self::LOAN]->primaryGroupColor);
+    }
+
     public function testTheTotalIsTheSumOfSignedIncludedValues(): void
     {
         $view = ($this->read())();
@@ -75,6 +92,7 @@ final class ReadNetWorthTest extends TestCase
         self::assertSame('60000.00', $byAccount[self::CASH]->amount?->amount);
         self::assertSame('60000.00', $byAccount[self::CASH]->signedAmount?->amount);
         self::assertSame('Liquidités', $byAccount[self::CASH]->primaryGroupLabel);
+        self::assertSame(\App\Module\Accounts\Domain\AccountGroupColor::defaultFor(self::LIQUID), $byAccount[self::CASH]->primaryGroupColor);
         self::assertSame(1, $byAccount[self::CASH]->netWorthSign);
 
         self::assertSame('20000.00', $byAccount[self::LOAN]->amount?->amount);

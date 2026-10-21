@@ -14,8 +14,9 @@ final readonly class AccountGroupPayload
     /**
      * @param array<mixed> $body
      * @param list<string> $expectedFields
+     * @param list<string> $optionalFields
      */
-    public static function of(array $body, array $expectedFields): self
+    public static function of(array $body, array $expectedFields, array $optionalFields = []): self
     {
         $fields = [];
         foreach ($body as $key => $value) {
@@ -24,6 +25,12 @@ final readonly class AccountGroupPayload
             }
 
             $fields[$key] = $value;
+        }
+
+        foreach ($optionalFields as $optionalField) {
+            if (array_key_exists($optionalField, $fields)) {
+                $expectedFields[] = $optionalField;
+            }
         }
 
         $submitted = array_keys($fields);

@@ -30,6 +30,7 @@ final readonly class NetWorthContributionView
         public ?int $ageDays,
         public ?string $valuedOn,
         public ShareView $share,
+        public ?string $primaryGroupColor = null,
     ) {
     }
 
@@ -39,6 +40,7 @@ final readonly class NetWorthContributionView
         ?string $primaryGroupLabel,
         NetWorthShare $share,
         ?Asset $reference,
+        ?string $primaryGroupColor = null,
     ): self {
         return new self(
             accountId: $account->id,
@@ -54,6 +56,7 @@ final readonly class NetWorthContributionView
             ageDays: $contribution->ageDays,
             valuedOn: $contribution->valuedOn?->format('Y-m-d'),
             share: ShareView::fromShare($share),
+            primaryGroupColor: $primaryGroupColor,
         );
     }
 }

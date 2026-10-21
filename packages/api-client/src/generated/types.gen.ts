@@ -1874,6 +1874,9 @@ export type AccountGroupPage = {
 };
 
 export type AccountGroup = {
+    color: string | null;
+    resolvedColor: string;
+    defaultColor: string;
     id: string;
     label: string;
     parentId: string | null;
@@ -1891,12 +1894,20 @@ export type AccountGroup = {
 };
 
 export type CreateAccountGroupRequest = {
+    /**
+     * Explicit color or null to use the stable group default. Omitted means default.
+     */
+    color?: string | null;
     label: string;
     parentId: string | null;
     sortOrder: number;
 };
 
 export type UpdateAccountGroupRequest = {
+    /**
+     * Explicit color or null to use the stable group default. Omitted preserves the current color.
+     */
+    color?: string | null;
     label: string;
     parentId: string | null;
     sortOrder: number;
@@ -2736,6 +2747,7 @@ export type MonthlyRecapTotals = {
  * One account of the recap. A value is absent, never zero, when the day holds no valuation; the whole value object is absent when the workspace did not hold the account on that day at all.
  */
 export type MonthlyRecapAccount = {
+    primaryGroupColor: string | null;
     accountId: string;
     label: string;
     kind: string;
@@ -2752,6 +2764,7 @@ export type MonthlyRecapAccount = {
  * The exclusive subtotal of one primary group at N, and the share of eligible net worth it represents. A secondary label never adds a second total for the same account.
  */
 export type MonthlyRecapGroup = {
+    color: string;
     groupId: string;
     label: string;
     parentId: string | null;
@@ -3198,6 +3211,7 @@ export type NetWorthDelta = {
  * One contributing account. `amount` is the stored figure as it appears on a statement; `signedAmount` is what it adds to net worth.
  */
 export type NetWorthContribution = {
+    primaryGroupColor: string | null;
     accountId: string;
     label: string;
     kind: AccountKind;
@@ -3220,6 +3234,7 @@ export type NetWorthContribution = {
  * The exclusive weight of one group: its own accounts and those of its descendants, counted once. A tag never enters this figure, so two groups of the same depth never claim the same account. They do not add up to the published total: an account with no primary group belongs to no bucket, and a group weighed against a small eligible base can exceed 100 %.
  */
 export type NetWorthAllocationEntry = {
+    color: string;
     groupId: string;
     label: string;
     parentId: string | null;
@@ -4305,6 +4320,16 @@ export type Problem = {
     title: string;
     status: number;
     detail: string;
+};
+
+/**
+ * Invalid account group input. Invalid colors include a field error without reflecting submitted data.
+ */
+export type AccountGroupInputProblem = Problem & {
+    errors?: Array<{
+        field: 'color';
+        code: 'INVALID_COLOR';
+    }>;
 };
 
 /**
@@ -7299,9 +7324,9 @@ export type CreateAccountGroupErrors = {
      */
     415: Problem;
     /**
-     * The group label, parent or bounds are invalid.
+     * The group label, parent, color or bounds are invalid.
      */
-    422: Problem;
+    422: AccountGroupInputProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -7364,9 +7389,9 @@ export type UpdateAccountGroupErrors = {
      */
     415: Problem;
     /**
-     * The group fields are invalid or the tree would cycle.
+     * The group fields are invalid or the tree would cycle. Invalid color includes a color field error.
      */
-    422: Problem;
+    422: AccountGroupInputProblem;
     /**
      * An unexpected server error occurred.
      */

@@ -1,4 +1,5 @@
-import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
+import { GroupMembers } from '@/features/accounts/groups/group-members/GroupMembers';
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { SortableHeader } from '@/components/ui/sortable-header/SortableHeader';
 import { useTranslation } from 'react-i18next';
 import { AllocationChartsSkeleton } from '@/features/dashboard/allocation-charts/AllocationChartsSkeleton';
@@ -44,7 +45,45 @@ export function AccountGroupsPageSkeleton({ status }: { status: string }) {
                 </th>
               </tr>
             </thead>
-            <SkeletonTableRows columns={6} rows={4} />
+            <tbody aria-hidden="true">
+              {Array.from({ length: 4 }, (_, index) => (
+                <tr className={styles.groupRow} key={index}>
+                  <th scope="row">
+                    <span>
+                      <SkeletonBlock />
+                    </span>
+                    <small>
+                      <SkeletonBlock />
+                    </small>
+                    <GroupMembers
+                      accounts={[]}
+                      models={[]}
+                      products={[]}
+                      shareByAccount={new Map()}
+                      sharesStatus="pending"
+                      status="pending"
+                    />
+                  </th>
+                  <td>
+                    <SkeletonBlock />
+                  </td>
+                  <td className={`money ${styles.total}`}>
+                    <SkeletonBlock className={styles.cellSkeleton} />
+                  </td>
+                  <td>
+                    <SkeletonBlock className={styles.cellSkeleton} />
+                  </td>
+                  <td>
+                    <SkeletonBlock />
+                  </td>
+                  <td>
+                    <div className={styles.rowActions}>
+                      <SkeletonBlock />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
       </div>

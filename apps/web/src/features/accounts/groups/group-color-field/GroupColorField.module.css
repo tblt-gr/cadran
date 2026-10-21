@@ -1,0 +1,47 @@
+.field {
+  display: grid;
+  min-width: 0;
+  gap: var(--spacing-2);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.field input[type='color'] {
+  flex-shrink: 0;
+  width: var(--control-height);
+  padding: var(--spacing-0-5);
+  cursor: pointer;
+}
+
+.field input[type='color']::-webkit-color-swatch-wrapper {
+  padding: var(--spacing-none);
+}
+
+.field input[type='color']::-webkit-color-swatch {
+  border: var(--border-none);
+}
+
+.field input[type='color']::-moz-color-swatch {
+  border: var(--border-none);
+}
+
+.field button {
+  min-width: 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-line-strong);
+  border-radius: var(--radius-button);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  font: inherit;
+  cursor: pointer;
+}
+
+.field p {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}

@@ -74,6 +74,7 @@ final class MonthlyRecapRepresentation
             'netWorthSign' => $account->netWorthSign,
             'primaryGroupId' => $account->primaryGroupId,
             'primaryGroupLabel' => $account->primaryGroupLabel,
+            'primaryGroupColor' => $account->primaryGroupColor,
             'eligible' => $account->eligible,
             'previousValue' => self::value($account->previousValue),
             'currentValue' => self::value($account->currentValue),
@@ -98,6 +99,7 @@ final class MonthlyRecapRepresentation
     {
         return [
             'groupId' => $group->groupId,
+            'color' => $group->color,
             'label' => $group->label,
             'parentId' => $group->parentId,
             'depth' => $group->depth,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountGroup;
+use App\Module\Accounts\Domain\AccountGroupColor;
 use App\Module\Accounts\Domain\NetWorthShare;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -27,6 +28,7 @@ final readonly class NetWorthAllocationView
         public int $depth,
         public ?NetWorthAmountView $value,
         public ShareView $share,
+        public string $color,
     ) {
     }
 
@@ -44,6 +46,7 @@ final readonly class NetWorthAllocationView
             depth: $group->depth,
             value: NetWorthAmountView::of($value, $asset, $reference),
             share: ShareView::fromShare($share),
+            color: AccountGroupColor::resolve($group),
         );
     }
 }

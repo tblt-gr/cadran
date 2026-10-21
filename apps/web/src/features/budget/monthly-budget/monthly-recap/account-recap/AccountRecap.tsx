@@ -1,3 +1,4 @@
+import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import type {
   MonthlyAccountValue,
   MonthlyRecapAccount,
@@ -69,6 +70,7 @@ function AccountRow({ account }: { account: MonthlyRecapAccount }) {
     <tr>
       <th data-label={t('budget.monthly.recap.accounts.account')} scope="row">
         <a href={href} onClick={(event) => handleClientNavigation(event, href)}>
+          <GroupMarker color={account.primaryGroupColor} />
           {account.label}
         </a>
         {!account.eligible ? (
@@ -149,6 +151,7 @@ export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: Ac
                       data-label={t('budget.monthly.recap.accounts.account')}
                       scope="rowgroup"
                     >
+                      <GroupMarker color={group.color} />
                       {group.label}
                     </th>
                     <td data-label={t('budget.monthly.recap.accounts.currentShort')}>

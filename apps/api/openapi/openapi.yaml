@@ -1764,11 +1764,11 @@ paths:
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '422':
-          description: The group label, parent or bounds are invalid.
+          description: The group label, parent, color or bounds are invalid.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'
+                $ref: '#/components/schemas/AccountGroupInputProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/account-groups/{id}:
@@ -1822,11 +1822,11 @@ paths:
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '422':
-          description: The group fields are invalid or the tree would cycle.
+          description: The group fields are invalid or the tree would cycle. Invalid color includes a color field error.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'
+                $ref: '#/components/schemas/AccountGroupInputProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/account-groups/{id}/archive:
@@ -12165,6 +12165,9 @@ components:
       type: object
       additionalProperties: false
       required:
+        - color
+        - resolvedColor
+        - defaultColor
         - id
         - label
         - parentId
@@ -12177,6 +12180,15 @@ components:
         - share
         - archivedAt
       properties:
+        color:
+          type: [string, 'null']
+          pattern: '^#[0-9A-F]{6}$'
+        resolvedColor:
+          type: string
+          pattern: '^#[0-9A-F]{6}$'
+        defaultColor:
+          type: string
+          pattern: '^#[0-9A-F]{6}$'
         id:
           type: string
           format: uuid
@@ -12226,6 +12238,10 @@ components:
         - parentId
         - sortOrder
       properties:
+        color:
+          description: Explicit color or null to use the stable group default. Omitted means default.
+          type: [string, 'null']
+          pattern: '^#[0-9a-fA-F]{6}$'
         label:
           type: string
           minLength: 1
@@ -12248,6 +12264,10 @@ components:
         - sortOrder
         - version
       properties:
+        color:
+          description: Explicit color or null to use the stable group default. Omitted preserves the current color.
+          type: [string, 'null']
+          pattern: '^#[0-9a-fA-F]{6}$'
         label:
           type: string
           minLength: 1
@@ -14395,6 +14415,7 @@ components:
       type: object
       additionalProperties: false
       required:
+        - primaryGroupColor
         - accountId
         - label
         - kind
@@ -14406,6 +14427,9 @@ components:
         - currentValue
         - share
       properties:
+        primaryGroupColor:
+          type: [string, 'null']
+          pattern: '^#[0-9A-F]{6}$'
         accountId:
           type: string
           format: uuid
@@ -14442,8 +14466,11 @@ components:
         total for the same account.
       type: object
       additionalProperties: false
-      required: [groupId, label, parentId, depth, value, share]
+      required: [color, groupId, label, parentId, depth, value, share]
       properties:
+        color:
+          type: string
+          pattern: '^#[0-9A-F]{6}$'
         groupId:
           type: string
           format: uuid
@@ -15263,6 +15290,7 @@ components:
       type: object
       additionalProperties: false
       required:
+        - primaryGroupColor
         - accountId
         - label
         - kind
@@ -15277,6 +15305,9 @@ components:
         - valuedOn
         - share
       properties:
+        primaryGroupColor:
+          type: [string, 'null']
+          pattern: '^#[0-9A-F]{6}$'
         accountId:
           type: string
           format: uuid
@@ -15334,6 +15365,7 @@ components:
       type: object
       additionalProperties: false
       required:
+        - color
         - groupId
         - label
         - parentId
@@ -15341,6 +15373,9 @@ components:
         - value
         - share
       properties:
+        color:
+          type: string
+          pattern: '^#[0-9A-F]{6}$'
         groupId:
           type: string
           format: uuid
@@ -18044,6 +18079,25 @@ components:
           maximum: 599
         detail:
           type: string
+    AccountGroupInputProblem:
+      description: Invalid account group input. Invalid colors include a field error without reflecting submitted data.
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [field, code]
+                properties:
+                  field:
+                    type: string
+                    const: color
+                  code:
+                    type: string
+                    const: INVALID_COLOR
     AmountInputProblem:
       description:
         An RFC 9457 problem raised by the shared exact-amount parser. The JSON pointer names the

@@ -58,6 +58,7 @@ final readonly class CreateAccountGroup
                     version: 1,
                     createdAt: $now,
                     updatedAt: $now,
+                    color: $input->color,
                 );
             } catch (InvalidAccountGroup $exception) {
                 throw new InvalidAccountGroupInput($exception->getMessage(), previous: $exception);

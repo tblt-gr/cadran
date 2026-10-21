@@ -37,11 +37,16 @@ export function GroupMembers({
 
   if (status === 'pending') {
     return (
-      <ul aria-hidden="true" className={styles.list}>
+      <ul aria-hidden="true" aria-label={t('accountGroups.list.accounts')} className={styles.list}>
         {Array.from({ length: 2 }, (_, index) => (
           <li key={index}>
-            <SkeletonBlock className={styles.nameSkeleton} />
-            <SkeletonBlock className={styles.shareSkeleton} />
+            <span className={styles.name}>
+              <SkeletonBlock className={styles.nameSkeleton} />
+            </span>
+            <span className={styles.share}>
+              <SkeletonBlock className={styles.shareSkeleton} />
+            </span>
+            <MoneyValue className={styles.amount} value={null} />
           </li>
         ))}
       </ul>

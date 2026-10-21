@@ -496,6 +496,8 @@
       "description": "Reconnectez-vous pour consulter les comptes de cet espace."
     },
     "list": {
+      "groupColorsUnavailable": "Les couleurs des groupes sont indisponibles.",
+      "retryGroupColors": "Recharger les couleurs des groupes",
       "caption": "Comptes de l’espace de travail",
       "status": "Statut",
       "actions": "Actions",
@@ -867,6 +869,7 @@
       "archived": "Le groupe a été archivé."
     },
     "fields": {
+      "color": "Couleur du groupe",
       "label": "Libellé",
       "parent": "Groupe parent",
       "order": "Ordre d’affichage",
@@ -874,6 +877,8 @@
       "total": "Total"
     },
     "form": {
+      "resetColor": "Rétablir la couleur par défaut",
+      "colorHelp": "La couleur identifie le groupe et ses comptes. Le nom reste toujours visible.",
       "createEyebrow": "Création",
       "createTitle": "Nouveau groupe",
       "editEyebrow": "Modification",
@@ -890,6 +895,7 @@
       "order": "L’ordre doit être un entier compris entre 0 et 32767."
     },
     "errors": {
+      "color": "Choisissez une couleur au format #RRGGBB.",
       "conflict": "Un groupe actif porte déjà ce libellé au même niveau. Choisissez-en un autre.",
       "invalid": "Le groupe est invalide. Vérifiez son libellé, son parent et l’absence de cycle.",
       "network": "L’enregistrement a échoué. Réessayez.",

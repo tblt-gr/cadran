@@ -11,6 +11,8 @@ final readonly class UpdateAccountGroupInput
         public ?string $parentId,
         public int $sortOrder,
         public int $version,
+        public ?string $color = null,
+        public bool $colorProvided = true,
     ) {
     }
 }

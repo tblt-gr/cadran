@@ -33,7 +33,7 @@
   font-size: var(--font-size-body);
 }
 
-.panel tbody th span,
+.panel tbody th > span,
 .panel tbody th small,
 .accountLink {
   display: block;

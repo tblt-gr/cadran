@@ -1,0 +1,14 @@
+.marker {
+  display: inline-block;
+  width: var(--spacing-1);
+  height: var(--spacing-4);
+  margin-right: var(--spacing-2);
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

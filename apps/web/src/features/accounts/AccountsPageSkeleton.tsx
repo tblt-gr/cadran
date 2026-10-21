@@ -1,3 +1,4 @@
+import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useTranslation } from 'react-i18next';
 import { AccountValuationCell } from './account-valuation-cell/AccountValuationCell';
@@ -32,6 +33,7 @@ export function AccountsPageSkeleton({ status }: { status: string }) {
               <tr key={row}>
                 <th scope="row">
                   <a className={styles.accountLink}>
+                    <GroupMarker color={null} pending />
                     <SkeletonBlock />
                   </a>
                 </th>

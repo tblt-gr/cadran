@@ -10,6 +10,7 @@ final readonly class CreateAccountGroupInput
         public string $label,
         public ?string $parentId,
         public int $sortOrder,
+        public ?string $color = null,
     ) {
     }
 }

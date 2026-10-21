@@ -939,6 +939,64 @@ describe('AccountsPage', () => {
     });
   });
 
+  it('identifies an excluded account by its archived primary group beyond the first metadata page', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({
+        items: [{ ...account, includeInNetWorth: false }],
+        page: 1,
+        pageSize: 50,
+        total: 1,
+      }),
+    );
+    api.listAccountGroups.mockImplementation(({ query }) =>
+      success({
+        items:
+          query.page === 1
+            ? [{ ...defaultGroup, id: 'another-group' }]
+            : [{ ...defaultGroup, resolvedColor: '#AABBCC', archivedAt: '2026-09-01T00:00:00Z' }],
+        page: query.page,
+        pageSize: 1,
+        total: 2,
+      }),
+    );
+    renderPage();
+    const link = await screen.findByRole('link', { name: account.label });
+    await waitFor(() => expect(link.querySelector('rect')?.getAttribute('fill')).toBe('#AABBCC'));
+    expect(api.listAccountGroups).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ includeArchived: true, page: 2 }),
+      }),
+    );
+  });
+
+  it('keeps group marker space while metadata loads and offers retry after a failed read', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
+    );
+    let resolveGroups!: (value: Awaited<ReturnType<typeof failure>>) => void;
+    api.listAccountGroups.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveGroups = resolve;
+        }),
+    );
+    renderPage();
+    const link = await screen.findByRole('link', { name: account.label });
+    expect(link.querySelector('[data-group-marker] [data-skeleton]')).toBeTruthy();
+    resolveGroups(await failure(500));
+    await screen.findByText('Les couleurs des groupes sont indisponibles.');
+    api.listAccountGroups.mockImplementation(() =>
+      success({
+        items: [{ ...defaultGroup, resolvedColor: '#AABBCC' }],
+        page: 1,
+        pageSize: 100,
+        total: 1,
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Recharger les couleurs des groupes' }));
+    await waitFor(() => expect(link.querySelector('rect')?.getAttribute('fill')).toBe('#AABBCC'));
+  });
+
   it('archives an account through a confirmation instead of deleting it', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 50, total: 1 }),

@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GroupErrorKind } from '@/features/accounts/groups/groupError';
 import { ParentGroupField } from '@/features/accounts/groups/parent-group-field/ParentGroupField';
+import { GroupColorField } from '@/features/accounts/groups/group-color-field/GroupColorField';
 import styles from './GroupForm.module.css';
 
 interface GroupFormProps {
@@ -19,6 +20,7 @@ interface GroupFormProps {
 
 export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormProps) {
   const { t } = useTranslation();
+  const [color, setColor] = useState<string | null>(group?.color ?? null);
   const [label, setLabel] = useState(group?.label ?? '');
   const [parentId, setParentId] = useState(group?.parentId ?? '');
   const [sortOrder, setSortOrder] = useState(String(group?.sortOrder ?? 0));
@@ -43,6 +45,7 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
 
     const common = {
       label: cleanLabel,
+      color,
       parentId: parentId === '' ? null : parentId,
       sortOrder: parsedOrder,
     };
@@ -70,6 +73,14 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
           />
           {showErrors && labelInvalid ? <small>{t('accountGroups.validation.label')}</small> : null}
         </label>
+
+        <GroupColorField
+          value={color}
+          defaultColor={group?.defaultColor}
+          disabled={pending}
+          invalid={submitError === 'color'}
+          onChange={setColor}
+        />
 
         <ParentGroupField currentId={group?.id} onChange={setParentId} value={parentId} />
 

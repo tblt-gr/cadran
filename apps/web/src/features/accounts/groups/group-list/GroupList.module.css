@@ -38,6 +38,10 @@
   font-size: var(--font-size-body);
 }
 
+.groupRow {
+  border-inline-start: var(--border-width-loading) solid var(--text-muted);
+}
+
 .total {
   white-space: nowrap;
 }

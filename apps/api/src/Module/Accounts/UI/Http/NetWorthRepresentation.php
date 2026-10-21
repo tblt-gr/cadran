@@ -91,6 +91,7 @@ final readonly class NetWorthRepresentation
             'netWorthSign' => $contribution->netWorthSign,
             'primaryGroupId' => $contribution->primaryGroupId,
             'primaryGroupLabel' => $contribution->primaryGroupLabel,
+            'primaryGroupColor' => $contribution->primaryGroupColor,
             'eligible' => $contribution->eligible,
             'amount' => self::amount($contribution->amount),
             'signedAmount' => self::amount($contribution->signedAmount),
@@ -106,6 +107,7 @@ final readonly class NetWorthRepresentation
     {
         return [
             'groupId' => $allocation->groupId,
+            'color' => $allocation->color,
             'label' => $allocation->label,
             'parentId' => $allocation->parentId,
             'depth' => $allocation->depth,

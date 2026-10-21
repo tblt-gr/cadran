@@ -110,8 +110,10 @@ final readonly class ReadNetWorth
         NetWorthAssetReferences $references,
     ): array {
         $labels = [];
+        $colors = [];
         foreach ($groups as $group) {
             $labels[$group->id] = $group->label;
+            $colors[$group->id] = \App\Module\Accounts\Domain\AccountGroupColor::resolve($group);
         }
 
         $accounts = [];
@@ -132,6 +134,7 @@ final readonly class ReadNetWorth
                 null === $contribution->primaryGroupId ? null : ($labels[$contribution->primaryGroupId] ?? null),
                 $shares->account($contribution->accountId),
                 $references->for($contribution->amount?->asset),
+                null === $contribution->primaryGroupId ? null : ($colors[$contribution->primaryGroupId] ?? null),
             );
         }
 

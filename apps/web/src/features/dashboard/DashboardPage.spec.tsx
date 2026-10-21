@@ -58,6 +58,7 @@ const netWorth: NetWorth = {
       kind: 'CURRENT',
       netWorthSign: 1,
       primaryGroupId: '00000000-0000-7000-8000-0000000000b1',
+      primaryGroupColor: '#486DF0',
       primaryGroupLabel: 'Liquidités',
       eligible: true,
       amount: amount('60104.00'),
@@ -75,6 +76,7 @@ const netWorth: NetWorth = {
   ],
   allocation: [
     {
+      color: '#486DF0',
       groupId: '00000000-0000-7000-8000-0000000000b1',
       label: 'Liquidités',
       parentId: null,
@@ -88,6 +90,7 @@ const netWorth: NetWorth = {
       },
     },
     {
+      color: '#486DF0',
       groupId: '00000000-0000-7000-8000-0000000000b2',
       label: 'Livrets',
       parentId: '00000000-0000-7000-8000-0000000000b1',
@@ -387,8 +390,8 @@ describe('DashboardPage', () => {
     expect(allocation.textContent).not.toContain('Livrets');
     expect(allocation.textContent).toContain('4,20 %');
     expect(allocation.textContent).not.toContain('4,20080440935498286906');
-    const bars = Array.from(allocation.querySelectorAll<HTMLElement>('[style*="width"]'));
-    expect(bars.map((bar) => bar.style.width)).toEqual(['4.2%']);
+    const bars = Array.from(allocation.querySelectorAll('svg[width$="%"]'));
+    expect(bars.map((bar) => bar.getAttribute('width'))).toEqual(['4.2%']);
   });
 
   it('offers Treemap and Camembert toggles in the allocation section', async () => {
