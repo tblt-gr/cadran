@@ -17,6 +17,7 @@ interface AccountOverviewProps {
   onRecordBalance: (account: Account) => void;
   onResetFilters: () => void;
   onRules: (account: Account) => void;
+  reordering: boolean;
 }
 
 /**
@@ -29,6 +30,7 @@ export function AccountOverview({
   includeClosed,
   onCreate,
   onResetFilters,
+  reordering,
   ...rowActions
 }: AccountOverviewProps) {
   const { t } = useTranslation();
@@ -80,6 +82,7 @@ export function AccountOverview({
           includeArchived={includeArchived}
           includeClosed={includeClosed}
           key={group.groupId ?? 'ungrouped'}
+          reordering={reordering}
           sole={shown.length === 1}
           {...rowActions}
         />

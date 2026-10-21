@@ -22,6 +22,7 @@ interface AccountGroupTableProps {
   onReconcile: (account: Account) => void;
   onRecordBalance: (account: Account) => void;
   onRules: (account: Account) => void;
+  reordering: boolean;
   sole: boolean;
 }
 
@@ -31,6 +32,7 @@ export function AccountGroupTable({
   group,
   includeArchived,
   includeClosed,
+  reordering,
   sole,
   ...rowActions
 }: AccountGroupTableProps) {
@@ -125,6 +127,7 @@ export function AccountGroupTable({
           label={t('accounts.overview.caption', { label: name })}
           moveDisabled={move.isPending}
           onMove={requestMove}
+          reordering={reordering}
           {...rowActions}
         />
       ) : null}

@@ -18,6 +18,7 @@ export function AccountsPage() {
   const { t } = useTranslation();
   const [includeClosed, setIncludeClosed] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<Account | null>(null);
   const [inspecting, setInspecting] = useState<Account | null>(null);
@@ -99,6 +100,16 @@ export function AccountsPage() {
         >
           <Icon name="layers" />
         </a>
+        <button
+          aria-label={t(reordering ? 'accounts.reorder.stop' : 'accounts.reorder.start')}
+          aria-pressed={reordering}
+          className="icon-button"
+          onClick={() => setReordering((current) => !current)}
+          title={t(reordering ? 'accounts.reorder.stop' : 'accounts.reorder.start')}
+          type="button"
+        >
+          <Icon name="move" />
+        </button>
       </HeaderActions>
 
       {saved ? (
@@ -148,6 +159,7 @@ export function AccountsPage() {
           setIncludeArchived(false);
         }}
         onRules={setInspecting}
+        reordering={reordering}
       />
     </div>
   );

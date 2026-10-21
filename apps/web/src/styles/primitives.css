@@ -36,6 +36,11 @@
   border-color: var(--border-strong);
 }
 
+.icon-button[aria-pressed='true'] {
+  color: var(--gold-300);
+  border-color: var(--border-strong);
+}
+
 .icon-button:disabled,
 .icon-ghost:disabled {
   opacity: 0.45;

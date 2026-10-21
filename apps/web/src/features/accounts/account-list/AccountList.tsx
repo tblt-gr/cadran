@@ -22,6 +22,8 @@ interface AccountListProps {
   hasMore?: boolean;
   label: string;
   moveDisabled?: boolean;
+  /** Shows the move controls; they stay out of the way until the owner asks to reorder. */
+  reordering?: boolean;
   onArchive: (account: Account) => void;
   /** Places the account before `beforeAccountId`, or last when it is null. */
   onMove: (account: Account, beforeAccountId: string | null) => void;
@@ -39,6 +41,7 @@ export function AccountList({
   hasMore = false,
   label,
   moveDisabled = false,
+  reordering = false,
   onArchive,
   onEdit,
   onMove,
@@ -104,9 +107,11 @@ export function AccountList({
               ? Array.from({ length: SKELETON_ROWS }, (_, row) => (
                   <tr key={row}>
                     <th data-label={t('accounts.fields.label')} scope="row">
-                      <a className={styles.accountLink}>
-                        <SkeletonBlock />
-                      </a>
+                      <div className={styles.labelCell}>
+                        <a className={styles.accountLink}>
+                          <SkeletonBlock />
+                        </a>
+                      </div>
                     </th>
                     <td data-label={t('accounts.overview.columnIdentity')}>
                       <SkeletonBlock />
@@ -138,20 +143,22 @@ export function AccountList({
                   return (
                     <tr key={account.id}>
                       <th data-label={t('accounts.fields.label')} scope="row">
-                        <a
-                          className={styles.accountLink}
-                          href={`/accounts/${account.id}`}
-                          onClick={(event) =>
-                            handleClientNavigation(event, `/accounts/${account.id}`)
-                          }
-                        >
-                          {account.label}
-                        </a>
-                        {account.status !== 'ACTIVE' ? (
-                          <StatusBadge tone={account.status === 'CLOSED' ? 'info' : 'warning'}>
-                            {t(`accounts.statuses.${account.status}`)}
-                          </StatusBadge>
-                        ) : null}
+                        <div className={styles.labelCell}>
+                          <a
+                            className={styles.accountLink}
+                            href={`/accounts/${account.id}`}
+                            onClick={(event) =>
+                              handleClientNavigation(event, `/accounts/${account.id}`)
+                            }
+                          >
+                            {account.label}
+                          </a>
+                          {account.status !== 'ACTIVE' ? (
+                            <StatusBadge tone={account.status === 'CLOSED' ? 'info' : 'warning'}>
+                              {t(`accounts.statuses.${account.status}`)}
+                            </StatusBadge>
+                          ) : null}
+                        </div>
                       </th>
                       <td data-label={t('accounts.overview.columnIdentity')}>
                         <span>{productName(account)}</span>
@@ -178,28 +185,36 @@ export function AccountList({
                       </td>
                       <td data-label={t('accounts.list.actions')}>
                         <div className={styles.rowActions}>
-                          <button
-                            aria-label={t('accounts.overview.moveUp', { label: account.label })}
-                            className="icon-button"
-                            data-move={`${account.id}:up`}
-                            disabled={moveDisabled || !canMoveUp}
-                            onClick={() => move(account, 'up', accounts[index - 1]!.id)}
-                            title={t('accounts.overview.moveUp', { label: account.label })}
-                            type="button"
-                          >
-                            <Icon name="arrow-up" />
-                          </button>
-                          <button
-                            aria-label={t('accounts.overview.moveDown', { label: account.label })}
-                            className="icon-button"
-                            data-move={`${account.id}:down`}
-                            disabled={moveDisabled || !canMoveDown}
-                            onClick={() => move(account, 'down', accounts[index + 2]?.id ?? null)}
-                            title={t('accounts.overview.moveDown', { label: account.label })}
-                            type="button"
-                          >
-                            <Icon name="arrow-down" />
-                          </button>
+                          {reordering ? (
+                            <>
+                              <button
+                                aria-label={t('accounts.overview.moveUp', { label: account.label })}
+                                className={`icon-ghost ${styles.moveButton}`}
+                                data-move={`${account.id}:up`}
+                                disabled={moveDisabled || !canMoveUp}
+                                onClick={() => move(account, 'up', accounts[index - 1]!.id)}
+                                title={t('accounts.overview.moveUp', { label: account.label })}
+                                type="button"
+                              >
+                                <Icon name="arrow-up" />
+                              </button>
+                              <button
+                                aria-label={t('accounts.overview.moveDown', {
+                                  label: account.label,
+                                })}
+                                className={`icon-ghost ${styles.moveButton}`}
+                                data-move={`${account.id}:down`}
+                                disabled={moveDisabled || !canMoveDown}
+                                onClick={() =>
+                                  move(account, 'down', accounts[index + 2]?.id ?? null)
+                                }
+                                title={t('accounts.overview.moveDown', { label: account.label })}
+                                type="button"
+                              >
+                                <Icon name="arrow-down" />
+                              </button>
+                            </>
+                          ) : null}
                           <ActionMenu
                             items={[
                               {

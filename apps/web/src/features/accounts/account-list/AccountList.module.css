@@ -68,7 +68,7 @@
   height: var(--spacing-4);
 }
 
-.panel tbody th {
+.labelCell {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -84,6 +84,13 @@
   margin-top: var(--spacing-1);
   color: var(--text-muted);
   font-size: var(--font-size-xs);
+}
+
+.moveButton {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  min-height: var(--icon-size-md);
+  color: var(--text-primary);
 }
 
 .rowActions {

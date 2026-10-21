@@ -353,6 +353,10 @@
     "add": "Nouveau compte",
     "addFirst": "Créer le premier compte",
     "manageGroups": "Gérer les groupes",
+    "reorder": {
+      "start": "Réorganiser les comptes",
+      "stop": "Terminer la réorganisation"
+    },
     "filters": {
       "open": "Filtres",
       "title": "Filtrer les comptes"

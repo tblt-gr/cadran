@@ -443,6 +443,26 @@ describe('AccountsPage', () => {
     expect(screen.queryByRole('heading', { name: 'Comptes et supports' })).toBeNull();
   });
 
+  it('shows the move controls only while the header toggle reorders the accounts', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
+    );
+    renderPage();
+
+    const toggle = await screen.findByRole('button', { name: 'Réorganiser les comptes' });
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    expect(screen.queryByRole('button', { name: /^Monter/ })).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(
+      screen
+        .getByRole('button', { name: 'Terminer la réorganisation' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(await screen.findByRole('button', { name: /^Monter/ })).toBeTruthy();
+  });
+
   it('covers the empty state and creates an account described by hand', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [], page: 1, pageSize: 50, total: 0 }),

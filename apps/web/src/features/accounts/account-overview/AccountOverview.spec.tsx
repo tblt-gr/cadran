@@ -57,7 +57,9 @@ const handlers = {
   onRules: vi.fn(),
 };
 
-function renderOverview(props: { includeClosed?: boolean; includeArchived?: boolean } = {}) {
+function renderOverview(
+  props: { includeClosed?: boolean; includeArchived?: boolean; reordering?: boolean } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -73,6 +75,7 @@ function renderOverview(props: { includeClosed?: boolean; includeArchived?: bool
       <AccountOverview
         includeArchived={props.includeArchived ?? false}
         includeClosed={props.includeClosed ?? false}
+        reordering={props.reordering ?? true}
         {...handlers}
       />
     </QueryClientProvider>,
@@ -368,5 +371,24 @@ describe('AccountOverview', () => {
     await waitFor(() =>
       expect(heading.querySelector('rect')?.getAttribute('fill')).toBe('#AABBCC'),
     );
+  });
+
+  it('keeps the move controls out of sight until reordering is switched on', async () => {
+    api.readAccountOverview.mockImplementation(() =>
+      success(buildOverview([buildHeading({ memberCount: 2 })], 2)),
+    );
+    api.readAccountOverviewRows.mockImplementation(() =>
+      success({
+        items: [buildAccount(A, 'Livret A'), buildAccount(B, 'LDDS')],
+        nextCursor: null,
+        orderVersion: 3,
+      }),
+    );
+
+    renderOverview({ reordering: false });
+
+    expect(await screen.findByRole('link', { name: 'Livret A' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Monter/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Descendre/ })).toBeNull();
   });
 });
