@@ -67,7 +67,10 @@ final readonly class AccountOverviewRepresentation
         return null === $amount ? null : [
             'value' => $amount->amount,
             'assetCode' => $amount->asset,
-            'display' => $amount->display,
+            'display' => null === $amount->display ? null : [
+                'value' => $amount->display,
+                'assetCode' => $amount->asset,
+            ],
             'belowDisplayStep' => $amount->belowDisplayStep,
         ];
     }

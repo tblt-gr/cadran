@@ -100,6 +100,11 @@ final class AccountOverviewControllerTest extends WebTestCase
         $groups = $this->list($overview['groups']);
         self::assertSame([self::PARENT, self::CHILD, null], array_column($groups, 'groupId'));
         self::assertSame(['900.00', '600.00', '100.00'], array_map(fn (array $g): mixed => $this->map($g['total'])['value'], $groups));
+        // The client reads `display` as an object (value + assetCode), like the net worth figures.
+        self::assertSame(
+            ['value' => '900.00', 'assetCode' => 'EUR'],
+            $this->map($this->map($groups[0]['total'])['display']),
+        );
         self::assertSame(['90.00', '60.00', '10.00'], array_map(fn (array $g): mixed => $this->map($g['share'])['percentDisplay'], $groups));
         self::assertSame([true, false, false], array_column($groups, 'isRollup'));
         self::assertSame([1, 1, 1], array_column($groups, 'memberCount'));
