@@ -108,7 +108,7 @@ export function AccountsPage() {
           title={t(reordering ? 'accounts.reorder.stop' : 'accounts.reorder.start')}
           type="button"
         >
-          <Icon name="move" />
+          <Icon name="reorder" />
         </button>
       </HeaderActions>
 

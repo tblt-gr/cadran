@@ -36,6 +36,7 @@ type IconName =
   | 'more'
   | 'move'
   | 'pie'
+  | 'reorder'
   | 'repeat'
   | 'replace'
   | 'report'
@@ -125,6 +126,8 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="M4 6h16v3H4Zm2 3v11h12V9M9 13h6" />;
     case 'move':
       return <path d="M12 5v10m-4-4 4 4 4-4M5 19h14" />;
+    case 'reorder':
+      return <path d="m8 9 4-4 4 4m-8 6 4 4 4-4" />;
     case 'merge':
       return <path d="M8 4v8a4 4 0 0 0 8 0V4M8 8h8" />;
     case 'replace':
