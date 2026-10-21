@@ -1,0 +1,67 @@
+.card {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.card h3,
+.card p {
+  margin: var(--spacing-none);
+}
+
+.card h3 {
+  font-size: var(--font-size-card-title);
+}
+
+.notice {
+  color: var(--text-secondary);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.scroll th,
+.scroll td {
+  padding: var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+}
+
+.scroll td {
+  font-variant-numeric: tabular-nums;
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.dialog p {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-4);
+}
+
+.alert {
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-color: var(--negative);
+  border-radius: var(--radius-control);
+  color: var(--negative);
+  background: var(--negative-soft);
+}

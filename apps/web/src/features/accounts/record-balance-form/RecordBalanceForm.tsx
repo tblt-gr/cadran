@@ -56,10 +56,13 @@ export function RecordBalanceForm({
       return;
     }
 
+    // A derived balance reports today's date, but its version belongs to the
+    // anchor snapshot. Sending that version for a new day is a false conflict.
+    const snapshotDay = valuation.derivation?.anchorAsOf ?? valuation.asOf;
     const replacingSameDay =
       valuation.quality !== 'MISSING' &&
       valuation.source === 'MANUAL' &&
-      valuation.asOf === asOf &&
+      snapshotDay === asOf &&
       valuation.version !== null;
 
     onSubmit({

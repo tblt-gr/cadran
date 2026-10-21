@@ -27,6 +27,7 @@ const api = vi.hoisted(() => ({
   listTransactions: vi.fn(),
   readAccount: vi.fn(),
   readAccountValuationHistory: vi.fn(),
+  listAccountBalances: vi.fn(),
   readAccountRules: vi.fn(),
 }));
 
@@ -232,6 +233,9 @@ describe('AccountDetailPage', () => {
     );
     api.listAccounts.mockImplementation(() =>
       success({ items: [account, otherAccount], page: 1, pageSize: 100, total: 2 }),
+    );
+    api.listAccountBalances.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     api.listAccountRuleOverrides.mockImplementation(() => success({ overrides: [] }));
     api.readAccountRules.mockImplementation(() => success(noProductRules));

@@ -20,6 +20,7 @@ import { AccountDetailActions } from './account-detail-actions/AccountDetailActi
 import { AccountIdentityCard } from './account-identity/AccountIdentityCard';
 import { AccountMovementsSection } from './account-movements-section/AccountMovementsSection';
 import { useAccountMovements } from './account-movements/useAccountMovements';
+import { BalanceSnapshotsPanel } from './balance-snapshots/BalanceSnapshotsPanel';
 import { SavingsHistoryPanel } from './savings-history/SavingsHistoryPanel';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
@@ -188,8 +189,11 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
       ) : null}
 
       <AccountIdentityCard account={current} />
-      {current.kind === 'SAVINGS' ? (
-        <SavingsHistoryPanel accountId={accountId} today={today} />
+      {current.valuationMode !== 'PORTFOLIO' ? (
+        <>
+          <SavingsHistoryPanel accountId={accountId} today={today} />
+          <BalanceSnapshotsPanel accountId={accountId} />
+        </>
       ) : null}
 
       {rulesOpen ? (
