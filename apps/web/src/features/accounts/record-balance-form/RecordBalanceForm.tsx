@@ -1,9 +1,11 @@
 import type { Account, AccountValuation, RecordAccountBalanceRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { FormField } from '@/features/accounts/account-form/form-field/FormField';
 import type { AccountErrorKind } from '@/features/accounts/accountError';
 import { isCanonicalDecimal } from '@/lib/decimal';
+import { BalanceSnapshotsList } from './balance-snapshots/BalanceSnapshotsList';
 import styles from './RecordBalanceForm.module.css';
 
 const MAX_COMMENT = 200;
@@ -37,6 +39,7 @@ export function RecordBalanceForm({
   const [amount, setAmount] = useState(valuation.amount?.value ?? '');
   const [comment, setComment] = useState('');
   const [showErrors, setShowErrors] = useState(false);
+  const [snapshotsOpen, setSnapshotsOpen] = useState(false);
 
   const trimmedAmount = amount.trim();
   const trimmedComment = comment.trim();
@@ -75,82 +78,97 @@ export function RecordBalanceForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
-      {submitError ? (
-        <p className={styles.alert} role="alert">
-          {t(`accounts.balances.errors.${submitError}`)}
+    <div className={styles.wrapper}>
+      <form className={styles.form} noValidate onSubmit={submit}>
+        {submitError ? (
+          <p className={styles.alert} role="alert">
+            {t(`accounts.balances.errors.${submitError}`)}
+          </p>
+        ) : null}
+
+        <p className={styles.hint}>
+          {t('accounts.balances.formHint', { asset: account.assetCode })}
         </p>
-      ) : null}
 
-      <p className={styles.hint}>{t('accounts.balances.formHint', { asset: account.assetCode })}</p>
+        <div className={styles.fields}>
+          <FormField
+            error={showErrors && asOfInvalid ? t('accounts.balances.validation.asOf') : undefined}
+            hint={t('accounts.balances.asOfHint')}
+            label={t('accounts.balances.fields.asOf')}
+            name="balance-as-of"
+          >
+            {({ fieldId, describedBy }) => (
+              <input
+                aria-describedby={describedBy}
+                aria-invalid={showErrors && asOfInvalid ? true : undefined}
+                id={fieldId}
+                max={latestAllowed}
+                min={account.openedOn}
+                onChange={(event) => setAsOf(event.target.value)}
+                required
+                type="date"
+                value={asOf}
+              />
+            )}
+          </FormField>
 
-      <div className={styles.fields}>
+          <FormField
+            error={
+              showErrors && amountInvalid ? t('accounts.balances.validation.amount') : undefined
+            }
+            hint={t('accounts.balances.amountHint')}
+            label={t('accounts.balances.fields.amount')}
+            name="balance-amount"
+          >
+            {({ fieldId, describedBy }) => (
+              <input
+                aria-describedby={describedBy}
+                aria-invalid={showErrors && amountInvalid ? true : undefined}
+                autoComplete="off"
+                id={fieldId}
+                inputMode="decimal"
+                onChange={(event) => setAmount(event.target.value)}
+                required
+                spellCheck={false}
+                value={amount}
+              />
+            )}
+          </FormField>
+        </div>
+
         <FormField
-          error={showErrors && asOfInvalid ? t('accounts.balances.validation.asOf') : undefined}
-          hint={t('accounts.balances.asOfHint')}
-          label={t('accounts.balances.fields.asOf')}
-          name="balance-as-of"
+          error={
+            showErrors && commentInvalid ? t('accounts.balances.validation.comment') : undefined
+          }
+          hint={t('accounts.balances.commentHint')}
+          label={t('accounts.balances.fields.comment')}
+          name="balance-comment"
         >
           {({ fieldId, describedBy }) => (
             <input
               aria-describedby={describedBy}
-              aria-invalid={showErrors && asOfInvalid ? true : undefined}
+              aria-invalid={showErrors && commentInvalid ? true : undefined}
               id={fieldId}
-              max={latestAllowed}
-              min={account.openedOn}
-              onChange={(event) => setAsOf(event.target.value)}
-              required
-              type="date"
-              value={asOf}
+              maxLength={MAX_COMMENT}
+              onChange={(event) => setComment(event.target.value)}
+              value={comment}
             />
           )}
         </FormField>
 
-        <FormField
-          error={showErrors && amountInvalid ? t('accounts.balances.validation.amount') : undefined}
-          hint={t('accounts.balances.amountHint')}
-          label={t('accounts.balances.fields.amount')}
-          name="balance-amount"
-        >
-          {({ fieldId, describedBy }) => (
-            <input
-              aria-describedby={describedBy}
-              aria-invalid={showErrors && amountInvalid ? true : undefined}
-              autoComplete="off"
-              id={fieldId}
-              inputMode="decimal"
-              onChange={(event) => setAmount(event.target.value)}
-              required
-              spellCheck={false}
-              value={amount}
-            />
-          )}
-        </FormField>
-      </div>
-
-      <FormField
-        error={showErrors && commentInvalid ? t('accounts.balances.validation.comment') : undefined}
-        hint={t('accounts.balances.commentHint')}
-        label={t('accounts.balances.fields.comment')}
-        name="balance-comment"
+        <div className={styles.actions}>
+          <button className="primary-action" disabled={pending} type="submit">
+            {t(pending ? 'accounts.balances.recording' : 'accounts.balances.record')}
+          </button>
+        </div>
+      </form>
+      <Disclosure
+        onToggle={setSnapshotsOpen}
+        open={snapshotsOpen}
+        title={t('accounts.snapshots.title')}
       >
-        {({ fieldId, describedBy }) => (
-          <input
-            aria-describedby={describedBy}
-            aria-invalid={showErrors && commentInvalid ? true : undefined}
-            id={fieldId}
-            maxLength={MAX_COMMENT}
-            onChange={(event) => setComment(event.target.value)}
-            value={comment}
-          />
-        )}
-      </FormField>
-
-      <div className={styles.actions}>
-        <button className="primary-action" disabled={pending} type="submit">
-          {t(pending ? 'accounts.balances.recording' : 'accounts.balances.record')}
-        </button>
-      </div>
-    </form>
+        {snapshotsOpen ? <BalanceSnapshotsList accountId={account.id} /> : null}
+      </Disclosure>
+    </div>
   );
 }

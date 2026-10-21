@@ -859,7 +859,7 @@
       }
     },
     "snapshots": {
-      "title": "Relevés",
+      "title": "Relevés enregistrés",
       "description": "Un relevé ancre le solde à sa date. Les mouvements strictement postérieurs s’y ajoutent. Retirer un relevé le garde dans le fil, et le solde repart du relevé actif précédent.",
       "loading": "Chargement des relevés…",
       "empty": "Aucun relevé enregistré.",
@@ -873,9 +873,8 @@
       "withdrawn": "Retiré",
       "withdraw": "Retirer",
       "withdrawOf": "Retirer le relevé du {{date}}",
-      "eyebrow": "Relevé",
-      "confirmTitle": "Retirer le relevé du {{date}}",
-      "confirm": "Ce relevé ne servira plus à calculer le solde. La ligne reste visible comme retirée.",
+      "truncated": "{{shown}} relevés affichés sur {{total}}. Les plus anciens ne sont pas listés.",
+      "confirmHint": "Ce relevé ne servira plus à calculer le solde. La ligne reste visible comme retirée.",
       "confirming": "Retrait…",
       "confirmAction": "Retirer le relevé"
     }
