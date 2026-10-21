@@ -22,6 +22,83 @@ describe('AppShell', () => {
     cleanup();
   });
 
+  it('preserves named link order in the sidebar, compact rail and mobile navigation', () => {
+    renderShell();
+    const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
+    const expectedLabels = [
+      'Synthèse',
+      'Comptes',
+      'Investissements',
+      'Budget',
+      'Rapports',
+      'Objectifs',
+      'Transactions',
+      'Paramètres',
+    ];
+    const labels = (container: HTMLElement) =>
+      within(container)
+        .getAllByRole('link')
+        .map((link) => link.textContent);
+    expect(labels(sidebar)).toEqual(expectedLabels);
+    expect(
+      within(sidebar)
+        .getAllByRole('link')
+        .every((link) => link.tabIndex === 0),
+    ).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Réduire la navigation' }));
+    expect(labels(sidebar)).toEqual(expectedLabels);
+    expectedLabels.forEach((name) =>
+      expect(within(sidebar).getByRole('link', { name })).toBeTruthy(),
+    );
+
+    const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
+    expect(labels(mobile)).toEqual(['Synthèse', 'Comptes', 'Budget', 'Transactions']);
+    fireEvent.click(within(mobile).getByRole('button', { name: 'Plus' }));
+    const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
+    expect(labels(sheet)).toEqual(['Investissements', 'Rapports', 'Objectifs', 'Paramètres']);
+  });
+
+  it.each([
+    ['loading', true, ''],
+    ['empty', false, 'Aucune donnée'],
+    ['error', false, 'Lecture impossible'],
+    ['non-calculable', false, 'Non calculable'],
+  ])('keeps navigation selection independent of %s page content', (_state, busy, content) => {
+    render(
+      <AppShell isNavigating={busy} path="/life-insurance/contract-id" setPath={vi.fn()}>
+        <p>{content}</p>
+      </AppShell>,
+    );
+    const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
+    expect(
+      within(sidebar)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual([
+      '/',
+      '/accounts',
+      '/portfolios',
+      '/budget',
+      '/reports',
+      '/goals',
+      '/transactions',
+      '/parameters/profile',
+    ]);
+    expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe(
+      'Investissements',
+    );
+    const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
+    expect(within(mobile).getByRole('button', { name: 'Plus' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+    fireEvent.click(within(mobile).getByRole('button', { name: 'Plus' }));
+    const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
+    expect(within(sheet).getByRole('link', { current: 'page' }).textContent).toBe(
+      'Investissements',
+    );
+  });
+
   it('closes the complementary navigation and restores focus to its trigger', async () => {
     renderShell();
 

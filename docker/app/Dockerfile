@@ -39,7 +39,7 @@ RUN composer install \
     --ignore-platform-req=php \
     --ignore-platform-req=ext-bcmath
 
-FROM dunglas/frankenphp:1.13.1-php8.5-trixie@sha256:a052ae7cccd4a025eca17767e7acac57a4fc660a4f3dfc790be9b9cd5182d6e6 AS php_extensions
+FROM dunglas/frankenphp:1.13.1-php8.5-trixie@sha256:ec7839c3cf2983e363d672d05d10d401c8414bc6f119f7f7e2884719530a4b08 AS php_extensions
 
 # The compiler toolchain that install-php-extensions pulls in lives only in this
 # stage: the runtime image receives the built modules and nothing else.
@@ -48,7 +48,7 @@ RUN install-php-extensions pdo_pgsql bcmath \
     && cp "$(php -r 'echo ini_get("extension_dir");')"/pdo_pgsql.so "$(php -r 'echo ini_get("extension_dir");')"/bcmath.so /out/extensions/ \
     && cp "$PHP_INI_DIR"/conf.d/docker-php-ext-pdo_pgsql.ini "$PHP_INI_DIR"/conf.d/docker-php-ext-bcmath.ini /out/conf.d/
 
-FROM dunglas/frankenphp:1.13.1-php8.5-trixie@sha256:a052ae7cccd4a025eca17767e7acac57a4fc660a4f3dfc790be9b9cd5182d6e6 AS runtime
+FROM dunglas/frankenphp:1.13.1-php8.5-trixie@sha256:ec7839c3cf2983e363d672d05d10d401c8414bc6f119f7f7e2884719530a4b08 AS runtime
 
 # The FrankenPHP base image ships a compiler toolchain, kernel headers, curl and
 # perl for building extensions. None of them is used at run time, so they are
