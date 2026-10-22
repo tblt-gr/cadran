@@ -89,8 +89,15 @@ export function AccountList({
   return (
     <div className={`card ${styles.panel}`}>
       <div className={styles.tableScroll}>
-        <table>
+        <table className={reordering ? styles.reordering : undefined}>
           <caption className="sr-only">{label}</caption>
+          <colgroup>
+            <col />
+            <col className={styles.identityColumn} />
+            <col className={styles.balanceColumn} />
+            <col className={styles.shareColumn} />
+            <col className={styles.actionsColumn} />
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">{t('accounts.fields.label')}</th>

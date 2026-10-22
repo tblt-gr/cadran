@@ -1,0 +1,34 @@
+.secondary:hover {
+  border-color: var(--text-secondary);
+}
+
+.secondary[aria-pressed='true'] {
+  color: var(--gold-300);
+  border-color: var(--gold-300);
+}
+
+@media (max-width: 63.999rem) {
+  .secondaryLabel {
+    display: none;
+  }
+
+  .secondary {
+    width: max(var(--icon-size-lg), var(--control-height));
+    height: max(var(--icon-size-lg), var(--control-height));
+    padding: var(--spacing-none);
+    border-radius: var(--radius-circle);
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .addLabel {
+    display: none;
+  }
+
+  .add {
+    width: max(var(--icon-size-lg), var(--control-height));
+    height: max(var(--icon-size-lg), var(--control-height));
+    padding: var(--spacing-none);
+    border-radius: var(--radius-circle);
+  }
+}

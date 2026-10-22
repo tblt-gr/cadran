@@ -1,12 +1,10 @@
 import type { Account } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { AccountsPageModals } from './accounts-page-modals/AccountsPageModals';
-import { AccountFilters } from './account-filters/AccountFilters';
+import { AccountsPageActions } from './accounts-page-actions/AccountsPageActions';
 import { AccountOverview } from './account-overview/AccountOverview';
 import { useLiveAccount } from './useLiveAccount';
 import { useAccountsPageMutations } from './useAccountsPageMutations';
@@ -81,36 +79,15 @@ export function AccountsPage() {
 
   return (
     <div className={styles.page}>
-      <HeaderActions>
-        <button
-          aria-label={t('accounts.add')}
-          className={`primary-action ${styles.add}`}
-          onClick={() => openEditor('create')}
-          type="button"
-        >
-          <Icon name="add" size={18} />
-          <span className={styles.addLabel}>{t('accounts.add')}</span>
-        </button>
-        <a
-          aria-label={t('accounts.manageGroups')}
-          className="icon-button"
-          href="/accounts/groups"
-          onClick={(event) => handleClientNavigation(event, '/accounts/groups')}
-          title={t('accounts.manageGroups')}
-        >
-          <Icon name="layers" />
-        </a>
-        <button
-          aria-label={t(reordering ? 'accounts.reorder.stop' : 'accounts.reorder.start')}
-          aria-pressed={reordering}
-          className="icon-button"
-          onClick={() => setReordering((current) => !current)}
-          title={t(reordering ? 'accounts.reorder.stop' : 'accounts.reorder.start')}
-          type="button"
-        >
-          <Icon name="reorder" />
-        </button>
-      </HeaderActions>
+      <AccountsPageActions
+        includeArchived={includeArchived}
+        includeClosed={includeClosed}
+        onCreate={() => openEditor('create')}
+        onIncludeArchivedChange={setIncludeArchived}
+        onIncludeClosedChange={setIncludeClosed}
+        onToggleReordering={() => setReordering((current) => !current)}
+        reordering={reordering}
+      />
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`accounts.toasts.${saved}`)}</Toast>
@@ -139,12 +116,12 @@ export function AccountsPage() {
         setReconciling={setReconciling}
       />
 
-      <AccountFilters
-        includeArchived={includeArchived}
-        includeClosed={includeClosed}
-        onIncludeArchivedChange={setIncludeArchived}
-        onIncludeClosedChange={setIncludeClosed}
-      />
+      {reordering ? (
+        <p className={styles.reorderHint} role="status">
+          <Icon name="reorder" />
+          {t('accounts.reorder.hint')}
+        </p>
+      ) : null}
 
       <AccountOverview
         includeArchived={includeArchived}

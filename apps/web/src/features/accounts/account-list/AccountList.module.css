@@ -9,6 +9,30 @@
 .panel table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.identityColumn {
+  width: 24%;
+}
+
+.balanceColumn {
+  width: 28%;
+}
+
+.shareColumn {
+  width: 9rem;
+}
+
+.actionsColumn {
+  width: calc(max(var(--icon-size-md), var(--control-height)) + var(--spacing-4) * 2);
+}
+
+.reordering .actionsColumn {
+  width: calc(
+    max(var(--icon-size-md), var(--control-height)) * 3 + var(--spacing-2) * 2 + var(--spacing-4) *
+      2
+  );
 }
 
 .panel th,
@@ -17,6 +41,7 @@
   border-bottom: var(--border-line-subtle);
   text-align: left;
   vertical-align: middle;
+  overflow-wrap: anywhere;
 }
 
 .panel thead th {
@@ -99,7 +124,21 @@
   gap: var(--spacing-2);
 }
 
+@media (min-width: 48rem) {
+  .panel table {
+    min-width: 48rem;
+  }
+}
+
 @media (max-width: 47.999rem) {
+  .panel {
+    padding: var(--spacing-none);
+  }
+
+  .panel colgroup {
+    display: none;
+  }
+
   .panel table,
   .panel tbody,
   .panel tr {
@@ -117,15 +156,22 @@
 
   .panel tbody {
     display: grid;
-    gap: var(--spacing-3);
-    padding: var(--spacing-3);
+    gap: var(--spacing-none);
+    padding: var(--spacing-4);
   }
 
   .panel tbody tr {
-    padding: var(--spacing-3);
-    border: var(--border-line-subtle);
-    border-radius: var(--radius-card);
-    background: var(--bg-surface-2);
+    padding: var(--spacing-3) var(--spacing-none);
+    border-bottom: var(--border-line-subtle);
+  }
+
+  .panel tbody tr:first-child {
+    padding-top: var(--spacing-none);
+  }
+
+  .panel tbody tr:last-child {
+    padding-bottom: var(--spacing-none);
+    border-bottom: var(--border-none);
   }
 
   .panel tbody th,
@@ -135,7 +181,13 @@
     padding: var(--spacing-2) var(--spacing-none);
     border-bottom: var(--border-none);
     grid-template-columns: minmax(7rem, 40%) minmax(0, 1fr);
-    gap: var(--spacing-3);
+    column-gap: var(--spacing-3);
+    row-gap: var(--spacing-1);
+  }
+
+  .panel tbody td > small {
+    grid-column: 2;
+    margin-top: var(--spacing-none);
   }
 
   .panel tbody th::before,

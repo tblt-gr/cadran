@@ -353,13 +353,21 @@
     "add": "Nouveau compte",
     "addFirst": "Créer le premier compte",
     "manageGroups": "Gérer les groupes",
+    "actions": {
+      "groups": "Groupes",
+      "reorder": "Réorganiser",
+      "done": "Terminer"
+    },
     "reorder": {
       "start": "Réorganiser les comptes",
-      "stop": "Terminer la réorganisation"
+      "stop": "Terminer la réorganisation",
+      "hint": "Utilisez les flèches pour déplacer les comptes dans leur groupe. Les changements sont enregistrés au fur et à mesure."
     },
     "filters": {
       "open": "Filtres",
-      "title": "Filtrer les comptes"
+      "title": "Filtrer les comptes",
+      "active_one": "{{count}} filtre actif",
+      "active_other": "{{count}} filtres actifs"
     },
     "includeClosed": "Afficher les comptes clôturés",
     "includeArchived": "Afficher les comptes archivés",
@@ -511,7 +519,7 @@
       "rulesOfAccount": "Règles applicables au compte {{label}}",
       "reconcile": "Rapprocher",
       "reconcileOfAccount": "Rapprocher le compte {{label}}",
-      "recordBalance": "Solde",
+      "recordBalance": "Enregistrer un solde",
       "recordBalanceOfAccount": "Enregistrer un solde sur {{label}}",
       "openActions": "Actions du compte {{label}}"
     },

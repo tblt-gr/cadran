@@ -14,7 +14,10 @@
   position: fixed;
   z-index: 100;
   display: flex;
-  min-width: 12rem;
+  min-width: min(12rem, calc(100vw - var(--spacing-2)));
+  max-width: calc(100vw - var(--spacing-2));
+  max-height: calc(100dvh - var(--spacing-2));
+  overflow-y: auto;
   flex-direction: column;
   padding: var(--spacing-1);
   border: var(--border-line-subtle);
@@ -25,6 +28,8 @@
 
 .item {
   display: flex;
+  flex-shrink: 0;
+  overflow-wrap: anywhere;
   align-items: center;
   min-height: var(--control-height);
   padding: var(--spacing-1) var(--spacing-3);

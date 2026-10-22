@@ -47,6 +47,21 @@ for (const modal of modalCases) {
   });
 }
 
+test('account actions remain reachable when the viewport shrinks', async ({ page }) => {
+  await page.goto('/accounts');
+  await settled(page);
+  const trigger = page.getByRole('button', { name: /^Actions du compte/ }).first();
+  await trigger.click();
+  const menu = page.locator(`[id="${await trigger.getAttribute('aria-controls')}"]`);
+  await expect(menu).toBeInViewport({ ratio: 1 });
+  const viewport = page.viewportSize()!;
+  await page.setViewportSize({ width: viewport.width, height: 400 });
+  await expect(menu).toBeInViewport({ ratio: 1 });
+  await menu.getByRole('button', { name: /^Modifier/ }).click();
+  await settled(page);
+  await expect(page.getByRole('dialog')).toBeVisible();
+});
+
 keyboardJourneys();
 
 test('budget variance names its positive and negative signs with the server status', async ({

@@ -430,11 +430,19 @@ describe('AccountsPage', () => {
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Filtres' }));
+    expect(screen.getByRole('button', { name: 'Filtres' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    );
     expect(screen.queryByTestId('account-filters-count')).toBeNull();
     fireEvent.click(screen.getByLabelText('Afficher les comptes archivés'));
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
 
     expect(screen.getByTestId('account-filters-count').textContent).toBe('1');
+    const filters = screen.getByRole('button', { name: 'Filtres' });
+    expect(filters.getAttribute('aria-expanded')).toBe('false');
+    expect(document.getElementById(filters.getAttribute('aria-describedby')!)?.textContent).toBe(
+      '1 filtre actif',
+    );
     await waitFor(() =>
       expect(api.readAccountOverview).toHaveBeenLastCalledWith(
         expect.objectContaining({ query: expect.objectContaining({ includeArchived: true }) }),
@@ -461,6 +469,9 @@ describe('AccountsPage', () => {
         .getAttribute('aria-pressed'),
     ).toBe('true');
     expect(await screen.findByRole('button', { name: /^Monter/ })).toBeTruthy();
+    expect(screen.getByText(/Les changements sont enregistrés au fur et à mesure/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Terminer la réorganisation' }));
+    expect(screen.queryByText(/Les changements sont enregistrés au fur et à mesure/)).toBeNull();
   });
 
   it('covers the empty state and creates an account described by hand', async () => {

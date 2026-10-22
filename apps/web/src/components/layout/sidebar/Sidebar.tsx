@@ -26,7 +26,7 @@ export function Sidebar({
 
   return (
     <aside className={`${styles.sidebar}${isCollapsed ? ` ${styles.collapsed}` : ''}`}>
-      <div className={styles.brand} aria-label={t('app.name')}>
+      <div className={styles.brand} role="img" aria-label={t('app.name')}>
         <svg aria-hidden="true" className={styles.brandMark} viewBox="0 0 40 40">
           <circle cx="20" cy="20" fill="none" r="15" stroke="currentColor" strokeWidth="2" />
           <path
