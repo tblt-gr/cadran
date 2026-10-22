@@ -61,11 +61,19 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       if (!result.response?.ok || !result.data) throw new Error('monthly-ledger');
       return result.data;
     },
+    // Only an axis change keeps the previous payload; another month never shows foreign figures.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === queryMonth ? previous : undefined,
     retry: false,
   });
 
   // Kept across month changes: the ledger of the next month is pending, the first year is not.
   const [firstDataMonth, setFirstDataMonth] = useState<string | null>(null);
+  const [monthsWithTransactions, setMonthsWithTransactions] = useState<string[] | null>(null);
+  const answeredMonths = ledger.data?.monthsWithTransactions;
+  if (answeredMonths !== undefined && answeredMonths !== monthsWithTransactions) {
+    setMonthsWithTransactions(answeredMonths);
+  }
   const answeredFirstDataMonth = ledger.data?.firstDataMonth;
   if (answeredFirstDataMonth !== undefined && answeredFirstDataMonth !== firstDataMonth) {
     setFirstDataMonth(answeredFirstDataMonth);
@@ -150,21 +158,6 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('budget.monthly.saved')}</Toast> : null}
 
       <HeaderActions>
-        <button
-          aria-label={t('budget.monthly.createTransaction')}
-          className="primary-action"
-          disabled={!ledger.data?.actionsAllowed}
-          onClick={() => setDraft({ kind: 'expense', row: null })}
-          title={
-            ledger.data && !ledger.data.actionsAllowed
-              ? t('budget.monthly.closedReason')
-              : undefined
-          }
-          type="button"
-        >
-          <Icon name="add" size={18} />
-          <span className={styles.actionLabel}>{t('budget.monthly.createTransaction')}</span>
-        </button>
         <a
           aria-label={t('budget.monthly.managePlans')}
           className="icon-button"
@@ -181,13 +174,15 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         currentMonth={currentMonth}
         firstDataMonth={firstDataMonth}
         month={month}
+        monthsWithTransactions={monthsWithTransactions}
       />
 
       {ledger.isPending && ledger.data === undefined ? (
-        <MonthlyBudgetPageSkeleton status={t('budget.monthly.loading')} />
+        <MonthlyBudgetPageSkeleton axis={axis} status={t('budget.monthly.loading')} />
       ) : ledger.isError ? (
         <section className={`card ${styles.routeError}`} role="alert">
           <h2>{t('budget.monthly.error.title')}</h2>
+          <p>{monthLabel}</p>
           <p>{t('budget.monthly.error.description')}</p>
           <button className="secondary-action" onClick={() => void ledger.refetch()} type="button">
             {t('foundation.retry')}
@@ -201,6 +196,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
             data={ledger.data}
             language={i18n.language}
             month={month}
+            expenseRowsPending={ledger.isPlaceholderData}
             onAxisChange={changeAxis}
             onDraft={setDraft}
             onEditTransaction={setEditingTransactionId}

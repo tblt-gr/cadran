@@ -104,6 +104,7 @@ final class MonthlyRecapRepresentation
             'parentId' => $group->parentId,
             'depth' => $group->depth,
             'value' => self::amount($group->value),
+            'previousValue' => self::amount($group->previousValue),
             'share' => self::share($group->share),
         ];
     }

@@ -84,6 +84,7 @@ final class MonthlyRecapControllerTest extends WebTestCase
      * Change   = 1000.00 / 8000.00 = 12.50 %.
      * Livrets  = 5500.00 + 2300.00 = 7800.00, i.e. 7800/9000 = 86.67 % of N.
      * Courant  = 1200.00,                     i.e. 1200/9000 = 13.33 % of N.
+     * At N−1: Livrets = 5000.00 + 2000.00 = 7000.00, Courant = 1000.00.
      */
     public function testTheClosedMonthRecapIsExactAndEachAccountCountsOnceInOneGroup(): void
     {
@@ -122,6 +123,8 @@ final class MonthlyRecapControllerTest extends WebTestCase
         self::assertSame('86.67', self::fields($groups[self::GROUP_LIVRETS]['share'])['percentDisplay']);
         self::assertSame('1200.00', self::fields($groups[self::GROUP_COURANT]['value'])['value']);
         self::assertSame('13.33', self::fields($groups[self::GROUP_COURANT]['share'])['percentDisplay']);
+        self::assertSame('7000.00', self::fields($groups[self::GROUP_LIVRETS]['previousValue'])['value']);
+        self::assertSame('1000.00', self::fields($groups[self::GROUP_COURANT]['previousValue'])['value']);
 
         $netWorth = self::fields($recap['netWorth']);
         self::assertSame('8000.00', self::fields($netWorth['previous'])['value']);

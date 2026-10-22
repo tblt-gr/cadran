@@ -1,6 +1,6 @@
 .navigator {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--spacing-4);
 }
 
@@ -17,16 +17,19 @@
   display: flex;
   min-width: 0;
   flex: 1;
+  align-items: center;
   gap: var(--spacing-1);
   overflow-x: auto;
-  padding-bottom: var(--spacing-1);
 }
 
 .tabs a,
 .tabs button {
+  display: inline-flex;
+  align-items: center;
   min-width: max-content;
+  min-height: var(--control-height-compact);
   border-radius: var(--radius-control);
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-1) var(--spacing-3);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
   text-decoration: none;
@@ -60,4 +63,16 @@
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+.year select {
+  min-height: var(--control-height-compact);
+  border: var(--border-line-transparent);
+  background: var(--color-transparent);
+  color: var(--text-primary);
+  font-size: var(--font-size-label);
+  padding: var(--spacing-1) var(--spacing-2);
+}
+.year select:focus-visible {
+  outline: var(--outline-focus);
 }

@@ -30,6 +30,7 @@
 .panel tbody th {
   color: var(--text-primary);
   font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
 }
 
 .panel td {
@@ -40,7 +41,36 @@
 .groupRow th,
 .groupRow td {
   background: var(--bg-surface-2);
+  color: var(--text-primary);
   font-weight: var(--font-weight-bold);
+}
+
+.panel tbody .groupRow th {
+  font-weight: var(--font-weight-bold);
+}
+
+.amount {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  white-space: nowrap;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.stale {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--warning);
+}
+
+.share {
+  width: 1%;
+  white-space: nowrap;
 }
 
 .unavailable {
@@ -80,25 +110,24 @@
   }
 
   .panel tbody {
-    display: grid;
-    gap: var(--spacing-3);
-    padding: var(--spacing-3);
+    display: block;
   }
-
   .panel tbody tr {
-    padding: var(--spacing-3);
-    border: var(--border-line-subtle);
-    border-radius: var(--radius-card);
-    background: var(--bg-surface-2);
+    border-bottom: var(--border-line-subtle);
   }
 
   .panel tbody th,
   .panel tbody td {
     display: grid;
     min-width: 0;
-    padding: var(--spacing-2) var(--spacing-none);
-    grid-template-columns: minmax(7rem, 40%) minmax(0, 1fr);
+    padding: var(--spacing-2) var(--spacing-3);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
     gap: var(--spacing-3);
+  }
+
+  .panel tbody td.share {
+    width: auto;
+    grid-template-columns: minmax(0, 1fr) max-content;
   }
 
   .panel tbody th::before,
@@ -110,4 +139,28 @@
     letter-spacing: var(--letter-spacing-card);
     text-transform: uppercase;
   }
+}
+
+.skeletonDate {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-body);
+}
+
+.panel tbody a {
+  display: block;
+  color: var(--text-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.panel tbody a:hover,
+.panel tbody a:focus-visible {
+  color: var(--gold-300);
+  text-decoration: underline;
+}
+
+.panel tbody tr {
+  border-inline-start: var(--border-width-loading) solid var(--color-transparent);
+}
+.panel tbody tr.groupRow {
+  border-inline-start-color: var(--text-muted);
 }

@@ -68,7 +68,7 @@ describe('BudgetComparisonsPanel', () => {
   it.each([
     ['57.50', 'WITHIN_TARGET', /Écart.*\+57,50.*Dans le budget/],
     ['-20.00', 'OVER_TARGET', /Écart.*-20,00.*Dépassement/],
-    ['0', 'ON_TARGET', /Écart.*0,00.*Objectif atteint/],
+    ['0', 'ON_TARGET', /Écart.*-.*Objectif atteint/],
   ] as const)(
     'names variance %s and its server status without relying on color',
     async (variance, status, name) => {

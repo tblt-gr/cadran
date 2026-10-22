@@ -25,6 +25,7 @@ final class MonthlyLedgerRepresentation
             'quality' => $view->quality,
             'timezone' => $view->timezone,
             'firstDataMonth' => $view->firstDataMonth,
+            'monthsWithTransactions' => $view->monthsWithTransactions,
             'pendingCount' => $view->pendingCount,
             'closed' => $view->closed,
             'actionsAllowed' => $view->actionsAllowed,

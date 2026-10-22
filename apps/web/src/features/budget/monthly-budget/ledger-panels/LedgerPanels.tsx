@@ -3,6 +3,7 @@ import type {
   MonthlyLedgerAccountRow,
   MonthlyLedgerCategoryRow,
 } from '@cadran/api-client';
+import { compareDecimalString } from '@/lib/tableSort';
 import { useTranslation } from 'react-i18next';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import type { BudgetCreationDraft } from '@/features/budget/monthly-budget/budget-creation-modals/BudgetCreationModals';
@@ -14,6 +15,7 @@ interface LedgerPanelsProps {
   activeAccountIds: ReadonlySet<string> | null;
   axis: BudgetAxis | null;
   data: MonthlyLedger;
+  expenseRowsPending?: boolean;
   language: string;
   month: string;
   onAxisChange: (axis: BudgetAxis | null) => void;
@@ -25,6 +27,7 @@ export function LedgerPanels({
   activeAccountIds,
   axis,
   data,
+  expenseRowsPending = false,
   language,
   month,
   onAxisChange,
@@ -48,7 +51,18 @@ export function LedgerPanels({
   // A category with no movement this month has nothing to explain; accounts stay listed
   // because an account without a transfer is still a valid transfer target.
   const incomeRows = data.incomeCategories.filter((row) => row.hasMovements);
-  const expenseRows = data.expenseCategories.filter((row) => row.hasMovements);
+  const expenseRows = data.expenseCategories
+    .filter((row) => row.hasMovements)
+    .sort(
+      (left, right) =>
+        compareDecimalString(left.total.value, right.total.value, 'desc') ||
+        left.label.localeCompare(right.label, language),
+    );
+  const accountRows = [...data.accounts].sort(
+    (left, right) =>
+      Number(right.hasMovements) - Number(left.hasMovements) ||
+      left.label.localeCompare(right.label, language),
+  );
 
   return (
     <div className={styles.ledger}>
@@ -80,7 +94,12 @@ export function LedgerPanels({
           onAdd={(row) => onDraft({ kind: 'expense', row: row as MonthlyLedgerCategoryRow })}
           onAxisChange={onAxisChange}
           rows={expenseRows}
-          total={recap.data?.totals.budgetExpenses}
+          rowsPending={expenseRowsPending}
+          total={
+            axis
+              ? recap.data?.totals.expensesByAxis.find((candidate) => candidate.axis === axis)
+              : recap.data?.totals.budgetExpenses
+          }
           totalState={totalState}
         />
         <LedgerPanel
@@ -88,7 +107,7 @@ export function LedgerPanels({
           activeAccountIds={activeAccountIds}
           kind="account"
           onAdd={(row) => onDraft({ kind: 'account', row: row as MonthlyLedgerAccountRow })}
-          rows={data.accounts}
+          rows={accountRows}
           total={recap.data?.totals.netSavingsTransfers}
           totalState={totalState}
         />

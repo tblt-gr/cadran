@@ -1,13 +1,16 @@
 .line {
-  width: 70%;
+  display: inline-block;
+  width: calc(var(--spacing-12) * 1.5);
+  max-width: 70%;
   height: var(--font-size-label);
-  margin-top: var(--spacing-1);
+  margin-top: var(--spacing-none);
 }
 
 .meta {
-  width: 40%;
+  display: inline-block;
+  width: var(--spacing-4);
   height: var(--font-size-xs);
-  margin-top: var(--spacing-1);
+  margin-top: var(--spacing-none);
 }
 
 .amount {

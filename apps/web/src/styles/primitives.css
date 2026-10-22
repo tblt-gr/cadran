@@ -165,6 +165,15 @@
   background: var(--bg-surface-2);
 }
 
+:where(select) {
+  color-scheme: dark;
+}
+
+:where(select option) {
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
 :where(input, select, textarea)[aria-invalid='true'] {
   border-color: var(--negative);
 }

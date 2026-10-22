@@ -7,6 +7,7 @@ namespace App\Module\Reporting\Application;
 final readonly class MonthlyLedgerView
 {
     /**
+     * @param list<string>                       $monthsWithTransactions `YYYY-MM`, oldest first
      * @param list<MonthlyLedgerCategoryRowView> $incomeCategories
      * @param list<MonthlyLedgerCategoryRowView> $expenseCategories
      * @param list<MonthlyLedgerAccountRowView>  $accounts
@@ -20,6 +21,7 @@ final readonly class MonthlyLedgerView
         public string $quality,
         public string $timezone,
         public ?string $firstDataMonth,
+        public array $monthsWithTransactions,
         public int $pendingCount,
         public bool $closed,
         public bool $actionsAllowed,

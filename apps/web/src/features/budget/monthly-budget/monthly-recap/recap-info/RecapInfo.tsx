@@ -11,10 +11,11 @@ interface RecapInfoProps {
   policy: MetricPolicyReference;
 }
 
-/** Metric policy and pending-operations notice, kept behind an "i" button instead of inline text. */
+/** Metric policy and pending-operations notice behind an "i" button; absent when there is no pending operation to explain. */
 export function RecapInfo({ pending, policy }: RecapInfoProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  if (!pending) return null;
   return (
     <>
       <InfoButton
@@ -28,7 +29,7 @@ export function RecapInfo({ pending, policy }: RecapInfoProps) {
             <p>
               <MetricPolicyBadge policy={policy} />
             </p>
-            {pending ? <p role="status">{t('budget.monthly.recap.pending')}</p> : null}
+            <p role="status">{t('budget.monthly.recap.pending')}</p>
           </div>
         </Modal>
       ) : null}
