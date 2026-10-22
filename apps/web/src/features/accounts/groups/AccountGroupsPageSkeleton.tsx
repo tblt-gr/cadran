@@ -1,14 +1,11 @@
-import { GroupMembers } from '@/features/accounts/groups/group-members/GroupMembers';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { SortableHeader } from '@/components/ui/sortable-header/SortableHeader';
 import { useTranslation } from 'react-i18next';
-import { AllocationChartsSkeleton } from '@/features/dashboard/allocation-charts/AllocationChartsSkeleton';
-import pageStyles from './AccountGroupsPage.module.css';
 import styles from './group-list/GroupList.module.css';
 
 const noop = () => undefined;
 
-/** Mirrors the allocation card and GroupList element for element: only values are pending. */
+/** Mirrors GroupList element for element: only values are pending. */
 export function AccountGroupsPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   const header = (column: string, label: string) => (
@@ -20,11 +17,6 @@ export function AccountGroupsPageSkeleton({ status }: { status: string }) {
   return (
     <>
       <SkeletonStatus>{status}</SkeletonStatus>
-      <section aria-hidden="true" className={`card ${pageStyles.allocation}`}>
-        <div>
-          <AllocationChartsSkeleton />
-        </div>
-      </section>
       <div
         aria-busy="true"
         className={`card ${styles.panel}`}
@@ -37,8 +29,6 @@ export function AccountGroupsPageSkeleton({ status }: { status: string }) {
               <tr>
                 {header('label', t('accountGroups.fields.label'))}
                 {header('parent', t('accountGroups.fields.parent'))}
-                {header('total', t('accountGroups.fields.total'))}
-                {header('share', t('accountGroups.fields.share'))}
                 {header('status', t('accountGroups.list.status'))}
                 <th scope="col">
                   <span className="sr-only">{t('accountGroups.list.actions')}</span>
@@ -55,23 +45,9 @@ export function AccountGroupsPageSkeleton({ status }: { status: string }) {
                     <small>
                       <SkeletonBlock />
                     </small>
-                    <GroupMembers
-                      accounts={[]}
-                      models={[]}
-                      products={[]}
-                      shareByAccount={new Map()}
-                      sharesStatus="pending"
-                      status="pending"
-                    />
                   </th>
                   <td>
                     <SkeletonBlock />
-                  </td>
-                  <td className={`money ${styles.total}`}>
-                    <SkeletonBlock className={styles.cellSkeleton} />
-                  </td>
-                  <td>
-                    <SkeletonBlock className={styles.cellSkeleton} />
                   </td>
                   <td>
                     <SkeletonBlock />

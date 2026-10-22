@@ -153,7 +153,7 @@ final class ListPageSizeBoundsTest extends WebTestCase
 
     private static function url(string $path): string
     {
-        return str_replace(['{kind}', '{id}', '{accountId}'], ['account', PortfolioFixture::ACCOUNT, PortfolioFixture::ACCOUNT], $path);
+        return str_replace(['{kind}', '{id}', '{accountId}', '{groupKey}'], ['account', PortfolioFixture::ACCOUNT, PortfolioFixture::ACCOUNT, 'ungrouped'], $path);
     }
 
     private static function requiredQuery(string $path): string

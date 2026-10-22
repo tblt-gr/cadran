@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useLayoutEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon, type IconName } from '@/components/ui/icon/Icon';
 import styles from './ActionMenu.module.css';
@@ -34,17 +34,25 @@ export function ActionMenu({ autoFocus = false, items, label, disabled = false }
 
   function place() {
     const rect = trigger.current?.getBoundingClientRect();
-    if (rect === undefined) {
+    const panel = menu.current;
+    if (rect === undefined || panel === null) {
       return;
     }
 
+    const { width, height } = panel.getBoundingClientRect();
+    const gap = Number.parseFloat(window.getComputedStyle(panel).paddingTop) || 0;
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight;
+    // A fixed portal cannot be scrolled into view: keep every action inside the viewport.
+    const below = rect.bottom + gap;
+    const top = below + height <= viewportHeight - gap ? below : rect.top - height - gap;
     setCoords({
-      right: window.innerWidth - rect.right,
-      top: rect.bottom,
+      right: Math.max(gap, Math.min(viewportWidth - rect.right, viewportWidth - width - gap)),
+      top: Math.max(gap, Math.min(top, viewportHeight - height - gap)),
     });
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) {
       return;
     }
@@ -129,7 +137,7 @@ export function ActionMenu({ autoFocus = false, items, label, disabled = false }
               ref={menu}
               role="presentation"
               style={{
-                top: `calc(${coords.top}px + var(--spacing-1))`,
+                top: `${coords.top}px`,
                 right: `${coords.right}px`,
               }}
             >

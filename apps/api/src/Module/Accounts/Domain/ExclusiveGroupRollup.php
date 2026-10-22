@@ -56,4 +56,25 @@ final class ExclusiveGroupRollup
 
         return $totals;
     }
+
+    /**
+     * The signed value of included accounts that sit in no group: the bucket
+     * beside the tree, so that tree roots and this bucket partition the
+     * eligible net worth.
+     *
+     * @param list<AccountShareInput> $included
+     */
+    public static function ungroupedTotal(array $included): DecimalValue
+    {
+        $total = DecimalValue::fromString('0');
+        foreach ($included as $account) {
+            if (null === $account->value || null !== $account->primaryGroupId || !$account->includeInNetWorth) {
+                continue;
+            }
+
+            $total = ExactDecimal::add($total, ExactDecimal::signed($account->value, $account->netWorthSign));
+        }
+
+        return $total;
+    }
 }

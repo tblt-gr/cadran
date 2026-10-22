@@ -13,6 +13,7 @@ final readonly class NetWorthShares
     public function __construct(
         public array $accounts,
         public array $groups,
+        public ?NetWorthShare $ungrouped = null,
     ) {
     }
 
@@ -24,5 +25,11 @@ final readonly class NetWorthShares
     public function group(string $groupId): NetWorthShare
     {
         return $this->groups[$groupId] ?? NetWorthShare::none(null);
+    }
+
+    /** The bucket of eligible accounts that have no primary group. */
+    public function ungrouped(): NetWorthShare
+    {
+        return $this->ungrouped ?? NetWorthShare::none(null);
     }
 }

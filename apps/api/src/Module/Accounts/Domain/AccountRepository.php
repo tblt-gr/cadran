@@ -67,6 +67,33 @@ interface AccountRepository
         int $limit,
     ): array;
 
+    /**
+     * Members of one primary group (null for none) in saved order, after the
+     * given rank, with lifecycle filters applied after ranking so a rank always
+     * counts hidden members too.
+     *
+     * @return list<RankedAccount>
+     */
+    public function listInGroupOrder(
+        WorkspaceScope $workspace,
+        ?string $groupId,
+        bool $includeArchived,
+        bool $includeClosed,
+        int $afterRank,
+        int $limit,
+    ): array;
+
+    /**
+     * Every member of the group, whatever its lifecycle, in saved order,
+     * capped at $limit.
+     *
+     * @return list<string>
+     */
+    public function memberIdsInOrder(WorkspaceScope $workspace, ?string $groupId, int $limit): array;
+
+    /** @return array<string, int> visible members keyed by {@see AccountOrdering::key()} */
+    public function countByPrimaryGroup(WorkspaceScope $workspace, bool $includeArchived, bool $includeClosed): array;
+
     public function hasActiveLabel(
         WorkspaceScope $workspace,
         string $label,

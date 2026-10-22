@@ -15,6 +15,8 @@ const api = vi.hoisted(() => ({
   listProducts: vi.fn(),
   listAccountRuleOverrides: vi.fn(),
   readAccountRules: vi.fn(),
+  readAccountOverview: vi.fn(),
+  readAccountOverviewRows: vi.fn(),
   readNetWorth: vi.fn(),
   recordAccountBalance: vi.fn(),
   recordAccountRuleOverride: vi.fn(),
@@ -300,6 +302,53 @@ function problem(status: number, type: string) {
   });
 }
 
+/**
+ * The overview is read per group. These tests describe the accounts a workspace
+ * holds through `listAccounts`; this adapter serves them as one heading per
+ * primary group (ungrouped last) and the rows of each heading.
+ */
+function installOverview() {
+  api.readAccountOverview.mockImplementation(async () => {
+    const result = await api.listAccounts();
+    if (!result.response?.ok || !result.data) {
+      return result;
+    }
+    const items: Account[] = result.data.items;
+    const keys = [...new Set(items.map((item) => item.primaryGroupId))].sort(
+      (left, right) => Number(left === null) - Number(right === null),
+    );
+    const groups = keys.map((groupId) => ({
+      groupId,
+      label: groupId === null ? null : defaultGroup.label,
+      parentId: null,
+      depth: groupId === null ? 0 : 1,
+      color: null,
+      resolvedColor: groupId === null ? null : '#B87333',
+      defaultColor: groupId === null ? null : '#B87333',
+      isRollup: false,
+      memberCount: items.filter((item) => item.primaryGroupId === groupId).length,
+      total: null,
+      totalReason: 'MISSING_VALUATION' as const,
+      share: defaultGroup.share,
+      quality: 'MISSING' as const,
+      orderVersion: 0,
+      archivedAt: null,
+    }));
+    return success({ asOf: '2026-09-05', accountCount: items.length, groups });
+  });
+  api.readAccountOverviewRows.mockImplementation(async (options) => {
+    const result = await api.listAccounts();
+    if (!result.response?.ok || !result.data) {
+      return result;
+    }
+    const key = options.path.groupKey;
+    const items: Account[] = result.data.items.filter(
+      (item: Account) => (item.primaryGroupId ?? 'ungrouped') === key,
+    );
+    return success({ items, nextCursor: null, orderVersion: 0 });
+  });
+}
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -321,6 +370,7 @@ async function openAccountActions(label: string) {
 
 describe('AccountsPage', () => {
   beforeEach(() => {
+    installOverview();
     // Editing resolves the model an account follows before offering a kind, so
     // every edit path answers the catalogue read.
     api.readProduct.mockImplementation(() => success(livretA));
@@ -339,55 +389,31 @@ describe('AccountsPage', () => {
     api.listProducts.mockImplementation(() =>
       success({ items: [livretA], page: 1, pageSize: 100, total: 1 }),
     );
-    api.readNetWorth.mockImplementation(() =>
-      success({
-        asOf: '2026-09-05',
-        total: null,
-        reason: 'MISSING_VALUATION',
-        quality: 'MISSING',
-        stalestAgeDays: null,
-        eligibleAccountCount: 0,
-        valuedAccountCount: 0,
-        missingValuationCount: 0,
-        staleValuationCount: 0,
-        delta: {
-          comparedOn: '2026-08-05',
-          previousTotal: null,
-          amount: null,
-          amountReason: 'MISSING_VALUATION',
-          rate: null,
-          ratePercent: null,
-          ratePercentDisplay: null,
-          rateReason: 'MISSING_VALUATION',
-        },
-        contributions: [],
-        allocation: [],
-      }),
-    );
   });
 
   it('replaces its one named cold-load skeleton and keeps accounts during a refetch', async () => {
-    let resolveAccounts: ((value: unknown) => void) | undefined;
-    api.listAccounts.mockImplementation(
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
+    );
+    const overview = api.readAccountOverview.getMockImplementation()!;
+    let resolveOverview: ((value: unknown) => void) | undefined;
+    api.readAccountOverview.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
-          resolveAccounts = resolve;
+          resolveOverview = resolve;
         }),
     );
     const { queryClient } = renderPage();
 
     expect(screen.getByTestId('accounts-page-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
-    resolveAccounts?.({
-      data: { items: [account], page: 1, pageSize: 50, total: 1 },
-      response: new Response('{}', { status: 200 }),
-    });
+    resolveOverview?.(await overview());
     expect(await screen.findByText(account.label)).toBeTruthy();
     expect(screen.queryByTestId('accounts-page-skeleton')).toBeNull();
 
-    api.listAccounts.mockImplementation(() => new Promise(() => undefined));
+    api.readAccountOverview.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    await waitFor(() => expect(api.listAccounts).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(api.readAccountOverview).toHaveBeenCalledTimes(2));
     expect(screen.getByText(account.label)).toBeTruthy();
     expect(screen.queryByTestId('accounts-page-skeleton')).toBeNull();
   });
@@ -397,18 +423,6 @@ describe('AccountsPage', () => {
     vi.clearAllMocks();
   });
 
-  it('holds the share column with skeleton blocks while the net worth read is pending', async () => {
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
-    );
-    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
-    renderPage();
-
-    expect(await screen.findByText(account.label)).toBeTruthy();
-    expect(screen.getAllByTestId('account-share-skeleton')).toHaveLength(1);
-    expect(screen.getAllByRole('status')).toHaveLength(1);
-  });
-
   it('keeps the filters behind one header button that shows the active count', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 50, total: 1 }),
@@ -416,17 +430,48 @@ describe('AccountsPage', () => {
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Filtres' }));
+    expect(screen.getByRole('button', { name: 'Filtres' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    );
     expect(screen.queryByTestId('account-filters-count')).toBeNull();
     fireEvent.click(screen.getByLabelText('Afficher les comptes archivés'));
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
 
     expect(screen.getByTestId('account-filters-count').textContent).toBe('1');
+    const filters = screen.getByRole('button', { name: 'Filtres' });
+    expect(filters.getAttribute('aria-expanded')).toBe('false');
+    expect(document.getElementById(filters.getAttribute('aria-describedby')!)?.textContent).toBe(
+      '1 filtre actif',
+    );
     await waitFor(() =>
-      expect(api.listAccounts).toHaveBeenLastCalledWith(
+      expect(api.readAccountOverview).toHaveBeenLastCalledWith(
         expect.objectContaining({ query: expect.objectContaining({ includeArchived: true }) }),
       ),
     );
     expect(screen.queryByRole('heading', { name: 'Comptes et supports' })).toBeNull();
+  });
+
+  it('shows the move controls only while the header toggle reorders the accounts', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
+    );
+    renderPage();
+
+    const toggle = await screen.findByRole('button', { name: 'Réorganiser les comptes' });
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    expect(screen.queryByRole('button', { name: /^Monter/ })).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(
+      screen
+        .getByRole('button', { name: 'Terminer la réorganisation' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(await screen.findByRole('button', { name: /^Monter/ })).toBeTruthy();
+    expect(screen.getByText(/Les changements sont enregistrés au fur et à mesure/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Terminer la réorganisation' }));
+    expect(screen.queryByText(/Les changements sont enregistrés au fur et à mesure/)).toBeNull();
   });
 
   it('covers the empty state and creates an account described by hand', async () => {
@@ -939,64 +984,6 @@ describe('AccountsPage', () => {
     });
   });
 
-  it('identifies an excluded account by its archived primary group beyond the first metadata page', async () => {
-    api.listAccounts.mockImplementation(() =>
-      success({
-        items: [{ ...account, includeInNetWorth: false }],
-        page: 1,
-        pageSize: 50,
-        total: 1,
-      }),
-    );
-    api.listAccountGroups.mockImplementation(({ query }) =>
-      success({
-        items:
-          query.page === 1
-            ? [{ ...defaultGroup, id: 'another-group' }]
-            : [{ ...defaultGroup, resolvedColor: '#AABBCC', archivedAt: '2026-09-01T00:00:00Z' }],
-        page: query.page,
-        pageSize: 1,
-        total: 2,
-      }),
-    );
-    renderPage();
-    const link = await screen.findByRole('link', { name: account.label });
-    await waitFor(() => expect(link.querySelector('rect')?.getAttribute('fill')).toBe('#AABBCC'));
-    expect(api.listAccountGroups).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({ includeArchived: true, page: 2 }),
-      }),
-    );
-  });
-
-  it('keeps group marker space while metadata loads and offers retry after a failed read', async () => {
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
-    );
-    let resolveGroups!: (value: Awaited<ReturnType<typeof failure>>) => void;
-    api.listAccountGroups.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveGroups = resolve;
-        }),
-    );
-    renderPage();
-    const link = await screen.findByRole('link', { name: account.label });
-    expect(link.querySelector('[data-group-marker] [data-skeleton]')).toBeTruthy();
-    resolveGroups(await failure(500));
-    await screen.findByText('Les couleurs des groupes sont indisponibles.');
-    api.listAccountGroups.mockImplementation(() =>
-      success({
-        items: [{ ...defaultGroup, resolvedColor: '#AABBCC' }],
-        page: 1,
-        pageSize: 100,
-        total: 1,
-      }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Recharger les couleurs des groupes' }));
-    await waitFor(() => expect(link.querySelector('rect')?.getAttribute('fill')).toBe('#AABBCC'));
-  });
-
   it('archives an account through a confirmation instead of deleting it', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 50, total: 1 }),
@@ -1318,134 +1305,37 @@ describe('AccountsPage', () => {
     ).toBeTruthy();
   });
 
-  it('states the net-worth contribution in words and marks a liability', async () => {
-    api.listAccounts.mockImplementation(() =>
-      success({
-        items: [
-          account,
-          {
-            ...account,
-            id: '00000000-0000-7000-8000-0000000000d2',
-            label: 'Prêt immobilier',
-            kind: 'LIABILITY',
-            netWorthSign: -1,
-            includeInEmergencyFund: false,
-          },
-        ],
-        page: 1,
-        pageSize: 50,
-        total: 2,
-      }),
-    );
-    renderPage();
-
-    expect(await screen.findByText('Actif (+)')).toBeTruthy();
-    expect(screen.getByText('Passif (−)')).toBeTruthy();
-  });
-
   it('names a missing valuation instead of inventing a zero balance', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 50, total: 1 }),
     );
     renderPage();
 
-    expect(await screen.findByText('Non calculable')).toBeTruthy();
-    expect(screen.getByText('Enregistrez un solde de départ pour calculer ce solde')).toBeTruthy();
+    expect(
+      await screen.findByText('Enregistrez un solde de départ pour calculer ce solde'),
+    ).toBeTruthy();
     expect(screen.queryByText('0,00')).toBeNull();
   });
 
-  it('prints the exclusive net-worth share instead of the list stub', async () => {
+  it('prints the share of eligible net worth carried by the account row', async () => {
     api.listAccounts.mockImplementation(() =>
       success({
-        items: [{ ...account, valuation: staleValuation }],
+        items: [
+          {
+            ...account,
+            valuation: staleValuation,
+            share: { ratio: '0.482', percent: '48.2', percentDisplay: '48.20', reason: null },
+          },
+        ],
         page: 1,
         pageSize: 50,
         total: 1,
-      }),
-    );
-    api.readNetWorth.mockImplementation(() =>
-      success({
-        asOf: '2026-09-05',
-        total: {
-          value: '231.10',
-          assetCode: 'EUR',
-          display: { value: '231.10', assetCode: 'EUR' },
-          belowDisplayStep: false,
-        },
-        reason: null,
-        quality: 'CURRENT',
-        stalestAgeDays: 2,
-        eligibleAccountCount: 1,
-        valuedAccountCount: 1,
-        missingValuationCount: 0,
-        staleValuationCount: 1,
-        delta: {
-          comparedOn: '2026-08-05',
-          previousTotal: null,
-          amount: null,
-          amountReason: 'MISSING_VALUATION',
-          rate: null,
-          ratePercent: null,
-          ratePercentDisplay: null,
-          rateReason: 'MISSING_VALUATION',
-        },
-        contributions: [
-          {
-            accountId: account.id,
-            label: account.label,
-            kind: account.kind,
-            netWorthSign: 1,
-            primaryGroupId: account.primaryGroupId,
-            primaryGroupLabel: 'Épargne',
-            eligible: true,
-            amount: {
-              value: '231.10',
-              assetCode: 'EUR',
-              display: { value: '231.10', assetCode: 'EUR' },
-              belowDisplayStep: false,
-            },
-            signedAmount: {
-              value: '231.10',
-              assetCode: 'EUR',
-              display: { value: '231.10', assetCode: 'EUR' },
-              belowDisplayStep: false,
-            },
-            quality: 'STALE',
-            ageDays: 2,
-            valuedOn: '2026-09-03',
-            share: {
-              ratio: null,
-              percent: '48.20',
-              percentDisplay: '48.20',
-              reason: null,
-            },
-          },
-        ],
-        allocation: [],
       }),
     );
     renderPage();
 
     expect(await screen.findByText('48,20 %')).toBeTruthy();
-    await waitFor(() => expect(screen.queryByText('Valorisation manquante')).toBeNull());
-  });
-
-  it('does not print the list share stub while net worth is still loading', async () => {
-    api.listAccounts.mockImplementation(() =>
-      success({
-        items: [{ ...account, valuation: staleValuation }],
-        page: 1,
-        pageSize: 50,
-        total: 1,
-      }),
-    );
-    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
-    renderPage();
-
-    expect(await screen.findByText(/231,10/)).toBeTruthy();
-    expect(screen.getByText('Chargement du poids…')).toBeTruthy();
-    expect(screen.queryByText('Valorisation manquante')).toBeNull();
-    expect(screen.queryByText('48,20 %')).toBeNull();
+    expect(api.readNetWorth).not.toHaveBeenCalled();
   });
 
   it('shows a carried-forward balance as stale and records a manual replacement', async () => {

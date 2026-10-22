@@ -1,4 +1,4 @@
-import type { Account, AccountGroup, NetWorth } from '@cadran/api-client';
+import type { AccountGroup } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,8 +10,6 @@ const api = vi.hoisted(() => ({
   createAccountGroup: vi.fn(),
   listAccountGroups: vi.fn(),
   listAccounts: vi.fn(),
-  listProductModels: vi.fn(),
-  listProducts: vi.fn(),
   readNetWorth: vi.fn(),
   updateAccountGroup: vi.fn(),
 }));
@@ -52,97 +50,7 @@ function problem(status: number, type: string) {
   });
 }
 
-const LIVRETS_ID = '00000000-0000-7000-8000-0000000000b2';
-const INVEST_ID = '00000000-0000-7000-8000-0000000000b3';
-
 /** The narrow no-break space Intl inserts between groups of digits. */
-const NARROW = '\u202f';
-/** The no-break space Intl inserts before the currency sign. */
-const NBSP = '\u00a0';
-
-function amount(value: string) {
-  return {
-    value,
-    assetCode: 'EUR',
-    display: { value, assetCode: 'EUR' },
-    belowDisplayStep: false,
-  };
-}
-
-function account(overrides: Partial<Account> & Pick<Account, 'id' | 'label'>): Account {
-  return {
-    assetCode: 'EUR',
-    kind: 'SAVINGS',
-    productCode: null,
-    productModelId: null,
-    institution: null,
-    maskedIdentifier: null,
-    valuationMode: 'SNAPSHOTS',
-    liquidityLevel: 'IMMEDIATE',
-    includeInNetWorth: true,
-    includeInEmergencyFund: false,
-    openedOn: '2026-01-10',
-    closedOn: null,
-    status: 'ACTIVE',
-    netWorthSign: 1,
-    used: false,
-    editable: true,
-    kindEditable: true,
-    kindEditReason: null,
-    version: 1,
-    archivedAt: null,
-    primaryGroupId: null,
-    tagGroupIds: [],
-    share: { ratio: null, percent: null, percentDisplay: null, reason: 'MISSING_VALUATION' },
-    valuation: {
-      accountId: overrides.id,
-      requestedOn: '2026-09-05',
-      asOf: '2026-09-05',
-      amount: { value: '1000.00', assetCode: 'EUR' },
-      display: { value: '1000.00', assetCode: 'EUR' },
-      belowDisplayStep: false,
-      basis: 'SNAPSHOT',
-      derivation: null,
-      reason: null,
-      source: 'MANUAL',
-      ageDays: 0,
-      quality: 'CURRENT',
-      reconciliationStatus: 'UNRECONCILED',
-      snapshotId: '00000000-0000-7000-8000-0000000000c1',
-      version: 1,
-    },
-    ...overrides,
-  };
-}
-
-function netWorth(overrides: Partial<NetWorth> = {}): NetWorth {
-  return {
-    asOf: '2026-09-05',
-    total: amount('84100.00'),
-    reason: null,
-    quality: 'CURRENT',
-    stalestAgeDays: 0,
-    eligibleAccountCount: 2,
-    valuedAccountCount: 2,
-    missingValuationCount: 0,
-    staleValuationCount: 0,
-    delta: {
-      comparedOn: '2026-08-05',
-      previousTotal: amount('80000.00'),
-      previousReason: null,
-      amount: amount('4100.00'),
-      amountReason: null,
-      rate: '0.051250000000000000000000',
-      ratePercent: '5.125000000000000000000000',
-      ratePercentDisplay: '5.13',
-      rateReason: null,
-    },
-    contributions: [],
-    allocation: [],
-    ...overrides,
-  };
-}
-
 function openGroupActions(label: string) {
   fireEvent.click(screen.getByRole('button', { name: `Actions du groupe ${label}` }));
 }
@@ -150,7 +58,7 @@ function openGroupActions(label: string) {
 /** The skeleton draws the same table: wait for it to leave before reading rows. */
 async function loadedGroupsTable() {
   await waitFor(() => expect(screen.queryByTestId('account-groups-skeleton')).toBeNull());
-  return screen.getByRole('table', { name: 'Groupes de comptes, comptes et totaux exclusifs' });
+  return screen.getByRole('table', { name: 'Groupes de comptes' });
 }
 
 function renderPage() {
@@ -168,24 +76,8 @@ function renderPage() {
   };
 }
 
-const livretAProduct = {
-  code: 'FR_LIVRET_A',
-  rules: [{ kind: 'DEPOSIT_CEILING', amount: { value: '22950', assetCode: 'EUR' } }],
-};
-
 describe('AccountGroupsPage', () => {
-  beforeEach(() => {
-    api.listProductModels.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 100, total: 0 }),
-    );
-    api.listProducts.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 100, total: 0 }),
-    );
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 100, total: 0 }),
-    );
-    api.readNetWorth.mockImplementation(() => success(netWorth({ allocation: [] })));
-  });
+  beforeEach(() => {});
 
   afterEach(() => {
     cleanup();
@@ -194,21 +86,11 @@ describe('AccountGroupsPage', () => {
 
   it('replaces its one named cold-load skeleton and keeps groups during a refetch', async () => {
     let resolveGroups: ((value: unknown) => void) | undefined;
-    let resolveNetWorth: ((value: unknown) => void) | undefined;
     api.listAccountGroups.mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveGroups = resolve;
         }),
-    );
-    api.readNetWorth.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveNetWorth = resolve;
-        }),
-    );
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     const { queryClient } = renderPage();
 
@@ -218,9 +100,6 @@ describe('AccountGroupsPage', () => {
       data: { items: [group], page: 1, pageSize: 50, total: 1 },
       response: new Response('{}', { status: 200 }),
     });
-    expect(screen.getByTestId('account-groups-skeleton')).toBeTruthy();
-    expect(screen.getAllByRole('status')).toHaveLength(1);
-    resolveNetWorth?.(await success(netWorth()));
     expect(await screen.findByText(group.label)).toBeTruthy();
     expect(screen.queryByTestId('account-groups-skeleton')).toBeNull();
 
@@ -299,20 +178,6 @@ describe('AccountGroupsPage', () => {
     );
   });
 
-  it('shows a share reason instead of 0%', async () => {
-    api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
-    );
-    api.readNetWorth.mockImplementation(() => success(netWorth({ allocation: [] })));
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 50, total: 0 }),
-    );
-    renderPage();
-
-    expect(await screen.findByText('Valorisation manquante')).toBeTruthy();
-    expect(screen.queryByText(/0\s*%/)).toBeNull();
-  });
-
   it('keeps archived groups read-only and never renders crafted markup', async () => {
     const crafted = {
       ...group,
@@ -388,268 +253,33 @@ describe('AccountGroupsPage', () => {
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
   });
 
-  it('lists the exclusive total and primary accounts of each group', async () => {
-    const livrets: AccountGroup = { ...group, id: LIVRETS_ID, label: 'Livrets' };
-    const investissements: AccountGroup = { ...group, id: INVEST_ID, label: 'Investissements' };
-    api.listAccountGroups.mockImplementation(() =>
-      success({ items: [livrets, investissements], page: 1, pageSize: 50, total: 2 }),
-    );
-    api.readNetWorth.mockImplementation(() =>
-      success(
-        netWorth({
-          contributions: [
-            {
-              accountId: '00000000-0000-7000-8000-0000000000d1',
-              label: 'Livret A',
-              kind: 'SAVINGS',
-              netWorthSign: 1,
-              primaryGroupId: LIVRETS_ID,
-              primaryGroupColor: '#486DF0',
-              primaryGroupLabel: 'Livrets',
-              eligible: true,
-              amount: amount('20100.00'),
-              signedAmount: amount('20100.00'),
-              quality: 'CURRENT',
-              ageDays: 0,
-              valuedOn: '2026-09-05',
-              share: {
-                ratio: null,
-                percent: '23.90',
-                percentDisplay: '23.90',
-                reason: null,
-              },
-            },
-            {
-              accountId: '00000000-0000-7000-8000-0000000000d2',
-              label: 'LDDS',
-              kind: 'SAVINGS',
-              netWorthSign: 1,
-              primaryGroupId: LIVRETS_ID,
-              primaryGroupColor: '#486DF0',
-              primaryGroupLabel: 'Livrets',
-              eligible: true,
-              amount: amount('1000.00'),
-              signedAmount: amount('1000.00'),
-              quality: 'CURRENT',
-              ageDays: 0,
-              valuedOn: '2026-09-05',
-              share: {
-                ratio: null,
-                percent: '1.19',
-                percentDisplay: '1.19',
-                reason: null,
-              },
-            },
-          ],
-          allocation: [
-            {
-              color: '#486DF0',
-              groupId: LIVRETS_ID,
-              label: 'Livrets',
-              parentId: null,
-              depth: 1,
-              value: amount('42100.00'),
-              share: {
-                ratio: null,
-                percent: '24.12',
-                percentDisplay: '24.12',
-                reason: null,
-              },
-            },
-            {
-              color: '#486DF0',
-              groupId: INVEST_ID,
-              label: 'Investissements',
-              parentId: null,
-              depth: 1,
-              value: amount('42000.00'),
-              share: {
-                ratio: null,
-                percent: '24.06',
-                percentDisplay: '24.06',
-                reason: null,
-              },
-            },
-          ],
-        }),
-      ),
-    );
-    api.listProducts.mockImplementation(() =>
-      success({ items: [livretAProduct], page: 1, pageSize: 100, total: 1 }),
-    );
-    api.listAccounts.mockImplementation(() =>
-      success({
-        items: [
-          account({
-            id: '00000000-0000-7000-8000-0000000000d1',
-            label: 'Livret A',
-            productCode: 'FR_LIVRET_A',
-            primaryGroupId: LIVRETS_ID,
-            valuation: {
-              accountId: '00000000-0000-7000-8000-0000000000d1',
-              requestedOn: '2026-09-05',
-              asOf: '2026-09-05',
-              amount: { value: '20100.00', assetCode: 'EUR' },
-              display: { value: '20100.00', assetCode: 'EUR' },
-              belowDisplayStep: false,
-              basis: 'SNAPSHOT',
-              derivation: null,
-              reason: null,
-              source: 'MANUAL',
-              ageDays: 0,
-              quality: 'CURRENT',
-              reconciliationStatus: 'UNRECONCILED',
-              snapshotId: '00000000-0000-7000-8000-0000000000c1',
-              version: 1,
-            },
-          }),
-          account({
-            id: '00000000-0000-7000-8000-0000000000d2',
-            label: 'LDDS',
-            primaryGroupId: LIVRETS_ID,
-          }),
-          account({
-            id: '00000000-0000-7000-8000-0000000000d3',
-            label: 'PEA',
-            kind: 'PORTFOLIO',
-            primaryGroupId: INVEST_ID,
-          }),
-        ],
-        page: 1,
-        pageSize: 50,
-        total: 3,
-      }),
-    );
-    renderPage();
-
-    const groupsTable = await loadedGroupsTable();
-    const livretsRow = within(groupsTable).getByRole('row', { name: /Livrets/ });
-    await waitFor(() => {
-      expect(livretsRow.textContent).toContain(`42${NARROW}100,00${NBSP}€`);
-    });
-    expect(within(livretsRow).getByText('Livret A')).toBeTruthy();
-    expect(within(livretsRow).getByText('LDDS')).toBeTruthy();
-    await waitFor(() => {
-      expect(within(livretsRow).queryByText('Non calculable')).toBeNull();
-      expect(within(livretsRow).getByText('23,90 %')).toBeTruthy();
-      expect(within(livretsRow).getByText('1,19 %')).toBeTruthy();
-    });
-    expect(within(livretsRow).queryByText('PEA')).toBeNull();
-    expect(livretsRow.textContent).toContain(`20${NARROW}100,00${NBSP}€`);
-    await waitFor(() => {
-      const memberBars = Array.from(livretsRow.querySelectorAll<HTMLElement>('[style*="width"]'));
-      expect(memberBars.map((bar) => bar.style.width)).toEqual(['87.5816993464%']);
-    });
-
-    const investRow = within(groupsTable).getByRole('row', { name: /Investissements/ });
-    expect(investRow.textContent).toContain(`42${NARROW}000,00${NBSP}€`);
-    expect(within(investRow).getByText('PEA')).toBeTruthy();
-    expect(within(investRow).queryByText('Livret A')).toBeNull();
-    expect(investRow.querySelectorAll('[style*="width"]')).toHaveLength(0);
-  });
-
-  it('lists exclusive allocation rows beside the pie, like the synthèse card', async () => {
-    const livrets: AccountGroup = { ...group, id: LIVRETS_ID, label: 'Livrets' };
-    api.listAccountGroups.mockImplementation(() =>
-      success({ items: [livrets], page: 1, pageSize: 50, total: 1 }),
-    );
-    api.readNetWorth.mockImplementation(() =>
-      success(
-        netWorth({
-          allocation: [
-            {
-              color: '#486DF0',
-              groupId: LIVRETS_ID,
-              label: 'Livrets',
-              parentId: null,
-              depth: 1,
-              value: amount('42100.00'),
-              share: {
-                ratio: null,
-                percent: '24.12',
-                percentDisplay: '24.12',
-                reason: null,
-              },
-            },
-          ],
-        }),
-      ),
-    );
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 50, total: 0 }),
-    );
-    renderPage();
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Camembert' }));
-    const legend = await screen.findByRole('list', { name: 'Allocation' });
-    expect(within(legend).getByText('Livrets')).toBeTruthy();
-    expect(within(legend).getByText('24,12 %')).toBeTruthy();
-    expect(legend.textContent).toContain(`42${NARROW}100,00${NBSP}€`);
-  });
-
-  it('keeps one page skeleton while member and total reads are initially pending', async () => {
-    api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
-    );
-    api.listAccounts.mockImplementation(() => new Promise(() => undefined));
-    api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
+  it('keeps one page skeleton while the groups are initially pending', async () => {
+    api.listAccountGroups.mockImplementation(() => new Promise(() => undefined));
     renderPage();
 
     expect(await screen.findByTestId('account-groups-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
-    expect(screen.queryByText('Aucun compte dans ce groupe')).toBeNull();
-    expect(screen.queryByText('Non calculable')).toBeNull();
-    expect(screen.queryByText('Chargement des comptes…')).toBeNull();
-    expect(screen.queryByText('Chargement du total…')).toBeNull();
-    expect(screen.queryByText('Chargement de l’allocation…')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Treemap' })).toBeNull();
   });
 
-  it('never prints 0 for a group whose exclusive total is absent', async () => {
+  it('manages groups only: no account, net worth, total or share is read or shown', async () => {
     api.listAccountGroups.mockImplementation(() =>
       success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
-    api.readNetWorth.mockImplementation(() =>
-      success(
-        netWorth({
-          total: null,
-          reason: 'MISSING_VALUATION',
-          allocation: [
-            {
-              color: '#486DF0',
-              groupId: group.id,
-              label: group.label,
-              parentId: null,
-              depth: 1,
-              value: null,
-              share: {
-                ratio: null,
-                percent: null,
-                percentDisplay: null,
-                reason: 'MISSING_VALUATION',
-              },
-            },
-          ],
-        }),
-      ),
-    );
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 50, total: 0 }),
-    );
     renderPage();
 
-    expect(await screen.findByText('Non calculable')).toBeTruthy();
-    expect(screen.queryByText(/^0/)).toBeNull();
-    expect(screen.getByText('Aucun compte dans ce groupe')).toBeTruthy();
+    const groupsTable = await loadedGroupsTable();
+    expect(within(groupsTable).getByText(group.label)).toBeTruthy();
+    expect(within(groupsTable).queryByRole('columnheader', { name: /Total/ })).toBeNull();
+    expect(within(groupsTable).queryByRole('columnheader', { name: /Poids/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Treemap' })).toBeNull();
+    expect(api.listAccounts).not.toHaveBeenCalled();
+    expect(api.readNetWorth).not.toHaveBeenCalled();
   });
 
   it('marks a group column as sorted when its header is clicked', async () => {
     api.listAccountGroups.mockImplementation(() =>
       success({ items: [group], page: 1, pageSize: 50, total: 1 }),
-    );
-    api.readNetWorth.mockImplementation(() => success(netWorth({ allocation: [] })));
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
 
@@ -658,40 +288,5 @@ describe('AccountGroupsPage', () => {
     expect(labelHeader.getAttribute('aria-sort')).toBe('ascending');
     fireEvent.click(within(labelHeader).getByRole('button'));
     expect(labelHeader.getAttribute('aria-sort')).toBe('descending');
-  });
-
-  it('offers Treemap and Camembert toggles when allocation is present', async () => {
-    api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
-    );
-    api.readNetWorth.mockImplementation(() =>
-      success(
-        netWorth({
-          allocation: [
-            {
-              color: '#486DF0',
-              groupId: group.id,
-              label: group.label,
-              parentId: null,
-              depth: 1,
-              value: amount('84100.00'),
-              share: {
-                ratio: null,
-                percent: '100',
-                percentDisplay: '100.00',
-                reason: null,
-              },
-            },
-          ],
-        }),
-      ),
-    );
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 50, total: 0 }),
-    );
-    renderPage();
-
-    expect(await screen.findByRole('button', { name: 'Treemap' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Camembert' })).toBeTruthy();
   });
 });

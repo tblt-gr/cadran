@@ -1,23 +1,14 @@
-import { listAccounts, type Account } from '@cadran/api-client';
-import { useQuery } from '@tanstack/react-query';
+import type { Account } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
-import { authApiOptions } from '@/features/auth/apiOptions';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import { AccountRequestError, requestFailed, accountRequestError } from './accountError';
 import { AccountsPageModals } from './accounts-page-modals/AccountsPageModals';
-import { AccountFilters } from './account-filters/AccountFilters';
-import { AccountList } from './account-list/AccountList';
-import { AccountsPageSkeleton } from './AccountsPageSkeleton';
-import { AccountPagination } from './account-pagination/AccountPagination';
-import { AccountsState } from './accounts-state/AccountsState';
+import { AccountsPageActions } from './accounts-page-actions/AccountsPageActions';
+import { AccountOverview } from './account-overview/AccountOverview';
+import { useLiveAccount } from './useLiveAccount';
 import { useAccountsPageMutations } from './useAccountsPageMutations';
 import styles from './AccountsPage.module.css';
-
-const PAGE_SIZE = 50;
 
 type Editor = Account | 'create' | null;
 
@@ -25,7 +16,7 @@ export function AccountsPage() {
   const { t } = useTranslation();
   const [includeClosed, setIncludeClosed] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [page, setPage] = useState(1);
+  const [reordering, setReordering] = useState(false);
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<Account | null>(null);
   const [inspecting, setInspecting] = useState<Account | null>(null);
@@ -34,22 +25,6 @@ export function AccountsPage() {
   const [saved, setSaved] = useState<
     'saved' | 'archived' | 'claimed' | 'withdrawn' | 'recorded' | 'reconciled' | null
   >(null);
-
-  const accounts = useQuery({
-    queryKey: ['accounts', includeArchived, includeClosed, page],
-    queryFn: async ({ signal }) => {
-      const result = await listAccounts({
-        ...authApiOptions(),
-        query: { includeArchived, includeClosed, page, pageSize: PAGE_SIZE },
-        signal,
-      });
-      if (requestFailed(result)) {
-        throw accountRequestError(result);
-      }
-      return result.data;
-    },
-    retry: false,
-  });
 
   const { save, archive, recordBalance } = useAccountsPageMutations({
     editor,
@@ -97,48 +72,22 @@ export function AccountsPage() {
     setArchiving(account);
   }
 
-  const unauthorized =
-    accounts.error instanceof AccountRequestError && accounts.error.status === 401;
-  const items = accounts.data?.items ?? [];
   // The modal must read the live row: a stale version would fail every retry.
-  const reconcilingLive = reconciling
-    ? (items.find((item) => item.id === reconciling.id) ?? reconciling)
-    : null;
+  const reconcilingLive = useLiveAccount(reconciling);
   // Withdrawing a snapshot from the modal changes the version the form must present.
-  const recordingLive = recording
-    ? (items.find((item) => item.id === recording.id) ?? recording)
-    : null;
-  const totalPages = Math.max(1, Math.ceil((accounts.data?.total ?? 0) / PAGE_SIZE));
-
-  // The result set can shrink under the current page (a concurrent archive, a refetch on focus).
-  // React re-renders with the corrected page before committing, so the empty state is never shown
-  // for a workspace that still has accounts.
-  if (accounts.data && page > totalPages) {
-    setPage(totalPages);
-  }
+  const recordingLive = useLiveAccount(recording);
 
   return (
     <div className={styles.page}>
-      <HeaderActions>
-        <button
-          aria-label={t('accounts.add')}
-          className={`primary-action ${styles.add}`}
-          onClick={() => openEditor('create')}
-          type="button"
-        >
-          <Icon name="add" size={18} />
-          <span className={styles.addLabel}>{t('accounts.add')}</span>
-        </button>
-        <a
-          aria-label={t('accounts.manageGroups')}
-          className="icon-button"
-          href="/accounts/groups"
-          onClick={(event) => handleClientNavigation(event, '/accounts/groups')}
-          title={t('accounts.manageGroups')}
-        >
-          <Icon name="layers" />
-        </a>
-      </HeaderActions>
+      <AccountsPageActions
+        includeArchived={includeArchived}
+        includeClosed={includeClosed}
+        onCreate={() => openEditor('create')}
+        onIncludeArchivedChange={setIncludeArchived}
+        onIncludeClosedChange={setIncludeClosed}
+        onToggleReordering={() => setReordering((current) => !current)}
+        reordering={reordering}
+      />
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`accounts.toasts.${saved}`)}</Toast>
@@ -167,41 +116,28 @@ export function AccountsPage() {
         setReconciling={setReconciling}
       />
 
-      <AccountFilters
+      {reordering ? (
+        <p className={styles.reorderHint} role="status">
+          <Icon name="reorder" />
+          {t('accounts.reorder.hint')}
+        </p>
+      ) : null}
+
+      <AccountOverview
         includeArchived={includeArchived}
         includeClosed={includeClosed}
-        onIncludeArchivedChange={(checked) => {
-          setIncludeArchived(checked);
-          setPage(1);
+        onArchive={openArchive}
+        onCreate={() => openEditor('create')}
+        onEdit={openEditor}
+        onReconcile={openReconciling}
+        onRecordBalance={openRecording}
+        onResetFilters={() => {
+          setIncludeClosed(false);
+          setIncludeArchived(false);
         }}
-        onIncludeClosedChange={(checked) => {
-          setIncludeClosed(checked);
-          setPage(1);
-        }}
+        onRules={setInspecting}
+        reordering={reordering}
       />
-
-      {accounts.isPending ? (
-        <AccountsPageSkeleton status={t('accounts.loading')} />
-      ) : accounts.isError || items.length === 0 ? (
-        <AccountsState
-          kind={unauthorized ? 'unauthorized' : accounts.isError ? 'error' : 'empty'}
-          onCreate={() => openEditor('create')}
-          onRetry={() => void accounts.refetch()}
-        />
-      ) : (
-        <AccountList
-          accounts={items}
-          onArchive={openArchive}
-          onEdit={openEditor}
-          onReconcile={openReconciling}
-          onRecordBalance={openRecording}
-          onRules={setInspecting}
-        />
-      )}
-
-      {accounts.isSuccess && (totalPages > 1 || page > 1) ? (
-        <AccountPagination onPageChange={setPage} page={page} totalPages={totalPages} />
-      ) : null}
     </div>
   );
 }

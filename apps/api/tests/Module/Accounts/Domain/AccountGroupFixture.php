@@ -26,6 +26,7 @@ final class AccountGroupFixture
         int $depth = 1,
         ?\DateTimeImmutable $archivedAt = null,
         ?string $color = null,
+        int $sortOrder = 0,
     ): AccountGroup {
         $now = new \DateTimeImmutable('2026-09-05T10:00:00+00:00');
 
@@ -34,7 +35,7 @@ final class AccountGroupFixture
             workspace: WorkspaceScope::fromString($workspace),
             label: $label,
             parentId: $parentId,
-            sortOrder: 0,
+            sortOrder: $sortOrder,
             depth: $depth,
             version: 1,
             createdAt: $now,

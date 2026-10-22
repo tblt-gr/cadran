@@ -6,7 +6,9 @@ namespace App\Module\Accounts\Infrastructure\Persistence;
 
 use App\Module\Accounts\Application\AccountConflict;
 use App\Module\Accounts\Domain\Account;
+use App\Module\Accounts\Domain\AccountOrdering;
 use App\Module\Accounts\Domain\AccountRepository;
+use App\Module\Accounts\Domain\RankedAccount;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use Doctrine\DBAL\ArrayParameterType;
@@ -29,6 +31,17 @@ final readonly class DbalAccountRepository implements AccountRepository
     ];
 
     private const string COLUMNS = 'id, workspace_id, label, asset_code, kind, product_code, product_model_id, institution, masked_identifier, valuation_mode, liquidity_level, include_in_net_worth, include_in_emergency_fund, opened_on, closed_on, version, created_at, updated_at, used_at, archived_at, primary_group_id';
+
+    /**
+     * Every member of one group with its rank. A saved position only counts
+     * while it names this very group: an account regrouped since the last move
+     * is unplaced here and goes after the placed ones, oldest first.
+     */
+    private const string RANKED_MEMBERS = 'SELECT a.id AS account_id, row_number() OVER ('
+        .'ORDER BY (p.position IS NULL), p.position, a.created_at, a.id) AS member_rank'
+        .' FROM account_financial_accounts a LEFT JOIN account_overview_positions p'
+        .' ON p.workspace_id = a.workspace_id AND p.account_id = a.id AND p.group_key = :group_key'
+        .' WHERE a.workspace_id = :workspace_id AND a.primary_group_id IS NOT DISTINCT FROM :group_id';
 
     public function __construct(private Connection $connection)
     {
@@ -160,6 +173,72 @@ final readonly class DbalAccountRepository implements AccountRepository
         );
 
         return $this->hydrateMany($rows, $workspace);
+    }
+
+    public function listInGroupOrder(
+        WorkspaceScope $workspace,
+        ?string $groupId,
+        bool $includeArchived,
+        bool $includeClosed,
+        int $afterRank,
+        int $limit,
+    ): array {
+        [$where, $parameters] = self::filters($workspace, $includeArchived, $includeClosed, null);
+        $parameters += [
+            'group_id' => $groupId,
+            'group_key' => AccountOrdering::key($groupId),
+            'after_rank' => $afterRank,
+            'limit' => $limit,
+        ];
+        $rows = $this->connection->fetchAllAssociative(
+            'WITH ranked AS ('.self::RANKED_MEMBERS.')'
+            .' SELECT '.self::COLUMNS.', ranked.member_rank FROM account_financial_accounts'
+            .' JOIN ranked ON ranked.account_id = account_financial_accounts.id'
+            .' WHERE workspace_id = :workspace_id AND ('.$where.') AND ranked.member_rank > :after_rank'
+            .' ORDER BY ranked.member_rank LIMIT :limit',
+            $parameters,
+            ['after_rank' => ParameterType::INTEGER, 'limit' => ParameterType::INTEGER],
+        );
+
+        $accounts = $this->hydrateMany($rows, $workspace);
+
+        return array_map(
+            static fn (Account $account, array $row): RankedAccount => new RankedAccount($account, (int) AccountRow::text($row['member_rank'] ?? null)),
+            $accounts,
+            $rows,
+        );
+    }
+
+    public function memberIdsInOrder(WorkspaceScope $workspace, ?string $groupId, int $limit): array
+    {
+        $rows = $this->connection->fetchFirstColumn(
+            'WITH ranked AS ('.self::RANKED_MEMBERS.') SELECT account_id FROM ranked ORDER BY member_rank LIMIT :limit',
+            [
+                'workspace_id' => $workspace->id,
+                'group_id' => $groupId,
+                'group_key' => AccountOrdering::key($groupId),
+                'limit' => $limit,
+            ],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(AccountRow::text(...), $rows);
+    }
+
+    public function countByPrimaryGroup(WorkspaceScope $workspace, bool $includeArchived, bool $includeClosed): array
+    {
+        [$where, $parameters] = self::filters($workspace, $includeArchived, $includeClosed, null);
+        $counts = [];
+        foreach ($this->connection->fetchAllAssociative(
+            'SELECT primary_group_id, count(*) AS members FROM account_financial_accounts'
+            .' WHERE workspace_id = :workspace_id AND ('.$where.') GROUP BY primary_group_id',
+            $parameters,
+        ) as $row) {
+            $group = $row['primary_group_id'] ?? null;
+            $counts[AccountOrdering::key(null === $group ? null : AccountRow::text($group))] = (int) AccountRow::text($row['members'] ?? null);
+        }
+
+        return $counts;
     }
 
     public function hasActiveLabel(WorkspaceScope $workspace, string $label, ?string $excludingId = null): bool

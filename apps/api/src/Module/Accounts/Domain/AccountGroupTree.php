@@ -43,6 +43,43 @@ final class AccountGroupTree
     }
 
     /**
+     * Depth-first reading order: roots by saved order, each followed by its
+     * own children. A group whose parent is missing from the set is read as a
+     * root rather than silently dropped.
+     *
+     * @param list<AccountGroup> $groups
+     *
+     * @return list<AccountGroup>
+     */
+    public static function depthFirst(array $groups): array
+    {
+        $ids = [];
+        foreach ($groups as $group) {
+            $ids[$group->id] = true;
+        }
+
+        $childrenOf = [];
+        foreach ($groups as $group) {
+            $parent = null !== $group->parentId && isset($ids[$group->parentId]) ? $group->parentId : '';
+            $childrenOf[$parent][] = $group;
+        }
+
+        $ordered = [];
+        $visit = static function (string $parent) use (&$visit, &$ordered, $childrenOf): void {
+            $siblings = $childrenOf[$parent] ?? [];
+            usort($siblings, static fn (AccountGroup $left, AccountGroup $right): int => [$left->sortOrder, mb_strtolower(trim($left->label)), $left->id]
+                <=> [$right->sortOrder, mb_strtolower(trim($right->label)), $right->id]);
+            foreach ($siblings as $sibling) {
+                $ordered[] = $sibling;
+                $visit($sibling->id);
+            }
+        };
+        $visit('');
+
+        return $ordered;
+    }
+
+    /**
      * @param list<AccountGroup> $descendants
      *
      * @return array<string, int>

@@ -47,6 +47,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
     /** Previous path segment => seeded identifier type. */
     private const array TYPE_BY_SEGMENT = [
         'account-groups' => 'accountGroup',
+        'overview' => 'accountGroup',
         'audit-events' => 'auditEvent',
         'balances' => 'snapshot',
         'budget-plans' => 'budgetPlan',
@@ -346,6 +347,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
                 'kind' => 'DEPOSIT_CEILING', 'amount' => '30000', 'amountAssetCode' => 'EUR', 'text' => null, 'rateApplication' => null, 'brackets' => [],
                 'validFrom' => '2026-01-01', 'validTo' => null, 'reason' => 'The branch confirmed a higher ceiling in writing.',
             ],
+            'POST /api/v1/accounts/{id}/move' => ['groupId' => null, 'beforeAccountId' => null, 'orderVersion' => 0],
             'POST /api/v1/categories/{id}/merge' => ['targetId' => self::OWN_CATEGORY, 'version' => 1],
             'POST /api/v1/categories/{id}/move' => ['parentId' => self::OWN_CATEGORY, 'version' => 1],
             'POST /api/v1/categories/{id}/replacement' => ['targetId' => self::OWN_CATEGORY, 'effectiveFrom' => '2026-09-01', 'version' => 1],

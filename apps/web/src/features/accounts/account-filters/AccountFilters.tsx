@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
@@ -24,6 +24,7 @@ export function AccountFilters({
 }: AccountFiltersProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const countId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const activeCount = Number(includeClosed) + Number(includeArchived);
 
@@ -31,6 +32,9 @@ export function AccountFilters({
     <>
       <HeaderActions>
         <button
+          aria-describedby={activeCount > 0 ? countId : undefined}
+          aria-expanded={open}
+          aria-haspopup="dialog"
           aria-label={t('accounts.filters.open')}
           className={`icon-button ${styles.trigger}`}
           onClick={() => setOpen(true)}
@@ -40,9 +44,14 @@ export function AccountFilters({
         >
           <Icon name="filter" />
           {activeCount > 0 ? (
-            <span className={styles.badge} data-testid="account-filters-count">
-              {activeCount}
-            </span>
+            <>
+              <span aria-hidden="true" className={styles.badge} data-testid="account-filters-count">
+                {activeCount}
+              </span>
+              <span className="sr-only" id={countId}>
+                {t('accounts.filters.active', { count: activeCount })}
+              </span>
+            </>
           ) : null}
         </button>
       </HeaderActions>

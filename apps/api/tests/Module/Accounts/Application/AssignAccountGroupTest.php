@@ -129,6 +129,7 @@ final class AssignAccountGroupTest extends TestCase
                 new \App\Module\Foundation\Application\WorkspaceCalendar($clock, new FixedCallerWorkspace(AccountFixture::WORKSPACE), new Double\FixedWorkspaceTimezoneReader()),
             ),
             new AssertPeriodOpen($this->createStub(PeriodClosureRepository::class)),
+            new Double\InMemoryAccountOrderRepository(),
         );
     }
 }

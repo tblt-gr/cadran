@@ -4,12 +4,16 @@
   gap: var(--spacing-6);
 }
 
-@media (max-width: 47.999rem) {
-  .addLabel {
-    display: none;
-  }
+.reorderHint {
+  display: flex;
+  align-items: flex-start;
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  gap: var(--spacing-2);
+}
 
-  .add {
-    padding: var(--spacing-control-block) var(--spacing-3);
-  }
+.reorderHint > svg {
+  flex-shrink: 0;
 }
