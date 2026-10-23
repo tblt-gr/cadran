@@ -132,6 +132,7 @@
   --border-line-warning: var(--border-width-thin) solid var(--warning);
   --outline-focus: var(--border-width-focus) solid var(--focus);
   --outline-offset-focus: var(--border-width-thin);
+  --outline-offset-inset: calc(var(--border-width-focus) * -1);
   --radius-none: 0;
   --radius-control: 0.375rem;
   --radius-card: 0.5rem;

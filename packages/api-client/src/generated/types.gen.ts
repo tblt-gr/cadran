@@ -2670,6 +2670,10 @@ export type MonthlyLedger = {
      * Month of the oldest booked or pending transaction of the workspace, null when it has none.
      */
     firstDataMonth: string | null;
+    /**
+     * Every month holding a booked or pending transaction, oldest first.
+     */
+    monthsWithTransactions: Array<string>;
     pendingCount: number;
     closed: boolean;
     actionsAllowed: boolean;
@@ -2834,6 +2838,10 @@ export type MonthlyRecapGroup = {
     parentId: string | null;
     depth: number;
     value: NetWorthAmount | null;
+    /**
+     * The same exclusive subtotal at N-1; null when N-1 net worth is not calculable.
+     */
+    previousValue: NetWorthAmount | null;
     share: NetWorthShare;
 };
 

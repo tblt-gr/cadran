@@ -242,7 +242,7 @@ describe('ReportsPage', () => {
     expect(await screen.findByText('Aucun mouvement comptabilisé pour ce mois')).toBeTruthy();
     expect(screen.getByRole('navigation', { name: 'Mois' })).toBeTruthy();
     expect(screen.getByRole('table')).toBeTruthy();
-    expect(screen.getByRole('table').textContent).toContain('0 €');
+    expect(screen.getByRole('table').textContent).toContain('-');
     expect(screen.getAllByTitle('Non calculable : ZERO_CASH_INCOME')).toHaveLength(2);
     // A dash has nothing to explain: no info button beside it, one beside each figure.
     expect(screen.queryByRole('button', { name: 'Expliquer : Taux d’épargne' })).toBeNull();

@@ -7,6 +7,7 @@ namespace App\Tests\Module\Accounts\UI\Http;
 use App\Module\Accounts\Infrastructure\Persistence\DbalProductModelRepository;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Module\Identity\Domain\Workspace;
 use App\Tests\Module\Accounts\Domain\ProductModelFixture;
 use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
@@ -105,7 +106,7 @@ final class AccountControllerTest extends WebTestCase
         self::assertSame('MISSING', $createdValuation['quality']);
         self::assertNull($createdValuation['amount']);
         self::assertSame(
-            (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d'),
+            (new \DateTimeImmutable('now', new \DateTimeZone(Workspace::DEFAULT_TIMEZONE)))->format('Y-m-d'),
             $createdValuation['requestedOn'],
         );
 

@@ -31,10 +31,6 @@
 }
 
 @media (max-width: 42rem) {
-  .actionLabel {
-    display: none;
-  }
-
   .routeError {
     padding: var(--spacing-6);
   }

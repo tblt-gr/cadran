@@ -1,3 +1,4 @@
+import { formatCalendarMonth } from '@/lib/decimal';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
@@ -12,7 +13,7 @@ import { MonthlyRecapSkeleton, TotalsCardPlaceholder } from './MonthlyRecapSkele
 import styles from './MonthlyRecap.module.css';
 
 export function MonthlyRecap({ month }: { month: string }) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const recap = useMonthlyRecap(month);
   const preferences = useRecapPreferences();
   const session = useSession();
@@ -24,6 +25,7 @@ export function MonthlyRecap({ month }: { month: string }) {
     return (
       <aside className={`card ${styles.state}`} role="alert">
         <h3>{t('budget.monthly.recap.error.title')}</h3>
+        <p>{formatCalendarMonth(month, i18n.language)}</p>
         <p>{t('budget.monthly.recap.error.description')}</p>
         <button className="secondary-action" onClick={() => void recap.refetch()} type="button">
           {t('foundation.retry')}
@@ -37,7 +39,12 @@ export function MonthlyRecap({ month }: { month: string }) {
         <p className={styles.pending}>{t('budget.monthly.recap.empty')}</p>
       ) : null}
       <div className={styles.wealth}>
-        <WealthCard netWorth={data.netWorth} provisional={data.provisional} />
+        <WealthCard
+          currentAsOf={data.currentAsOf}
+          previousAsOf={data.previousAsOf}
+          netWorth={data.netWorth}
+          provisional={data.provisional}
+        />
       </div>
       <div className={styles.totals}>
         {preferences.isPending ? (
@@ -47,6 +54,8 @@ export function MonthlyRecap({ month }: { month: string }) {
           </div>
         ) : preferences.isError || !preferences.data ? (
           <section className={`card ${styles.preferenceState}`} role="alert">
+            <h3>{t('budget.monthly.recap.totals.title')}</h3>
+            <p>{formatCalendarMonth(month, i18n.language)}</p>
             <p>{t('budget.monthly.recap.preferences.error')}</p>
             <button
               className="secondary-action"

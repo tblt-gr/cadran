@@ -48,7 +48,7 @@ describe('insurance preview figures', () => {
       />,
     );
     expect(screen.getByText('Reste en liquidités')).toBeTruthy();
-    expect(screen.getByText(/0,00/)).toBeTruthy();
+    expect(screen.getByText('-')).toBeTruthy();
   });
   it('shows unknown figures without substituting zero and skeletons while pending', () => {
     const { container, rerender } = render(

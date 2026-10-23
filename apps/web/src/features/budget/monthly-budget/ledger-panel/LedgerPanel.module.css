@@ -1,87 +1,100 @@
 .panel {
   min-width: 0;
-  overflow: hidden;
+  overflow: clip;
   border: var(--border-line-subtle);
   border-radius: var(--radius-card);
   background: var(--bg-surface-1);
 }
 
 .heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4);
+  display: grid;
+  gap: var(--spacing-2);
+  padding: var(--spacing-4) var(--spacing-none) var(--spacing-none);
 }
-
+.headingMain {
+  display: flex;
+  padding-inline: var(--spacing-4);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
 .heading h3,
 .heading p,
 .empty {
   margin: var(--spacing-none);
 }
-
+.heading h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+}
 .total {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-
-.total span:last-child {
-  color: var(--text-primary);
-  font-size: var(--font-size-card-title);
-  font-variant-numeric: tabular-nums;
-}
-
-.heading h3 {
-  color: var(--text-primary);
-  font-size: var(--font-size-card-title);
-}
-
-.heading p,
-.empty {
-  margin-top: var(--spacing-1);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-body);
-}
-
-.heading label {
-  display: flex;
-  flex: 0 0 auto;
+  min-width: 0;
+  flex: 1;
   flex-direction: column;
-  gap: var(--spacing-1);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
+  align-items: flex-end;
+  color: var(--text-primary);
+  font-size: var(--font-size-brand);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
-
 .headingActions {
   display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+  padding-inline-start: var(--spacing-4);
+}
+.axis {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+}
+.heading select {
+  max-width: 100%;
+  appearance: none;
+  min-height: var(--control-height-compact);
+  padding: var(--spacing-1) var(--spacing-none);
+  border: var(--border-none);
+  background: var(--color-transparent);
+  font-size: var(--font-size-label);
+}
+.axisArrow {
+  display: inline-flex;
   flex: 0 0 auto;
-  align-items: flex-end;
-  gap: var(--spacing-3);
+  margin-inline-start: var(--spacing-1);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.heading select:focus-visible {
+  outline: var(--outline-focus);
 }
 
 .add {
   display: inline-flex;
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: var(--border-line-transparent);
-  border-radius: var(--radius-circle);
+  border: var(--border-none);
+  border-radius: var(--radius-none);
   background: var(--color-transparent);
   color: var(--text-secondary);
   cursor: pointer;
 }
 
 .add:hover:not(:disabled) {
-  border-color: var(--border-strong);
   background: var(--bg-surface-2);
   color: var(--text-primary);
+}
+
+/* The panel clips its overflow and these controls touch its edge: draw the ring inside. */
+.add:focus-visible {
+  outline-offset: var(--outline-offset-inset);
 }
 
 .add:disabled {
@@ -90,6 +103,7 @@
 }
 
 .rows {
+  min-width: 0;
   margin: var(--spacing-none);
   padding: var(--spacing-none);
   list-style: none;
@@ -100,14 +114,14 @@
   padding: var(--spacing-4);
 }
 
-@media (max-width: 42rem) {
-  .heading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-}
-
 .totalSkeleton {
   width: calc(var(--spacing-12) * 1.5);
-  height: var(--font-size-card-title);
+  height: var(--font-size-brand);
+}
+
+.income {
+  color: var(--positive);
+}
+.expense {
+  color: var(--negative);
 }

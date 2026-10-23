@@ -57,6 +57,9 @@ export function formatDecimal(value: string, locale: string): string {
 /** Two fraction digits, the display rule for percentages and euro amounts. */
 const DISPLAY_FRACTION_DIGITS = 2;
 
+/** What an amount equal to zero shows instead of a figure. */
+const EMPTY_AMOUNT = '-';
+
 /** `signDisplay: 'negative'` (ES2023) hides the sign of a value rounded to zero. */
 const NO_NEGATIVE_ZERO = { signDisplay: 'negative' } as Intl.NumberFormatOptions;
 
@@ -67,6 +70,8 @@ const NO_NEGATIVE_ZERO = { signDisplay: 'negative' } as Intl.NumberFormatOptions
  * figure followed by its code, which still names the unit.
  */
 export function formatAmount(value: string, assetCode: string, locale: string): string {
+  // An exact zero reads as a plain hyphen-minus rather than "0,00 €".
+  if (/^[+-]?0*\.?0*$/.test(value) && /\d/.test(value)) return EMPTY_AMOUNT;
   let digits: number;
   try {
     digits = new Intl.NumberFormat(locale, {
@@ -130,6 +135,15 @@ export function formatCalendarDay(value: string, locale: string): string {
     month: 'long',
     timeZone: 'UTC',
     year: 'numeric',
+  }).format(new Date(`${value}T12:00:00Z`));
+}
+
+/** Same as `formatCalendarDay` without the year, for lists already scoped to one month. */
+export function formatCalendarDayMonth(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
   }).format(new Date(`${value}T12:00:00Z`));
 }
 
@@ -243,6 +257,12 @@ export function negateDecimal(value: string): string {
 
 export function isZeroDecimal(value: string): boolean {
   return parseDecimal(value).coefficient === 0n;
+}
+
+/** An outflow is shown negative whichever sign the source carries; zero keeps no sign. */
+export function asOutflow(value: string): string {
+  if (isZeroDecimal(value)) return value;
+  return value.startsWith('-') ? value : `-${value.replace(/^\+/, '')}`;
 }
 
 export function compareDecimals(a: string, b: string): -1 | 0 | 1 {

@@ -2883,7 +2883,6 @@
     "monthly": {
       "title": "Budget de {{month}}",
       "managePlans": "Gérer les plans et objectifs",
-      "createTransaction": "Créer une transaction",
       "year": "Année",
       "months": "Mois du budget",
       "axis": "Axe analytique",
@@ -2897,9 +2896,9 @@
         "VARIABLE": "Variable"
       },
       "panels": {
-        "income": "Revenus par catégorie",
-        "expense": "Dépenses par catégorie",
-        "account": "Virements par compte"
+        "income": "Revenus",
+        "expense": "Dépenses",
+        "account": "Virements"
       },
       "panelDescriptions": {
         "income": "Entrées comptabilisées, hors virements.",
@@ -2917,6 +2916,8 @@
       "pending_one": "{{count}} transaction en attente",
       "pending_other": "{{count}} transactions en attente",
       "noMovement": "Aucun mouvement",
+      "showEmptyAccounts": "Afficher les comptes sans mouvement",
+      "hideEmptyAccounts": "Masquer les comptes sans mouvement",
       "mixedAssets": "Actifs mélangés",
       "outOfBudget": "Hors budget",
       "archived": "Archivée",
@@ -2990,8 +2991,6 @@
           "title": "Comptes et patrimoine",
           "caption": "Valeurs des comptes et parts du patrimoine net",
           "account": "Compte",
-          "previous": "Au {{date}}",
-          "current": "Au {{date}}",
           "previousShort": "N−1",
           "currentShort": "N",
           "share": "Part",
@@ -3014,8 +3013,8 @@
         },
         "wealth": {
           "title": "Évolution du patrimoine",
-          "previous": "Patrimoine N−1",
-          "current": "Patrimoine N",
+          "previous": "Patrimoine",
+          "current": "Patrimoine",
           "difference": "Variation",
           "changePercent": "Évolution",
           "previousMissingCount_one": "Au N−1, 1 valorisation manque.",

@@ -1,11 +1,11 @@
 import { readMonthlyLedgerMovements } from '@cadran/api-client';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import type { LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
-import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
+import { MovementDateGroup } from './MovementDateGroup';
 import styles from './MovementDetails.module.css';
 
 interface MovementDetailsProps {
@@ -50,7 +50,25 @@ export function MovementDetails({
     retry: false,
   });
 
-  if (query.isPending) return <p aria-live="polite">{t('budget.monthly.movements.loading')}</p>;
+  if (query.isPending)
+    return (
+      <>
+        <SkeletonStatus>{t('budget.monthly.movements.loading')}</SkeletonStatus>
+        <ul aria-busy="true" className={styles.movements}>
+          {Array.from({ length: 3 }, (_, index) => (
+            <MovementDateGroup
+              date={null}
+              editable={editable}
+              kind={kind}
+              language={language}
+              movements={null}
+              onEditTransaction={onEditTransaction}
+              key={index}
+            />
+          ))}
+        </ul>
+      </>
+    );
   if (query.isError)
     return (
       <div role="alert">
@@ -64,54 +82,27 @@ export function MovementDetails({
   const movements = query.data.pages.flatMap((page) => page.items);
   if (movements.length === 0) return <p>{t('budget.monthly.movements.empty')}</p>;
 
+  const groups: Array<{ date: string; items: typeof movements }> = [];
+  // Flatten before grouping so a date shared by consecutive pages keeps one heading.
+  for (const movement of movements) {
+    const last = groups.at(-1);
+    if (last?.date === movement.bookedOn) last.items.push(movement);
+    else groups.push({ date: movement.bookedOn, items: [movement] });
+  }
   return (
     <>
       <ul className={styles.movements}>
-        {movements.map((movement) => {
-          const label =
-            movement.direction && movement.counterpartAccountLabel
-              ? t(
-                  movement.direction === 'IN'
-                    ? 'budget.monthly.movements.in'
-                    : 'budget.monthly.movements.out',
-                  { account: movement.counterpartAccountLabel },
-                )
-              : movement.label;
-          const amount = formatAmount(movement.amount.value, movement.amount.assetCode, language);
-          const content = (
-            <>
-              <time dateTime={movement.bookedOn}>
-                {formatCalendarNumericDay(movement.bookedOn)}
-              </time>
-              <strong>{label}</strong>
-              <MoneyValue value={amount} />
-            </>
-          );
-          // A transfer leg belongs to a pair: the transaction editor would only be refused.
-          const transactionId =
-            editable && movement.transferId === null ? movement.transactionId : null;
-
-          return (
-            <li key={movement.id}>
-              {transactionId !== null && onEditTransaction ? (
-                <button
-                  aria-label={t('budget.monthly.movements.edit', {
-                    amount,
-                    date: formatCalendarNumericDay(movement.bookedOn),
-                    label,
-                  })}
-                  className={`${styles.movement} ${styles.movementAction}`}
-                  onClick={() => onEditTransaction(transactionId)}
-                  type="button"
-                >
-                  {content}
-                </button>
-              ) : (
-                <div className={styles.movement}>{content}</div>
-              )}
-            </li>
-          );
-        })}
+        {groups.map((group) => (
+          <MovementDateGroup
+            date={group.date}
+            editable={editable}
+            kind={kind}
+            language={language}
+            movements={group.items}
+            onEditTransaction={onEditTransaction}
+            key={group.items[0]!.id}
+          />
+        ))}
       </ul>
       {query.hasNextPage ? (
         <button

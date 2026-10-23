@@ -7,7 +7,8 @@ import type {
 } from '@cadran/api-client';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { InfoButton } from '@/components/ui/info-button/InfoButton';
+import { MetricLabelButton } from './MetricLabelButton';
+import { RecapSettingsButton } from './RecapSettingsButton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
@@ -87,14 +88,7 @@ function MetricRow({
   return (
     <li className={styles.row}>
       <div>
-        <span className={styles.label}>
-          <span>{label}</span>
-          <InfoButton
-            aria-haspopup="dialog"
-            label={t('reports.explainKpi', { kpi: label })}
-            onClick={() => setOpen(true)}
-          />
-        </span>
+        <MetricLabelButton label={label} onClick={() => setOpen(true)} />
         <Value metric={metric} rate={rate} />
       </div>
       {open ? (
@@ -136,11 +130,7 @@ export function TotalsCard({
             <h3 id="monthly-recap-totals-title">{t('budget.monthly.recap.totals.title')}</h3>
             {info}
           </div>
-          {owner ? (
-            <button className="secondary-action" onClick={onConfigure} type="button">
-              {t('budget.monthly.recap.preferences.open')}
-            </button>
-          ) : null}
+          {owner ? <RecapSettingsButton onClick={onConfigure} /> : null}
         </div>
       </header>
       <ul className={styles.rows}>
@@ -151,26 +141,26 @@ export function TotalsCard({
         <MetricRow month={month} metric={totals.netSavingsTransfers} />
         <MetricRow month={month} metric={totals.netSavingsRate} rate />
       </ul>
-      <h4>{t('budget.monthly.recap.totals.axes')}</h4>
       {axes.length ? (
-        <ul className={styles.rows}>
-          {axes.map((axis) => (
-            <MetricRow axis={axis.axis} key={axis.axis} month={month} metric={axis} />
-          ))}
-        </ul>
-      ) : (
-        <p className={styles.empty}>{t('budget.monthly.recap.totals.axesEmpty')}</p>
-      )}
-      <h4>{t('budget.monthly.recap.totals.categories')}</h4>
+        <section className={styles.section}>
+          <h4>{t('budget.monthly.recap.totals.axes')}</h4>
+          <ul className={styles.rows}>
+            {axes.map((axis) => (
+              <MetricRow axis={axis.axis} key={axis.axis} month={month} metric={axis} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {categories.length ? (
-        <ul className={styles.rows}>
-          {categories.map((category) => (
-            <CategoryRow category={category} key={category.id} month={month} />
-          ))}
-        </ul>
-      ) : (
-        <p className={styles.empty}>{t('budget.monthly.recap.totals.categoriesEmpty')}</p>
-      )}
+        <section className={styles.section}>
+          <h4>{t('budget.monthly.recap.totals.categories')}</h4>
+          <ul className={styles.rows}>
+            {categories.map((category) => (
+              <CategoryRow category={category} key={category.id} month={month} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </section>
   );
 }

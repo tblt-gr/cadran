@@ -14,6 +14,7 @@ type IconName =
   | 'catalog'
   | 'chart-line'
   | 'check-circle'
+  | 'clock'
   | 'categories'
   | 'chevron-left'
   | 'chevron-right'
@@ -114,6 +115,8 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="m7 14 5-5 5 5M12 9v10" />;
     case 'arrow-down':
       return <path d="m7 10 5 5 5-5M12 5v10" />;
+    case 'clock':
+      return <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5v4.5l3 2" />;
     case 'alert':
       return <path d="M12 3 2.8 20h18.4ZM12 9v5m0 3h.01" />;
     case 'delete':

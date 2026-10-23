@@ -15,6 +15,22 @@ describe('MonthNavigator', () => {
     expect(screen.getByRole('link', { name: 'Mars' }).getAttribute('aria-current')).toBe('page');
   });
 
+  it('disables past months without a transaction but keeps the selected month reachable', () => {
+    render(
+      <MonthNavigator
+        axis={null}
+        currentMonth="2026-10"
+        month="2026-05"
+        monthsWithTransactions={['2026-03', '2026-04']}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Mars' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Avril' })).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Juin' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('link', { name: 'Mai' }).getAttribute('aria-current')).toBe('page');
+  });
+
   it('scrolls the selected month into view so a narrow strip never hides it', () => {
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
@@ -64,6 +80,10 @@ describe('MonthNavigator', () => {
     );
 
     expect(yearOptions()).toEqual(['2026']);
+    expect(screen.queryByText('Année')).toBeNull();
+    const select = screen.getByRole('combobox', { name: 'Année' });
+    select.focus();
+    expect(document.activeElement).toBe(select);
   });
 
   it('marks the active month with the primary colour class and no other decoration', () => {

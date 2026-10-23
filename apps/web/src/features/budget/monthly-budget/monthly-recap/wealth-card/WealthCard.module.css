@@ -3,13 +3,19 @@
   gap: var(--spacing-4);
 }
 .panel h3,
-.provisional,
 .quality {
   margin: var(--spacing-none);
 }
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
 .provisional {
+  display: inline-flex;
+  flex: 0 0 auto;
   color: var(--warning);
-  font-size: var(--font-size-label);
 }
 .figures {
   display: grid;
@@ -37,4 +43,28 @@
   .figures {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.figures dd {
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.positive {
+  color: var(--positive);
+}
+.negative {
+  color: var(--negative);
+}
+.neutral {
+  color: var(--text-primary);
+}
+.skeletonValue {
+  width: 80%;
+  height: var(--font-size-kpi);
+}
+
+.skeletonMonth {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-label);
 }

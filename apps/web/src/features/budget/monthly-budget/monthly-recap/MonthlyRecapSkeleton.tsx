@@ -1,18 +1,13 @@
-import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
+import { MetricLabelButton } from './totals-card/MetricLabelButton';
+import { RecapSettingsButton } from './totals-card/RecapSettingsButton';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { AccountBalanceHeading } from './account-recap/AccountBalanceHeading';
 import { useTranslation } from 'react-i18next';
-import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import accountStyles from './account-recap/AccountRecap.module.css';
 import totalsStyles from './totals-card/TotalsCard.module.css';
-import wealthStyles from './wealth-card/WealthCard.module.css';
+import { WealthCard } from './wealth-card/WealthCard';
 import styles from './MonthlyRecap.module.css';
-
-const WEALTH_LABELS = [
-  'budget.monthly.recap.wealth.previous',
-  'budget.monthly.recap.wealth.current',
-  'budget.monthly.recap.wealth.difference',
-  'budget.monthly.recap.wealth.changePercent',
-] as const;
 
 const TOTAL_LABELS = [
   'reports.metrics.cashIncome',
@@ -25,21 +20,11 @@ const TOTAL_LABELS = [
 
 /** One TotalsCard row: the metric name and its explain button are real, the value pending. */
 function PendingMetricRow({ label }: { label?: string }) {
-  const { t } = useTranslation();
   return (
     <li className={totalsStyles.row}>
       <div>
-        <span className={totalsStyles.label}>
-          {label === undefined ? (
-            <SkeletonBlock className={styles.skeletonLabel} />
-          ) : (
-            <>
-              <span>{label}</span>
-              <InfoButton disabled label={t('reports.explainKpi', { kpi: label })} />
-            </>
-          )}
-        </span>
-        <SkeletonBlock className={styles.skeletonAmount} />
+        <MetricLabelButton disabled label={label ?? null} />
+        <MoneyValue skeletonClassName={totalsStyles.amountSkeleton} value={null} />
       </div>
     </li>
   );
@@ -54,11 +39,8 @@ export function TotalsCardPlaceholder() {
         <div className={totalsStyles.headingTitle}>
           <div className={totalsStyles.titleGroup}>
             <h3>{t('budget.monthly.recap.totals.title')}</h3>
-            <InfoButton disabled label={t('budget.monthly.recap.info.open')} />
           </div>
-          <button className="secondary-action" disabled type="button">
-            {t('budget.monthly.recap.preferences.open')}
-          </button>
+          <RecapSettingsButton disabled />
         </div>
       </header>
       <ul className={totalsStyles.rows}>
@@ -66,17 +48,21 @@ export function TotalsCardPlaceholder() {
           <PendingMetricRow key={label} label={t(label)} />
         ))}
       </ul>
-      <h4>{t('budget.monthly.recap.totals.axes')}</h4>
-      <ul className={totalsStyles.rows}>
-        <PendingMetricRow />
-        <PendingMetricRow />
-      </ul>
-      <h4>{t('budget.monthly.recap.totals.categories')}</h4>
-      <ul className={totalsStyles.rows}>
-        <PendingMetricRow />
-        <PendingMetricRow />
-        <PendingMetricRow />
-      </ul>
+      <section className={totalsStyles.section}>
+        <h4>{t('budget.monthly.recap.totals.axes')}</h4>
+        <ul className={totalsStyles.rows}>
+          <PendingMetricRow />
+          <PendingMetricRow />
+        </ul>
+      </section>
+      <section className={totalsStyles.section}>
+        <h4>{t('budget.monthly.recap.totals.categories')}</h4>
+        <ul className={totalsStyles.rows}>
+          <PendingMetricRow />
+          <PendingMetricRow />
+          <PendingMetricRow />
+        </ul>
+      </section>
     </section>
   );
 }
@@ -103,19 +89,7 @@ export function MonthlyRecapPlaceholder({ status }: { status?: string }) {
     >
       {status === undefined ? null : <SkeletonStatus>{status}</SkeletonStatus>}
       <div className={styles.wealth}>
-        <section className={`card ${wealthStyles.panel}`}>
-          <h3>{t('budget.monthly.recap.wealth.title')}</h3>
-          <dl className={wealthStyles.figures}>
-            {WEALTH_LABELS.map((label) => (
-              <div key={label}>
-                <dt>{t(label)}</dt>
-                <dd>
-                  <SkeletonBlock className={styles.skeletonValue} />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
+        <WealthCard netWorth={null} provisional={false} />
       </div>
       <div className={styles.totals}>
         <TotalsCardPlaceholder />
@@ -130,24 +104,28 @@ export function MonthlyRecapPlaceholder({ status }: { status?: string }) {
                 <tr>
                   <th scope="col">{t('budget.monthly.recap.accounts.account')}</th>
                   <th scope="col">
-                    <SkeletonBlock className={styles.skeletonAmount} />
+                    <AccountBalanceHeading date={null} />
                   </th>
                   <th scope="col">
-                    <SkeletonBlock className={styles.skeletonAmount} />
+                    <AccountBalanceHeading date={null} />
                   </th>
-                  <th scope="col">{t('budget.monthly.recap.accounts.share')}</th>
+                  <th className={accountStyles.share} scope="col">
+                    {t('budget.monthly.recap.accounts.share')}
+                  </th>
                 </tr>
               </thead>
               <tbody aria-hidden="true">
                 <tr className={accountStyles.groupRow}>
-                  <th colSpan={2} data-label={accountColumns[0]} scope="rowgroup">
-                    <GroupMarker color={null} pending />
+                  <th data-label={accountColumns[0]} scope="rowgroup">
                     <SkeletonBlock />
                   </th>
+                  <td data-label={accountColumns[1]}>
+                    <SkeletonBlock />
+                  </td>
                   <td data-label={accountColumns[2]}>
                     <SkeletonBlock />
                   </td>
-                  <td data-label={accountColumns[3]}>
+                  <td className={accountStyles.share} data-label={accountColumns[3]}>
                     <SkeletonBlock />
                   </td>
                 </tr>
@@ -155,7 +133,6 @@ export function MonthlyRecapPlaceholder({ status }: { status?: string }) {
                   <tr key={index}>
                     <th data-label={accountColumns[0]} scope="row">
                       <a>
-                        <GroupMarker color={null} pending />
                         <SkeletonBlock />
                       </a>
                     </th>
@@ -169,7 +146,7 @@ export function MonthlyRecapPlaceholder({ status }: { status?: string }) {
                         <SkeletonBlock />
                       </span>
                     </td>
-                    <td data-label={accountColumns[3]}>
+                    <td className={accountStyles.share} data-label={accountColumns[3]}>
                       <SkeletonBlock />
                     </td>
                   </tr>

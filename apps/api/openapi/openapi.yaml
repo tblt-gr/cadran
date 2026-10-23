@@ -14445,6 +14445,7 @@ components:
           quality,
           timezone,
           firstDataMonth,
+          monthsWithTransactions,
           pendingCount,
           closed,
           actionsAllowed,
@@ -14477,6 +14478,13 @@ components:
           type: [string, 'null']
           pattern: '^\d{4}-(0[1-9]|1[0-2])$'
           description: Month of the oldest booked or pending transaction of the workspace, null when it has none.
+        monthsWithTransactions:
+          type: array
+          maxItems: 1200
+          description: Every month holding a booked or pending transaction, oldest first.
+          items:
+            type: string
+            pattern: '^\d{4}-(0[1-9]|1[0-2])$'
         pendingCount: { type: integer, minimum: 0, maximum: 500 }
         closed: { type: boolean }
         actionsAllowed: { type: boolean }
@@ -14913,7 +14921,7 @@ components:
         total for the same account.
       type: object
       additionalProperties: false
-      required: [color, groupId, label, parentId, depth, value, share]
+      required: [color, groupId, label, parentId, depth, value, previousValue, share]
       properties:
         color:
           type: string
@@ -14933,6 +14941,11 @@ components:
           minimum: 1
           maximum: 8
         value:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        previousValue:
+          description: The same exclusive subtotal at N-1; null when N-1 net worth is not calculable.
           oneOf:
             - $ref: '#/components/schemas/NetWorthAmount'
             - type: 'null'

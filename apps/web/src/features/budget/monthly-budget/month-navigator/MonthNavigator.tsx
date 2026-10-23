@@ -8,6 +8,8 @@ interface MonthNavigatorProps {
   currentMonth: string;
   /** Oldest month holding a transaction; null while unknown or when the workspace has none. */
   firstDataMonth?: string | null;
+  /** Months holding a transaction; the others are disabled. null while unknown. */
+  monthsWithTransactions?: string[] | null;
   month: string;
 }
 
@@ -16,6 +18,7 @@ export function MonthNavigator({
   currentMonth,
   firstDataMonth = null,
   month,
+  monthsWithTransactions = null,
 }: MonthNavigatorProps) {
   const { t, i18n } = useTranslation();
   const selectedYear = Number.parseInt(month.slice(0, 4), 10);
@@ -43,7 +46,6 @@ export function MonthNavigator({
   return (
     <section className={styles.navigator} aria-label={t('budget.monthly.months')}>
       <label className={styles.year}>
-        <span>{t('budget.monthly.year')}</span>
         <select
           aria-label={t('budget.monthly.year')}
           onChange={(event) => chooseYear(Number.parseInt(event.target.value, 10))}
@@ -65,8 +67,13 @@ export function MonthNavigator({
             month: 'long',
             timeZone: 'UTC',
           }).format(new Date(Date.UTC(2020, index, 1)));
-          const disabled = candidate > currentMonth;
           const active = candidate === month;
+          // The selected month stays reachable so a deep link never lands on a dead tab.
+          const disabled =
+            candidate > currentMonth ||
+            (!active &&
+              monthsWithTransactions !== null &&
+              !monthsWithTransactions.includes(candidate));
 
           return disabled ? (
             <button className={styles.disabled} disabled key={candidate} type="button">

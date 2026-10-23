@@ -18,6 +18,7 @@ use App\Module\Accounts\Domain\NetWorthDelta;
 use App\Module\Accounts\Domain\NetWorthShareCalculator;
 use App\Module\Accounts\Domain\NetWorthShares;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Reference\Application\AssetCatalog;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -80,6 +81,10 @@ final readonly class ReadNetWorth
             $currentContributions,
         );
         $shares = NetWorthShareCalculator::compute($shareInputs, $lineages);
+        $previousShareInputs = array_map(
+            static fn (NetWorthContribution $contribution): AccountShareInput => $contribution->share(),
+            $previousContributions,
+        );
         $references = new NetWorthAssetReferences($this->assets);
 
         return NetWorthView::of(
@@ -92,7 +97,7 @@ final readonly class ReadNetWorth
                 $set->sourceAccountIds($requestedOn),
             ),
             self::contributionViews($set, $current, $groups, $shares, $references),
-            self::allocationViews($current, $groups, $lineages, $shareInputs, $shares, $references),
+            self::allocationViews($current, $previous, $groups, $lineages, $shareInputs, $previousShareInputs, $shares, $references),
             $references->for($current->asset),
         );
     }
@@ -145,28 +150,24 @@ final readonly class ReadNetWorth
      * @param list<AccountGroup>      $groups
      * @param list<GroupLineage>      $lineages
      * @param list<AccountShareInput> $shareInputs
+     * @param list<AccountShareInput> $previousShareInputs the same accounts on the compared day
      *
      * @return list<NetWorthAllocationView>
      */
     private static function allocationViews(
         NetWorth $netWorth,
+        NetWorth $previous,
         array $groups,
         array $lineages,
         array $shareInputs,
+        array $previousShareInputs,
         NetWorthShares $shares,
         NetWorthAssetReferences $references,
     ): array {
         // A group total built from a partial set would look authoritative, so
         // the roll-up is published only when the aggregate itself holds.
-        $rollup = null === $netWorth->total
-            ? []
-            : ExclusiveGroupRollup::totals(
-                array_values(array_filter(
-                    $shareInputs,
-                    static fn (AccountShareInput $input): bool => $input->includeInNetWorth,
-                )),
-                $lineages,
-            );
+        $rollup = self::rollup($netWorth, $shareInputs, $lineages);
+        $previousRollup = self::rollup($previous, $previousShareInputs, $lineages);
 
         $views = [];
         foreach ($groups as $group) {
@@ -180,9 +181,31 @@ final readonly class ReadNetWorth
                 $netWorth->asset,
                 $shares->group($group->id),
                 $references->for($netWorth->asset),
+                $previousRollup[$group->id] ?? null,
+                $previous->asset,
+                $references->for($previous->asset),
             );
         }
 
         return $views;
+    }
+
+    /**
+     * @param list<AccountShareInput> $inputs
+     * @param list<GroupLineage>      $lineages
+     *
+     * @return array<string, DecimalValue>
+     */
+    private static function rollup(NetWorth $day, array $inputs, array $lineages): array
+    {
+        return null === $day->total
+            ? []
+            : ExclusiveGroupRollup::totals(
+                array_values(array_filter(
+                    $inputs,
+                    static fn (AccountShareInput $input): bool => $input->includeInNetWorth,
+                )),
+                $lineages,
+            );
     }
 }

@@ -39,6 +39,7 @@ const ledger = {
   quality: 'CURRENT' as const,
   timezone: 'Europe/Paris',
   firstDataMonth: '2025-06',
+  monthsWithTransactions: ['2025-06', '2026-02', '2026-03'],
   pendingCount: 2,
   closed: false,
   actionsAllowed: true,
@@ -148,6 +149,7 @@ const recap = {
       parentId: null,
       depth: 1,
       value: null,
+      previousValue: null,
       share: {
         ratio: null,
         percent: null,
@@ -294,6 +296,7 @@ async function loaded() {
 
 describe('MonthlyBudgetPage', () => {
   beforeEach(() => {
+    window.localStorage.removeItem('cadran.budget.showEmptyTransferAccounts');
     window.history.replaceState({}, '', '/budget/2026-03');
     api.readMonthlyLedger.mockReturnValue(ok(ledger));
     api.readMonthlyRecap.mockReturnValue(ok(recap));
@@ -402,6 +405,29 @@ describe('MonthlyBudgetPage', () => {
     const { queryClient } = renderPage();
 
     expect(screen.getByTestId('monthly-budget-skeleton')).toBeTruthy();
+    const coldPanel = screen.getByRole('region', { name: 'Revenus' });
+    expect(within(coldPanel).queryByText(/2026/)).toBeNull();
+    expect(within(coldPanel).queryByRole('button', { name: /Expliquer/ })).toBeNull();
+    expect(
+      within(coldPanel).getByRole('button', { name: 'Ajouter un revenu' }).hasAttribute('disabled'),
+    ).toBe(true);
+    const skeletonRow = coldPanel.querySelector('ul li')!;
+    expect(skeletonRow.querySelectorAll('button')).toHaveLength(1);
+    expect(skeletonRow.querySelector('[aria-expanded], [aria-controls]')).toBeNull();
+    expect(
+      screen
+        .getByRole('button', { name: 'Afficher les comptes sans mouvement' })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+    const loadingSettings = screen.getByRole('button', { name: 'Configurer l’affichage' });
+    expect(loadingSettings.textContent).toBe('');
+    expect(loadingSettings.hasAttribute('disabled')).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Informations sur la synthèse' })).toBeNull();
+    const loadingExplanation = screen.getByRole('button', {
+      name: 'Expliquer : Revenus en espèces',
+    });
+    expect(loadingExplanation.textContent).toBe('Revenus en espèces');
+    expect(loadingExplanation.hasAttribute('disabled')).toBe(true);
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveLedger?.({ data: ledger, response: new Response('{}', { status: 200 }) });
     expect(await screen.findByText('Salaire')).toBeTruthy();
@@ -410,7 +436,7 @@ describe('MonthlyBudgetPage', () => {
     api.readMonthlyLedger.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
     await waitFor(() => expect(api.readMonthlyLedger).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('button', { name: 'Créer une transaction' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Gérer les plans et objectifs' })).toBeTruthy();
     expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
   });
 
@@ -425,6 +451,23 @@ describe('MonthlyBudgetPage', () => {
     const { queryClient } = renderPage();
 
     expect(await screen.findByTestId('monthly-recap-skeleton')).toBeTruthy();
+    const incomePanel = screen.getByRole('region', { name: 'Revenus' });
+    const pendingTotal = within(incomePanel).getByText('Total des revenus').parentElement!;
+    expect(pendingTotal.querySelector('[data-visual-mask] > span > [data-skeleton]')).toBeTruthy();
+    const recapSkeleton = screen.getByTestId('monthly-recap-skeleton');
+    const totalsPanel = within(recapSkeleton)
+      .getByRole('heading', { name: 'Synthèse des flux' })
+      .closest('section')!;
+    expect(totalsPanel.querySelectorAll('li > div > [data-visual-mask]')).toHaveLength(11);
+    for (const amount of totalsPanel.querySelectorAll('li > div > [data-visual-mask]')) {
+      expect(amount.querySelector('span > [aria-hidden="true"]')).toBeTruthy();
+    }
+    const balanceHeaders = within(recapSkeleton).getAllByRole('columnheader').slice(1, 3);
+    expect(balanceHeaders.map((header) => header.textContent)).toEqual(['', '']);
+    expect(
+      balanceHeaders.every((header) => header.querySelector('[aria-hidden="true"]')),
+    ).toBeTruthy();
+
     expect(
       screen.getByTestId('monthly-recap-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
@@ -446,6 +489,11 @@ describe('MonthlyBudgetPage', () => {
       await screen.findByRole('heading', { name: 'Synthèse mensuelle indisponible' }),
     ).toBeTruthy();
     expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
+    const errorPanel = screen.getByRole('heading', {
+      name: 'Synthèse mensuelle indisponible',
+    }).parentElement!;
+    expect(errorPanel.textContent).toContain('Mars 2026');
+    expect(within(errorPanel).getByRole('button', { name: 'Réessayer' })).toBeTruthy();
 
     failed.unmount();
     api.readMonthlyRecap.mockReturnValue(ok({ ...recap, state: 'EMPTY' }));
@@ -459,14 +507,15 @@ describe('MonthlyBudgetPage', () => {
   it('renders exact zero, hides categories without movement and keeps every account', async () => {
     renderPage();
 
-    expect(await screen.findByRole('button', { name: 'Créer une transaction' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Ajouter un revenu' })).toBeTruthy();
     expect(await screen.findByText('Salaire')).toBeTruthy();
     expect(
-      screen.getAllByText(
-        (_content, node) => node?.textContent === '0,00 €' && node.tagName === 'SPAN',
-      ).length,
+      screen.getAllByText((_content, node) => node?.textContent === '-' && node.tagName === 'SPAN')
+        .length,
     ).toBeGreaterThan(0);
     expect(screen.getByText('Compte courant')).toBeTruthy();
+    expect(screen.queryByText('Livret vide')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher les comptes sans mouvement' }));
     expect(screen.getByText('Livret vide')).toBeTruthy();
     expect(screen.getByText('Aucun mouvement')).toBeTruthy();
     expect(screen.queryByText('Voyages')).toBeNull();
@@ -478,27 +527,177 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
     await loaded();
 
-    const income = await screen.findByRole('region', { name: 'Revenus par catégorie' });
-    const expense = screen.getByRole('region', { name: 'Dépenses par catégorie' });
-    const transfers = screen.getByRole('region', { name: 'Virements par compte' });
+    const income = await screen.findByRole('region', { name: 'Revenus' });
+    const expense = screen.getByRole('region', { name: 'Dépenses' });
+    const transfers = screen.getByRole('region', { name: 'Virements' });
 
     await waitFor(() => {
-      expect(within(income).getByText('Total des revenus').parentElement?.textContent).toContain(
+      expect(within(income).getByText('Total des revenus').parentElement!.textContent).toContain(
         '1 200,00 €',
       );
-      expect(within(expense).getByText('Total des dépenses').parentElement?.textContent).toContain(
+      expect(within(expense).getByText('Total des dépenses').parentElement!.textContent).toContain(
         '-400,00 €',
       );
       expect(
-        within(transfers).getByText('Total net des virements').parentElement?.textContent,
+        within(transfers).getByText('Total net des virements').parentElement!.textContent,
       ).toContain('-50,00 €');
     });
   });
 
+  it('orders transfer accounts by movement and lets the owner hide empty targets', async () => {
+    api.listAccounts.mockReturnValue(
+      ok({
+        items: [account, { ...account, id: emptyAccountId, label: 'Livret vide' }],
+        page: 1,
+        pageSize: 100,
+        total: 2,
+      }),
+    );
+    api.readMonthlyLedger.mockReturnValue(
+      ok({ ...ledger, accounts: [...ledger.accounts].reverse() }),
+    );
+    renderPage();
+    await loaded();
+    const panel = screen.getByRole('region', { name: 'Virements' });
+    expect(within(panel).getByText('Compte courant')).toBeTruthy();
+    expect(within(panel).queryByText('Livret vide')).toBeNull();
+    const toggle = within(panel).getByRole('button', {
+      name: 'Afficher les comptes sans mouvement',
+    });
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    expect(toggle.getAttribute('title')).toBe('Afficher les comptes sans mouvement');
+    toggle.focus();
+    expect(document.activeElement).toBe(toggle);
+    fireEvent.click(toggle);
+    expect(
+      within(panel)
+        .getAllByRole('listitem')
+        .map((row) => row.textContent),
+    ).toEqual([expect.stringContaining('Compte courant'), expect.stringContaining('Livret vide')]);
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(toggle.getAttribute('title')).toBe('Masquer les comptes sans mouvement');
+    expect(
+      within(panel)
+        .getByRole('button', { name: 'Ajouter un virement vers Livret vide' })
+        .hasAttribute('disabled'),
+    ).toBe(false);
+
+    cleanup();
+    renderPage();
+    await loaded();
+    const restored = screen.getByRole('region', { name: 'Virements' });
+    expect(within(restored).getByText('Livret vide')).toBeTruthy();
+    expect(
+      within(restored)
+        .getByRole('button', { name: 'Afficher les comptes sans mouvement' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+  });
+
+  it('renders plain colored category rows without a single-movement count and concise movement dates', async () => {
+    renderPage();
+    await loaded();
+    const row = screen.getByText('Salaire').closest('li')!;
+    expect(row.style.borderInlineStartColor).toBe('rgb(72, 109, 240)');
+    expect(screen.queryByText('(1)')).toBeNull();
+    expect(row.textContent).not.toContain('(1)');
+    expect(screen.getByText('Salaire').getAttribute('title')).toBe('Salaire');
+    expect(row.querySelector('[data-icon]')).toBeNull();
+    const toggle = within(row).getByRole('button', { name: 'Afficher les mouvements de Salaire' });
+    expect(toggle.textContent).toContain('Salaire');
+    expect(toggle.textContent).not.toContain('(1)');
+    expect(within(toggle).queryByRole('button')).toBeNull();
+    expect(within(row).getByRole('button', { name: 'Ajouter un revenu dans Salaire' })).not.toBe(
+      toggle,
+    );
+    fireEvent.click(toggle);
+    const time = await within(row).findByText('14 mars');
+    expect(row.style.borderInlineStartColor).toBe('rgb(72, 109, 240)');
+    expect(time.tagName).toBe('TIME');
+    expect(time.getAttribute('datetime')).toBe('2026-03-14');
+    expect(
+      within(row).getByRole('button', { name: /Modifier le mouvement .*14 mars 2026/ }),
+    ).toBeTruthy();
+  });
+
+  it('offers no information button when the month has nothing pending', async () => {
+    api.readMonthlyRecap.mockReturnValue(ok({ ...recap, state: 'COMPLETE', provisional: false }));
+    renderPage();
+    await loaded();
+    await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
+    expect(screen.queryByRole('button', { name: 'Informations sur la synthèse' })).toBeNull();
+  });
+
+  it('explains empty flow sections and exposes explanations through metric label controls', async () => {
+    api.readMonthlyRecapPreferences.mockReturnValue(
+      ok({ visibleCategoryIds: [], visibleAxes: [], version: 0 }),
+    );
+    renderPage();
+    await loaded();
+    await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
+    const totals = screen.getByRole('region', { name: 'Synthèse des flux' });
+    expect(within(totals).queryByRole('heading', { name: 'Dépenses par axe' })).toBeNull();
+    expect(within(totals).queryByRole('heading', { name: 'Dépenses par catégorie' })).toBeNull();
+    const settings = within(totals).getByRole('button', { name: 'Configurer l’affichage' });
+    expect(settings.textContent).toBe('');
+    expect(settings.getAttribute('title')).toBe('Configurer l’affichage');
+    const explanation = within(totals).getByRole('button', {
+      name: 'Expliquer : Revenus en espèces',
+    });
+    expect(explanation.textContent).toBe('Revenus en espèces');
+    expect(explanation.querySelector('svg')).toBeNull();
+    explanation.focus();
+    expect(document.activeElement).toBe(explanation);
+    fireEvent.click(explanation);
+    expect(
+      await screen.findByRole('dialog', { name: 'Expliquer : Revenus en espèces' }),
+    ).toBeTruthy();
+  });
+
+  it('sorts exact expense totals descending with stable ties and unavailable values last', async () => {
+    const values = [
+      '9007199254740992.000000000000000000000001',
+      null,
+      '9007199254740992.000000000000000000000002',
+      '9007199254740992.000000000000000000000002',
+    ];
+    api.readMonthlyLedger.mockReturnValue(
+      ok({
+        ...ledger,
+        expenseCategories: values.map((value, index) => ({
+          ...ledger.expenseCategories[0],
+          id: `expense-${index}`,
+          label: `Expense ${index}`,
+          hasMovements: true,
+          movementCount: 1,
+          total: { value, assetCode: 'EUR', reason: value === null ? 'MIXED_ASSETS' : null },
+        })),
+      }),
+    );
+    renderPage();
+    await loaded();
+    const panel = screen.getByRole('region', { name: 'Dépenses' });
+    expect(
+      within(panel)
+        .getAllByRole('listitem')
+        .map((row) => row.querySelector('button')?.getAttribute('aria-label')),
+    ).toEqual([
+      'Afficher les mouvements de Expense 2',
+      'Afficher les mouvements de Expense 3',
+      'Afficher les mouvements de Expense 0',
+      'Afficher les mouvements de Expense 1',
+    ]);
+  });
+
   it('gives a row without movement no accordion toggle and mutes its text', async () => {
     renderPage();
+    await loaded();
 
-    const emptyRow = (await screen.findByText('Livret vide')).closest('li')!;
+    const transfers = screen.getByRole('region', { name: 'Virements' });
+    fireEvent.click(
+      within(transfers).getByRole('button', { name: 'Afficher les comptes sans mouvement' }),
+    );
+    const emptyRow = within(transfers).getByText('Livret vide').closest('li')!;
     expect(
       screen.queryByRole('button', { name: 'Afficher les mouvements de Livret vide' }),
     ).toBeNull();
@@ -508,7 +707,7 @@ describe('MonthlyBudgetPage', () => {
       'Ajouter un virement vers Livret vide',
     );
 
-    const filledRow = screen.getByText('Compte courant').closest('li')!;
+    const filledRow = within(transfers).getByText('Compte courant').closest('li')!;
     expect(
       screen.getByRole('button', { name: 'Afficher les mouvements de Compte courant' }),
     ).toBeTruthy();
@@ -520,7 +719,7 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
     await loaded();
 
-    const income = await screen.findByRole('region', { name: 'Revenus par catégorie' });
+    const income = await screen.findByRole('region', { name: 'Revenus' });
     expect(within(income).getByText('Aucune ligne active pour ce mois.')).toBeTruthy();
   });
 
@@ -753,7 +952,7 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
     await loaded();
 
-    const expense = await screen.findByRole('region', { name: 'Dépenses par catégorie' });
+    const expense = await screen.findByRole('region', { name: 'Dépenses' });
     expect(within(expense).getByText('Aucune ligne active pour ce mois.')).toBeTruthy();
     fireEvent.click(within(expense).getByRole('button', { name: 'Ajouter une dépense' }));
 
@@ -764,20 +963,7 @@ describe('MonthlyBudgetPage', () => {
     );
   });
 
-  it('opens the transaction modal from the header button', async () => {
-    renderPage();
-    await loaded();
-
-    await screen.findByRole('region', { name: 'Revenus par catégorie' });
-    fireEvent.click(screen.getByRole('button', { name: 'Créer une transaction' }));
-
-    expect(await screen.findByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
-    expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
-      '',
-    );
-  });
-
-  it('disables the header and panel free-add buttons while the period is closed', async () => {
+  it('disables the panel free-add buttons while the period is closed', async () => {
     api.readMonthlyLedger.mockReturnValue(
       ok({
         ...ledger,
@@ -788,9 +974,7 @@ describe('MonthlyBudgetPage', () => {
     );
     renderPage();
 
-    await screen.findByRole('region', { name: 'Revenus par catégorie' });
-    const header = screen.getByRole('button', { name: 'Créer une transaction' });
-    expect(header.getAttribute('disabled')).not.toBeNull();
+    await screen.findByRole('region', { name: 'Revenus' });
     expect(
       screen.getByRole('button', { name: 'Ajouter un revenu' }).getAttribute('disabled'),
     ).not.toBeNull();
@@ -900,7 +1084,9 @@ describe('MonthlyBudgetPage', () => {
   it('uses the ledger timezone, not a hard-coded one, to decide the current month', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-03-31T20:00:00Z'));
-    api.readMonthlyLedger.mockReturnValue(ok({ ...ledger, timezone: 'Pacific/Auckland' }));
+    api.readMonthlyLedger.mockReturnValue(
+      ok({ ...ledger, timezone: 'Pacific/Auckland', monthsWithTransactions: ['2026-04'] }),
+    );
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     try {
       render(
@@ -945,7 +1131,7 @@ describe('MonthlyBudgetPage', () => {
     expect(screen.queryByRole('heading', { name: 'Coûts de portefeuille' })).toBeNull();
   });
 
-  it('keeps the metric policy behind the recap info button', async () => {
+  it('keeps the metric policy and pending notice behind the recap info button', async () => {
     renderPage();
 
     await waitFor(() => expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull());
@@ -975,13 +1161,19 @@ describe('MonthlyBudgetPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByText('Valeurs provisoires à la date du jour.')).toBeTruthy();
     expect(
-      screen
-        .getByRole('link', { name: 'Compte courant' })
-        .querySelector('rect')
-        ?.getAttribute('fill'),
-    ).toBe('#FFFFFF');
+      await screen.findByRole('img', { name: 'Valeurs provisoires à la date du jour.' }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: 'Valeurs provisoires à la date du jour.' }),
+    ).toBeNull();
+    expect(screen.getByText('Liquidités').closest('tr')?.style.borderInlineStartColor).toBe(
+      'rgb(255, 255, 255)',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Compte courant' }).closest('tr')?.style
+        .borderInlineStartColor,
+    ).toBe('rgb(255, 255, 255)');
     expect(screen.getByRole('link', { name: 'Compte courant' }).getAttribute('href')).toBe(
       `/accounts/${accountId}`,
     );
@@ -1056,6 +1248,162 @@ describe('MonthlyBudgetPage', () => {
     expect(api.listCategories).toHaveBeenCalledWith(
       expect.objectContaining({ query: expect.objectContaining({ includeArchived: true }) }),
     );
+  });
+
+  it.each([
+    ['25.00', '25', '+25,00', '+25,00 %', 'positive'],
+    ['-25.00', '-25', '−25,00', '−25,00 %', 'negative'],
+    ['0.00', '0', '-', '0,00 %', 'neutral'],
+  ])(
+    'presents canonical wealth variation %s with its sign and comparison dates',
+    async (value, rate, amount, percent, tone) => {
+      api.readMonthlyRecap.mockReturnValue(
+        ok({
+          ...recap,
+          netWorth: {
+            ...recap.netWorth,
+            difference: { ...recap.netWorth.previous, value, display: { value, assetCode: 'EUR' } },
+            differenceReason: null,
+            changePercent: rate,
+            changePercentDisplay: rate,
+            changeReason: null,
+          },
+        }),
+      );
+      renderPage();
+      await loaded();
+      const panel = screen.getByRole('region', { name: 'Évolution du patrimoine' });
+      const difference = within(panel).getByText('Variation').nextElementSibling!;
+      const change = within(panel).getByText('Évolution').nextElementSibling!;
+      expect(difference.textContent).toContain(amount);
+      expect(change.textContent).toBe(percent);
+      expect(difference.className).toContain(tone);
+      expect(change.className).toContain(tone);
+      expect(panel.textContent).toContain('Patrimoine février 2026');
+      expect(panel.textContent).toContain('Patrimoine mars 2026');
+      expect(
+        within(panel)
+          .getByRole('img', { name: 'Valeurs provisoires à la date du jour.' })
+          .getAttribute('title'),
+      ).toBe('Valeurs provisoires à la date du jour.');
+      expect(
+        within(panel).queryByRole('button', { name: 'Valeurs provisoires à la date du jour.' }),
+      ).toBeNull();
+    },
+  );
+
+  it('keeps null wealth metrics neutral with independent reasons', async () => {
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        netWorth: {
+          ...recap.netWorth,
+          differenceReason: 'MIXED_ASSETS',
+          changeReason: 'ZERO_BASE',
+          changePercent: '5',
+        },
+      }),
+    );
+    renderPage();
+    await loaded();
+    const panel = screen.getByRole('region', { name: 'Évolution du patrimoine' });
+    const difference = within(panel).getByText('Variation').nextElementSibling!;
+    const change = within(panel).getByText('Évolution').nextElementSibling!;
+    expect(difference.className).toContain('neutral');
+    expect(change.className).toContain('neutral');
+    expect(difference.textContent).not.toMatch(/[0-9]/);
+    expect(change.textContent).not.toMatch(/[0-9]/);
+    expect(difference.querySelector('[title]')?.getAttribute('title')).toContain(
+      'plusieurs unités',
+    );
+    expect(change.querySelector('[title]')?.getAttribute('title')).toContain('nul');
+  });
+
+  it('reloads only expense rows when the analytic axis changes', async () => {
+    renderPage();
+    await loaded();
+    expect(screen.getByText('Salaire')).toBeTruthy();
+
+    let resolveNext: ((value: unknown) => void) | undefined;
+    api.readMonthlyLedger.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveNext = resolve;
+        }),
+    );
+    fireEvent.change(screen.getByLabelText('Axe analytique'), { target: { value: 'FIXED' } });
+    await waitFor(() => expect(api.readMonthlyLedger).toHaveBeenCalledTimes(2));
+
+    expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
+    expect(screen.getByText('Salaire')).toBeTruthy();
+    expect(
+      within(screen.getByRole('region', { name: 'Virements' })).getByText('Compte courant'),
+    ).toBeTruthy();
+    const expense = screen.getByRole('region', { name: 'Dépenses' });
+    expect(expense.querySelector('[data-skeleton]')).toBeTruthy();
+    expect(within(expense).getByRole('combobox')).toBeTruthy();
+
+    resolveNext?.({
+      data: { ...ledger, axis: 'FIXED' },
+      response: new Response('{}', { status: 200 }),
+    });
+    await waitFor(() => expect(expense.querySelector('[data-skeleton]')).toBeNull());
+    expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
+  });
+
+  it('shows the selected axis total in the expense panel header', async () => {
+    window.history.replaceState({}, '', '/budget/2026-03?axis=ESSENTIAL');
+    renderPage();
+    await loaded();
+    const panel = screen.getByRole('region', { name: 'Dépenses' });
+    const header = panel.querySelector('header')!;
+    const actions = header.children[1] as HTMLElement;
+    expect(within(panel).getByRole('combobox').getAttribute('aria-label')).toBe('Axe analytique');
+    expect(actions.firstElementChild?.querySelector('select')).toBe(
+      within(actions).getByRole('combobox'),
+    );
+    expect(actions.lastElementChild).toBe(
+      within(actions).getByRole('button', { name: 'Ajouter une dépense' }),
+    );
+    expect(within(panel).getByText('Total des dépenses').parentElement?.textContent).toContain(
+      '-400,00',
+    );
+    expect(within(panel).queryByRole('button', { name: /Expliquer/ })).toBeNull();
+  });
+
+  it('shows one stale valuation marker beside the accounts title', async () => {
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        accounts: [
+          {
+            ...recap.accounts[0],
+            currentValue: {
+              value: '250.00',
+              assetCode: 'EUR',
+              quality: 'STALE' as const,
+              ageDays: 5,
+              valuedOn: '2026-03-10',
+            },
+            share: {
+              ratio: '0.1234',
+              percent: '12.34',
+              percentDisplay: '12.34',
+              reason: null,
+            },
+          },
+        ],
+      }),
+    );
+    renderPage();
+    await loaded();
+
+    const note = 'Valorisation vieille de 5 jours';
+    const marker = screen.getByRole('img', { name: note });
+    expect(marker.getAttribute('title')).toBe(note);
+    expect(marker.closest('td')).toBeNull();
+    expect(screen.getAllByRole('img', { name: note })).toHaveLength(1);
+    expect(screen.getByText('12,34 %').closest('td')?.className).toContain('share');
   });
 
   it('reports N−1 valuation staleness even when the current value is current', async () => {

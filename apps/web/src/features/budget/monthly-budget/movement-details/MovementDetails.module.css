@@ -1,6 +1,7 @@
 .movements {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: var(--spacing-1);
   margin: var(--spacing-none) var(--spacing-none) var(--spacing-3);
   padding: var(--spacing-none);
@@ -10,9 +11,9 @@
 .movement {
   display: grid;
   width: 100%;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
   align-items: start;
-  gap: var(--spacing-3);
+  gap: var(--spacing-1);
   padding: var(--spacing-1) var(--spacing-2);
   border: var(--border-none);
   border-radius: var(--radius-control);
@@ -31,7 +32,17 @@
   color: var(--text-primary);
 }
 
-.movement time {
+.dayGroup {
+  min-width: 0;
+}
+
+.dayGroup + .dayGroup {
+  padding-block-start: var(--spacing-1);
+}
+
+.dayGroup > time {
+  display: block;
+  padding: var(--spacing-1) var(--spacing-2);
   color: var(--text-muted);
   font-size: var(--font-size-sm);
 }
@@ -41,18 +52,47 @@
   font-weight: var(--font-weight-medium);
 }
 
-.movement > :last-child {
+.movementLine {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  width: 100%;
+  gap: var(--spacing-3);
+}
+.movementLine strong {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.movementLine > [data-visual-mask] {
+  flex: 0 0 auto;
+  font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+.skeletonDate {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-sm);
+}
+.skeletonLabel {
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-body);
+}
+.skeletonAmount {
+  width: var(--spacing-12);
+  height: var(--font-size-label);
+}
 
-@media (max-width: 42rem) {
-  .movement {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
+.dayMovements {
+  min-width: 0;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+}
 
-  .movement > :last-child {
-    grid-column: 2;
-    text-align: left;
-  }
+.dayMovements > li {
+  min-width: 0;
 }

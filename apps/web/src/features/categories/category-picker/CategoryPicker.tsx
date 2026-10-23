@@ -1,5 +1,5 @@
 import type { Category, CategoryType } from '@cadran/api-client';
-import { useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { canonicalCategoryColor, categoryInk } from '@/features/categories/category-color';
 import { CategorySwatch } from '@/features/categories/category-swatch/CategorySwatch';
@@ -90,6 +90,7 @@ export function CategoryPicker({
   const statusId = useId();
   const errorId = useId();
   const blurTimeout = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(blurTimeout.current), []);
   // Set when the host takes over for a creation: focus coming back from its dialog
   // must not reopen the list, where one Enter would clear the fresh selection.
   const skipFocusOpen = useRef(false);

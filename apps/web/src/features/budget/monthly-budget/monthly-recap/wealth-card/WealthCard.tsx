@@ -1,13 +1,22 @@
 import type { MonthlyRecapNetWorth } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
+import { Icon } from '@/components/ui/icon/Icon';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
+import { formatCalendarMonth, isZeroDecimal } from '@/lib/decimal';
 import { formatSharePercent } from '@/lib/formatSharePercent';
 import styles from './WealthCard.module.css';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface WealthCardProps {
-  netWorth: MonthlyRecapNetWorth;
+  netWorth: MonthlyRecapNetWorth | null;
+  previousAsOf?: string;
+  currentAsOf?: string;
   provisional: boolean;
+}
+
+function monthLabel(day: string, locale: string) {
+  return formatCalendarMonth(day, locale).toLocaleLowerCase(locale);
 }
 
 /**
@@ -16,38 +25,96 @@ interface WealthCardProps {
  * negative prior net worth, a missing or stale valuation, or mixed assets each
  * state explicitly why the figure that depends on them is absent.
  */
-export function WealthCard({ netWorth, provisional }: WealthCardProps) {
-  const { t } = useTranslation();
+export function WealthCard({ netWorth, provisional, previousAsOf, currentAsOf }: WealthCardProps) {
+  const { i18n, t } = useTranslation();
+  const tone = (value: string | null | undefined) =>
+    value == null || isZeroDecimal(value)
+      ? styles.neutral
+      : value.startsWith('-')
+        ? styles.negative
+        : styles.positive;
+  const sign = (value: string | null | undefined) =>
+    value == null || isZeroDecimal(value) ? '' : value.startsWith('-') ? '−' : '+';
+  // Keep the sign of the canonical figure even below its display precision.
+  const difference = netWorth?.difference;
+  const differenceShown = difference != null && netWorth?.differenceReason == null;
+  const magnitude = difference
+    ? {
+        ...difference,
+        value: difference.value.replace(/^-/, ''),
+        display: difference.display
+          ? { ...difference.display, value: difference.display.value.replace(/^-/, '') }
+          : null,
+      }
+    : null;
+  const pending = <SkeletonBlock className={styles.skeletonValue} />;
+  const pendingMonth = <SkeletonBlock className={styles.skeletonMonth} />;
 
   return (
     <section aria-labelledby="monthly-recap-wealth-title" className={`card ${styles.panel}`}>
-      <h3 id="monthly-recap-wealth-title">{t('budget.monthly.recap.wealth.title')}</h3>
-      {provisional ? (
-        <p className={styles.provisional}>{t('budget.monthly.recap.provisional')}</p>
-      ) : null}
+      <header className={styles.heading}>
+        <h3 id="monthly-recap-wealth-title">{t('budget.monthly.recap.wealth.title')}</h3>
+        {provisional ? (
+          <span
+            aria-label={t('budget.monthly.recap.provisional')}
+            className={styles.provisional}
+            role="img"
+            title={t('budget.monthly.recap.provisional')}
+          >
+            <Icon name="clock" size={14} />
+          </span>
+        ) : null}
+      </header>
       <dl className={styles.figures}>
         <div>
-          <dt>{t('budget.monthly.recap.wealth.previous')}</dt>
+          <dt>
+            {t('budget.monthly.recap.wealth.previous')}{' '}
+            {previousAsOf ? monthLabel(previousAsOf, i18n.language) : pendingMonth}
+          </dt>
           <dd>
-            <NetWorthFigure amount={netWorth.previous} reason={netWorth.previousReason} />
+            {netWorth ? (
+              <NetWorthFigure amount={netWorth.previous} reason={netWorth.previousReason} />
+            ) : (
+              pending
+            )}
           </dd>
         </div>
         <div>
-          <dt>{t('budget.monthly.recap.wealth.current')}</dt>
+          <dt>
+            {t('budget.monthly.recap.wealth.current')}{' '}
+            {currentAsOf ? monthLabel(currentAsOf, i18n.language) : pendingMonth}
+          </dt>
           <dd>
-            <NetWorthFigure amount={netWorth.current} reason={netWorth.currentReason} />
+            {netWorth ? (
+              <NetWorthFigure amount={netWorth.current} reason={netWorth.currentReason} />
+            ) : (
+              pending
+            )}
           </dd>
         </div>
         <div>
           <dt>{t('budget.monthly.recap.wealth.difference')}</dt>
-          <dd>
-            <NetWorthFigure amount={netWorth.difference} reason={netWorth.differenceReason} />
+          <dd className={tone(differenceShown ? difference.value : null)}>
+            {differenceShown ? sign(difference.value) : ''}
+            {netWorth ? (
+              <NetWorthFigure amount={magnitude} reason={netWorth.differenceReason} />
+            ) : (
+              pending
+            )}
           </dd>
         </div>
         <div>
           <dt>{t('budget.monthly.recap.wealth.changePercent')}</dt>
-          <dd>
-            {netWorth.changePercentDisplay === null ? (
+          <dd
+            className={tone(
+              netWorth?.changePercentDisplay == null
+                ? null
+                : (netWorth.changePercent ?? netWorth.changePercentDisplay),
+            )}
+          >
+            {netWorth === null ? (
+              pending
+            ) : netWorth.changePercentDisplay === null ? (
               <EmptyValue
                 label={t('states.notCalculable.label')}
                 reason={
@@ -57,12 +124,13 @@ export function WealthCard({ netWorth, provisional }: WealthCardProps) {
                 }
               />
             ) : (
-              formatSharePercent(netWorth.changePercentDisplay)
+              `${sign(netWorth.changePercent ?? netWorth.changePercentDisplay)}${formatSharePercent(netWorth.changePercentDisplay.replace(/^-/, ''))}`
             )}
           </dd>
         </div>
       </dl>
-      {netWorth.previousMissingValuationCount > 0 || netWorth.previousStaleValuationCount > 0 ? (
+      {netWorth &&
+      (netWorth.previousMissingValuationCount > 0 || netWorth.previousStaleValuationCount > 0) ? (
         <p className={styles.quality} role="status">
           {netWorth.previousMissingValuationCount > 0
             ? t('budget.monthly.recap.wealth.previousMissingCount', {
@@ -83,7 +151,7 @@ export function WealthCard({ netWorth, provisional }: WealthCardProps) {
             : null}
         </p>
       ) : null}
-      {netWorth.missingValuationCount > 0 || netWorth.staleValuationCount > 0 ? (
+      {netWorth && (netWorth.missingValuationCount > 0 || netWorth.staleValuationCount > 0) ? (
         <p className={styles.quality} role="status">
           {netWorth.missingValuationCount > 0
             ? t('budget.monthly.recap.wealth.missingCount', {

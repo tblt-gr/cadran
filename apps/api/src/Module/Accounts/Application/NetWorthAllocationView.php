@@ -29,6 +29,7 @@ final readonly class NetWorthAllocationView
         public ?NetWorthAmountView $value,
         public ShareView $share,
         public string $color,
+        public ?NetWorthAmountView $previousValue = null,
     ) {
     }
 
@@ -38,6 +39,9 @@ final readonly class NetWorthAllocationView
         ?AssetCode $asset,
         NetWorthShare $share,
         ?Asset $reference,
+        ?DecimalValue $previousValue = null,
+        ?AssetCode $previousAsset = null,
+        ?Asset $previousReference = null,
     ): self {
         return new self(
             groupId: $group->id,
@@ -47,6 +51,7 @@ final readonly class NetWorthAllocationView
             value: NetWorthAmountView::of($value, $asset, $reference),
             share: ShareView::fromShare($share),
             color: AccountGroupColor::resolve($group),
+            previousValue: NetWorthAmountView::of($previousValue, $previousAsset, $previousReference),
         );
     }
 }

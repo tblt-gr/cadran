@@ -1,15 +1,17 @@
-import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
+import { groupColor } from '@/features/accounts/group-color';
 import type {
   MonthlyAccountValue,
   MonthlyRecapAccount,
   MonthlyRecapGroup,
 } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import { formatAmount, formatCalendarDay } from '@/lib/decimal';
+import { formatAmount } from '@/lib/decimal';
 import styles from './AccountRecap.module.css';
+import { AccountBalanceHeading } from './AccountBalanceHeading';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
 interface AccountRecapProps {
@@ -17,6 +19,16 @@ interface AccountRecapProps {
   currentAsOf: string;
   groups: MonthlyRecapGroup[];
   previousAsOf: string;
+}
+
+/** Oldest valuation age among the stale balances, shown once beside the title. */
+function oldestStaleAge(accounts: MonthlyRecapAccount[]): number | null {
+  const ages = accounts
+    .flatMap((account) => [account.previousValue, account.currentValue])
+    .flatMap((value) =>
+      value?.quality === 'STALE' && value.ageDays !== null ? [value.ageDays] : [],
+    );
+  return ages.length === 0 ? null : Math.max(...ages);
 }
 
 function AccountValueCell({ value }: { value: MonthlyAccountValue | null }) {
@@ -34,19 +46,23 @@ function AccountValueCell({ value }: { value: MonthlyAccountValue | null }) {
   }
 
   return (
-    <span>
+    <span className={styles.amount}>
       <MoneyValue value={formatAmount(value.value, value.assetCode, i18n.language)} />
-      {value.quality === 'STALE' && value.ageDays !== null ? (
-        <small>{t('budget.monthly.recap.accounts.stale', { days: value.ageDays })}</small>
-      ) : null}
     </span>
   );
 }
 
-function GroupValueCell({ group }: { group: MonthlyRecapGroup }) {
+function GroupValueCell({
+  group,
+  period,
+}: {
+  group: MonthlyRecapGroup;
+  period: 'previous' | 'current';
+}) {
   const { i18n, t } = useTranslation();
+  const amount = period === 'previous' ? group.previousValue : group.value;
 
-  if (group.value === null) {
+  if (amount === null) {
     return (
       <EmptyValue
         label={t('states.notCalculable.label')}
@@ -55,22 +71,18 @@ function GroupValueCell({ group }: { group: MonthlyRecapGroup }) {
     );
   }
 
-  const shown = group.value.display ?? {
-    value: group.value.value,
-    assetCode: group.value.assetCode,
-  };
+  const shown = amount.display ?? { value: amount.value, assetCode: amount.assetCode };
   return <MoneyValue value={formatAmount(shown.value, shown.assetCode, i18n.language)} />;
 }
 
-function AccountRow({ account }: { account: MonthlyRecapAccount }) {
+function AccountRow({ account, color }: { account: MonthlyRecapAccount; color?: string | null }) {
   const { t } = useTranslation();
   const href = `/accounts/${account.accountId}`;
 
   return (
-    <tr>
+    <tr style={color === undefined ? undefined : { borderInlineStartColor: groupColor(color) }}>
       <th data-label={t('budget.monthly.recap.accounts.account')} scope="row">
         <a href={href} onClick={(event) => handleClientNavigation(event, href)}>
-          <GroupMarker color={account.primaryGroupColor} />
           {account.label}
         </a>
         {!account.eligible ? (
@@ -85,7 +97,7 @@ function AccountRow({ account }: { account: MonthlyRecapAccount }) {
       <td data-label={t('budget.monthly.recap.accounts.currentShort')}>
         <AccountValueCell value={account.currentValue} />
       </td>
-      <td data-label={t('budget.monthly.recap.accounts.share')}>
+      <td className={styles.share} data-label={t('budget.monthly.recap.accounts.share')}>
         <ShareCell share={account.share} />
       </td>
     </tr>
@@ -101,7 +113,10 @@ function AccountRow({ account }: { account: MonthlyRecapAccount }) {
  * to no exclusive bucket.
  */
 export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: AccountRecapProps) {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
+  const staleAge = oldestStaleAge(accounts);
+  const staleLabel =
+    staleAge === null ? undefined : t('budget.monthly.recap.accounts.stale', { days: staleAge });
   const byGroup = new Map<string, MonthlyRecapAccount[]>();
   const ungrouped: MonthlyRecapAccount[] = [];
   for (const account of accounts) {
@@ -116,7 +131,14 @@ export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: Ac
 
   return (
     <section aria-labelledby="monthly-recap-accounts-title" className={`card ${styles.panel}`}>
-      <h3 id="monthly-recap-accounts-title">{t('budget.monthly.recap.accounts.title')}</h3>
+      <div className={styles.heading}>
+        <h3 id="monthly-recap-accounts-title">{t('budget.monthly.recap.accounts.title')}</h3>
+        {staleAge === null ? null : (
+          <span aria-label={staleLabel} className={styles.stale} role="img" title={staleLabel}>
+            <Icon name="alert" size={14} />
+          </span>
+        )}
+      </div>
       {accounts.length === 0 ? (
         <p className={styles.empty}>{t('budget.monthly.recap.accounts.empty')}</p>
       ) : (
@@ -127,16 +149,14 @@ export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: Ac
               <tr>
                 <th scope="col">{t('budget.monthly.recap.accounts.account')}</th>
                 <th scope="col">
-                  {t('budget.monthly.recap.accounts.previous', {
-                    date: formatCalendarDay(previousAsOf, i18n.language),
-                  })}
+                  <AccountBalanceHeading date={previousAsOf} />
                 </th>
                 <th scope="col">
-                  {t('budget.monthly.recap.accounts.current', {
-                    date: formatCalendarDay(currentAsOf, i18n.language),
-                  })}
+                  <AccountBalanceHeading date={currentAsOf} />
                 </th>
-                <th scope="col">{t('budget.monthly.recap.accounts.share')}</th>
+                <th className={styles.share} scope="col">
+                  {t('budget.monthly.recap.accounts.share')}
+                </th>
               </tr>
             </thead>
             {groups.map((group) => {
@@ -145,24 +165,28 @@ export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: Ac
 
               return (
                 <tbody key={group.groupId}>
-                  <tr className={styles.groupRow}>
-                    <th
-                      colSpan={2}
-                      data-label={t('budget.monthly.recap.accounts.account')}
-                      scope="rowgroup"
-                    >
-                      <GroupMarker color={group.color} />
+                  <tr
+                    className={styles.groupRow}
+                    style={{ borderInlineStartColor: groupColor(group.color) }}
+                  >
+                    <th data-label={t('budget.monthly.recap.accounts.account')} scope="rowgroup">
                       {group.label}
                     </th>
-                    <td data-label={t('budget.monthly.recap.accounts.currentShort')}>
-                      <GroupValueCell group={group} />
+                    <td data-label={t('budget.monthly.recap.accounts.previousShort')}>
+                      <GroupValueCell group={group} period="previous" />
                     </td>
-                    <td data-label={t('budget.monthly.recap.accounts.share')}>
+                    <td data-label={t('budget.monthly.recap.accounts.currentShort')}>
+                      <GroupValueCell group={group} period="current" />
+                    </td>
+                    <td
+                      className={styles.share}
+                      data-label={t('budget.monthly.recap.accounts.share')}
+                    >
                       <ShareCell share={group.share} />
                     </td>
                   </tr>
                   {members.map((account) => (
-                    <AccountRow account={account} key={account.accountId} />
+                    <AccountRow account={account} color={group.color} key={account.accountId} />
                   ))}
                 </tbody>
               );

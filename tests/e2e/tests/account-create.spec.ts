@@ -44,7 +44,8 @@ test.describe('account creation', () => {
   });
 });
 
-/** Today in the workspace's zone, the latest opening date the form accepts. */
+/** Today as the domain reads it, the latest opening date the form accepts. */
 function today(): string {
-  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris' }).format(new Date());
+  // UTC, not Paris: between 22:00 and midnight UTC Paris is a day ahead and reads as the future.
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'UTC' }).format(new Date());
 }

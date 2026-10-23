@@ -8,8 +8,8 @@ test.describe('monthly budget', () => {
 
     await expect(page).toHaveURL(/\/budget\/\d{4}-\d{2}$/);
     await expect(page.getByRole('heading', { level: 1, name: /^Budget de / })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Revenus par catégorie' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Dépenses par catégorie' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Revenus', exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Dépenses', exact: true })).toBeVisible();
 
     // The previous month of the demo ledger is closed: the page says so instead of hiding it.
     const months = page.getByRole('navigation', { name: 'Mois du budget' });
@@ -23,7 +23,12 @@ test.describe('monthly budget', () => {
     await expect(
       page.getByRole('status').filter({ hasText: 'Cette période est clôturée.' }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Créer une transaction' })).toBeDisabled();
+    await expect(
+      page.getByRole('button', { name: 'Ajouter une dépense', exact: true }),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole('button', { name: 'Ajouter un revenu', exact: true }),
+    ).toBeDisabled();
   });
 
   test('redirects a direct load of /budget to the current month and renders it', async ({
@@ -34,7 +39,7 @@ test.describe('monthly budget', () => {
 
     await expect(page).toHaveURL(/\/budget\/\d{4}-\d{2}$/);
     await expect(page.getByRole('heading', { level: 1, name: /^Budget de / })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Revenus par catégorie' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Revenus', exact: true })).toBeVisible();
   });
 
   test('reaches the budget plans from the month page', async ({ page }) => {
