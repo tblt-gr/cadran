@@ -351,16 +351,6 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
         return $this->inner->countPendingInPeriod($workspace, $accountId, $from, $to);
     }
 
-    public function firstLiveBookedOn(\App\Module\Foundation\Domain\WorkspaceScope $workspace): ?\DateTimeImmutable
-    {
-        return $this->inner->firstLiveBookedOn($workspace);
-    }
-
-    public function liveBookedMonths(\App\Module\Foundation\Domain\WorkspaceScope $workspace): array
-    {
-        return $this->inner->liveBookedMonths($workspace);
-    }
-
     public function countPendingInWorkspace(\App\Module\Foundation\Domain\WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int
     {
         return $this->inner->countPendingInWorkspace($workspace, $from, $to);

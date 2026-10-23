@@ -2655,6 +2655,11 @@ export type MonthlyLedgerAccountRow = {
     hasMovements: boolean;
 };
 
+export type MonthlyBounds = {
+    firstDataMonth: string | null;
+    currentMonth: string;
+};
+
 export type MonthlyLedger = {
     month: string;
     periodStart: string;
@@ -2667,13 +2672,9 @@ export type MonthlyLedger = {
      */
     timezone: string;
     /**
-     * Month of the oldest booked or pending transaction of the workspace, null when it has none.
+     * Month of the oldest active balance snapshot, portfolio valuation or booked transaction on or before today, null when the workspace has none.
      */
     firstDataMonth: string | null;
-    /**
-     * Every month holding a booked or pending transaction, oldest first.
-     */
-    monthsWithTransactions: Array<string>;
     pendingCount: number;
     closed: boolean;
     actionsAllowed: boolean;
@@ -10280,6 +10281,39 @@ export type ReadMonthlyProjectionResponses = {
 };
 
 export type ReadMonthlyProjectionResponse = ReadMonthlyProjectionResponses[keyof ReadMonthlyProjectionResponses];
+
+export type ReadMonthlyBoundsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/reports/monthly/bounds';
+};
+
+export type ReadMonthlyBoundsErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadMonthlyBoundsError = ReadMonthlyBoundsErrors[keyof ReadMonthlyBoundsErrors];
+
+export type ReadMonthlyBoundsResponses = {
+    /**
+     * The navigable month range of the calling workspace.
+     */
+    200: MonthlyBounds;
+};
+
+export type ReadMonthlyBoundsResponse = ReadMonthlyBoundsResponses[keyof ReadMonthlyBoundsResponses];
 
 export type ReadMonthlyLedgerData = {
     body?: never;

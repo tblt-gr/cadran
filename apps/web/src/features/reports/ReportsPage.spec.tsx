@@ -15,6 +15,7 @@ function HeaderTitleProbe({ path }: { path: string }) {
 
 const api = vi.hoisted(() => ({
   readMonthlyProjection: vi.fn(),
+  readMonthlyBounds: vi.fn(),
   readMultiYearReport: vi.fn(),
   explainMonthlyKpi: vi.fn(),
 }));
@@ -146,8 +147,8 @@ async function loadedTable() {
 
 describe('ReportsPage', () => {
   beforeEach(() => {
-    api.readMultiYearReport.mockResolvedValue({
-      data: { availableFrom: 2024, from: 2024, to: 2026 },
+    api.readMonthlyBounds.mockResolvedValue({
+      data: { firstDataMonth: '2024-03', currentMonth: '2026-09' },
       response: { ok: true, status: 200 },
     });
   });
@@ -172,6 +173,7 @@ describe('ReportsPage', () => {
     expect(
       screen.getByTestId('monthly-report-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
+    await waitFor(() => expect(resolveReport).toBeDefined());
     resolveReport?.({ data: report, response: new Response('{}', { status: 200 }) });
     expect(await loadedTable()).toBeTruthy();
     expect(screen.queryByTestId('monthly-report-skeleton')).toBeNull();
@@ -283,6 +285,66 @@ describe('ReportsPage', () => {
     expect(api.readMonthlyProjection).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: { month: '2026-08' } }),
     );
+  });
+
+  it('replaces a month before the first data month once, announces it and loads the corrected month', async () => {
+    window.history.replaceState({}, '', '/reports?month=2023-01');
+    const popstate = vi.fn();
+    window.addEventListener('popstate', popstate);
+    api.readMonthlyProjection.mockReturnValue(success(report));
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ReportsPage />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText(/affichage du mois de mars 2024/)).toBeTruthy();
+    expect(window.location.search).toBe('?month=2024-03');
+    expect(popstate).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(api.readMonthlyProjection).toHaveBeenCalledWith(
+        expect.objectContaining({ query: { month: '2024-03' } }),
+      ),
+    );
+    expect(api.readMonthlyProjection).not.toHaveBeenCalledWith(
+      expect.objectContaining({ query: { month: '2023-01' } }),
+    );
+    window.removeEventListener('popstate', popstate);
+  });
+
+  it('does not redirect when the workspace has no data yet', async () => {
+    api.readMonthlyBounds.mockResolvedValue({
+      data: { firstDataMonth: null, currentMonth: '2026-09' },
+      response: { ok: true, status: 200 },
+    });
+    window.history.replaceState({}, '', '/reports?month=2026-09');
+    api.readMonthlyProjection.mockReturnValue(success(report));
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ReportsPage />
+      </QueryClientProvider>,
+    );
+
+    expect(await loadedTable()).toBeTruthy();
+    expect(window.location.search).toBe('?month=2026-09');
+  });
+
+  it('keeps the requested month and offers a retry when the bounds fail', async () => {
+    api.readMonthlyBounds.mockResolvedValue({
+      data: undefined,
+      response: { ok: false, status: 500 },
+    });
+    window.history.replaceState({}, '', '/reports?month=2023-01');
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ReportsPage />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Réessayer' }));
+    await waitFor(() => expect(api.readMonthlyBounds).toHaveBeenCalledTimes(2));
+    expect(window.location.search).toBe('?month=2023-01');
+    expect(api.readMonthlyProjection).not.toHaveBeenCalled();
   });
 
   it('names unavailable figures and keeps the selector plus retry action for a generic error', async () => {

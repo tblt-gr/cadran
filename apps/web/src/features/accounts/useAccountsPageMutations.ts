@@ -9,6 +9,7 @@ import {
   type UpdateAccountRequest,
 } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidateAccountBalances } from './invalidateAccountBalances';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { accountRequestError, AccountRequestError, requestFailed } from './accountError';
@@ -116,7 +117,10 @@ export function useAccountsPageMutations({
     onSuccess: async () => {
       closeRecording();
       notify('recorded');
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        invalidateAccountBalances(queryClient),
+      ]);
     },
   });
 

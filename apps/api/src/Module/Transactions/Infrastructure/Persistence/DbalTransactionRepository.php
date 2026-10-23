@@ -377,31 +377,6 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
         ));
     }
 
-    public function firstLiveBookedOn(WorkspaceScope $workspace): ?\DateTimeImmutable
-    {
-        $day = $this->connection->fetchOne(
-            'SELECT min(t.booked_on) FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '
-            ."AND t.state IN ('BOOKED', 'PENDING')",
-            ['workspace_id' => $workspace->id],
-        );
-
-        return null === $day || false === $day
-            ? null
-            : new \DateTimeImmutable(TransactionRow::text($day), new \DateTimeZone('UTC'));
-    }
-
-    public function liveBookedMonths(WorkspaceScope $workspace): array
-    {
-        return array_map(
-            static fn (mixed $month): string => TransactionRow::text($month),
-            $this->connection->fetchFirstColumn(
-                "SELECT DISTINCT to_char(t.booked_on, 'YYYY-MM') AS month FROM transaction_transactions t "
-                ."WHERE t.workspace_id = :workspace_id AND t.state IN ('BOOKED', 'PENDING') ORDER BY month",
-                ['workspace_id' => $workspace->id],
-            ),
-        );
-    }
-
     public function countPendingInWorkspace(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int
     {
         return (int) TransactionRow::text($this->connection->fetchOne(

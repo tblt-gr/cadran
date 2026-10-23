@@ -14,5 +14,6 @@ export function refreshValuations(client: QueryClient, accountId: string) {
     client.invalidateQueries({ queryKey: ['portfolio-valuation'] }),
     client.invalidateQueries({ queryKey: ['account', accountId] }),
     client.invalidateQueries({ queryKey: ['accounts'] }),
+    client.invalidateQueries({ queryKey: ['monthly-bounds'] }),
   ]);
 }

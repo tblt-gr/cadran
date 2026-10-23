@@ -174,7 +174,7 @@ final class MonthlyLedgerControllerTest extends WebTestCase
 
         $empty = $this->read('/api/v1/reports/monthly/ledger?month=2026-09');
         self::assertNull($empty['firstDataMonth']);
-        self::assertSame([], $empty['monthsWithTransactions']);
+        self::assertArrayNotHasKey('monthsWithTransactions', $empty);
 
         $this->transaction('11', self::OTHER_ACCOUNT, '-5', 'EXPENSE', workspace: WorkspaceFixture::OTHER_WORKSPACE, bookedOn: '2010-03-01');
         $this->transaction('12', self::CURRENT, '-5', 'EXPENSE', bookedOn: '2015-06-10');
@@ -185,8 +185,7 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         $this->transaction('14', self::CURRENT, '-5', 'EXPENSE', state: 'PENDING', bookedOn: '2026-02-01');
         $ledger = $this->read('/api/v1/reports/monthly/ledger?month=2026-09');
         self::assertSame('2025-11', $ledger['firstDataMonth']);
-        // The other workspace's 2010-03 and the voided 2015-06 never leak into the list.
-        self::assertSame(['2025-11', '2026-02'], $ledger['monthsWithTransactions']);
+        // The other workspace's 2010-03 and the voided 2015-06 never leak into the boundary.
     }
 
     public function testClosedPeriodDisablesActionsAndAnonymousCallersReadNothing(): void

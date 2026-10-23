@@ -17,6 +17,8 @@ import {
   type BudgetCreationDraft,
 } from './budget-creation-modals/BudgetCreationModals';
 import { LedgerPanels } from './ledger-panels/LedgerPanels';
+import { useBoundedMonth } from '@/features/reports/useBoundedMonth';
+import { formatMonthLabel } from '@/features/reports/MonthlyMonthNavigator';
 import { MonthNavigator } from './month-navigator/MonthNavigator';
 import { MonthlyBudgetPageSkeleton } from './MonthlyBudgetPageSkeleton';
 import { MovementEditModal } from './movement-edit-modal/MovementEditModal';
@@ -49,8 +51,13 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
     return () => window.removeEventListener('popstate', updateAxis);
   }, []);
 
+  // The ledger of a month before the history, or while the bounds are unknown, is never fetched.
+  const history = useBoundedMonth({
+    month: parsed.kind === 'valid' ? parsed.month : null,
+    hrefFor: (first) => monthHref(first, axis),
+  });
   const ledger = useQuery({
-    enabled: parsed.kind === 'valid',
+    enabled: parsed.kind === 'valid' && history.status === 'ready' && !history.pendingCorrection,
     queryKey: ['monthly-ledger', queryMonth, axis],
     queryFn: async ({ signal }) => {
       const result = await readMonthlyLedger({
@@ -66,18 +73,6 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       previousQuery?.queryKey[1] === queryMonth ? previous : undefined,
     retry: false,
   });
-
-  // Kept across month changes: the ledger of the next month is pending, the first year is not.
-  const [firstDataMonth, setFirstDataMonth] = useState<string | null>(null);
-  const [monthsWithTransactions, setMonthsWithTransactions] = useState<string[] | null>(null);
-  const answeredMonths = ledger.data?.monthsWithTransactions;
-  if (answeredMonths !== undefined && answeredMonths !== monthsWithTransactions) {
-    setMonthsWithTransactions(answeredMonths);
-  }
-  const answeredFirstDataMonth = ledger.data?.firstDataMonth;
-  if (answeredFirstDataMonth !== undefined && answeredFirstDataMonth !== firstDataMonth) {
-    setFirstDataMonth(answeredFirstDataMonth);
-  }
 
   const activeAccounts = useActiveBudgetAccounts(parsed.kind === 'valid');
   const activeAccountIds = activeAccounts.data
@@ -147,6 +142,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
   async function refreshAfterSave() {
     setSaved(true);
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['monthly-bounds'] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger-movements', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-recap', month] }),
@@ -172,12 +168,22 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       <MonthNavigator
         axis={axis}
         currentMonth={currentMonth}
-        firstDataMonth={firstDataMonth}
+        firstDataMonth={history.firstDataMonth}
         month={month}
-        monthsWithTransactions={monthsWithTransactions}
+        onRetry={() => void history.bounds.refetch()}
+        status={history.status}
       />
+      {history.correctedTo !== null ? (
+        <p aria-live="polite" className="sr-only" key={history.correctionKey} role="status">
+          {t('budget.monthly.corrected', {
+            month: formatMonthLabel(history.correctedTo, i18n.language).toLocaleLowerCase(
+              i18n.language,
+            ),
+          })}
+        </p>
+      ) : null}
 
-      {ledger.isPending && ledger.data === undefined ? (
+      {history.status === 'error' ? null : ledger.isPending && ledger.data === undefined ? (
         <MonthlyBudgetPageSkeleton axis={axis} status={t('budget.monthly.loading')} />
       ) : ledger.isError ? (
         <section className={`card ${styles.routeError}`} role="alert">

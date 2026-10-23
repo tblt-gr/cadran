@@ -11,8 +11,9 @@ function requestError(result: { response?: Response }) {
   return new Error(String(result.response?.status ?? 0));
 }
 
-export function useMonthlyReport(month: string) {
+export function useMonthlyReport(month: string, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ['monthly-report', month],
     queryFn: async ({ signal }) => {
       const result = await readMonthlyProjection({ ...authApiOptions(), query: { month }, signal });

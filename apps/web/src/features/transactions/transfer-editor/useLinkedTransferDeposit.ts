@@ -15,6 +15,7 @@ const relatedReads = new Set([
   'accounts',
   'account-movements',
   'monthly-ledger',
+  'monthly-bounds',
   'monthly-ledger-movements',
   'monthly-recap',
   'net-worth',

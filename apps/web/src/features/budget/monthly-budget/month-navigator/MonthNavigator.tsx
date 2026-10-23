@@ -1,16 +1,18 @@
 import { useTranslation } from 'react-i18next';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { clampMonth } from '@/lib/monthBounds';
 import { monthHref, type BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import styles from './MonthNavigator.module.css';
 
 interface MonthNavigatorProps {
   axis: BudgetAxis | null;
   currentMonth: string;
-  /** Oldest month holding a transaction; null while unknown or when the workspace has none. */
+  /** Oldest month with eligible workspace data; null when the workspace has none. */
   firstDataMonth?: string | null;
-  /** Months holding a transaction; the others are disabled. null while unknown. */
-  monthsWithTransactions?: string[] | null;
   month: string;
+  onRetry?: () => void;
+  /** Bounds query state: controls stay disabled until it is `ready`. */
+  status?: 'loading' | 'error' | 'ready';
 }
 
 export function MonthNavigator({
@@ -18,7 +20,8 @@ export function MonthNavigator({
   currentMonth,
   firstDataMonth = null,
   month,
-  monthsWithTransactions = null,
+  onRetry,
+  status = 'ready',
 }: MonthNavigatorProps) {
   const { t, i18n } = useTranslation();
   const selectedYear = Number.parseInt(month.slice(0, 4), 10);
@@ -30,6 +33,9 @@ export function MonthNavigator({
     firstDataMonth === null ? currentYear : Number.parseInt(firstDataMonth.slice(0, 4), 10),
     selectedYear,
   );
+  const ready = status === 'ready';
+  // An empty workspace has no history: only the current month is offered.
+  const earliestMonth = firstDataMonth ?? currentMonth;
   const years = Array.from(
     { length: currentYear - firstYear + 1 },
     (_, index) => currentYear - index,
@@ -37,7 +43,7 @@ export function MonthNavigator({
 
   function chooseYear(year: number) {
     const candidate = `${year}-${selectedMonthNumber}`;
-    const destination = candidate > currentMonth ? currentMonth : candidate;
+    const destination = clampMonth(candidate, earliestMonth, currentMonth);
     const href = monthHref(destination, axis);
     window.history.pushState({}, '', href);
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -48,6 +54,7 @@ export function MonthNavigator({
       <label className={styles.year}>
         <select
           aria-label={t('budget.monthly.year')}
+          disabled={!ready}
           onChange={(event) => chooseYear(Number.parseInt(event.target.value, 10))}
           value={selectedYear}
         >
@@ -68,15 +75,25 @@ export function MonthNavigator({
             timeZone: 'UTC',
           }).format(new Date(Date.UTC(2020, index, 1)));
           const active = candidate === month;
+          const future = candidate > currentMonth;
+          const beforeHistory = ready && candidate < earliestMonth;
           // The selected month stays reachable so a deep link never lands on a dead tab.
-          const disabled =
-            candidate > currentMonth ||
-            (!active &&
-              monthsWithTransactions !== null &&
-              !monthsWithTransactions.includes(candidate));
+          const disabled = !ready || future || (beforeHistory && !active);
+          const reason = beforeHistory && !future ? t('budget.monthly.beforeHistory') : undefined;
 
           return disabled ? (
-            <button className={styles.disabled} disabled key={candidate} type="button">
+            <button
+              aria-label={
+                reason === undefined
+                  ? undefined
+                  : `${capitalise(label, i18n.language)}, ${reason.toLowerCase()}`
+              }
+              className={styles.disabled}
+              disabled
+              key={candidate}
+              title={reason}
+              type="button"
+            >
               {capitalise(label, i18n.language)}
             </button>
           ) : (
@@ -93,6 +110,15 @@ export function MonthNavigator({
           );
         })}
       </nav>
+
+      {status === 'error' ? (
+        <div className={styles.retry} role="alert">
+          <span>{t('budget.monthly.boundsError')}</span>
+          <button className="secondary-action" onClick={onRetry} type="button">
+            {t('foundation.retry')}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

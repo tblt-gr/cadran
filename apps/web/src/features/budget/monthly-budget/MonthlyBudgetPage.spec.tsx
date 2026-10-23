@@ -12,6 +12,7 @@ const api = vi.hoisted(() => ({
   getTransaction: vi.fn(),
   listAccounts: vi.fn(),
   listCategories: vi.fn(),
+  readMonthlyBounds: vi.fn(),
   readMonthlyLedger: vi.fn(),
   readMonthlyLedgerMovements: vi.fn(),
   readMonthlyRecap: vi.fn(),
@@ -39,7 +40,6 @@ const ledger = {
   quality: 'CURRENT' as const,
   timezone: 'Europe/Paris',
   firstDataMonth: '2025-06',
-  monthsWithTransactions: ['2025-06', '2026-02', '2026-03'],
   pendingCount: 2,
   closed: false,
   actionsAllowed: true,
@@ -298,6 +298,9 @@ describe('MonthlyBudgetPage', () => {
   beforeEach(() => {
     window.localStorage.removeItem('cadran.budget.showEmptyTransferAccounts');
     window.history.replaceState({}, '', '/budget/2026-03');
+    api.readMonthlyBounds.mockReturnValue(
+      ok({ firstDataMonth: '2025-06', currentMonth: '2026-03' }),
+    );
     api.readMonthlyLedger.mockReturnValue(ok(ledger));
     api.readMonthlyRecap.mockReturnValue(ok(recap));
     api.readMonthlyRecapPreferences.mockReturnValue(
@@ -429,6 +432,7 @@ describe('MonthlyBudgetPage', () => {
     expect(loadingExplanation.textContent).toBe('Revenus en espèces');
     expect(loadingExplanation.hasAttribute('disabled')).toBe(true);
     expect(screen.getAllByRole('status')).toHaveLength(1);
+    await waitFor(() => expect(resolveLedger).toBeDefined());
     resolveLedger?.({ data: ledger, response: new Response('{}', { status: 200 }) });
     expect(await screen.findByText('Salaire')).toBeTruthy();
     expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
@@ -1023,13 +1027,13 @@ describe('MonthlyBudgetPage', () => {
     expect(screen.getByRole('link', { name: 'Février' })).toBeTruthy();
   });
 
-  it('keeps the month tabs while the ledger is loading', () => {
+  it('keeps the month tabs while the ledger is loading', async () => {
     api.readMonthlyLedger.mockReturnValue(new Promise(() => undefined));
     renderPage();
 
     expect(screen.getByRole('status')).toBeTruthy();
     expect(screen.getByLabelText('Année')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Février' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Février' })).toBeTruthy();
   });
 
   it('composes the transfer sentence from direction and counterpart account', async () => {
@@ -1084,9 +1088,7 @@ describe('MonthlyBudgetPage', () => {
   it('uses the ledger timezone, not a hard-coded one, to decide the current month', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-03-31T20:00:00Z'));
-    api.readMonthlyLedger.mockReturnValue(
-      ok({ ...ledger, timezone: 'Pacific/Auckland', monthsWithTransactions: ['2026-04'] }),
-    );
+    api.readMonthlyLedger.mockReturnValue(ok({ ...ledger, timezone: 'Pacific/Auckland' }));
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     try {
       render(
@@ -1541,5 +1543,112 @@ describe('MonthlyBudgetPage', () => {
       </QueryClientProvider>,
     );
     expect(screen.getByRole('alert').textContent).toContain('Période future');
+  });
+
+  describe('history bounds', () => {
+    function navigationEvents() {
+      const listener = vi.fn();
+      window.addEventListener('popstate', listener);
+      return { listener, stop: () => window.removeEventListener('popstate', listener) };
+    }
+
+    it('replaces a month before the first data month once, keeps the axis and announces it', async () => {
+      api.readMonthlyBounds.mockReturnValue(
+        ok({ firstDataMonth: '2023-11', currentMonth: '2026-03' }),
+      );
+      window.history.replaceState({}, '', '/budget/2023-01?axis=FIXED');
+      const events = navigationEvents();
+      const length = window.history.length;
+      renderPage('2023-01');
+
+      await waitFor(() =>
+        expect(window.location.pathname + window.location.search).toBe(
+          '/budget/2023-11?axis=FIXED',
+        ),
+      );
+      expect(window.history.length).toBe(length);
+      expect(events.listener).toHaveBeenCalledTimes(1);
+      expect(
+        await screen.findByText(/précède l’historique : affichage du mois de novembre 2023/),
+      ).toBeTruthy();
+      expect(api.readMonthlyLedger).not.toHaveBeenCalled();
+      events.stop();
+    });
+
+    it('does not redirect a month on or after the first data month, gaps included', async () => {
+      api.readMonthlyBounds.mockReturnValue(
+        ok({ firstDataMonth: '2023-11', currentMonth: '2026-03' }),
+      );
+      window.history.replaceState({}, '', '/budget/2024-05');
+      const events = navigationEvents();
+      renderPage('2024-05');
+      await loaded();
+
+      expect(window.location.pathname).toBe('/budget/2024-05');
+      expect(events.listener).not.toHaveBeenCalled();
+      expect(screen.getByRole('link', { name: 'Juin' })).toBeTruthy();
+      events.stop();
+    });
+
+    it('lists disabled months before the boundary with a reason', async () => {
+      api.readMonthlyBounds.mockReturnValue(
+        ok({ firstDataMonth: '2023-11', currentMonth: '2026-03' }),
+      );
+      window.history.replaceState({}, '', '/budget/2023-12');
+      renderPage('2023-12');
+      await loaded();
+
+      expect(
+        screen.getAllByRole('button', { name: /avant le début de l’historique/ }),
+      ).toHaveLength(10);
+      expect(screen.getByRole('link', { name: 'Novembre' })).toBeTruthy();
+      const years = within(screen.getByRole('combobox', { name: 'Année' })).getAllByRole('option');
+      expect(years.map((option) => option.textContent)).toEqual(['2026', '2025', '2024', '2023']);
+    });
+
+    it('does not redirect an empty workspace and still offers the current month', async () => {
+      api.readMonthlyBounds.mockReturnValue(ok({ firstDataMonth: null, currentMonth: '2026-03' }));
+      window.history.replaceState({}, '', '/budget/2026-03');
+      const events = navigationEvents();
+      renderPage('2026-03');
+      await loaded();
+
+      expect(events.listener).not.toHaveBeenCalled();
+      expect(screen.getByRole('link', { name: 'Mars' })).toBeTruthy();
+      expect(screen.queryByText(/précède l’historique/)).toBeNull();
+      events.stop();
+    });
+
+    it('keeps the invalid and future route cards untouched by the bounds', async () => {
+      renderPage('not-a-month');
+      expect(screen.getByRole('alert').textContent).toContain('Période invalide');
+      cleanup();
+      renderPage('2026-04');
+      expect(screen.getByRole('alert').textContent).toContain('Période future');
+      expect(window.location.pathname).toBe('/budget/2026-03');
+    });
+
+    it('disables the month controls while the bounds load and never fetches the ledger', async () => {
+      api.readMonthlyBounds.mockReturnValue(new Promise(() => undefined));
+      renderPage('2026-03');
+
+      const year = await screen.findByRole('combobox', { name: 'Année' });
+      expect((year as HTMLSelectElement).disabled).toBe(true);
+      expect(screen.queryAllByRole('link', { name: 'Mars' })).toHaveLength(0);
+      expect(api.readMonthlyLedger).not.toHaveBeenCalled();
+    });
+
+    it('offers a retry without guessing a date or redirecting when the bounds fail', async () => {
+      api.readMonthlyBounds.mockReturnValue(
+        Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+      );
+      window.history.replaceState({}, '', '/budget/2023-01');
+      renderPage('2023-01');
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Réessayer' }));
+      await waitFor(() => expect(api.readMonthlyBounds).toHaveBeenCalledTimes(2));
+      expect(window.location.pathname).toBe('/budget/2023-01');
+      expect(api.readMonthlyLedger).not.toHaveBeenCalled();
+    });
   });
 });

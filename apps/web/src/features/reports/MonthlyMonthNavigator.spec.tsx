@@ -1,65 +1,65 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { MonthlyMonthNavigator } from './MonthlyMonthNavigator';
 
-const api = vi.hoisted(() => ({ readMultiYearReport: vi.fn() }));
-vi.mock('@cadran/api-client', async (original) => ({
-  ...(await original<typeof import('@cadran/api-client')>()),
-  ...api,
-}));
-
-function renderNavigator(month = '2026-09', currentMonth = '2026-09') {
+function renderNavigator(props: Partial<React.ComponentProps<typeof MonthlyMonthNavigator>> = {}) {
   const onSelect = vi.fn();
   render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
-      <MonthlyMonthNavigator currentMonth={currentMonth} month={month} onSelect={onSelect} />
-    </QueryClientProvider>,
+    <MonthlyMonthNavigator
+      currentMonth="2026-09"
+      firstDataMonth="2024-03"
+      month="2026-09"
+      onSelect={onSelect}
+      {...props}
+    />,
   );
   return onSelect;
 }
 
 describe('MonthlyMonthNavigator', () => {
-  beforeEach(() => {
-    api.readMultiYearReport.mockResolvedValue({
-      data: { availableFrom: 2024, from: 2024, to: 2026 },
-      response: { ok: true, status: 200 },
-    });
-  });
+  afterEach(cleanup);
 
-  afterEach(() => {
-    cleanup();
-    vi.clearAllMocks();
-  });
-
-  it('lists every month from the current month back to January of the first data year, newest first', async () => {
+  it('lists every month from the current month back to the first data month, newest first', () => {
     renderNavigator();
-    await screen.findByRole('button', { name: 'Janvier 2024' });
-    const nav = screen.getByRole('navigation', { name: 'Mois' });
-    const buttons = within(nav).getAllByRole('button');
-    expect(buttons).toHaveLength(33);
+    const buttons = within(screen.getByRole('navigation', { name: 'Mois' })).getAllByRole('button');
+    expect(buttons).toHaveLength(31);
     expect(buttons[0]?.textContent).toBe('Septembre 2026');
-    expect(buttons[buttons.length - 1]?.textContent).toBe('Janvier 2024');
+    expect(buttons[buttons.length - 1]?.textContent).toBe('Mars 2024');
   });
 
-  it('marks the selected month as the current page and the current month distinctly', async () => {
-    renderNavigator('2026-08');
-    const selected = await screen.findByRole('button', { name: 'Août 2026' });
+  it('offers only the current month for an empty workspace', () => {
+    renderNavigator({ firstDataMonth: null });
+    expect(
+      within(screen.getByRole('navigation', { name: 'Mois' })).getAllByRole('button'),
+    ).toHaveLength(1);
+  });
+
+  it('marks the selected month as the current page and the current month distinctly', () => {
+    renderNavigator({ month: '2026-08' });
+    const selected = screen.getByRole('button', { name: 'Août 2026' });
     expect(selected.getAttribute('aria-current')).toBe('page');
     const current = screen.getByRole('button', { name: 'Septembre 2026' });
     expect(current.getAttribute('aria-current')).toBeNull();
     expect(current.getAttribute('data-current')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Juillet 2026' }).hasAttribute('data-current')).toBe(
-      false,
-    );
   });
 
-  it('selects another month on click', async () => {
+  it('selects another month on click', () => {
     const onSelect = renderNavigator();
-    fireEvent.click(await screen.findByRole('button', { name: 'Juillet 2026' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Juillet 2026' }));
     expect(onSelect).toHaveBeenCalledWith('2026-07');
+  });
+
+  it('disables the list while the bounds load', () => {
+    const onSelect = renderNavigator({ firstDataMonth: null, status: 'loading' });
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('offers a retry when the bounds failed', () => {
+    const onRetry = vi.fn();
+    renderNavigator({ onRetry, status: 'error' });
+    fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });

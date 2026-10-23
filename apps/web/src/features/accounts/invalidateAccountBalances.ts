@@ -17,6 +17,7 @@ export async function invalidateAccountBalances(queryClient: QueryClient): Promi
       'annual-report-explanation',
       'period-status',
       'monthly-ledger',
+      'monthly-bounds',
       'monthly-ledger-movements',
       'budget-comparisons',
       'budget-plans',
