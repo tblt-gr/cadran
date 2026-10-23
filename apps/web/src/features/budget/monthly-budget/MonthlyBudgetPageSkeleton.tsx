@@ -9,6 +9,7 @@ import panelStyles from './ledger-panel/LedgerPanel.module.css';
 import rowStyles from './ledger-row/LedgerRow.module.css';
 import { LedgerPanelHeader } from './ledger-panel/LedgerPanelHeader';
 import { MonthlyRecapPlaceholder } from './monthly-recap/MonthlyRecapSkeleton';
+import { PinnedAccountBalancesView } from './pinned-account-balances/PinnedAccountBalances';
 
 type PanelKind = 'income' | 'expense' | 'account';
 
@@ -72,6 +73,7 @@ export function MonthlyBudgetPageSkeleton({
   return (
     <div aria-busy="true" className={styles.workbook} data-testid="monthly-budget-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
+      <PinnedAccountBalancesView announce={false} accounts={null} month="" />
       <div className={ledgerStyles.ledger}>
         <div className={ledgerStyles.statuses} />
         <div className={ledgerStyles.panels}>

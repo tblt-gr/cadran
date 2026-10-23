@@ -34,13 +34,14 @@ final readonly class RecapPreferencesRow
                 self::strings($row['visible_category_ids'] ?? null),
                 self::strings($row['visible_axes'] ?? null),
                 $knownAxes,
+                null === ($row['visible_account_ids'] ?? null) ? null : self::strings($row['visible_account_ids']),
             ),
             (int) self::text($row['version'] ?? null),
             new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
         );
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, string|null> */
     public static function columns(RecapPreferences $preferences): array
     {
         if (null === $preferences->updatedAt) {
@@ -49,6 +50,7 @@ final readonly class RecapPreferencesRow
 
         return [
             'visible_category_ids' => json_encode($preferences->visibility->categoryIds, JSON_THROW_ON_ERROR),
+            'visible_account_ids' => null === $preferences->visibility->accountIds ? null : json_encode($preferences->visibility->accountIds, JSON_THROW_ON_ERROR),
             'visible_axes' => json_encode($preferences->visibility->axes, JSON_THROW_ON_ERROR),
             'version' => (string) $preferences->version,
             'updated_at' => $preferences->updatedAt->format('Y-m-d H:i:s.uP'),

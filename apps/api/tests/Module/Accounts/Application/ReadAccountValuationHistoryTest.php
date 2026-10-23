@@ -46,7 +46,7 @@ final class ReadAccountValuationHistoryTest extends TestCase
 
     public function testEveryDailySnapshotIsPreservedUpTo367Points(): void
     {
-        $account = AccountFixture::account();
+        $account = AccountFixture::account(openedOn: '2025-10-19');
         $caller = new FixedCallerWorkspace(AccountFixture::WORKSPACE);
         $snapshots = $this->createMock(AccountBalanceSnapshotRepository::class);
         $snapshots->expects(self::exactly(7))->method('findLatestForAccountsOnDates')->willReturnCallback(

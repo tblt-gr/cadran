@@ -14,6 +14,9 @@ final readonly class SaveRecapPreferencesInput
         public array $visibleCategoryIds,
         public array $visibleAxes,
         public int $version,
+        /** @var ?list<string> */
+        public ?array $visibleAccountIds = null,
+        public bool $accountIdsProvided = false,
     ) {
     }
 }

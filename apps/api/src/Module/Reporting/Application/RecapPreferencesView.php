@@ -16,6 +16,8 @@ final readonly class RecapPreferencesView
         public array $visibleCategoryIds,
         public array $visibleAxes,
         public int $version,
+        /** @var ?list<string> */
+        public ?array $visibleAccountIds = null,
     ) {
     }
 
@@ -25,6 +27,7 @@ final readonly class RecapPreferencesView
             $preferences->visibility->categoryIds,
             $preferences->visibility->axes,
             $preferences->version,
+            $preferences->visibility->accountIds,
         );
     }
 }

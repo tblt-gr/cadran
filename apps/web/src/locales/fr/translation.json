@@ -3051,6 +3051,25 @@
           "reload": "Recharger les préférences",
           "error": "Les préférences d’affichage sont indisponibles."
         }
+      },
+      "pinned": {
+        "title": "Soldes épinglés",
+        "configure": "Configurer les comptes épinglés",
+        "loading": "Chargement des soldes épinglés…",
+        "empty": "Aucun compte épinglé. Configurez les comptes à afficher.",
+        "requestedOn": "Solde au {{date}}",
+        "derived": "Solde calculé à partir du relevé et des mouvements",
+        "hint": "Choisissez jusqu’à six comptes. Leur ordre reste indépendant de la synthèse des flux.",
+        "order": "Ordre des comptes",
+        "choose": "Comptes à afficher",
+        "up": "Monter {{name}}",
+        "down": "Descendre {{name}}",
+        "defaults": "Rétablir les comptes par défaut",
+        "defaultHint": "Les six premiers comptes courants actifs dans l’ordre des comptes seront affichés après enregistrement.",
+        "conflict": "Les préférences ont changé. Votre sélection est conservée. Rechargez les préférences avant de réessayer.",
+        "accountsError": "Impossible de charger les comptes.",
+        "noAccounts": "Aucun compte disponible.",
+        "account": "Compte sélectionné"
       }
     },
     "addPlan": "Nouveau plan",

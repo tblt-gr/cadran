@@ -133,6 +133,20 @@ final class InMemoryAccountRepository implements AccountRepository
         return array_slice($ranked, 0, $limit);
     }
 
+    public function listInSavedOrder(WorkspaceScope $workspace, int $limit): array
+    {
+        $groups = [];
+        foreach ($this->matching($workspace, true, true, null) as $account) {
+            $groups[AccountOrdering::key($account->primaryGroupId)] = $account->primaryGroupId;
+        }
+        $ordered = [];
+        foreach ($groups as $groupId) {
+            array_push($ordered, ...$this->members($workspace, $groupId));
+        }
+
+        return array_slice($ordered, 0, $limit);
+    }
+
     public function memberIdsInOrder(WorkspaceScope $workspace, ?string $groupId, int $limit): array
     {
         return array_slice(array_map(static fn (Account $account): string => $account->id, $this->members($workspace, $groupId)), 0, $limit);

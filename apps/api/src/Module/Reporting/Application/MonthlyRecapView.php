@@ -28,6 +28,8 @@ final readonly class MonthlyRecapView
         public MonthlyRecapTotalsView $totals,
         public MetricPolicyReference $metricPolicy,
         public ?MonthlyPortfolioCosts $portfolioCosts = null,
+        /** @var list<\App\Module\Accounts\Application\AccountView> */
+        public array $selectedAccounts = [],
     ) {
     }
 }

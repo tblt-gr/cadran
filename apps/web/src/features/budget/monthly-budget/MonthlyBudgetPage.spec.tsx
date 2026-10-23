@@ -101,6 +101,7 @@ const account = {
 };
 
 const recap = {
+  selectedAccounts: [],
   month: '2026-03',
   metricPolicy: { version: 1, label: 'Définition de trésorerie' },
   previousAsOf: '2026-02-28',
@@ -301,7 +302,12 @@ describe('MonthlyBudgetPage', () => {
     api.readMonthlyLedger.mockReturnValue(ok(ledger));
     api.readMonthlyRecap.mockReturnValue(ok(recap));
     api.readMonthlyRecapPreferences.mockReturnValue(
-      ok({ visibleCategoryIds: [expenseId], visibleAxes: ['ESSENTIAL'], version: 0 }),
+      ok({
+        visibleAccountIds: null,
+        visibleCategoryIds: [expenseId],
+        visibleAxes: ['ESSENTIAL'],
+        version: 0,
+      }),
     );
     api.listCategories.mockReturnValue(ok({ items: [], page: 1, pageSize: 100, total: 0 }));
     api.getSession.mockReturnValue(
@@ -1157,7 +1163,12 @@ describe('MonthlyBudgetPage', () => {
       }),
     );
     api.saveMonthlyRecapPreferences.mockReturnValue(
-      ok({ visibleCategoryIds: [], visibleAxes: ['ESSENTIAL'], version: 1 }),
+      ok({
+        visibleAccountIds: null,
+        visibleCategoryIds: [],
+        visibleAxes: ['ESSENTIAL'],
+        version: 1,
+      }),
     );
     renderPage();
 
@@ -1510,7 +1521,7 @@ describe('MonthlyBudgetPage', () => {
       Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
     );
     renderPage();
-    const retry = await screen.findByRole('button', { name: 'Réessayer' });
+    const retry = (await screen.findAllByRole('button', { name: 'Réessayer' }))[0]!;
     const preferenceReads = api.readMonthlyRecapPreferences.mock.calls.length;
     fireEvent.click(retry);
     await waitFor(() =>

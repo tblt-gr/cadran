@@ -31,6 +31,7 @@ final class AccountFixture
         ?string $closedOn = null,
         ?string $archivedAt = null,
         AccountValuationMode $valuationMode = AccountValuationMode::TRANSACTIONS,
+        string $openedOn = '2026-01-10',
     ): Account {
         $now = new \DateTimeImmutable('2026-09-03T10:00:00+00:00');
 
@@ -48,7 +49,7 @@ final class AccountFixture
             liquidityLevel: LiquidityLevel::IMMEDIATE,
             includeInNetWorth: true,
             includeInEmergencyFund: false,
-            openedOn: new \DateTimeImmutable('2026-01-10', new \DateTimeZone('UTC')),
+            openedOn: new \DateTimeImmutable($openedOn, new \DateTimeZone('UTC')),
             closedOn: null === $closedOn ? null : new \DateTimeImmutable($closedOn, new \DateTimeZone('UTC')),
             version: 1,
             createdAt: $now,

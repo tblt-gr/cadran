@@ -209,6 +209,22 @@ final readonly class DbalAccountRepository implements AccountRepository
         );
     }
 
+    public function listInSavedOrder(WorkspaceScope $workspace, int $limit): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.implode(', ', array_map(static fn (string $column): string => 'a.'.$column, explode(', ', self::COLUMNS)))
+            .' FROM account_financial_accounts a LEFT JOIN account_overview_positions p'
+            .' ON p.workspace_id = :workspace_id AND p.workspace_id = a.workspace_id AND p.account_id = a.id'
+            .' AND p.group_key = COALESCE(a.primary_group_id, :ungrouped_key)'
+            .' WHERE a.workspace_id = :workspace_id'
+            .' ORDER BY a.primary_group_id NULLS LAST, (p.position IS NULL), p.position, a.created_at, a.id LIMIT :limit',
+            ['workspace_id' => $workspace->id, 'ungrouped_key' => AccountOrdering::UNGROUPED_KEY, 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return $this->hydrateMany($rows, $workspace);
+    }
+
     public function memberIdsInOrder(WorkspaceScope $workspace, ?string $groupId, int $limit): array
     {
         $rows = $this->connection->fetchFirstColumn(

@@ -15056,6 +15056,64 @@ components:
           type: array
           maxItems: 500
           items: { type: string, format: uuid }
+    MonthlySelectedAccount:
+      description: An independently selected account and its shared dated balance, including accounts excluded from net worth or since closed or archived. Missing values never become zero.
+      type: object
+      additionalProperties: false
+      required:
+        [
+          accountId,
+          label,
+          assetCode,
+          status,
+          closedOn,
+          archivedAt,
+          value,
+          displayValue,
+          belowDisplayStep,
+          requestedOn,
+          valuedOn,
+          quality,
+          source,
+          ageDays,
+          basis,
+          reason,
+        ]
+      properties:
+        accountId: { type: string, format: uuid }
+        label: { type: string }
+        assetCode: { type: string }
+        status: { type: string, enum: [ACTIVE, CLOSED, ARCHIVED] }
+        closedOn: { type: [string, 'null'], format: date }
+        archivedAt: { type: [string, 'null'], format: date-time }
+        value:
+          oneOf:
+            - type: string
+              pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        displayValue:
+          description: Canonical amount rounded by the shared asset resolver. Null when missing or belowDisplayStep is true; never use a rounded zero for a nonzero balance.
+          oneOf:
+            - type: string
+              pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+            - type: 'null'
+        belowDisplayStep:
+          description: The exact nonzero balance is below the asset display step. Keep the exact value available and show a below-step indication instead of zero.
+          type: boolean
+        requestedOn: { type: string, format: date }
+        valuedOn: { type: [string, 'null'], format: date }
+        quality:
+          $ref: '#/components/schemas/ValuationQuality'
+        source:
+          type: [string, 'null']
+          enum: [MANUAL, IMPORT, CALCULATED, null]
+        ageDays: { type: [integer, 'null'], minimum: 0 }
+        basis:
+          type: [string, 'null']
+          enum: [SNAPSHOT, SNAPSHOT_PLUS_MOVEMENTS, PORTFOLIO_VALUATION, null]
+        reason:
+          type: [string, 'null']
+          enum: [MISSING_VALUATION, NOT_YET_OPENED, MIXED_ASSETS, null]
     MonthlyRecap:
       description: >-
         The account, wealth and totals recap of one month. `previousAsOf` is
@@ -15072,6 +15130,7 @@ components:
         - state
         - quality
         - accounts
+        - selectedAccounts
         - groups
         - netWorth
         - totals
@@ -15103,6 +15162,11 @@ components:
             Valuation quality at effective N. The independent N−1 quality is
             published as `netWorth.previousQuality`.
           $ref: '#/components/schemas/ValuationQuality'
+        selectedAccounts:
+          type: array
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/MonthlySelectedAccount'
         accounts:
           type: array
           maxItems: 500
@@ -15125,8 +15189,14 @@ components:
         the workspace never saved one and is reading the default selection.
       type: object
       additionalProperties: false
-      required: [visibleCategoryIds, visibleAxes, version]
+      required: [visibleCategoryIds, visibleAxes, visibleAccountIds, version]
       properties:
+        visibleAccountIds:
+          description: Ordered owned accounts. Null restores the first six active current accounts in saved account order; an empty array deliberately hides every account. Omission on PUT preserves the stored value.
+          type: [array, 'null']
+          uniqueItems: true
+          maxItems: 6
+          items: { type: string, format: uuid }
         visibleCategoryIds:
           type: array
           uniqueItems: true
@@ -15142,6 +15212,12 @@ components:
       additionalProperties: false
       required: [visibleCategoryIds, visibleAxes, version]
       properties:
+        visibleAccountIds:
+          description: Ordered owned accounts. Null restores the first six active current accounts in saved account order; an empty array deliberately hides every account. Omission on PUT preserves the stored value.
+          type: [array, 'null']
+          uniqueItems: true
+          maxItems: 6
+          items: { type: string, format: uuid }
         visibleCategoryIds:
           type: array
           uniqueItems: true

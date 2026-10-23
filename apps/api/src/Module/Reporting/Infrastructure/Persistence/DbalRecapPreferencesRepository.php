@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(RecapPreferencesRepository::class)]
 final readonly class DbalRecapPreferencesRepository implements RecapPreferencesRepository
 {
-    private const string COLUMNS = 'workspace_id, visible_category_ids, visible_axes, version, updated_at';
+    private const string COLUMNS = 'workspace_id, visible_category_ids, visible_axes, visible_account_ids, version, updated_at';
 
     public function __construct(private Connection $connection)
     {

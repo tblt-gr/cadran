@@ -33,7 +33,7 @@ final readonly class ResolveAccountValuations
         $windows = [];
         foreach ($days as $day) {
             foreach ($accounts as $account) {
-                $anchor = $latest[$day->format('Y-m-d')][$account->id] ?? null;
+                $anchor = $account->openedOn > $day ? null : ($latest[$day->format('Y-m-d')][$account->id] ?? null);
                 if (AccountValuationMode::TRANSACTIONS === $account->valuationMode && null !== $anchor && $anchor->asOf < $day) {
                     $window = new MovementWindow($account->id, $anchor->asOf, $day, $account->assetCode);
                     $windows[$window->key()] = $window;
@@ -46,7 +46,7 @@ final readonly class ResolveAccountValuations
             $date = $day->format('Y-m-d');
             $result[$date] = [];
             foreach ($accounts as $account) {
-                $anchor = $latest[$date][$account->id] ?? null;
+                $anchor = $account->openedOn > $day ? null : ($latest[$date][$account->id] ?? null);
                 $window = null !== $anchor && $anchor->asOf < $day ? new MovementWindow($account->id, $anchor->asOf, $day, $account->assetCode) : null;
                 $result[$date][$account->id] = AccountValuationMode::TRANSACTIONS === $account->valuationMode && null !== $anchor && null !== $window
                     ? AccountValuation::derived($anchor, $day, $totals[$window->key()])

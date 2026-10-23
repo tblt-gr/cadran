@@ -21,6 +21,7 @@ import { MonthNavigator } from './month-navigator/MonthNavigator';
 import { MonthlyBudgetPageSkeleton } from './MonthlyBudgetPageSkeleton';
 import { MovementEditModal } from './movement-edit-modal/MovementEditModal';
 import { MonthlyRecap } from './monthly-recap/MonthlyRecap';
+import { PinnedAccountBalances } from './pinned-account-balances/PinnedAccountBalances';
 import styles from './MonthlyBudgetPage.module.css';
 
 interface MonthlyBudgetPageProps {
@@ -190,6 +191,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         </section>
       ) : (
         <div className={styles.workbook}>
+          <PinnedAccountBalances month={month} />
           <LedgerPanels
             activeAccountIds={activeAccountIds}
             axis={axis}

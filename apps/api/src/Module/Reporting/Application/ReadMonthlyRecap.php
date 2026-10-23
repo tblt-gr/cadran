@@ -6,6 +6,7 @@ namespace App\Module\Reporting\Application;
 
 use App\Module\Accounts\Application\NetWorthContributionView;
 use App\Module\Accounts\Application\NetWorthScopeTooLarge;
+use App\Module\Accounts\Application\ReadRecapAccounts;
 use App\Module\Accounts\Application\ResolveNetWorthContributions;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\NetWorthContribution;
@@ -30,6 +31,8 @@ final readonly class ReadMonthlyRecap
         private ResolveNetWorthContributions $contributions,
         private ReadTransactionSummaries $transactionSummaries,
         private ReadMonthlyPortfolioCosts $portfolioCosts,
+        private ReadRecapPreferences $preferences,
+        private ReadRecapAccounts $recapAccounts,
     ) {
     }
 
@@ -61,7 +64,14 @@ final readonly class ReadMonthlyRecap
             $projection->netWorth->contributions,
         );
 
+        try {
+            $selectedAccounts = $this->recapAccounts->on($workspace, $this->preferences->stored()->visibility->accountIds, new \DateTimeImmutable($projection->netWorthAsOf, new \DateTimeZone('UTC')));
+        } catch (NetWorthScopeTooLarge $exception) {
+            throw new MonthlyProjectionScopeTooLarge('The monthly recap scope exceeds its bounds.', previous: $exception);
+        }
+
         return new MonthlyRecapView(
+            selectedAccounts: $selectedAccounts,
             month: $projection->month,
             previousAsOf: $projection->netWorthComparedOn,
             currentAsOf: $projection->netWorthAsOf,

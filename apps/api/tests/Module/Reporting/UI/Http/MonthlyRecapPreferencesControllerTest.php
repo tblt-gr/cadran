@@ -180,6 +180,41 @@ final class MonthlyRecapPreferencesControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(401);
     }
 
+    public function testAccountEmptyResetAndOmissionRemainDistinct(): void
+    {
+        $this->signIn();
+        self::assertNull($this->read()['visibleAccountIds']);
+        $this->putAccounts([], 0);
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->read()['visibleAccountIds']);
+        $this->save([], ['FIXED'], 1);
+        self::assertSame([], $this->read()['visibleAccountIds']);
+        $this->putAccounts(null, 2);
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->read()['visibleAccountIds']);
+        self::assertSame(3, $this->read()['version']);
+    }
+
+    public function testInvalidAccountSelectionsAreRefused(): void
+    {
+        $this->signIn();
+        foreach (['invalid', false, 1, ['invalid'], [self::OWN_CATEGORY], [self::OWN_CATEGORY, self::OWN_CATEGORY], array_fill(0, 7, self::OWN_CATEGORY)] as $selection) {
+            $this->client->request('PUT', self::URI, server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+                'visibleCategoryIds' => [], 'visibleAxes' => [], 'visibleAccountIds' => $selection, 'version' => 0,
+            ], JSON_THROW_ON_ERROR));
+            self::assertResponseStatusCodeSame(422);
+        }
+        self::assertSame(0, $this->read()['version']);
+    }
+
+    /** @param ?list<string> $accounts */
+    private function putAccounts(?array $accounts, int $version): void
+    {
+        $this->client->request('PUT', self::URI, server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'visibleCategoryIds' => [], 'visibleAxes' => ['FIXED'], 'visibleAccountIds' => $accounts, 'version' => $version,
+        ], JSON_THROW_ON_ERROR));
+    }
+
     private function signIn(string $email = WorkspaceFixture::OWNER_EMAIL): void
     {
         $this->client->request('POST', '/api/v1/session', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([

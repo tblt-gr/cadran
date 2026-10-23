@@ -20,26 +20,41 @@ final readonly class RecapVisibility
      * stored preference from growing into an unbounded payload.
      */
     public const int MAX_ITEMS = 100;
+    public const int MAX_ACCOUNTS = 6;
 
     private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i';
 
     /**
-     * @param list<string> $categoryIds
-     * @param list<string> $axes
+     * @param list<string>  $categoryIds
+     * @param list<string>  $axes
+     * @param ?list<string> $accountIds
      */
     private function __construct(
         public array $categoryIds,
         public array $axes,
+        public ?array $accountIds = null,
     ) {
     }
 
     /**
-     * @param list<string> $categoryIds
-     * @param list<string> $axes
-     * @param list<string> $knownAxes
+     * @param list<string>  $categoryIds
+     * @param list<string>  $axes
+     * @param ?list<string> $accountIds
+     * @param list<string>  $knownAxes
      */
-    public static function of(array $categoryIds, array $axes, array $knownAxes): self
+    public static function of(array $categoryIds, array $axes, array $knownAxes, ?array $accountIds = null): self
     {
+        if (null !== $accountIds) {
+            self::assertBounded($accountIds, 'accounts');
+            if (count($accountIds) > self::MAX_ACCOUNTS) {
+                throw new InvalidRecapVisibility('A recap selection holds at most six accounts.');
+            }
+            foreach ($accountIds as $id) {
+                if (1 !== preg_match(self::UUID_PATTERN, $id)) {
+                    throw new InvalidRecapVisibility('A recap account must be an identifier.');
+                }
+            }
+        }
         self::assertBounded($categoryIds, 'categories');
         self::assertBounded($axes, 'axes');
         foreach ($categoryIds as $categoryId) {
@@ -53,7 +68,7 @@ final readonly class RecapVisibility
             }
         }
 
-        return new self($categoryIds, $axes);
+        return new self($categoryIds, $axes, $accountIds);
     }
 
     /** @param list<string> $knownAxes */

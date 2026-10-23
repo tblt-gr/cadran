@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Reporting\Application;
 
+use App\Module\Accounts\Application\BookedMovementTotals;
+use App\Module\Accounts\Application\ReadRecapAccounts;
+use App\Module\Accounts\Application\ResolveAccountValuations;
+use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
+use App\Module\Accounts\Domain\AccountGroupRepository;
+use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Categories\Application\ReadBudgetCategoryFlags;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Foundation\Application\CallerWorkspace;
@@ -13,6 +19,7 @@ use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Application\WorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Reference\Application\AssetCatalog;
 use App\Module\Reporting\Application\ReadRecapPreferences;
 use App\Module\Reporting\Application\SaveRecapPreferences;
 use App\Module\Reporting\Application\SaveRecapPreferencesInput;
@@ -27,6 +34,7 @@ final class SaveRecapPreferencesTest extends TestCase
     public function testTheWorkspaceOwnerCanSaveTheSelection(): void
     {
         $preferences = $this->createMock(RecapPreferencesRepository::class);
+        $preferences->method('find')->willReturn(RecapPreferences::unsaved(WorkspaceFixture::own(), ['FIXED']));
         $preferences->expects(self::once())
             ->method('save')
             ->with(self::callback(static fn (RecapPreferences $saved): bool => WorkspaceFixture::OWN_WORKSPACE === $saved->workspace->id), 0)
@@ -74,6 +82,7 @@ final class SaveRecapPreferencesTest extends TestCase
                 $caller,
                 $this->createStub(WorkspaceTimezoneReader::class),
             ),
+            new ReadRecapAccounts($this->createStub(AccountRepository::class), $this->createStub(AccountGroupRepository::class), new ResolveAccountValuations($this->createStub(AccountBalanceSnapshotRepository::class), $this->createStub(BookedMovementTotals::class)), $this->createStub(AssetCatalog::class)),
         );
     }
 

@@ -32,6 +32,7 @@ final class MonthlyRecapRepresentation
             'provisional' => $view->provisional,
             'state' => $view->state,
             'quality' => $view->quality,
+            'selectedAccounts' => array_map(MonthlySelectedAccountRepresentation::of(...), $view->selectedAccounts),
             'accounts' => array_map(self::account(...), $view->accounts),
             'groups' => array_map(self::group(...), $view->groups),
             'netWorth' => self::netWorth($view->netWorth),

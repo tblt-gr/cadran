@@ -2888,6 +2888,34 @@ export type MonthlyRecapNetWorth = {
 };
 
 /**
+ * An independently selected account and its shared dated balance, including accounts excluded from net worth or since closed or archived. Missing values never become zero.
+ */
+export type MonthlySelectedAccount = {
+    accountId: string;
+    label: string;
+    assetCode: string;
+    status: 'ACTIVE' | 'CLOSED' | 'ARCHIVED';
+    closedOn: string | null;
+    archivedAt: string | null;
+    value: string | null;
+    /**
+     * Canonical amount rounded by the shared asset resolver. Null when missing or belowDisplayStep is true; never use a rounded zero for a nonzero balance.
+     */
+    displayValue: string | null;
+    /**
+     * The exact nonzero balance is below the asset display step. Keep the exact value available and show a below-step indication instead of zero.
+     */
+    belowDisplayStep: boolean;
+    requestedOn: string;
+    valuedOn: string | null;
+    quality: ValuationQuality;
+    source: 'MANUAL' | 'IMPORT' | 'CALCULATED' | null;
+    ageDays: number | null;
+    basis: 'SNAPSHOT' | 'SNAPSHOT_PLUS_MOVEMENTS' | 'PORTFOLIO_VALUATION' | null;
+    reason: 'MISSING_VALUATION' | 'NOT_YET_OPENED' | 'MIXED_ASSETS' | null;
+};
+
+/**
  * The account, wealth and totals recap of one month. `previousAsOf` is the last calendar day of the preceding month. `currentAsOf` is the month's calendar end, or the workspace-local current day while the month is still running, in which case `provisional` is true.
  */
 export type MonthlyRecap = {
@@ -2902,6 +2930,7 @@ export type MonthlyRecap = {
      * Valuation quality at effective N. The independent N−1 quality is published as `netWorth.previousQuality`.
      */
     quality: ValuationQuality;
+    selectedAccounts: Array<MonthlySelectedAccount>;
     accounts: Array<MonthlyRecapAccount>;
     groups: Array<MonthlyRecapGroup>;
     netWorth: MonthlyRecapNetWorth;
@@ -2912,12 +2941,20 @@ export type MonthlyRecap = {
  * Which optional category and axis breakdowns the compact recap shows. The selection picks rows only: it never changes a total or a formula, and the core totals stay published whatever it holds. Version 0 means the workspace never saved one and is reading the default selection.
  */
 export type MonthlyRecapPreferences = {
+    /**
+     * Ordered owned accounts. Null restores the first six active current accounts in saved account order; an empty array deliberately hides every account. Omission on PUT preserves the stored value.
+     */
+    visibleAccountIds: Array<string> | null;
     visibleCategoryIds: Array<string>;
     visibleAxes: AnalyticAxes;
     version: number;
 };
 
 export type MonthlyRecapPreferencesInput = {
+    /**
+     * Ordered owned accounts. Null restores the first six active current accounts in saved account order; an empty array deliberately hides every account. Omission on PUT preserves the stored value.
+     */
+    visibleAccountIds?: Array<string> | null;
     visibleCategoryIds: Array<string>;
     visibleAxes: AnalyticAxes;
     /**

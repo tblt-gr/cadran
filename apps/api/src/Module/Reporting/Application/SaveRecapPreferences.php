@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Reporting\Application;
 
+use App\Module\Accounts\Application\NetWorthScopeTooLarge;
+use App\Module\Accounts\Application\ReadRecapAccounts;
 use App\Module\Categories\Application\BudgetCategoryScopeTooLarge;
 use App\Module\Categories\Application\ReadBudgetCategoryFlags;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
@@ -29,6 +31,7 @@ final readonly class SaveRecapPreferences
         private RecapPreferencesRepository $preferences,
         private ReadBudgetCategoryFlags $categories,
         private WorkspaceCalendar $calendar,
+        private ReadRecapAccounts $accounts,
     ) {
     }
 
@@ -39,13 +42,18 @@ final readonly class SaveRecapPreferences
             throw new WorkspaceAccessDenied('Only the workspace owner may change recap preferences.');
         }
         $workspace = $context->workspace;
-        try {
-            $visibility = RecapVisibility::of($input->visibleCategoryIds, $input->visibleAxes, RecapAxes::all());
-        } catch (InvalidRecapVisibility $exception) {
-            throw new InvalidRecapPreferencesInput($exception->getMessage(), previous: $exception);
-        }
         if ($input->version < RecapPreferences::UNSAVED_VERSION) {
             throw new InvalidRecapPreferencesInput('A recap preference version is never negative.');
+        }
+        $stored = $this->preferences->find($workspace, RecapAxes::all());
+        if ($stored->version !== $input->version) {
+            throw new StaleRecapPreferencesVersion('The recap selection changed since it was read.');
+        }
+        $accountIds = $input->accountIdsProvided ? $input->visibleAccountIds : $stored->visibility->accountIds;
+        try {
+            $visibility = RecapVisibility::of($input->visibleCategoryIds, $input->visibleAxes, RecapAxes::all(), $accountIds);
+        } catch (InvalidRecapVisibility $exception) {
+            throw new InvalidRecapPreferencesInput($exception->getMessage(), previous: $exception);
         }
 
         try {
@@ -56,6 +64,20 @@ final readonly class SaveRecapPreferences
         foreach ($visibility->categoryIds as $categoryId) {
             if (!array_key_exists($categoryId, $owned)) {
                 throw new InvalidRecapPreferencesInput('A recap selection names only categories of the calling workspace.');
+            }
+        }
+
+        if (null !== $visibility->accountIds && [] !== $visibility->accountIds) {
+            try {
+                $ownedAccounts = $this->accounts->choices($workspace);
+            } catch (NetWorthScopeTooLarge $exception) {
+                throw new InvalidRecapPreferencesInput('The account selection scope exceeds its bounds.', previous: $exception);
+            }
+            $ownedIds = array_column($ownedAccounts, 'id');
+            foreach ($visibility->accountIds as $id) {
+                if (!in_array($id, $ownedIds, true)) {
+                    throw new InvalidRecapPreferencesInput('A recap selection names only accounts of the calling workspace.');
+                }
             }
         }
 

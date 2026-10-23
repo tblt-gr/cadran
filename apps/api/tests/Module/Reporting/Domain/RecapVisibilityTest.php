@@ -72,6 +72,31 @@ final class RecapVisibilityTest extends TestCase
         RecapVisibility::of(self::identifiers(101), [], self::AXES);
     }
 
+    public function testAccountDefaultsDifferFromAnExplicitEmptySelection(): void
+    {
+        self::assertNull(RecapVisibility::default(self::AXES)->accountIds);
+        self::assertSame([], RecapVisibility::of([], [], self::AXES, [])->accountIds);
+        self::assertSame([self::LEISURE, self::FOOD], RecapVisibility::of([], [], self::AXES, [self::LEISURE, self::FOOD])->accountIds);
+    }
+
+    public function testMoreThanSixAccountsAreRejected(): void
+    {
+        $this->expectException(InvalidRecapVisibility::class);
+        RecapVisibility::of([], [], self::AXES, self::identifiers(7));
+    }
+
+    public function testDuplicateAccountsAreRejected(): void
+    {
+        $this->expectException(InvalidRecapVisibility::class);
+        RecapVisibility::of([], [], self::AXES, [self::FOOD, self::FOOD]);
+    }
+
+    public function testMalformedAccountIdentifiersAreRejected(): void
+    {
+        $this->expectException(InvalidRecapVisibility::class);
+        RecapVisibility::of([], [], self::AXES, ['invalid']);
+    }
+
     /** @return list<string> */
     private static function identifiers(int $count): array
     {

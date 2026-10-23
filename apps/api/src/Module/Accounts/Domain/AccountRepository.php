@@ -31,6 +31,13 @@ interface AccountRepository
      */
     public function listPortfolios(WorkspaceScope $workspace, int $limit): array;
 
+    /**
+     * All lifecycle states, grouped by primary group and in saved member order.
+     *
+     * @return list<Account>
+     */
+    public function listInSavedOrder(WorkspaceScope $workspace, int $limit): array;
+
     public function count(
         WorkspaceScope $workspace,
         bool $includeArchived,

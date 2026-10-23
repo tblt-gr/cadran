@@ -228,6 +228,9 @@ final class MonthlyRecapControllerTest extends WebTestCase
         self::assertSame($this->today->format('Y-m-d'), $recap['currentAsOf']);
         self::assertSame($this->today->modify('first day of this month')->modify('-1 day')->format('Y-m-d'), $recap['previousAsOf']);
         self::assertSame('100.00', self::fields(self::fields($recap['netWorth'])['current'])['value']);
+        $pinned = self::index($recap['selectedAccounts'], 'accountId')[self::CURRENT];
+        self::assertSame($recap['currentAsOf'], $pinned['requestedOn']);
+        self::assertSame('100.00', $pinned['value']);
         self::assertStringNotContainsString('777777', (string) $this->client->getResponse()->getContent());
     }
 
@@ -456,6 +459,159 @@ final class MonthlyRecapControllerTest extends WebTestCase
         $this->client->request('DELETE', '/api/v1/session');
         $this->client->request('GET', '/api/v1/reports/monthly/recap?month='.$this->closedMonth);
         self::assertResponseStatusCodeSame(401);
+    }
+
+    public function testPinnedDefaultsTakeSixActiveCurrentAccountsInSavedOrder(): void
+    {
+        $this->signIn();
+        $ids = [];
+        for ($index = 1; $index <= 8; ++$index) {
+            $id = sprintf('00000000-0000-7000-8000-%012d', 500 + $index);
+            $ids[] = $id;
+            $this->account($id, WorkspaceFixture::OWN_WORKSPACE, 'Account '.$index, 'CURRENT');
+            $this->connection->insert('account_overview_positions', [
+                'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => $id,
+                'group_key' => '00000000-0000-0000-0000-000000000000', 'position' => 9 - $index,
+            ]);
+        }
+        $this->account(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, 'Current in its name', 'SAVINGS');
+        $this->connection->update('account_financial_accounts', ['closed_on' => $this->currentAsOf->format('Y-m-d'), 'updated_at' => $this->today->format('Y-m-d').' 12:00:00+00'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $ids[7]]);
+        $rows = self::index($this->read()['selectedAccounts'], 'accountId');
+        self::assertSame(array_reverse(array_slice($ids, 1, 6)), array_keys($rows));
+        foreach ($rows as $row) {
+            self::assertNull($row['value']);
+            self::assertSame('MISSING_VALUATION', $row['reason']);
+            self::assertSame($this->currentAsOf->format('Y-m-d'), $row['requestedOn']);
+        }
+    }
+
+    public function testNoCurrentAccountNeverFallsBackToSavings(): void
+    {
+        $this->signIn();
+        $this->account(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, 'Compte courant', 'SAVINGS');
+        self::assertSame([], $this->read()['selectedAccounts']);
+    }
+
+    public function testPinnedBalancesUseTheSharedResolverAndIgnoreNetWorthEligibility(): void
+    {
+        $this->signIn();
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Excluded', 'CURRENT', includeInNetWorth: false);
+        $this->snapshot(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, $this->previousAsOf, '1250.40');
+        $row = self::index($this->read()['selectedAccounts'], 'accountId')[self::CURRENT];
+        self::assertSame('1250.40', $row['value']);
+        self::assertSame('STALE', $row['quality']);
+        // Hand computed: 1250.40 - 42.10 = 1208.30 EUR.
+        $this->transaction('91', self::CURRENT, '-42.10', 'EXPENSE');
+        $row = self::index($this->read()['selectedAccounts'], 'accountId')[self::CURRENT];
+        self::assertSame('1208.30', $row['value']);
+        self::assertSame('CURRENT', $row['quality']);
+        self::assertSame('SNAPSHOT_PLUS_MOVEMENTS', $row['basis']);
+        self::assertSame('MANUAL', $row['source']);
+        self::assertSame($this->currentAsOf->format('Y-m-d'), $row['valuedOn']);
+    }
+
+    public function testPinnedClosedAndArchivedAccountsKeepTheirSelectionAndHistoricalBalances(): void
+    {
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->selectAccounts([self::LDDS, self::CURRENT]);
+        $this->connection->update('account_financial_accounts', ['closed_on' => $this->currentAsOf->format('Y-m-d'), 'updated_at' => $this->today->format('Y-m-d').' 12:00:00+00'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::CURRENT]);
+        $this->connection->update('account_financial_accounts', ['archived_at' => $this->currentAsOf->format('Y-m-d').' 12:00:00+00'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::LDDS]);
+        $rows = self::index($this->read()['selectedAccounts'], 'accountId');
+        self::assertSame([self::LDDS, self::CURRENT], array_keys($rows));
+        self::assertSame('ARCHIVED', $rows[self::LDDS]['status']);
+        self::assertSame('2300.00', $rows[self::LDDS]['value']);
+        self::assertSame('CLOSED', $rows[self::CURRENT]['status']);
+        self::assertSame('1200.00', $rows[self::CURRENT]['value']);
+        $this->selectAccounts([], 1);
+        self::assertSame([], $this->read()['selectedAccounts']);
+    }
+
+    public function testPinnedNotYetOpenedAccountKeepsANullBalance(): void
+    {
+        $this->signIn();
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Future', 'CURRENT');
+        $this->connection->update('account_financial_accounts', ['opened_on' => $this->currentAsOf->format('Y-m-d'), 'updated_at' => $this->today->format('Y-m-d').' 12:00:00+00'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::CURRENT]);
+        $this->selectAccounts([self::CURRENT]);
+        $row = self::index($this->read($this->previousAsOf->format('Y-m'))['selectedAccounts'], 'accountId')[self::CURRENT];
+        self::assertNull($row['value']);
+        self::assertSame('NOT_YET_OPENED', $row['reason']);
+    }
+
+    public function testForeignPinnedAccountIsRejectedAndConflictingSaveKeepsTheFirstSelection(): void
+    {
+        $this->signIn();
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Own', 'CURRENT');
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Foreign', 'CURRENT');
+        $this->client->request('PUT', '/api/v1/reports/monthly/recap-preferences', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'visibleCategoryIds' => [], 'visibleAxes' => [], 'version' => 0, 'visibleAccountIds' => [self::OTHER_ACCOUNT],
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseStatusCodeSame(422);
+        $this->selectAccounts([self::CURRENT]);
+        $this->client->request('PUT', '/api/v1/reports/monthly/recap-preferences', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'visibleCategoryIds' => [], 'visibleAxes' => [], 'version' => 0, 'visibleAccountIds' => [],
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame([self::CURRENT], array_keys(self::index($this->read()['selectedAccounts'], 'accountId')));
+    }
+
+    public function testPinnedZeroAndLargeExactValuesNeverBecomeMissingOrRounded(): void
+    {
+        $this->signIn();
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Zero', 'CURRENT', includeInNetWorth: false);
+        $this->account(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, 'Large', 'SAVINGS', includeInNetWorth: false);
+        $this->snapshot(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, $this->currentAsOf, '0.00');
+        $large = '99999999999999999999999999.123456789012345678901234';
+        $this->snapshot(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, $this->currentAsOf, $large);
+        $this->selectAccounts([self::LIVRET_A, self::CURRENT]);
+        $rows = self::index($this->read()['selectedAccounts'], 'accountId');
+        self::assertSame($large, $rows[self::LIVRET_A]['value']);
+        self::assertSame('0.00', $rows[self::CURRENT]['value']);
+        self::assertFalse($rows[self::CURRENT]['belowDisplayStep']);
+        self::assertSame('0.00', $rows[self::CURRENT]['displayValue']);
+        self::assertFalse($rows[self::LIVRET_A]['belowDisplayStep']);
+        self::assertSame('99999999999999999999999999.12', $rows[self::LIVRET_A]['displayValue']);
+        self::assertNull($rows[self::CURRENT]['reason']);
+    }
+
+    public function testPinnedNonzeroBelowDisplayStepPreservesBothSignsWithoutPublishingAZeroDisplay(): void
+    {
+        $this->signIn();
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Small positive', 'CURRENT', includeInNetWorth: false);
+        $this->account(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, 'Small negative', 'SAVINGS', includeInNetWorth: false);
+        $small = '0.000000000000000000000001';
+        $this->snapshot(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, $this->currentAsOf, $small);
+        $this->snapshot(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, $this->currentAsOf, '-'.$small);
+        $this->selectAccounts([self::CURRENT, self::LIVRET_A]);
+        $rows = self::index($this->read()['selectedAccounts'], 'accountId');
+        self::assertSame($small, $rows[self::CURRENT]['value']);
+        self::assertSame('-'.$small, $rows[self::LIVRET_A]['value']);
+        foreach ($rows as $row) {
+            self::assertTrue($row['belowDisplayStep']);
+            self::assertNull($row['displayValue']);
+            self::assertNull($row['reason']);
+        }
+    }
+
+    public function testPinnedRequestedDayMatchesTheWorkspaceTimezone(): void
+    {
+        $this->signIn();
+        $this->connection->update('identity_workspaces', ['timezone' => 'Pacific/Kiritimati'], ['id' => WorkspaceFixture::OWN_WORKSPACE]);
+        $local = new \DateTimeImmutable('now', new \DateTimeZone('Pacific/Kiritimati'));
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Local', 'CURRENT');
+        $recap = $this->read($local->format('Y-m'));
+        $row = self::index($recap['selectedAccounts'], 'accountId')[self::CURRENT];
+        self::assertSame($local->format('Y-m-d'), $recap['currentAsOf']);
+        self::assertSame($recap['currentAsOf'], $row['requestedOn']);
+    }
+
+    /** @param list<string> $ids */
+    private function selectAccounts(array $ids, int $version = 0): void
+    {
+        $this->client->request('PUT', '/api/v1/reports/monthly/recap-preferences', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'visibleCategoryIds' => [], 'visibleAxes' => [], 'version' => $version, 'visibleAccountIds' => $ids,
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseIsSuccessful();
     }
 
     private function seedThreeAccounts(): void

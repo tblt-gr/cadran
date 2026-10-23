@@ -57,6 +57,7 @@ export function useSaveRecapPreferences() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(RECAP_PREFERENCES_QUERY_KEY, data);
+      void queryClient.invalidateQueries({ queryKey: ['monthly-recap'] });
     },
   });
 }

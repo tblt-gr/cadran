@@ -77,7 +77,7 @@ final readonly class MonthlyRecapPreferencesController
     /** @param array<mixed> $body */
     private static function input(array $body): SaveRecapPreferencesInput
     {
-        $submitted = array_keys($body);
+        $submitted = array_keys(array_diff_key($body, ['visibleAccountIds' => true]));
         sort($submitted);
         $expected = self::FIELDS;
         sort($expected);
@@ -92,6 +92,8 @@ final readonly class MonthlyRecapPreferencesController
             self::strings($body['visibleCategoryIds']),
             self::strings($body['visibleAxes']),
             $body['version'],
+            !array_key_exists('visibleAccountIds', $body) || null === $body['visibleAccountIds'] ? null : self::strings($body['visibleAccountIds']),
+            array_key_exists('visibleAccountIds', $body),
         );
     }
 
@@ -118,6 +120,7 @@ final readonly class MonthlyRecapPreferencesController
             'visibleCategoryIds' => $view->visibleCategoryIds,
             'visibleAxes' => $view->visibleAxes,
             'version' => $view->version,
+            'visibleAccountIds' => $view->visibleAccountIds,
         ], Response::HTTP_OK, ['Cache-Control' => 'no-store']);
     }
 

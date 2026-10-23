@@ -27,6 +27,27 @@ use PHPUnit\Framework\TestCase;
 
 final class ResolveAccountValuationsTest extends TestCase
 {
+    public function testBeforeOpeningIsMissingEvenWithAnEarlySnapshotAndOpeningDayKeepsItsBalance(): void
+    {
+        foreach (AccountValuationMode::cases() as $mode) {
+            $account = AccountFixture::account(kind: AccountValuationMode::PORTFOLIO === $mode ? AccountKind::PORTFOLIO : AccountKind::SAVINGS, valuationMode: $mode);
+            $beforeOpening = $account->openedOn->modify('-1 day');
+            $snapshots = $this->createMock(AccountBalanceSnapshotRepository::class);
+            $snapshots->expects(self::once())->method('findLatestForAccountsOnDates')->willReturn([
+                $beforeOpening->format('Y-m-d') => [$account->id => $this->anchor($account->id, '2026-01-08', '42.10')],
+                $account->openedOn->format('Y-m-d') => [$account->id => $this->anchor($account->id, '2026-01-10', '1250.40')],
+            ]);
+            $movements = $this->createMock(BookedMovementTotals::class);
+            $movements->expects(self::never())->method('forWindows');
+
+            $result = (new ResolveAccountValuations($snapshots, $movements))->forAccounts($account->workspace, [$account], [$beforeOpening, $account->openedOn]);
+
+            self::assertNull($result[$beforeOpening->format('Y-m-d')][$account->id]->amount);
+            self::assertSame(ValuationQuality::MISSING, $result[$beforeOpening->format('Y-m-d')][$account->id]->quality);
+            self::assertSame('1250.40', $result[$account->openedOn->format('Y-m-d')][$account->id]->amount?->value->toString());
+        }
+    }
+
     public function testModesAccountsAndDaysShareOneSnapshotAndOneMovementBatch(): void
     {
         $workspace = WorkspaceScope::fromString(AccountFixture::WORKSPACE);
