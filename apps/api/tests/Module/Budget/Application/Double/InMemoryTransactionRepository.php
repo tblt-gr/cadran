@@ -115,16 +115,6 @@ final class InMemoryTransactionRepository implements TransactionRepository, Book
         throw new \LogicException('Not needed by the Budget module.');
     }
 
-    public function firstLiveBookedOn(WorkspaceScope $workspace): ?\DateTimeImmutable
-    {
-        throw new \LogicException('Not needed by the Budget module.');
-    }
-
-    public function liveBookedMonths(WorkspaceScope $workspace): array
-    {
-        throw new \LogicException('Not needed by the Budget module.');
-    }
-
     public function countPendingInWorkspace(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int
     {
         throw new \LogicException('Not needed by the Budget module.');

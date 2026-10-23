@@ -122,18 +122,6 @@ final class InMemoryAccountBalanceSnapshotRepository implements AccountBalanceSn
         return count($this->findForAccount($workspace, $accountId)->snapshots);
     }
 
-    public function firstActiveValuedOn(WorkspaceScope $workspace): ?\DateTimeImmutable
-    {
-        $first = null;
-        foreach ($this->snapshots as $snapshot) {
-            if ($snapshot->workspace->equals($workspace) && $snapshot->isActive() && (null === $first || $snapshot->asOf < $first)) {
-                $first = $snapshot->asOf;
-            }
-        }
-
-        return $first;
-    }
-
     public function add(AccountBalanceSnapshot $snapshot): void
     {
         foreach ($this->snapshots as $stored) {

@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { useMultiYearReport } from '@/features/reports/multi-year/useMultiYearReport';
 import { TabsNav } from '@/components/ui/tabs-nav/TabsNav';
 
 /** Month label with year (`Septembre 2026`), capitalised like the Budget month tabs. */
@@ -23,8 +22,13 @@ interface MonthlyMonthNavigatorProps {
   /** Newest selectable month, `YYYY-MM`. */
   currentMonth: string;
   /** Selected month, `YYYY-MM`. */
+  /** Oldest month with eligible workspace data; null when the workspace has none. */
+  firstDataMonth?: string | null;
   month: string;
+  onRetry?: () => void;
   onSelect: (month: string) => void;
+  /** Bounds query state: the list is disabled until it is `ready`. */
+  status?: 'loading' | 'error' | 'ready';
 }
 
 /**
@@ -34,19 +38,17 @@ interface MonthlyMonthNavigatorProps {
  */
 export function MonthlyMonthNavigator({
   currentMonth,
+  firstDataMonth = null,
   month,
+  onRetry,
   onSelect,
+  status = 'ready',
 }: MonthlyMonthNavigatorProps) {
   const { t, i18n } = useTranslation();
-  // Unparameterized: the backend's own default bounds carry `availableFrom`,
-  // the workspace's first data year. While they load, the last twelve months
-  // are enough for a stable list.
-  const bounds = useMultiYearReport();
   const end = month > currentMonth ? month : currentMonth;
-  const earliest =
-    bounds.data?.availableFrom === null || bounds.data?.availableFrom === undefined
-      ? shiftMonth(end, -11)
-      : `${bounds.data.availableFrom}-01`;
+  // While the bounds are unknown the last twelve months keep the list stable; an empty
+  // workspace has no history, only the current month.
+  const earliest = status !== 'ready' ? shiftMonth(end, -11) : (firstDataMonth ?? currentMonth);
   const start = month < earliest ? month : earliest;
   const months: string[] = [];
   for (let candidate = end; candidate >= start; candidate = shiftMonth(candidate, -1)) {
@@ -54,16 +56,28 @@ export function MonthlyMonthNavigator({
   }
 
   return (
-    <TabsNav
-      items={months.map((candidate) => ({
-        id: candidate,
-        active: candidate === month,
-        current: candidate === currentMonth,
-        label: formatMonthLabel(candidate, i18n.language),
-        onSelect: () => onSelect(candidate),
-      }))}
-      label={t('reports.month')}
-      variant="secondary"
-    />
+    <>
+      <TabsNav
+        items={months.map((candidate) => ({
+          id: candidate,
+          active: candidate === month,
+          current: candidate === currentMonth,
+          disabled: status !== 'ready',
+          label: formatMonthLabel(candidate, i18n.language),
+          onSelect: () => onSelect(candidate),
+          title: status === 'ready' ? undefined : t('reports.boundsPending'),
+        }))}
+        label={t('reports.month')}
+        variant="secondary"
+      />
+      {status === 'error' ? (
+        <div role="alert">
+          <span>{t('reports.boundsError')}</span>{' '}
+          <button className="secondary-action" onClick={onRetry} type="button">
+            {t('reports.retry')}
+          </button>
+        </div>
+      ) : null}
+    </>
   );
 }

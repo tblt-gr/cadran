@@ -4,6 +4,7 @@ import {
   type RecordAccountBalanceRequest,
 } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
 import { useTranslation } from 'react-i18next';
 import { SkeletonButton, SkeletonField, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
@@ -65,12 +66,7 @@ export function MissingValuationRecorder({
     },
     onSuccess: async () => {
       onRecorded();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['net-worth'] }),
-        queryClient.invalidateQueries({ queryKey: ['net-worth-history'] }),
-        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
-        queryClient.invalidateQueries({ queryKey: ['account', accountId] }),
-      ]);
+      await invalidateAccountBalances(queryClient);
     },
   });
 

@@ -6,6 +6,7 @@ import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { ReportsTabs } from './ReportsTabs';
 import { MonthlyKpiTable } from './MonthlyKpiTable';
 import { ReportsPageSkeleton } from './ReportsPageSkeleton';
+import { useBoundedMonth } from './useBoundedMonth';
 import { MonthlyMonthNavigator, formatMonthLabel } from './MonthlyMonthNavigator';
 import styles from './ReportsPage.module.css';
 import { useMonthlyReport } from './useMonthlyReport';
@@ -21,13 +22,20 @@ export function ReportsPage() {
   const workspaceTimeZone = useWorkspaceTimeZone();
   const todayMonth = workspaceToday(new Date(), workspaceTimeZone).slice(0, 7);
   const [month, setMonth] = useState(() => initialMonth(todayMonth));
-  const report = useMonthlyReport(month);
+  const history = useBoundedMonth({
+    month,
+    hrefFor: (first) => `/reports?month=${first}`,
+    onCorrect: setMonth,
+  });
+  const report = useMonthlyReport(month, history.status === 'ready' && !history.pendingCorrection);
   useHeaderTitle(
     '/reports',
     t('reports.monthlyTitle', { month: formatMonthLabel(month, i18n.language) }),
   );
   let content: ReactNode;
-  if (report.isPending) {
+  if (history.status === 'error') {
+    content = null;
+  } else if (report.isPending) {
     content = <ReportsPageSkeleton status={t('reports.loading')} />;
   } else if (report.isError) {
     const unauthorized = report.error.message === '401' || report.error.message === '403';
@@ -62,7 +70,23 @@ export function ReportsPage() {
   return (
     <div className={styles.page}>
       <ReportsTabs active="monthly" currentYear={Number(todayMonth.slice(0, 4))} />
-      <MonthlyMonthNavigator currentMonth={todayMonth} month={month} onSelect={setMonth} />
+      <MonthlyMonthNavigator
+        currentMonth={todayMonth}
+        firstDataMonth={history.firstDataMonth}
+        month={month}
+        onRetry={() => void history.bounds.refetch()}
+        onSelect={setMonth}
+        status={history.status}
+      />
+      {history.correctedTo !== null ? (
+        <p aria-live="polite" className="sr-only" key={history.correctionKey} role="status">
+          {t('reports.corrected', {
+            month: formatMonthLabel(history.correctedTo, i18n.language).toLocaleLowerCase(
+              i18n.language,
+            ),
+          })}
+        </p>
+      ) : null}
       {content}
     </div>
   );

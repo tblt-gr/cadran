@@ -76,3 +76,12 @@
 .year select:focus-visible {
   outline: var(--outline-focus);
 }
+
+.retry {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--spacing-3);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}

@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Budget\Infrastructure\Reporting;
 
-use App\Module\Accounts\Application\ReadFirstValuationMonth;
-use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
+use App\Module\Accounts\Application\FirstNetWorthDataDayReader;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Application\Goals\ReadReferenceIncome;
 use App\Module\Budget\Infrastructure\Reporting\ReportingGoalMonthSource;
@@ -20,9 +19,8 @@ use App\Module\Reporting\Application\MonthlyMetricView;
 use App\Module\Reporting\Application\MonthlyProjectionView;
 use App\Module\Reporting\Application\MonthlyProjector;
 use App\Module\Reporting\Application\ReadFirstDataMonth;
+use App\Module\Reporting\Application\WorkspaceToday;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
-use App\Module\Transactions\Application\ReadFirstTransactionMonth;
-use App\Module\Transactions\Domain\TransactionRepository;
 use App\Tests\Module\Reporting\Application\Double\InMemoryMonthSnapshotStore;
 use App\Tests\Module\Reporting\Application\Double\InMemoryPeriodClosureRepository;
 use App\Tests\Module\Reporting\Application\Double\MonthlyProjectionFixture;
@@ -76,10 +74,10 @@ final class ReportingGoalMonthSourceTest extends TestCase
     /** @param array<string, string|null> $incomes month key => cash income, null for a complete month without value */
     private function source(array $incomes): ReportingGoalMonthSource
     {
-        $transactions = $this->createStub(TransactionRepository::class);
-        $transactions->method('firstLiveBookedOn')->willReturn(new \DateTimeImmutable('2025-11-03'));
-        $snapshots = $this->createStub(AccountBalanceSnapshotRepository::class);
-        $snapshots->method('firstActiveValuedOn')->willReturn(null);
+        $first = $this->createStub(FirstNetWorthDataDayReader::class);
+        $first->method('onOrBefore')->willReturn(new \DateTimeImmutable('2025-11-03'));
+        $timezones = $this->createStub(WorkspaceTimezoneReader::class);
+        $timezones->method('timezone')->willReturn('UTC');
 
         $load = new LoadAnnualMonths(
             new FixedIncomeProjector($incomes),
@@ -88,7 +86,7 @@ final class ReportingGoalMonthSourceTest extends TestCase
             $this->calendar(),
         );
 
-        return new ReportingGoalMonthSource($load, new ReadFirstDataMonth(new ReadFirstTransactionMonth($transactions), new ReadFirstValuationMonth($snapshots)));
+        return new ReportingGoalMonthSource($load, new ReadFirstDataMonth($first, new WorkspaceToday(new MockClock('2026-09-14T09:12:00+00:00'), $timezones)));
     }
 
     private function calendar(): WorkspaceCalendar

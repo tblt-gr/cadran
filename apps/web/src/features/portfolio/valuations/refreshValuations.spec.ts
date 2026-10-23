@@ -23,6 +23,15 @@ describe('refreshValuations', () => {
     });
   });
 
+  it('invalidates the workspace month bounds', async () => {
+    const client = new QueryClient();
+    const invalidate = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
+
+    await refreshValuations(client, 'account-1');
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['monthly-bounds'] });
+  });
+
   it('invalidates the value history of the account', async () => {
     const client = new QueryClient();
     const invalidate = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
