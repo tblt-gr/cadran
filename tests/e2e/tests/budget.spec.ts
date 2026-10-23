@@ -23,7 +23,12 @@ test.describe('monthly budget', () => {
     await expect(
       page.getByRole('status').filter({ hasText: 'Cette période est clôturée.' }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Créer une transaction' })).toBeDisabled();
+    await expect(
+      page.getByRole('button', { name: 'Ajouter une dépense', exact: true }),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole('button', { name: 'Ajouter un revenu', exact: true }),
+    ).toBeDisabled();
   });
 
   test('redirects a direct load of /budget to the current month and renders it', async ({
