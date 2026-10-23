@@ -71,6 +71,12 @@
   overflow-wrap: anywhere;
   cursor: pointer;
 }
+@media (pointer: coarse) {
+  .row > div > .label {
+    min-inline-size: var(--touch-target-min);
+    min-block-size: var(--touch-target-min);
+  }
+}
 .label:hover:not(:disabled),
 .label:focus-visible {
   text-decoration: underline;
