@@ -2,7 +2,7 @@ import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChar
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { useValueHistory } from '@/features/portfolio/portfolio-account/value-history-card/useValueHistory';
 import { ValueHistoryChart } from '@/features/portfolio/portfolio-account/value-history-card/ValueHistoryChart';
-import { historyFrom } from '@/features/portfolio/portfolio-account/value-history-card/valueHistoryRange';
+import { chartPeriodFrom } from '@/lib/chartPeriodRange';
 import { workspaceToday } from '@/lib/workspaceTime';
 import styles from './PortfolioCardCurve.module.css';
 
@@ -15,7 +15,7 @@ export function PortfolioCardCurve({
   assetCode: string;
 }) {
   const today = workspaceToday(new Date(), useWorkspaceTimeZone());
-  const history = useValueHistory(accountId, today, historyFrom(today, '12'));
+  const history = useValueHistory(accountId, today, chartPeriodFrom('LAST_12_MONTHS', today));
 
   if (history.isPending) {
     return <CurveChartSkeleton />;

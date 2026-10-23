@@ -64,10 +64,31 @@ it('uses bounded periods and exposes exact dated amounts and freshness to keyboa
   expect(screen.getByRole('tooltip').textContent).toContain('123456789012345678901234');
   expect(screen.getByRole('tooltip').textContent).toContain('Dernier solde connu');
   expect(screen.getByRole('table').textContent).toContain('01/10/2026');
-  fireEvent.click(screen.getByRole('button', { name: 'Année en cours' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
   await waitFor(() =>
     expect(api.readAccountValuationHistory.mock.calls.at(-1)?.[0].query.from).toBe('2026-01-01'),
   );
+});
+it('offers only 12 mois and Depuis janvier, never Tout or 24 mois, defaulting to 12 mois', async () => {
+  const { container } = mount();
+  await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
+  const group = screen.getByRole('group', { name: 'Période de l’historique' });
+  expect(Array.from(group.querySelectorAll('button')).map((b) => b.textContent)).toEqual([
+    '12 mois',
+    'Depuis janvier',
+  ]);
+  expect(screen.getByRole('button', { name: '12 mois' }).getAttribute('aria-pressed')).toBe('true');
+});
+it('keeps the previous chart and flags the panel busy while a new range loads', async () => {
+  const { container } = mount();
+  await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
+  api.readAccountValuationHistory.mockReturnValue(new Promise(() => {}));
+  fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
+  await waitFor(() =>
+    expect(container.querySelector('section')?.getAttribute('aria-busy')).toBe('true'),
+  );
+  expect(container.querySelector('[data-skeleton]')).toBeNull();
+  expect(screen.getByRole('button', { name: /10\/10\/2026, / })).toBeTruthy();
 });
 it('keeps static chrome and disabled controls while loading', () => {
   api.readAccountValuationHistory.mockReturnValue(new Promise(() => {}));

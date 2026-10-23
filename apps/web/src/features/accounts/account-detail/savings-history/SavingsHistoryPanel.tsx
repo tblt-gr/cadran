@@ -2,35 +2,39 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SavingsHistoryChart } from './SavingsHistoryChart';
 import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
-import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
+import { ChartPeriodControl } from '@/components/ui/chart-period-control/ChartPeriodControl';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
-import { historyFrom } from '@/features/portfolio/portfolio-account/value-history-card/valueHistoryRange';
+import { chartPeriodFrom, type ChartPeriod } from '@/lib/chartPeriodRange';
 import { SavingsHistoryTable } from './SavingsHistoryTable';
 import { useSavingsHistory } from './useSavingsHistory';
 import styles from './SavingsHistoryPanel.module.css';
 
+// The history API accepts at most 366 elapsed days, so neither Tout nor 24 mois is offered.
+const SAVINGS_PERIODS: readonly ChartPeriod[] = ['LAST_12_MONTHS', 'YTD'];
+
 export function SavingsHistoryPanel({ accountId, today }: { accountId: string; today: string }) {
   const { t } = useTranslation();
   const id = useId();
-  const [period, setPeriod] = useState<'12' | 'year'>('12');
+  const [period, setPeriod] = useState<ChartPeriod>('LAST_12_MONTHS');
   const [tableOpen, setTableOpen] = useState(false);
-  const from = period === 'year' ? `${today.slice(0, 4)}-01-01` : historyFrom(today, '12')!;
+  const from = chartPeriodFrom(period, today)!;
   const history = useSavingsHistory(accountId, from, today);
   const points = history.data?.points;
   const pending = history.isPending;
   return (
-    <section className={`card ${styles.card}`} aria-labelledby={id} aria-busy={pending}>
+    <section
+      className={`card ${styles.card}`}
+      aria-labelledby={id}
+      aria-busy={pending || history.isPlaceholderData}
+    >
       {pending ? <SkeletonStatus>{t('accounts.history.loading')}</SkeletonStatus> : null}
       <div className={styles.header}>
         <h3 id={id}>{t('accounts.history.title')}</h3>
-        <SegmentedControl
+        <ChartPeriodControl
           label={t('accounts.history.period')}
           disabled={pending}
-          options={[
-            { value: '12', label: t('accounts.history.rolling') },
-            { value: 'year', label: t('accounts.history.year') },
-          ]}
+          periods={SAVINGS_PERIODS}
           value={period}
           onChange={setPeriod}
         />

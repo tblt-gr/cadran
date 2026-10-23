@@ -1,3 +1,4 @@
+import { Fragment, useId } from 'react';
 import styles from './SegmentedControl.module.css';
 
 interface SegmentedControlProps<T extends string> {
@@ -5,7 +6,7 @@ interface SegmentedControlProps<T extends string> {
   label: string;
   disabled?: boolean;
   onChange: (value: T) => void;
-  options: readonly { value: T; label: string }[];
+  options: readonly { value: T; label: string; description?: string }[];
   value: T;
 }
 
@@ -17,20 +18,32 @@ export function SegmentedControl<T extends string>({
   options,
   value,
 }: SegmentedControlProps<T>) {
+  const id = useId();
   return (
     <div aria-label={label} className={styles.track} role="group">
-      {options.map((option) => (
-        <button
-          aria-pressed={value === option.value}
-          className={styles.segment}
-          disabled={disabled}
-          key={option.value}
-          onClick={() => onChange(option.value)}
-          type="button"
-        >
-          {option.label}
-        </button>
-      ))}
+      {options.map((option, index) => {
+        const descriptionId = `${id}-${index}`;
+        return (
+          <Fragment key={option.value}>
+            <button
+              aria-describedby={option.description ? descriptionId : undefined}
+              aria-pressed={value === option.value}
+              className={styles.segment}
+              disabled={disabled}
+              onClick={() => onChange(option.value)}
+              title={option.description}
+              type="button"
+            >
+              {option.label}
+            </button>
+            {option.description ? (
+              <span className="sr-only" id={descriptionId}>
+                {option.description}
+              </span>
+            ) : null}
+          </Fragment>
+        );
+      })}
     </div>
   );
 }
