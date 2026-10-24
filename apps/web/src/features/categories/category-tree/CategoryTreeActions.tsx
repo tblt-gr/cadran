@@ -8,7 +8,7 @@ const LIFECYCLE_ICONS = {
   ARCHIVE: 'archive',
   MERGE: 'merge',
   MOVE: 'move',
-  REPLACE: 'replace',
+  REPLACE: 'calendar',
 } as const;
 
 interface CategoryTreeActionsProps {

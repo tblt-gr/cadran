@@ -132,7 +132,7 @@ function IconPath({ name }: { name: IconName }) {
     case 'reorder':
       return <path d="m8 9 4-4 4 4m-8 6 4 4 4-4" />;
     case 'merge':
-      return <path d="M8 4v8a4 4 0 0 0 8 0V4M8 8h8" />;
+      return <path d="M5 4l7 7 7-7M12 11v9m-3-3 3 3 3-3" />;
     case 'replace':
       return <path d="M7 8h11l-3-3M17 16H6l3 3" />;
     case 'rules':
