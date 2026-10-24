@@ -91,6 +91,34 @@ final readonly class AccountBalanceSnapshot
         );
     }
 
+    /**
+     * The figure or comment of the active row is amended where it stands: same
+     * identifier, same day, same source. The step is recorded in the audit trail
+     * and the version moves on, so no second row is created. A changed figure
+     * has not been compared to the movements yet, so it is unreconciled again.
+     */
+    public function corrected(AssetAmount $amount, ?string $comment): self
+    {
+        if (!$this->isActive()) {
+            throw new InvalidAccountBalanceSnapshot('A superseded snapshot cannot be corrected.');
+        }
+
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            accountId: $this->accountId,
+            asOf: $this->asOf,
+            amount: $amount,
+            source: $this->source,
+            reconciliationStatus: ReconciliationStatus::UNRECONCILED,
+            comment: $comment,
+            version: $this->version + 1,
+            recordedAt: $this->recordedAt,
+            recordedBy: $this->recordedBy,
+            supersededAt: null,
+        );
+    }
+
     /** The figure stops answering with no replacement, as when a valuation is withdrawn; the row stays on the trail. */
     public function withdrawn(\DateTimeImmutable $at): self
     {

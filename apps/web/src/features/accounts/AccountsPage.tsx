@@ -101,6 +101,10 @@ export function AccountsPage() {
         closeRecording={closeRecording}
         editor={editor}
         inspecting={inspecting}
+        onBalanceCorrected={() => {
+          closeRecording();
+          setSaved('recorded');
+        }}
         onOverrideRecorded={() => setSaved('claimed')}
         onOverrideWithdrawn={() => setSaved('withdrawn')}
         onReconciled={() => {

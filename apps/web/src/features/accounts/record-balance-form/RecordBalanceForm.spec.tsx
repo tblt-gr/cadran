@@ -6,6 +6,7 @@ import '@/i18n';
 import { RecordBalanceForm } from './RecordBalanceForm';
 
 const api = vi.hoisted(() => ({
+  correctAccountBalance: vi.fn(),
   listAccountBalances: vi.fn(),
   withdrawAccountBalance: vi.fn(),
 }));
@@ -57,12 +58,14 @@ function listing(items: unknown[]) {
 
 function renderForm() {
   const onSubmit = vi.fn();
+  const onCorrected = vi.fn();
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
       <RecordBalanceForm
         account={account}
         onCancel={vi.fn()}
+        onCorrected={onCorrected}
         onSubmit={onSubmit}
         pending={false}
         submitError={null}
@@ -72,31 +75,45 @@ function renderForm() {
   );
   fireEvent.click(screen.getByText('Relevés enregistrés'));
 
-  return onSubmit;
+  return { onSubmit, onCorrected };
 }
 
 beforeEach(() => vi.clearAllMocks());
 afterEach(() => cleanup());
 
-it('corrects a listed manual snapshot with its own version and a fixed date', async () => {
+it('amends the listed snapshot in place instead of recording another one', async () => {
   listing([snapshot]);
-  const onSubmit = renderForm();
+  api.correctAccountBalance.mockImplementation(() =>
+    Promise.resolve({
+      data: { ...snapshot, version: 8 },
+      response: new Response('{}', { status: 200 }),
+    }),
+  );
+  const scrollIntoView = vi.fn();
+  Element.prototype.scrollIntoView = scrollIntoView;
+  const { onSubmit, onCorrected } = renderForm();
 
   fireEvent.click(await screen.findByRole('button', { name: /actions pour le relevé du/i }));
   fireEvent.click(screen.getByRole('button', { name: /modifier le relevé du/i }));
 
+  // The form is above the list: it is brought back into view and the amount is focused.
+  await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+  const amount = screen.getByLabelText(/montant/i, { selector: 'input' });
+  expect(document.activeElement).toBe(amount);
   const date = screen.getByLabelText(/date/i, { selector: 'input' });
   expect(date).toHaveProperty('readOnly', true);
   expect(date).toHaveProperty('value', '2026-01-15');
-
-  const amount = screen.getByLabelText(/montant/i, { selector: 'input' });
   expect(amount).toHaveProperty('value', '100.00');
+
   fireEvent.change(amount, { target: { value: '125.50' } });
   fireEvent.click(screen.getByRole('button', { name: /enregistrer la correction/i }));
 
-  await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
-  expect(onSubmit).toHaveBeenCalledWith({
-    asOf: '2026-01-15',
+  await waitFor(() => expect(onCorrected).toHaveBeenCalledTimes(1));
+  expect(onSubmit).not.toHaveBeenCalled();
+  expect(api.correctAccountBalance).toHaveBeenCalledOnce();
+  const call = api.correctAccountBalance.mock.calls[0]?.[0];
+  expect(call.path).toEqual({ id: 'courant', snapshotId: snapshot.id });
+  expect(call.body).toEqual({
     amount: '125.50',
     amountAssetCode: 'EUR',
     comment: 'Relevé de janvier',
