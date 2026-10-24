@@ -93,6 +93,18 @@ final class InMemoryAccountBalanceSnapshotRepository implements AccountBalanceSn
         return $latest;
     }
 
+    public function earliestActiveAsOf(WorkspaceScope $workspace, string $accountId): ?\DateTimeImmutable
+    {
+        $earliest = null;
+        foreach ($this->findForAccount($workspace, $accountId)->snapshots as $snapshot) {
+            if ($snapshot->isActive() && (null === $earliest || $snapshot->asOf < $earliest)) {
+                $earliest = $snapshot->asOf;
+            }
+        }
+
+        return $earliest;
+    }
+
     public function pageForAccount(
         WorkspaceScope $workspace,
         string $accountId,

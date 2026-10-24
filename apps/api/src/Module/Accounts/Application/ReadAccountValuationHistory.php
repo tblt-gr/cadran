@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Catalog\Domain\BusinessDay;
@@ -13,15 +14,18 @@ use App\Module\Foundation\Application\WorkspaceCalendar;
 /** Bounded daily resolution preserves the shared strategy, then emits lossless steps. */
 final readonly class ReadAccountValuationHistory
 {
+    private const int MAX_UNBOUNDED_DAYS = 3660;
+
     public function __construct(
         private CallerWorkspace $caller,
         private AccountRepository $accounts,
         private ResolveAccountValuations $valuations,
         private WorkspaceCalendar $calendar,
+        private AccountBalanceSnapshotRepository $snapshots,
     ) {
     }
 
-    public function __invoke(string $accountId, string $from, string $to): AccountValuationHistoryView
+    public function __invoke(string $accountId, ?string $from, string $to): AccountValuationHistoryView
     {
         $workspace = $this->caller->resolve();
         $account = $this->accounts->find($workspace, $accountId);
@@ -29,12 +33,24 @@ final readonly class ReadAccountValuationHistory
             throw new AccountNotFound('No account carries this identifier in this workspace.');
         }
         try {
-            $start = BusinessDay::fromIsoDate($from)->date;
             $end = BusinessDay::fromIsoDate($to)->date;
+            $start = null === $from ? $end : BusinessDay::fromIsoDate($from)->date;
         } catch (\Throwable $exception) {
             throw new InvalidAccountBalanceInput('History requires ISO calendar days.', previous: $exception);
         }
-        if ($start > $end || $end > $this->calendar->today() || (int) $start->diff($end)->format('%a') > 366) {
+        $truncated = false;
+        if (null === $from) {
+            if ($end > $this->calendar->today()) {
+                throw new InvalidAccountBalanceInput('History must end no later than today.');
+            }
+            // Only a snapshot anchors a balance: earlier days, even with movements, would all be null NO_ANCHOR points.
+            $earliest = $this->snapshots->earliestActiveAsOf($workspace, $account->id);
+            if (null !== $earliest && $earliest < $end) {
+                $floor = $end->modify('-'.self::MAX_UNBOUNDED_DAYS.' days');
+                $truncated = $earliest < $floor;
+                $start = $truncated ? $floor : $earliest;
+            }
+        } elseif ($start > $end || $end > $this->calendar->today() || (int) $start->diff($end)->format('%a') > 366) {
             throw new InvalidAccountBalanceInput('History accepts at most 366 elapsed days, ending no later than today.');
         }
         $days = [];
@@ -44,7 +60,7 @@ final readonly class ReadAccountValuationHistory
         $points = [];
         $previous = null;
         $hasHistory = false;
-        // At most seven batches, independent of transaction volume; never a query per movement.
+        // At most 62 batches, independent of transaction volume; never a query per movement.
         foreach (array_chunk($days, 60) as $batch) {
             $resolved = $this->valuations->forAccounts($workspace, [$account], $batch);
             foreach ($batch as $day) {
@@ -74,7 +90,7 @@ final readonly class ReadAccountValuationHistory
             }
         }
 
-        return new AccountValuationHistoryView($account->id, $from, $to, $hasHistory, $points);
+        return new AccountValuationHistoryView($account->id, $start->format('Y-m-d'), $to, $hasHistory, $truncated, $points);
     }
 
     private static function changeKey(AccountValuation $valuation): string

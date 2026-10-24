@@ -49,6 +49,9 @@ interface AccountBalanceSnapshotRepository
         array $dates,
     ): array;
 
+    /** The earliest as-of day among the active snapshots of this account, or null without any. */
+    public function earliestActiveAsOf(WorkspaceScope $workspace, string $accountId): ?\DateTimeImmutable;
+
     /**
      * Snapshot history newest day first, superseded rows included.
      *

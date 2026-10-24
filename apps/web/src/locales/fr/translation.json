@@ -854,6 +854,7 @@
       "nonCalculable": "Aucun solde calculable à tracer. Les raisons sont disponibles dans le tableau.",
       "loading": "Chargement de l’historique du solde…",
       "period": "Période de l’historique",
+      "truncated": "Historique limité aux 10 dernières années : les soldes plus anciens ne sont pas affichés.",
       "date": "Date",
       "balance": "Solde exact",
       "quality": "Qualité",

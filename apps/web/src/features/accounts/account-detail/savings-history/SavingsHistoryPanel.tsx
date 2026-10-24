@@ -10,15 +10,15 @@ import { SavingsHistoryTable } from './SavingsHistoryTable';
 import { useSavingsHistory } from './useSavingsHistory';
 import styles from './SavingsHistoryPanel.module.css';
 
-// The history API accepts at most 366 elapsed days, so neither Tout nor 24 mois is offered.
-const SAVINGS_PERIODS: readonly ChartPeriod[] = ['LAST_12_MONTHS', 'YTD'];
+// An explicit range spans at most 366 elapsed days; Tout omits `from` and the API resolves it.
+const SAVINGS_PERIODS: readonly ChartPeriod[] = ['ALL', 'LAST_12_MONTHS', 'YTD'];
 
 export function SavingsHistoryPanel({ accountId, today }: { accountId: string; today: string }) {
   const { t } = useTranslation();
   const id = useId();
   const [period, setPeriod] = useState<ChartPeriod>('LAST_12_MONTHS');
   const [tableOpen, setTableOpen] = useState(false);
-  const from = chartPeriodFrom(period, today)!;
+  const from = chartPeriodFrom(period, today);
   const history = useSavingsHistory(accountId, from, today);
   const points = history.data?.points;
   const pending = history.isPending;
@@ -40,6 +40,9 @@ export function SavingsHistoryPanel({ accountId, today }: { accountId: string; t
         />
       </div>
       <p className={styles.notice}>{t('accounts.history.description')}</p>
+      {history.data?.truncated ? (
+        <p className={styles.notice}>{t('accounts.history.truncated')}</p>
+      ) : null}
       {history.isError ? (
         <div role="alert">
           <p>{t('accounts.history.error')}</p>

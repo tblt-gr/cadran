@@ -17,6 +17,7 @@ final readonly class AccountValuationHistoryRepresentation
             'from' => $history->from,
             'to' => $history->to,
             'hasHistory' => $history->hasHistory,
+            'truncated' => $history->truncated,
             'points' => array_map(self::point(...), $history->points),
         ];
     }

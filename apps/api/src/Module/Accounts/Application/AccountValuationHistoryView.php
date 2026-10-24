@@ -12,6 +12,7 @@ final readonly class AccountValuationHistoryView
         public string $from,
         public string $to,
         public bool $hasHistory,
+        public bool $truncated,
         public array $points,
     ) {
     }
