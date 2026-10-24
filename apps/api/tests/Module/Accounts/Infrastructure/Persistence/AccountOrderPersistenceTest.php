@@ -118,6 +118,133 @@ final class AccountOrderPersistenceTest extends KernelTestCase
         self::assertCount(3, $this->accounts->memberIdsInOrder(WorkspaceFixture::own(), self::GROUP, 100));
     }
 
+    public function testNetWorthListingFollowsTheSavedOrderOfEachGroupWithTheUngroupedLast(): void
+    {
+        $this->add('01', 'Alpha', self::GROUP);
+        $this->add('02', 'Beta', self::GROUP);
+        $this->add('03', 'Gamma', self::OTHER_GROUP);
+        $this->add('04', 'Delta', self::OTHER_GROUP);
+        $this->add('05', 'Epsilon', null);
+        $this->add('06', 'Zeta', null);
+        $this->orders->save(WorkspaceFixture::own(), self::GROUP, [$this->id('02'), $this->id('01')], 1);
+        $this->orders->save(WorkspaceFixture::own(), self::OTHER_GROUP, [$this->id('04'), $this->id('03')], 1);
+        $this->orders->save(WorkspaceFixture::own(), null, [$this->id('06'), $this->id('05')], 1);
+
+        $listed = $this->netWorthIds();
+
+        self::assertSame($this->ids(['02', '01']), $this->only($listed, ['01', '02']));
+        self::assertSame($this->ids(['04', '03']), $this->only($listed, ['03', '04']));
+        self::assertSame($this->ids(['06', '05']), array_slice($listed, -2));
+    }
+
+    public function testNetWorthListingReflectsAMoveOnTheNextReadAndDropsAStalePosition(): void
+    {
+        $this->add('01', 'Alpha', self::GROUP);
+        $this->add('02', 'Beta', self::GROUP);
+        $this->add('03', 'Gamma', self::GROUP);
+        $this->orders->save(WorkspaceFixture::own(), self::GROUP, [$this->id('03'), $this->id('02'), $this->id('01')], 1);
+        self::assertSame($this->ids(['03', '02', '01']), $this->netWorthIds());
+
+        $this->orders->save(WorkspaceFixture::own(), self::GROUP, [$this->id('01'), $this->id('03'), $this->id('02')], 2);
+        self::assertSame($this->ids(['01', '03', '02']), $this->netWorthIds());
+
+        // Regrouped since the last move: the saved position names another group.
+        $this->connection->update('account_financial_accounts', ['primary_group_id' => self::OTHER_GROUP], ['id' => $this->id('01')]);
+        self::assertSame($this->ids(['01']), $this->only($this->netWorthIds(), ['01']));
+        self::assertSame($this->ids(['03', '02']), $this->only($this->netWorthIds(), ['02', '03']));
+    }
+
+    public function testNetWorthListingFallsBackToCreationOrderWithoutAnyPosition(): void
+    {
+        $this->add('01', 'Zeta', self::GROUP, '2026-09-01T12:00:00+00:00');
+        $this->add('02', 'Alpha', self::GROUP, '2026-09-01T10:00:00+00:00');
+        $this->add('03', 'Mid', self::GROUP, '2026-09-01T11:00:00+00:00');
+
+        self::assertSame($this->ids(['02', '03', '01']), $this->netWorthIds());
+    }
+
+    public function testNetWorthListingPlacesUnplacedAccountsAfterPlacedOnes(): void
+    {
+        $this->add('01', 'Alpha', self::GROUP, '2026-09-01T10:00:00+00:00');
+        $this->add('02', 'Beta', self::GROUP, '2026-09-01T11:00:00+00:00');
+        $this->add('03', 'Gamma', self::GROUP, '2026-09-01T12:00:00+00:00');
+        $this->orders->save(WorkspaceFixture::own(), self::GROUP, [$this->id('03')], 1);
+
+        self::assertSame($this->ids(['03', '01', '02']), $this->netWorthIds());
+    }
+
+    public function testNetWorthListingOrderMatchesTheOverviewForTheRowsBothShow(): void
+    {
+        $this->add('01', 'Alpha', self::GROUP);
+        $this->add('02', 'Beta', self::GROUP, closedOn: '2026-02-01');
+        $this->add('03', 'Gamma', self::GROUP);
+        $this->add('04', 'Delta', self::GROUP);
+        $this->orders->save(WorkspaceFixture::own(), self::GROUP, [$this->id('04'), $this->id('02'), $this->id('01'), $this->id('03')], 1);
+
+        $overview = array_map(
+            static fn (RankedAccount $row): string => $row->account->id,
+            $this->accounts->listInGroupOrder(WorkspaceFixture::own(), self::GROUP, false, false, 0, 50),
+        );
+        $listed = $this->netWorthIds();
+
+        self::assertSame($this->ids(['04', '01', '03']), $overview);
+        self::assertSame($overview, array_values(array_intersect($listed, $overview)));
+    }
+
+    public function testNetWorthListingNeverReadsAnotherWorkspaceOrItsPositions(): void
+    {
+        $this->add('01', 'Alpha', self::GROUP);
+        $this->add('02', 'Beta', self::GROUP);
+        $this->add('03', 'Voisin', null, workspace: WorkspaceFixture::OTHER_WORKSPACE);
+        $this->orders->save(WorkspaceFixture::own(), self::GROUP, [$this->id('02'), $this->id('01')], 1);
+
+        self::assertSame($this->ids(['02', '01']), $this->netWorthIds());
+        self::assertSame($this->ids(['03']), $this->netWorthIds(WorkspaceFixture::other()));
+    }
+
+    public function testNetWorthListingOfAnEmptyWorkspaceIsEmpty(): void
+    {
+        self::assertSame([], $this->netWorthIds());
+    }
+
+    /** @return list<string> */
+    private function netWorthIds(?WorkspaceScope $workspace = null): array
+    {
+        $utc = new \DateTimeZone('UTC');
+
+        return array_map(
+            static fn (Account $account): string => $account->id,
+            $this->accounts->listForNetWorthDuring(
+                $workspace ?? WorkspaceFixture::own(),
+                new \DateTimeImmutable('2026-09-01', $utc),
+                new \DateTimeImmutable('2026-09-30', $utc),
+                new \DateTimeZone('Europe/Paris'),
+                100,
+            ),
+        );
+    }
+
+    /**
+     * @param list<string> $suffixes
+     *
+     * @return list<string>
+     */
+    private function ids(array $suffixes): array
+    {
+        return array_map($this->id(...), $suffixes);
+    }
+
+    /**
+     * @param list<string> $listed
+     * @param list<string> $suffixes
+     *
+     * @return list<string>
+     */
+    private function only(array $listed, array $suffixes): array
+    {
+        return array_values(array_intersect($listed, $this->ids($suffixes)));
+    }
+
     public function testPagesAreBoundedAndResumeAfterTheLastRank(): void
     {
         for ($index = 1; $index <= 55; ++$index) {

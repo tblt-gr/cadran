@@ -14934,6 +14934,7 @@ components:
         - kind
         - netWorthSign
         - primaryGroupId
+        - institution
         - primaryGroupLabel
         - eligible
         - previousValue
@@ -14950,6 +14951,13 @@ components:
           type: string
           minLength: 1
           maxLength: 120
+        institution:
+          description: >-
+            Where the account is held, for example the bank or the insurer.
+            Secondary to the label, which it never replaces. Null when the
+            account has none.
+          type: [string, 'null']
+          maxLength: 80
         kind:
           type: string
         netWorthSign:

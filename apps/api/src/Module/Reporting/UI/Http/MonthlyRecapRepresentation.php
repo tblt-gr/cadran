@@ -75,6 +75,7 @@ final class MonthlyRecapRepresentation
             'primaryGroupId' => $account->primaryGroupId,
             'primaryGroupLabel' => $account->primaryGroupLabel,
             'primaryGroupColor' => $account->primaryGroupColor,
+            'institution' => $account->institution,
             'eligible' => $account->eligible,
             'previousValue' => self::value($account->previousValue),
             'currentValue' => self::value($account->currentValue),

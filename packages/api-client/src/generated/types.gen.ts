@@ -2840,6 +2840,10 @@ export type MonthlyRecapAccount = {
     primaryGroupColor: string | null;
     accountId: string;
     label: string;
+    /**
+     * Where the account is held, for example the bank or the insurer. Secondary to the label, which it never replaces. Null when the account has none.
+     */
+    institution: string | null;
     kind: string;
     netWorthSign: -1 | 1;
     primaryGroupId: string | null;

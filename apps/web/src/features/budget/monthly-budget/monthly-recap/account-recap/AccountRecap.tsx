@@ -85,6 +85,11 @@ function AccountRow({ account, color }: { account: MonthlyRecapAccount; color?: 
         <a href={href} onClick={(event) => handleClientNavigation(event, href)}>
           {account.label}
         </a>
+        {account.institution === null ? null : (
+          <small className={styles.institution} title={account.institution}>
+            {account.institution}
+          </small>
+        )}
         {!account.eligible ? (
           <small className={styles.ineligible}>
             {t('budget.monthly.recap.accounts.ineligible')}

@@ -37,8 +37,10 @@ final readonly class DbalAccountRepository implements AccountRepository
      * while it names this very group: an account regrouped since the last move
      * is unplaced here and goes after the placed ones, oldest first.
      */
+    private const string MEMBER_ORDER = '(p.position IS NULL), p.position, a.created_at, a.id';
+
     private const string RANKED_MEMBERS = 'SELECT a.id AS account_id, row_number() OVER ('
-        .'ORDER BY (p.position IS NULL), p.position, a.created_at, a.id) AS member_rank'
+        .'ORDER BY '.self::MEMBER_ORDER.') AS member_rank'
         .' FROM account_financial_accounts a LEFT JOIN account_overview_positions p'
         .' ON p.workspace_id = a.workspace_id AND p.account_id = a.id AND p.group_key = :group_key'
         .' WHERE a.workspace_id = :workspace_id AND a.primary_group_id IS NOT DISTINCT FROM :group_id';
@@ -130,12 +132,16 @@ final readonly class DbalAccountRepository implements AccountRepository
         \DateTimeZone $workspaceTimezone,
         int $limit,
     ): array {
+        // Members of one group stay contiguous and follow the accounts-page order; the group
+        // sequence itself is not meaningful here, callers order groups from the group tree.
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT '.self::COLUMNS.' FROM account_financial_accounts'
-            .' WHERE workspace_id = :workspace_id AND include_in_net_worth = true AND opened_on <= :to_day'
-            .' AND (closed_on IS NULL OR closed_on >= :from_day)'
-            .' AND (archived_at IS NULL OR timezone(:workspace_timezone, archived_at)::date > :from_day)'
-            .' ORDER BY kind, normalized_label, id LIMIT :limit',
+            'SELECT '.self::prefixed('a', self::COLUMNS).' FROM account_financial_accounts a'
+            .' LEFT JOIN account_overview_positions p ON p.workspace_id = :workspace_id AND p.account_id = a.id'
+            ." AND p.group_key = COALESCE(a.primary_group_id, '".AccountOrdering::UNGROUPED_KEY."'::uuid)"
+            .' WHERE a.workspace_id = :workspace_id AND a.include_in_net_worth = true AND a.opened_on <= :to_day'
+            .' AND (a.closed_on IS NULL OR a.closed_on >= :from_day)'
+            .' AND (a.archived_at IS NULL OR timezone(:workspace_timezone, a.archived_at)::date > :from_day)'
+            .' ORDER BY (a.primary_group_id IS NULL), a.primary_group_id, '.self::MEMBER_ORDER.' LIMIT :limit',
             [
                 'workspace_id' => $workspace->id,
                 'from_day' => $from->format('Y-m-d'),
@@ -294,6 +300,14 @@ final readonly class DbalAccountRepository implements AccountRepository
         } catch (UniqueConstraintViolationException $exception) {
             throw new AccountConflict('An active account already uses this label.', previous: $exception);
         }
+    }
+
+    private static function prefixed(string $alias, string $columns): string
+    {
+        return implode(', ', array_map(
+            static fn (string $column): string => $alias.'.'.trim($column),
+            explode(',', $columns),
+        ));
     }
 
     /**

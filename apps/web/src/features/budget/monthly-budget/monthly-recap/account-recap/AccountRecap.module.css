@@ -79,10 +79,15 @@
 }
 
 .unavailable small,
+.institution,
 .ineligible {
   display: block;
   color: var(--text-muted);
   font-size: var(--font-size-xs);
+}
+
+.institution {
+  overflow-wrap: anywhere;
 }
 
 .empty {
