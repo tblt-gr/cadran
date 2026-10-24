@@ -59,6 +59,9 @@ it('lists an active relevé and withdraws it', async () => {
   renderList();
 
   expect(await screen.findByText('100,00 €')).toBeTruthy();
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Actions pour le relevé du 15/01/2026' }),
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Retirer le relevé du 15/01/2026' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Retirer le relevé' }));
 
