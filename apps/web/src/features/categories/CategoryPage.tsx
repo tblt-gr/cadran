@@ -118,7 +118,8 @@ export function CategoryPage() {
   const unauthorized =
     categories.error instanceof CategoryRequestError && categories.error.kind === 'unauthorized';
   const partial = categories.error instanceof PartialCategoryList;
-  const items = categories.data ?? [];
+  // A merged source only exists to redirect its history to the target: nothing can be done with it.
+  const items = (categories.data ?? []).filter((item) => item.replacement?.kind !== 'MERGE');
 
   return (
     <div className={styles.page}>

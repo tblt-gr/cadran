@@ -281,7 +281,7 @@ describe('CategoryPage', () => {
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull();
   });
 
-  it('names where an archived category sends its history', async () => {
+  it('hides a merged source and names where a replaced category sends its history', async () => {
     api.listCategories.mockImplementation(() =>
       success({
         items: [
@@ -314,7 +314,8 @@ describe('CategoryPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByText('Fusionnée dans « Sorties »')).toBeTruthy();
+    expect(await screen.findByText('Transports')).toBeTruthy();
+    expect(screen.queryByText('Fusionnée dans « Sorties »')).toBeNull();
     expect(screen.getByText(/Remplacée par « Mobilité » à partir du/)).toBeTruthy();
   });
 
