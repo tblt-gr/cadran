@@ -12,19 +12,11 @@ import { CategoryIconPicker } from '@/features/categories/category-icon-picker/C
 import { categoryIcon } from '@/features/categories/category-icons';
 import { CategoryIdentityPreview } from '@/features/categories/category-identity-preview/CategoryIdentityPreview';
 import type { CategoryErrorKind } from '@/features/categories/categoryError';
+import { CategoryAxesField } from './category-axes-field/CategoryAxesField';
 import { ParentCategoryField } from './parent-category-field/ParentCategoryField';
 import styles from './CategoryForm.module.css';
 
 type AnalyticAxis = CreateCategoryRequest['defaultAnalyticAxes'][number];
-
-const AXES: AnalyticAxis[] = [
-  'ESSENTIAL',
-  'DISCRETIONARY',
-  'FIXED',
-  'VARIABLE',
-  'PERSONAL',
-  'PROFESSIONAL',
-];
 
 interface CategoryFormProps {
   category?: Category;
@@ -177,22 +169,7 @@ export function CategoryForm({
       ) : null}
       {showErrors && iconInvalid ? <p role="alert">{t('categories.validation.icon')}</p> : null}
 
-      <fieldset aria-describedby="category-axes-hint" className={styles.axes}>
-        <legend>{t('categories.fields.axes')}</legend>
-        <p className={styles.axesHint} id="category-axes-hint">
-          {t('categories.fields.axesHint')}
-        </p>
-        {AXES.map((axis) => (
-          <label key={axis}>
-            <input
-              checked={axes.includes(axis)}
-              onChange={() => toggleAxis(axis)}
-              type="checkbox"
-            />
-            <span>{t(`categories.axes.${axis}`)}</span>
-          </label>
-        ))}
-      </fieldset>
+      <CategoryAxesField onToggle={toggleAxis} value={axes} />
 
       <label className={styles.check}>
         <input
