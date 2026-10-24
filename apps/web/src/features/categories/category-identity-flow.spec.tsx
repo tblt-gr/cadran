@@ -22,6 +22,7 @@ const category: Category = {
   icon: 'utensils',
   color: '#486DF0',
   effectiveColor: '#486DF0',
+  effectiveIcon: 'utensils',
   defaultAnalyticAxes: [],
   budgetIncluded: true,
   sortOrder: 0,
@@ -102,7 +103,13 @@ describe('category identity flow', () => {
       success({ items: [current], page: 1, pageSize: 50, total: 1 }),
     );
     api.updateCategory.mockImplementation(({ body }) => {
-      current = { ...category, ...body, effectiveColor: body.color ?? null, version: 2 };
+      current = {
+        ...category,
+        ...body,
+        effectiveColor: body.color ?? null,
+        effectiveIcon: body.icon ?? null,
+        version: 2,
+      };
       return success(current);
     });
     const client = new QueryClient({

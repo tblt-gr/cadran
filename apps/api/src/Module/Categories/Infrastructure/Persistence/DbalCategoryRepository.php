@@ -6,7 +6,7 @@ namespace App\Module\Categories\Infrastructure\Persistence;
 
 use App\Module\Categories\Application\CategoryConflict;
 use App\Module\Categories\Domain\Category;
-use App\Module\Categories\Domain\CategoryColorResolver;
+use App\Module\Categories\Domain\CategoryAppearanceResolver;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Categories\Domain\CategoryType;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -187,20 +187,20 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             ['ids' => ArrayParameterType::STRING],
         );
 
-        $colors = $this->effectiveColorsByIds($workspace, $ids);
+        $appearances = $this->effectiveAppearanceByIds($workspace, $ids);
         $identities = [];
         foreach ($rows as $row) {
             $identities[CategoryRow::text($row['id'])] = [
                 'label' => CategoryRow::text($row['label']),
-                'icon' => CategoryRow::nullableText($row['icon']),
-                'color' => $colors[CategoryRow::text($row['id'])] ?? null,
+                'icon' => $appearances[CategoryRow::text($row['id'])]['icon'] ?? null,
+                'color' => $appearances[CategoryRow::text($row['id'])]['color'] ?? null,
             ];
         }
 
         return $identities;
     }
 
-    public function effectiveColorsByIds(WorkspaceScope $workspace, array $ids): array
+    public function effectiveAppearanceByIds(WorkspaceScope $workspace, array $ids): array
     {
         $nodes = [];
         $frontier = array_values(array_unique($ids));
@@ -208,7 +208,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
         // an ancestor of another workspace out of the chain.
         for ($level = 0; $level < Category::MAX_TREE_DEPTH && [] !== $frontier; ++$level) {
             $rows = $this->connection->fetchAllAssociative(
-                'SELECT id, parent_id, color FROM category_categories WHERE workspace_id = :workspace_id AND id IN (:ids)',
+                'SELECT id, parent_id, color, icon FROM category_categories WHERE workspace_id = :workspace_id AND id IN (:ids)',
                 ['workspace_id' => $workspace->id, 'ids' => $frontier],
                 ['ids' => ArrayParameterType::STRING],
             );
@@ -216,7 +216,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             foreach ($rows as $row) {
                 $id = CategoryRow::text($row['id']);
                 $parentId = CategoryRow::nullableText($row['parent_id']);
-                $nodes[$id] = ['parentId' => $parentId, 'color' => CategoryRow::nullableText($row['color'])];
+                $nodes[$id] = ['parentId' => $parentId, 'color' => CategoryRow::nullableText($row['color']), 'icon' => CategoryRow::nullableText($row['icon'])];
                 if (null !== $parentId && !isset($nodes[$parentId])) {
                     $frontier[] = $parentId;
                 }
@@ -224,7 +224,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             $frontier = array_values(array_unique($frontier));
         }
 
-        $effective = CategoryColorResolver::resolve($nodes);
+        $effective = CategoryAppearanceResolver::resolve($nodes);
 
         return array_intersect_key($effective, array_flip($ids));
     }

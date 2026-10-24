@@ -27,6 +27,7 @@ const category: Category = {
   icon: 'utensils',
   color: '#AABBCC',
   effectiveColor: '#AABBCC',
+  effectiveIcon: 'utensils',
   defaultAnalyticAxes: ['DISCRETIONARY', 'VARIABLE'],
   budgetIncluded: true,
   sortOrder: 10,

@@ -21,6 +21,7 @@ const candidate: Category = {
   icon: null,
   color: null,
   effectiveColor: null,
+  effectiveIcon: null,
   defaultAnalyticAxes: [],
   budgetIncluded: true,
   sortOrder: 0,
@@ -236,7 +237,7 @@ describe('CategoryPicker', () => {
   });
 
   it('draws an option and the selection with the color inherited from an ancestor', async () => {
-    const inheriting = { ...candidate, effectiveColor: '#112233' };
+    const inheriting = { ...candidate, effectiveColor: '#112233', effectiveIcon: 'utensils' };
     api.listCategories.mockImplementation(() =>
       success({ items: [inheriting], page: 1, pageSize: 50, total: 1 }),
     );
@@ -256,6 +257,8 @@ describe('CategoryPicker', () => {
     expect((option.querySelector('[data-icon]') as HTMLElement).style.background).toBe(
       'rgb(17, 34, 51)',
     );
+    expect(option.querySelector('[data-icon="utensils"]')).toBeTruthy();
+    expect(combobox.parentElement?.querySelector('[data-icon="utensils"]')).toBeTruthy();
   });
 
   it('marks the selection inside the field and carries the host message', () => {

@@ -451,6 +451,52 @@ final class CategoryControllerTest extends WebTestCase
         self::assertSame([], array_filter($this->items(), static fn (array $item): bool => 'Maison' === $item['label']));
     }
 
+    public function testIconsInheritLikeColorsWithoutBeingStored(): void
+    {
+        $root = $this->createCategoryWith('Maison', null, ['icon' => 'home']);
+        $mid = $this->createCategoryWith('Energie', self::stringValue($root, 'id'), ['icon' => null]);
+        $leaf = $this->createCategoryWith('Electricite', self::stringValue($mid, 'id'), ['icon' => null]);
+        $own = $this->createCategoryWith('Gaz', self::stringValue($mid, 'id'), ['icon' => 'flame']);
+
+        self::assertNull($leaf['icon']);
+        self::assertSame('home', $leaf['effectiveIcon']);
+        self::assertSame('flame', $own['effectiveIcon']);
+
+        // Clearing the child's own icon reveals the ancestor's immediately.
+        $this->requestUpdate(self::stringValue($own, 'id'), ['icon' => null] + $own);
+        self::assertResponseIsSuccessful();
+        self::assertSame('home', $this->decode()['effectiveIcon']);
+
+        // Changing the ancestor refreshes only inheriting descendants.
+        $this->requestUpdate(self::stringValue($root, 'id'), ['icon' => 'building'] + $root);
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/api/v1/categories');
+        $byLabel = array_column($this->items(), null, 'label');
+        self::assertSame('building', $byLabel['Electricite']['effectiveIcon']);
+        self::assertNull($byLabel['Electricite']['icon']);
+    }
+
+    public function testMovingACategoryRecalculatesTheInheritedIconOfItsSubtree(): void
+    {
+        $first = $this->createCategoryWith('Premier', null, ['icon' => 'home']);
+        $second = $this->createCategoryWith('Second', null, ['icon' => 'car']);
+        $branch = $this->createCategoryWith('Branche', self::stringValue($first, 'id'), ['icon' => null]);
+        $this->createCategoryWith('Feuille', self::stringValue($branch, 'id'), ['icon' => null]);
+
+        $this->client->request(
+            'POST',
+            '/api/v1/categories/'.self::stringValue($branch, 'id').'/move',
+            server: self::jsonHeaders(),
+            content: json_encode(['parentId' => self::stringValue($second, 'id'), 'version' => $branch['version']], JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/api/v1/categories');
+        $byLabel = array_column($this->items(), null, 'label');
+        self::assertSame('car', $byLabel['Feuille']['effectiveIcon']);
+        self::assertNull($byLabel['Feuille']['icon']);
+    }
+
     private function signIn(): void
     {
         $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: json_encode([
@@ -507,6 +553,24 @@ final class CategoryControllerTest extends WebTestCase
             '/api/v1/categories',
             server: self::jsonHeaders(),
             content: json_encode(['color' => $color] + $this->payload($label, $parentId), JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseStatusCodeSame(201);
+
+        return $this->decode();
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     *
+     * @return array<string, mixed>
+     */
+    private function createCategoryWith(string $label, ?string $parentId, array $overrides): array
+    {
+        $this->client->request(
+            'POST',
+            '/api/v1/categories',
+            server: self::jsonHeaders(),
+            content: json_encode($overrides + ['color' => null] + $this->payload($label, $parentId), JSON_THROW_ON_ERROR),
         );
         self::assertResponseStatusCodeSame(201);
 

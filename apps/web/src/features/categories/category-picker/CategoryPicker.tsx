@@ -146,7 +146,7 @@ export function CategoryPicker({
       kind: 'category' as const,
       label: candidate.label,
       color: candidate.effectiveColor,
-      icon: candidate.icon,
+      icon: candidate.effectiveIcon,
       type: type ? undefined : candidate.type,
     }));
   const categoryChoices: CategoryChoice[] =
@@ -253,7 +253,9 @@ export function CategoryPicker({
               : { background: selectedFill, color: selectedInk }
           }
         >
-          {value !== NONE ? <CategorySwatch icon={identity?.icon} /> : null}
+          {value !== NONE ? (
+            <CategorySwatch icon={listed ? listed.effectiveIcon : identity?.icon} />
+          ) : null}
           <input
             aria-activedescendant={expanded && active ? optionId(listId, active) : undefined}
             aria-autocomplete="list"

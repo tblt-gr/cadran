@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Categories\Application\Double;
 
 use App\Module\Categories\Domain\Category;
-use App\Module\Categories\Domain\CategoryColorResolver;
+use App\Module\Categories\Domain\CategoryAppearanceResolver;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Categories\Domain\CategoryType;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -90,14 +90,14 @@ final class InMemoryCategoryRepository implements CategoryRepository
         return [];
     }
 
-    public function effectiveColorsByIds(WorkspaceScope $workspace, array $ids): array
+    public function effectiveAppearanceByIds(WorkspaceScope $workspace, array $ids): array
     {
         $nodes = [];
         foreach ($this->categories as $category) {
-            $nodes[$category->id] = ['parentId' => $category->parentId, 'color' => $category->color];
+            $nodes[$category->id] = ['parentId' => $category->parentId, 'color' => $category->color, 'icon' => $category->icon];
         }
 
-        return array_intersect_key(CategoryColorResolver::resolve($nodes), array_flip($ids));
+        return array_intersect_key(CategoryAppearanceResolver::resolve($nodes), array_flip($ids));
     }
 
     public function add(Category $category): void

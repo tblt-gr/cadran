@@ -99,6 +99,7 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         self::assertSame('#AA5500', $food['color']);
         // A category without its own color is drawn with its nearest ancestor's.
         self::assertSame('#AA5500', self::row($ledger, 'expenseCategories', self::FOOD_CHILD)['color']);
+        self::assertSame('utensils', self::row($ledger, 'expenseCategories', self::FOOD_CHILD)['icon']);
         self::assertNull(self::row($ledger, 'expenseCategories', self::EMPTY)['color']);
         $transport = self::row($ledger, 'expenseCategories', self::TRANSPORT);
         self::assertFalse($transport['budgetIncluded']);

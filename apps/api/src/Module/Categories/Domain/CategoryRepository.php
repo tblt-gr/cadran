@@ -84,14 +84,14 @@ interface CategoryRepository
     public function identitiesByIds(WorkspaceScope $workspace, array $ids): array;
 
     /**
-     * The effective color of each requested category, resolved from its ancestors in
-     * the same workspace (see {@see CategoryColorResolver}). Unknown ids are absent.
+     * The effective color and icon of each requested category, resolved from its ancestors in
+     * the same workspace (see {@see CategoryAppearanceResolver}). Unknown ids are absent.
      *
      * @param list<string> $ids
      *
-     * @return array<string, ?string>
+     * @return array<string, array{color: ?string, icon: ?string}>
      */
-    public function effectiveColorsByIds(WorkspaceScope $workspace, array $ids): array;
+    public function effectiveAppearanceByIds(WorkspaceScope $workspace, array $ids): array;
 
     public function add(Category $category): void;
 

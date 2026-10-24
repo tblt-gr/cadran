@@ -14,6 +14,7 @@ function make(id: string, label: string, parentId: string | null, depth: number,
     icon: null,
     color: null,
     effectiveColor: null,
+    effectiveIcon: null,
     defaultAnalyticAxes: [],
     budgetIncluded: true,
     sortOrder: 0,
@@ -112,6 +113,17 @@ describe('CategoryTree', () => {
     expect(
       (screen.getByText('Transports').closest('[data-icon]') as HTMLElement).style.background,
     ).toBe('');
+  });
+
+  it('draws the glyph inherited from an ancestor', () => {
+    renderTree([
+      make('p', 'Parent', null, 1, { icon: 'utensils', effectiveIcon: 'utensils' }),
+      make('q', 'Enfant', 'p', 2, { effectiveIcon: 'utensils' }),
+    ]);
+    fireEvent.click(toggleOf('Parent'));
+
+    const pill = screen.getByText('Enfant').closest('[data-icon]') as HTMLElement;
+    expect(pill.getAttribute('data-icon')).toBe('utensils');
   });
 
   it('shows an archived branch under its parent and an orphan as a root with its parent label', () => {

@@ -65,7 +65,7 @@ export function SplitRow({
               // previous one no longer describes this row.
               analyticAxes: categoryId === values.categoryId ? values.analyticAxes : null,
               categoryColor: category?.effectiveColor ?? null,
-              categoryIcon: category?.icon ?? null,
+              categoryIcon: category?.effectiveIcon ?? null,
               categoryId,
               categoryLabel: category?.label ?? null,
               categoryType: category?.type ?? null,

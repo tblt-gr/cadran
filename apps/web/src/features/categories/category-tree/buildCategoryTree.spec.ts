@@ -12,6 +12,7 @@ function make(id: string, parentId: string | null, label = id): Category {
     icon: null,
     color: null,
     effectiveColor: null,
+    effectiveIcon: null,
     defaultAnalyticAxes: [],
     budgetIncluded: true,
     sortOrder: 0,

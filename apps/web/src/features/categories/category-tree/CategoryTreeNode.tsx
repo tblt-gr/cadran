@@ -2,7 +2,6 @@ import type { Category, CategoryLifecycleOperation } from '@cadran/api-client';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
-import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
 import { CategoryRedirection } from './category-redirection/CategoryRedirection';
 import type { CategoryTreeNodeData } from './buildCategoryTree';
@@ -28,14 +27,11 @@ export function CategoryTreeNode({
   const childrenId = useId();
   const { category, children } = node;
   const archived = category.archivedAt !== null;
-  const axes =
-    category.defaultAnalyticAxes.length > 0
-      ? category.defaultAnalyticAxes.map((axis) => t(`categories.axes.${axis}`)).join(', ')
-      : t('categories.list.noAxes');
+  const axes = category.defaultAnalyticAxes.map((axis) => t(`categories.axes.${axis}`)).join(', ');
 
   return (
     <li className={styles.node}>
-      <div className={styles.row}>
+      <div className={styles.row} data-archived={archived}>
         {children.length > 0 ? (
           <button
             aria-controls={childrenId}
@@ -44,7 +40,7 @@ export function CategoryTreeNode({
               count: children.length,
               label: category.label,
             })}
-            className={`icon-button ${styles.toggle}`}
+            className={`icon-ghost ${styles.toggle}`}
             data-expanded={expanded}
             onClick={() => setExpanded((current) => !current)}
             type="button"
@@ -57,13 +53,13 @@ export function CategoryTreeNode({
         <div className={styles.summary}>
           <CategoryIdentity
             color={category.effectiveColor}
-            icon={category.icon}
+            icon={category.effectiveIcon}
             label={category.label}
           />
           <p className={styles.meta}>
             <span className="sr-only">{t('categories.tree.level', { depth: category.depth })}</span>
-            <span>{t(`categories.types.${category.type}`)}</span>
-            <span>{axes}</span>
+            {axes !== '' ? <span>{axes}</span> : null}
+            {archived ? <span>{t('categories.list.archived')}</span> : null}
             {root && category.parentId !== null ? (
               <span>
                 {t('categories.tree.parentOf', {
@@ -76,9 +72,6 @@ export function CategoryTreeNode({
             ) : null}
           </p>
         </div>
-        <StatusBadge tone={archived ? 'warning' : 'positive'}>
-          {t(archived ? 'categories.list.archived' : 'categories.list.active')}
-        </StatusBadge>
         <CategoryTreeActions category={category} onEdit={onEdit} onLifecycle={onLifecycle} />
       </div>
       {children.length > 0 ? (

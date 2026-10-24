@@ -362,14 +362,17 @@ final class CategoryPersistenceTest extends KernelTestCase
         $foreign = '00000000-0000-7000-8000-0000000000d4';
         $this->repository->add($this->category($root, WorkspaceFixture::own(), 'Racine'));
         $this->repository->add($this->category($mid, WorkspaceFixture::own(), 'Milieu', $root, 2, color: null));
-        $this->repository->add($this->category($leaf, WorkspaceFixture::own(), 'Feuille', $mid, 3, color: null));
+        $this->repository->add($this->category($leaf, WorkspaceFixture::own(), 'Feuille', $mid, 3, color: null, icon: null));
         $this->repository->add($this->category($foreign, WorkspaceFixture::other(), 'Etrangere'));
 
-        $colors = $this->repository->effectiveColorsByIds(WorkspaceFixture::own(), [$leaf, $mid, $foreign]);
+        $colors = $this->repository->effectiveAppearanceByIds(WorkspaceFixture::own(), [$leaf, $mid, $foreign]);
 
         ksort($colors);
-        self::assertSame([$mid => '#AABBCC', $leaf => '#AABBCC'], $colors);
-        self::assertSame('#AABBCC', $this->repository->identitiesByIds(WorkspaceFixture::own(), [$leaf])[$leaf]['color']);
+        $inherited = ['color' => '#AABBCC', 'icon' => 'utensils'];
+        self::assertSame([$mid => $inherited, $leaf => $inherited], $colors);
+        $identity = $this->repository->identitiesByIds(WorkspaceFixture::own(), [$leaf])[$leaf];
+        self::assertSame('#AABBCC', $identity['color']);
+        self::assertSame('utensils', $identity['icon']);
         self::assertSame([], $this->repository->identitiesByIds(WorkspaceFixture::own(), [$foreign]));
     }
 
@@ -384,10 +387,10 @@ final class CategoryPersistenceTest extends KernelTestCase
             $ids[] = $id;
         }
 
-        $colors = $this->repository->effectiveColorsByIds(WorkspaceFixture::own(), $ids);
+        $colors = $this->repository->effectiveAppearanceByIds(WorkspaceFixture::own(), $ids);
 
         self::assertCount(Category::MAX_TREE_DEPTH, $colors);
-        self::assertSame('#010203', $colors[$ids[Category::MAX_TREE_DEPTH - 1]]);
+        self::assertSame('#010203', $colors[$ids[Category::MAX_TREE_DEPTH - 1]]['color']);
     }
 
     private function category(
@@ -398,6 +401,7 @@ final class CategoryPersistenceTest extends KernelTestCase
         int $depth = 1,
         CategoryType $type = CategoryType::EXPENSE,
         ?string $color = '#AABBCC',
+        ?string $icon = 'utensils',
     ): Category {
         $now = new \DateTimeImmutable('2026-09-01T12:00:00+00:00');
 
@@ -407,7 +411,7 @@ final class CategoryPersistenceTest extends KernelTestCase
             type: $type,
             label: $label,
             parentId: $parentId,
-            icon: 'utensils',
+            icon: $icon,
             color: $color,
             defaultAnalyticAxes: [AnalyticAxis::DISCRETIONARY],
             budgetIncluded: true,

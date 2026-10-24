@@ -28,6 +28,7 @@ final readonly class PresentCategory
     public function __invoke(WorkspaceScope $workspace, Category $category): CategoryView
     {
         $replacement = $this->replacements->findBySource($workspace, $category->id);
+        $appearance = $this->categories->effectiveAppearanceByIds($workspace, [$category->id])[$category->id] ?? null;
         $labelled = array_values(array_filter([$category->parentId, $replacement?->targetCategoryId]));
         $labels = $this->categories->labelsByIds($workspace, $labelled);
 
@@ -35,7 +36,8 @@ final readonly class PresentCategory
             $category,
             $this->categories->hasChildren($workspace, $category->id),
             null === $category->parentId ? null : ($labels[$category->parentId] ?? null),
-            $this->categories->effectiveColorsByIds($workspace, [$category->id])[$category->id] ?? null,
+            $appearance['color'] ?? null,
+            $appearance['icon'] ?? null,
             null === $replacement ? null : CategoryReplacementView::of(
                 $replacement,
                 $labels[$replacement->targetCategoryId] ?? null,

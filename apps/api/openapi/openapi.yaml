@@ -11690,6 +11690,7 @@ components:
         - icon
         - color
         - effectiveColor
+        - effectiveIcon
         - defaultAnalyticAxes
         - budgetIncluded
         - sortOrder
@@ -11741,6 +11742,15 @@ components:
           oneOf:
             - type: string
               pattern: '^#[0-9A-F]{6}$'
+            - type: 'null'
+        effectiveIcon:
+          description: >-
+            Icon the category is drawn with: its own explicit icon, else the nearest ancestor's explicit
+            icon in the same workspace, else null. Derived at read time, never stored, never accepted on
+            write. `icon` stays the explicit stored value.
+          oneOf:
+            - type: string
+              pattern: '^[a-z][a-z0-9-]{0,31}$'
             - type: 'null'
         defaultAnalyticAxes:
           $ref: '#/components/schemas/AnalyticAxes'
@@ -14450,6 +14460,8 @@ components:
         id: { type: string, format: uuid }
         label: { type: string, minLength: 1, maxLength: 80 }
         icon:
+          description: >-
+            Effective category icon, meaning its own explicit icon, else the nearest ancestor's, else null.
           type: [string, 'null']
         color:
           description: >-
@@ -16790,7 +16802,8 @@ components:
           maxLength: 80
         categoryIcon:
           description: >-
-            Read-only display icon of the split category. Never accepted on write.
+            Read-only display icon of the split category: its effective icon (own explicit icon, else the
+            nearest ancestor's). Never accepted on write.
           oneOf:
             - type: string
               pattern: '^[a-z][a-z0-9-]{0,31}$'

@@ -9,7 +9,7 @@ export function CategoryTreeSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
 
   return (
-    <div aria-busy="true" className={`card ${styles.panel}`} data-testid="category-page-skeleton">
+    <div aria-busy="true" data-testid="category-page-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
       <ul aria-label={t('categories.list.caption')} className={styles.branch}>
         {Array.from({ length: ROWS }, (_, row) => (
@@ -22,7 +22,6 @@ export function CategoryTreeSkeleton({ status }: { status: string }) {
                   <SkeletonBlock className={styles.skeletonMeta} />
                 </p>
               </div>
-              <SkeletonBlock className={styles.skeletonBadge} />
               <SkeletonBlock className={styles.skeletonAction} />
             </div>
           </li>

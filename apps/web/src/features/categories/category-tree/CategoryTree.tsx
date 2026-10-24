@@ -14,18 +14,16 @@ export function CategoryTree({ categories, onEdit, onLifecycle }: CategoryTreePr
   const { t } = useTranslation();
 
   return (
-    <div className={`card ${styles.panel}`}>
-      <ul aria-label={t('categories.list.caption')} className={styles.branch}>
-        {buildCategoryTree(categories).map((node) => (
-          <CategoryTreeNode
-            key={node.category.id}
-            node={node}
-            root
-            onEdit={onEdit}
-            onLifecycle={onLifecycle}
-          />
-        ))}
-      </ul>
-    </div>
+    <ul aria-label={t('categories.list.caption')} className={styles.branch}>
+      {buildCategoryTree(categories).map((node) => (
+        <CategoryTreeNode
+          key={node.category.id}
+          node={node}
+          root
+          onEdit={onEdit}
+          onLifecycle={onLifecycle}
+        />
+      ))}
+    </ul>
   );
 }

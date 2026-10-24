@@ -21,6 +21,7 @@ const category: Category = {
   icon: 'utensils',
   color: '#AABBCC',
   effectiveColor: '#AABBCC',
+  effectiveIcon: 'utensils',
   defaultAnalyticAxes: ['DISCRETIONARY'],
   budgetIncluded: true,
   sortOrder: 10,
@@ -54,6 +55,14 @@ function form(value = category) {
 
 describe('CategoryForm identity', () => {
   afterEach(cleanup);
+
+  it('tells which glyph an unmarked category inherits, and not when it has its own', () => {
+    form({ ...category, icon: null, effectiveIcon: 'utensils' });
+    expect(screen.getByText('Hérite de l’icône « Couverts »')).toBeTruthy();
+    cleanup();
+    form({ ...category, icon: 'coffee', effectiveIcon: 'coffee' });
+    expect(screen.queryByText(/Hérite de l’icône/)).toBeNull();
+  });
 
   it('shows no inheritance hint when the user clears the category own color', () => {
     form();
