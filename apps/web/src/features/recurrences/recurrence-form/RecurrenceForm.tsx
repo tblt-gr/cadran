@@ -6,15 +6,19 @@ import type {
   RecurrenceIntervalKind,
   UpdateRecurrenceRequest,
 } from '@cadran/api-client';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { isCanonicalDecimal, isCanonicalUnsignedDecimal } from '@/lib/decimal';
+import { SignedAmountHint } from '@/components/ui/signed-amount-hint/SignedAmountHint';
+import { isCanonicalDecimal, isCanonicalUnsignedDecimal, isZeroDecimal } from '@/lib/decimal';
+import { toSignedAmount, toTypedAmount, type AmountDirection } from '@/lib/signedAmount';
 import styles from './RecurrenceForm.module.css';
 
 interface FormValues {
   accountId: string;
   amountTolerance: string;
   counterparty: string;
+  /** Empty keeps the sign as typed; a chosen direction lets the amount be typed without it. */
+  direction: AmountDirection | '';
   dayOfPeriod: string;
   expectedAmount: string;
   firstExpectedOn: string;
@@ -33,30 +37,43 @@ interface RecurrenceFormProps {
 
 const INTERVALS: RecurrenceIntervalKind[] = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'];
 
+/** The direction an already signed amount implies; none for a blank or zero amount. */
+function directionOf(signed: string): AmountDirection | '' {
+  if (!isCanonicalDecimal(signed) || isZeroDecimal(signed)) return '';
+
+  return signed.startsWith('-') ? 'OUTFLOW' : 'INFLOW';
+}
+
 function initialValues(
   accounts: Account[],
   candidate?: RecurrenceCandidate,
   recurrence?: Recurrence,
 ): FormValues {
   if (recurrence) {
+    const direction = directionOf(recurrence.expectedAmount.value);
+
     return {
       accountId: recurrence.accountId,
       amountTolerance: recurrence.amountTolerance.value,
       counterparty: recurrence.counterparty ?? '',
       dayOfPeriod: String(recurrence.dayOfPeriod),
-      expectedAmount: recurrence.expectedAmount.value,
+      direction,
+      expectedAmount: toTypedAmount(recurrence.expectedAmount.value, direction || null),
       firstExpectedOn: recurrence.nextExpectedOn,
       intervalKind: recurrence.intervalKind,
       label: recurrence.label,
     };
   }
 
+  const candidateDirection = directionOf(candidate?.medianAmount.value ?? '');
+
   return {
     accountId: candidate?.accountId ?? accounts[0]?.id ?? '',
     amountTolerance: candidate?.tolerance.value ?? '0',
     counterparty: candidate?.counterparty ?? '',
     dayOfPeriod: '',
-    expectedAmount: candidate?.medianAmount.value ?? '',
+    direction: candidateDirection,
+    expectedAmount: toTypedAmount(candidate?.medianAmount.value ?? '', candidateDirection || null),
     firstExpectedOn: candidate?.lastSeenOn ?? '',
     intervalKind: candidate?.intervalKind ?? 'MONTHLY',
     label: candidate?.counterparty ?? '',
@@ -80,14 +97,17 @@ export function RecurrenceForm({
   submitError,
 }: RecurrenceFormProps) {
   const { t } = useTranslation();
+  const amountHintId = useId();
   const [values, setValues] = useState(() => initialValues(accounts, candidate, recurrence));
   const [showErrors, setShowErrors] = useState(false);
   const editing = recurrence !== undefined;
+  const direction = values.direction === '' ? null : values.direction;
+  const expectedAmount = toSignedAmount(values.expectedAmount, direction);
   const errors = {
     accountId: values.accountId === '',
     amountTolerance: !isCanonicalUnsignedDecimal(values.amountTolerance),
     dayOfPeriod: !validDay(values.dayOfPeriod, values.intervalKind),
-    expectedAmount: !isCanonicalDecimal(values.expectedAmount) || values.expectedAmount === '0',
+    expectedAmount: !isCanonicalDecimal(expectedAmount) || isZeroDecimal(expectedAmount),
     firstExpectedOn: !/^\d{4}-\d{2}-\d{2}$/.test(values.firstExpectedOn),
     label: values.label.trim() === '' || values.label.trim().length > 80,
   };
@@ -108,7 +128,7 @@ export function RecurrenceForm({
       amountTolerance: values.amountTolerance,
       counterparty: values.counterparty.trim() || null,
       dayOfPeriod: Number(values.dayOfPeriod),
-      expectedAmount: values.expectedAmount,
+      expectedAmount,
       intervalKind: values.intervalKind,
       label: values.label.trim(),
     };
@@ -165,9 +185,22 @@ export function RecurrenceForm({
           />
         </label>
         <label>
+          <span>{t('recurrences.fields.direction')}</span>
+          <select
+            onChange={(event) => set('direction', event.target.value as FormValues['direction'])}
+            value={values.direction}
+          >
+            <option value="">{t('recurrences.directions.unset')}</option>
+            <option value="OUTFLOW">{t('recurrences.directions.OUTFLOW')}</option>
+            <option value="INFLOW">{t('recurrences.directions.INFLOW')}</option>
+          </select>
+        </label>
+        <label>
           <span>{t('recurrences.fields.amount')}</span>
           <input
+            aria-describedby={amountHintId}
             aria-invalid={showErrors && errors.expectedAmount ? true : undefined}
+            aria-label={t('recurrences.fields.amount')}
             autoComplete="off"
             inputMode="decimal"
             onChange={(event) => set('expectedAmount', event.target.value)}
@@ -177,6 +210,12 @@ export function RecurrenceForm({
           {showErrors && errors.expectedAmount ? (
             <small>{t('recurrences.validation.amount')}</small>
           ) : null}
+          <SignedAmountHint
+            assetCode={accounts.find((account) => account.id === values.accountId)?.assetCode ?? ''}
+            direction={direction}
+            id={amountHintId}
+            typed={values.expectedAmount}
+          />
         </label>
         <label>
           <span>{t('recurrences.fields.tolerance')}</span>

@@ -211,6 +211,56 @@ describe('RecurrencesPage', () => {
     });
   });
 
+  it('types a recurring expense without its minus and submits it negative', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() =>
+      success({ items: [candidate], partial: false }),
+    );
+    api.listRecurrences.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.confirmRecurrence.mockImplementation(({ body }) =>
+      success({ id: 'recurrence', ...body }, 201),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    const amount = screen.getByLabelText('Montant attendu') as HTMLInputElement;
+    expect(amount.value).toBe('14.99');
+    expect((screen.getByLabelText('Sens') as HTMLSelectElement).value).toBe('OUTFLOW');
+    expect(screen.getByText(/Sortie enregistrée/).textContent).toMatch(/-14,99/);
+
+    fireEvent.change(amount, { target: { value: '-20.50' } });
+    fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.confirmRecurrence).toHaveBeenCalledOnce());
+    expect(api.confirmRecurrence.mock.calls[0]?.[0].body.expectedAmount).toBe('-20.50');
+  });
+
+  it('keeps the typed sign when no direction is chosen and refuses zero', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() =>
+      success({ items: [candidate], partial: false }),
+    );
+    api.listRecurrences.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    fireEvent.change(screen.getByLabelText('Sens'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Montant attendu'), { target: { value: '0' } });
+    fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    expect(api.confirmRecurrence).not.toHaveBeenCalled();
+  });
+
   it('sends one Idempotency-Key per confirmation and reuses it when the same body is retried', async () => {
     api.detectRecurrenceCandidates.mockImplementation(() =>
       success({ items: [candidate], partial: false }),

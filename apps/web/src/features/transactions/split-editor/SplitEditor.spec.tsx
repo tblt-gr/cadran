@@ -24,7 +24,7 @@ function success<T>(data: T) {
 
 function renderEditor(
   rows: SplitRowValues[],
-  props: { showErrors?: boolean; total?: string } = {},
+  props: { direction?: 'INFLOW' | 'OUTFLOW'; showErrors?: boolean; total?: string } = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -34,6 +34,7 @@ function renderEditor(
     <QueryClientProvider client={queryClient}>
       <SplitEditor
         assetCode="EUR"
+        direction={props.direction}
         preferredType="EXPENSE"
         onChange={onChange}
         rows={rows}
@@ -67,6 +68,80 @@ describe('SplitEditor', () => {
 
     const remaining = await screen.findByRole('status');
     expect(remaining.textContent).toContain('7,00');
+  });
+
+  describe('with rows typed without their minus', () => {
+    const precision = () => {
+      api.listAssets.mockImplementation(() =>
+        success({
+          items: [{ code: 'EUR', displayPrecision: 2 }],
+          page: 1,
+          pageSize: 100,
+          total: 1,
+        }),
+      );
+      api.listCategories.mockImplementation(() =>
+        success({ items: [], page: 1, pageSize: 50, total: 0 }),
+      );
+    };
+
+    it('sums unsigned expense rows against the signed total', async () => {
+      precision();
+      renderEditor(
+        [
+          { ...emptySplitRow(), amount: '62.10' },
+          { ...emptySplitRow(), amount: '-18.30' },
+        ],
+        { direction: 'OUTFLOW' },
+      );
+
+      expect((await screen.findByRole('status')).textContent).toContain('7,00');
+    });
+
+    it('previews each typed row as its signed amount, linked to the field', async () => {
+      precision();
+      renderEditor([{ ...emptySplitRow(), amount: '62.10' }], { direction: 'OUTFLOW' });
+
+      const hint = await screen.findByText(/Sortie enregistrée/);
+      expect(hint.textContent).toMatch(/-62,10/);
+      expect(
+        screen
+          .getByRole('textbox', { name: 'Montant de la ligne 1' })
+          .getAttribute('aria-describedby'),
+      ).toBe(hint.id);
+    });
+
+    it('hands the remainder back in the typed form', async () => {
+      precision();
+      const rows = [
+        { ...emptySplitRow(), amount: '62.10' },
+        { ...emptySplitRow(), amount: '10.00' },
+      ];
+      const { onChange } = renderEditor(rows, { direction: 'OUTFLOW' });
+
+      const assign = await screen.findAllByRole('button', {
+        name: 'Assigner le reste à cette ligne',
+      });
+      fireEvent.click(assign[1]);
+      expect(onChange).toHaveBeenCalledWith([rows[0], { ...rows[1], amount: '25.30' }]);
+    });
+
+    it('splits evenly into unsigned rows', async () => {
+      precision();
+      const rows = [emptySplitRow(), emptySplitRow(), emptySplitRow()];
+      const { onChange } = renderEditor(rows, { direction: 'OUTFLOW', total: '-100.00' });
+
+      const split = (await screen.findByRole('button', {
+        name: 'Répartir également',
+      })) as HTMLButtonElement;
+      await waitFor(() => expect(split.disabled).toBe(false));
+      fireEvent.click(split);
+      expect(onChange).toHaveBeenCalledWith([
+        { ...rows[0], amount: '33.34' },
+        { ...rows[1], amount: '33.33' },
+        { ...rows[2], amount: '33.33' },
+      ]);
+    });
   });
 
   it('adds an empty row on click of the add-row button', async () => {

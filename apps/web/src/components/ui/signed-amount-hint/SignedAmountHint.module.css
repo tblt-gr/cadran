@@ -1,0 +1,7 @@
+.hint {
+  display: block;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+  overflow-wrap: anywhere;
+}

@@ -6,7 +6,8 @@ import { Icon } from '@/components/ui/icon/Icon';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
-import { asOutflow, formatAmount } from '@/lib/decimal';
+import { formatAmount } from '@/lib/decimal';
+import { toSignedAmount } from '@/lib/signedAmount';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import { MovementDetails } from '@/features/budget/monthly-budget/movement-details/MovementDetails';
 import styles from './LedgerRow.module.css';
@@ -147,7 +148,7 @@ export function LedgerRow({
 function renderAmount(row: LedgerRowData, kind: LedgerKind, language: string, t: TFunction) {
   if (!row.hasMovements) return <EmptyValue label={t('budget.monthly.noMovement')} />;
   if (row.total.value !== null && row.total.assetCode !== null) {
-    const value = kind === 'expense' ? asOutflow(row.total.value) : row.total.value;
+    const value = toSignedAmount(row.total.value, kind === 'expense' ? 'OUTFLOW' : null);
     return <MoneyValue value={formatAmount(value, row.total.assetCode, language)} />;
   }
   return t('budget.monthly.mixedAssets');

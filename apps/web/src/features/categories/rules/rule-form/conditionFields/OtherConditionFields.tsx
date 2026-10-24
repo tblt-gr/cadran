@@ -1,5 +1,6 @@
 import type { CategorizationRuleConditions } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { withDirection } from './ruleAmountBounds';
 import formStyles from '@/features/categories/rules/rule-form/RuleForm.module.css';
 
 interface OtherConditionFieldsProps {
@@ -15,10 +16,12 @@ export function OtherConditionFields({ conditions, onChange }: OtherConditionFie
         <span>{t('categorizationRules.conditions.direction')}</span>
         <select
           onChange={(event) =>
-            onChange({
-              ...conditions,
-              direction: event.target.value === '' ? null : (event.target.value as 'IN' | 'OUT'),
-            })
+            onChange(
+              withDirection(
+                conditions,
+                event.target.value === '' ? null : (event.target.value as 'IN' | 'OUT'),
+              ),
+            )
           }
           value={conditions.direction ?? ''}
         >

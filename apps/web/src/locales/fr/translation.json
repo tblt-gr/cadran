@@ -1949,6 +1949,17 @@
       "stale": "Ce mois a été modifié ailleurs entre-temps. L’état vient d’être rechargé : réessayez."
     }
   },
+  "amountEntry": {
+    "convention": {
+      "OUTFLOW": "Saisissez le montant sans signe : il sera enregistré comme une sortie.",
+      "INFLOW": "Saisissez le montant sans signe : il sera enregistré comme une entrée.",
+      "UNKNOWN": "Sans type ni catégorie, le signe saisi est conservé : moins pour une sortie."
+    },
+    "recorded": {
+      "OUTFLOW": "Sortie enregistrée : {{amount}}",
+      "INFLOW": "Entrée enregistrée : {{amount}}"
+    }
+  },
   "transactions": {
     "add": "Nouvelle transaction",
     "addFirst": "Enregistrer la première transaction",
@@ -2273,11 +2284,17 @@
       "archived": "La récurrence a été archivée.",
       "unarchived": "La récurrence a été restaurée."
     },
+    "directions": {
+      "unset": "Selon le signe saisi",
+      "OUTFLOW": "Dépense (sortie)",
+      "INFLOW": "Revenu (entrée)"
+    },
     "fields": {
       "label": "Libellé",
       "account": "Compte",
       "counterparty": "Tiers",
       "amount": "Montant attendu",
+      "direction": "Sens",
       "tolerance": "Tolérance",
       "interval": "Rythme",
       "day": "Jour de période",
@@ -2481,6 +2498,8 @@
       "limit": "Vous pouvez ajouter jusqu’à 20 conditions texte.",
       "amountTitle": "Comparer un montant exact",
       "amountHint": "Saisissez des décimaux sous forme de texte, avec leur signe et sans arrondi.",
+      "amountHintOutflow": "Le sens est une sortie : saisissez les montants sans signe, du plus petit au plus grand (de 50 à 200).",
+      "amountStored": "Bornes enregistrées : {{bounds}}",
       "minimum": "Minimum",
       "maximum": "Maximum",
       "assetCode": "Code actif",

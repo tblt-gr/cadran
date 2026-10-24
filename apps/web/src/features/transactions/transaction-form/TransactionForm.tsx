@@ -8,6 +8,7 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
+import { SignedAmountHint } from '@/components/ui/signed-amount-hint/SignedAmountHint';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { ADVANCED_FIELDS } from './advanced-fields/advancedFields';
 import { AdvancedTransactionFields } from './advanced-fields/AdvancedTransactionFields';
@@ -17,6 +18,8 @@ import { TransactionCategoryField } from './transaction-category-field/Transacti
 import {
   categoryTypeForAmount,
   initialTransactionValues,
+  signedTransactionValues,
+  transactionDirection,
   transactionRequest,
   validateTransactionValues,
   type TransactionFormValues,
@@ -94,7 +97,13 @@ export function TransactionForm({
   const editing = transaction !== undefined;
   const stateLocked = editing && transaction.state !== 'PENDING';
   const rawLabelLocked = editing && transaction.source !== 'MANUAL';
-  const preferredType = categoryTypeForAmount(values.amountValue, values.nature);
+  const direction = transactionDirection(values);
+  const signedAmount = signedTransactionValues(values).amountValue;
+  const preferredType = categoryTypeForAmount(signedAmount, values.nature);
+  const amountAssetCode =
+    transaction?.amount.assetCode ??
+    accounts.find((account) => account.id === resolved.accountId)?.assetCode ??
+    '';
 
   function set<K extends keyof TransactionFormValues>(field: K, value: TransactionFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -179,10 +188,14 @@ export function TransactionForm({
         <label>
           <span>{t('transactions.fields.amount')}</span>
           <input
-            aria-describedby={
-              showErrors && errors.amountValue ? `${errorId}-amountValue` : undefined
-            }
+            aria-describedby={[
+              `${errorId}-amountHint`,
+              showErrors && errors.amountValue ? `${errorId}-amountValue` : null,
+            ]
+              .filter(Boolean)
+              .join(' ')}
             aria-invalid={showErrors && errors.amountValue ? true : undefined}
+            aria-label={t('transactions.fields.amount')}
             autoComplete="off"
             data-autofocus
             inputMode="decimal"
@@ -193,6 +206,12 @@ export function TransactionForm({
           {showErrors && errors.amountValue ? (
             <small id={`${errorId}-amountValue`}>{t('transactions.validation.amount')}</small>
           ) : null}
+          <SignedAmountHint
+            assetCode={amountAssetCode}
+            direction={direction}
+            id={`${errorId}-amountHint`}
+            typed={values.amountValue}
+          />
         </label>
 
         <label>
@@ -311,18 +330,15 @@ export function TransactionForm({
           showErrors={showErrors}
           split={
             <SplitField
-              assetCode={
-                transaction?.amount.assetCode ??
-                accounts.find((account) => account.id === resolved.accountId)?.assetCode ??
-                ''
-              }
+              assetCode={amountAssetCode}
+              direction={direction}
               onChangeSplitMode={(splitMode) => set('splitMode', splitMode)}
               onChangeSplits={(splits) => set('splits', splits)}
               preferredType={preferredType}
               showErrors={showErrors}
               splitMode={values.splitMode}
               splits={values.splits}
-              total={values.amountValue}
+              total={signedAmount}
             />
           }
           stateLockedHint={stateLocked ? t('transactions.form.stateLocked') : null}

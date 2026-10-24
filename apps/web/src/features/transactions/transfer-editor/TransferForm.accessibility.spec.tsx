@@ -66,11 +66,13 @@ it('associates each invalid transaction field with its own error text', () => {
   expect(invalid.length).toBeGreaterThan(0);
   const descriptions = new Set<string>();
   for (const field of invalid) {
-    const id = field.getAttribute('aria-describedby');
-    expect(id).toBeTruthy();
-    expect(document.getElementById(id!)?.textContent?.trim().length).toBeGreaterThan(0);
-    expect(descriptions.has(id!)).toBe(false);
-    descriptions.add(id!);
+    const ids = field.getAttribute('aria-describedby')?.split(' ') ?? [];
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) {
+      expect(document.getElementById(id)?.textContent?.trim().length).toBeGreaterThan(0);
+      expect(descriptions.has(id)).toBe(false);
+      descriptions.add(id);
+    }
   }
 });
 
