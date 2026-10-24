@@ -301,7 +301,11 @@ describe('TransactionsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(api.createTransaction).not.toHaveBeenCalled();
 
+    // The expense nature implies the sign, so typing the amount unsigned changes nothing.
     fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '1500.00' } });
+    expect(screen.getByText(message)).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'INCOME' } });
     expect(screen.queryByText(message)).toBeNull();
     expect((picker as HTMLInputElement).value).toBe('Salaire');
   });
@@ -375,6 +379,118 @@ describe('TransactionsPage', () => {
       note: 'Petit-déjeuner',
       paymentMethod: 'CARD',
       categoryId: created.id,
+    });
+  });
+
+  describe('amount entry convention', () => {
+    async function openNewTransaction() {
+      api.listAccounts.mockImplementation(() =>
+        success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+      );
+      api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+      api.listCategories.mockImplementation(() =>
+        success({ items: [], page: 1, pageSize: 50, total: 0 }),
+      );
+      api.createTransaction.mockImplementation(({ body }) =>
+        success({ ...transaction, ...body, splits: [] }, 201),
+      );
+      renderPage();
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+      );
+      fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'CB TEST' } });
+    }
+
+    async function submittedAmount(): Promise<string> {
+      fireEvent.click(
+        within(screen.getByRole('dialog', { name: 'Nouvelle transaction' })).getByRole('button', {
+          name: 'Enregistrer',
+        }),
+      );
+      await waitFor(() => expect(api.createTransaction).toHaveBeenCalledOnce());
+
+      return api.createTransaction.mock.calls[0]![0].body.amount.value;
+    }
+
+    it('submits an unsigned expense negative and shows the signed result first', async () => {
+      await openNewTransaction();
+      const field = screen.getByLabelText('Montant');
+      fireEvent.change(field, { target: { value: '42.10' } });
+
+      const hint = screen.getByText(/Sortie enregistrée/);
+      expect(hint.textContent).toMatch(/-42,10/);
+      expect(field.getAttribute('aria-describedby')).toContain(hint.id);
+      expect(await submittedAmount()).toBe('-42.10');
+    });
+
+    it('never double-negates a minus typed on an expense', async () => {
+      await openNewTransaction();
+      fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '-42.10' } });
+
+      expect(await submittedAmount()).toBe('-42.10');
+    });
+
+    it('keeps an income positive', async () => {
+      await openNewTransaction();
+      fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'INCOME' } });
+      fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '42.10' } });
+
+      expect(screen.getByText(/Entrée enregistrée/)).toBeTruthy();
+      expect(await submittedAmount()).toBe('42.10');
+    });
+
+    it('refuses a minus typed on an income', async () => {
+      await openNewTransaction();
+      fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'INCOME' } });
+      fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '-42.10' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+      expect(api.createTransaction).not.toHaveBeenCalled();
+    });
+
+    it('does not guess the sign of an adjustment', async () => {
+      await openNewTransaction();
+      fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'ADJUSTMENT' } });
+      fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '42.10' } });
+
+      expect(await submittedAmount()).toBe('42.10');
+    });
+
+    it('still refuses zero', async () => {
+      await openNewTransaction();
+      fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '0.00' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+      expect(api.createTransaction).not.toHaveBeenCalled();
+    });
+
+    it('edits an existing expense with the same unsigned convention', async () => {
+      api.listAccounts.mockImplementation(() =>
+        success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+      );
+      api.listTransactions.mockImplementation(() =>
+        success({ items: [transaction], nextCursor: null }),
+      );
+      api.listCategories.mockImplementation(() =>
+        success({ items: [], page: 1, pageSize: 50, total: 0 }),
+      );
+      api.updateTransaction.mockImplementation(({ body }) =>
+        success({ ...transaction, ...body, splits: [] }),
+      );
+      renderPage();
+
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Actions de la transaction « CB CARREFOUR 1234 »',
+        }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
+
+      expect((screen.getByLabelText('Montant') as HTMLInputElement).value).toBe('42.90');
+      expect(screen.getByText(/Sortie enregistrée/).textContent).toMatch(/-42,90/);
+      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+      await waitFor(() => expect(api.updateTransaction).toHaveBeenCalledOnce());
+      expect(api.updateTransaction.mock.calls[0]![0].body.amount.value).toBe('-42.90');
     });
   });
 
@@ -529,7 +645,7 @@ describe('TransactionsPage', () => {
     expect(api.createCategory).not.toHaveBeenCalled();
   });
 
-  it('prefills the income type for a positive amount', async () => {
+  it('prefills the income type for an income', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
@@ -542,6 +658,7 @@ describe('TransactionsPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
     );
+    fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'INCOME' } });
     fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '1500.00' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Catégorie' }), {
       target: { value: 'Salaire' },
@@ -1027,8 +1144,8 @@ describe('TransactionsPage', () => {
     );
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Montant')));
 
-    // Flipping the sign keeps the category and says what now contradicts it.
-    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '42.90' } });
+    // Flipping the direction keeps the category and says what now contradicts it.
+    fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'INCOME' } });
     expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
       'Courses',
     );

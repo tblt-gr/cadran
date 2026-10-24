@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { emptySplitRow } from '@/features/transactions/split-editor/splitAllocation';
 import { SplitEditor } from '@/features/transactions/split-editor/SplitEditor';
 import type { SplitRowValues } from '@/features/transactions/split-editor/SplitRow';
+import type { AmountDirection } from '@/lib/signedAmount';
 import styles from './SplitField.module.css';
 
 interface SplitFieldProps {
   assetCode: string;
+  direction: AmountDirection | null;
   onChangeSplitMode: (splitMode: boolean) => void;
   onChangeSplits: (splits: SplitRowValues[]) => void;
   /** Category type the transaction sign expects, offered first in each row. */
@@ -23,6 +25,7 @@ interface SplitFieldProps {
  */
 export function SplitField({
   assetCode,
+  direction,
   onChangeSplitMode,
   onChangeSplits,
   preferredType,
@@ -53,6 +56,7 @@ export function SplitField({
       {splitMode ? (
         <SplitEditor
           assetCode={assetCode}
+          direction={direction}
           onChange={onChangeSplits}
           preferredType={preferredType}
           rows={splits}

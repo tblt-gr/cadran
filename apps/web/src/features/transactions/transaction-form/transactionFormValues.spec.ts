@@ -153,7 +153,8 @@ describe('transactionFormValues', () => {
       maskedCard: true,
     });
 
-    values.amountValue = '42.90';
+    values.amountValue = '-42.90';
+    values.nature = 'INCOME';
     values.bookedOn = '2026-09-01';
     expect(validateTransactionValues(values, [account], '2026-09-08')).toMatchObject({
       amountValue: true,
@@ -254,6 +255,92 @@ describe('transactionFormValues', () => {
         categoryId: null,
         splits: [{ analyticAxes: ['VARIABLE'], note: 'garde-moi' }],
       });
+    });
+  });
+  describe('unsigned amount entry', () => {
+    const base = () => ({
+      ...initialTransactionValues(undefined, [account], '2026-09-08'),
+      bookedOn: '2026-09-01',
+      rawLabel: 'Test',
+    });
+    const amountOf = (values: ReturnType<typeof base>) =>
+      transactionRequest(values, [account]).amount.value;
+
+    it('records an unsigned expense, fee and a signed expense identically', () => {
+      expect(amountOf({ ...base(), amountValue: '42.10' })).toBe('-42.10');
+      expect(amountOf({ ...base(), amountValue: '-42.10' })).toBe('-42.10');
+      expect(amountOf({ ...base(), amountValue: '42.10', nature: 'FEE' })).toBe('-42.10');
+    });
+
+    it('keeps an income positive and refuses a typed minus on it', () => {
+      const income = { ...base(), amountValue: '42.10', nature: 'INCOME' as const };
+      expect(amountOf(income)).toBe('42.10');
+      expect(validateTransactionValues(income, [account], '2026-09-08')).toEqual({});
+      expect(
+        validateTransactionValues({ ...income, amountValue: '-42.10' }, [account], '2026-09-08'),
+      ).toMatchObject({ amountValue: true, nature: true });
+    });
+
+    it('does not guess the sign of an adjustment', () => {
+      expect(amountOf({ ...base(), amountValue: '42.10', nature: 'ADJUSTMENT' })).toBe('42.10');
+      expect(amountOf({ ...base(), amountValue: '-42.10', nature: 'ADJUSTMENT' })).toBe('-42.10');
+    });
+
+    it('takes the direction of a single category on an adjustment', () => {
+      expect(
+        amountOf({
+          ...base(),
+          amountValue: '42.10',
+          categoryType: 'EXPENSE',
+          nature: 'ADJUSTMENT',
+        }),
+      ).toBe('-42.10');
+    });
+
+    it('refuses zero and keeps a 24-place amount exact', () => {
+      expect(
+        validateTransactionValues({ ...base(), amountValue: '0' }, [account], '2026-09-08'),
+      ).toMatchObject({ amountValue: true });
+      expect(
+        amountOf({ ...base(), amountValue: '99999999999999999999999999.123456789012345678901234' }),
+      ).toBe('-99999999999999999999999999.123456789012345678901234');
+    });
+
+    it('signs unsigned split rows that sum exactly to the signed total', () => {
+      const values = {
+        ...base(),
+        amountValue: '87.40',
+        splitMode: true,
+        splits: [
+          { amount: '62.10', analyticAxes: null, categoryId: 'a', key: 'a', note: '' },
+          { amount: '25.30', analyticAxes: null, categoryId: 'b', key: 'b', note: '' },
+        ],
+      };
+
+      expect(validateTransactionValues(values, [account], '2026-09-08')).toEqual({});
+      const request = transactionRequest(values, [account]);
+      expect(request.amount.value).toBe('-87.40');
+      expect(request.splits?.map((split) => split.amount.value)).toEqual(['-62.10', '-25.30']);
+      expect(
+        validateTransactionValues(
+          { ...values, splits: [{ ...values.splits[0]!, amount: '62.00' }, values.splits[1]!] },
+          [account],
+          '2026-09-08',
+        ),
+      ).toMatchObject({ splits: true });
+    });
+
+    it('shows a saved expense the way it is typed, and a saved income as is', () => {
+      expect(initialTransactionValues(transaction, [account], '2026-09-08').amountValue).toBe(
+        '1.50',
+      );
+      expect(
+        initialTransactionValues(
+          { ...transaction, amount: { value: '9.00', assetCode: 'EUR' }, nature: 'INCOME' },
+          [account],
+          '2026-09-08',
+        ).amountValue,
+      ).toBe('9.00');
     });
   });
 });

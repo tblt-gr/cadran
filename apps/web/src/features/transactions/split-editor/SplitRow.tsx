@@ -1,5 +1,8 @@
 import type { AnalyticAxes, CategoryType } from '@cadran/api-client';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SignedAmountHint } from '@/components/ui/signed-amount-hint/SignedAmountHint';
+import type { AmountDirection } from '@/lib/signedAmount';
 import { Icon } from '@/components/ui/icon/Icon';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
 import { SplitAxes } from './split-axes/SplitAxes';
@@ -25,6 +28,9 @@ export interface SplitRowValues {
 }
 
 interface SplitRowProps {
+  assetCode?: string;
+  /** Direction the amount is typed in; absent, the amount is read as signed. */
+  direction?: AmountDirection | null;
   /** Message for a category the transaction sign would refuse. */
   categoryError: string | null;
   index: number;
@@ -39,6 +45,8 @@ interface SplitRowProps {
 
 /** One row of a transaction's split allocation: its category, exact amount, analytic axes and note. */
 export function SplitRow({
+  assetCode = '',
+  direction = null,
   categoryError,
   index,
   invalid,
@@ -50,6 +58,7 @@ export function SplitRow({
   values,
 }: SplitRowProps) {
   const { t } = useTranslation();
+  const hintId = useId();
 
   return (
     <div className={styles.row}>
@@ -83,6 +92,7 @@ export function SplitRow({
         <label>
           <span className="sr-only">{t('transactions.split.amountRow', { row: index + 1 })}</span>
           <input
+            aria-describedby={values.amount === '' ? undefined : hintId}
             aria-invalid={invalid ? true : undefined}
             aria-label={t('transactions.split.amountRow', { row: index + 1 })}
             autoComplete="off"
@@ -114,6 +124,15 @@ export function SplitRow({
           <Icon name="close" />
         </button>
       </div>
+
+      {values.amount === '' ? null : (
+        <SignedAmountHint
+          assetCode={assetCode}
+          direction={direction}
+          id={hintId}
+          typed={values.amount}
+        />
+      )}
 
       <SplitAxes
         axes={values.analyticAxes}

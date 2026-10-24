@@ -8,6 +8,12 @@ import type {
 } from '@cadran/api-client';
 import { categoryContradictsAmount } from '@/features/transactions/categorySign';
 import { compareDecimals, isCanonicalDecimal, isZeroDecimal } from '@/lib/decimal';
+import {
+  resolveDirection,
+  toSignedAmount,
+  toTypedAmount,
+  type AmountDirection,
+} from '@/lib/signedAmount';
 import { remainingAmount } from '@/features/transactions/split-editor/splitAllocation';
 import type { SplitRowValues } from '@/features/transactions/split-editor/SplitRow';
 
@@ -49,6 +55,28 @@ const OPTIONAL_LIMITS = {
   note: 500,
 } as const;
 
+/**
+ * The direction the form's amounts are typed in: the nature when it implies
+ * one, else the single chosen category. A split draft has no single category,
+ * and an adjustment with none chosen keeps the sign as typed.
+ */
+export function transactionDirection(
+  values: Pick<TransactionFormValues, 'categoryType' | 'nature' | 'splitMode'>,
+): AmountDirection | null {
+  return resolveDirection(values.nature, values.splitMode ? null : values.categoryType);
+}
+
+/** The draft with every typed amount turned into the signed decimal the API stores. */
+export function signedTransactionValues(values: TransactionFormValues): TransactionFormValues {
+  const direction = transactionDirection(values);
+
+  return {
+    ...values,
+    amountValue: toSignedAmount(values.amountValue, direction),
+    splits: values.splits.map((row) => ({ ...row, amount: toSignedAmount(row.amount, direction) })),
+  };
+}
+
 export function initialTransactionValues(
   transaction: Transaction | undefined,
   accounts: Account[],
@@ -59,11 +87,15 @@ export function initialTransactionValues(
   const savedCategoryType =
     transaction === undefined ? null : categoryTypeForAmount(transaction.amount.value);
 
+  const nature = standaloneNature(transaction?.nature);
+  // Amounts are shown the way they are typed: an expense without its minus.
+  const direction = resolveDirection(nature, null);
+
   return {
     accountId: transaction?.accountId ?? accounts[0]?.id ?? '',
     analyticAxes:
       (transaction?.splits.length ?? 0) === 1 ? transaction!.splits[0]!.analyticAxes : null,
-    amountValue: transaction?.amount.value ?? '',
+    amountValue: toTypedAmount(transaction?.amount.value ?? '', direction),
     authorizedOn: transaction?.authorizedOn ?? '',
     bankReference: transaction?.bankReference ?? '',
     bookedOn: transaction?.bookedOn ?? today,
@@ -73,13 +105,13 @@ export function initialTransactionValues(
     counterparty: transaction?.counterparty ?? '',
     maskedCard: transaction?.maskedCard ?? '',
     mcc: transaction?.mcc ?? '',
-    nature: standaloneNature(transaction?.nature),
+    nature,
     note: transaction?.note ?? '',
     paymentMethod: transaction?.paymentMethod ?? '',
     rawLabel: transaction?.rawLabel ?? '',
     splitMode: (transaction?.splits.length ?? 0) > 1,
     splits: (transaction?.splits ?? []).map((split) => ({
-      amount: split.amount.value,
+      amount: toTypedAmount(split.amount.value, direction),
       analyticAxes: split.analyticAxes,
       categoryColor: split.categoryColor,
       categoryIcon: split.categoryIcon,
@@ -98,11 +130,12 @@ export function initialTransactionValues(
 }
 
 export function validateTransactionValues(
-  values: TransactionFormValues,
+  draft: TransactionFormValues,
   accounts: Account[],
   today: string,
   transaction?: Transaction,
 ): TransactionFormErrors {
+  const values = signedTransactionValues(draft);
   const errors: TransactionFormErrors = {};
   const account = accounts.find((candidate) => candidate.id === values.accountId);
   const editingCurrentAccount = transaction?.accountId === values.accountId;
@@ -214,10 +247,11 @@ function splitsAreBalanced(values: TransactionFormValues): boolean {
 }
 
 export function transactionRequest(
-  values: TransactionFormValues,
+  draft: TransactionFormValues,
   accounts: Account[],
   transaction?: Transaction,
 ): CreateTransactionRequest | UpdateTransactionRequest {
+  const values = signedTransactionValues(draft);
   const account = accounts.find((candidate) => candidate.id === values.accountId);
   const assetCode = transaction?.amount.assetCode ?? account?.assetCode ?? '';
   const common = {

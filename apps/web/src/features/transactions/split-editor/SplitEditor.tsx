@@ -2,6 +2,7 @@ import type { CategoryType } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { categoryContradictsAmount } from '@/features/transactions/categorySign';
 import { formatAmount, isCanonicalDecimal, isZeroDecimal } from '@/lib/decimal';
+import { toSignedAmount, toTypedAmount, type AmountDirection } from '@/lib/signedAmount';
 import { SplitRow, type SplitRowValues } from './SplitRow';
 import {
   MAX_SPLIT_ROWS,
@@ -16,6 +17,12 @@ import styles from './SplitEditor.module.css';
 
 interface SplitEditorProps {
   assetCode: string;
+  /**
+   * Direction the row amounts are typed in: an outflow row is typed without its
+   * minus. Absent, rows are read as signed, which is what a refund's unsigned
+   * rows and an adjustment need.
+   */
+  direction?: AmountDirection | null;
   /** Overrides sign-derived categorisation for movements such as a positive refund of an expense. */
   expectedCategoryType?: CategoryType;
   /** Category type the transaction sign expects, offered first in each row. */
@@ -33,6 +40,7 @@ interface SplitEditorProps {
  */
 export function SplitEditor({
   assetCode,
+  direction = null,
   expectedCategoryType,
   preferredType,
   onChange,
@@ -47,7 +55,8 @@ export function SplitEditor({
   // remaining amount and both helpers stay non-calculable rather than reading
   // it as zero or throwing, since neither would be the real figure.
   const exactTotal = isCanonicalDecimal(total) ? total : null;
-  const amounts = rows.map((row) => (isCanonicalDecimal(row.amount) ? row.amount : '0'));
+  const signedRows = rows.map((row) => ({ ...row, amount: toSignedAmount(row.amount, direction) }));
+  const amounts = signedRows.map((row) => (isCanonicalDecimal(row.amount) ? row.amount : '0'));
   const remaining = exactTotal === null ? null : remainingAmount(exactTotal, amounts);
   const sumBalanced = remaining !== null && isZeroDecimal(remaining);
   const signMismatch = (row: SplitRowValues): boolean =>
@@ -79,7 +88,7 @@ export function SplitEditor({
   );
   const allocationValid =
     rows.length === 0 ||
-    (sumBalanced && duplicateCategoryIds.size === 0 && !rows.some(rowIsIncomplete));
+    (sumBalanced && duplicateCategoryIds.size === 0 && !signedRows.some(rowIsIncomplete));
   const evenSplitAvailable =
     precision !== null && exactTotal !== null && canEvenSplit(exactTotal, precision, rows.length);
 
@@ -101,9 +110,11 @@ export function SplitEditor({
     }
 
     const nextAmounts = assignRemainderToRow(exactTotal, amounts, index);
-    onChange(
-      rows.map((row, position) => ({ ...row, amount: nextAmounts[position] ?? row.amount })),
-    );
+    onChange(rows.map((row, position) => typedRow(row, nextAmounts[position])));
+  }
+
+  function typedRow(row: SplitRowValues, signed: string | undefined): SplitRowValues {
+    return { ...row, amount: signed === undefined ? row.amount : toTypedAmount(signed, direction) };
   }
 
   function splitEvenly() {
@@ -112,9 +123,7 @@ export function SplitEditor({
     }
 
     const nextAmounts = evenSplitRows(exactTotal, precision, rows.length);
-    onChange(
-      rows.map((row, position) => ({ ...row, amount: nextAmounts[position] ?? row.amount })),
-    );
+    onChange(rows.map((row, position) => typedRow(row, nextAmounts[position])));
   }
 
   return (
@@ -135,11 +144,13 @@ export function SplitEditor({
 
       <ol className={styles.rows}>
         {rows.map((row, index) => {
-          const refusedType = mismatchedType(row);
+          const refusedType = mismatchedType(signedRows[index]!);
 
           return (
             <li key={row.key}>
               <SplitRow
+                assetCode={assetCode}
+                direction={direction}
                 categoryError={
                   refusedType === null
                     ? null
@@ -149,7 +160,7 @@ export function SplitEditor({
                   row.categoryId !== '' && duplicateCategoryIds.has(row.categoryId)
                 }
                 index={index}
-                invalid={showErrors && amountInvalid(row)}
+                invalid={showErrors && amountInvalid(signedRows[index]!)}
                 onChange={(values) => updateRow(index, values)}
                 onRemove={() => removeRow(index)}
                 preferredType={preferredType}

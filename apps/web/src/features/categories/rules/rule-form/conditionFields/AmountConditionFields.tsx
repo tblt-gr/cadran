@@ -1,5 +1,6 @@
 import type { CategorizationRuleConditions } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { ruleDirection, toSignedBounds, toTypedBounds } from './ruleAmountBounds';
 import formStyles from '@/features/categories/rules/rule-form/RuleForm.module.css';
 import styles from './AmountConditionFields.module.css';
 
@@ -12,22 +13,32 @@ export function AmountConditionFields({ conditions, onChange }: AmountConditionF
   const { t } = useTranslation();
   const amount = conditions.amount;
   const enabled = amount !== null && amount !== undefined;
+  const direction = ruleDirection(conditions.direction);
+  // The bounds are typed unsigned on an outflow rule and stored signed.
+  const typed = toTypedBounds({ max: amount?.max ?? null, min: amount?.min ?? null }, direction);
 
   function update(field: 'assetCode' | 'max' | 'min', value: string) {
+    if (field === 'assetCode') {
+      onChange({ ...conditions, amount: { ...amount!, assetCode: value } });
+      return;
+    }
+
+    const next = { ...typed, [field]: value === '' ? null : value };
     onChange({
       ...conditions,
-      amount: {
-        assetCode: amount?.assetCode ?? 'EUR',
-        max: amount?.max ?? null,
-        min: amount?.min ?? null,
-        [field]: value === '' && field !== 'assetCode' ? null : value,
-      },
+      amount: { assetCode: amount?.assetCode ?? 'EUR', ...toSignedBounds(next, direction) },
     });
   }
 
   return (
     <div className={formStyles.stack}>
-      <p className={formStyles.hint}>{t('categorizationRules.conditions.amountHint')}</p>
+      <p className={formStyles.hint}>
+        {t(
+          direction === 'OUTFLOW'
+            ? 'categorizationRules.conditions.amountHintOutflow'
+            : 'categorizationRules.conditions.amountHint',
+        )}
+      </p>
       <label className={formStyles.choice}>
         <input
           checked={enabled}
@@ -48,7 +59,7 @@ export function AmountConditionFields({ conditions, onChange }: AmountConditionF
             <input
               inputMode="decimal"
               onChange={(event) => update('min', event.target.value)}
-              value={amount.min ?? ''}
+              value={typed.min ?? ''}
             />
           </label>
           <label className={formStyles.field}>
@@ -56,7 +67,7 @@ export function AmountConditionFields({ conditions, onChange }: AmountConditionF
             <input
               inputMode="decimal"
               onChange={(event) => update('max', event.target.value)}
-              value={amount.max ?? ''}
+              value={typed.max ?? ''}
             />
           </label>
           <label className={formStyles.field}>
@@ -69,6 +80,29 @@ export function AmountConditionFields({ conditions, onChange }: AmountConditionF
             />
           </label>
         </div>
+      ) : null}
+      {enabled && direction === 'OUTFLOW' ? (
+        <p aria-live="polite" className={formStyles.hint}>
+          {t('categorizationRules.conditions.amountStored', {
+            bounds:
+              [
+                amount.min
+                  ? t('categorizationRules.conditions.amountMin', {
+                      asset: amount.assetCode,
+                      value: amount.min,
+                    })
+                  : null,
+                amount.max
+                  ? t('categorizationRules.conditions.amountMax', {
+                      asset: amount.assetCode,
+                      value: amount.max,
+                    })
+                  : null,
+              ]
+                .filter((bound) => bound !== null)
+                .join(' · ') || t('categorizationRules.conditions.amountUnbounded'),
+          })}
+        </p>
       ) : null}
     </div>
   );
