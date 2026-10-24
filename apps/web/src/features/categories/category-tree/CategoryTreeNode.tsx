@@ -58,6 +58,9 @@ export function CategoryTreeNode({
           />
           <p className={styles.meta}>
             <span className="sr-only">{t('categories.tree.level', { depth: category.depth })}</span>
+            {children.length > 0 ? (
+              <span>{t('categories.tree.childCount', { count: children.length })}</span>
+            ) : null}
             {axes !== '' ? <span>{axes}</span> : null}
             {archived ? <span>{t('categories.list.archived')}</span> : null}
             {root && category.parentId !== null ? (

@@ -1200,6 +1200,8 @@
     "tree": {
       "expand": "Afficher les sous-catégories de « {{label}} » ({{count}})",
       "collapse": "Masquer les sous-catégories de « {{label}} »",
+      "childCount_one": "{{count}} sous-catégorie",
+      "childCount_other": "{{count}} sous-catégories",
       "level": "Niveau {{depth}}",
       "parentOf": "Sous-catégorie de « {{parent}} »",
       "inherits": "Hérite de la couleur {{color}}",
