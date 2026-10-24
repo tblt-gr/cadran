@@ -118,7 +118,7 @@ final readonly class UpdateTransaction
                     paymentMethod: $draft->paymentMethod,
                     mcc: $draft->mcc, maskedCard: $draft->maskedCard, bankReference: $draft->bankReference,
                     splits: $splits, updatedAt: $now, lastEditorId: $context->actorId,
-                );
+                )->withUserLabel(self::userLabel($input->userLabel));
             } catch (InvalidTransaction $exception) {
                 throw new InvalidTransactionInput('The requested transaction edit is invalid.', previous: $exception);
             }
@@ -140,5 +140,13 @@ final readonly class UpdateTransaction
     private static function wrap(?TransactionSplit $split): array
     {
         return null === $split ? [] : [$split];
+    }
+
+    /** A blank label clears the user label, which falls the display back to the source label. */
+    private static function userLabel(?string $label): ?string
+    {
+        $trimmed = null === $label ? '' : trim($label);
+
+        return '' === $trimmed ? null : $trimmed;
     }
 }

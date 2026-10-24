@@ -29,6 +29,8 @@ const transaction = {
   valueOn: null,
   authorizedOn: null,
   rawLabel: 'CARTE BOULANGERIE',
+  userLabel: null,
+  displayLabel: 'CARTE BOULANGERIE',
   counterparty: null,
   note: null,
   paymentMethod: 'CARD',
@@ -118,6 +120,56 @@ describe('transactionFormValues', () => {
       rawLabel: 'CARTE BOULANGERIE',
       counterparty: 'Boulangerie',
       version: 7,
+    });
+  });
+
+  it('sends a display label over an imported transaction while echoing its source label', () => {
+    const imported = {
+      ...transaction,
+      source: 'IMPORT' as const,
+      rawLabel: 'CB PAIEMENT 0412',
+      displayLabel: 'CB PAIEMENT 0412',
+    } as Transaction;
+    const values = initialTransactionValues(imported, [account], '2026-09-08');
+    expect(values.userLabel).toBe('CB PAIEMENT 0412');
+    expect(transactionRequest(values, [account], imported)).toMatchObject({
+      rawLabel: 'CB PAIEMENT 0412',
+      userLabel: null,
+    });
+
+    values.userLabel = 'Boulangerie du coin';
+    expect(transactionRequest(values, [account], imported)).toMatchObject({
+      rawLabel: 'CB PAIEMENT 0412',
+      userLabel: 'Boulangerie du coin',
+    });
+
+    values.userLabel = '   ';
+    expect(transactionRequest(values, [account], imported)).toMatchObject({ userLabel: null });
+  });
+
+  it('prefills the saved display label and rejects one over 140 characters', () => {
+    const labelled = {
+      ...transaction,
+      source: 'PROVIDER' as const,
+      userLabel: 'Pain',
+      displayLabel: 'Pain',
+    } as Transaction;
+    const values = initialTransactionValues(labelled, [account], '2026-09-08');
+    expect(values.userLabel).toBe('Pain');
+
+    values.userLabel = 'x'.repeat(141);
+    expect(validateTransactionValues(values, [account], '2026-09-08', labelled)).toMatchObject({
+      userLabel: true,
+    });
+  });
+
+  it('keeps editing the source label of a manual transaction', () => {
+    const values = initialTransactionValues(transaction, [account], '2026-09-08');
+    values.rawLabel = 'Boulangerie';
+
+    expect(transactionRequest(values, [account], transaction)).toMatchObject({
+      rawLabel: 'Boulangerie',
+      userLabel: null,
     });
   });
 

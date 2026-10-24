@@ -17,6 +17,7 @@ it('links and navigates a portfolio movement directly to its existing operations
     amount: { value: '-100.25', assetCode: 'EUR' },
     bookedOn: '2026-09-12',
     rawLabel: 'Opération de portefeuille',
+    displayLabel: 'Opération de portefeuille',
     state: 'BOOKED',
     nature: 'EXPENSE',
     transferId: null,

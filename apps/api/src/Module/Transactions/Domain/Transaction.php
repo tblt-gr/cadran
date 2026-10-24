@@ -47,6 +47,7 @@ final readonly class Transaction
         public ?\DateTimeImmutable $voidedAt,
         public ?string $lastEditorId,
         public ?ReviewReason $reviewReason = null,
+        public ?string $userLabel = null,
     ) {
         self::identifier($id, 'transaction');
         self::identifier($accountId, 'account');
@@ -58,6 +59,7 @@ final readonly class Transaction
         }
         self::assertSign($amount, $nature);
         self::requiredText($rawLabel, self::MAX_RAW_LABEL_LENGTH, 'raw label');
+        self::optionalText($userLabel, self::MAX_RAW_LABEL_LENGTH, 'user label');
         self::optionalText($counterparty, self::MAX_COUNTERPARTY_LENGTH, 'counterparty');
         self::optionalText($note, self::MAX_NOTE_LENGTH, 'note');
         self::optionalText($bankReference, self::MAX_BANK_REFERENCE_LENGTH, 'bank reference');
@@ -135,8 +137,31 @@ final readonly class Transaction
             $this->id, $this->workspace, $this->accountId, $amount, $this->originalAmount, $this->exchangeRate,
             $state, $nature, $this->source, $this->sourceRef, $bookedOn, $valueOn, $authorizedOn, $rawLabel,
             $counterparty, $note, $paymentMethod, $mcc, $maskedCard, $bankReference, $splits, $this->version + 1,
-            $this->createdAt, $updatedAt, null, $lastEditorId, $this->reviewReason,
+            $this->createdAt, $updatedAt, null, $lastEditorId, $this->reviewReason, $this->userLabel,
         );
+    }
+
+    /**
+     * The user's own display label. The source label stays untouched, which is
+     * what keeps an external movement traceable; null falls back to it. It is a
+     * presentation attribute, so it spends no version of its own: the edit it
+     * accompanies already counts.
+     */
+    public function withUserLabel(?string $userLabel): self
+    {
+        return new self(
+            $this->id, $this->workspace, $this->accountId, $this->amount, $this->originalAmount, $this->exchangeRate,
+            $this->state, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
+            $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
+            $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
+            $this->voidedAt, $this->lastEditorId, $this->reviewReason, $userLabel,
+        );
+    }
+
+    /** The label shown, searched and listed everywhere: the user's, else the source's. */
+    public function displayLabel(): string
+    {
+        return $this->userLabel ?? $this->rawLabel;
     }
 
     /**
@@ -155,7 +180,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
             $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
-            $this->voidedAt, $this->lastEditorId, null,
+            $this->voidedAt, $this->lastEditorId, null, $this->userLabel,
         );
     }
 
@@ -183,7 +208,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, $sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
             $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
-            $this->voidedAt, $this->lastEditorId, $this->reviewReason,
+            $this->voidedAt, $this->lastEditorId, $this->reviewReason, $this->userLabel,
         );
     }
 
@@ -204,7 +229,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, null, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
             $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
-            $this->voidedAt, $this->lastEditorId, $this->reviewReason,
+            $this->voidedAt, $this->lastEditorId, $this->reviewReason, $this->userLabel,
         );
     }
 
@@ -219,7 +244,7 @@ final readonly class Transaction
             TransactionState::VOIDED, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
             $this->maskedCard, $this->bankReference, $this->splits, $this->version + 1, $this->createdAt, $voidedAt,
-            $voidedAt, $lastEditorId,
+            $voidedAt, $lastEditorId, null, $this->userLabel,
         );
     }
 
@@ -235,7 +260,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty ?? $counterparty, $this->note, $this->paymentMethod,
             $this->mcc, $this->maskedCard, $this->bankReference, [$split], $this->version + ($incrementVersion ? 1 : 0), $this->createdAt,
-            $updatedAt, $this->voidedAt, $this->lastEditorId, $this->reviewReason,
+            $updatedAt, $this->voidedAt, $this->lastEditorId, $this->reviewReason, $this->userLabel,
         );
     }
 

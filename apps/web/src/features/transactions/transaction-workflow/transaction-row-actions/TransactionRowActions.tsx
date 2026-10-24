@@ -46,7 +46,7 @@ function LoadedTransactionActions({
   return (
     <>
       <ActionMenu
-        label={t('transactions.list.openActions', { label: transaction.rawLabel })}
+        label={t('transactions.list.openActions', { label: transaction.displayLabel })}
         items={actions.map(([action, icon]) => ({
           id: action,
           icon,
@@ -55,14 +55,14 @@ function LoadedTransactionActions({
           ),
           label:
             action === 'inspect'
-              ? t('transactions.workflow.inspectFor', { label: transaction.rawLabel })
+              ? t('transactions.workflow.inspectFor', { label: transaction.displayLabel })
               : t('transactions.list.actionFor', {
                   action: t(
                     action === 'refund'
                       ? 'transactions.list.refund'
                       : `transactions.workflow.${action}`,
                   ),
-                  label: transaction.rawLabel,
+                  label: transaction.displayLabel,
                 }),
           disabled:
             !context ||
@@ -96,12 +96,12 @@ export function TransactionInspectButton({ transaction }: { transaction: Transac
       disabled={!context || transaction === null}
       aria-label={
         transaction
-          ? t('transactions.workflow.inspectFor', { label: transaction.rawLabel })
+          ? t('transactions.workflow.inspectFor', { label: transaction.displayLabel })
           : t('transactions.workflow.inspect')
       }
       onClick={() => transaction && context?.open('inspect', transaction)}
     >
-      {transaction?.rawLabel ?? <SkeletonBlock />}
+      {transaction?.displayLabel ?? <SkeletonBlock />}
     </button>
   );
 }

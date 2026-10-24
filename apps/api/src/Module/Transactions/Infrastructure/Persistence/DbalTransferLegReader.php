@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(TransferLegReader::class)]
 final readonly class DbalTransferLegReader implements TransferLegReader
 {
-    private const string COLUMNS = 'id, account_id, asset_code, amount_value, amount_scale, booked_on, state, voided_at, raw_label';
+    private const string COLUMNS = 'id, account_id, asset_code, amount_value, amount_scale, booked_on, state, voided_at, coalesce(user_label, raw_label) AS raw_label';
 
     public function __construct(private Connection $connection)
     {

@@ -94,7 +94,7 @@ export function PendingReconciliation({
               t(`transactions.errors.${transactionErrorKind(mutation.error, true) ?? 'network'}`)}
           </p>
         ) : null}
-        <p>{query.data ? query.data.transaction.rawLabel : <SkeletonBlock />}</p>
+        <p>{query.data ? query.data.transaction.displayLabel : <SkeletonBlock />}</p>
         <label>
           <span>{t('transactions.workflow.match')}</span>
           <select
@@ -106,7 +106,7 @@ export function PendingReconciliation({
             <option value="">{t('transactions.workflow.newMovement')}</option>
             {query.data?.candidates.map((candidate) => (
               <option value={candidate.id} key={candidate.id}>
-                {candidate.rawLabel} · {formatCalendarDay(candidate.bookedOn, i18n.language)} ·{' '}
+                {candidate.displayLabel} · {formatCalendarDay(candidate.bookedOn, i18n.language)} ·{' '}
                 {formatAmount(candidate.amount.value, candidate.amount.assetCode, i18n.language)}
               </option>
             ))}

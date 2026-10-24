@@ -68,7 +68,7 @@ final readonly class DbalRefundRepository implements RefundRepository
             return [];
         }
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT r.refund_transaction_id, o.id AS original_id, o.raw_label AS original_label '
+            'SELECT r.refund_transaction_id, o.id AS original_id, coalesce(o.user_label, o.raw_label) AS original_label '
             .'FROM transaction_refunds r JOIN transaction_transactions o '
             .'ON o.workspace_id = r.workspace_id AND o.id = r.original_transaction_id '
             .'WHERE r.workspace_id = :workspace_id AND o.workspace_id = :workspace_id '

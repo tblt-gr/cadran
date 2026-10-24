@@ -72,6 +72,73 @@ final class TransactionTest extends TestCase
         );
     }
 
+    #[DataProvider('externalSources')]
+    public function testAUserLabelOverridesTheDisplayLabelWithoutTouchingTheSourceLabel(TransactionSource $source): void
+    {
+        $original = $this->transaction('-42.90', TransactionNature::EXPENSE, $source);
+        self::assertNull($original->userLabel);
+        self::assertSame('CB CARREFOUR 1234', $original->displayLabel());
+
+        $relabelled = $original->withUserLabel('Courses du samedi');
+
+        self::assertSame('Courses du samedi', $relabelled->displayLabel());
+        self::assertSame('Courses du samedi', $relabelled->userLabel);
+        self::assertSame('CB CARREFOUR 1234', $relabelled->rawLabel);
+        self::assertSame($original->version, $relabelled->version);
+    }
+
+    public function testClearingTheUserLabelFallsBackToTheSourceLabel(): void
+    {
+        $relabelled = $this->transaction('-42.90', TransactionNature::EXPENSE, TransactionSource::IMPORT)
+            ->withUserLabel('Courses');
+
+        $cleared = $relabelled->withUserLabel(null);
+
+        self::assertNull($cleared->userLabel);
+        self::assertSame('CB CARREFOUR 1234', $cleared->displayLabel());
+    }
+
+    public function testEditingAnExternalTransactionKeepsItsUserLabel(): void
+    {
+        $original = $this->transaction('-42.90', TransactionNature::EXPENSE, TransactionSource::PROVIDER)
+            ->withUserLabel('Courses');
+
+        $edited = $original->edit(
+            amount: $this->amount('-40.00'), nature: TransactionNature::EXPENSE, state: TransactionState::BOOKED,
+            bookedOn: new \DateTimeImmutable('2026-03-15'), valueOn: null, authorizedOn: null,
+            rawLabel: 'CB CARREFOUR 1234', counterparty: null, note: null, paymentMethod: null, mcc: null,
+            maskedCard: null, bankReference: null, splits: [],
+            updatedAt: new \DateTimeImmutable('2026-03-16T10:00:00+00:00'),
+            lastEditorId: WorkspaceFixture::OWNER_ID,
+        );
+
+        self::assertSame('Courses', $edited->userLabel);
+        self::assertSame(2, $edited->version);
+    }
+
+    public function testAUserLabelAcceptsExactlyTheMaximumLength(): void
+    {
+        $label = str_repeat('é', Transaction::MAX_RAW_LABEL_LENGTH);
+
+        self::assertSame($label, $this->transaction('-1.00', TransactionNature::EXPENSE)->withUserLabel($label)->userLabel);
+    }
+
+    #[DataProvider('invalidUserLabels')]
+    public function testAnInvalidUserLabelIsRefused(string $label): void
+    {
+        $this->expectException(InvalidTransaction::class);
+        $this->transaction('-1.00', TransactionNature::EXPENSE)->withUserLabel($label);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function invalidUserLabels(): iterable
+    {
+        yield 'empty' => [''];
+        yield 'blank' => ['   '];
+        yield 'padded' => [' Courses '];
+        yield 'too long' => [str_repeat('a', Transaction::MAX_RAW_LABEL_LENGTH + 1)];
+    }
+
     /** @return iterable<string, array{TransactionSource}> */
     public static function externalSources(): iterable
     {

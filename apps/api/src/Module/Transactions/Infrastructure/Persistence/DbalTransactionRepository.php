@@ -34,7 +34,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(TransactionRepository::class)]
 final readonly class DbalTransactionRepository implements BookedMovementTotals, CategoryClassificationCounter, TransactionRepository
 {
-    private const string COLUMNS = 'id, workspace_id, account_id, asset_code, amount_value, amount_scale, original_amount_value, original_amount_scale, original_asset_code, exchange_rate, state, nature, source, source_ref, booked_on, value_on, authorized_on, raw_label, counterparty, note, payment_method, mcc, masked_card, bank_reference, version, created_at, updated_at, voided_at, last_editor_id, review_reason';
+    private const string COLUMNS = 'id, workspace_id, account_id, asset_code, amount_value, amount_scale, original_amount_value, original_amount_scale, original_asset_code, exchange_rate, state, nature, source, source_ref, booked_on, value_on, authorized_on, raw_label, counterparty, note, payment_method, mcc, masked_card, bank_reference, version, created_at, updated_at, voided_at, last_editor_id, user_label, review_reason';
 
     public function __construct(private Connection $connection)
     {
@@ -151,9 +151,11 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
             // normalized_label is a generated column equal to
             // lower(btrim(raw_label)): any row lower(raw_label) would match is
             // already matched by normalized_label, so there is no separate
-            // raw_label branch (and no index needed for one).
+            // raw_label branch (and no index needed for one). The user's own
+            // display label is matched too, so a movement is found by either.
             $escaped = strtr(mb_strtolower($filters->q, 'UTF-8'), ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']);
             $sql .= ' AND (t.normalized_label LIKE :pattern ESCAPE \'\\\' '
+                .'OR lower(t.user_label) LIKE :pattern ESCAPE \'\\\' '
                 .'OR lower(t.counterparty) LIKE :pattern ESCAPE \'\\\')';
             $parameters['pattern'] = '%'.$escaped.'%';
         }

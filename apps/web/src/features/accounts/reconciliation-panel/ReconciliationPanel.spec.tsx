@@ -31,6 +31,7 @@ const account = {
 const pending = {
   id: '00000000-0000-7000-8000-0000000000e1',
   rawLabel: 'Carte en attente',
+  displayLabel: 'Carte en attente',
   amount: { value: '-12.00', assetCode: 'EUR' },
   bookedOn: '2026-09-02',
 };

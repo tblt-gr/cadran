@@ -27,7 +27,7 @@ export function VoidTransactionDialog({
           {submitErrorDetail ?? t(`transactions.errors.${submitError}`)}
         </p>
       ) : null}
-      <p>{t('transactions.void.description', { label: transaction.rawLabel })}</p>
+      <p>{t('transactions.void.description', { label: transaction.displayLabel })}</p>
       <p className={styles.hint}>{t('transactions.void.consequences')}</p>
       <div className={styles.actions}>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">

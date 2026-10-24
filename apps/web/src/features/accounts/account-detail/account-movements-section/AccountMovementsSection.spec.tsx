@@ -26,7 +26,7 @@ describe('AccountMovementsSection loading', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Mouvements' })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Libellé d’origine' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Libellé' })).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     expect(screen.getByTestId('account-movements-skeleton').getAttribute('aria-busy')).toBe('true');
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();

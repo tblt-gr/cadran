@@ -334,6 +334,7 @@ final class TransferControllerTest extends WebTestCase
                 'valueOn' => null,
                 'authorizedOn' => null,
                 'rawLabel' => 'Virement épargne',
+                'userLabel' => null,
                 'counterparty' => null,
                 'note' => null,
                 'paymentMethod' => null,

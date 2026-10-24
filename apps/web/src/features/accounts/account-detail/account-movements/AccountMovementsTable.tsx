@@ -30,7 +30,7 @@ export function AccountMovementsTable({
   const labels = [
     t('transactions.fields.bookedOn'),
     t('transactions.fields.nature'),
-    t('transactions.fields.rawLabel'),
+    t('transactions.fields.label'),
     t('transactions.fields.category'),
     t('accounts.detail.movements.counterpart'),
     t('transactions.fields.amount'),

@@ -220,6 +220,7 @@ final class ReconciliationControllerTest extends WebTestCase
                 'valueOn' => null,
                 'authorizedOn' => null,
                 'rawLabel' => 'CB CARREFOUR 1234',
+                'userLabel' => null,
                 'counterparty' => null,
                 'note' => null,
                 'paymentMethod' => 'CARD',
