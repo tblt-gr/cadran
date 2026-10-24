@@ -356,6 +356,101 @@ final class CategoryControllerTest extends WebTestCase
         self::assertSame('Restaurants et bars', $this->decode()['label']);
     }
 
+    public function testAChildWithoutColorInheritsTheNearestAncestorColorWhileStoringNull(): void
+    {
+        $root = $this->createColored('Maison', null, '#112233');
+        $mid = $this->createColored('Energie', self::stringValue($root, 'id'), null);
+        $leaf = $this->createColored('Electricite', self::stringValue($mid, 'id'), null);
+        $own = $this->createColored('Gaz', self::stringValue($mid, 'id'), '#445566');
+
+        self::assertSame('#112233', $root['effectiveColor']);
+        self::assertNull($mid['color']);
+        self::assertSame('#112233', $mid['effectiveColor']);
+        self::assertNull($leaf['color']);
+        self::assertSame('#112233', $leaf['effectiveColor']);
+        self::assertSame('#445566', $own['effectiveColor']);
+
+        $this->client->request('GET', '/api/v1/categories');
+        $byLabel = array_column($this->items(), null, 'label');
+        self::assertSame('#112233', $byLabel['Electricite']['effectiveColor']);
+        self::assertNull($byLabel['Electricite']['color']);
+    }
+
+    public function testChangingOrClearingAnAncestorColorOnlyAffectsInheritingDescendants(): void
+    {
+        $root = $this->createColored('Maison', null, '#112233');
+        $this->createColored('Energie', self::stringValue($root, 'id'), null);
+        $this->createColored('Gaz', self::stringValue($root, 'id'), '#445566');
+
+        $this->requestUpdate(self::stringValue($root, 'id'), ['color' => '#AA0000'] + $root);
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/api/v1/categories');
+        $byLabel = array_column($this->items(), null, 'label');
+        self::assertSame('#AA0000', $byLabel['Energie']['effectiveColor']);
+        self::assertSame('#445566', $byLabel['Gaz']['effectiveColor']);
+        self::assertNull($byLabel['Energie']['color']);
+
+        $this->requestUpdate(self::stringValue($root, 'id'), ['color' => null, 'version' => $this->version($root, 1)] + $root);
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/api/v1/categories');
+        $byLabel = array_column($this->items(), null, 'label');
+        self::assertNull($byLabel['Maison']['effectiveColor']);
+        self::assertNull($byLabel['Energie']['effectiveColor']);
+        self::assertSame('#445566', $byLabel['Gaz']['effectiveColor']);
+    }
+
+    public function testClearingAChildColorRevealsTheAncestorColorImmediately(): void
+    {
+        $root = $this->createColored('Maison', null, '#112233');
+        $child = $this->createColored('Gaz', self::stringValue($root, 'id'), '#445566');
+
+        $this->requestUpdate(self::stringValue($child, 'id'), ['color' => null] + $child);
+        self::assertResponseIsSuccessful();
+        $cleared = $this->decode();
+
+        self::assertNull($cleared['color']);
+        self::assertSame('#112233', $cleared['effectiveColor']);
+    }
+
+    public function testMovingACategoryRecalculatesTheInheritedColorOfItsSubtree(): void
+    {
+        $red = $this->createColored('Rouge', null, '#AA0000');
+        $blue = $this->createColored('Bleu', null, '#0000AA');
+        $branch = $this->createColored('Branche', self::stringValue($red, 'id'), null);
+        $this->createColored('Feuille', self::stringValue($branch, 'id'), null);
+
+        $this->client->request(
+            'POST',
+            '/api/v1/categories/'.self::stringValue($branch, 'id').'/move',
+            server: self::jsonHeaders(),
+            content: json_encode(['parentId' => self::stringValue($blue, 'id'), 'version' => $branch['version']], JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseIsSuccessful();
+        $moved = $this->decode();
+        self::assertNull($moved['color']);
+        self::assertSame('#0000AA', $moved['effectiveColor']);
+
+        $this->client->request('GET', '/api/v1/categories');
+        $byLabel = array_column($this->items(), null, 'label');
+        self::assertSame('#0000AA', $byLabel['Feuille']['effectiveColor']);
+        self::assertNull($byLabel['Feuille']['color']);
+    }
+
+    public function testAnArchivedAncestorStillProvidesItsColorToActiveDescendants(): void
+    {
+        $root = $this->createColored('Maison', null, '#112233');
+        $this->createColored('Gaz', self::stringValue($root, 'id'), null);
+        $this->connection->update(
+            'category_categories',
+            ['archived_at' => '2026-09-01 12:00:00+00'],
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $root['id']],
+        );
+
+        $this->client->request('GET', '/api/v1/categories');
+        self::assertSame('#112233', $this->items()[0]['effectiveColor'] ?? null);
+        self::assertSame([], array_filter($this->items(), static fn (array $item): bool => 'Maison' === $item['label']));
+    }
+
     private function signIn(): void
     {
         $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: json_encode([
@@ -402,6 +497,29 @@ final class CategoryControllerTest extends WebTestCase
                 'version' => $category['version'],
             ], JSON_THROW_ON_ERROR),
         );
+    }
+
+    /** @return array<string, mixed> */
+    private function createColored(string $label, ?string $parentId, ?string $color): array
+    {
+        $this->client->request(
+            'POST',
+            '/api/v1/categories',
+            server: self::jsonHeaders(),
+            content: json_encode(['color' => $color] + $this->payload($label, $parentId), JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseStatusCodeSame(201);
+
+        return $this->decode();
+    }
+
+    /** @param array<string, mixed> $category */
+    private function version(array $category, int $increment): int
+    {
+        $version = $category['version'];
+        self::assertIsInt($version);
+
+        return $version + $increment;
     }
 
     /** @return array<string, mixed> */

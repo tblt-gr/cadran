@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\Application;
 
+use App\Module\Categories\Domain\CategoryColorResolver;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
@@ -22,6 +23,12 @@ final readonly class ReadBudgetCategoryFacts
             throw new BudgetCategoryScopeTooLarge('A monthly budget comparison reads at most 500 categories.');
         }
 
+        $nodes = [];
+        foreach ($categories as $category) {
+            $nodes[$category->id] = ['parentId' => $category->parentId, 'color' => $category->color];
+        }
+        $effectiveColors = CategoryColorResolver::resolve($nodes);
+
         return array_map(
             static fn ($category): BudgetCategoryFact => new BudgetCategoryFact(
                 $category->id,
@@ -30,7 +37,7 @@ final readonly class ReadBudgetCategoryFacts
                 $category->type->value,
                 $category->label,
                 $category->icon,
-                $category->color,
+                $effectiveColors[$category->id] ?? null,
                 $category->archivedAt?->format(DATE_ATOM),
             ),
             $categories,

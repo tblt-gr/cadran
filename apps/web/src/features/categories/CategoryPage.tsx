@@ -6,7 +6,7 @@ import {
   type CreateCategoryRequest,
   type UpdateCategoryRequest,
 } from '@cadran/api-client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
@@ -19,10 +19,16 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { CategoryForm } from './category-form/CategoryForm';
 import { CategoryLifecycleDialog } from './category-lifecycle/CategoryLifecycleDialog';
 import { useCategoryLifecycle } from './category-lifecycle/useCategoryLifecycle';
-import { CategoryList } from './category-list/CategoryList';
-import { CategoryPageSkeleton } from './CategoryPageSkeleton';
+import { CategoryTree } from './category-tree/CategoryTree';
+import { CategoryTreeSkeleton } from './category-tree/CategoryTreeSkeleton';
 import { CategoryRequestError, categoryErrorKind, categoryRequestError } from './categoryError';
 import styles from './CategoryPage.module.css';
+
+const PAGE_SIZE = 100;
+const MAX_PAGES = 5;
+
+/** The workspace holds more categories than the tree can load: a partial tree would mislead. */
+class PartialCategoryList extends Error {}
 
 type Editor = Category | 'create' | null;
 
@@ -30,7 +36,6 @@ export function CategoryPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<Editor>(null);
   const [saved, setSaved] = useState<'applied' | 'saved' | null>(null);
   const lifecycle = useCategoryLifecycle(() => setSaved('applied'));
@@ -47,18 +52,32 @@ export function CategoryPage() {
   }
 
   const categories = useQuery({
-    queryKey: ['categories', includeArchived, page],
+    queryKey: ['categories', includeArchived],
     queryFn: async ({ signal }) => {
-      const result = await listCategories({
-        ...authApiOptions(),
-        query: { includeArchived, page, pageSize: 50 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) {
-        throw categoryRequestError(result);
+      // The tree needs every category of the workspace: it is bounded to 500, so at most 5 pages.
+      const items: Category[] = [];
+      let total = 0;
+      for (let page = 1; page <= MAX_PAGES; page += 1) {
+        const result = await listCategories({
+          ...authApiOptions(),
+          query: { includeArchived, page, pageSize: PAGE_SIZE },
+          signal,
+        });
+        if (!result.response?.ok || !result.data) {
+          throw categoryRequestError(result);
+        }
+        total = result.data.total;
+        items.push(...result.data.items);
+        if (result.data.items.length === 0 || items.length >= result.data.total) {
+          break;
+        }
       }
-      return result.data;
+      if (items.length < total) {
+        throw new PartialCategoryList();
+      }
+      return items;
     },
+    placeholderData: keepPreviousData,
     retry: false,
   });
 
@@ -98,15 +117,8 @@ export function CategoryPage() {
   const submitError = categoryErrorKind(save.error, save.isError);
   const unauthorized =
     categories.error instanceof CategoryRequestError && categories.error.kind === 'unauthorized';
-  const items = categories.data?.items ?? [];
-  const totalPages = Math.max(1, Math.ceil((categories.data?.total ?? 0) / 50));
-
-  // The result set can shrink under the current page (a concurrent archive, a refetch on focus).
-  // React re-renders with the corrected page before committing, so the empty state is never shown
-  // for a workspace that still has categories.
-  if (categories.data && page > totalPages) {
-    setPage(totalPages);
-  }
+  const partial = categories.error instanceof PartialCategoryList;
+  const items = categories.data ?? [];
 
   return (
     <div className={styles.page}>
@@ -178,7 +190,6 @@ export function CategoryPage() {
             checked={includeArchived}
             onChange={(event) => {
               setIncludeArchived(event.target.checked);
-              setPage(1);
             }}
             type="checkbox"
           />
@@ -187,16 +198,20 @@ export function CategoryPage() {
       </div>
 
       {categories.isPending ? (
-        <CategoryPageSkeleton status={t('categories.loading')} />
+        <CategoryTreeSkeleton status={t('categories.loading')} />
       ) : categories.isError ? (
         <section className={`card ${styles.state}`} role="alert">
           <h2>{t(unauthorized ? 'categories.unauthorized.title' : 'categories.error.title')}</h2>
           <p>
             {t(
-              unauthorized ? 'categories.unauthorized.description' : 'categories.error.description',
+              unauthorized
+                ? 'categories.unauthorized.description'
+                : partial
+                  ? 'categories.error.partial'
+                  : 'categories.error.description',
             )}
           </p>
-          {!unauthorized ? (
+          {!unauthorized && !partial ? (
             <button
               className="secondary-action"
               onClick={() => void categories.refetch()}
@@ -225,7 +240,7 @@ export function CategoryPage() {
           ) : null}
         </section>
       ) : (
-        <CategoryList
+        <CategoryTree
           categories={items}
           onEdit={openEditor}
           onLifecycle={(category, operation) => {
@@ -234,28 +249,6 @@ export function CategoryPage() {
           }}
         />
       )}
-
-      {categories.isSuccess && (totalPages > 1 || page > 1) ? (
-        <nav className={styles.pagination} aria-label={t('categories.pagination.label')}>
-          <button
-            className="secondary-action"
-            disabled={page === 1}
-            onClick={() => setPage((current) => current - 1)}
-            type="button"
-          >
-            {t('categories.pagination.previous')}
-          </button>
-          <span>{t('categories.pagination.position', { page, total: totalPages })}</span>
-          <button
-            className="secondary-action"
-            disabled={page >= totalPages}
-            onClick={() => setPage((current) => current + 1)}
-            type="button"
-          >
-            {t('categories.pagination.next')}
-          </button>
-        </nav>
-      ) : null}
     </div>
   );
 }

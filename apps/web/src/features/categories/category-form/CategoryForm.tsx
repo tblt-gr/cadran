@@ -161,6 +161,11 @@ export function CategoryForm({
 
       <CategoryIdentityPreview color={color} icon={icon} label={cleanLabel} />
       <CategoryColorPicker onChange={setColor} value={color} />
+      {color === '' && category?.color === null && category.effectiveColor ? (
+        <p className={styles.axesHint}>
+          {t('categories.tree.inherits', { color: category.effectiveColor })}
+        </p>
+      ) : null}
       <CategoryIconPicker onChange={setIcon} value={icon} />
       {showErrors && iconInvalid ? <p role="alert">{t('categories.validation.icon')}</p> : null}
 
