@@ -1,5 +1,7 @@
+import type { AccountBalanceSnapshot } from '@cadran/api-client';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { accountErrorKind } from '@/features/accounts/accountError';
 import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
@@ -9,9 +11,17 @@ import styles from './BalanceSnapshotsList.module.css';
 /**
  * Every snapshot recorded on the account, newest first. Only an active one can
  * be withdrawn; a withdrawn one stays listed as such. The withdrawal is
- * confirmed in the row itself, since the list lives inside a modal.
+ * confirmed in the row itself, since the list lives inside a modal. A manual one
+ * can also be handed back to the form for correction: only a manual snapshot,
+ * since recording replaces the active snapshot of the same day and source.
  */
-export function BalanceSnapshotsList({ accountId }: { accountId: string }) {
+export function BalanceSnapshotsList({
+  accountId,
+  onEdit,
+}: {
+  accountId: string;
+  onEdit?: (snapshot: AccountBalanceSnapshot) => void;
+}) {
   const { t, i18n } = useTranslation();
   const snapshots = useBalanceSnapshots(accountId);
   const withdraw = useWithdrawBalance(accountId);
@@ -149,19 +159,38 @@ export function BalanceSnapshotsList({ accountId }: { accountId: string }) {
                       </div>
                     ) : (
                       <div className={styles.actions}>
-                        <button
-                          aria-label={t('accounts.snapshots.withdrawOf', {
+                        <ActionMenu
+                          items={[
+                            ...(onEdit && snapshot.source === 'MANUAL'
+                              ? [
+                                  {
+                                    id: 'edit',
+                                    icon: 'edit' as const,
+                                    label: t('accounts.snapshots.editOf', {
+                                      date: formatCalendarNumericDay(snapshot.asOf),
+                                    }),
+                                    text: t('accounts.snapshots.edit'),
+                                    onSelect: () => onEdit(snapshot),
+                                  },
+                                ]
+                              : []),
+                            {
+                              id: 'withdraw',
+                              icon: 'delete' as const,
+                              label: t('accounts.snapshots.withdrawOf', {
+                                date: formatCalendarNumericDay(snapshot.asOf),
+                              }),
+                              text: t('accounts.snapshots.withdraw'),
+                              onSelect: () => {
+                                withdraw.reset();
+                                setConfirming(snapshot.id);
+                              },
+                            },
+                          ]}
+                          label={t('accounts.snapshots.actionsOf', {
                             date: formatCalendarNumericDay(snapshot.asOf),
                           })}
-                          className="secondary-action"
-                          onClick={() => {
-                            withdraw.reset();
-                            setConfirming(snapshot.id);
-                          }}
-                          type="button"
-                        >
-                          {t('accounts.snapshots.withdraw')}
-                        </button>
+                        />
                       </div>
                     )
                   ) : null}

@@ -1,10 +1,15 @@
-import type { Account, AccountValuation, RecordAccountBalanceRequest } from '@cadran/api-client';
+import type {
+  Account,
+  AccountBalanceSnapshot,
+  AccountValuation,
+  RecordAccountBalanceRequest,
+} from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { FormField } from '@/features/accounts/account-form/form-field/FormField';
 import type { AccountErrorKind } from '@/features/accounts/accountError';
-import { isCanonicalDecimal } from '@/lib/decimal';
+import { formatCalendarNumericDay, isCanonicalDecimal } from '@/lib/decimal';
 import { BalanceSnapshotsList } from './balance-snapshots/BalanceSnapshotsList';
 import styles from './RecordBalanceForm.module.css';
 
@@ -24,7 +29,9 @@ interface RecordBalanceFormProps {
  *
  * The figure is sent as typed. Replacing the active snapshot of that day
  * presents the version the list already showed, so a concurrent write is a
- * conflict rather than a silent overwrite.
+ * conflict rather than a silent overwrite. Correcting a listed snapshot reuses
+ * the same call with that snapshot's own version; its date is then fixed, since
+ * another date would be a different snapshot.
  */
 export function RecordBalanceForm({
   account,
@@ -40,6 +47,7 @@ export function RecordBalanceForm({
   const [comment, setComment] = useState('');
   const [showErrors, setShowErrors] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
+  const [editing, setEditing] = useState<AccountBalanceSnapshot | null>(null);
 
   const trimmedAmount = amount.trim();
   const trimmedComment = comment.trim();
@@ -49,7 +57,24 @@ export function RecordBalanceForm({
     account.closedOn !== null && account.closedOn < valuation.requestedOn
       ? account.closedOn
       : valuation.requestedOn;
-  const asOfInvalid = asOf === '' || asOf < account.openedOn || asOf > latestAllowed;
+  const asOfInvalid =
+    editing === null && (asOf === '' || asOf < account.openedOn || asOf > latestAllowed);
+
+  function startEditing(snapshot: AccountBalanceSnapshot) {
+    setEditing(snapshot);
+    setAsOf(snapshot.asOf);
+    setAmount(snapshot.amount.value);
+    setComment(snapshot.comment ?? '');
+    setShowErrors(false);
+  }
+
+  function stopEditing() {
+    setEditing(null);
+    setAsOf(valuation.requestedOn);
+    setAmount(valuation.amount?.value ?? '');
+    setComment('');
+    setShowErrors(false);
+  }
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -73,7 +98,7 @@ export function RecordBalanceForm({
       amount: trimmedAmount,
       amountAssetCode: account.assetCode,
       comment: trimmedComment === '' ? null : trimmedComment,
-      version: replacingSameDay ? valuation.version : null,
+      version: editing ? editing.version : replacingSameDay ? valuation.version : null,
     });
   }
 
@@ -86,9 +111,20 @@ export function RecordBalanceForm({
           </p>
         ) : null}
 
-        <p className={styles.hint}>
-          {t('accounts.balances.formHint', { asset: account.assetCode })}
-        </p>
+        {editing ? (
+          <div className={styles.editing}>
+            <p className={styles.hint}>
+              {t('accounts.balances.editing', { date: formatCalendarNumericDay(editing.asOf) })}
+            </p>
+            <button className="secondary-action" onClick={stopEditing} type="button">
+              {t('accounts.balances.cancelEditing')}
+            </button>
+          </div>
+        ) : (
+          <p className={styles.hint}>
+            {t('accounts.balances.formHint', { asset: account.assetCode })}
+          </p>
+        )}
 
         <div className={styles.fields}>
           <FormField
@@ -105,6 +141,7 @@ export function RecordBalanceForm({
                 max={latestAllowed}
                 min={account.openedOn}
                 onChange={(event) => setAsOf(event.target.value)}
+                readOnly={editing !== null}
                 required
                 type="date"
                 value={asOf}
@@ -158,7 +195,13 @@ export function RecordBalanceForm({
 
         <div className={styles.actions}>
           <button className="primary-action" disabled={pending} type="submit">
-            {t(pending ? 'accounts.balances.recording' : 'accounts.balances.record')}
+            {t(
+              pending
+                ? 'accounts.balances.recording'
+                : editing
+                  ? 'accounts.balances.saveEdit'
+                  : 'accounts.balances.record',
+            )}
           </button>
         </div>
       </form>
@@ -167,7 +210,9 @@ export function RecordBalanceForm({
         open={snapshotsOpen}
         title={t('accounts.snapshots.title')}
       >
-        {snapshotsOpen ? <BalanceSnapshotsList accountId={account.id} /> : null}
+        {snapshotsOpen ? (
+          <BalanceSnapshotsList accountId={account.id} onEdit={startEditing} />
+        ) : null}
       </Disclosure>
     </div>
   );
