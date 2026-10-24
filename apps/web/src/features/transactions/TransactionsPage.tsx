@@ -10,7 +10,6 @@ import { TransactionDayList } from './transaction-list/transaction-day-list/Tran
 import { TransactionsPageSkeleton } from './TransactionsPageSkeleton';
 import { TransactionListFooter } from './transaction-list/TransactionListFooter';
 import { TransactionFilters } from './transaction-filters/TransactionFilters';
-import { encodeFilters } from './transaction-filters/filterState';
 import { TransactionModals } from './transaction-modals/TransactionModals';
 import { TransactionsState } from './transactions-state/TransactionsState';
 import type { Editor } from './transactionEditorState';
@@ -36,7 +35,6 @@ export function TransactionsPage() {
     categorization,
     displayedPage,
     filtersRevision,
-    hasPreviousPage,
     impossible,
     items,
     loadMore,
@@ -50,8 +48,6 @@ export function TransactionsPage() {
     unauthorized,
     updateFilters,
   } = listing;
-
-  const filtered = encodeFilters(searchFilters).toString() !== '';
 
   const mutations = useTransactionMutations({
     editor,
@@ -199,7 +195,7 @@ export function TransactionsPage() {
             onRetry={() => void transactions.refetch()}
           />
         ) : transactions.isPending && transactions.data === undefined ? (
-          <TransactionsPageSkeleton filtered={filtered} />
+          <TransactionsPageSkeleton />
         ) : transactions.isError && !staleCursorError ? (
           <TransactionsState
             kind={unauthorized ? 'unauthorized' : 'error'}
@@ -216,9 +212,6 @@ export function TransactionsPage() {
           <>
             <TransactionDayList
               accounts={accountOptions}
-              filtered={filtered}
-              hasPrevious={hasPreviousPage}
-              hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
               label={t('transactions.list.caption')}
               transactions={items}
             />

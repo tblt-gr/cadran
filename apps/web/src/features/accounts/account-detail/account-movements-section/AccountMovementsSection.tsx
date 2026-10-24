@@ -17,7 +17,6 @@ import styles from './AccountMovementsSection.module.css';
 export function AccountMovementsSection({
   canCreate,
   displayedPageHasMore,
-  displayedPageHasPrevious,
   items,
   language,
   loadingMore,
@@ -32,7 +31,6 @@ export function AccountMovementsSection({
 }: {
   canCreate: boolean;
   displayedPageHasMore: boolean;
-  displayedPageHasPrevious: boolean;
   items: Transaction[];
   language: string;
   loadingMore: boolean;
@@ -67,8 +65,6 @@ export function AccountMovementsSection({
 
       {transactions.isPending ? (
         <TransactionDayList
-          filtered={month !== null}
-          hasMore={false}
           headingLevel={4}
           label={t('accounts.detail.movements.caption')}
           transactions={null}
@@ -90,9 +86,6 @@ export function AccountMovementsSection({
       ) : (
         <>
           <TransactionDayList
-            filtered={month !== null}
-            hasMore={!staleCursorError && displayedPageHasMore}
-            hasPrevious={displayedPageHasPrevious}
             headingLevel={4}
             label={t('accounts.detail.movements.caption')}
             transactions={items}

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { settled, uniqueLabel } from './support/page';
+import { movementRows, settled, uniqueLabel } from './support/page';
 
 test.describe('internal transfer', () => {
   test('records both legs of a transfer between two accounts', async ({ page }) => {
@@ -19,10 +19,10 @@ test.describe('internal transfer', () => {
 
     // A transfer is atomic: the same label carries an outflow and an inflow, and neither is a
     // spending or an income.
-    const legs = page.getByRole('row').filter({ hasText: label });
+    const legs = movementRows(page, label);
     await expect(legs).toHaveCount(2);
-    await expect(legs.getByRole('cell', { name: 'Sortie de 25,00 €' })).toBeVisible();
-    await expect(legs.getByRole('cell', { name: 'Entrée de 25,00 €' })).toBeVisible();
+    await expect(legs.getByRole('img', { name: 'Sortie de 25,00 €' })).toBeVisible();
+    await expect(legs.getByRole('img', { name: 'Entrée de 25,00 €' })).toBeVisible();
   });
 
   test('refuses a transfer between an account and itself', async ({ page }) => {

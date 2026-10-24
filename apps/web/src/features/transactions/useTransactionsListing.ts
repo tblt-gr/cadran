@@ -154,7 +154,6 @@ export function useTransactionsListing() {
     categorization,
     displayedPage,
     filtersRevision,
-    hasPreviousPage: cursor !== null,
     impossible,
     items,
     loadMore,

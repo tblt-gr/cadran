@@ -250,7 +250,6 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
         <AccountMovementsSection
           canCreate={creatable}
           displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
-          displayedPageHasPrevious={movements.hasPreviousPage}
           items={items}
           language={i18n.language}
           loadingMore={transactions.isFetching && !transactions.isPending}

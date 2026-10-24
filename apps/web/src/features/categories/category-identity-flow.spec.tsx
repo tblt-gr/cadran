@@ -89,7 +89,6 @@ function rows(transactions: Transaction[]) {
   return (
     <TransactionDayList
       accounts={[]}
-      hasMore={false}
       label="Transactions de l’espace"
       transactions={transactions}
     />

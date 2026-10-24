@@ -1515,42 +1515,7 @@ describe('TransactionsPage', () => {
     window.history.replaceState({}, '', '/transactions');
   });
 
-  it('withholds the total of a day cut by a page boundary on either side', async () => {
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
-    );
-    api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 50, total: 0 }),
-    );
-    api.listTransactions
-      .mockImplementationOnce(() =>
-        success({
-          items: [{ ...transaction, id: 'first', bookedOn: '2026-03-15' }, transaction],
-          nextCursor: 'cursor-1',
-        }),
-      )
-      .mockImplementationOnce(() =>
-        success({
-          items: [{ ...transaction, id: 'second', amount: { value: '-0.10', assetCode: 'EUR' } }],
-          nextCursor: null,
-        }),
-      );
-    renderPage();
-
-    // Page 1 (two rows plus the 15th net): the 15th is complete and shows its exact net; the 14th may continue on page 2.
-    expect(await screen.findAllByLabelText('Sortie de 42,90 €')).toHaveLength(3);
-    expect(screen.getAllByText('Jour incomplet, chargez la suite')).toHaveLength(1);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Mouvements plus anciens' }));
-
-    // Page 2 starts mid-day (the 14th began on page 1): no net, never a wrong one.
-    expect(await screen.findByLabelText('Sortie de 0,10 €')).toBeTruthy();
-    expect(screen.getByText('Jour incomplet, chargez la suite')).toBeTruthy();
-    expect(screen.queryAllByLabelText('Sortie de 0,10 €')).toHaveLength(1);
-  });
-
-  it('labels the day total as filtered while a search is active', async () => {
-    window.history.replaceState({}, '', '/transactions?q=carrefour');
+  it('groups the loaded page by booking day with a weekday and date heading', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
@@ -1558,12 +1523,16 @@ describe('TransactionsPage', () => {
       success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     api.listTransactions.mockImplementation(() =>
-      success({ items: [transaction], nextCursor: null }),
+      success({
+        items: [{ ...transaction, id: 'first', bookedOn: '2026-03-15' }, transaction],
+        nextCursor: null,
+      }),
     );
     renderPage();
 
-    expect(await screen.findByText('Total filtré')).toBeTruthy();
-    window.history.replaceState({}, '', '/transactions');
+    expect(await screen.findByRole('heading', { name: /dimanche 15 mars 2026/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /samedi 14 mars 2026/ })).toBeTruthy();
+    expect(screen.queryByText(/Total du jour|Jour incomplet/)).toBeNull();
   });
 
   it('keeps the loaded rows and offers a reload when a page request finds the cursor stale', async () => {

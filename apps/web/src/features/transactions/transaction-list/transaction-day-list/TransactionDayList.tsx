@@ -3,19 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { formatCalendarWeekdayDay } from '@/lib/decimal';
 import { TransactionDayRow } from './TransactionDayRow';
-import { TransactionDayTotal } from './TransactionDayTotal';
 import { groupTransactionsByDay, type DayGroup } from './groupTransactionsByDay';
 import styles from './TransactionDayList.module.css';
 
 interface TransactionDayListProps {
   /** Names each row's account. Left out on a list already scoped to one account. */
   accounts?: Account[];
-  /** A search or filter narrows the rows: day totals are then labelled as filtered. */
-  filtered?: boolean;
-  /** Whether pages remain after the loaded rows: the last day may then be incomplete. */
-  hasMore: boolean;
-  /** The page was reached by cursor: its first day may have begun on the previous page. */
-  hasPrevious?: boolean;
   headingLevel?: 3 | 4;
   /** Accessible name of the list; defaults to the transactions caption. */
   label?: string;
@@ -30,9 +23,6 @@ const SKELETON_DAY_SIZES = [3, 3, 2];
 export function TransactionDayList({
   accounts,
   announce = true,
-  filtered = false,
-  hasMore,
-  hasPrevious = false,
   headingLevel = 3,
   label,
   transactions,
@@ -42,7 +32,7 @@ export function TransactionDayList({
   const loading = transactions === null;
   const groups: Array<DayGroup | null[]> = loading
     ? SKELETON_DAY_SIZES.map((size) => Array.from({ length: size }, () => null))
-    : groupTransactionsByDay(transactions, hasMore, hasPrevious);
+    : groupTransactionsByDay(transactions);
 
   return (
     <div
@@ -62,7 +52,6 @@ export function TransactionDayList({
                 <time className={styles.date} dateTime={day?.day}>
                   {day ? formatCalendarWeekdayDay(day.day, i18n.language) : <SkeletonBlock />}
                 </time>
-                <TransactionDayTotal filtered={filtered} total={day?.total ?? null} />
               </Heading>
               <ul className={styles.rows}>
                 {rows.map((transaction, rowIndex) => (

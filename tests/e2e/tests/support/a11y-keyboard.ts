@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { auditAccessibility } from './a11y';
-import { settled, uniqueLabel } from './page';
+import { movementRows, settled, uniqueLabel } from './page';
 
 /** Reach the real sequential focus target, with a bound that also detects an unreachable control. */
 async function tabTo(page: Page, target: Locator, reverse = false) {
@@ -94,17 +94,17 @@ export function keyboardJourneys() {
       await page.keyboard.press('Enter');
       await expect(dialog).toBeHidden();
       await settled(page);
-      const rows = page.getByRole('row').filter({ hasText: label });
+      const rows = movementRows(page, label);
       await expect(rows).toHaveCount(transfer ? 2 : 1);
       await expect(
-        rows.getByRole('cell', {
+        rows.getByRole('img', {
           name: transfer ? 'Sortie de 25,00 €' : 'Sortie de 12,34 €',
           exact: true,
         }),
       ).toBeVisible();
       if (transfer)
         await expect(
-          rows.getByRole('cell', { name: 'Entrée de 25,00 €', exact: true }),
+          rows.getByRole('img', { name: 'Entrée de 25,00 €', exact: true }),
         ).toBeVisible();
     });
   }

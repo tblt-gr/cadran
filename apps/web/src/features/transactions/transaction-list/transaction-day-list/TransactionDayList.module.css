@@ -15,10 +15,6 @@
   position: sticky;
   z-index: 1;
   top: var(--header-height-mobile);
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--spacing-3);
   margin: var(--spacing-none);
   padding: var(--spacing-2) var(--spacing-3);
   border-bottom: var(--border-line-subtle);
@@ -29,31 +25,14 @@
 }
 
 .date {
-  min-width: 0;
   text-transform: capitalize;
-}
-
-.total {
-  font-size: var(--font-size-label);
-  white-space: nowrap;
-}
-
-.filteredLabel {
-  margin-right: var(--spacing-2);
-  color: var(--text-muted);
-  font-weight: var(--font-weight-normal);
-}
-
-.value[data-kind]:not([data-kind='amount']) {
-  color: var(--text-muted);
-  font-weight: var(--font-weight-normal);
 }
 
 .row {
   display: grid;
   align-items: center;
   min-height: var(--touch-target-min);
-  padding: var(--spacing-3) var(--spacing-1) var(--spacing-3) var(--spacing-3);
+  padding: var(--spacing-1) var(--spacing-1) var(--spacing-2) var(--spacing-3);
   border-bottom: var(--border-line-subtle);
   grid-template-areas:
     'primary amount actions'
@@ -73,6 +52,12 @@
   color: var(--text-primary);
   font-size: var(--font-size-body);
   overflow-wrap: anywhere;
+}
+
+/* The label is the row's main tap target: it fills the touch height instead of padding the row. */
+.primary > button {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
 }
 
 .primary small {

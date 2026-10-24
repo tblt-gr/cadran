@@ -11,7 +11,6 @@ describe('AccountMovementsSection loading', () => {
       <AccountMovementsSection
         canCreate
         displayedPageHasMore={false}
-        displayedPageHasPrevious={false}
         items={[]}
         language="fr"
         loadingMore={false}

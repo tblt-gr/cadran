@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { navigateTo, settled, uniqueLabel } from './support/page';
+import { movementRows, navigateTo, settled, uniqueLabel } from './support/page';
 
 test.describe('transaction entry', () => {
   test('creates a transaction with a category created on the fly', async ({ page }) => {
@@ -27,9 +27,9 @@ test.describe('transaction entry', () => {
     await editor.getByRole('button', { name: 'Enregistrer' }).click();
     await expect(editor).toBeHidden();
 
-    const row = page.getByRole('row').filter({ hasText: label });
+    const row = movementRows(page, label);
     await expect(row).toBeVisible();
-    await expect(row.getByRole('cell', { name: 'Sortie de 12,34 €' })).toBeVisible();
+    await expect(row.getByRole('img', { name: 'Sortie de 12,34 €' })).toBeVisible();
     await expect(row).toContainText(category);
   });
 

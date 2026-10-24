@@ -46,7 +46,6 @@ export function AccountDetailPageSkeleton({ status }: { status: string }) {
       </div>
       <TransactionDayList
         announce={false}
-        hasMore={false}
         headingLevel={4}
         label={t('accounts.detail.movements.caption')}
         transactions={null}
