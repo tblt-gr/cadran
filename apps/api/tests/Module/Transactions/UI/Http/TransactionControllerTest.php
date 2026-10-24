@@ -1281,6 +1281,40 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame('/problems/transaction.belongs_to_refund', $this->decode()['type']);
     }
 
+    public function testARefundWithoutSplitsKeepsTheAnalyticAxesOfEachOriginalSplit(): void
+    {
+        $original = $this->createTransaction(overrides: [
+            'amount' => ['value' => '-80.00', 'assetCode' => 'EUR'],
+            'categoryId' => null,
+            'splits' => [
+                $this->splitRow(self::OWN_EXPENSE, '-60.00', ['FIXED']),
+                $this->splitRow(self::OWN_PLAIN_EXPENSE, '-20.00', ['VARIABLE', 'ESSENTIAL']),
+            ],
+        ]);
+
+        $this->requestRefund(self::stringValue($original, 'id'), [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '40.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14',
+            'rawLabel' => 'Avoir',
+            'counterparty' => null,
+            'note' => null,
+            'splits' => null,
+        ]);
+
+        self::assertResponseStatusCodeSame(201);
+        $refund = $this->decode();
+        self::assertIsList($refund['splits']);
+        $axesByCategory = [];
+        foreach ($refund['splits'] as $split) {
+            self::assertIsArray($split);
+            self::assertIsString($split['categoryId'] ?? null);
+            $axesByCategory[$split['categoryId']] = $split['analyticAxes'] ?? null;
+        }
+        self::assertSame(['FIXED'], $axesByCategory[self::OWN_EXPENSE]);
+        self::assertSame(['VARIABLE', 'ESSENTIAL'], $axesByCategory[self::OWN_PLAIN_EXPENSE]);
+    }
+
     public function testAnExplicitEmptySplitsArrayIsRefusedOnARefundOfACategorisedOriginal(): void
     {
         $original = $this->createTransaction(overrides: [

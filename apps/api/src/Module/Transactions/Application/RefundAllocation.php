@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
@@ -17,7 +18,12 @@ use Brick\Math\BigInteger;
  */
 final class RefundAllocation
 {
-    /** @return list<array{categoryId: string, amount: AssetAmount}> */
+    /**
+     * Each row keeps the analytic axes of the original split it refunds, so the refund
+     * reduces the same fixed or variable view as the expense.
+     *
+     * @return list<array{categoryId: string, amount: AssetAmount, analyticAxes: list<AnalyticAxis>}>
+     */
     public function propose(Transaction $original, AssetAmount $refund, int $displayPrecision): array
     {
         if ([] === $original->splits) {
@@ -38,7 +44,7 @@ final class RefundAllocation
             $numerator = $refundUnits->multipliedBy(self::units(ExactDecimal::absolute($split->amount->value), $wideScale));
             [$floor, $remainder] = $numerator->quotientAndRemainder($total);
             $floors = $floors->plus($floor);
-            $rows[] = new RefundAllocationRow($index, $split->categoryId, $floor, $remainder);
+            $rows[] = new RefundAllocationRow($index, $split->categoryId, $floor, $remainder, $split->analyticAxes);
         }
         $left = $refundUnits->minus($floors)->toInt();
         usort($rows, static fn (RefundAllocationRow $leftRow, RefundAllocationRow $rightRow): int => ($rightRow->remainder->compareTo($leftRow->remainder) ?: $leftRow->index <=> $rightRow->index));
@@ -50,6 +56,7 @@ final class RefundAllocation
         return array_map(static fn (RefundAllocationRow $row): array => [
             'categoryId' => $row->categoryId,
             'amount' => new AssetAmount(DecimalValue::fromString(self::decimal($row->units, $scale)), $refund->asset),
+            'analyticAxes' => $row->analyticAxes,
         ], array_values(array_filter($rows, static fn (RefundAllocationRow $row): bool => !$row->units->isZero())));
     }
 
