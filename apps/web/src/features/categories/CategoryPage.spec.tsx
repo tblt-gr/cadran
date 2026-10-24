@@ -26,6 +26,7 @@ const category: Category = {
   parentLabel: null,
   icon: 'utensils',
   color: '#AABBCC',
+  effectiveColor: '#AABBCC',
   defaultAnalyticAxes: ['DISCRETIONARY', 'VARIABLE'],
   budgetIncluded: true,
   sortOrder: 10,
@@ -150,33 +151,92 @@ describe('CategoryPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByText('Restaurants')).toBeTruthy();
+    expect(await screen.findByText('Livraison')).toBeTruthy();
+    expect(screen.getByText('Sous-catégorie de « Restaurants »')).toBeTruthy();
     expect(screen.queryByText('Parent non affiché')).toBeNull();
   });
 
-  it('returns to a readable page when the last page becomes empty', async () => {
+  it('loads every page of the workspace so the tree is never cut', async () => {
+    const make = (index: number) => ({
+      ...category,
+      id: `00000000-0000-7000-8000-${String(index).padStart(12, '0')}`,
+      label: `Catégorie ${index}`,
+    });
     api.listCategories.mockImplementation(({ query }) =>
       success({
-        items:
-          query.page === 1
-            ? Array.from({ length: 50 }, (_, index) => ({
-                ...category,
-                id: `00000000-0000-7000-8000-${String(index).padStart(12, '0')}`,
-                label: `Catégorie ${index}`,
-              }))
-            : [],
+        items: query.page === 1 ? Array.from({ length: 100 }, (_, i) => make(i)) : [make(100)],
         page: query.page,
-        pageSize: 50,
-        total: query.page === 1 ? 60 : 50,
+        pageSize: 100,
+        total: 101,
       }),
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Suivant' }));
+    expect(await screen.findByText('Catégorie 100')).toBeTruthy();
+    expect(api.listCategories).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('navigation', { name: 'Pagination des catégories' })).toBeNull();
+  });
 
-    expect(await screen.findByText('Catégorie 0')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Aucune catégorie' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Précédent' }).hasAttribute('disabled')).toBe(true);
+  it('shows an error instead of a silently truncated tree', async () => {
+    api.listCategories.mockImplementation(({ query }) =>
+      success({
+        items: query.page <= 5 ? [{ ...category, id: `id-${query.page}` }] : [],
+        page: query.page,
+        pageSize: 100,
+        total: 700,
+      }),
+    );
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Catégories indisponibles' })).toBeTruthy();
+    expect(screen.getByText(/plus de catégories que l’arbre/)).toBeTruthy();
+  });
+
+  it('keeps the tree mounted and expanded while archived categories load', async () => {
+    const child = {
+      ...category,
+      id: '00000000-0000-7000-8000-0000000000c2',
+      label: 'Livraison',
+      parentId: category.id,
+      depth: 2,
+    };
+    api.listCategories.mockImplementation(({ query }) =>
+      query.includeArchived
+        ? new Promise(() => undefined)
+        : success({ items: [category, child], page: 1, pageSize: 100, total: 2 }),
+    );
+    renderPage();
+
+    await screen.findByText('Restaurants');
+    fireEvent.click(screen.getByRole('button', { name: /sous-catégories de « Restaurants »/ }));
+    fireEvent.click(screen.getByLabelText('Afficher les catégories archivées'));
+
+    await waitFor(() => expect(api.listCategories).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Livraison')).toBeTruthy();
+    expect(screen.queryByTestId('category-page-skeleton')).toBeNull();
+  });
+
+  it('nests a child under its parent and shows an inherited color', async () => {
+    const child = {
+      ...category,
+      id: '00000000-0000-7000-8000-0000000000c2',
+      label: 'Livraison',
+      parentId: category.id,
+      parentLabel: 'Restaurants',
+      color: null,
+      effectiveColor: '#AABBCC',
+      depth: 2,
+    };
+    api.listCategories.mockImplementation(() =>
+      success({ items: [category, child], page: 1, pageSize: 100, total: 2 }),
+    );
+    renderPage();
+
+    await screen.findByText('Restaurants');
+    expect(screen.queryByText('Livraison')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /sous-catégories de « Restaurants »/ }));
+    const fill = (screen.getByText('Livraison').closest('[data-icon]') as HTMLElement).style;
+    expect(fill.background).toBe('rgb(170, 187, 204)');
   });
 
   it('renders labels as text and keeps archived categories read-only', async () => {

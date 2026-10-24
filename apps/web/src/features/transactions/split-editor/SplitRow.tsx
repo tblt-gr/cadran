@@ -64,7 +64,7 @@ export function SplitRow({
               // A new category brings its own defaults; an override made for the
               // previous one no longer describes this row.
               analyticAxes: categoryId === values.categoryId ? values.analyticAxes : null,
-              categoryColor: category?.color ?? null,
+              categoryColor: category?.effectiveColor ?? null,
               categoryIcon: category?.icon ?? null,
               categoryId,
               categoryLabel: category?.label ?? null,

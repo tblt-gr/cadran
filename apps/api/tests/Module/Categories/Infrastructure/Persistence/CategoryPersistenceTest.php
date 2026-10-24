@@ -354,6 +354,42 @@ final class CategoryPersistenceTest extends KernelTestCase
         ));
     }
 
+    public function testEffectiveColorsInheritInsideTheWorkspaceAndNeverLeakAcrossWorkspaces(): void
+    {
+        $root = '00000000-0000-7000-8000-0000000000d1';
+        $mid = '00000000-0000-7000-8000-0000000000d2';
+        $leaf = '00000000-0000-7000-8000-0000000000d3';
+        $foreign = '00000000-0000-7000-8000-0000000000d4';
+        $this->repository->add($this->category($root, WorkspaceFixture::own(), 'Racine'));
+        $this->repository->add($this->category($mid, WorkspaceFixture::own(), 'Milieu', $root, 2, color: null));
+        $this->repository->add($this->category($leaf, WorkspaceFixture::own(), 'Feuille', $mid, 3, color: null));
+        $this->repository->add($this->category($foreign, WorkspaceFixture::other(), 'Etrangere'));
+
+        $colors = $this->repository->effectiveColorsByIds(WorkspaceFixture::own(), [$leaf, $mid, $foreign]);
+
+        ksort($colors);
+        self::assertSame([$mid => '#AABBCC', $leaf => '#AABBCC'], $colors);
+        self::assertSame('#AABBCC', $this->repository->identitiesByIds(WorkspaceFixture::own(), [$leaf])[$leaf]['color']);
+        self::assertSame([], $this->repository->identitiesByIds(WorkspaceFixture::own(), [$foreign]));
+    }
+
+    public function testTheRootColorIsReachedByTheMaximumDepthWalk(): void
+    {
+        $parentId = null;
+        $ids = [];
+        for ($depth = 1; $depth <= Category::MAX_TREE_DEPTH; ++$depth) {
+            $id = sprintf('00000000-0000-7000-8000-0000000001%02d', $depth);
+            $this->repository->add($this->category($id, WorkspaceFixture::own(), 'Niveau '.$depth, $parentId, $depth, color: 1 === $depth ? '#010203' : null));
+            $parentId = $id;
+            $ids[] = $id;
+        }
+
+        $colors = $this->repository->effectiveColorsByIds(WorkspaceFixture::own(), $ids);
+
+        self::assertCount(Category::MAX_TREE_DEPTH, $colors);
+        self::assertSame('#010203', $colors[$ids[Category::MAX_TREE_DEPTH - 1]]);
+    }
+
     private function category(
         string $id,
         WorkspaceScope $workspace,
@@ -361,6 +397,7 @@ final class CategoryPersistenceTest extends KernelTestCase
         ?string $parentId = null,
         int $depth = 1,
         CategoryType $type = CategoryType::EXPENSE,
+        ?string $color = '#AABBCC',
     ): Category {
         $now = new \DateTimeImmutable('2026-09-01T12:00:00+00:00');
 
@@ -371,7 +408,7 @@ final class CategoryPersistenceTest extends KernelTestCase
             label: $label,
             parentId: $parentId,
             icon: 'utensils',
-            color: '#AABBCC',
+            color: $color,
             defaultAnalyticAxes: [AnalyticAxis::DISCRETIONARY],
             budgetIncluded: true,
             sortOrder: 10,

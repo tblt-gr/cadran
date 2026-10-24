@@ -208,6 +208,29 @@ describe('SplitEditor', () => {
     ]);
   });
 
+  it('stores the effective color of a category that inherits it', async () => {
+    const inheriting = {
+      id: 'cat-i',
+      label: 'Livraison',
+      color: null,
+      effectiveColor: '#112233',
+      archivedAt: null,
+    } as Category;
+    api.listAssets.mockImplementation(() =>
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [inheriting], page: 1, pageSize: 50, total: 1 }),
+    );
+    const { onChange } = renderEditor([emptySplitRow()], { total: '-10.00' });
+
+    const combobox = await screen.findByRole('combobox', { name: 'Catégorie de la ligne 1' });
+    fireEvent.change(combobox, { target: { value: 'Livraison' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Livraison' }));
+
+    expect(onChange.mock.calls.at(-1)?.[0][0]).toMatchObject({ categoryColor: '#112233' });
+  });
+
   it('keeps each remaining row on its own category after a middle row is removed', async () => {
     const categoryA = { id: 'cat-a', label: 'Alimentation', archivedAt: null } as Category;
     const categoryB = { id: 'cat-b', label: 'Beauté', archivedAt: null } as Category;

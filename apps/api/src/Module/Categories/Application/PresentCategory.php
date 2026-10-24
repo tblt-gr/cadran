@@ -35,6 +35,7 @@ final readonly class PresentCategory
             $category,
             $this->categories->hasChildren($workspace, $category->id),
             null === $category->parentId ? null : ($labels[$category->parentId] ?? null),
+            $this->categories->effectiveColorsByIds($workspace, [$category->id])[$category->id] ?? null,
             null === $replacement ? null : CategoryReplacementView::of(
                 $replacement,
                 $labels[$replacement->targetCategoryId] ?? null,

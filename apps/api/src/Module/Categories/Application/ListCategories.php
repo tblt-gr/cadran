@@ -58,6 +58,8 @@ final readonly class ListCategories
             $workspace,
             array_values(array_unique(array_filter(array_column($categories, 'parentId')))),
         );
+        // Ancestors can sit on another page too, so inheritance is resolved from the whole workspace.
+        $effectiveColors = $this->categories->effectiveColorsByIds($workspace, array_column($categories, 'id'));
         $replacements = $this->replacements->findBySources($workspace, array_column($categories, 'id'));
         $replacementTargetLabels = $this->categories->labelsByIds(
             $workspace,
@@ -69,13 +71,14 @@ final readonly class ListCategories
 
         return new CategoryPage(
             items: array_map(
-                static function ($category) use ($parentIds, $parentLabels, $replacements, $replacementTargetLabels): CategoryView {
+                static function ($category) use ($parentIds, $parentLabels, $effectiveColors, $replacements, $replacementTargetLabels): CategoryView {
                     $replacement = $replacements[$category->id] ?? null;
 
                     return CategoryView::fromCategory(
                         $category,
                         isset($parentIds[$category->id]),
                         null === $category->parentId ? null : ($parentLabels[$category->parentId] ?? null),
+                        $effectiveColors[$category->id] ?? null,
                         null === $replacement ? null : CategoryReplacementView::of(
                             $replacement,
                             $replacementTargetLabels[$replacement->targetCategoryId] ?? null,

@@ -6,6 +6,7 @@ namespace App\Module\Categories\Infrastructure\Persistence;
 
 use App\Module\Categories\Application\CategoryConflict;
 use App\Module\Categories\Domain\Category;
+use App\Module\Categories\Domain\CategoryColorResolver;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Categories\Domain\CategoryType;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -186,16 +187,46 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             ['ids' => ArrayParameterType::STRING],
         );
 
+        $colors = $this->effectiveColorsByIds($workspace, $ids);
         $identities = [];
         foreach ($rows as $row) {
             $identities[CategoryRow::text($row['id'])] = [
                 'label' => CategoryRow::text($row['label']),
                 'icon' => CategoryRow::nullableText($row['icon']),
-                'color' => CategoryRow::nullableText($row['color']),
+                'color' => $colors[CategoryRow::text($row['id'])] ?? null,
             ];
         }
 
         return $identities;
+    }
+
+    public function effectiveColorsByIds(WorkspaceScope $workspace, array $ids): array
+    {
+        $nodes = [];
+        $frontier = array_values(array_unique($ids));
+        // One round trip per level, bounded by the hierarchy depth; the workspace filter keeps
+        // an ancestor of another workspace out of the chain.
+        for ($level = 0; $level < Category::MAX_TREE_DEPTH && [] !== $frontier; ++$level) {
+            $rows = $this->connection->fetchAllAssociative(
+                'SELECT id, parent_id, color FROM category_categories WHERE workspace_id = :workspace_id AND id IN (:ids)',
+                ['workspace_id' => $workspace->id, 'ids' => $frontier],
+                ['ids' => ArrayParameterType::STRING],
+            );
+            $frontier = [];
+            foreach ($rows as $row) {
+                $id = CategoryRow::text($row['id']);
+                $parentId = CategoryRow::nullableText($row['parent_id']);
+                $nodes[$id] = ['parentId' => $parentId, 'color' => CategoryRow::nullableText($row['color'])];
+                if (null !== $parentId && !isset($nodes[$parentId])) {
+                    $frontier[] = $parentId;
+                }
+            }
+            $frontier = array_values(array_unique($frontier));
+        }
+
+        $effective = CategoryColorResolver::resolve($nodes);
+
+        return array_intersect_key($effective, array_flip($ids));
     }
 
     public function add(Category $category): void

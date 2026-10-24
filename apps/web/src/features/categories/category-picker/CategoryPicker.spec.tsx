@@ -20,6 +20,7 @@ const candidate: Category = {
   parentLabel: null,
   icon: null,
   color: null,
+  effectiveColor: null,
   defaultAnalyticAxes: [],
   budgetIncluded: true,
   sortOrder: 0,
@@ -231,6 +232,29 @@ describe('CategoryPicker', () => {
     expect(within(listbox).getByRole('group', { name: 'Revenus' })).toBe(groups[0]);
     expect(api.listCategories).toHaveBeenCalledWith(
       expect.objectContaining({ query: expect.objectContaining({ type: undefined }) }),
+    );
+  });
+
+  it('draws an option and the selection with the color inherited from an ancestor', async () => {
+    const inheriting = { ...candidate, effectiveColor: '#112233' };
+    api.listCategories.mockImplementation(() =>
+      success({ items: [inheriting], page: 1, pageSize: 50, total: 1 }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CategoryPicker label="Catégorie" onChange={vi.fn()} type="EXPENSE" value={candidate.id} />
+      </QueryClientProvider>,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Catégorie' });
+    await waitFor(() =>
+      expect((combobox.parentElement as HTMLElement).style.background).toBe('rgb(17, 34, 51)'),
+    );
+    fireEvent.focus(combobox);
+    const option = await screen.findByRole('option', { name: 'Sorties' });
+    expect((option.querySelector('[data-icon]') as HTMLElement).style.background).toBe(
+      'rgb(17, 34, 51)',
     );
   });
 
