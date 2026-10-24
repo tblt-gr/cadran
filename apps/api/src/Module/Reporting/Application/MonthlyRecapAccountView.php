@@ -30,6 +30,7 @@ final readonly class MonthlyRecapAccountView
         public ?MonthlyAccountValueView $currentValue,
         public ShareView $share,
         public ?string $primaryGroupColor = null,
+        public ?string $institution = null,
     ) {
     }
 
@@ -59,6 +60,7 @@ final readonly class MonthlyRecapAccountView
             ) : null,
             share: $current->share,
             primaryGroupColor: $current->primaryGroupColor,
+            institution: $current->institution,
         );
     }
 }

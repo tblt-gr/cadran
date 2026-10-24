@@ -113,6 +113,7 @@ const recap = {
     {
       accountId,
       label: 'Compte courant',
+      institution: 'Banque Exemple',
       kind: 'CURRENT',
       netWorthSign: 1 as const,
       primaryGroupId: 'group-1',

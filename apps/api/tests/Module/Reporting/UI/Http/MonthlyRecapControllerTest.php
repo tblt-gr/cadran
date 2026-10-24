@@ -444,6 +444,56 @@ final class MonthlyRecapControllerTest extends WebTestCase
         self::assertStringNotContainsString('50000.00', (string) $this->client->getResponse()->getContent());
     }
 
+    public function testEachAccountCarriesItsInstitutionOrNullNeverAnEmptyPlaceholder(): void
+    {
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->connection->update('account_financial_accounts', ['institution' => 'Banque Postale'], ['id' => self::LIVRET_A]);
+        $this->connection->update('account_financial_accounts', ['institution' => 'Crédit Mutuel'], ['id' => self::LDDS, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE]);
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Secret', 'CURRENT', institution: 'Banque Voisine');
+
+        $recap = $this->read();
+
+        $accounts = self::index($recap['accounts'], 'accountId');
+        self::assertSame('Banque Postale', $accounts[self::LIVRET_A]['institution']);
+        self::assertSame('Crédit Mutuel', $accounts[self::LDDS]['institution']);
+        self::assertArrayHasKey('institution', $accounts[self::CURRENT]);
+        self::assertNull($accounts[self::CURRENT]['institution']);
+        self::assertStringNotContainsString('Voisine', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testAccountsAndGroupsFollowTheAccountsPageOrderAndAMoveShowsOnTheNextRead(): void
+    {
+        $this->signIn();
+        $parent = '00000000-0000-7000-8000-0000000000b3';
+        $this->group(self::GROUP_COURANT, 'Courant', sortOrder: 2);
+        $this->group(self::GROUP_LIVRETS, 'Livrets', sortOrder: 1);
+        $this->group($parent, 'Zeta enfant', self::GROUP_LIVRETS);
+        $this->account(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, 'Livret A', 'SAVINGS', self::GROUP_LIVRETS, createdAt: '2025-01-03 12:00:00+00');
+        $this->account(self::LDDS, WorkspaceFixture::OWN_WORKSPACE, 'LDDS', 'SAVINGS', self::GROUP_LIVRETS, createdAt: '2025-01-02 12:00:00+00');
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Compte courant', 'CURRENT', self::GROUP_COURANT);
+        $this->account(self::ORPHAN, WorkspaceFixture::OWN_WORKSPACE, 'Sans groupe', 'CURRENT');
+
+        // No saved position yet: creation order, the accounts page tie-break.
+        $recap = $this->read();
+        self::assertSame($this->overviewGroupIds(), array_column(self::rows($recap['groups']), 'groupId'));
+        self::assertSame(
+            $this->overviewMemberIds(self::GROUP_LIVRETS),
+            $this->recapMemberIds($recap, self::GROUP_LIVRETS),
+        );
+        self::assertSame([self::LDDS, self::LIVRET_A], $this->recapMemberIds($recap, self::GROUP_LIVRETS));
+
+        $this->client->request('POST', '/api/v1/accounts/'.self::LIVRET_A.'/move', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], content: json_encode([
+            'groupId' => self::GROUP_LIVRETS, 'beforeAccountId' => self::LDDS, 'orderVersion' => 0,
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseIsSuccessful();
+
+        $moved = $this->read();
+        self::assertSame([self::LIVRET_A, self::LDDS], $this->recapMemberIds($moved, self::GROUP_LIVRETS));
+        self::assertSame($this->overviewMemberIds(self::GROUP_LIVRETS), $this->recapMemberIds($moved, self::GROUP_LIVRETS));
+        self::assertSame($this->overviewGroupIds(), array_column(self::rows($moved['groups']), 'groupId'));
+    }
+
     public function testAMalformedMonthIsRefusedAndAnAnonymousCallerReadsNothing(): void
     {
         $this->signIn();
@@ -494,11 +544,64 @@ final class MonthlyRecapControllerTest extends WebTestCase
         return self::fields($data);
     }
 
-    private function group(string $id, string $label): void
+    /** @return list<string> */
+    private function overviewGroupIds(): array
+    {
+        $this->client->request('GET', '/api/v1/accounts/overview');
+        self::assertResponseIsSuccessful();
+        $overview = self::fields(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
+
+        return array_values(array_filter(
+            array_map(static fn (array $group): string => (string) (is_string($group['groupId']) ? $group['groupId'] : ''), self::rows($overview['groups'])),
+            static fn (string $id): bool => str_starts_with($id, '00000000-0000-7000-8000-0000000000b'),
+        ));
+    }
+
+    /** @return list<string> */
+    private function overviewMemberIds(string $groupId): array
+    {
+        $this->client->request('GET', '/api/v1/accounts/overview/'.$groupId.'/accounts');
+        self::assertResponseIsSuccessful();
+        $page = self::fields(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
+
+        return array_map(static fn (array $row): string => self::text($row['id']), self::rows($page['items']));
+    }
+
+    /**
+     * @param array<string, mixed> $recap
+     *
+     * @return list<string>
+     */
+    private function recapMemberIds(array $recap, string $groupId): array
+    {
+        return array_values(array_map(
+            static fn (array $row): string => self::text($row['accountId']),
+            array_filter(self::rows($recap['accounts']), static fn (array $row): bool => $row['primaryGroupId'] === $groupId),
+        ));
+    }
+
+    private static function text(mixed $value): string
+    {
+        self::assertIsString($value);
+
+        return $value;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private static function rows(mixed $value): array
+    {
+        self::assertIsArray($value);
+
+        return array_values(array_map(self::fields(...), $value));
+    }
+
+    private function group(string $id, string $label, ?string $parentId = null, int $sortOrder = 0): void
     {
         $this->connection->insert('account_groups', [
             'id' => $id, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'label' => $label,
-            'parent_id' => null, 'sort_order' => 0, 'depth' => 1, 'version' => 1,
+            'parent_id' => $parentId, 'sort_order' => $sortOrder, 'depth' => null === $parentId ? 1 : 2, 'version' => 1,
             'created_at' => '2026-01-01 12:00:00+00', 'updated_at' => '2026-01-01 12:00:00+00',
         ]);
     }
@@ -511,13 +614,16 @@ final class MonthlyRecapControllerTest extends WebTestCase
         ?string $groupId = null,
         bool $includeInNetWorth = true,
         string $asset = 'EUR',
+        ?string $institution = null,
+        ?string $createdAt = null,
     ): void {
         $this->connection->insert('account_financial_accounts', [
             'id' => $id, 'workspace_id' => $workspace, 'label' => $label, 'asset_code' => $asset, 'kind' => $kind,
+            'institution' => $institution,
             'valuation_mode' => 'TRANSACTIONS', 'liquidity_level' => 'IMMEDIATE',
             'include_in_net_worth' => $includeInNetWorth, 'include_in_emergency_fund' => false,
             'opened_on' => $this->previousAsOf->modify('-1 year')->format('Y-m-d'), 'version' => 1,
-            'created_at' => $this->previousAsOf->modify('-1 year')->format('Y-m-d').' 12:00:00+00',
+            'created_at' => $createdAt ?? $this->previousAsOf->modify('-1 year')->format('Y-m-d').' 12:00:00+00',
             'updated_at' => $this->previousAsOf->modify('-1 year')->format('Y-m-d').' 12:00:00+00',
             'primary_group_id' => $groupId,
         ], ['include_in_net_worth' => ParameterType::BOOLEAN, 'include_in_emergency_fund' => ParameterType::BOOLEAN]);

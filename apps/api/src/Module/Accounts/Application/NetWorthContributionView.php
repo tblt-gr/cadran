@@ -31,6 +31,7 @@ final readonly class NetWorthContributionView
         public ?string $valuedOn,
         public ShareView $share,
         public ?string $primaryGroupColor = null,
+        public ?string $institution = null,
     ) {
     }
 
@@ -57,6 +58,7 @@ final readonly class NetWorthContributionView
             valuedOn: $contribution->valuedOn?->format('Y-m-d'),
             share: ShareView::fromShare($share),
             primaryGroupColor: $primaryGroupColor,
+            institution: $account->institution,
         );
     }
 }

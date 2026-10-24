@@ -135,6 +135,9 @@ export function MonthlyRecapPlaceholder({ status }: { status?: string }) {
                       <a>
                         <SkeletonBlock />
                       </a>
+                      <small className={accountStyles.institution}>
+                        <SkeletonBlock />
+                      </small>
                     </th>
                     <td data-label={accountColumns[1]}>
                       <span>

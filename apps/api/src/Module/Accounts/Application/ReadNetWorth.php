@@ -169,8 +169,9 @@ final readonly class ReadNetWorth
         $rollup = self::rollup($netWorth, $shareInputs, $lineages);
         $previousRollup = self::rollup($previous, $previousShareInputs, $lineages);
 
+        // Same reading order as the accounts page, so every panel lists groups alike.
         $views = [];
-        foreach ($groups as $group) {
+        foreach (AccountGroupTree::depthFirst($groups) as $group) {
             if (null !== $group->archivedAt) {
                 continue;
             }
