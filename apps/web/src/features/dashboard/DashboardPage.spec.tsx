@@ -210,8 +210,8 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
     renderDashboard();
     await loaded();
-    expect(screen.getByRole('radiogroup', { name: 'Période du graphique' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: label, checked: true })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Période du graphique' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: label, pressed: true })).toBeTruthy();
     expect(api.readNetWorthHistory).toHaveBeenCalledWith(
       expect.objectContaining({ query: { period } }),
     );
@@ -231,7 +231,7 @@ describe('DashboardPage', () => {
     renderDashboard();
     await loaded();
     await screen.findByRole('img', { name: /Évolution du patrimoine net/ });
-    fireEvent.click(screen.getByRole('radio', { name: 'Tout' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tout' }));
     expect(window.location.search).toBe('?periode=tout');
     const chart = screen.getByRole('figure', { name: 'Évolution du patrimoine' });
     expect(chart.closest('[aria-busy]')?.getAttribute('aria-busy')).toBe('true');
@@ -278,11 +278,11 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(within(card).getByText('50,00 %')).toBeTruthy());
     expect(within(card).getByRole('img', { name: `Hausse de 400,00${NBSP}€` })).toBeTruthy();
     expect(card.textContent).toContain('depuis le 5 septembre 2025');
-    fireEvent.click(screen.getByRole('radio', { name: 'Tout' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tout' }));
     await waitFor(() => expect(within(card).getByText('100,00 %')).toBeTruthy());
     expect(within(card).getByRole('img', { name: `Hausse de 600,00${NBSP}€` })).toBeTruthy();
     expect(card.textContent).toContain('depuis le 12 mars 2020');
-    fireEvent.click(screen.getByRole('radio', { name: 'Depuis janvier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
     await waitFor(() => expect(within(card).getByText('20,00 %')).toBeTruthy());
     expect(within(card).getByRole('img', { name: `Hausse de 200,00${NBSP}€` })).toBeTruthy();
     expect(card.textContent).toContain('depuis le 1 janvier 2026');
@@ -314,12 +314,12 @@ describe('DashboardPage', () => {
     api.readNetWorthHistory.mockReturnValue(success(history));
     renderDashboard();
     await loaded();
-    fireEvent.click(screen.getByRole('radio', { name: 'Depuis janvier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
     expect(window.location.search).toBe('?other=kept&periode=ytd');
     expect(window.location.hash).toBe('#chart');
     window.history.replaceState({}, '', '/?periode=tout');
     fireEvent(window, new PopStateEvent('popstate'));
-    expect(screen.getByRole('radio', { name: 'Tout', checked: true })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tout', pressed: true })).toBeTruthy();
   });
 
   it('allows another selection after a history request fails', async () => {
@@ -329,19 +329,19 @@ describe('DashboardPage', () => {
     await loaded();
     await screen.findByText('Historique indisponible pour le moment.');
     api.readNetWorthHistory.mockReturnValue(success(history));
-    fireEvent.click(screen.getByRole('radio', { name: 'Tout' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tout' }));
     await screen.findByRole('figure', { name: 'Évolution du patrimoine' });
   });
 
-  it('renders the selected disabled radios in the first-load skeleton', () => {
+  it('renders the selected disabled period buttons in the first-load skeleton', () => {
     window.history.replaceState({}, '', '/?periode=ytd');
     api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
     api.readNetWorthHistory.mockImplementation(() => new Promise(() => undefined));
     renderDashboard();
-    const radios = within(screen.getByTestId('dashboard-skeleton')).getAllByRole('radio');
-    expect(radios).toHaveLength(3);
-    expect(radios.every((radio) => (radio as HTMLInputElement).disabled)).toBe(true);
-    expect(screen.getByRole('radio', { name: 'Depuis janvier', checked: true })).toBeTruthy();
+    const radios = within(screen.getByTestId('dashboard-skeleton')).getAllByRole('button');
+    expect(radios.map((radio) => radio.textContent)).toEqual(['Tout', '12 mois', 'Depuis janvier']);
+    expect(radios.every((radio) => (radio as HTMLButtonElement).disabled)).toBe(true);
+    expect(screen.getByRole('button', { name: 'Depuis janvier', pressed: true })).toBeTruthy();
     const table = within(screen.getByTestId('dashboard-skeleton')).getByRole('table', {
       name: 'Évolution du patrimoine',
     });

@@ -139,6 +139,17 @@ final readonly class DbalAccountBalanceSnapshotRepository implements AccountBala
         return $latest;
     }
 
+    public function earliestActiveAsOf(WorkspaceScope $workspace, string $accountId): ?\DateTimeImmutable
+    {
+        $day = $this->connection->fetchOne(
+            'SELECT MIN(as_of)::text FROM account_balance_snapshots'
+            .' WHERE workspace_id = :workspace_id AND account_id = :account_id AND superseded_at IS NULL',
+            ['workspace_id' => $workspace->id, 'account_id' => $accountId],
+        );
+
+        return is_string($day) ? new \DateTimeImmutable($day, new \DateTimeZone('UTC')) : null;
+    }
+
     public function pageForAccount(
         WorkspaceScope $workspace,
         string $accountId,

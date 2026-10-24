@@ -112,6 +112,56 @@ describe('ValueHistoryCard', () => {
     );
   });
 
+  it('offers Tout, 12, 24 and Depuis janvier in canonical order and resolves YTD from asOf', async () => {
+    const { container } = renderCard();
+    await loaded();
+    const group = screen.getByRole('group', { name: 'Période' });
+    expect(Array.from(group.querySelectorAll('button')).map((b) => b.textContent)).toEqual([
+      'Tout',
+      '12 mois',
+      '24 mois',
+      'Depuis janvier',
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
+    expect(window.location.search).toContain('history=ytd');
+    await waitFor(() =>
+      expect(api.readPortfolioValuationHistory.mock.calls.at(-1)?.[0].query).toEqual({
+        from: '2026-01-01',
+        to: '2026-10-03',
+      }),
+    );
+    expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
+  });
+
+  it('keeps the previous chart and flags the card busy while a new range loads', async () => {
+    const { container } = renderCard();
+    await loaded();
+    expect(container.querySelector('section')?.getAttribute('aria-busy')).toBe('false');
+    api.readPortfolioValuationHistory.mockReturnValue(new Promise(() => {}));
+    fireEvent.click(screen.getByRole('button', { name: '12 mois' }));
+    await waitFor(() =>
+      expect(container.querySelector('section')?.getAttribute('aria-busy')).toBe('true'),
+    );
+    expect(screen.queryByTestId('value-history-skeleton')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Évolution de la valeur' })).toBeTruthy();
+  });
+
+  it('starts from a saved ?history=ytd and falls back to 24 months for unknown values', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?history=ytd`);
+    renderCard();
+    await loaded();
+    expect(
+      screen.getByRole('button', { name: 'Depuis janvier' }).getAttribute('aria-pressed'),
+    ).toBe('true');
+    cleanup();
+    window.history.replaceState({}, '', `/portfolios/${accountId}?history=bogus`);
+    renderCard();
+    await loaded();
+    expect(screen.getByRole('button', { name: '24 mois' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+  });
+
   it('starts from the period carried by the URL', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?history=all`);
     renderCard();
@@ -195,7 +245,7 @@ describe('ValueHistoryCardSkeleton', () => {
   it('keeps the real title, a disabled period control and the table header', () => {
     render(<ValueHistoryCardSkeleton status="Chargement…" />);
     expect(screen.getByRole('heading', { name: 'Évolution de la valeur' })).toBeTruthy();
-    for (const name of ['12 mois', '24 mois', 'Tout']) {
+    for (const name of ['Tout', '12 mois', '24 mois', 'Depuis janvier']) {
       expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
     }
     expect(screen.getByRole('columnheader', { name: 'Valeur totale' })).toBeTruthy();

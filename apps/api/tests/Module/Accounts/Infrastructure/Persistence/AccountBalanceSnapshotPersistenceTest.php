@@ -308,6 +308,24 @@ final class AccountBalanceSnapshotPersistenceTest extends KernelTestCase
         self::assertSame([], $latest);
     }
 
+    public function testEarliestActiveAsOfIgnoresSupersededAndForeignRowsAndAnswersNullWithoutAny(): void
+    {
+        self::assertNull($this->earliestDay(WorkspaceFixture::own(), self::ACCOUNT));
+        $this->snapshots->add($this->snapshot(self::FIRST, '10', '2020-01-01'));
+        $this->snapshots->add($this->snapshot(self::SECOND, '20', '2024-02-29', '2024-02-29T10:00:00+00:00'));
+        $this->snapshots->add($this->snapshot(self::THIRD, '30', '2015-05-05', accountId: self::FOREIGN_ACCOUNT, workspace: WorkspaceScope::fromString(WorkspaceFixture::OTHER_WORKSPACE)));
+        self::assertSame('2020-01-01', $this->earliestDay(WorkspaceFixture::own(), self::ACCOUNT));
+        $this->connection->update('account_balance_snapshots', ['superseded_at' => '2026-09-04 10:00:00+00'], ['id' => self::FIRST]);
+        self::assertSame('2024-02-29', $this->earliestDay(WorkspaceFixture::own(), self::ACCOUNT));
+        self::assertSame('2015-05-05', $this->earliestDay(WorkspaceScope::fromString(WorkspaceFixture::OTHER_WORKSPACE), self::FOREIGN_ACCOUNT));
+        self::assertNull($this->snapshots->earliestActiveAsOf(WorkspaceFixture::own(), self::FOREIGN_ACCOUNT));
+    }
+
+    private function earliestDay(WorkspaceScope $workspace, string $accountId): ?string
+    {
+        return $this->snapshots->earliestActiveAsOf($workspace, $accountId)?->format('Y-m-d');
+    }
+
     private function snapshot(
         string $id,
         string $amount,

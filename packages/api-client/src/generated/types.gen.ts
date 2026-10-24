@@ -2048,8 +2048,15 @@ export type Account = {
 
 export type AccountValuationHistory = {
     accountId: string;
+    /**
+     * The resolved first day of the window, which differs from the request when from was omitted.
+     */
     from: string;
     to: string;
+    /**
+     * True only when from was omitted and the history starts earlier than the 3660-day cap, so older days are not shown.
+     */
+    truncated: boolean;
     /**
      * Whether an active anchor exists on any requested day, even if movements make its value non-calculable.
      */
@@ -9796,11 +9803,11 @@ export type ReadAccountValuationHistoryData = {
     };
     query: {
         /**
-         * Inclusive ISO calendar day. Must not follow to.
+         * Inclusive ISO calendar day. Must not follow to and at most 366 days before it. Omit to read since the start of the history.
          */
-        from: string;
+        from?: string;
         /**
-         * Inclusive ISO calendar day, at most 366 days after from and no later than workspace-local today.
+         * Inclusive ISO calendar day, no later than workspace-local today; at most 366 days after from when from is given.
          */
         to: string;
     };

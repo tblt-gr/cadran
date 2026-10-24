@@ -1456,7 +1456,7 @@ export const readAccountValuation = <ThrowOnError extends boolean = false>(optio
 /**
  * Read exact end-of-day account balance steps
  *
- * Uses the shared valuation strategy, including the latest snapshot before the window. Returns the boundaries and effective balance, snapshot, booked-count or quality changes. Snapshot-day movements are excluded. Pending and voided movements never create steps. Held snapshot values retain their original asOf date and freshness; no interest or interpolation is invented. Missing intervals are null with a reason. No aggregation or truncation occurs.
+ * Uses the shared valuation strategy, including the latest snapshot before the window. Returns the boundaries and effective balance, snapshot, booked-count or quality changes. Snapshot-day movements are excluded. Pending and voided movements never create steps. Held snapshot values retain their original asOf date and freshness; no interest or interpolation is invented. Missing intervals are null with a reason. No aggregation occurs. When from is omitted the window starts at the earliest active balance snapshot of the account, capped at 3660 days before to; truncated is then true. Without any snapshot the window is the single day to.
  */
 export const readAccountValuationHistory = <ThrowOnError extends boolean = false>(options: Options<ReadAccountValuationHistoryData, ThrowOnError>): RequestResult<ReadAccountValuationHistoryResponses, ReadAccountValuationHistoryErrors, ThrowOnError> => (options.client ?? client).get<ReadAccountValuationHistoryResponses, ReadAccountValuationHistoryErrors, ThrowOnError>({
     security: [{

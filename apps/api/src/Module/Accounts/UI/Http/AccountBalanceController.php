@@ -73,7 +73,7 @@ final readonly class AccountBalanceController
         try {
             $history = $readHistory(
                 $id,
-                is_string($query['from'] ?? null) ? $query['from'] : '',
+                array_key_exists('from', $query) ? (is_string($query['from']) ? $query['from'] : '') : null,
                 is_string($query['to'] ?? null) ? $query['to'] : '',
             );
         } catch (InvalidAccountBalanceInput) {

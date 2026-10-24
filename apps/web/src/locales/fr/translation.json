@@ -854,8 +854,7 @@
       "nonCalculable": "Aucun solde calculable à tracer. Les raisons sont disponibles dans le tableau.",
       "loading": "Chargement de l’historique du solde…",
       "period": "Période de l’historique",
-      "rolling": "12 mois",
-      "year": "Année en cours",
+      "truncated": "Historique limité aux 10 dernières années : les soldes plus anciens ne sont pas affichés.",
       "date": "Date",
       "balance": "Solde exact",
       "quality": "Qualité",
@@ -1689,6 +1688,18 @@
       }
     }
   },
+  "chartPeriod": {
+    "groupLabel": "Période",
+    "periods": {
+      "ALL": "Tout",
+      "LAST_12_MONTHS": "12 mois",
+      "LAST_24_MONTHS": "24 mois",
+      "YTD": "Depuis janvier"
+    },
+    "descriptions": {
+      "YTD": "Du 1er janvier au jour de référence de l’espace de travail"
+    }
+  },
   "dashboard": {
     "currentMonth": "Mois en cours : {{month}}",
     "allocation": {
@@ -1703,11 +1714,6 @@
     "chart": {
       "deltaUnavailable": "Évolution indisponible pour le moment.",
       "periodLabel": "Période du graphique",
-      "periods": {
-        "ALL": "Tout",
-        "LAST_12_MONTHS": "12 mois",
-        "YTD": "Depuis janvier"
-      },
       "truncated": "Seuls les 60 derniers mois sont affichés.",
       "empty": "Aucun point calculable sur la période.",
       "loading": "Chargement de l’historique…",

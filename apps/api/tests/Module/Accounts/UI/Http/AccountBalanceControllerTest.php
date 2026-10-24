@@ -265,7 +265,7 @@ final class AccountBalanceControllerTest extends WebTestCase
     {
         $this->signIn();
         $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'History');
-        foreach (['from=2026-02-30&to=2026-10-15', 'from=2026-10-15&to=2026-10-01', 'from=2025-01-01&to=2026-10-15', 'from=2026-10-01&to=2099-01-01', 'from[]=2026-10-01&to=2026-10-15', 'to=2026-10-15'] as $query) {
+        foreach (['from=2026-02-30&to=2026-10-15', 'from=2026-10-15&to=2026-10-01', 'from=2025-01-01&to=2026-10-15', 'from=2026-10-01&to=2099-01-01', 'from[]=2026-10-01&to=2026-10-15', 'from=&to=2026-10-15', 'to=2099-01-01', 'from=2026-10-01'] as $query) {
             $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/valuation-history?'.$query);
             self::assertResponseStatusCodeSame(422);
         }
@@ -273,6 +273,32 @@ final class AccountBalanceControllerTest extends WebTestCase
         self::assertCount(2, $history['points']);
         self::assertSame('2025-10-14', $history['points'][0]['date']);
         self::assertSame('2026-10-15', $history['points'][1]['date']);
+    }
+
+    public function testOmittedFromResolvesTheEarliestAnchorOverHttp(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'History');
+        $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/valuation-history?to=2026-10-15');
+        self::assertResponseIsSuccessful();
+        /** @var array{from: string, truncated: bool, hasHistory: bool, points: list<array<string, mixed>>} $empty */
+        $empty = $this->decode();
+        self::assertSame('2026-10-15', $empty['from']);
+        self::assertFalse($empty['truncated']);
+        self::assertFalse($empty['hasHistory']);
+        $this->record(self::LIVRET, $this->body('2026-10-01', '1000'));
+        $this->client->request('GET', '/api/v1/accounts/'.self::LIVRET.'/valuation-history?to=2026-10-15');
+        self::assertResponseIsSuccessful();
+        /** @var array{from: string, truncated: bool, hasHistory: bool, points: list<array<string, mixed>>} $history */
+        $history = $this->decode();
+        self::assertSame('2026-10-01', $history['from']);
+        self::assertFalse($history['truncated']);
+        self::assertTrue($history['hasHistory']);
+        self::assertSame('2026-10-01', $history['points'][0]['date']);
+        self::assertSame('1000', $history['points'][0]['amount']);
+        $this->insertAccount(self::FOREIGN, WorkspaceFixture::OTHER_WORKSPACE, 'Foreign');
+        $this->client->request('GET', '/api/v1/accounts/'.self::FOREIGN.'/valuation-history?to=2026-10-15');
+        self::assertResponseStatusCodeSame(404);
     }
 
     /** @return array{hasHistory: bool, points: list<array<string, mixed>>} */

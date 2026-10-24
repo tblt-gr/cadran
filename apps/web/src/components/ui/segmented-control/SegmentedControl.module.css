@@ -1,9 +1,8 @@
 .track {
   display: inline-flex;
   justify-self: start;
+  flex-wrap: wrap;
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
   padding: var(--spacing-0-5);
   border: var(--border-line-subtle);
   border-radius: var(--radius-button);

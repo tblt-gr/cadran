@@ -25,6 +25,7 @@ const data = {
   from: '2025-10-20',
   to: '2026-10-20',
   hasHistory: true,
+  truncated: false,
   points: [
     point,
     {
@@ -52,7 +53,7 @@ beforeEach(() => {
   api.readAccountValuationHistory.mockReset().mockImplementation(() => ok(data));
 });
 afterEach(cleanup);
-it('uses bounded periods and exposes exact dated amounts and freshness to keyboard and table readers', async () => {
+it('uses the 12 month range by default and exposes exact dated amounts and freshness to keyboard and table readers', async () => {
   const { container } = mount();
   await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
   expect(api.readAccountValuationHistory.mock.calls[0][0].query).toEqual({
@@ -64,10 +65,48 @@ it('uses bounded periods and exposes exact dated amounts and freshness to keyboa
   expect(screen.getByRole('tooltip').textContent).toContain('123456789012345678901234');
   expect(screen.getByRole('tooltip').textContent).toContain('Dernier solde connu');
   expect(screen.getByRole('table').textContent).toContain('01/10/2026');
-  fireEvent.click(screen.getByRole('button', { name: 'Année en cours' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
   await waitFor(() =>
     expect(api.readAccountValuationHistory.mock.calls.at(-1)?.[0].query.from).toBe('2026-01-01'),
   );
+});
+it('offers Tout, 12 mois and Depuis janvier in canonical order, defaulting to 12 mois', async () => {
+  const { container } = mount();
+  await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
+  const group = screen.getByRole('group', { name: 'Période de l’historique' });
+  expect(Array.from(group.querySelectorAll('button')).map((b) => b.textContent)).toEqual([
+    'Tout',
+    '12 mois',
+    'Depuis janvier',
+  ]);
+  expect(screen.getByRole('button', { name: '12 mois' }).getAttribute('aria-pressed')).toBe('true');
+});
+it('asks the API for the full history without any from when Tout is chosen', async () => {
+  const { container } = mount();
+  await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
+  fireEvent.click(screen.getByRole('button', { name: 'Tout' }));
+  await waitFor(() => expect(api.readAccountValuationHistory.mock.calls).toHaveLength(2));
+  const query = api.readAccountValuationHistory.mock.calls[1][0].query;
+  expect(query).toEqual({ to: '2026-10-20' });
+  expect('from' in query).toBe(false);
+  expect(screen.queryByText(/Historique limité/)).toBeNull();
+});
+it('states that Tout is truncated when the API caps the window', async () => {
+  api.readAccountValuationHistory.mockImplementation(() => ok({ ...data, truncated: true }));
+  const { container } = mount();
+  await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
+  expect(screen.getByText(/Historique limité aux 10 dernières années/)).toBeTruthy();
+});
+it('keeps the previous chart and flags the panel busy while a new range loads', async () => {
+  const { container } = mount();
+  await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
+  api.readAccountValuationHistory.mockReturnValue(new Promise(() => {}));
+  fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
+  await waitFor(() =>
+    expect(container.querySelector('section')?.getAttribute('aria-busy')).toBe('true'),
+  );
+  expect(container.querySelector('[data-skeleton]')).toBeNull();
+  expect(screen.getByRole('button', { name: /10\/10\/2026, / })).toBeTruthy();
 });
 it('keeps static chrome and disabled controls while loading', () => {
   api.readAccountValuationHistory.mockReturnValue(new Promise(() => {}));
