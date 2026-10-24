@@ -20,6 +20,8 @@ const base: Transaction = {
   valueOn: null,
   authorizedOn: null,
   rawLabel: 'Supermarché',
+  userLabel: null,
+  displayLabel: 'Supermarché',
   counterparty: null,
   note: null,
   paymentMethod: 'CARD',
@@ -111,6 +113,7 @@ describe('AccountMovementsTable', () => {
       transferId: '00000000-0000-7000-8000-000000000f01',
       counterparty: 'Livret A',
       rawLabel: 'Virement vers Livret A',
+      displayLabel: 'Virement vers Livret A',
     };
 
     render(<AccountMovementsTable transactions={[transfer]} />);

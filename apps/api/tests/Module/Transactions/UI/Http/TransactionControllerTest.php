@@ -83,7 +83,7 @@ final class TransactionControllerTest extends WebTestCase
         $created = $this->createTransaction();
         self::assertSame([
             'id', 'accountId', 'amount', 'originalAmount', 'exchangeRate', 'nature', 'state', 'source',
-            'sourceRef', 'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel', 'counterparty', 'note', 'paymentMethod',
+            'sourceRef', 'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel', 'userLabel', 'displayLabel', 'counterparty', 'note', 'paymentMethod',
             'mcc', 'maskedCard', 'bankReference', 'splits', 'version', 'createdAt', 'updatedAt', 'voidedAt',
             'transferId', 'refundOriginalId', 'refundOriginalLabel', 'refundedAmount', 'reviewReason',
             'reconciliationCandidateIds', 'reconciledIntoId',
@@ -580,6 +580,99 @@ final class TransactionControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSame('CB CARREFOUR 1234', $this->decodeFromRow($id)['rawLabel']);
+    }
+
+    public function testAnExternalMovementTakesAUserLabelWhileKeepingItsSourceLabelAndFindableByBoth(): void
+    {
+        $created = $this->createTransaction();
+        $id = self::stringValue($created, 'id');
+        $this->connection->update('transaction_transactions', ['source' => 'IMPORT'], ['id' => $id]);
+
+        $this->requestUpdate($id, [...$this->decodeFromRow($id), 'userLabel' => 'Courses du samedi']);
+
+        self::assertResponseIsSuccessful();
+        $updated = $this->decode();
+        self::assertSame('CB CARREFOUR 1234', $updated['rawLabel']);
+        self::assertSame('Courses du samedi', $updated['userLabel']);
+        self::assertSame('Courses du samedi', $updated['displayLabel']);
+        self::assertSame(2, $updated['version']);
+        self::assertSame('Courses du samedi', $this->decodeFromRow($id)['displayLabel']);
+
+        foreach (['courses du samedi', 'carrefour 1234'] as $query) {
+            $this->client->request('GET', '/api/v1/transactions?q='.rawurlencode($query));
+            self::assertSame([$id], array_column($this->items(), 'id'), $query);
+        }
+        $this->client->request('GET', '/api/v1/transactions');
+        self::assertSame('Courses du samedi', $this->items()[0]['displayLabel']);
+    }
+
+    public function testClearingTheUserLabelFallsBackToTheSourceLabel(): void
+    {
+        $created = $this->createTransaction();
+        $id = self::stringValue($created, 'id');
+        $this->connection->update('transaction_transactions', ['source' => 'PROVIDER'], ['id' => $id]);
+        $this->requestUpdate($id, [...$this->decodeFromRow($id), 'userLabel' => 'Courses']);
+        self::assertResponseIsSuccessful();
+
+        foreach ([null, '   '] as $cleared) {
+            $this->requestUpdate($id, [...$this->decodeFromRow($id), 'userLabel' => 'Courses']);
+            $this->requestUpdate($id, [...$this->decodeFromRow($id), 'userLabel' => $cleared]);
+
+            self::assertResponseIsSuccessful();
+            self::assertNull($this->decode()['userLabel']);
+            self::assertSame('CB CARREFOUR 1234', $this->decode()['displayLabel']);
+        }
+    }
+
+    public function testAUserLabelBeyondTheMaximumLengthIsRefusedAndTheMaximumIsAccepted(): void
+    {
+        $id = self::stringValue($this->createTransaction(), 'id');
+
+        $this->requestUpdate($id, [...$this->decodeFromRow($id), 'userLabel' => str_repeat('é', 141)]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertNull($this->decodeFromRow($id)['userLabel']);
+
+        $this->requestUpdate($id, [...$this->decodeFromRow($id), 'userLabel' => str_repeat('é', 140)]);
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testAStaleVersionNeverOverwritesAConcurrentlyChosenUserLabel(): void
+    {
+        $created = $this->createTransaction();
+        $id = self::stringValue($created, 'id');
+        $this->requestUpdate($id, [...$created, 'userLabel' => 'Premier onglet']);
+        self::assertResponseIsSuccessful();
+
+        $this->requestUpdate($id, [...$created, 'userLabel' => 'Ancien onglet']);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('Premier onglet', $this->decodeFromRow($id)['userLabel']);
+    }
+
+    public function testAForeignWorkspaceCannotRelabelOrSearchByAUserLabel(): void
+    {
+        $this->seedForeignTransaction();
+        $this->connection->update('transaction_transactions', ['user_label' => 'Surnom voisin'], ['id' => self::FOREIGN_TRANSACTION]);
+
+        $this->requestUpdate(self::FOREIGN_TRANSACTION, [...$this->createTransaction(), 'userLabel' => 'Pirate']);
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame('Surnom voisin', $this->connection->fetchOne(
+            'SELECT user_label FROM transaction_transactions WHERE id = ?',
+            [self::FOREIGN_TRANSACTION],
+        ));
+
+        $this->client->request('GET', '/api/v1/transactions?q='.rawurlencode('surnom voisin'));
+        self::assertSame([], $this->items());
+    }
+
+    public function testAUserLabelNeverReachesTheAuditTrail(): void
+    {
+        $id = self::stringValue($this->createTransaction(), 'id');
+        $this->requestUpdate($id, [...$this->decodeFromRow($id), 'userLabel' => 'Libelle tres personnel']);
+        self::assertResponseIsSuccessful();
+
+        $events = $this->connection->fetchAllAssociative('SELECT * FROM audit_events');
+        self::assertStringNotContainsString('Libelle tres personnel', json_encode($events, JSON_THROW_ON_ERROR));
     }
 
     public function testVoidingATerminalTransactionConflictsAndLeavesTheRow(): void
@@ -1091,6 +1184,7 @@ final class TransactionControllerTest extends WebTestCase
         $body = $this->payload(overrides: [
             'amount' => ['value' => '-87.40', 'assetCode' => 'EUR'],
             'categoryId' => null,
+            'userLabel' => null,
         ]);
 
         // Changing the amount without a matching allocation is refused...
@@ -1764,6 +1858,7 @@ final class TransactionControllerTest extends WebTestCase
             'valueOn' => $transaction['valueOn'],
             'authorizedOn' => $transaction['authorizedOn'],
             'rawLabel' => $transaction['rawLabel'],
+            'userLabel' => $transaction['userLabel'] ?? null,
             'counterparty' => $transaction['counterparty'],
             'note' => $transaction['note'] ?? null,
             'paymentMethod' => $transaction['paymentMethod'],

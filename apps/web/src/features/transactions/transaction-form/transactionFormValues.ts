@@ -39,6 +39,11 @@ export type TransactionFormValues = {
   note: string;
   paymentMethod: NonNullable<CreateTransactionRequest['paymentMethod']> | '';
   rawLabel: string;
+  /**
+   * The display label typed by the user. An externally sourced transaction opens on its current
+   * display label; a blank value, or one equal to the source label, clears it.
+   */
+  userLabel: string;
   /** Whether the draft categorises through `splits` rather than the single `categoryId`. */
   splitMode: boolean;
   splits: SplitRowValues[];
@@ -109,6 +114,7 @@ export function initialTransactionValues(
     note: transaction?.note ?? '',
     paymentMethod: transaction?.paymentMethod ?? '',
     rawLabel: transaction?.rawLabel ?? '',
+    userLabel: initialUserLabel(transaction),
     splitMode: (transaction?.splits.length ?? 0) > 1,
     splits: (transaction?.splits ?? []).map((split) => ({
       amount: toTypedAmount(split.amount.value, direction),
@@ -182,6 +188,10 @@ export function validateTransactionValues(
   const rawLabel = values.rawLabel;
   if (rawLabel !== rawLabel.trim() || rawLabel.length === 0 || [...rawLabel].length > 140) {
     errors.rawLabel = true;
+  }
+
+  if ([...values.userLabel.trim()].length > 140) {
+    errors.userLabel = true;
   }
 
   for (const [field, limit] of Object.entries(OPTIONAL_LIMITS) as Array<
@@ -272,7 +282,12 @@ export function transactionRequest(
   };
 
   if (transaction !== undefined) {
-    return { ...common, state: values.state, version: transaction.version };
+    return {
+      ...common,
+      userLabel: userLabelRequest(values, transaction),
+      state: values.state,
+      version: transaction.version,
+    };
   }
 
   return {
@@ -340,6 +355,30 @@ export function categoryTypeForAmount(
   }
 
   return amount.startsWith('-') ? 'EXPENSE' : 'INCOME';
+}
+
+function isExternallySourced(transaction: Transaction | undefined): boolean {
+  return transaction !== undefined && transaction.source !== 'MANUAL';
+}
+
+function initialUserLabel(transaction: Transaction | undefined): string {
+  if (transaction === undefined) {
+    return '';
+  }
+
+  return isExternallySourced(transaction)
+    ? transaction.displayLabel
+    : (transaction.userLabel ?? '');
+}
+
+/** Blank, or identical to the source label, means no display label of its own. */
+function userLabelRequest(values: TransactionFormValues, transaction: Transaction): string | null {
+  const label = values.userLabel.trim();
+  if (label === '' || (isExternallySourced(transaction) && label === values.rawLabel)) {
+    return null;
+  }
+
+  return label;
 }
 
 function optional(value: string): string | null {

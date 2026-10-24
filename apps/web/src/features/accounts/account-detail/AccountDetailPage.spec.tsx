@@ -109,6 +109,8 @@ const movement: Transaction = {
   valueOn: null,
   authorizedOn: null,
   rawLabel: 'Supermarché',
+  userLabel: null,
+  displayLabel: 'Supermarché',
   counterparty: null,
   note: null,
   paymentMethod: 'CARD',
@@ -360,6 +362,7 @@ describe('AccountDetailPage', () => {
       ...movement,
       id: 'candidate',
       rawLabel: 'Autorisation carte',
+      displayLabel: 'Autorisation carte',
       state: 'PENDING' as const,
     };
     api.listTransactions.mockImplementation(() => success({ items: [reviewed], nextCursor: null }));
@@ -369,7 +372,13 @@ describe('AccountDetailPage', () => {
           ? reviewed
           : path.id === 'candidate'
             ? candidate
-            : { ...candidate, id: 'foreign', accountId: otherAccount.id, rawLabel: 'Autre compte' },
+            : {
+                ...candidate,
+                id: 'foreign',
+                accountId: otherAccount.id,
+                rawLabel: 'Autre compte',
+                displayLabel: 'Autre compte',
+              },
       ),
     );
     api.reconcileTransaction.mockImplementation(() =>
@@ -538,6 +547,7 @@ describe('AccountDetailPage', () => {
       ...movement,
       id: '00000000-0000-7000-8000-000000000e02',
       rawLabel: 'Plus ancien',
+      displayLabel: 'Plus ancien',
     };
     api.listTransactions.mockImplementation(({ query }: { query: { cursor?: string } }) =>
       query.cursor === 'page-2'
@@ -1081,7 +1091,7 @@ describe('AccountDetailPage', () => {
       if (query.cursor !== 'page-2') return success({ items: [movement], nextCursor: 'page-2' });
       if (fail) return failure(503);
       return success({
-        items: [{ ...movement, id: 'older', rawLabel: 'Plus ancien' }],
+        items: [{ ...movement, id: 'older', rawLabel: 'Plus ancien', displayLabel: 'Plus ancien' }],
         nextCursor: null,
       });
     });

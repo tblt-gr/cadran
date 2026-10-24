@@ -109,7 +109,7 @@ final class PortfolioAccountGuardTest extends WebTestCase
         $this->connection->executeStatement("UPDATE account_financial_accounts SET valuation_mode = 'PORTFOLIO' WHERE id = ?", [self::SNAPSHOTS]);
 
         $body = $this->transaction(self::SNAPSHOTS, 'EXPENSE', '-26.00', self::EXPENSE_CATEGORY);
-        $this->send('PUT', '/api/v1/transactions/'.$id, [...$body, 'version' => $legacy['version']]);
+        $this->send('PUT', '/api/v1/transactions/'.$id, [...$body, 'userLabel' => null, 'version' => $legacy['version']]);
         $this->assertRefused();
 
         $this->send('POST', '/api/v1/transactions/'.$id.'/duplicate', new \stdClass());

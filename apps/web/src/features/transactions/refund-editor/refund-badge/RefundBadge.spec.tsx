@@ -18,6 +18,8 @@ const transaction: Transaction = {
   valueOn: null,
   authorizedOn: null,
   rawLabel: 'CB CARREFOUR 1234',
+  userLabel: null,
+  displayLabel: 'CB CARREFOUR 1234',
   counterparty: 'Carrefour',
   note: null,
   paymentMethod: 'CARD',

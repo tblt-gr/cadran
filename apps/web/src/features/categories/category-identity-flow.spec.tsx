@@ -62,6 +62,8 @@ const transaction: Transaction = {
   sourceRef: null,
   bookedOn: '2026-09-01',
   rawLabel: 'Déjeuner',
+  userLabel: null,
+  displayLabel: 'Déjeuner',
   counterparty: null,
   note: null,
   valueOn: null,

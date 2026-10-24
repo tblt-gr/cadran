@@ -61,8 +61,12 @@ function TransactionInspectionValues({
   language: string;
 }) {
   const { t } = useTranslation();
+  // The source label only has a row once the user renamed the transaction; it is reserved while loading.
+  const sourceLabelShown =
+    transaction === null || transaction.displayLabel !== transaction.rawLabel;
   const fields = [
-    ['rawLabel', transaction?.rawLabel],
+    ['label', transaction?.displayLabel],
+    ...(sourceLabelShown ? ([['rawLabel', transaction?.rawLabel]] as const) : []),
     ['bookedOn', transaction ? formatCalendarDay(transaction.bookedOn, language) : undefined],
     [
       'amount',

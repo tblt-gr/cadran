@@ -235,36 +235,53 @@ export function TransactionForm({
           ) : null}
         </label>
 
-        <label>
-          <span>
-            {t(rawLabelLocked ? 'transactions.fields.rawLabel' : 'transactions.fields.label')}
-          </span>
-          <input
-            aria-describedby={
-              [
-                rawLabelLocked ? 'transaction-raw-label-hint' : undefined,
-                showErrors && errors.rawLabel ? `${errorId}-rawLabel` : undefined,
-              ]
-                .filter(Boolean)
-                .join(' ') || undefined
-            }
-            aria-invalid={showErrors && errors.rawLabel ? true : undefined}
-            aria-label={t(
-              rawLabelLocked ? 'transactions.fields.rawLabel' : 'transactions.fields.label',
-            )}
-            onChange={(event) => set('rawLabel', event.target.value)}
-            readOnly={rawLabelLocked}
-            value={values.rawLabel}
-          />
-          {showErrors && errors.rawLabel ? (
-            <small id={`${errorId}-rawLabel`}>{t('transactions.validation.rawLabel')}</small>
-          ) : null}
-          {rawLabelLocked ? (
-            <small className={styles.hint} id="transaction-raw-label-hint">
-              {t('transactions.form.rawLabelLocked')}
-            </small>
-          ) : null}
-        </label>
+        {rawLabelLocked ? (
+          <>
+            <label>
+              <span>{t('transactions.fields.displayLabel')}</span>
+              <input
+                aria-describedby={
+                  showErrors && errors.userLabel ? `${errorId}-userLabel` : undefined
+                }
+                aria-invalid={showErrors && errors.userLabel ? true : undefined}
+                aria-label={t('transactions.fields.displayLabel')}
+                onChange={(event) => set('userLabel', event.target.value)}
+                value={values.userLabel}
+              />
+              {showErrors && errors.userLabel ? (
+                <small id={`${errorId}-userLabel`}>{t('transactions.validation.userLabel')}</small>
+              ) : null}
+            </label>
+            {rawLabelLocked ? (
+              <label>
+                <span>{t('transactions.fields.rawLabel')}</span>
+                <input
+                  aria-describedby="transaction-raw-label-hint"
+                  aria-label={t('transactions.fields.rawLabel')}
+                  readOnly
+                  value={values.rawLabel}
+                />
+                <small className={styles.hint} id="transaction-raw-label-hint">
+                  {t('transactions.form.rawLabelLocked')}
+                </small>
+              </label>
+            ) : null}
+          </>
+        ) : (
+          <label>
+            <span>{t('transactions.fields.label')}</span>
+            <input
+              aria-describedby={showErrors && errors.rawLabel ? `${errorId}-rawLabel` : undefined}
+              aria-invalid={showErrors && errors.rawLabel ? true : undefined}
+              aria-label={t('transactions.fields.label')}
+              onChange={(event) => set('rawLabel', event.target.value)}
+              value={values.rawLabel}
+            />
+            {showErrors && errors.rawLabel ? (
+              <small id={`${errorId}-rawLabel`}>{t('transactions.validation.rawLabel')}</small>
+            ) : null}
+          </label>
+        )}
 
         <label>
           <span>{t('transactions.fields.paymentMethod')}</span>

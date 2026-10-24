@@ -23,7 +23,7 @@ final readonly class TransactionSummaryView
         return new self(
             $transaction->id,
             $transaction->bookedOn->format('Y-m-d'),
-            $transaction->rawLabel,
+            $transaction->displayLabel(),
             $transaction->amount->value->toString(),
             $transaction->amount->asset->toString(),
             $transaction->state->value,

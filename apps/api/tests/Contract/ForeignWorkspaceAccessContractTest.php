@@ -324,7 +324,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
         ];
         $transaction = [
             'accountId' => self::OWN_ACCOUNT, 'amount' => $eur('-42.90'), 'nature' => 'EXPENSE', 'state' => 'BOOKED', 'bookedOn' => '2026-03-14',
-            'valueOn' => null, 'authorizedOn' => null, 'rawLabel' => 'CB CARREFOUR 1234', 'counterparty' => 'Carrefour', 'note' => null,
+            'valueOn' => null, 'authorizedOn' => null, 'rawLabel' => 'CB CARREFOUR 1234', 'userLabel' => null, 'counterparty' => 'Carrefour', 'note' => null,
             'paymentMethod' => 'CARD', 'mcc' => null, 'maskedCard' => null, 'bankReference' => null, 'categoryId' => null, 'splits' => null,
         ];
         $operation = ['type' => 'DEPOSIT', 'tradeDate' => '2026-03-02', 'grossAmount' => $eur('10')];

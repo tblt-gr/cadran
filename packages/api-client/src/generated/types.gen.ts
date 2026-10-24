@@ -1160,6 +1160,9 @@ export type BudgetComparisonTransaction = {
      */
     id: string;
     bookedOn: string;
+    /**
+     * Label shown for the transaction, which is the user's display label when set, otherwise the source label.
+     */
     rawLabel: string;
     /**
      * Exact signed sum of this transaction's splits retained in the comparison scope.
@@ -3547,9 +3550,17 @@ export type Transaction = {
     valueOn: string | null;
     authorizedOn: string | null;
     /**
-     * Original source wording. It can be corrected only for a manually entered transaction.
+     * Source label: the original wording of the bank or import, kept for traceability. It can be corrected only for a manually entered transaction and stays unchanged for imported or provider-sourced ones, whose editable label is userLabel. Automatic categorization rules match this label.
      */
     rawLabel: string;
+    /**
+     * The user's own display label, or null when none is set. It is editable on every transaction and never alters rawLabel.
+     */
+    userLabel: string | null;
+    /**
+     * The label shown and searched everywhere: userLabel when set, otherwise rawLabel. Automatic categorization rules always match rawLabel, never userLabel.
+     */
+    displayLabel: string;
     counterparty: string | null;
     note: string | null;
     paymentMethod: PaymentMethod | null;
@@ -3890,9 +3901,13 @@ export type UpdateTransactionRequest = {
     valueOn: string | null;
     authorizedOn: string | null;
     /**
-     * Editable for manually entered transactions. Imported or provider-sourced transactions must echo their original source label unchanged.
+     * Editable for manually entered transactions. Imported or provider-sourced transactions must echo their original source label unchanged; their display label is changed through userLabel instead.
      */
     rawLabel: string;
+    /**
+     * The user's own display label (1 to 140 characters, surrounding spaces trimmed), or null to clear it. Editable on every transaction, including imported and provider-sourced ones, whose source label stays unchanged. A blank value clears it, so the transaction is displayed under its source label again.
+     */
+    userLabel: string | null;
     counterparty: string | null;
     note: string | null;
     paymentMethod: PaymentMethod | null;

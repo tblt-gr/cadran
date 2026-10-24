@@ -35,7 +35,7 @@ export function PendingTransactionsTable({ count, transactions }: PendingTransac
           {transactions.map((transaction) => (
             <tr key={transaction.id}>
               <td>{formatCalendarDay(transaction.bookedOn, i18n.language)}</td>
-              <td>{transaction.rawLabel}</td>
+              <td>{transaction.displayLabel}</td>
               <td className={styles.amount}>
                 {formatAmount(
                   transaction.amount.value,

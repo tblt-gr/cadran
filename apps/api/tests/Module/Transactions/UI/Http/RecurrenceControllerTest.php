@@ -377,6 +377,7 @@ final class RecurrenceControllerTest extends WebTestCase
             'valueOn' => null,
             'authorizedOn' => null,
             'rawLabel' => 'CB NETFLIX',
+            'userLabel' => null,
             'counterparty' => 'Netflix',
             'note' => null,
             'paymentMethod' => null,

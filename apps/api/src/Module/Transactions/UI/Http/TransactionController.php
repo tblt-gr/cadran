@@ -46,6 +46,7 @@ final readonly class TransactionController
     private const array UPDATE_FIELDS = [
         'accountId', 'amount', 'nature', 'state', 'bookedOn', 'valueOn', 'authorizedOn', 'rawLabel',
         'counterparty', 'note', 'paymentMethod', 'mcc', 'maskedCard', 'bankReference', 'categoryId', 'splits', 'version',
+        'userLabel',
     ];
 
     public function __construct(
@@ -204,6 +205,7 @@ final readonly class TransactionController
             categoryId: $payload->nullableIdentifier('categoryId'),
             splits: $payload->nullableSplitRows('splits'),
             version: $payload->integer('version'),
+            userLabel: $payload->nullableString('userLabel'),
         );
     }
 }

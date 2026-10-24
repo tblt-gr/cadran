@@ -31,6 +31,7 @@ final readonly class UpdateTransactionInput
         public ?string $categoryId,
         public ?array $splits,
         public int $version,
+        public ?string $userLabel = null,
     ) {
     }
 }

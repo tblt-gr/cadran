@@ -20,7 +20,7 @@ export function TransactionsPageSkeleton({ status }: { status: string }) {
             <thead>
               <tr>
                 <th scope="col">{t('transactions.fields.bookedOn')}</th>
-                <th scope="col">{t('transactions.fields.rawLabel')}</th>
+                <th scope="col">{t('transactions.fields.label')}</th>
                 <th scope="col">{t('transactions.fields.category')}</th>
                 <th scope="col">{t('transactions.fields.account')}</th>
                 <th className={styles.amount} scope="col">

@@ -26,6 +26,8 @@ final readonly class TransactionRepresentation
             'valueOn' => $transaction->valueOn,
             'authorizedOn' => $transaction->authorizedOn,
             'rawLabel' => $transaction->rawLabel,
+            'userLabel' => $transaction->userLabel,
+            'displayLabel' => $transaction->displayLabel,
             'counterparty' => $transaction->counterparty,
             'note' => $transaction->note,
             'paymentMethod' => $transaction->paymentMethod,

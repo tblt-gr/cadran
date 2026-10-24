@@ -1126,7 +1126,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
     /** @param array<string, mixed> $body */
     private function requestTransactionUpdate(string $id, array $body): void
     {
-        $this->client->request('PUT', '/api/v1/transactions/'.$id, server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
+        $this->client->request('PUT', '/api/v1/transactions/'.$id, server: self::jsonHeaders(), content: json_encode(['userLabel' => null, ...$body], JSON_THROW_ON_ERROR));
     }
 
     /**

@@ -67,6 +67,7 @@ final readonly class TransactionRow
             updatedAt: new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
             voidedAt: self::instant($row['voided_at'] ?? null),
             lastEditorId: self::nullableText($row['last_editor_id'] ?? null),
+            userLabel: self::nullableText($row['user_label'] ?? null),
             reviewReason: null === ($row['review_reason'] ?? null) ? null : ReviewReason::from(self::text($row['review_reason'])),
         );
     }
@@ -93,6 +94,7 @@ final readonly class TransactionRow
             'voided_at' => $transaction->voidedAt?->format('Y-m-d H:i:s.uP'),
             'last_editor_id' => $transaction->lastEditorId,
             'review_reason' => $transaction->reviewReason?->value,
+            'user_label' => $transaction->userLabel,
         ];
     }
 

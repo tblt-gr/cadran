@@ -10644,7 +10644,13 @@ components:
           format: uuid
           description: Stable internal key for rendering; the interface presents the readable transaction fields instead.
         bookedOn: { type: string, format: date }
-        rawLabel: { type: string, minLength: 1, maxLength: 140 }
+        rawLabel:
+          type: string
+          minLength: 1
+          maxLength: 140
+          description: >-
+            Label shown for the transaction, which is the user's display label when set,
+            otherwise the source label.
         amount:
           description: Exact signed sum of this transaction's splits retained in the comparison scope.
           $ref: '#/components/schemas/BudgetExactDecimal'
@@ -16381,6 +16387,8 @@ components:
         - valueOn
         - authorizedOn
         - rawLabel
+        - userLabel
+        - displayLabel
         - counterparty
         - note
         - paymentMethod
@@ -16451,8 +16459,27 @@ components:
           minLength: 1
           maxLength: 140
           description: >-
-            Original source wording. It can be corrected only for a manually entered
-            transaction.
+            Source label: the original wording of the bank or import, kept for
+            traceability. It can be corrected only for a manually entered transaction
+            and stays unchanged for imported or provider-sourced ones, whose editable
+            label is userLabel. Automatic categorization rules match this label.
+        userLabel:
+          description: >-
+            The user's own display label, or null when none is set. It is editable on
+            every transaction and never alters rawLabel.
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 140
+            - type: 'null'
+        displayLabel:
+          type: string
+          minLength: 1
+          maxLength: 140
+          description: >-
+            The label shown and searched everywhere: userLabel when set, otherwise
+            rawLabel. Automatic categorization rules always match rawLabel, never
+            userLabel.
         counterparty:
           oneOf:
             - type: string
@@ -17235,6 +17262,7 @@ components:
         - valueOn
         - authorizedOn
         - rawLabel
+        - userLabel
         - counterparty
         - note
         - paymentMethod
@@ -17277,7 +17305,18 @@ components:
           maxLength: 140
           description: >-
             Editable for manually entered transactions. Imported or provider-sourced
-            transactions must echo their original source label unchanged.
+            transactions must echo their original source label unchanged; their
+            display label is changed through userLabel instead.
+        userLabel:
+          description: >-
+            The user's own display label (1 to 140 characters, surrounding spaces trimmed),
+            or null to clear it. Editable on every transaction, including imported and
+            provider-sourced ones, whose source label stays unchanged. A blank value
+            clears it, so the transaction is displayed under its source label again.
+          oneOf:
+            - type: string
+              maxLength: 140
+            - type: 'null'
         counterparty:
           oneOf:
             - type: string

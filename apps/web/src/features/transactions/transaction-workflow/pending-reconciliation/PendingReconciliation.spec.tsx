@@ -19,6 +19,7 @@ it('books a genuinely new reviewed movement through the existing reconciliation 
       id: 'review',
       accountId: 'own',
       rawLabel: 'Nouvel achat',
+      displayLabel: 'Nouvel achat',
       state: 'PENDING',
       reviewReason: 'NO_MATCH',
       reconciliationCandidateIds: [],

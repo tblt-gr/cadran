@@ -33,7 +33,7 @@ final readonly class DbalRecurrenceObservationRepository implements RecurrenceOb
         $rows = $this->connection->fetchAllAssociative(
             'SELECT id, account_id, booked_on, amount_value, amount_scale, asset_code, '
             .'coalesce(lower(counterparty), normalized_label) AS grouping_key, '
-            .'coalesce(counterparty, raw_label) AS display_name '
+            .'coalesce(counterparty, user_label, raw_label) AS display_name '
             .'FROM transaction_transactions '
             ."WHERE workspace_id = :workspace_id AND state NOT IN ('VOIDED', 'REJECTED') "
             ."AND nature IN ('INCOME', 'EXPENSE', 'FEE') AND booked_on >= :from_date "

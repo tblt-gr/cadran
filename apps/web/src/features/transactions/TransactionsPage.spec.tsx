@@ -73,6 +73,8 @@ const transaction: Transaction = {
   valueOn: null,
   authorizedOn: null,
   rawLabel: 'CB CARREFOUR 1234',
+  userLabel: null,
+  displayLabel: 'CB CARREFOUR 1234',
   counterparty: 'Carrefour',
   note: null,
   paymentMethod: 'CARD',
@@ -898,6 +900,7 @@ describe('TransactionsPage', () => {
             state: 'VOIDED',
             voidedAt: '2026-03-15T10:00:00+01:00',
             rawLabel: '<img src=x onerror=alert(1)>',
+            displayLabel: '<img src=x onerror=alert(1)>',
           },
         ],
         nextCursor: null,
@@ -1194,7 +1197,7 @@ describe('TransactionsPage', () => {
     });
   });
 
-  it('keeps an imported source label read-only and explains why', async () => {
+  it('edits the display label of an imported transaction and keeps the source label read-only', async () => {
     const imported = { ...transaction, source: 'IMPORT' } satisfies Transaction;
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
@@ -1203,6 +1206,7 @@ describe('TransactionsPage', () => {
     api.listCategories.mockImplementation(() =>
       success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
+    api.updateTransaction.mockImplementation(({ body }) => success({ ...imported, ...body }));
     renderPage();
 
     await screen.findByText('CB CARREFOUR 1234');
@@ -1212,14 +1216,45 @@ describe('TransactionsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
 
     const dialog = screen.getByRole('dialog', { name: 'Modifier la transaction' });
-    expect(
-      (
-        within(dialog).getByRole('textbox', {
-          name: 'Libellé d’origine',
-        }) as HTMLInputElement
-      ).readOnly,
-    ).toBe(true);
+    // The read-only source label is always there for an external row, so nothing pops in while typing.
+    expect(within(dialog).getByRole('textbox', { name: 'Libellé d’origine' })).toBeTruthy();
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Libellé affiché' }), {
+      target: { value: 'Courses Carrefour' },
+    });
+    const source = within(dialog).getByRole('textbox', {
+      name: 'Libellé d’origine',
+    }) as HTMLInputElement;
+    expect(source.readOnly).toBe(true);
+    expect(source.value).toBe('CB CARREFOUR 1234');
     expect(within(dialog).getByText(/source externe/)).toBeTruthy();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(api.updateTransaction).toHaveBeenCalledOnce());
+    expect(api.updateTransaction.mock.calls[0]?.[0].body).toMatchObject({
+      rawLabel: 'CB CARREFOUR 1234',
+      userLabel: 'Courses Carrefour',
+    });
+  });
+
+  it('lists the display label of a transaction instead of its source label', async () => {
+    const renamed = {
+      ...transaction,
+      source: 'IMPORT',
+      userLabel: 'Courses Carrefour',
+      displayLabel: 'Courses Carrefour',
+    } satisfies Transaction;
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [renamed], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Courses Carrefour')).toBeTruthy();
+    expect(screen.queryByText('CB CARREFOUR 1234')).toBeNull();
   });
 
   it('resolves and edits a historical account beyond the first account page', async () => {
@@ -1517,7 +1552,12 @@ describe('TransactionsPage', () => {
     api.listCategories.mockImplementation(() =>
       success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
-    const edited = { ...transaction, rawLabel: 'CARREFOUR MARKET', version: 2 };
+    const edited = {
+      ...transaction,
+      rawLabel: 'CARREFOUR MARKET',
+      displayLabel: 'CARREFOUR MARKET',
+      version: 2,
+    };
     let saved = false;
     api.listTransactions.mockImplementation(({ query }: { query: { cursor?: string } }) => {
       if (query.cursor) {
@@ -1576,6 +1616,7 @@ describe('TransactionsPage', () => {
       ...transaction,
       id: '00000000-0000-7000-8000-0000000000f2',
       rawLabel: 'CB FNAC 5678',
+      displayLabel: 'CB FNAC 5678',
       counterparty: 'Fnac',
     };
     api.listTransactions

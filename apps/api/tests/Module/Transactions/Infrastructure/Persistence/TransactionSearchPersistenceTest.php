@@ -123,6 +123,47 @@ final class TransactionSearchPersistenceTest extends KernelTestCase
         );
     }
 
+    public function testFreeTextSearchMatchesEitherTheSourceLabelOrTheUserLabel(): void
+    {
+        $relabelled = $this->add(
+            '00000000-0000-7000-8000-000000000101', '-1.00', source: TransactionSource::IMPORT,
+            label: 'CB CARREFOUR 1234', userLabel: 'Courses du samedi',
+        );
+        $this->add('00000000-0000-7000-8000-000000000102', '-1.00', label: 'CB AUCHAN');
+
+        foreach (['carrefour 1234', 'COURSES DU', 'du_samedi'] as $query) {
+            $found = array_column($this->repository->search(WorkspaceFixture::own(), new TransactionFilters(q: $query), 10, null), 'id');
+            self::assertSame('du_samedi' === $query ? [] : [$relabelled], $found, $query);
+        }
+    }
+
+    public function testTheUserLabelRoundTripsAndClearingItRestoresTheSourceLabelOnly(): void
+    {
+        $id = $this->add('00000000-0000-7000-8000-000000000103', '-1.00', source: TransactionSource::PROVIDER, label: 'PRLV SEPA 8841');
+        $stored = $this->repository->find(WorkspaceFixture::own(), $id);
+        self::assertNotNull($stored);
+        self::assertNull($stored->userLabel);
+
+        self::assertTrue($this->repository->update($stored->withUserLabel('Loyer'), 1));
+        $relabelled = $this->repository->find(WorkspaceFixture::own(), $id);
+        self::assertNotNull($relabelled);
+        self::assertSame('Loyer', $relabelled->userLabel);
+        self::assertSame('PRLV SEPA 8841', $relabelled->rawLabel);
+
+        self::assertTrue($this->repository->update($relabelled->withUserLabel(null), 1));
+        $cleared = $this->repository->find(WorkspaceFixture::own(), $id);
+        self::assertNotNull($cleared);
+        self::assertNull($cleared->userLabel);
+        self::assertSame('PRLV SEPA 8841', $cleared->displayLabel());
+    }
+
+    public function testASearchOnAUserLabelNeverLeaksAnotherWorkspace(): void
+    {
+        $this->add('00000000-0000-7000-8000-000000000104', '-1.00', userLabel: 'Secret perso');
+
+        self::assertSame([], $this->repository->search(WorkspaceFixture::other(), new TransactionFilters(q: 'secret'), 10, null));
+    }
+
     public function testCategorizationNoneReturnsOnlyUnsplitTransactions(): void
     {
         $uncategorized = $this->add('00000000-0000-7000-8000-0000000000fb', '-1.00');
@@ -203,6 +244,7 @@ final class TransactionSearchPersistenceTest extends KernelTestCase
         array $axes = [],
         ?TransactionSource $source = null,
         string $label = 'CB TEST',
+        ?string $userLabel = null,
     ): string {
         $now = new \DateTimeImmutable('2026-03-14T09:12:04+00:00');
         $workspace = WorkspaceFixture::own();
@@ -218,7 +260,7 @@ final class TransactionSearchPersistenceTest extends KernelTestCase
             bookedOn: new \DateTimeImmutable('2026-03-14'), valueOn: null, authorizedOn: null,
             rawLabel: $label, counterparty: null, note: null, paymentMethod: null, mcc: null,
             maskedCard: null, bankReference: null, splits: $splits, version: 1, createdAt: $now,
-            updatedAt: $now, voidedAt: null, lastEditorId: WorkspaceFixture::OWNER_ID,
+            updatedAt: $now, voidedAt: null, lastEditorId: WorkspaceFixture::OWNER_ID, userLabel: $userLabel,
         ));
 
         return $id;
