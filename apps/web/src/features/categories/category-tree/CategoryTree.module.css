@@ -34,7 +34,6 @@
   align-items: center;
   gap: var(--spacing-3);
   padding: var(--spacing-3) var(--spacing-2);
-  border-radius: var(--radius-control);
   transition: background-color var(--duration-fast) var(--ease-out);
 }
 
