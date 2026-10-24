@@ -115,15 +115,19 @@ export function CategoryPicker({
   // The selection is known from one of three places, in order of freshness: the
   // current search result, the choice just made here, or what the host handed
   // over for a record it is editing.
+  const listed = candidates.data?.items.find((category) => category.id === value);
   const identity =
-    candidates.data?.items.find((category) => category.id === value) ??
+    listed ??
     (chosen?.id === value ? chosen : undefined) ??
     (value === NONE
       ? undefined
       : { color: selectedColor, icon: selectedIcon, label: selectedLabel ?? '' });
 
   const selectedText = value !== NONE ? (identity?.label ?? selectedLabel ?? query) : query;
-  const selectedFill = value === NONE ? null : canonicalCategoryColor(identity?.color);
+  const selectedFill =
+    value === NONE
+      ? null
+      : canonicalCategoryColor(listed ? listed.effectiveColor : identity?.color);
   const selectedInk = categoryInk(selectedFill);
 
   const typeRank = (candidate: Category): number =>
@@ -141,8 +145,8 @@ export function CategoryPicker({
       id: candidate.id,
       kind: 'category' as const,
       label: candidate.label,
-      color: candidate.color,
-      icon: candidate.icon,
+      color: candidate.effectiveColor,
+      icon: candidate.effectiveIcon,
       type: type ? undefined : candidate.type,
     }));
   const categoryChoices: CategoryChoice[] =
@@ -249,7 +253,9 @@ export function CategoryPicker({
               : { background: selectedFill, color: selectedInk }
           }
         >
-          {value !== NONE ? <CategorySwatch icon={identity?.icon} /> : null}
+          {value !== NONE ? (
+            <CategorySwatch icon={listed ? listed.effectiveIcon : identity?.icon} />
+          ) : null}
           <input
             aria-activedescendant={expanded && active ? optionId(listId, active) : undefined}
             aria-autocomplete="list"

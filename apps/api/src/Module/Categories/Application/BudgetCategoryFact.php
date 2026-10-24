@@ -12,7 +12,9 @@ final readonly class BudgetCategoryFact
         public bool $budgetIncluded,
         public string $type,
         public string $label,
+        /** The effective icon: the category's own, else its nearest ancestor's. */
         public ?string $icon,
+        /** The effective color: the category's own, else its nearest ancestor's. */
         public ?string $color,
         public ?string $archivedAt,
     ) {

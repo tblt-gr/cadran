@@ -29,6 +29,8 @@ final readonly class CategoryRepresentation
             'parentLabel' => $category->parentLabel,
             'icon' => $category->icon,
             'color' => $category->color,
+            'effectiveColor' => $category->effectiveColor,
+            'effectiveIcon' => $category->effectiveIcon,
             'defaultAnalyticAxes' => $category->defaultAnalyticAxes,
             'budgetIncluded' => $category->budgetIncluded,
             'sortOrder' => $category->sortOrder,

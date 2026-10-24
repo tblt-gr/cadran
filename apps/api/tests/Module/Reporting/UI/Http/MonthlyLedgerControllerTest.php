@@ -23,6 +23,7 @@ final class MonthlyLedgerControllerTest extends WebTestCase
     private const string FOOD = '00000000-0000-7000-8000-0000000000c2';
     private const string TRANSPORT = '00000000-0000-7000-8000-0000000000c3';
     private const string EMPTY = '00000000-0000-7000-8000-0000000000c4';
+    private const string FOOD_CHILD = '00000000-0000-7000-8000-0000000000c5';
     private const string OTHER_CATEGORY = '00000000-0000-7000-8000-0000000000c9';
 
     private KernelBrowser $client;
@@ -67,6 +68,7 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         $this->category(self::FOOD, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Alimentation', true, 'utensils', '#AA5500');
         $this->category(self::TRANSPORT, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Transport', false, 'train', '#336699');
         $this->category(self::EMPTY, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Vide', true, null, null);
+        $this->category(self::FOOD_CHILD, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Restaurants', true, null, null, self::FOOD, 2);
         $this->category(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, 'EXPENSE', 'Secret', true, null, null);
 
         $this->transaction('01', self::CURRENT, '5000', 'INCOME', splits: [[self::SALARY, '5000', []]]);
@@ -95,6 +97,10 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         self::assertSame(2, $food['movementCount']);
         self::assertTrue($food['hasMovements']);
         self::assertSame('#AA5500', $food['color']);
+        // A category without its own color is drawn with its nearest ancestor's.
+        self::assertSame('#AA5500', self::row($ledger, 'expenseCategories', self::FOOD_CHILD)['color']);
+        self::assertSame('utensils', self::row($ledger, 'expenseCategories', self::FOOD_CHILD)['icon']);
+        self::assertNull(self::row($ledger, 'expenseCategories', self::EMPTY)['color']);
         $transport = self::row($ledger, 'expenseCategories', self::TRANSPORT);
         self::assertFalse($transport['budgetIncluded']);
         $transportTotal = self::fields($transport['total'] ?? null);
@@ -243,12 +249,12 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         ], ['include_in_net_worth' => ParameterType::BOOLEAN, 'include_in_emergency_fund' => ParameterType::BOOLEAN]);
     }
 
-    private function category(string $id, string $workspace, string $type, string $label, bool $included, ?string $icon, ?string $color): void
+    private function category(string $id, string $workspace, string $type, string $label, bool $included, ?string $icon, ?string $color, ?string $parentId = null, int $depth = 1): void
     {
         $this->connection->insert('category_categories', [
-            'id' => $id, 'workspace_id' => $workspace, 'type' => $type, 'label' => $label,
+            'id' => $id, 'workspace_id' => $workspace, 'type' => $type, 'label' => $label, 'parent_id' => $parentId,
             'icon' => $icon, 'color' => $color, 'default_analytic_axes' => '[]', 'budget_included' => $included,
-            'sort_order' => 0, 'depth' => 1, 'version' => 1,
+            'sort_order' => 0, 'depth' => $depth, 'version' => 1,
             'created_at' => '2026-01-01 12:00:00+00', 'updated_at' => '2026-01-01 12:00:00+00',
         ], ['budget_included' => ParameterType::BOOLEAN]);
     }

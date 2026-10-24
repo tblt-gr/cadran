@@ -49,6 +49,11 @@ export function TransactionCategoryField({
   const selected =
     value === created?.id ? created : value === savedCategory?.id ? savedCategory : undefined;
 
+  // A created category carries its derived color; a saved one the effective color of its split.
+  const selectedColor = selected === created ? created?.effectiveColor : selected?.color;
+
+  const selectedIcon = selected === created ? created?.effectiveIcon : selected?.icon;
+
   function selectCreated(category: Category) {
     setCreated(category);
     onChange(category.id, category.type, category.defaultAnalyticAxes);
@@ -66,8 +71,8 @@ export function TransactionCategoryField({
         onCreateRequest={setQuickLabel}
         preferredType={preferredType}
         ref={picker}
-        selectedColor={selected?.color}
-        selectedIcon={selected?.icon}
+        selectedColor={selectedColor}
+        selectedIcon={selectedIcon}
         selectedLabel={selected?.label}
         value={value}
       />

@@ -20,6 +20,8 @@ const category: Category = {
   parentLabel: null,
   icon: 'utensils',
   color: '#AABBCC',
+  effectiveColor: '#AABBCC',
+  effectiveIcon: 'utensils',
   defaultAnalyticAxes: ['DISCRETIONARY'],
   budgetIncluded: true,
   sortOrder: 10,
@@ -53,6 +55,29 @@ function form(value = category) {
 
 describe('CategoryForm identity', () => {
   afterEach(cleanup);
+
+  it('tells which glyph an unmarked category inherits, and not when it has its own', () => {
+    form({ ...category, icon: null, effectiveIcon: 'utensils' });
+    expect(screen.getByText('Hérite de l’icône « Couverts »')).toBeTruthy();
+    cleanup();
+    form({ ...category, icon: 'coffee', effectiveIcon: 'coffee' });
+    expect(screen.queryByText(/Hérite de l’icône/)).toBeNull();
+  });
+
+  it('shows no inheritance hint when the user clears the category own color', () => {
+    form();
+
+    fireEvent.change(screen.getByLabelText('Code couleur'), { target: { value: '' } });
+    expect(screen.queryByText(/Hérite de la couleur/)).toBeNull();
+  });
+
+  it('tells which ancestor color an uncolored category inherits and still submits null', () => {
+    const onSubmit = form({ ...category, color: null, effectiveColor: '#112233' });
+
+    expect(screen.getByText('Hérite de la couleur #112233')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ color: null });
+  });
 
   it('prefills the edit selection and previews each label, icon and colour change', () => {
     const onSubmit = form();

@@ -1621,6 +1621,14 @@ export type Category = {
     parentLabel: string | null;
     icon: string | null;
     color: string | null;
+    /**
+     * Color the category is drawn with: its own explicit color, else the nearest ancestor's explicit color in the same workspace, else null. Derived at read time, never stored, never accepted on write. `color` stays the explicit stored value.
+     */
+    effectiveColor: string | null;
+    /**
+     * Icon the category is drawn with: its own explicit icon, else the nearest ancestor's explicit icon in the same workspace, else null. Derived at read time, never stored, never accepted on write. `icon` stays the explicit stored value.
+     */
+    effectiveIcon: string | null;
     defaultAnalyticAxes: AnalyticAxes;
     budgetIncluded: boolean;
     sortOrder: number;
@@ -2643,7 +2651,13 @@ export type MonthlyLedgerMetric = {
 export type MonthlyLedgerCategoryRow = {
     id: string;
     label: string;
+    /**
+     * Effective category icon, meaning its own explicit icon, else the nearest ancestor's, else null.
+     */
     icon: string | null;
+    /**
+     * Effective category color, meaning its own explicit color, else the nearest ancestor's, else null.
+     */
     color: string | null;
     budgetIncluded: boolean;
     archived: boolean;
@@ -3750,11 +3764,11 @@ export type TransactionSplit = {
     categoryId: string;
     categoryLabel: string;
     /**
-     * Read-only display icon of the split category. Never accepted on write.
+     * Read-only display icon of the split category: its effective icon (own explicit icon, else the nearest ancestor's). Never accepted on write.
      */
     categoryIcon: string | null;
     /**
-     * Read-only display colour of the split category. Never accepted on write.
+     * Read-only display colour of the split category: its effective colour (own explicit colour, else the nearest ancestor's). Never accepted on write.
      */
     categoryColor: string | null;
     amount: DecimalAmount;

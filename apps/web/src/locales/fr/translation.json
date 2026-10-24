@@ -1173,7 +1173,8 @@
     },
     "error": {
       "title": "Catégories indisponibles",
-      "description": "Impossible de charger les catégories. Vérifiez le service puis réessayez."
+      "description": "Impossible de charger les catégories. Vérifiez le service puis réessayez.",
+      "partial": "L’espace contient plus de catégories que l’arbre ne peut en afficher. La liste n’est pas affichée pour éviter une vue incomplète."
     },
     "unauthorized": {
       "title": "Session expirée",
@@ -1195,6 +1196,16 @@
       "replacedFrom": "Remplacée par « {{target}} » à partir du {{date}}",
       "actionFor": "{{action}} la catégorie « {{label}} »",
       "openActions": "Actions de la catégorie « {{label}} »"
+    },
+    "tree": {
+      "expand": "Afficher les sous-catégories de « {{label}} » ({{count}})",
+      "collapse": "Masquer les sous-catégories de « {{label}} »",
+      "childCount_one": "{{count}} sous-catégorie",
+      "childCount_other": "{{count}} sous-catégories",
+      "level": "Niveau {{depth}}",
+      "parentOf": "Sous-catégorie de « {{parent}} »",
+      "inherits": "Hérite de la couleur {{color}}",
+      "inheritsIcon": "Hérite de l’icône « {{icon}} »"
     },
     "pagination": {
       "label": "Pagination des catégories",

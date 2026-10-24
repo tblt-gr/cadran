@@ -17,6 +17,8 @@ final readonly class CategoryView
         public ?string $parentLabel,
         public ?string $icon,
         public ?string $color,
+        public ?string $effectiveColor,
+        public ?string $effectiveIcon,
         public array $defaultAnalyticAxes,
         public bool $budgetIncluded,
         public int $sortOrder,
@@ -35,6 +37,8 @@ final readonly class CategoryView
         Category $category,
         bool $hasChildren,
         ?string $parentLabel,
+        ?string $effectiveColor,
+        ?string $effectiveIcon,
         ?CategoryReplacementView $replacement = null,
     ): self {
         [$typeEditable, $typeEditReason] = self::typeEligibility($category, $hasChildren);
@@ -47,6 +51,8 @@ final readonly class CategoryView
             parentLabel: $parentLabel,
             icon: $category->icon,
             color: $category->color,
+            effectiveColor: $effectiveColor,
+            effectiveIcon: $effectiveIcon,
             defaultAnalyticAxes: array_map(static fn ($axis): string => $axis->value, $category->defaultAnalyticAxes),
             budgetIncluded: $category->budgetIncluded,
             sortOrder: $category->sortOrder,

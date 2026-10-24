@@ -30,6 +30,8 @@ const category = {
   parentLabel: null,
   icon: null,
   color: null,
+  effectiveColor: null,
+  effectiveIcon: null,
   defaultAnalyticAxes: [],
   budgetIncluded: true,
   sortOrder: 0,

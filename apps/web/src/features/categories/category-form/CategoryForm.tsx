@@ -53,6 +53,7 @@ export function CategoryForm({
   const [sortOrder, setSortOrder] = useState(String(category?.sortOrder ?? 0));
   const [showErrors, setShowErrors] = useState(false);
 
+  const inheritedIcon = categoryIcon(category?.effectiveIcon);
   const cleanLabel = label.trim();
   const parsedOrder = Number.parseInt(sortOrder, 10);
   const labelInvalid = cleanLabel.length < 1 || [...cleanLabel].length > 80;
@@ -161,7 +162,19 @@ export function CategoryForm({
 
       <CategoryIdentityPreview color={color} icon={icon} label={cleanLabel} />
       <CategoryColorPicker onChange={setColor} value={color} />
+      {color === '' && category?.color === null && category.effectiveColor ? (
+        <p className={styles.axesHint}>
+          {t('categories.tree.inherits', { color: category.effectiveColor })}
+        </p>
+      ) : null}
       <CategoryIconPicker onChange={setIcon} value={icon} />
+      {icon === '' && category?.icon === null && inheritedIcon ? (
+        <p className={styles.axesHint}>
+          {t('categories.tree.inheritsIcon', {
+            icon: t(`categories.identity.icons.${inheritedIcon.key}`),
+          })}
+        </p>
+      ) : null}
       {showErrors && iconInvalid ? <p role="alert">{t('categories.validation.icon')}</p> : null}
 
       <fieldset aria-describedby="category-axes-hint" className={styles.axes}>

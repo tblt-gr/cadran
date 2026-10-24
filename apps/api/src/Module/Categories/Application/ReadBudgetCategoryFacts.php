@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\Application;
 
+use App\Module\Categories\Domain\CategoryAppearanceResolver;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
@@ -22,6 +23,12 @@ final readonly class ReadBudgetCategoryFacts
             throw new BudgetCategoryScopeTooLarge('A monthly budget comparison reads at most 500 categories.');
         }
 
+        $nodes = [];
+        foreach ($categories as $category) {
+            $nodes[$category->id] = ['parentId' => $category->parentId, 'color' => $category->color, 'icon' => $category->icon];
+        }
+        $appearances = CategoryAppearanceResolver::resolve($nodes);
+
         return array_map(
             static fn ($category): BudgetCategoryFact => new BudgetCategoryFact(
                 $category->id,
@@ -29,8 +36,8 @@ final readonly class ReadBudgetCategoryFacts
                 $category->budgetIncluded,
                 $category->type->value,
                 $category->label,
-                $category->icon,
-                $category->color,
+                $appearances[$category->id]['icon'] ?? null,
+                $appearances[$category->id]['color'] ?? null,
                 $category->archivedAt?->format(DATE_ATOM),
             ),
             $categories,
