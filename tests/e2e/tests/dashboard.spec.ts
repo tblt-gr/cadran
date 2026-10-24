@@ -33,22 +33,23 @@ test.describe('dashboard', () => {
     await expect(figure.getByRole('table')).toHaveAccessibleName('Évolution du patrimoine');
   });
 
-  test('persists the chart period and supports radio keyboard navigation at 360px', async ({
-    page,
-  }) => {
+  test('persists the chart period and supports keyboard selection at 360px', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto('/?periode=tout');
     await settled(page);
-    const group = page.getByRole('radiogroup', { name: 'Période du graphique' });
-    await expect(group.getByRole('radio', { name: 'Tout' })).toBeChecked();
-    const all = group.getByRole('radio', { name: 'Tout' });
-    await all.focus();
+    const group = page.getByRole('group', { name: 'Période du graphique' });
+    await expect(group.getByRole('button', { name: 'Tout' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const twelve = group.getByRole('button', { name: '12 mois' });
+    await twelve.focus();
     const response = page.waitForResponse((response) =>
       response.url().includes('/net-worth/history?period=LAST_12_MONTHS'),
     );
-    await all.press('ArrowRight');
+    await twelve.press('Enter');
     const history = (await (await response).json()) as { points: { on: string }[] };
-    await expect(group.getByRole('radio', { name: '12 mois' })).toBeChecked();
+    await expect(twelve).toHaveAttribute('aria-pressed', 'true');
     await expect(page).toHaveURL(/periode=12m/);
     const figure = page.getByRole('figure', { name: 'Évolution du patrimoine' });
     await expect(figure.getByText('Voir les données sous forme de tableau')).toHaveCount(0);
@@ -59,7 +60,10 @@ test.describe('dashboard', () => {
     ).toBe(true);
     await page.reload();
     await settled(page);
-    await expect(page.getByRole('radio', { name: '12 mois' })).toBeChecked();
+    await expect(page.getByRole('button', { name: '12 mois' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   test('shows the API comparison amount, rate and baseline for every selected period', async ({
@@ -75,9 +79,10 @@ test.describe('dashboard', () => {
     ] as const) {
       const response = await page.request.get(`/api/v1/net-worth/history?period=${period}`);
       expect(response.ok()).toBe(true);
-      const group = page.getByRole('radiogroup', { name: 'Période du graphique' });
-      await group.getByText(label, { exact: true }).click();
-      await expect(group.getByRole('radio', { name: label, exact: true })).toBeChecked();
+      const group = page.getByRole('group', { name: 'Période du graphique' });
+      const option = group.getByRole('button', { name: label, exact: true });
+      await option.click();
+      await expect(option).toHaveAttribute('aria-pressed', 'true');
       const history = (await response.json()) as {
         delta: {
           comparedOn: string;
