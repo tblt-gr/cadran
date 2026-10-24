@@ -6,10 +6,11 @@ import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
 import { TransactionWorkflow } from './transaction-workflow/TransactionWorkflow';
-import { TransactionList } from './transaction-list/TransactionList';
+import { TransactionDayList } from './transaction-list/transaction-day-list/TransactionDayList';
 import { TransactionsPageSkeleton } from './TransactionsPageSkeleton';
 import { TransactionListFooter } from './transaction-list/TransactionListFooter';
 import { TransactionFilters } from './transaction-filters/TransactionFilters';
+import { encodeFilters } from './transaction-filters/filterState';
 import { TransactionModals } from './transaction-modals/TransactionModals';
 import { TransactionsState } from './transactions-state/TransactionsState';
 import type { Editor } from './transactionEditorState';
@@ -35,6 +36,7 @@ export function TransactionsPage() {
     categorization,
     displayedPage,
     filtersRevision,
+    hasPreviousPage,
     impossible,
     items,
     loadMore,
@@ -48,6 +50,8 @@ export function TransactionsPage() {
     unauthorized,
     updateFilters,
   } = listing;
+
+  const filtered = encodeFilters(searchFilters).toString() !== '';
 
   const mutations = useTransactionMutations({
     editor,
@@ -195,7 +199,7 @@ export function TransactionsPage() {
             onRetry={() => void transactions.refetch()}
           />
         ) : transactions.isPending && transactions.data === undefined ? (
-          <TransactionsPageSkeleton status={t('transactions.loading')} />
+          <TransactionsPageSkeleton filtered={filtered} />
         ) : transactions.isError && !staleCursorError ? (
           <TransactionsState
             kind={unauthorized ? 'unauthorized' : 'error'}
@@ -210,7 +214,14 @@ export function TransactionsPage() {
           />
         ) : (
           <>
-            <TransactionList accounts={accountOptions} transactions={items} />
+            <TransactionDayList
+              accounts={accountOptions}
+              filtered={filtered}
+              hasPrevious={hasPreviousPage}
+              hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
+              label={t('transactions.list.caption')}
+              transactions={items}
+            />
             <TransactionListFooter
               hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
               loadingMore={transactions.isFetching && !transactions.isPending}

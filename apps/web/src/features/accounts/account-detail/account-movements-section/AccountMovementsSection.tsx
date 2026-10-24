@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { TransactionListFooter } from '@/features/transactions/transaction-list/TransactionListFooter';
 import { TransactionsState } from '@/features/transactions/transactions-state/TransactionsState';
 import { formatCalendarMonth } from '@/lib/decimal';
-import { AccountMovementsTableSkeleton } from '@/features/accounts/account-detail/account-movements/AccountMovementsTableSkeleton';
-import { AccountMovementsTable } from '@/features/accounts/account-detail/account-movements/AccountMovementsTable';
+import { TransactionDayList } from '@/features/transactions/transaction-list/transaction-day-list/TransactionDayList';
 import styles from './AccountMovementsSection.module.css';
 
 /**
@@ -18,6 +17,7 @@ import styles from './AccountMovementsSection.module.css';
 export function AccountMovementsSection({
   canCreate,
   displayedPageHasMore,
+  displayedPageHasPrevious,
   items,
   language,
   loadingMore,
@@ -32,6 +32,7 @@ export function AccountMovementsSection({
 }: {
   canCreate: boolean;
   displayedPageHasMore: boolean;
+  displayedPageHasPrevious: boolean;
   items: Transaction[];
   language: string;
   loadingMore: boolean;
@@ -65,7 +66,13 @@ export function AccountMovementsSection({
       </div>
 
       {transactions.isPending ? (
-        <AccountMovementsTableSkeleton />
+        <TransactionDayList
+          filtered={month !== null}
+          hasMore={false}
+          headingLevel={4}
+          label={t('accounts.detail.movements.caption')}
+          transactions={null}
+        />
       ) : transactions.isError && !staleCursorError && (items.length === 0 || unauthorized) ? (
         <TransactionsState
           canCreate={canCreate}
@@ -82,7 +89,14 @@ export function AccountMovementsSection({
         />
       ) : (
         <>
-          <AccountMovementsTable transactions={items} />
+          <TransactionDayList
+            filtered={month !== null}
+            hasMore={!staleCursorError && displayedPageHasMore}
+            hasPrevious={displayedPageHasPrevious}
+            headingLevel={4}
+            label={t('accounts.detail.movements.caption')}
+            transactions={items}
+          />
           {transactions.isError && !staleCursorError ? (
             <div role="alert">
               <p>{t('transactions.error.description')}</p>

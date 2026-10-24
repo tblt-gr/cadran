@@ -1,0 +1,122 @@
+.panel {
+  /* `clip`, not `hidden`: a scroll container would stop the day headers from sticking. */
+  overflow: clip;
+  padding: var(--spacing-none);
+}
+
+.days,
+.rows {
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+}
+
+.dayHeader {
+  position: sticky;
+  z-index: 1;
+  top: var(--header-height-mobile);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  margin: var(--spacing-none);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  color: var(--text-muted);
+  background: var(--bg-surface-2);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
+}
+
+.date {
+  min-width: 0;
+  text-transform: capitalize;
+}
+
+.total {
+  font-size: var(--font-size-label);
+  white-space: nowrap;
+}
+
+.filteredLabel {
+  margin-right: var(--spacing-2);
+  color: var(--text-muted);
+  font-weight: var(--font-weight-normal);
+}
+
+.value[data-kind]:not([data-kind='amount']) {
+  color: var(--text-muted);
+  font-weight: var(--font-weight-normal);
+}
+
+.row {
+  display: grid;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-3) var(--spacing-1) var(--spacing-3) var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  grid-template-areas:
+    'primary amount actions'
+    'meta meta actions';
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: var(--spacing-3);
+  row-gap: var(--spacing-1);
+}
+
+.day:last-child .row:last-child {
+  border-bottom: var(--border-none);
+}
+
+.primary {
+  grid-area: primary;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  overflow-wrap: anywhere;
+}
+
+.primary small {
+  display: block;
+  margin-top: var(--spacing-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.amount {
+  grid-area: amount;
+  justify-self: end;
+  font-size: var(--font-size-body);
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  grid-area: meta;
+  min-width: 0;
+  gap: var(--spacing-1) var(--spacing-3);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.actions {
+  grid-area: actions;
+  min-width: var(--touch-target-min);
+}
+
+.row :global([data-skeleton]) {
+  min-width: var(--spacing-12);
+  min-height: var(--spacing-4);
+}
+
+@media (min-width: 48rem) {
+  .dayHeader {
+    top: var(--header-height);
+    padding-inline: var(--spacing-4);
+  }
+
+  .row {
+    padding-inline: var(--spacing-4) var(--spacing-2);
+  }
+}

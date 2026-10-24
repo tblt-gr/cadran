@@ -2087,6 +2087,13 @@
       "refundOf": "Remboursement de « {{label}} »",
       "refundedAmount": "Remboursé : {{amount}}"
     },
+    "day": {
+      "total": "Total du jour",
+      "totalFiltered": "Total filtré",
+      "notComputable": "Non calculable",
+      "partial": "Jour incomplet, chargez la suite",
+      "none": "Aucun total"
+    },
     "amount": {
       "inflow": "Entrée de {{amount}}",
       "outflow": "Sortie de {{amount}}"

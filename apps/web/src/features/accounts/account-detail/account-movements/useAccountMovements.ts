@@ -126,6 +126,7 @@ export function useAccountMovements(accountId: string, initialMonth: string | nu
 
   return {
     displayedPage,
+    hasPreviousPage: cursor !== null,
     items,
     loadMore,
     reloadAfterWrite,

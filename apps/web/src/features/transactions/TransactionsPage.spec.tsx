@@ -182,20 +182,20 @@ describe('TransactionsPage', () => {
     );
     const { queryClient } = renderPage();
 
-    expect(screen.getByTestId('transactions-page-skeleton')).toBeTruthy();
+    expect(screen.getByTestId('transaction-day-list-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveTransactions?.({
       data: { items: [transaction], nextCursor: null },
       response: new Response('{}', { status: 200 }),
     });
     expect(await screen.findByText(transaction.rawLabel)).toBeTruthy();
-    expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull();
+    expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
 
     api.listTransactions.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['transactions'] });
     await waitFor(() => expect(api.listTransactions).toHaveBeenCalledTimes(2));
     expect(screen.getByText(transaction.rawLabel)).toBeTruthy();
-    expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull();
+    expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
   });
 
   it('opens the monthly closure flow from the header overflow menu', async () => {
@@ -873,7 +873,7 @@ describe('TransactionsPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByRole('row', { name: /CB CARREFOUR/ })).toBeTruthy();
+    expect(await screen.findByText(/CB CARREFOUR/, { selector: 'button' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
     fireEvent.click(
@@ -910,9 +910,11 @@ describe('TransactionsPage', () => {
 
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(document.querySelector('img')).toBeNull();
-    // Scoped to the table: the new filter bar also offers a "Voided" state checkbox with the
+    // Scoped to the list: the new filter bar also offers a "Voided" state checkbox with the
     // same label, so an unscoped query would match both.
-    expect(within(screen.getByRole('table')).getByText('Annulée')).toBeTruthy();
+    expect(
+      within(screen.getByRole('list', { name: /^Transactions de l/ })).getByText('Annulée'),
+    ).toBeTruthy();
     expect(screen.getByLabelText(/Sortie de/)).toBeTruthy();
   });
 
@@ -928,8 +930,8 @@ describe('TransactionsPage', () => {
     );
     renderPage();
 
-    await waitFor(() => expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull());
-    const table = screen.getByRole('table');
+    await waitFor(() => expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull());
+    const table = screen.getByRole('list', { name: /^Transactions de l/ });
     expect(within(table).getByText('En attente')).toBeTruthy();
     expect(within(table).queryByText('Comptabilisée')).toBeNull();
   });
@@ -1284,7 +1286,7 @@ describe('TransactionsPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByRole('cell', { name: 'Ancien compte' })).toBeTruthy();
+    expect(await screen.findByText('Ancien compte')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
     fireEvent.focus(screen.getByRole('combobox', { name: 'Filtrer par compte' }));
     expect(screen.getByRole('option', { name: 'Ancien compte' })).toBeTruthy();
@@ -1510,6 +1512,57 @@ describe('TransactionsPage', () => {
       ),
     );
 
+    window.history.replaceState({}, '', '/transactions');
+  });
+
+  it('withholds the total of a day cut by a page boundary on either side', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    api.listTransactions
+      .mockImplementationOnce(() =>
+        success({
+          items: [{ ...transaction, id: 'first', bookedOn: '2026-03-15' }, transaction],
+          nextCursor: 'cursor-1',
+        }),
+      )
+      .mockImplementationOnce(() =>
+        success({
+          items: [{ ...transaction, id: 'second', amount: { value: '-0.10', assetCode: 'EUR' } }],
+          nextCursor: null,
+        }),
+      );
+    renderPage();
+
+    // Page 1 (two rows plus the 15th net): the 15th is complete and shows its exact net; the 14th may continue on page 2.
+    expect(await screen.findAllByLabelText('Sortie de 42,90 €')).toHaveLength(3);
+    expect(screen.getAllByText('Jour incomplet, chargez la suite')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mouvements plus anciens' }));
+
+    // Page 2 starts mid-day (the 14th began on page 1): no net, never a wrong one.
+    expect(await screen.findByLabelText('Sortie de 0,10 €')).toBeTruthy();
+    expect(screen.getByText('Jour incomplet, chargez la suite')).toBeTruthy();
+    expect(screen.queryAllByLabelText('Sortie de 0,10 €')).toHaveLength(1);
+  });
+
+  it('labels the day total as filtered while a search is active', async () => {
+    window.history.replaceState({}, '', '/transactions?q=carrefour');
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Total filtré')).toBeTruthy();
     window.history.replaceState({}, '', '/transactions');
   });
 
