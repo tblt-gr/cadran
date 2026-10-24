@@ -1197,6 +1197,11 @@
       "actionFor": "{{action}} la catégorie « {{label}} »",
       "openActions": "Actions de la catégorie « {{label}} »"
     },
+    "axisGroups": {
+      "need": "Besoin",
+      "regularity": "Régularité",
+      "usage": "Usage"
+    },
     "tree": {
       "expand": "Afficher les sous-catégories de « {{label}} » ({{count}})",
       "collapse": "Masquer les sous-catégories de « {{label}} »",
