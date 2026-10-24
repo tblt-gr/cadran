@@ -607,6 +607,34 @@ final class AccountBalanceControllerTest extends WebTestCase
         self::assertSame(1, $this->countSnapshots());
     }
 
+    public function testCorrectingASnapshotAmendsTheSameRowOverHttp(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::LIVRET, WorkspaceFixture::OWN_WORKSPACE, 'Livret A');
+        $first = $this->record(self::LIVRET, $this->body('2026-09-03', '230.5688'));
+        $path = '/api/v1/accounts/'.self::LIVRET.'/balances/'.self::stringValue($first, 'id');
+
+        $this->client->request('PATCH', $path, server: self::jsonHeaders(), content: json_encode([
+            'amount' => '231.10', 'amountAssetCode' => 'EUR', 'comment' => 'Corrigé', 'version' => 1,
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseStatusCodeSame(200);
+        $corrected = $this->decode();
+        self::assertSame($first['id'], $corrected['id']);
+        self::assertSame(['value' => '231.10', 'assetCode' => 'EUR'], $corrected['amount']);
+        self::assertSame('2026-09-03', $corrected['asOf']);
+        self::assertTrue($corrected['active']);
+        self::assertSame(2, $corrected['version']);
+        self::assertSame(1, $this->countSnapshots());
+        self::assertSame(['value' => '231.10', 'assetCode' => 'EUR'], $this->valuation(self::LIVRET, '2026-09-05')['amount'] ?? null);
+
+        $this->client->request('PATCH', $path, server: self::jsonHeaders(), content: json_encode([
+            'amount' => '240.00', 'amountAssetCode' => 'EUR', 'comment' => null, 'version' => 1,
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseStatusCodeSame(409);
+        self::assertStringContainsString('stale-version', (string) $this->client->getResponse()->getContent());
+        self::assertSame(1, $this->countSnapshots());
+    }
+
     public function testAMutationWithoutACsrfTokenIsRefused(): void
     {
         $this->signIn();

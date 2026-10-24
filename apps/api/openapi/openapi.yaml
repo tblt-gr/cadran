@@ -4151,6 +4151,78 @@ paths:
                   - $ref: '#/components/schemas/AmountInputProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{id}/balances/{snapshotId}:
+    patch:
+      operationId: correctAccountBalance
+      x-cadran-idempotency: 'A replay presents a stale version and answers 409.'
+      summary: Correct an observed balance in place
+      description: >-
+        Amends the figure or comment of one active manual snapshot where it
+        stands: same identifier and date, no second row and nothing superseded.
+        The change is recorded in the audit trail without the figure. The
+        snapshot is unreconciled again. A withdrawn, imported or calculated
+        snapshot is refused.
+      tags:
+        - Accounts
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: snapshotId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CorrectAccountBalanceRequest'
+      responses:
+        '200':
+          description: The snapshot as corrected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalanceSnapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The snapshot is withdrawn, not manual, or its version is stale
+            (`type: /problems/account-balance-conflict` or `/problems/stale-version`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: The fields are invalid or the account is archived.
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AmountInputProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{id}/balances/{snapshotId}/withdraw:
     post:
       operationId: withdrawAccountBalance
@@ -13236,6 +13308,30 @@ components:
             - type: integer
               minimum: 1
             - type: 'null'
+    CorrectAccountBalanceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - amount
+        - amountAssetCode
+        - comment
+        - version
+      properties:
+        amount:
+          type: string
+          pattern: '^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        amountAssetCode:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        comment:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 200
+            - type: 'null'
+        version:
+          type: integer
+          minimum: 1
     CreateAccountRequest:
       type: object
       additionalProperties: false

@@ -4,13 +4,14 @@ import type {
   AccountValuation,
   RecordAccountBalanceRequest,
 } from '@cadran/api-client';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { FormField } from '@/features/accounts/account-form/form-field/FormField';
-import type { AccountErrorKind } from '@/features/accounts/accountError';
+import { accountErrorKind, type AccountErrorKind } from '@/features/accounts/accountError';
 import { formatCalendarNumericDay, isCanonicalDecimal } from '@/lib/decimal';
 import { BalanceSnapshotsList } from './balance-snapshots/BalanceSnapshotsList';
+import { useCorrectBalance } from './balance-snapshots/useBalanceSnapshots';
 import styles from './RecordBalanceForm.module.css';
 
 const MAX_COMMENT = 200;
@@ -19,6 +20,8 @@ interface RecordBalanceFormProps {
   account: Account;
   valuation: AccountValuation;
   onCancel: () => void;
+  /** Called once a listed snapshot has been amended in place. */
+  onCorrected: () => void;
   onSubmit: (body: RecordAccountBalanceRequest) => void;
   pending: boolean;
   submitError: AccountErrorKind | null;
@@ -29,14 +32,15 @@ interface RecordBalanceFormProps {
  *
  * The figure is sent as typed. Replacing the active snapshot of that day
  * presents the version the list already showed, so a concurrent write is a
- * conflict rather than a silent overwrite. Correcting a listed snapshot reuses
- * the same call with that snapshot's own version; its date is then fixed, since
- * another date would be a different snapshot.
+ * conflict rather than a silent overwrite. Correcting a listed snapshot amends
+ * that very row (no second snapshot, nothing withdrawn); its date is then fixed,
+ * since another date would be a different snapshot.
  */
 export function RecordBalanceForm({
   account,
   valuation,
   onCancel: _onCancel,
+  onCorrected,
   onSubmit,
   pending,
   submitError,
@@ -48,6 +52,21 @@ export function RecordBalanceForm({
   const [showErrors, setShowErrors] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [editing, setEditing] = useState<AccountBalanceSnapshot | null>(null);
+  const correct = useCorrectBalance(account.id);
+  const editingRef = useRef<HTMLDivElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+
+  const correctError = accountErrorKind(correct.error, correct.isError);
+  const shownError = editing ? correctError : submitError;
+  const busy = pending || correct.isPending;
+  // The list sits below the form: bring the form back into view so the change of mode is seen.
+  useEffect(() => {
+    if (editing === null) {
+      return;
+    }
+    editingRef.current?.scrollIntoView({ block: 'start' });
+    amountRef.current?.focus({ preventScroll: true });
+  }, [editing]);
 
   const trimmedAmount = amount.trim();
   const trimmedComment = comment.trim();
@@ -66,9 +85,11 @@ export function RecordBalanceForm({
     setAmount(snapshot.amount.value);
     setComment(snapshot.comment ?? '');
     setShowErrors(false);
+    correct.reset();
   }
 
   function stopEditing() {
+    correct.reset();
     setEditing(null);
     setAsOf(valuation.requestedOn);
     setAmount(valuation.amount?.value ?? '');
@@ -80,6 +101,23 @@ export function RecordBalanceForm({
     event.preventDefault();
     if (amountInvalid || commentInvalid || asOfInvalid) {
       setShowErrors(true);
+
+      return;
+    }
+
+    if (editing) {
+      correct.mutate(
+        {
+          snapshot: editing,
+          body: {
+            amount: trimmedAmount,
+            amountAssetCode: account.assetCode,
+            comment: trimmedComment === '' ? null : trimmedComment,
+            version: editing.version,
+          },
+        },
+        { onSuccess: onCorrected },
+      );
 
       return;
     }
@@ -98,21 +136,21 @@ export function RecordBalanceForm({
       amount: trimmedAmount,
       amountAssetCode: account.assetCode,
       comment: trimmedComment === '' ? null : trimmedComment,
-      version: editing ? editing.version : replacingSameDay ? valuation.version : null,
+      version: replacingSameDay ? valuation.version : null,
     });
   }
 
   return (
     <div className={styles.wrapper}>
       <form className={styles.form} noValidate onSubmit={submit}>
-        {submitError ? (
+        {shownError ? (
           <p className={styles.alert} role="alert">
-            {t(`accounts.balances.errors.${submitError}`)}
+            {t(`accounts.balances.errors.${shownError}`)}
           </p>
         ) : null}
 
         {editing ? (
-          <div className={styles.editing}>
+          <div className={styles.editing} ref={editingRef} role="status">
             <p className={styles.hint}>
               {t('accounts.balances.editing', { date: formatCalendarNumericDay(editing.asOf) })}
             </p>
@@ -165,6 +203,7 @@ export function RecordBalanceForm({
                 id={fieldId}
                 inputMode="decimal"
                 onChange={(event) => setAmount(event.target.value)}
+                ref={amountRef}
                 required
                 spellCheck={false}
                 value={amount}
@@ -194,9 +233,9 @@ export function RecordBalanceForm({
         </FormField>
 
         <div className={styles.actions}>
-          <button className="primary-action" disabled={pending} type="submit">
+          <button className="primary-action" disabled={busy} type="submit">
             {t(
-              pending
+              busy
                 ? 'accounts.balances.recording'
                 : editing
                   ? 'accounts.balances.saveEdit'

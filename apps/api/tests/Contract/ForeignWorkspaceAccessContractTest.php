@@ -332,6 +332,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
         return match ($method.' '.$template) {
             'POST /api/v1/budget-plans/{id}/activate', 'POST /api/v1/budget-plans/{id}/close',
             'POST /api/v1/accounts/{id}/rule-overrides/{overrideId}/withdraw', 'POST /api/v1/transactions/{id}/duplicate' => new \stdClass(),
+            'PATCH /api/v1/accounts/{id}/balances/{snapshotId}' => ['amount' => '1.00', 'amountAssetCode' => 'EUR', 'comment' => null, 'version' => 1],
             'POST /api/v1/accounts/{id}/balances/{snapshotId}/withdraw', 'DELETE /api/v1/budget-targets/{id}' => ['version' => 1],
             'POST /api/v1/budget-plans/{planId}/targets' => ['scopeType' => 'AXIS', 'scopeId' => 'ESSENTIAL', 'valueType' => 'AMOUNT', 'amount' => '300.00', 'ratio' => null],
             'PUT /api/v1/budget-plans/{id}' => ['periodType' => 'YEAR', 'period' => '2027', 'assetCode' => 'USD', 'version' => 1],

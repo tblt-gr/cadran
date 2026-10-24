@@ -8,6 +8,8 @@ use App\Module\Accounts\Application\AccountArchived;
 use App\Module\Accounts\Application\AccountBalanceConflict;
 use App\Module\Accounts\Application\AccountBalanceNotFound;
 use App\Module\Accounts\Application\AccountNotFound;
+use App\Module\Accounts\Application\CorrectAccountBalance;
+use App\Module\Accounts\Application\CorrectAccountBalanceInput;
 use App\Module\Accounts\Application\InvalidAccountBalanceInput;
 use App\Module\Accounts\Application\ListAccountBalances;
 use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
@@ -37,6 +39,8 @@ final readonly class AccountBalanceController
     public const string TYPE_ARCHIVED = '/problems/account-archived';
 
     private const int MAX_BODY_BYTES = 16_384;
+    private const array CORRECT_FIELDS = ['amount', 'amountAssetCode', 'comment', 'version'];
+
     private const array RECORD_FIELDS = ['asOf', 'amount', 'amountAssetCode', 'comment', 'version'];
 
     public function __construct(private TranslatorInterface $translator)
@@ -155,6 +159,58 @@ final readonly class AccountBalanceController
         }
 
         return self::json(AccountBalanceSnapshotRepresentation::one($snapshot), Response::HTTP_CREATED);
+    }
+
+    /**
+     * Amends the figure or comment of a manual snapshot in place: the same row,
+     * the same date, no replacement. A withdrawn, imported or calculated
+     * snapshot is refused.
+     */
+    #[Route(
+        '/api/v1/accounts/{id}/balances/{snapshotId}',
+        name: 'api_v1_accounts_balances_correct',
+        methods: ['PATCH'],
+    )]
+    public function correct(
+        string $id,
+        string $snapshotId,
+        Request $request,
+        CorrectAccountBalance $correctBalance,
+    ): Response {
+        if (!self::identifier($id) || !self::identifier($snapshotId)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_balance_not_found');
+        }
+
+        $body = $this->readBody($request);
+        if ($body instanceof Response) {
+            return $body;
+        }
+
+        try {
+            $payload = AccountPayload::of($body, self::CORRECT_FIELDS);
+            $snapshot = $correctBalance($id, $snapshotId, new CorrectAccountBalanceInput(
+                amount: $payload->raw('amount'),
+                amountAssetCode: $payload->raw('amountAssetCode'),
+                comment: $payload->nullableString('comment'),
+                version: $payload->integer('version'),
+            ));
+        } catch (AccountArchived) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);
+        } catch (PortfolioAccountValuedByPortfolio) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.portfolio_account_valued_by_portfolio', '/problems/portfolio-account-valued-by-portfolio', ['code' => 'portfolio_account_valued_by_portfolio']);
+        } catch (InvalidAccountBalanceInput|\UnexpectedValueException) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_balance');
+        } catch (AccountNotFound|AccountBalanceNotFound) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_balance_not_found');
+        } catch (StaleAccountVersion) {
+            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_balance_stale_version', self::TYPE_STALE_VERSION);
+        } catch (AccountBalanceConflict) {
+            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_balance_conflict', self::TYPE_SNAPSHOT_CONFLICT);
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        }
+
+        return self::json(AccountBalanceSnapshotRepresentation::one($snapshot));
     }
 
     /**

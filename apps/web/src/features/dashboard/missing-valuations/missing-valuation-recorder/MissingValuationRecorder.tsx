@@ -135,6 +135,7 @@ export function MissingValuationRecorder({
       <RecordBalanceForm
         account={account.data}
         onCancel={onBack}
+        onCorrected={onRecorded}
         onSubmit={(body) => record.mutate({ target: account.data, body })}
         pending={record.isPending}
         submitError={accountErrorKind(record.error, record.isError)}

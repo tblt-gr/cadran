@@ -31,6 +31,7 @@ export function AccountsPageModals({
   closeRecording,
   editor,
   inspecting,
+  onBalanceCorrected,
   onOverrideRecorded,
   onOverrideWithdrawn,
   onReconciled,
@@ -49,6 +50,7 @@ export function AccountsPageModals({
   closeRecording: () => void;
   editor: Editor;
   inspecting: Account | null;
+  onBalanceCorrected: () => void;
   onOverrideRecorded: () => void;
   onOverrideWithdrawn: () => void;
   onReconciled: () => void;
@@ -117,6 +119,7 @@ export function AccountsPageModals({
             account={recording}
             key={recording.id}
             onCancel={closeRecording}
+            onCorrected={onBalanceCorrected}
             onSubmit={(body) => recordBalance.mutate({ account: recording, body })}
             pending={recordBalance.isPending}
             submitError={accountErrorKind(recordBalance.error, recordBalance.isError)}
