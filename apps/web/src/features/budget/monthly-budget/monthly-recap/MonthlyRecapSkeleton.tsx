@@ -3,6 +3,7 @@ import { RECAP_KPIS } from './totals-card/recapKpis';
 import { RecapSettingsButton } from './totals-card/RecapSettingsButton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { AccountBalanceHeading } from './account-recap/AccountBalanceHeading';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import accountStyles from './account-recap/AccountRecap.module.css';
@@ -65,7 +66,13 @@ export function TotalsCardPlaceholder() {
  * Mirrors MonthlyRecap element for element. Without `status` it makes no
  * announcement, so a page skeleton can embed it silently.
  */
-export function MonthlyRecapPlaceholder({ status }: { status?: string }) {
+export function MonthlyRecapPlaceholder({
+  status,
+  leading,
+}: {
+  status?: string;
+  leading?: ReactNode;
+}) {
   const { t } = useTranslation();
   const accountColumns = [
     t('budget.monthly.recap.accounts.account'),
@@ -82,81 +89,86 @@ export function MonthlyRecapPlaceholder({ status }: { status?: string }) {
       data-testid={status === undefined ? undefined : 'monthly-recap-skeleton'}
     >
       {status === undefined ? null : <SkeletonStatus>{status}</SkeletonStatus>}
-      <div className={styles.wealth}>
-        <WealthCard netWorth={null} provisional={false} />
+      <div className={styles.column}>
+        <div className={styles.wealth}>
+          <WealthCard netWorth={null} provisional={false} />
+        </div>
+        <div className={styles.totals}>
+          <TotalsCardPlaceholder />
+        </div>
       </div>
-      <div className={styles.totals}>
-        <TotalsCardPlaceholder />
-      </div>
-      <div className={styles.accounts}>
-        <section className={`card ${accountStyles.panel}`}>
-          <h3>{t('budget.monthly.recap.accounts.title')}</h3>
-          <div className={accountStyles.tableScroll}>
-            <table>
-              <caption className="sr-only">{t('budget.monthly.recap.accounts.caption')}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">{t('budget.monthly.recap.accounts.account')}</th>
-                  <th scope="col">
-                    <AccountBalanceHeading date={null} />
-                  </th>
-                  <th scope="col">
-                    <AccountBalanceHeading date={null} />
-                  </th>
-                  <th className={accountStyles.share} scope="col">
-                    {t('budget.monthly.recap.accounts.share')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody aria-hidden="true">
-                <tr className={accountStyles.groupRow}>
-                  <th data-label={accountColumns[0]} scope="rowgroup">
-                    <SkeletonBlock />
-                  </th>
-                  <td data-label={accountColumns[1]}>
-                    <SkeletonBlock />
-                  </td>
-                  <td data-label={accountColumns[2]}>
-                    <SkeletonBlock />
-                  </td>
-                  <td className={accountStyles.share} data-label={accountColumns[3]}>
-                    <SkeletonBlock />
-                  </td>
-                </tr>
-                {Array.from({ length: 3 }, (_, index) => (
-                  <tr key={index}>
-                    <th data-label={accountColumns[0]} scope="row">
-                      <a>
-                        <SkeletonBlock />
-                      </a>
-                      <small className={accountStyles.institution}>
-                        <SkeletonBlock />
-                      </small>
+      <div className={styles.column}>
+        <div className={styles.accounts}>
+          <section className={`card ${accountStyles.panel}`}>
+            <h3>{t('budget.monthly.recap.accounts.title')}</h3>
+            <div className={accountStyles.tableScroll}>
+              <table>
+                <caption className="sr-only">{t('budget.monthly.recap.accounts.caption')}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{t('budget.monthly.recap.accounts.account')}</th>
+                    <th scope="col">
+                      <AccountBalanceHeading date={null} />
+                    </th>
+                    <th scope="col">
+                      <AccountBalanceHeading date={null} />
+                    </th>
+                    <th className={accountStyles.share} scope="col">
+                      {t('budget.monthly.recap.accounts.share')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody aria-hidden="true">
+                  <tr className={accountStyles.groupRow}>
+                    <th data-label={accountColumns[0]} scope="rowgroup">
+                      <SkeletonBlock />
                     </th>
                     <td data-label={accountColumns[1]}>
-                      <span>
-                        <SkeletonBlock />
-                      </span>
+                      <SkeletonBlock />
                     </td>
                     <td data-label={accountColumns[2]}>
-                      <span>
-                        <SkeletonBlock />
-                      </span>
+                      <SkeletonBlock />
                     </td>
                     <td className={accountStyles.share} data-label={accountColumns[3]}>
                       <SkeletonBlock />
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <tr key={index}>
+                      <th data-label={accountColumns[0]} scope="row">
+                        <a>
+                          <SkeletonBlock />
+                        </a>
+                        <small className={accountStyles.institution}>
+                          <SkeletonBlock />
+                        </small>
+                      </th>
+                      <td data-label={accountColumns[1]}>
+                        <span>
+                          <SkeletonBlock />
+                        </span>
+                      </td>
+                      <td data-label={accountColumns[2]}>
+                        <span>
+                          <SkeletonBlock />
+                        </span>
+                      </td>
+                      <td className={accountStyles.share} data-label={accountColumns[3]}>
+                        <SkeletonBlock />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+        {leading ? <div className={styles.leading}>{leading}</div> : null}
       </div>
     </aside>
   );
 }
 
-export function MonthlyRecapSkeleton({ status }: { status: string }) {
-  return <MonthlyRecapPlaceholder status={status} />;
+export function MonthlyRecapSkeleton({ status, leading }: { status: string; leading?: ReactNode }) {
+  return <MonthlyRecapPlaceholder leading={leading} status={status} />;
 }

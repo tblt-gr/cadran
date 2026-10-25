@@ -81,8 +81,9 @@ export function MonthlyBudgetPageSkeleton({
           <LedgerPanelSkeleton axis={axis} kind="account" />
         </div>
       </div>
-      <ExpenseDonut axis={axis} period={{ from: '', to: '' }} rows={null} />
-      <MonthlyRecapPlaceholder />
+      <MonthlyRecapPlaceholder
+        leading={<ExpenseDonut axis={axis} period={{ from: '', to: '' }} rows={null} />}
+      />
     </div>
   );
 }

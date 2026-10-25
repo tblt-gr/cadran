@@ -1,5 +1,5 @@
 import { formatCalendarMonth } from '@/lib/decimal';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useSession } from '@/features/auth/useSession';
@@ -12,7 +12,7 @@ import { WealthCard } from './wealth-card/WealthCard';
 import { MonthlyRecapSkeleton, TotalsCardPlaceholder } from './MonthlyRecapSkeleton';
 import styles from './MonthlyRecap.module.css';
 
-export function MonthlyRecap({ month }: { month: string }) {
+export function MonthlyRecap({ month, leading }: { month: string; leading?: ReactNode }) {
   const { i18n, t } = useTranslation();
   const recap = useMonthlyRecap(month);
   const preferences = useRecapPreferences();
@@ -20,17 +20,20 @@ export function MonthlyRecap({ month }: { month: string }) {
   const [editingPreferences, setEditingPreferences] = useState(false);
   const owner = session.data?.workspace?.role === 'OWNER';
   if (recap.isPending && recap.data === undefined)
-    return <MonthlyRecapSkeleton status={t('budget.monthly.recap.loading')} />;
+    return <MonthlyRecapSkeleton leading={leading} status={t('budget.monthly.recap.loading')} />;
   if (recap.isError || !recap.data)
     return (
-      <aside className={`card ${styles.state}`} role="alert">
-        <h3>{t('budget.monthly.recap.error.title')}</h3>
-        <p>{formatCalendarMonth(month, i18n.language)}</p>
-        <p>{t('budget.monthly.recap.error.description')}</p>
-        <button className="secondary-action" onClick={() => void recap.refetch()} type="button">
-          {t('foundation.retry')}
-        </button>
-      </aside>
+      <div className={styles.recap}>
+        {leading ? <div className={styles.leading}>{leading}</div> : null}
+        <aside className={`card ${styles.state}`} role="alert">
+          <h3>{t('budget.monthly.recap.error.title')}</h3>
+          <p>{formatCalendarMonth(month, i18n.language)}</p>
+          <p>{t('budget.monthly.recap.error.description')}</p>
+          <button className="secondary-action" onClick={() => void recap.refetch()} type="button">
+            {t('foundation.retry')}
+          </button>
+        </aside>
+      </div>
     );
   const data = recap.data;
   return (
@@ -38,52 +41,57 @@ export function MonthlyRecap({ month }: { month: string }) {
       {data.state === 'EMPTY' ? (
         <p className={styles.pending}>{t('budget.monthly.recap.empty')}</p>
       ) : null}
-      <div className={styles.wealth}>
-        <WealthCard
-          currentAsOf={data.currentAsOf}
-          previousAsOf={data.previousAsOf}
-          netWorth={data.netWorth}
-          provisional={data.provisional}
-        />
-      </div>
-      <div className={styles.totals}>
-        {preferences.isPending ? (
-          <div aria-busy="true">
-            <SkeletonStatus>{t('budget.monthly.recap.preferences.loading')}</SkeletonStatus>
-            <TotalsCardPlaceholder />
-          </div>
-        ) : preferences.isError || !preferences.data ? (
-          <section className={`card ${styles.preferenceState}`} role="alert">
-            <h3>{t('budget.monthly.recap.totals.title')}</h3>
-            <p>{formatCalendarMonth(month, i18n.language)}</p>
-            <p>{t('budget.monthly.recap.preferences.error')}</p>
-            <button
-              className="secondary-action"
-              onClick={() => void preferences.refetch()}
-              type="button"
-            >
-              {t('foundation.retry')}
-            </button>
-          </section>
-        ) : (
-          <TotalsCard
-            info={<RecapInfo pending={data.state === 'PENDING'} policy={data.metricPolicy} />}
-            month={month}
-            onConfigure={() => setEditingPreferences(true)}
-            owner={owner}
-            totals={data.totals}
-            visibleAxes={preferences.data.visibleAxes}
-            visibleCategoryIds={preferences.data.visibleCategoryIds}
+      <div className={styles.column}>
+        <div className={styles.wealth}>
+          <WealthCard
+            currentAsOf={data.currentAsOf}
+            previousAsOf={data.previousAsOf}
+            netWorth={data.netWorth}
+            provisional={data.provisional}
           />
-        )}
+        </div>
+        <div className={styles.totals}>
+          {preferences.isPending ? (
+            <div aria-busy="true">
+              <SkeletonStatus>{t('budget.monthly.recap.preferences.loading')}</SkeletonStatus>
+              <TotalsCardPlaceholder />
+            </div>
+          ) : preferences.isError || !preferences.data ? (
+            <section className={`card ${styles.preferenceState}`} role="alert">
+              <h3>{t('budget.monthly.recap.totals.title')}</h3>
+              <p>{formatCalendarMonth(month, i18n.language)}</p>
+              <p>{t('budget.monthly.recap.preferences.error')}</p>
+              <button
+                className="secondary-action"
+                onClick={() => void preferences.refetch()}
+                type="button"
+              >
+                {t('foundation.retry')}
+              </button>
+            </section>
+          ) : (
+            <TotalsCard
+              info={<RecapInfo pending={data.state === 'PENDING'} policy={data.metricPolicy} />}
+              month={month}
+              onConfigure={() => setEditingPreferences(true)}
+              owner={owner}
+              totals={data.totals}
+              visibleAxes={preferences.data.visibleAxes}
+              visibleCategoryIds={preferences.data.visibleCategoryIds}
+            />
+          )}
+        </div>
       </div>
-      <div className={styles.accounts}>
-        <AccountRecap
-          accounts={data.accounts}
-          currentAsOf={data.currentAsOf}
-          groups={data.groups}
-          previousAsOf={data.previousAsOf}
-        />
+      <div className={styles.column}>
+        <div className={styles.accounts}>
+          <AccountRecap
+            accounts={data.accounts}
+            currentAsOf={data.currentAsOf}
+            groups={data.groups}
+            previousAsOf={data.previousAsOf}
+          />
+        </div>
+        {leading ? <div className={styles.leading}>{leading}</div> : null}
       </div>
       {editingPreferences && preferences.data ? (
         <RecapPreferencesModal
