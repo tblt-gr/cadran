@@ -15,6 +15,7 @@ const api = vi.hoisted(() => ({
   readMonthlyBounds: vi.fn(),
   readMonthlyLedger: vi.fn(),
   readMonthlyLedgerMovements: vi.fn(),
+  readMonthlyProjection: vi.fn(),
   readMonthlyRecap: vi.fn(),
   readMonthlyRecapPreferences: vi.fn(),
   saveMonthlyRecapPreferences: vi.fn(),
@@ -31,6 +32,31 @@ const expenseId = '00000000-0000-7000-8000-000000000002';
 const accountId = '00000000-0000-7000-8000-000000000003';
 const emptyAccountId = '00000000-0000-7000-8000-000000000010';
 const movementTransactionId = '00000000-0000-7000-8000-000000000005';
+const projectionMetric = (value: string | null) => ({
+  value,
+  assetCode: value === null ? null : 'EUR',
+  reason: null,
+});
+const projection = {
+  month: '2026-03',
+  periodStart: '2026-03-01',
+  periodEnd: '2026-03-31',
+  state: 'COMPLETE' as const,
+  quality: 'CURRENT' as const,
+  pendingCount: 0,
+  cashIncome: projectionMetric('3000'),
+  nonCashBenefits: projectionMetric('120.5'),
+  benefitSpending: projectionMetric('80'),
+  budgetExpenses: projectionMetric('-1000'),
+  uncategorizedExpenses: projectionMetric('-25'),
+  budgetSurplus: projectionMetric('2000'),
+  savingsTransfers: projectionMetric('700'),
+  cashSavingsRate: { value: '0.25', assetCode: null, reason: null },
+  savingsInflows: projectionMetric('700'),
+  savingsWithdrawals: projectionMetric('0'),
+  netSavingsTransfers: projectionMetric('700'),
+  netSavingsRate: { value: '0.25', assetCode: null, reason: null },
+};
 const ledger = {
   month: '2026-03',
   periodStart: '2026-03-01',
@@ -303,6 +329,7 @@ describe('MonthlyBudgetPage', () => {
       ok({ firstDataMonth: '2025-06', currentMonth: '2026-03' }),
     );
     api.readMonthlyLedger.mockReturnValue(ok(ledger));
+    api.readMonthlyProjection.mockReturnValue(ok(projection));
     api.readMonthlyRecap.mockReturnValue(ok(recap));
     api.readMonthlyRecapPreferences.mockReturnValue(
       ok({ visibleCategoryIds: [expenseId], visibleAxes: ['ESSENTIAL'], version: 0 }),
@@ -463,7 +490,7 @@ describe('MonthlyBudgetPage', () => {
     const totalsPanel = within(recapSkeleton)
       .getByRole('heading', { name: 'Synthèse des flux' })
       .closest('section')!;
-    expect(totalsPanel.querySelectorAll('li > div > [data-visual-mask]')).toHaveLength(11);
+    expect(totalsPanel.querySelectorAll('li > div > [data-visual-mask]')).toHaveLength(17);
     for (const amount of totalsPanel.querySelectorAll('li > div > [data-visual-mask]')) {
       expect(amount.querySelector('span > [aria-hidden="true"]')).toBeTruthy();
     }
@@ -656,6 +683,51 @@ describe('MonthlyBudgetPage', () => {
     fireEvent.click(explanation);
     expect(
       await screen.findByRole('dialog', { name: 'Expliquer : Revenus en espèces' }),
+    ).toBeTruthy();
+  });
+
+  it('shows every flow indicator of the former monthly report in the flow summary', async () => {
+    renderPage();
+    await loaded();
+    await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
+    const totals = screen.getByRole('region', { name: 'Synthèse des flux' });
+    for (const label of [
+      'Revenus en espèces',
+      'Avantages non monétaires',
+      'Dépenses des avantages',
+      'Dépenses',
+      'Dépenses non catégorisées',
+      'Solde budgétaire',
+      'Virements vers l’épargne',
+      'Taux d’épargne',
+      'Entrées vers l’épargne',
+      'Sorties de l’épargne',
+      'Épargne nette par virements',
+      'Taux d’épargne net',
+    ]) {
+      expect(within(totals).getByRole('button', { name: `Expliquer : ${label}` })).toBeTruthy();
+    }
+    const row = within(totals)
+      .getByRole('button', { name: 'Expliquer : Avantages non monétaires' })
+      .closest('li')!;
+    expect(row.textContent).toMatch(/120,50/);
+  });
+
+  it('keeps the flow summary usable when the extra indicators cannot be read', async () => {
+    api.readMonthlyProjection.mockReturnValue({
+      data: undefined,
+      response: { ok: false, status: 500 },
+    });
+    renderPage();
+    await loaded();
+    await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
+    const totals = screen.getByRole('region', { name: 'Synthèse des flux' });
+    const row = within(totals)
+      .getByRole('button', { name: 'Expliquer : Avantages non monétaires' })
+      .closest('li')!;
+    expect(row.textContent).toMatch(/Non calculable/);
+    expect(
+      within(totals).getByRole('button', { name: 'Expliquer : Revenus en espèces' }),
     ).toBeTruthy();
   });
 
@@ -1230,6 +1302,20 @@ describe('MonthlyBudgetPage', () => {
     expect(api.listCategories).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: expect.objectContaining({ page: 2, pageSize: 100 }) }),
     );
+  });
+
+  it('offers the display settings as tabs, categories then axes', async () => {
+    renderPage();
+    await loaded();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Configurer l’affichage' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
+    const tabs = within(dialog).getAllByRole('tab');
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Catégories', 'Axes analytiques']);
+    expect(tabs[0]!.getAttribute('aria-selected')).toBe('true');
+    fireEvent.click(tabs[1]!);
+    const axis = within(dialog).getByRole('tabpanel', { name: 'Axes analytiques' });
+    expect(within(axis).getByLabelText('Essentiel')).toBeTruthy();
   });
 
   it('offers an archived category when it is represented by the recap', async () => {

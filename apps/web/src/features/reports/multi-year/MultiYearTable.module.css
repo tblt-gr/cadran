@@ -107,3 +107,14 @@
 .card a:focus-visible {
   text-decoration: underline;
 }
+
+/* Policy information sits under the table, not in a column of it. */
+.notes {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: var(--border-line-subtle);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.notes p {
+  margin: var(--spacing-none);
+}

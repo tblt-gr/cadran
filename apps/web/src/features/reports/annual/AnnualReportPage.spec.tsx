@@ -154,13 +154,11 @@ describe('AnnualReportPage', () => {
     const table = await screen.findByRole('table', { name: /rapport 2026/i });
     expect(within(table).getAllByText(/2\s?000,50/).length).toBeGreaterThan(0);
     expect(within(table).getAllByText(/25,00\s?%/).length).toBeGreaterThan(0);
-    expect(within(table).getAllByText(/Non calculable/)[0]?.className).toContain('sr-only');
-    expect(within(table).getAllByTitle('À venir').length).toBe(6);
-    expect(
-      within(table)
-        .getAllByText('À venir')
-        .every((node) => node.className.includes('sr-only')),
-    ).toBe(true);
+    // A bare dash named only by its aria-label: no tooltip and no hidden reason text.
+    expect(within(table).getAllByLabelText('Non calculable').length).toBeGreaterThan(0);
+    expect(within(table).getAllByLabelText('À venir').length).toBe(6);
+    expect(within(table).queryByTitle('À venir')).toBeNull();
+    expect(within(table).queryByText('À venir')).toBeNull();
     expect(within(table).getAllByText('-').length).toBeGreaterThan(6);
   });
 
@@ -257,7 +255,65 @@ describe('AnnualReportPage', () => {
     expect(rows.length).toBe(2);
     expect(rows[1]?.textContent).toContain('Crypto');
     expect(within(rows[1]!).getAllByText('-').length).toBe(2);
-    expect(within(rows[1]!).getByText(/Valorisation manquante/).className).toContain('sr-only');
+    expect(within(rows[1]!).queryByText(/Valorisation manquante/)).toBeNull();
+  });
+
+  it('starts at the first month with data, when data entry began mid-year', async () => {
+    api.readAnnualReport.mockResolvedValue(
+      ok({
+        ...annualReport,
+        rows: annualReport.rows.map((row, index) =>
+          index < 4 ? { ...row, state: 'NO_DATA', cells: {} } : row,
+        ),
+      }),
+    );
+    renderPage();
+    const table = await screen.findByRole('table', { name: /rapport 2026/i });
+    const labels = within(table.querySelector('tbody')!)
+      .getAllByRole('rowheader')
+      .map((header) => header.textContent);
+    expect(labels).toEqual([
+      'mai',
+      'juin',
+      'juillet',
+      'août',
+      'septembre',
+      'octobre',
+      'novembre',
+      'décembre',
+    ]);
+    const cards = screen.getByRole('list', { name: /mois de 2026/i });
+    expect(within(cards).queryByRole('heading', { name: 'janvier' })).toBeNull();
+  });
+
+  it('puts the institution under an account label and a separator before each column family', async () => {
+    api.readAnnualReport.mockResolvedValue(
+      ok({
+        ...annualReport,
+        columns: [
+          ...annualReport.columns,
+          { id: 'category:c1', label: 'Courses', kind: 'FLOW', assetCode: 'EUR' },
+          {
+            id: 'account:a1',
+            label: 'Livret A',
+            kind: 'STOCK',
+            assetCode: 'EUR',
+            institution: 'Banque Exemple',
+          },
+        ],
+      }),
+    );
+    renderPage();
+    const table = await screen.findByRole('table', { name: /rapport 2026/i });
+    const headers = within(table.querySelector('thead')!).getAllByRole('columnheader');
+    const account = headers.find((header) => header.textContent?.includes('Livret A'))!;
+    expect(account.querySelector('small')?.textContent).toBe('Banque Exemple');
+    const withSeparator = headers.filter((header) => header.className.includes('groupStart'));
+    expect(withSeparator.map((header) => header.textContent)).toEqual([
+      'Courses',
+      'Livret ABanque Exemple',
+    ]);
+    expect(headers[1]!.className).not.toContain('groupStart');
   });
 
   it('always asks for the running month to be included, and never labels it provisional', async () => {
@@ -335,7 +391,7 @@ describe('AnnualReportPage', () => {
       ok({
         column: 'cashIncome',
         kind: 'FLOW',
-        formula: 'annual total = sum',
+        formula: 'annual total = sum (backend text)',
         policy: annualReport.metricPolicy,
         months: [
           {
@@ -354,7 +410,13 @@ describe('AnnualReportPage', () => {
     const table = await screen.findByRole('table', { name: /rapport 2026/i });
     fireEvent.click(within(table).getAllByRole('button', { name: /expliquer.*revenus/i })[0]!);
     const dialog = await screen.findByRole('dialog');
-    expect(await within(dialog).findByText('annual total = sum')).toBeTruthy();
+    // The formula is French text chosen by column kind, not the backend's English sentence.
+    expect(await within(dialog).findByText(/Total = somme des valeurs mensuelles/)).toBeTruthy();
+    expect(within(dialog).queryByText(/annual total/)).toBeNull();
+    // Formula and policy sit under the months table.
+    const months = within(dialog).getByRole('table');
+    const formula = within(dialog).getByText('Formule');
+    expect(months.compareDocumentPosition(formula) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('keeps the table title outside the horizontally scrolling region', async () => {

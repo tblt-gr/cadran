@@ -13,6 +13,7 @@ final readonly class ReportAccountReference
         public bool $includeInNetWorth,
         public bool $archived,
         public string $openedOn,
+        public ?string $institution = null,
     ) {
     }
 }

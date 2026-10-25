@@ -6,10 +6,19 @@ export interface BreadcrumbItem {
   pending?: boolean;
 }
 
+/** Capitalised month name of a two-digit month number. */
+function monthName(month: string, locale: string): string {
+  const name = new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(2020, Number(month) - 1, 1)),
+  );
+  return name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
+}
+
 export function breadcrumbItems(
   path: string,
   t: (key: ParseKeys) => string,
   account: { label: string | null; pending: boolean } | null,
+  locale = 'fr',
 ): BreadcrumbItem[] {
   const home = { label: t('breadcrumb.home'), href: '/' };
   const item = (labelKey: ParseKeys, href?: string): BreadcrumbItem => ({
@@ -65,9 +74,14 @@ export function breadcrumbItems(
       trail = [budget, plans, item('routes.budgetPlan')];
     } else if (/^\/budget\/\d{4}\/\d{2}$/.test(path)) {
       const [, , year, month] = path.split('/');
-      trail = [budget, { label: `${year}-${month}` }];
+      trail = [
+        budget,
+        { label: year!, href: `/budget/${year}` },
+        { label: monthName(month!, locale) },
+      ];
     } else if (/^\/budget\/\d{4}$/.test(path)) {
-      trail = [budget, { label: `${t('routes.annualReport')} ${path.split('/')[2]}` }];
+      const year = path.split('/')[2]!;
+      trail = [budget, { label: year, href: `/budget/${year}` }, item('routes.annualReport')];
     } else {
       trail = [item('routes.notFound')];
     }

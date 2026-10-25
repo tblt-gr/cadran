@@ -62,7 +62,6 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
             <thead>
               <tr>
                 <th scope="col">{t('reports.multiYear.year')}</th>
-                <th scope="col">{t('reports.multiYear.policy')}</th>
                 {PLACEHOLDER_COLUMNS.map((column) => (
                   <th key={column} scope="col">
                     <Cell />
@@ -74,9 +73,6 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
               {rows.map((year, index) => (
                 <tr key={year ?? index}>
                   <th scope="row">{year ?? <Cell />}</th>
-                  <td>
-                    <Cell />
-                  </td>
                   {PLACEHOLDER_COLUMNS.map((column) => (
                     <td key={column}>
                       <Cell />
@@ -88,9 +84,7 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
             <tfoot>
               {MULTI_YEAR_SUMMARY_ROW_IDS.map((rowId) => (
                 <tr key={rowId}>
-                  <th colSpan={2} scope="row">
-                    {t(`reports.multiYear.summary.${rowId}`)}
-                  </th>
+                  <th scope="row">{t(`reports.multiYear.summary.${rowId}`)}</th>
                   {PLACEHOLDER_COLUMNS.map((column) => (
                     <td key={column}>
                       <Cell />
@@ -101,14 +95,16 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
             </tfoot>
           </table>
         </div>
+        <footer className={tableStyles.notes}>
+          <p>
+            <Cell />
+          </p>
+        </footer>
       </section>
       <ul aria-hidden="true" className={cardStyles.list}>
         {rows.map((year, index) => (
           <li className={`card ${cardStyles.card}`} key={year ?? index}>
             <h3>{year ?? <Cell />}</h3>
-            <p>
-              <Cell />
-            </p>
             <dl>
               {PLACEHOLDER_COLUMNS.slice(0, 3).map((column) => (
                 <div key={column}>

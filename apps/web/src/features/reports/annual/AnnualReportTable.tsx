@@ -3,7 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { AnnualCellValue } from './AnnualCellValue';
-import { SUMMARY_ROW_IDS, annualCellHref, summaryFigure } from './annualColumns';
+import {
+  SUMMARY_ROW_IDS,
+  annualCellHref,
+  groupStartIds,
+  summaryFigure,
+  withoutLeadingEmptyMonths,
+} from './annualColumns';
+import { ColumnHeader } from './ColumnHeader';
 import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualReportTable.module.css';
 
@@ -19,6 +26,9 @@ export function AnnualReportTable({
   titleId = 'annual-table-title',
 }: AnnualReportTableProps) {
   const { t, i18n } = useTranslation();
+  const rows = withoutLeadingEmptyMonths(report.rows);
+  const starts = groupStartIds(report.columns);
+  const edge = (id: string) => (starts.has(id) ? styles.groupStart : undefined);
 
   return (
     <section aria-labelledby={titleId} className={`card ${styles.wrap}`}>
@@ -33,24 +43,24 @@ export function AnnualReportTable({
             <tr>
               <th scope="col">{t('reports.annual.month')}</th>
               {report.columns.map((column) => (
-                <th key={column.id} scope="col">
-                  {column.label}
+                <th className={edge(column.id)} key={column.id} scope="col">
+                  <ColumnHeader column={column} />
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {report.rows.map((row) => (
+            {rows.map((row) => (
               <tr className={isEmptyState(row.state) ? styles.dimmed : undefined} key={row.month}>
                 <th scope="row">{monthLabel(row.month, i18n.language)}</th>
                 {report.columns.map((column) => {
                   const cell = row.cells[column.id];
                   return (
-                    <td key={column.id}>
+                    <td className={edge(column.id)} key={column.id}>
                       {row.state === 'FUTURE' ? (
-                        <EmptyValue label={t('reports.annual.future')} />
+                        <EmptyValue quiet label={t('reports.annual.future')} />
                       ) : row.state === 'NO_DATA' ? (
-                        <EmptyValue label={t('reports.annual.noData')} />
+                        <EmptyValue quiet label={t('reports.annual.noData')} />
                       ) : (
                         <AnnualCellValue
                           assetCode={column.assetCode}
@@ -72,10 +82,10 @@ export function AnnualReportTable({
                 <th scope="row">{t(`reports.annual.summary.${rowId}`)}</th>
                 {report.columns.map((column) => {
                   const aggregate = report.aggregates[column.id];
-                  if (!aggregate) return <td key={column.id} />;
+                  if (!aggregate) return <td className={edge(column.id)} key={column.id} />;
                   const figure = summaryFigure(aggregate, rowId);
                   return (
-                    <td key={column.id}>
+                    <td className={edge(column.id)} key={column.id}>
                       <AnnualCellValue
                         assetCode={column.assetCode}
                         kind={column.kind}

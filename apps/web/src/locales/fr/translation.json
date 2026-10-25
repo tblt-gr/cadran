@@ -243,13 +243,17 @@
         "donut": "Diagramme en anneau",
         "showMore": "Voir plus",
         "showLess": "Voir moins"
+      },
+      "formulas": {
+        "FLOW": "Total = somme des valeurs mensuelles des mois comptés dans le total ; moyenne, médiane, minimum et maximum sur les mois comptés",
+        "STOCK": "Pas de total ; fin de période = valeur du dernier mois du total ; moyenne, médiane, minimum et maximum des valeurs de fin de mois sur les mois comptés",
+        "RATE": "Total et moyenne = somme des numérateurs mensuels / somme des dénominateurs mensuels ; médiane, minimum et maximum des taux mensuels sur les mois comptés"
       }
     },
     "multiYear": {
       "title": "Rapport pluriannuel",
       "caption": "Rapport pluriannuel {{from}}-{{to}}",
       "year": "Année",
-      "policy": "Politique",
       "mixedPolicy": "Mixte",
       "partial": "(partielle)",
       "snapshotAndLive": "{{snapshot}} mois clôturés, {{live}} en direct",
@@ -285,7 +289,26 @@
         "flows": "Flux annuels",
         "netWorth": "Patrimoine net",
         "unavailable": "Ajoutez les colonnes correspondantes pour afficher ce graphique."
-      }
+      },
+      "policyNote": "Politique d’indicateurs par année : {{versions}}."
+    },
+    "formulas": {
+      "cashIncome": "Revenus = somme des entrées comptabilisées de type revenu sur les comptes du périmètre de trésorerie",
+      "nonCashBenefits": "Avantages non monétaires = somme des entrées comptabilisées de type revenu sur les comptes hors périmètre de trésorerie",
+      "benefitSpending": "Dépenses des avantages = opposé de la somme des dépenses, frais et remboursements comptabilisés sur les comptes hors périmètre de trésorerie",
+      "budgetExpenses": "Dépenses = opposé de la somme signée des dépenses, frais et remboursements retenus sur les comptes du périmètre de trésorerie de la politique d’indicateurs applicable",
+      "uncategorizedExpenses": "Dépenses non catégorisées = opposé de la somme signée des dépenses non ventilées retenues sur les comptes du périmètre de trésorerie de la politique d’indicateurs applicable",
+      "budgetSurplus": "Excédent = revenus − dépenses",
+      "savingsTransfers": "Virements vers l’épargne = somme des virements entrants vers les comptes d’épargne ou de portefeuille",
+      "cashSavingsRate": "Taux d’épargne = excédent / revenus",
+      "savingsInflows": "Entrées vers l’épargne = somme des paires de virements comptabilisées qui entrent dans l’épargne ou le portefeuille",
+      "savingsWithdrawals": "Sorties de l’épargne = somme des paires de virements comptabilisées qui sortent de l’épargne ou du portefeuille",
+      "netSavingsTransfers": "Épargne nette par virements = entrées vers l’épargne − sorties de l’épargne",
+      "netSavingsRate": "Taux d’épargne net = épargne nette par virements / revenus",
+      "beginningNetWorth": "Patrimoine initial = somme des valorisations signées éligibles au dernier jour civil du mois précédent",
+      "endNetWorth": "Patrimoine final = somme des valorisations signées éligibles au dernier jour effectif du mois",
+      "netWorthDelta": "Variation du patrimoine = patrimoine final − patrimoine initial",
+      "budgetComparison": "Écart budgétaire = montant réalisé − montant cible du budget"
     }
   },
   "states": {

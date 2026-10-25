@@ -54,11 +54,11 @@ export function AnnualReportPage({ year }: AnnualReportPageProps) {
     const explainedColumn = report.data.columns.find((column) => column.id === explained);
     content = (
       <>
+        <AnnualReportTable onExplain={setExplained} report={report.data} />
+        <AnnualMonthCards onExplain={setExplained} report={report.data} />
         {report.data.metricPolicy.state === 'MIXED' ? (
           <MixedPolicyBanner policy={report.data.metricPolicy} />
         ) : null}
-        <AnnualReportTable onExplain={setExplained} report={report.data} />
-        <AnnualMonthCards onExplain={setExplained} report={report.data} />
         <AnnualCharts report={report.data} />
         {explainedColumn ? (
           <AggregateExplainModal

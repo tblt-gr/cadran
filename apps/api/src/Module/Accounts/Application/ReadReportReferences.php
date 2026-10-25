@@ -32,6 +32,7 @@ final readonly class ReadReportReferences
             $account->includeInNetWorth,
             null !== $account->archivedAt,
             $account->openedOn->format('Y-m-d'),
+            $account->institution,
         ), $accounts);
         usort($references, static fn (ReportAccountReference $a, ReportAccountReference $b): int => [$a->label, $a->id] <=> [$b->label, $b->id]);
         $labels = [];

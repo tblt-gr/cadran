@@ -194,24 +194,31 @@ describe('MultiYearReportPage', () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /pluriannuel/i });
     expect(within(table).getAllByText(/\+2\s?000,00\s?€/).length).toBeGreaterThan(0);
-    expect(within(table).getByText(/valeur nulle l.année précédente/i)).toBeTruthy();
+    // The ratio failed on its own: a bare dash in its place, no explanatory text.
+    expect(within(table).queryByText(/valeur nulle l.année précédente/i)).toBeNull();
+    expect(within(table).getAllByLabelText('Évolution en pourcentage').length).toBeGreaterThan(0);
   });
 
-  it('shows the change as null with a reason when the year is partial', async () => {
+  it('shows no second line under a value that has nothing to compare with', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /pluriannuel/i });
     const rows = within(table).getAllByRole('row');
     const year2026 = rows.find((row) => row.textContent?.includes('2026'))!;
-    expect(within(year2026).getAllByText('-').length).toBeGreaterThan(0);
+    expect(within(year2026).queryByTitle(/évolution/i)).toBeNull();
+    expect(within(year2026).queryByText(/l.année précédente/i)).toBeNull();
   });
 
-  it('shows the policy version for each year', async () => {
+  it('hides the policy column and notes the policy of each year under the table', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /pluriannuel/i });
-    expect(within(table).getAllByText('v1').length).toBe(3);
+    expect(within(table).queryByRole('columnheader', { name: 'Politique' })).toBeNull();
+    expect(within(table).queryByText('v1')).toBeNull();
+    const note = screen.getByText(/Politique d’indicateurs par année/);
+    expect(note.textContent).toMatch(/2024 v1, 2025 v1, 2026 v1/);
+    expect(table.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('shows Mixte when a year carries a mixed metric policy', async () => {
+  it('notes a mixed metric policy under the table', async () => {
     api.readMultiYearReport.mockResolvedValue(
       ok({
         ...multiYearReport,
@@ -222,8 +229,16 @@ describe('MultiYearReportPage', () => {
       }),
     );
     renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+    expect(screen.getByText(/Politique d’indicateurs par année/).textContent).toMatch(/2024 mixte/);
+  });
+
+  it('shows no month next to a stock value', async () => {
+    renderPage();
     const table = await screen.findByRole('table', { name: /pluriannuel/i });
-    expect(within(table).getByText('Mixte')).toBeTruthy();
+    expect(table.textContent).not.toMatch(
+      /\((janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\)/i,
+    );
   });
 
   it('exposes snapshotMonths and liveMonths for a year that mixes both', async () => {
@@ -254,6 +269,10 @@ describe('MultiYearReportPage', () => {
         ok({
           ...annualReport,
           year: path.year,
+          rows: annualReport.rows.map((row) => ({
+            ...row,
+            month: `${path.year}${row.month.slice(4)}`,
+          })),
           charts: {
             ...annualReport.charts,
             flows: {
@@ -464,7 +483,7 @@ describe('MultiYearReportPage', () => {
       const year2025Card = items.find((item) => item.textContent?.includes('2025'))!;
       expect(year2026Card.textContent).toMatch(/partielle/i);
       expect(year2026Card.textContent).toMatch(/8 mois clôturés, 1 en direct/i);
-      expect(year2025Card.textContent).toMatch(/v1/);
+      expect(year2025Card.textContent).not.toMatch(/v1/);
     });
 
     it('ends with a summary card carrying the average, minimum and maximum', async () => {

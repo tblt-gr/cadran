@@ -2997,6 +2997,10 @@ export type AnnualColumn = {
     label: string;
     kind: AnnualColumnKind;
     assetCode: string | null;
+    /**
+     * Institution of an account column, shown under its label; null for any other column.
+     */
+    institution?: string | null;
 };
 
 /**

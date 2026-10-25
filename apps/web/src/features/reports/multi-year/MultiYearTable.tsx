@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAnnualValue } from '@/features/reports/annual/annualFormat';
+import { ColumnHeader } from '@/features/reports/annual/ColumnHeader';
 import { MultiYearCellValue } from './MultiYearCellValue';
 import { MULTI_YEAR_SUMMARY_ROW_IDS, multiYearSummaryFigure } from './multiYearSummary';
 import { multiYearYearNotes } from './multiYearYearNotes';
@@ -27,10 +28,9 @@ export function MultiYearTable({ report }: MultiYearTableProps) {
           <thead>
             <tr>
               <th scope="col">{t('reports.multiYear.year')}</th>
-              <th scope="col">{t('reports.multiYear.policy')}</th>
               {report.columns.map((column) => (
                 <th key={column.id} scope="col">
-                  {column.label}
+                  <ColumnHeader column={column} />
                 </th>
               ))}
             </tr>
@@ -52,11 +52,6 @@ export function MultiYearTable({ report }: MultiYearTableProps) {
                     </small>
                   ))}
                 </th>
-                <td>
-                  {year.metricPolicy.state === 'MIXED'
-                    ? t('reports.multiYear.mixedPolicy')
-                    : `v${year.metricPolicy.version}`}
-                </td>
                 {report.columns.map((column) => (
                   <td key={column.id}>
                     <MultiYearCellValue
@@ -72,9 +67,7 @@ export function MultiYearTable({ report }: MultiYearTableProps) {
           <tfoot>
             {MULTI_YEAR_SUMMARY_ROW_IDS.map((rowId) => (
               <tr key={rowId}>
-                <th colSpan={2} scope="row">
-                  {t(`reports.multiYear.summary.${rowId}`)}
-                </th>
+                <th scope="row">{t(`reports.multiYear.summary.${rowId}`)}</th>
                 {report.columns.map((column) => {
                   const summary = report.summary[column.id];
                   if (!summary) return <td key={column.id} />;
@@ -83,6 +76,7 @@ export function MultiYearTable({ report }: MultiYearTableProps) {
                     <td key={column.id}>
                       {figure.value === null ? (
                         <EmptyValue
+                          quiet
                           label={t('reports.annual.notCalculable')}
                           reason={
                             figure.reason
@@ -111,6 +105,23 @@ export function MultiYearTable({ report }: MultiYearTableProps) {
           </tfoot>
         </table>
       </div>
+      <footer className={styles.notes}>
+        <p>
+          {t('reports.multiYear.policyNote', {
+            versions: report.years
+              .filter((year) => year.state !== 'NO_DATA')
+              .map(
+                (year) =>
+                  `${year.year} ${
+                    year.metricPolicy.state === 'MIXED'
+                      ? t('reports.multiYear.mixedPolicy').toLowerCase()
+                      : `v${year.metricPolicy.version}`
+                  }`,
+              )
+              .join(', '),
+          })}
+        </p>
+      </footer>
     </section>
   );
 }

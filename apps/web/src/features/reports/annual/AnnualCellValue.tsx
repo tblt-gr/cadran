@@ -18,6 +18,7 @@ export function AnnualCellValue({ assetCode, href, kind, reason, value }: Annual
   if (value === null) {
     return (
       <EmptyValue
+        quiet
         label={t('reports.annual.notCalculable')}
         reason={reason ? t(`reports.annual.reasons.${reason}`, { defaultValue: reason }) : null}
       />

@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAnnualValue } from '@/features/reports/annual/annualFormat';
-import { monthLabel } from '@/features/reports/annual/annualRowLabels';
 import { formatSignedChange, formatSignedRatioPoints } from './multiYearFormat';
 import styles from '@/features/reports/annual/PerformanceValue.module.css';
 
@@ -34,6 +33,7 @@ export function MultiYearCellValue({ assetCode, cell, kind }: MultiYearCellValue
   if (cell.value === null) {
     return (
       <EmptyValue
+        quiet
         label={t('reports.annual.notCalculable')}
         reason={cell.reason ? reasonText(cell.reason) : null}
       />
@@ -41,17 +41,12 @@ export function MultiYearCellValue({ assetCode, cell, kind }: MultiYearCellValue
   }
 
   const text = formatAnnualValue(cell.value, kind, assetCode, i18n.language);
-  const asOf = cell.asOf ? ` (${monthLabel(cell.asOf, i18n.language)})` : '';
 
   let change: ReactNode;
   const changeTone = cell.change === null ? undefined : performanceTone(cell.change);
   if (cell.change === null) {
-    change = (
-      <EmptyValue
-        label={t('reports.multiYear.change')}
-        reason={cell.changeReason ? reasonText(cell.changeReason) : null}
-      />
-    );
+    // Nothing to compare with (first year, null base): no second line rather than a second dash.
+    change = null;
   } else if (kind === 'RATE') {
     change = formatSignedRatioPoints(cell.change, i18n.language);
   } else {
@@ -66,6 +61,7 @@ export function MultiYearCellValue({ assetCode, cell, kind }: MultiYearCellValue
         <>
           {' ('}
           <EmptyValue
+            quiet
             label={t('reports.multiYear.changeRatio')}
             reason={reasonText(cell.changeReason)}
           />
@@ -83,12 +79,13 @@ export function MultiYearCellValue({ assetCode, cell, kind }: MultiYearCellValue
 
   return (
     <>
-      <span>
-        {text}
-        {asOf}
-      </span>
-      <br />
-      <small className={changeTone}>{change}</small>
+      <span>{text}</span>
+      {change === null ? null : (
+        <>
+          <br />
+          <small className={changeTone}>{change}</small>
+        </>
+      )}
     </>
   );
 }

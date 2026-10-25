@@ -77,7 +77,7 @@ final readonly class AnnualCatalogue
                 : null,
             'category' => '' === $reference ? null : $known($this->categories[$reference] ?? null),
             'group' => '' === $reference ? null : self::stock($id, $this->groups[$reference] ?? null),
-            'account' => '' === $reference ? null : self::stock($id, isset($this->accounts[$reference]) ? $this->accounts[$reference]->label : null),
+            'account' => '' === $reference ? null : self::stock($id, isset($this->accounts[$reference]) ? $this->accounts[$reference]->label : null, $this->accounts[$reference]->institution ?? null),
             default => null,
         };
     }
@@ -116,8 +116,8 @@ final readonly class AnnualCatalogue
         ];
     }
 
-    private static function stock(string $id, ?string $label): AnnualColumn
+    private static function stock(string $id, ?string $label, ?string $institution = null): AnnualColumn
     {
-        return new AnnualColumn($id, $label ?? self::UNKNOWN_LABEL, ColumnKind::STOCK, null !== $label);
+        return new AnnualColumn($id, $label ?? self::UNKNOWN_LABEL, ColumnKind::STOCK, null !== $label, $institution);
     }
 }

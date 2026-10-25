@@ -15388,6 +15388,9 @@ components:
         label: { type: string }
         kind: { $ref: '#/components/schemas/AnnualColumnKind' }
         assetCode: { type: [string, 'null'] }
+        institution:
+          description: Institution of an account column, shown under its label; null for any other column.
+          type: [string, 'null']
     AnnualCell:
       description: An exact decimal string, or null with the reason it cannot be produced.
       type: object

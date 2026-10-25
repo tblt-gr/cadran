@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import styles from './AnnualCharts.module.css';
 import { useBoxSize } from '@/hooks/use-box-size';
 import { ExactTooltip } from './ExactTooltip';
-import { flowChartData, prefersReducedMotion } from './chartGeometry';
+import { flowChartData, prefersReducedMotion, yearStartTicks } from './chartGeometry';
+import { axisTickLabel } from '@/lib/monthLabel';
 import { flowTooltipLines } from './flowTooltipLines';
 
 export const FLOW_CHART_COLORS = {
@@ -30,6 +31,10 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
   const { t, i18n } = useTranslation();
   const { ref, size } = useBoxSize();
   const data = flowChartData(flows.months);
+  const axisLabel = (key: string) => {
+    const row = flows.months.find((m) => m.month.slice(5) === key);
+    return row ? axisTickLabel(row.month, i18n.language) : key;
+  };
   const linesFor = (month: string) => {
     const row = flows.months.find((m) => m.month.slice(5) === month);
     if (!row) return [];
@@ -48,7 +53,12 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
           title={t('reports.annual.charts.flows')}
           width={size.width}
         >
-          <XAxis dataKey="month" />
+          <XAxis
+            dataKey="month"
+            interval={0}
+            tickFormatter={axisLabel}
+            ticks={yearStartTicks(data.map((point) => point.month))}
+          />
           <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
           {FLOW_BAR_SERIES.map((series) => (
             <Bar
