@@ -77,6 +77,7 @@ test.describe('period closure', () => {
     await test.step('a transaction dated in the closed month is refused with the shared reason', async () => {
       await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
       const editor = page.getByRole('dialog');
+      await editor.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });
       await editor.getByLabel('Date comptable').fill(`${target}-10`);
       await editor.getByLabel('Montant').fill('-12.34');
       await editor.getByLabel('Libellé').fill('e2e: write against a closed month');
