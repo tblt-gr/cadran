@@ -1,5 +1,5 @@
 import type { Category } from '@cadran/api-client';
-import type { CategoryDialogOperation } from '../category-lifecycle/CategoryLifecycleDialog';
+import type { CategoryDialogOperation } from '@/features/categories/category-lifecycle/CategoryLifecycleDialog';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
