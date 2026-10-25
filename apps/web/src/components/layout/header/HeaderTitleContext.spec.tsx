@@ -17,36 +17,36 @@ describe('HeaderTitleContext', () => {
   it('publishes the title only for its own path', () => {
     render(
       <HeaderTitleProvider>
-        <Publisher path="/reports/annual/2025" title="2025" />
-        <Probe path="/reports/annual/2025" />
-        <Probe path="/reports" />
+        <Publisher path="/budget/2025" title="2025" />
+        <Probe path="/budget/2025" />
+        <Probe path="/budget/2026/09" />
       </HeaderTitleProvider>,
     );
-    expect(screen.getByTestId('header-title-/reports/annual/2025').textContent).toBe('2025');
-    expect(screen.getByTestId('header-title-/reports').textContent).toBe('');
+    expect(screen.getByTestId('header-title-/budget/2025').textContent).toBe('2025');
+    expect(screen.getByTestId('header-title-/budget/2026/09').textContent).toBe('');
   });
 
   it('updates the title when it changes and clears it on unmount', () => {
     const tree = render(
       <HeaderTitleProvider>
-        <Publisher path="/reports" title="Septembre 2026" />
-        <Probe path="/reports" />
+        <Publisher path="/budget/2026/09" title="Septembre 2026" />
+        <Probe path="/budget/2026/09" />
       </HeaderTitleProvider>,
     );
-    expect(screen.getByTestId('header-title-/reports').textContent).toBe('Septembre 2026');
+    expect(screen.getByTestId('header-title-/budget/2026/09').textContent).toBe('Septembre 2026');
     tree.rerender(
       <HeaderTitleProvider>
-        <Publisher path="/reports" title="Août 2026" />
-        <Probe path="/reports" />
+        <Publisher path="/budget/2026/09" title="Août 2026" />
+        <Probe path="/budget/2026/09" />
       </HeaderTitleProvider>,
     );
-    expect(screen.getByTestId('header-title-/reports').textContent).toBe('Août 2026');
+    expect(screen.getByTestId('header-title-/budget/2026/09').textContent).toBe('Août 2026');
     tree.unmount();
     render(
       <HeaderTitleProvider>
-        <Probe path="/reports" />
+        <Probe path="/budget/2026/09" />
       </HeaderTitleProvider>,
     );
-    expect(screen.getByTestId('header-title-/reports').textContent).toBe('');
+    expect(screen.getByTestId('header-title-/budget/2026/09').textContent).toBe('');
   });
 });

@@ -38,16 +38,22 @@ final class MonthlyLedgerCalculator
     }
 
     /**
+     * One source per transaction. `$categoryId` is one category, or the list of a category and all
+     * its descendants (a roll-up): a transaction split across several of them counts once, for the
+     * exact sum of the selected splits.
+     *
      * @param list<MonthlyLedgerEntry> $entries
+     * @param string|list<string>      $categoryId
      *
      * @return list<MonthlyLedgerSource>
      */
     public static function categorySources(
         array $entries,
         string $categoryType,
-        string $categoryId,
+        string|array $categoryId,
         ?string $axis,
     ): array {
+        $categoryIds = (array) $categoryId;
         $sources = [];
         foreach ($entries as $entry) {
             if (!self::matchesType($entry->kind, $categoryType)) {
@@ -56,7 +62,7 @@ final class MonthlyLedgerCalculator
 
             $selected = array_filter(
                 $entry->splits,
-                static fn (MonthlySplit $split): bool => $split->categoryId === $categoryId
+                static fn (MonthlySplit $split): bool => in_array($split->categoryId, $categoryIds, true)
                     && ('EXPENSE' !== $categoryType || null === $axis || in_array($axis, $split->analyticAxes, true)),
             );
             if ([] === $selected) {

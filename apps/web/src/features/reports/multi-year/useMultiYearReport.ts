@@ -1,7 +1,10 @@
 import { readMultiYearReport } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import { AnnualRequestError } from '@/features/reports/annual/useAnnualReport';
+import {
+  AnnualRequestError,
+  INCOMPLETE_MONTHS_INCLUDED,
+} from '@/features/reports/annual/useAnnualReport';
 
 export { AnnualRequestError as MultiYearRequestError } from '@/features/reports/annual/useAnnualReport';
 
@@ -18,7 +21,9 @@ export function useMultiYearReport(from?: number, to?: number) {
   return useQuery({
     queryKey: ['multi-year-report', from ?? null, to ?? null],
     queryFn: async ({ signal }) => {
-      const query: { from?: number; to?: number } = {};
+      const query: { from?: number; to?: number; incompleteMonths: 'include' } = {
+        ...INCOMPLETE_MONTHS_INCLUDED,
+      };
       if (from !== undefined) query.from = from;
       if (to !== undefined) query.to = to;
       const result = await readMultiYearReport({ ...authApiOptions(), query, signal });

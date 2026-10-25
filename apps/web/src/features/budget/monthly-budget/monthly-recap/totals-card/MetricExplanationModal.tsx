@@ -1,4 +1,4 @@
-import type { MonthlyKpiSourceTransaction, MonthlyRecapMetric } from '@cadran/api-client';
+import type { MonthlyKpiSourceTransaction } from '@cadran/api-client';
 import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
@@ -6,6 +6,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useMonthlyKpiExplanation } from '@/features/reports/useMonthlyReport';
 import { formatAmount } from '@/lib/decimal';
+import type { RecapKpi } from './recapKpis';
 import styles from './MetricExplanationModal.module.css';
 
 interface MetricExplanationModalProps {
@@ -13,7 +14,7 @@ interface MetricExplanationModalProps {
   label: string;
   month: string;
   sourceTransactions?: MonthlyKpiSourceTransaction[];
-  kpi: MonthlyRecapMetric['kpi'];
+  kpi: RecapKpi | null;
 }
 
 function SourceTransactions({ transactions }: { transactions: MonthlyKpiSourceTransaction[] }) {
@@ -84,7 +85,11 @@ export function MetricExplanationModal({
       {kpi && explanation.data ? (
         <dl className={styles.details}>
           <dt>{t('reports.formula')}</dt>
-          <dd>{explanation.data.formula}</dd>
+          <dd>
+            {t(`reports.formulas.${explanation.data.kpi}`, {
+              defaultValue: explanation.data.formula,
+            })}
+          </dd>
           <dt>{t('reports.period')}</dt>
           <dd>
             {explanation.data.period.start} — {explanation.data.period.end}

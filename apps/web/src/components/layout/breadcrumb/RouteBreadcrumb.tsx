@@ -11,7 +11,9 @@ export function RouteBreadcrumb({
   path: string;
   onNavigate: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const account = useBreadcrumbAccountValue(path);
-  return <Breadcrumb items={breadcrumbItems(path, t, account)} onNavigate={onNavigate} />;
+  return (
+    <Breadcrumb items={breadcrumbItems(path, t, account, i18n.language)} onNavigate={onNavigate} />
+  );
 }

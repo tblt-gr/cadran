@@ -5,15 +5,10 @@
 .form fieldset {
   display: grid;
   gap: var(--spacing-3);
+  min-width: 0;
   margin: var(--spacing-none);
-  padding: var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-card);
-}
-.form legend {
-  padding: var(--spacing-none) var(--spacing-1);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
+  padding: var(--spacing-none);
+  border: var(--border-none);
 }
 .options {
   display: grid;

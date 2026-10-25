@@ -38,15 +38,6 @@ export const navigationItems: NavigationItem[] = [
     mobile: true,
   },
   {
-    href: '/reports',
-    icon: 'report',
-    labelKey: 'navigation.reports',
-    match: (path) =>
-      path === '/reports' ||
-      /^\/reports\/annual\/\d{4}$/.test(path) ||
-      path === '/reports/all-years',
-  },
-  {
     href: '/goals',
     icon: 'goals',
     labelKey: 'navigation.goals',
@@ -84,8 +75,7 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
   if (/^\/life-insurance\/[^/]+$/.test(pathname)) return 'routes.lifeInsurance';
   if (pathname === '/portfolios/instruments') return 'routes.instruments';
   if (/^\/portfolios\/[^/]+$/.test(pathname)) return 'routes.portfolioAccount';
-  if (/^\/reports\/annual\/\d{4}$/.test(pathname)) return 'routes.annualReport';
-  if (pathname === '/reports/all-years') return 'routes.allYearsReport';
+  if (/^\/budget\/\d{4}$/.test(pathname)) return 'routes.annualReport';
   if (/^\/budget\/plans\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';
   if (pathname === '/budget/plans') return 'routes.budgetPlans';
   if (pathname === '/parameters/metric-policy') return 'routes.metricPolicy';

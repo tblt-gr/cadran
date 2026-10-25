@@ -6,7 +6,6 @@ import {
   SkeletonStatus,
   SkeletonText,
 } from '@/components/ui/skeleton/Skeleton';
-import { AnnualTableActions } from './AnnualTableActions';
 import { ChartFrame } from './ChartFrame';
 import { SUMMARY_ROW_IDS } from './annualColumns';
 import { monthLabel } from './annualRowLabels';
@@ -14,8 +13,6 @@ import styles from './AnnualReportPage.module.css';
 import cardStyles from './AnnualMonthCards.module.css';
 import chartStyles from './AnnualCharts.module.css';
 import tableStyles from './AnnualReportTable.module.css';
-
-const noop = () => undefined;
 
 /** The column set is the user's own choice: four placeholders stand for it until it is known. */
 const PLACEHOLDER_COLUMNS = [0, 1, 2, 3];
@@ -31,14 +28,8 @@ export function AnnualReportPageSkeleton({ status, year }: { status: string; yea
   return (
     <div aria-busy="true" className={styles.page} data-testid="annual-report-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
-      <AnnualTableActions
-        includeIncomplete={false}
-        onOpenColumns={noop}
-        onToggleIncomplete={noop}
-        saving
-      />
       <section aria-hidden="true" className={`card ${tableStyles.wrap}`}>
-        <header className={tableStyles.header}>
+        <header className="sr-only">
           <h2 className={tableStyles.title}>{t('reports.annual.caption', { year })}</h2>
         </header>
         <div className={tableStyles.scroll}>

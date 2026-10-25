@@ -49,6 +49,7 @@
 
 .movement strong {
   min-width: 0;
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
 }
 
@@ -79,7 +80,7 @@
 }
 .skeletonLabel {
   width: calc(var(--spacing-12) * 1.5);
-  height: var(--font-size-body);
+  height: var(--font-size-label);
 }
 .skeletonAmount {
   width: var(--spacing-12);

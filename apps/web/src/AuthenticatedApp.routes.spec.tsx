@@ -44,10 +44,9 @@ describe('AuthenticatedApp route table', () => {
       '/budget',
       '/budget/plans',
       '/budget/plans/00000000-0000-7000-8000-000000000001',
-      '/reports',
-      '/reports/all-years',
       '/budget/00000000-0000-7000-8000-000000000001',
-      '/budget/2026-03',
+      '/budget/2026',
+      '/budget/2026/03',
       '/settings/profile',
       '/settings/metric-policy',
       '/parameters/profile',
@@ -88,15 +87,26 @@ describe('AuthenticatedApp route table', () => {
     }
   });
 
+  it('serves no /reports route and no legacy /budget/YYYY-MM route: both fall to the 404 catch-all', () => {
+    for (const path of ['/reports', '/reports/annual/2026', '/reports/all-years']) {
+      expect(matchAuthenticatedRoute(routes, path), path).toBeNull();
+    }
+    for (const path of ['/budget/2026-03', '/budget/2026/03/01', '/budget/2026/abc']) {
+      const matched = matchAuthenticatedRoute(routes, path);
+      expect(matched?.route.pattern.source, path).toBe('^\\/budget\\/');
+    }
+  });
+
   it('routes a bare UUID under /budget to the plan detail redirect, distinct from a month key', () => {
     const uuidMatch = matchAuthenticatedRoute(
       routes,
       '/budget/00000000-0000-7000-8000-000000000001',
     );
-    const monthMatch = matchAuthenticatedRoute(routes, '/budget/2026-03');
+    const monthMatch = matchAuthenticatedRoute(routes, '/budget/2026/03');
 
     expect(uuidMatch?.match[1]).toBe('00000000-0000-7000-8000-000000000001');
-    expect(monthMatch?.match[1]).toBe('2026-03');
+    expect(monthMatch?.match[1]).toBe('2026');
+    expect(monthMatch?.match[2]).toBe('03');
     // The two entries are distinct routes even though both live under /budget/:x.
     expect(uuidMatch?.route).not.toBe(monthMatch?.route);
   });
@@ -158,19 +168,64 @@ describe('AuthenticatedApp route table', () => {
       return window.location.pathname === path ? null : window.location.pathname;
     }
 
-    it.each(['/reports/annual/2027', '/reports/annual/1899', '/reports/annual/abc'])(
+    it.each(['/budget/2027', '/budget/1899'])(
       'replaces %s with the current workspace year',
       (path) => {
-        expect(redirectTarget(path)).toBe('/reports/annual/2026');
+        expect(redirectTarget(path)).toBe('/budget/2026');
       },
     );
 
     it('keeps a valid empty past year instead of redirecting', () => {
       vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-24T10:00:00Z') });
-      const matched = matchAuthenticatedRoute(routes, '/reports/annual/2001')!;
+      const matched = matchAuthenticatedRoute(routes, '/budget/2001')!;
       const element = matched.route.render(matched.match) as ReactElement<{ year: number }>;
       expect(element.type).not.toBe(RouteRedirect);
       expect(element.props.year).toBe(2001);
+    });
+  });
+
+  describe('budget month clamping', () => {
+    afterEach(() => {
+      cleanup();
+      vi.useRealTimers();
+      window.history.replaceState({}, '', '/');
+    });
+
+    function redirectTarget(path: string): string | null {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-24T10:00:00Z') });
+      window.history.replaceState({}, '', path);
+      const matched = matchAuthenticatedRoute(routes, path)!;
+      render(matched.route.render(matched.match));
+      return window.location.pathname === path ? null : window.location.pathname;
+    }
+
+    it.each([
+      ['/budget/2025/00', '/budget/2025/01'],
+      ['/budget/2025/13', '/budget/2025/12'],
+      ['/budget/2026/13', '/budget/2026/09'],
+      ['/budget/2026/0', '/budget/2026/01'],
+      ['/budget/2026/7', '/budget/2026/07'],
+    ])('replaces %s with %s', (path, expected) => {
+      expect(redirectTarget(path)).toBe(expected);
+    });
+
+    it('sends the bare /budget to the current month', () => {
+      expect(redirectTarget('/budget')).toBe('/budget/2026/09');
+    });
+
+    it('keeps the query string of a clamped link', () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-24T10:00:00Z') });
+      window.history.replaceState({}, '', '/budget/2025/13?axis=FIXED');
+      const matched = matchAuthenticatedRoute(routes, '/budget/2025/13')!;
+      render(matched.route.render(matched.match));
+      expect(window.location.pathname + window.location.search).toBe('/budget/2025/12?axis=FIXED');
+    });
+
+    it('renders the monthly page for a valid month key', () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-24T10:00:00Z') });
+      const matched = matchAuthenticatedRoute(routes, '/budget/2026/03')!;
+      const element = matched.route.render(matched.match) as ReactElement<{ periodKey: string }>;
+      expect(element.props.periodKey).toBe('2026-03');
     });
   });
 });

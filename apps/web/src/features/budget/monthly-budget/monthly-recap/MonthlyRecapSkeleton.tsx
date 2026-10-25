@@ -1,4 +1,5 @@
 import { MetricLabelButton } from './totals-card/MetricLabelButton';
+import { RECAP_KPIS } from './totals-card/recapKpis';
 import { RecapSettingsButton } from './totals-card/RecapSettingsButton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { AccountBalanceHeading } from './account-recap/AccountBalanceHeading';
@@ -9,14 +10,7 @@ import totalsStyles from './totals-card/TotalsCard.module.css';
 import { WealthCard } from './wealth-card/WealthCard';
 import styles from './MonthlyRecap.module.css';
 
-const TOTAL_LABELS = [
-  'reports.metrics.cashIncome',
-  'reports.metrics.budgetExpenses',
-  'reports.metrics.savingsInflows',
-  'reports.metrics.savingsWithdrawals',
-  'reports.metrics.netSavingsTransfers',
-  'reports.metrics.netSavingsRate',
-] as const;
+const TOTAL_LABELS = RECAP_KPIS.map((kpi) => `reports.metrics.${kpi}` as const);
 
 /** One TotalsCard row: the metric name and its explain button are real, the value pending. */
 function PendingMetricRow({ label }: { label?: string }) {

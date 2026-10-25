@@ -41,31 +41,6 @@ export function AggregateExplainModal({
         </div>
       ) : (
         <div className={styles.body}>
-          <dl className={styles.facts}>
-            <dt>{t('reports.formula')}</dt>
-            <dd>{explanation.data.formula}</dd>
-            <dt>{t('reports.annual.policy')}</dt>
-            <dd>
-              {explanation.data.policy.state === 'MIXED'
-                ? t('reports.annual.mixedPolicy', {
-                    versions: explanation.data.policy.versions.join(', '),
-                  })
-                : `${explanation.data.policy.label ?? ''} (v${explanation.data.policy.version ?? ''})`}
-            </dd>
-            {explanation.data.aggregate.periodEnd ? (
-              <>
-                <dt>{t('reports.annual.periodEnd')}</dt>
-                <dd>
-                  <AnnualCellValue
-                    assetCode={assetCode}
-                    kind={explanation.data.kind}
-                    reason={null}
-                    value={explanation.data.aggregate.periodEnd.value}
-                  />
-                </dd>
-              </>
-            ) : null}
-          </dl>
           <table className={styles.months}>
             <caption>{t('reports.annual.explainMonths')}</caption>
             <thead>
@@ -100,6 +75,31 @@ export function AggregateExplainModal({
               ))}
             </tbody>
           </table>
+          <dl className={styles.facts}>
+            <dt>{t('reports.formula')}</dt>
+            <dd>{t(`reports.annual.formulas.${explanation.data.kind}`)}</dd>
+            <dt>{t('reports.annual.policy')}</dt>
+            <dd>
+              {explanation.data.policy.state === 'MIXED'
+                ? t('reports.annual.mixedPolicy', {
+                    versions: explanation.data.policy.versions.join(', '),
+                  })
+                : `${explanation.data.policy.label ?? ''} (v${explanation.data.policy.version ?? ''})`}
+            </dd>
+            {explanation.data.aggregate.periodEnd ? (
+              <>
+                <dt>{t('reports.annual.periodEnd')}</dt>
+                <dd>
+                  <AnnualCellValue
+                    assetCode={assetCode}
+                    kind={explanation.data.kind}
+                    reason={null}
+                    value={explanation.data.aggregate.periodEnd.value}
+                  />
+                </dd>
+              </>
+            ) : null}
+          </dl>
         </div>
       )}
     </Modal>

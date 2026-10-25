@@ -8,6 +8,8 @@ const MAX_PAGES = 20;
 export interface CatalogueEntry {
   id: string;
   label: string;
+  /** Where an account is held; shown under its label, as in the report headers. */
+  institution?: string | null;
 }
 
 interface Page<T> {
@@ -15,7 +17,7 @@ interface Page<T> {
   total: number;
 }
 
-async function collect<T extends { id: string; label: string }>(
+async function collect<T extends { id: string; label: string; institution?: string | null }>(
   fetchPage: (page: number) => Promise<{ data?: Page<T>; response?: Response }>,
 ): Promise<CatalogueEntry[]> {
   const entries: CatalogueEntry[] = [];
@@ -24,7 +26,13 @@ async function collect<T extends { id: string; label: string }>(
     const result = await fetchPage(page);
     if (!result.response?.ok || !result.data) throw new Error('annual-catalogue');
     total = result.data.total;
-    entries.push(...result.data.items.map(({ id, label }) => ({ id, label })));
+    entries.push(
+      ...result.data.items.map(({ id, institution, label }) => ({
+        id,
+        label,
+        ...(institution ? { institution } : {}),
+      })),
+    );
     if (result.data.items.length === 0) break;
   }
 

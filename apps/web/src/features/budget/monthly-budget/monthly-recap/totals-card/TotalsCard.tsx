@@ -1,4 +1,5 @@
 import type {
+  MonthlyProjectionMetric,
   MonthlyRecapAxis,
   MonthlyRecapCategory,
   MonthlyRecapMetric,
@@ -13,6 +14,9 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { MetricExplanationModal } from './MetricExplanationModal';
+import { useMonthlyReport } from '@/features/reports/useMonthlyReport';
+import { RATE_KPIS, RECAP_KPIS, type RecapKpi } from './recapKpis';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import styles from './TotalsCard.module.css';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
@@ -26,10 +30,16 @@ interface TotalsCardProps {
   visibleAxes: string[];
 }
 
+/** A projection figure shaped like a recap one, so one row renders both. */
+function asRecapMetric(kpi: RecapKpi, metric: MonthlyProjectionMetric): RecapMetric {
+  return { ...metric, kpi, pendingCount: 0, sourceTransactionIds: [], sourceTransferIds: [] };
+}
+
 type RecapMetric = Pick<
   MonthlyRecapMetric,
-  'assetCode' | 'kpi' | 'pendingCount' | 'sourceTransactionIds' | 'sourceTransferIds' | 'value'
+  'assetCode' | 'pendingCount' | 'sourceTransactionIds' | 'sourceTransferIds' | 'value'
 > & {
+  kpi: RecapKpi | null;
   reason: MonthlyRecapMetric['reason'] | MonthlyRecapCategory['reason'];
   sourceTransactions?: MonthlyKpiSourceTransaction[];
 };
@@ -48,6 +58,8 @@ const reasonKeys = {
   NO_MOVEMENTS: 'budget.monthly.recap.reasons.NO_MOVEMENTS',
   ZERO_CASH_INCOME: 'budget.monthly.recap.reasons.ZERO_CASH_INCOME',
 } as const satisfies Record<NonNullable<RecapMetric['reason']>, string>;
+
+const UNAVAILABLE: MonthlyProjectionMetric = { value: null, assetCode: null, reason: null };
 
 function Value({ metric, rate }: { metric: RecapMetric; rate?: boolean }) {
   const { i18n, t } = useTranslation();
@@ -69,29 +81,42 @@ function MetricRow({
   month,
   metric,
   rate = false,
+  benefit = null,
 }: {
+  /** Spending outside the treasury perimeter (meal vouchers...), told apart from the total. */
+  benefit?: { assetCode: string; value: string } | null;
   axis?: MonthlyRecapAxis['axis'];
   label?: string;
   month: string;
-  metric: RecapMetric;
+  metric: RecapMetric | null;
   rate?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [open, setOpen] = useState(false);
   const label =
     suppliedLabel ??
     (axis
       ? t(`budget.monthly.axes.${axis}`)
-      : metric.kpi
+      : metric?.kpi
         ? t(`reports.metrics.${metric.kpi}`)
         : t('states.notCalculable.label'));
   return (
     <li className={styles.row}>
       <div>
         <MetricLabelButton label={label} onClick={() => setOpen(true)} />
-        <Value metric={metric} rate={rate} />
+        {metric === null ? (
+          <SkeletonBlock className={styles.amountSkeleton} />
+        ) : (
+          <Value metric={metric} rate={rate} />
+        )}
       </div>
-      {open ? (
+      {benefit ? (
+        <p className={styles.benefit}>
+          {t('budget.monthly.recap.totals.benefitSpending')}{' '}
+          <MoneyValue value={formatAmount(benefit.value, benefit.assetCode, i18n.language)} />
+        </p>
+      ) : null}
+      {open && metric ? (
         <MetricExplanationModal
           close={() => setOpen(false)}
           kpi={metric.kpi}
@@ -105,7 +130,18 @@ function MetricRow({
 }
 
 function CategoryRow({ category, month }: { category: MonthlyRecapCategory; month: string }) {
-  return <MetricRow label={category.label} month={month} metric={category} />;
+  return (
+    <MetricRow
+      benefit={
+        category.benefitSpending != null && category.benefitAssetCode != null
+          ? { assetCode: category.benefitAssetCode, value: category.benefitSpending }
+          : null
+      }
+      label={category.label}
+      month={month}
+      metric={category}
+    />
+  );
 }
 
 export function TotalsCard({
@@ -118,6 +154,8 @@ export function TotalsCard({
   visibleCategoryIds,
 }: TotalsCardProps) {
   const { t } = useTranslation();
+  // The recap carries six of the indicators; the month's other flows come from the monthly projection.
+  const projection = useMonthlyReport(month);
   const axes = totals.expensesByAxis.filter((axis) => visibleAxes.includes(axis.axis));
   const categories = totals.categories.filter((category) =>
     visibleCategoryIds.includes(category.id),
@@ -134,12 +172,27 @@ export function TotalsCard({
         </div>
       </header>
       <ul className={styles.rows}>
-        <MetricRow month={month} metric={totals.cashIncome} />
-        <MetricRow month={month} metric={totals.budgetExpenses} />
-        <MetricRow month={month} metric={totals.savingsInflows} />
-        <MetricRow month={month} metric={totals.savingsWithdrawals} />
-        <MetricRow month={month} metric={totals.netSavingsTransfers} />
-        <MetricRow month={month} metric={totals.netSavingsRate} rate />
+        {RECAP_KPIS.map((kpi) => {
+          const own =
+            kpi in totals ? (totals[kpi as keyof MonthlyRecapTotals] as RecapMetric) : null;
+          const extra = projection.data?.[kpi];
+          const metric =
+            own ??
+            (extra
+              ? asRecapMetric(kpi, extra)
+              : projection.isError
+                ? asRecapMetric(kpi, UNAVAILABLE)
+                : null);
+          return (
+            <MetricRow
+              key={kpi}
+              label={t(`reports.metrics.${kpi}`)}
+              metric={metric}
+              month={month}
+              rate={RATE_KPIS.includes(kpi)}
+            />
+          );
+        })}
       </ul>
       {axes.length ? (
         <section className={styles.section}>

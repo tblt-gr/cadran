@@ -12,16 +12,6 @@ export function AggregateExplainSkeleton({ year }: { year: number }) {
   return (
     <div aria-busy="true" className={styles.body} data-testid="aggregate-explain-skeleton">
       <SkeletonStatus>{t('reports.explanationLoading')}</SkeletonStatus>
-      <dl className={styles.facts}>
-        <dt>{t('reports.formula')}</dt>
-        <dd>
-          <SkeletonBlock className={styles.skeletonValue} />
-        </dd>
-        <dt>{t('reports.annual.policy')}</dt>
-        <dd>
-          <SkeletonBlock className={styles.skeletonValue} />
-        </dd>
-      </dl>
       <table aria-hidden="true" className={styles.months}>
         <caption>{t('reports.annual.explainMonths')}</caption>
         <thead>
@@ -45,6 +35,16 @@ export function AggregateExplainSkeleton({ year }: { year: number }) {
           ))}
         </tbody>
       </table>
+      <dl className={styles.facts}>
+        <dt>{t('reports.formula')}</dt>
+        <dd>
+          <SkeletonBlock className={styles.skeletonValue} />
+        </dd>
+        <dt>{t('reports.annual.policy')}</dt>
+        <dd>
+          <SkeletonBlock className={styles.skeletonValue} />
+        </dd>
+      </dl>
     </div>
   );
 }

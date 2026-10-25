@@ -6,8 +6,10 @@ interface SegmentedControlProps<T extends string> {
   label: string;
   disabled?: boolean;
   onChange: (value: T) => void;
-  options: readonly { value: T; label: string; description?: string }[];
+  options: readonly { value: T; label: string; description?: string; disabled?: boolean }[];
   value: T;
+  /** `text` drops the track and the pressed background: a quiet switch for page toolbars. */
+  variant?: 'track' | 'text';
 }
 
 /** One-of-n toggle on a single track: a view switch, never a form submission. */
@@ -17,10 +19,15 @@ export function SegmentedControl<T extends string>({
   onChange,
   options,
   value,
+  variant = 'track',
 }: SegmentedControlProps<T>) {
   const id = useId();
   return (
-    <div aria-label={label} className={styles.track} role="group">
+    <div
+      aria-label={label}
+      className={`${styles.track} ${variant === 'text' ? styles.text : ''}`.trim()}
+      role="group"
+    >
       {options.map((option, index) => {
         const descriptionId = `${id}-${index}`;
         return (
@@ -29,7 +36,7 @@ export function SegmentedControl<T extends string>({
               aria-describedby={option.description ? descriptionId : undefined}
               aria-pressed={value === option.value}
               className={styles.segment}
-              disabled={disabled}
+              disabled={disabled || option.disabled}
               onClick={() => onChange(option.value)}
               title={option.description}
               type="button"

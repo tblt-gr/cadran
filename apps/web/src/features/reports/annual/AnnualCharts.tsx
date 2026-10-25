@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
 import { lazyComponent } from '@/lib/lazyComponent';
+import { firstDataMonth, fromFirstDataMonth } from './annualColumns';
 import { FlowsDataTable, NetWorthDataTable } from './ChartDataTables';
 import { ChartFrame } from './ChartFrame';
 import { AnnualDonut, type AnnualDonutItem, type AnnualLegendRow } from './AnnualDonut';
@@ -32,7 +33,17 @@ export function AnnualCharts({
   report: AnnualReport;
 }) {
   const { t } = useTranslation();
-  const { flows, netWorth, topExpenseCategories: top, allocation } = report.charts;
+  const { topExpenseCategories: top, allocation } = report.charts;
+  // The series start at the first month with data, not in January of a year that began later.
+  const first = firstDataMonth(report.rows);
+  const flows = {
+    ...report.charts.flows,
+    months: fromFirstDataMonth(report.charts.flows.months, first),
+  };
+  const netWorth = {
+    ...report.charts.netWorth,
+    months: fromFirstDataMonth(report.charts.netWorth.months, first),
+  };
   const reasonText = (reason: string | null) =>
     t('reports.annual.notCalculable') +
     (reason ? ` : ${t(`reports.annual.reasons.${reason}`, { defaultValue: reason })}` : '');

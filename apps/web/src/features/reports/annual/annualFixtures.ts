@@ -30,7 +30,7 @@ export const annualReport: AnnualReport = {
   incompleteMonths: 'exclude',
   metricPolicy: { state: 'SINGLE', version: 1, label: 'Définition de trésorerie', versions: [1] },
   columns: [
-    { id: 'cashIncome', label: 'Revenus de trésorerie', kind: 'FLOW', assetCode: 'EUR' },
+    { id: 'cashIncome', label: 'Revenus', kind: 'FLOW', assetCode: 'EUR' },
     { id: 'cashSavingsRate', label: 'Taux d’épargne', kind: 'RATE', assetCode: null },
   ],
   rows: Array.from({ length: 12 }, (_, index) => {

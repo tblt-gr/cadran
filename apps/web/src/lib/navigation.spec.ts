@@ -8,7 +8,6 @@ describe('navigationItems', () => {
       '/accounts',
       '/portfolios',
       '/budget',
-      '/reports',
       '/goals',
       '/transactions',
       '/parameters/profile',
@@ -21,7 +20,6 @@ describe('navigationItems', () => {
     ]);
     expect(navigationItems.filter((item) => !item.mobile).map((item) => item.href)).toEqual([
       '/portfolios',
-      '/reports',
       '/goals',
       '/parameters/profile',
     ]);
@@ -34,8 +32,8 @@ describe('navigationItems', () => {
     ['/portfolios/instruments', '/portfolios'],
     ['/life-insurance/contract-id', '/portfolios'],
     ['/budget/plans/plan-id', '/budget'],
-    ['/reports/annual/2026', '/reports'],
-    ['/reports/all-years', '/reports'],
+    ['/budget/2026', '/budget'],
+    ['/budget/2026/10', '/budget'],
     ['/transactions/categories', '/transactions'],
     ['/transactions/categories/rules', '/transactions'],
     ['/transactions/recurrences', '/transactions'],
@@ -46,12 +44,15 @@ describe('navigationItems', () => {
     ]);
   });
 
-  it.each(['/unknown', '/transactions/unknown', '/accounts/id/unknown', '/reports/unknown'])(
-    'does not select a destination for unrelated route %s',
-    (path) => {
-      expect(navigationItems.some((item) => item.match(path))).toBe(false);
-    },
-  );
+  it.each([
+    '/unknown',
+    '/transactions/unknown',
+    '/accounts/id/unknown',
+    '/reports',
+    '/reports/annual/2026',
+  ])('does not select a destination for unrelated route %s', (path) => {
+    expect(navigationItems.some((item) => item.match(path))).toBe(false);
+  });
 
   it('nests category management under Transactions', () => {
     const transactions = navigationItems.find((item) => item.href === '/transactions');

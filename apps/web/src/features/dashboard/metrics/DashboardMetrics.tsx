@@ -1,7 +1,7 @@
 import type { MonthlyProjectionMetric } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
-import { formatMonthLabel } from '@/features/reports/MonthlyMonthNavigator';
+import { formatMonthLabel } from '@/lib/monthLabel';
 import { useMonthlyReport } from '@/features/reports/useMonthlyReport';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';

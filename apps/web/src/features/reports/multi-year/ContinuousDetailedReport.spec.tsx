@@ -106,7 +106,7 @@ describe('ContinuousDetailedReport', () => {
     expect(within(footer).getAllByText(/janvier 2026/i).length).toBeGreaterThan(0);
   });
 
-  it('shows EmptyValue with its reason for a non-calculable footer cell', () => {
+  it('shows a bare dash, without its reason, for a non-calculable footer cell', () => {
     render(
       <ContinuousDetailedReport
         annualReports={[annualReportForYear(2024), annualReportForYear(2025)]}
@@ -127,7 +127,7 @@ describe('ContinuousDetailedReport', () => {
     const footer = table.querySelector('tfoot')!;
     const totalRow = within(footer).getAllByRole('row')[0]!;
     expect(within(totalRow).getAllByText('-').length).toBeGreaterThan(0);
-    expect(totalRow.textContent).toMatch(/aucun mois comptabilisé/i);
+    expect(totalRow.textContent).not.toMatch(/aucun mois comptabilisé/i);
   });
 
   it('shows the same aggregate values in the mobile summary card', () => {

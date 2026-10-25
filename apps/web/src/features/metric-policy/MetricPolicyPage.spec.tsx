@@ -111,7 +111,7 @@ describe('MetricPolicyPage', () => {
     expect(card.textContent).toContain('Version 1');
     expect(card.textContent).toContain('Définition de trésorerie');
     expect(card.textContent).toContain('Avantage salarié');
-    expect(card.textContent).toContain('Solde budgétaire');
+    expect(card.textContent).toContain('Excédent');
     expect(screen.getByRole('link', { name: 'Profil' })).toBeTruthy();
     expect(screen.queryByTestId('metric-policy-skeleton')).toBeNull();
 

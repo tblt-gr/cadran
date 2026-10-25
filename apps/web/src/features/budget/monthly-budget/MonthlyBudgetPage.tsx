@@ -17,8 +17,8 @@ import {
   type BudgetCreationDraft,
 } from './budget-creation-modals/BudgetCreationModals';
 import { LedgerPanels } from './ledger-panels/LedgerPanels';
-import { useBoundedMonth } from '@/features/reports/useBoundedMonth';
-import { formatMonthLabel } from '@/features/reports/MonthlyMonthNavigator';
+import { useBoundedMonth } from './useBoundedMonth';
+import { formatMonthLabel } from '@/lib/monthLabel';
 import { MonthNavigator } from './month-navigator/MonthNavigator';
 import { MonthlyBudgetPageSkeleton } from './MonthlyBudgetPageSkeleton';
 import { MovementEditModal } from './movement-edit-modal/MovementEditModal';
@@ -93,7 +93,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         }).format(new Date(`${parsed.month}-01T12:00:00Z`))
       : null;
   useHeaderTitle(
-    `/budget/${periodKey}`,
+    monthHref(periodKey, null),
     monthLabel === null
       ? null
       : t('budget.monthly.title', {

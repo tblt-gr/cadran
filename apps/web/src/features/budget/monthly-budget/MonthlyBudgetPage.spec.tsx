@@ -15,6 +15,7 @@ const api = vi.hoisted(() => ({
   readMonthlyBounds: vi.fn(),
   readMonthlyLedger: vi.fn(),
   readMonthlyLedgerMovements: vi.fn(),
+  readMonthlyProjection: vi.fn(),
   readMonthlyRecap: vi.fn(),
   readMonthlyRecapPreferences: vi.fn(),
   saveMonthlyRecapPreferences: vi.fn(),
@@ -31,6 +32,31 @@ const expenseId = '00000000-0000-7000-8000-000000000002';
 const accountId = '00000000-0000-7000-8000-000000000003';
 const emptyAccountId = '00000000-0000-7000-8000-000000000010';
 const movementTransactionId = '00000000-0000-7000-8000-000000000005';
+const projectionMetric = (value: string | null) => ({
+  value,
+  assetCode: value === null ? null : 'EUR',
+  reason: null,
+});
+const projection = {
+  month: '2026-03',
+  periodStart: '2026-03-01',
+  periodEnd: '2026-03-31',
+  state: 'COMPLETE' as const,
+  quality: 'CURRENT' as const,
+  pendingCount: 0,
+  cashIncome: projectionMetric('3000'),
+  nonCashBenefits: projectionMetric('120.5'),
+  benefitSpending: projectionMetric('80'),
+  budgetExpenses: projectionMetric('-1000'),
+  uncategorizedExpenses: projectionMetric('-25'),
+  budgetSurplus: projectionMetric('2000'),
+  savingsTransfers: projectionMetric('700'),
+  cashSavingsRate: { value: '0.25', assetCode: null, reason: null },
+  savingsInflows: projectionMetric('700'),
+  savingsWithdrawals: projectionMetric('0'),
+  netSavingsTransfers: projectionMetric('700'),
+  netSavingsRate: { value: '0.25', assetCode: null, reason: null },
+};
 const ledger = {
   month: '2026-03',
   periodStart: '2026-03-01',
@@ -298,11 +324,12 @@ async function loaded() {
 describe('MonthlyBudgetPage', () => {
   beforeEach(() => {
     window.localStorage.removeItem('cadran.budget.showEmptyTransferAccounts');
-    window.history.replaceState({}, '', '/budget/2026-03');
+    window.history.replaceState({}, '', '/budget/2026/03');
     api.readMonthlyBounds.mockReturnValue(
       ok({ firstDataMonth: '2025-06', currentMonth: '2026-03' }),
     );
     api.readMonthlyLedger.mockReturnValue(ok(ledger));
+    api.readMonthlyProjection.mockReturnValue(ok(projection));
     api.readMonthlyRecap.mockReturnValue(ok(recap));
     api.readMonthlyRecapPreferences.mockReturnValue(
       ok({ visibleCategoryIds: [expenseId], visibleAxes: ['ESSENTIAL'], version: 0 }),
@@ -428,9 +455,9 @@ describe('MonthlyBudgetPage', () => {
     expect(loadingSettings.hasAttribute('disabled')).toBe(true);
     expect(screen.queryByRole('button', { name: 'Informations sur la synthèse' })).toBeNull();
     const loadingExplanation = screen.getByRole('button', {
-      name: 'Expliquer : Revenus en espèces',
+      name: 'Expliquer : Revenus',
     });
-    expect(loadingExplanation.textContent).toBe('Revenus en espèces');
+    expect(loadingExplanation.textContent).toBe('Revenus');
     expect(loadingExplanation.hasAttribute('disabled')).toBe(true);
     expect(screen.getAllByRole('status')).toHaveLength(1);
     await waitFor(() => expect(resolveLedger).toBeDefined());
@@ -463,7 +490,7 @@ describe('MonthlyBudgetPage', () => {
     const totalsPanel = within(recapSkeleton)
       .getByRole('heading', { name: 'Synthèse des flux' })
       .closest('section')!;
-    expect(totalsPanel.querySelectorAll('li > div > [data-visual-mask]')).toHaveLength(11);
+    expect(totalsPanel.querySelectorAll('li > div > [data-visual-mask]')).toHaveLength(17);
     for (const amount of totalsPanel.querySelectorAll('li > div > [data-visual-mask]')) {
       expect(amount.querySelector('span > [aria-hidden="true"]')).toBeTruthy();
     }
@@ -647,16 +674,57 @@ describe('MonthlyBudgetPage', () => {
     expect(settings.textContent).toBe('');
     expect(settings.getAttribute('title')).toBe('Configurer l’affichage');
     const explanation = within(totals).getByRole('button', {
-      name: 'Expliquer : Revenus en espèces',
+      name: 'Expliquer : Revenus',
     });
-    expect(explanation.textContent).toBe('Revenus en espèces');
+    expect(explanation.textContent).toBe('Revenus');
     expect(explanation.querySelector('svg')).toBeNull();
     explanation.focus();
     expect(document.activeElement).toBe(explanation);
     fireEvent.click(explanation);
-    expect(
-      await screen.findByRole('dialog', { name: 'Expliquer : Revenus en espèces' }),
-    ).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Expliquer : Revenus' })).toBeTruthy();
+  });
+
+  it('shows every flow indicator of the former monthly report in the flow summary', async () => {
+    renderPage();
+    await loaded();
+    await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
+    const totals = screen.getByRole('region', { name: 'Synthèse des flux' });
+    for (const label of [
+      'Revenus',
+      'Avantages non monétaires',
+      'Dépenses des avantages',
+      'Dépenses',
+      'Dépenses non catégorisées',
+      'Excédent',
+      'Virements vers l’épargne',
+      'Taux d’épargne',
+      'Entrées vers l’épargne',
+      'Sorties de l’épargne',
+      'Épargne nette par virements',
+      'Taux d’épargne net',
+    ]) {
+      expect(within(totals).getByRole('button', { name: `Expliquer : ${label}` })).toBeTruthy();
+    }
+    const row = within(totals)
+      .getByRole('button', { name: 'Expliquer : Avantages non monétaires' })
+      .closest('li')!;
+    expect(row.textContent).toMatch(/120,50/);
+  });
+
+  it('keeps the flow summary usable when the extra indicators cannot be read', async () => {
+    api.readMonthlyProjection.mockReturnValue({
+      data: undefined,
+      response: { ok: false, status: 500 },
+    });
+    renderPage();
+    await loaded();
+    await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
+    const totals = screen.getByRole('region', { name: 'Synthèse des flux' });
+    const row = within(totals)
+      .getByRole('button', { name: 'Expliquer : Avantages non monétaires' })
+      .closest('li')!;
+    expect(row.textContent).toMatch(/Non calculable/);
+    expect(within(totals).getByRole('button', { name: 'Expliquer : Revenus' })).toBeTruthy();
   });
 
   it('sorts exact expense totals descending with stable ties and unavailable values last', async () => {
@@ -920,7 +988,7 @@ describe('MonthlyBudgetPage', () => {
   });
 
   it('preserves the selected axis in month links and ledger reads', async () => {
-    window.history.replaceState({}, '', '/budget/2026-03?axis=ESSENTIAL');
+    window.history.replaceState({}, '', '/budget/2026/03?axis=ESSENTIAL');
     api.readMonthlyLedger.mockReturnValue(ok({ ...ledger, axis: 'ESSENTIAL' as const }));
     renderPage();
     await loaded();
@@ -929,7 +997,7 @@ describe('MonthlyBudgetPage', () => {
       'ESSENTIAL',
     );
     expect(screen.getByRole('link', { name: 'Février' }).getAttribute('href')).toBe(
-      '/budget/2026-02?axis=ESSENTIAL',
+      '/budget/2026/02?axis=ESSENTIAL',
     );
     expect(api.readMonthlyLedger).toHaveBeenCalledWith(
       expect.objectContaining({ query: { axis: 'ESSENTIAL', month: '2026-03' } }),
@@ -1282,6 +1350,54 @@ describe('MonthlyBudgetPage', () => {
     );
   });
 
+  it('tells spending outside the treasury perimeter apart on a category row, and nothing when null', async () => {
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        totals: {
+          ...recap.totals,
+          categories: [
+            { ...recap.totals.categories[0], benefitSpending: '12.00', benefitAssetCode: 'EUR' },
+          ],
+        },
+      }),
+    );
+    renderPage();
+    await loaded();
+    const totals = await screen.findByRole('region', { name: 'Synthèse des flux' });
+    const row = (
+      await within(totals).findByRole('button', { name: 'Expliquer : Voyages' })
+    ).closest('li')!;
+    expect(row.textContent).toMatch(/dont avantages :\s*12,00/);
+    // The total itself is untouched.
+    expect(row.textContent).toMatch(/400,00/);
+    cleanup();
+    api.readMonthlyRecap.mockReturnValue(ok(recap));
+    renderPage();
+    await loaded();
+    const plain = (
+      await within(await screen.findByRole('region', { name: 'Synthèse des flux' })).findByRole(
+        'button',
+        { name: 'Expliquer : Voyages' },
+      )
+    ).closest('li')!;
+    expect(plain.textContent).not.toMatch(/avantages/);
+  });
+
+  it('offers the display settings as tabs, categories then axes', async () => {
+    renderPage();
+    await loaded();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Configurer l’affichage' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Affichage de la synthèse' });
+    const tabs = within(dialog).getAllByRole('tab');
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Catégories', 'Axes analytiques']);
+    expect(tabs[0]!.getAttribute('aria-selected')).toBe('true');
+    fireEvent.click(tabs[1]!);
+    const axis = within(dialog).getByRole('tabpanel', { name: 'Axes analytiques' });
+    expect(within(axis).getByLabelText('Essentiel')).toBeTruthy();
+  });
+
   it('offers an archived category when it is represented by the recap', async () => {
     const archivedCategory = {
       id: expenseId,
@@ -1405,7 +1521,7 @@ describe('MonthlyBudgetPage', () => {
   });
 
   it('shows the selected axis total in the expense panel header', async () => {
-    window.history.replaceState({}, '', '/budget/2026-03?axis=ESSENTIAL');
+    window.history.replaceState({}, '', '/budget/2026/03?axis=ESSENTIAL');
     renderPage();
     await loaded();
     const panel = screen.getByRole('region', { name: 'Dépenses' });
@@ -1547,7 +1663,9 @@ describe('MonthlyBudgetPage', () => {
 
     await loaded();
     await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
-    fireEvent.click(await screen.findByRole('button', { name: 'Expliquer : Essentiel' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Expliquer : Essentiel' }, { timeout: 5000 }),
+    );
     const axisDialog = await screen.findByRole('dialog', { name: 'Expliquer : Essentiel' });
     expect(within(axisDialog).getByText('Loyer')).toBeTruthy();
     expect(axisDialog.textContent).toContain('-400,00 €');
@@ -1609,14 +1727,14 @@ describe('MonthlyBudgetPage', () => {
       api.readMonthlyBounds.mockReturnValue(
         ok({ firstDataMonth: '2023-11', currentMonth: '2026-03' }),
       );
-      window.history.replaceState({}, '', '/budget/2023-01?axis=FIXED');
+      window.history.replaceState({}, '', '/budget/2023/01?axis=FIXED');
       const events = navigationEvents();
       const length = window.history.length;
       renderPage('2023-01');
 
       await waitFor(() =>
         expect(window.location.pathname + window.location.search).toBe(
-          '/budget/2023-11?axis=FIXED',
+          '/budget/2023/11?axis=FIXED',
         ),
       );
       expect(window.history.length).toBe(length);
@@ -1632,12 +1750,12 @@ describe('MonthlyBudgetPage', () => {
       api.readMonthlyBounds.mockReturnValue(
         ok({ firstDataMonth: '2023-11', currentMonth: '2026-03' }),
       );
-      window.history.replaceState({}, '', '/budget/2024-05');
+      window.history.replaceState({}, '', '/budget/2024/05');
       const events = navigationEvents();
       renderPage('2024-05');
       await loaded();
 
-      expect(window.location.pathname).toBe('/budget/2024-05');
+      expect(window.location.pathname).toBe('/budget/2024/05');
       expect(events.listener).not.toHaveBeenCalled();
       expect(screen.getByRole('link', { name: 'Juin' })).toBeTruthy();
       events.stop();
@@ -1647,7 +1765,7 @@ describe('MonthlyBudgetPage', () => {
       api.readMonthlyBounds.mockReturnValue(
         ok({ firstDataMonth: '2023-11', currentMonth: '2026-03' }),
       );
-      window.history.replaceState({}, '', '/budget/2023-12');
+      window.history.replaceState({}, '', '/budget/2023/12');
       renderPage('2023-12');
       await loaded();
 
@@ -1661,7 +1779,7 @@ describe('MonthlyBudgetPage', () => {
 
     it('does not redirect an empty workspace and still offers the current month', async () => {
       api.readMonthlyBounds.mockReturnValue(ok({ firstDataMonth: null, currentMonth: '2026-03' }));
-      window.history.replaceState({}, '', '/budget/2026-03');
+      window.history.replaceState({}, '', '/budget/2026/03');
       const events = navigationEvents();
       renderPage('2026-03');
       await loaded();
@@ -1678,7 +1796,7 @@ describe('MonthlyBudgetPage', () => {
       cleanup();
       renderPage('2026-04');
       expect(screen.getByRole('alert').textContent).toContain('Période future');
-      expect(window.location.pathname).toBe('/budget/2026-03');
+      expect(window.location.pathname).toBe('/budget/2026/03');
     });
 
     it('disables the month controls while the bounds load and never fetches the ledger', async () => {
@@ -1695,12 +1813,12 @@ describe('MonthlyBudgetPage', () => {
       api.readMonthlyBounds.mockReturnValue(
         Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
       );
-      window.history.replaceState({}, '', '/budget/2023-01');
+      window.history.replaceState({}, '', '/budget/2023/01');
       renderPage('2023-01');
 
       fireEvent.click(await screen.findByRole('button', { name: 'Réessayer' }));
       await waitFor(() => expect(api.readMonthlyBounds).toHaveBeenCalledTimes(2));
-      expect(window.location.pathname).toBe('/budget/2023-01');
+      expect(window.location.pathname).toBe('/budget/2023/01');
       expect(api.readMonthlyLedger).not.toHaveBeenCalled();
     });
   });

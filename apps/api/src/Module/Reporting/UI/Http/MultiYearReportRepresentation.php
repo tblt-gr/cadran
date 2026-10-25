@@ -29,6 +29,7 @@ final class MultiYearReportRepresentation
                 'label' => $column->label,
                 'kind' => $column->kind,
                 'assetCode' => $column->assetCode,
+                'institution' => $column->institution,
             ], $report->columns),
             'years' => array_map(self::year(...), $report->years),
             'summary' => (object) array_map(self::summaryCell(...), $report->summary),

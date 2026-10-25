@@ -50,6 +50,20 @@ final readonly class MonthlyProjectionView
         public NetWorthView $netWorth,
         public MetricPolicyReference $metricPolicy,
         public array $budgetExpenseCategoryIds = [],
+        /** @var list<MonthlyRecapCategoryView>|null */
+        public ?array $categoryRollups = null,
     ) {
+    }
+
+    /**
+     * The categories as the recap shows them: each total covers the category and its descendants.
+     * Every other reader (emergency fund, annual columns, closure snapshots) keeps the own-movement
+     * `$categoryMetrics`, so selecting a parent and its child never counts a movement twice.
+     *
+     * @return list<MonthlyRecapCategoryView>
+     */
+    public function recapCategories(): array
+    {
+        return $this->categoryRollups ?? $this->categoryMetrics;
     }
 }

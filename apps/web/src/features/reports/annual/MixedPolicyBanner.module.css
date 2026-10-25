@@ -11,4 +11,9 @@
 }
 .banner a {
   color: var(--text-primary);
+  text-decoration: none;
+}
+.banner a:hover,
+.banner a:focus-visible {
+  text-decoration: underline;
 }

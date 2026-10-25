@@ -162,6 +162,8 @@ final class MonthlyRecapRepresentation
             'type' => $category->type,
             ...self::metric($category->metric, null),
             'sourceTransactions' => array_map(self::sourceTransaction(...), $category->sourceTransactions),
+            'benefitSpending' => $category->benefitSpending,
+            'benefitAssetCode' => $category->benefitAssetCode,
         ];
     }
 

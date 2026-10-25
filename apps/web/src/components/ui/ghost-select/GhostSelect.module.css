@@ -1,0 +1,17 @@
+.select {
+  min-height: var(--control-height-compact);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: var(--border-line-transparent);
+  color: var(--text-primary);
+  background: var(--color-transparent);
+  font-size: var(--font-size-label);
+}
+
+.select:focus-visible {
+  outline: var(--outline-focus);
+}
+
+.select:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}

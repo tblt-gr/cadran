@@ -87,7 +87,7 @@ final readonly class ReadMultiYearReport
 
         $columns = $computedByYear[$to]->columns;
         $columnViews = array_map(
-            static fn (AnnualColumn $column): AnnualColumnView => new AnnualColumnView($column->id, $column->label, $column->kind->value, AnnualColumnSeries::assetCode($column, $computedByYear[$to]->months)),
+            static fn (AnnualColumn $column): AnnualColumnView => new AnnualColumnView($column->id, $column->label, $column->kind->value, AnnualColumnSeries::assetCode($column, $computedByYear[$to]->months), $column->institution),
             $columns,
         );
 

@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { Tabs } from '@/components/ui/tabs/Tabs';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { budgetErrorKind } from '@/features/budget/budgetError';
 import { useSaveRecapPreferences } from '@/features/budget/monthly-budget/monthly-recap/useMonthlyRecap';
@@ -104,64 +105,83 @@ export function RecapPreferencesModal({
             {t(`budget.errors.${error}`)}
           </p>
         ) : null}
-        <fieldset disabled={categories.isPending || save.isPending}>
-          <legend>{t('budget.monthly.recap.preferences.categories')}</legend>
-          {categories.isPending ? (
-            <div aria-busy="true" className={styles.options}>
-              <SkeletonStatus>{t('budget.monthly.recap.preferences.loading')}</SkeletonStatus>
-              {Array.from({ length: 6 }, (_, index) => (
-                <SkeletonBlock className={styles.skeletonOption} key={index} />
-              ))}
-            </div>
-          ) : categories.isError ? (
-            <div className={styles.alert} role="alert">
-              <p>{t('budget.monthly.recap.preferences.categoriesError')}</p>
-              <button
-                className="secondary-action"
-                onClick={() => void categories.refetch()}
-                type="button"
-              >
-                {t('foundation.retry')}
-              </button>
-            </div>
-          ) : categories.data?.length ? (
-            <div className={styles.options}>
-              {categories.data.map((category) => (
-                <label key={category.id}>
-                  <input
-                    checked={categoryIds.includes(category.id)}
-                    disabled={
-                      !categoryIds.includes(category.id) &&
-                      categoryIds.length >= MAX_VISIBLE_CATEGORIES
-                    }
-                    onChange={() => toggle(categoryIds, category.id, setCategoryIds)}
-                    type="checkbox"
-                  />
-                  {category.label}
-                </label>
-              ))}
-            </div>
-          ) : (
-            <p>{t('budget.monthly.recap.preferences.categoriesEmpty')}</p>
-          )}
-        </fieldset>
-        <fieldset disabled={save.isPending}>
-          <legend>{t('budget.monthly.recap.preferences.axes')}</legend>
-          <div className={styles.options}>
-            {axes.map((axis) => (
-              <label key={axis}>
-                <input
-                  checked={visibleAxes.includes(axis)}
-                  onChange={() =>
-                    toggle(visibleAxes, axis, (next) => setVisibleAxes(next as AnalyticAxes))
-                  }
-                  type="checkbox"
-                />
-                {t(`budget.monthly.axes.${axis}`)}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <Tabs
+          label={t('budget.monthly.recap.preferences.title')}
+          tabs={[
+            {
+              id: 'categories',
+              label: t('budget.monthly.recap.preferences.categories'),
+              content: (
+                <fieldset disabled={categories.isPending || save.isPending}>
+                  {categories.isPending ? (
+                    <div aria-busy="true" className={styles.options}>
+                      <SkeletonStatus>
+                        {t('budget.monthly.recap.preferences.loading')}
+                      </SkeletonStatus>
+                      {Array.from({ length: 6 }, (_, index) => (
+                        <SkeletonBlock className={styles.skeletonOption} key={index} />
+                      ))}
+                    </div>
+                  ) : categories.isError ? (
+                    <div className={styles.alert} role="alert">
+                      <p>{t('budget.monthly.recap.preferences.categoriesError')}</p>
+                      <button
+                        className="secondary-action"
+                        onClick={() => void categories.refetch()}
+                        type="button"
+                      >
+                        {t('foundation.retry')}
+                      </button>
+                    </div>
+                  ) : categories.data?.length ? (
+                    <div className={styles.options}>
+                      {categories.data.map((category) => (
+                        <label key={category.id}>
+                          <input
+                            checked={categoryIds.includes(category.id)}
+                            disabled={
+                              !categoryIds.includes(category.id) &&
+                              categoryIds.length >= MAX_VISIBLE_CATEGORIES
+                            }
+                            onChange={() => toggle(categoryIds, category.id, setCategoryIds)}
+                            type="checkbox"
+                          />
+                          {category.label}
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>{t('budget.monthly.recap.preferences.categoriesEmpty')}</p>
+                  )}
+                </fieldset>
+              ),
+            },
+            {
+              id: 'axes',
+              label: t('budget.monthly.recap.preferences.axes'),
+              content: (
+                <fieldset disabled={save.isPending}>
+                  <div className={styles.options}>
+                    {axes.map((axis) => (
+                      <label key={axis}>
+                        <input
+                          checked={visibleAxes.includes(axis)}
+                          onChange={() =>
+                            toggle(visibleAxes, axis, (next) =>
+                              setVisibleAxes(next as AnalyticAxes),
+                            )
+                          }
+                          type="checkbox"
+                        />
+                        {t(`budget.monthly.axes.${axis}`)}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ),
+            },
+          ]}
+        />
         <p className={styles.hint}>{t('budget.monthly.recap.preferences.emptyHint')}</p>
         <div className={styles.actions}>
           <button className="secondary-action" onClick={close} type="button">

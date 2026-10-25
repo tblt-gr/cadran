@@ -35,7 +35,7 @@ final readonly class BuildAnnualReport
         $policy = $computed->policy;
         $columnViews = [];
         foreach ($computed->columns as $column) {
-            $columnViews[] = new AnnualColumnView($column->id, $column->label, $column->kind->value, AnnualColumnSeries::assetCode($column, $months));
+            $columnViews[] = new AnnualColumnView($column->id, $column->label, $column->kind->value, AnnualColumnSeries::assetCode($column, $months), $column->institution);
         }
         $aggregates = $computed->aggregates;
         $rows = [];
