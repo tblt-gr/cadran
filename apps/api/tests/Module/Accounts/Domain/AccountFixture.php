@@ -31,13 +31,14 @@ final class AccountFixture
         ?string $closedOn = null,
         ?string $archivedAt = null,
         AccountValuationMode $valuationMode = AccountValuationMode::TRANSACTIONS,
+        string $label = 'Livret A Banque X',
     ): Account {
         $now = new \DateTimeImmutable('2026-09-03T10:00:00+00:00');
 
         return new Account(
             id: $id,
             workspace: WorkspaceScope::fromString($workspace),
-            label: 'Livret A Banque X',
+            label: $label,
             assetCode: AssetCode::fromString($assetCode),
             kind: $kind,
             productCode: null === $productCode ? null : ProductCode::fromString($productCode),

@@ -88,6 +88,21 @@ afterEach(() => {
 });
 
 describe('AccountOverview', () => {
+  it('identifies the primary account in words without highlighting its row', async () => {
+    api.readAccountOverview.mockImplementation(() =>
+      success(buildOverview([buildHeading({ memberCount: 2 })])),
+    );
+    api.readAccountOverviewRows.mockImplementation(() =>
+      rows([buildAccount(A, 'Courant', { isPrimary: true }), buildAccount(B, 'Secondaire')]),
+    );
+    renderOverview();
+
+    const primaryRow = (await screen.findByText('Courant')).closest('tr')!;
+    expect(within(primaryRow).getByText('Principal')).toBeTruthy();
+    expect(primaryRow.className).toBe('');
+    expect(screen.getByText('Secondaire').closest('tr')?.className).toBe('');
+  });
+
   it('shows one table per group with its total, share and rollup marker, and Sans groupe last', async () => {
     api.readAccountOverview.mockImplementation(() =>
       success(

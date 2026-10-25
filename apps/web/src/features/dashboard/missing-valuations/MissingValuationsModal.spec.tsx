@@ -56,6 +56,7 @@ const account: Account = {
   status: 'ACTIVE',
   netWorthSign: 1,
   used: false,
+  isPrimary: false,
   editable: true,
   kindEditable: true,
   kindEditReason: null,

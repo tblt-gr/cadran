@@ -64,6 +64,7 @@ final readonly class AccountRow
             archivedAt: self::instant($row['archived_at'] ?? null),
             primaryGroupId: self::nullableText($row['primary_group_id'] ?? null),
             tagGroupIds: $tagGroupIds,
+            isPrimary: self::boolean($row['is_primary'] ?? false),
         );
     }
 
@@ -78,6 +79,7 @@ final readonly class AccountRow
     {
         return [
             'label' => $account->label,
+            'is_primary' => $account->isPrimary,
             'kind' => $account->kind->value,
             'product_code' => $account->productCode?->toString(),
             'product_model_id' => $account->productModelId,

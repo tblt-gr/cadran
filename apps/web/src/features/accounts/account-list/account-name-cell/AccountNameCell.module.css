@@ -1,0 +1,27 @@
+.labelCell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.accountLink {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  color: inherit;
+  font-weight: var(--font-weight-strong);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.nameSkeleton {
+  width: calc(var(--spacing-12) * 2);
+  max-width: 100%;
+  height: var(--font-size-body);
+}
+
+.statusSkeleton {
+  width: var(--spacing-12);
+  height: var(--font-size-xs);
+}

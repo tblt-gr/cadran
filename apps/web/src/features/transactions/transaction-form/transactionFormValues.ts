@@ -97,7 +97,10 @@ export function initialTransactionValues(
   const direction = resolveDirection(nature, null);
 
   return {
-    accountId: transaction?.accountId ?? accounts[0]?.id ?? '',
+    accountId:
+      transaction?.accountId ??
+      accounts.find((account) => account.isPrimary && account.status === 'ACTIVE')?.id ??
+      '',
     analyticAxes:
       (transaction?.splits.length ?? 0) === 1 ? transaction!.splits[0]!.analyticAxes : null,
     amountValue: toTypedAmount(transaction?.amount.value ?? '', direction),

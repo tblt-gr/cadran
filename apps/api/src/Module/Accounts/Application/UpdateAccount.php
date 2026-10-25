@@ -77,6 +77,9 @@ final readonly class UpdateAccount
             if (null !== $current->archivedAt) {
                 throw new AccountArchived('An archived account is read-only.');
             }
+            if (true === $input->isPrimary && null !== $closedOn) {
+                throw new InvalidAccountInput('A closed account cannot become primary.');
+            }
             if ($openedOn != $current->openedOn || $closedOn != $current->closedOn) {
                 $this->periods->assertAccountLifecycleUnchangedForClosures(
                     $context->workspace,
@@ -124,11 +127,15 @@ final readonly class UpdateAccount
                     primaryGroupId: $primaryGroupId,
                     tagGroupIds: $tagGroupIds,
                     keepGrouping: false,
+                    isPrimary: $input->isPrimary,
                 );
             } catch (InvalidAccount $exception) {
                 throw new InvalidAccountInput($exception->getMessage(), previous: $exception);
             }
 
+            $clearedPrimaryId = $updated->isPrimary && !$current->isPrimary
+                ? $this->accounts->primaryId($context->workspace)
+                : null;
             if (!$this->accounts->update($updated, $current->version)) {
                 throw new StaleAccountVersion('The account was changed by another request.');
             }
@@ -145,6 +152,12 @@ final readonly class UpdateAccount
             }
 
             $this->audit($context, $current, $updated);
+            if (null !== $clearedPrimaryId) {
+                $this->record($context, $clearedPrimaryId, AccountAuditEvents::PRIMARY_CHANGED, AuditDiff::change(
+                    ['isPrimary' => true],
+                    ['isPrimary' => false],
+                ));
+            }
 
             return AccountView::fromAccount($updated, valuation: $this->valuations->current($context->workspace, $updated));
         });
@@ -217,6 +230,13 @@ final readonly class UpdateAccount
             AccountAuditFingerprint::of($before),
             AccountAuditFingerprint::of($after),
         ));
+
+        if ($before->isPrimary !== $after->isPrimary) {
+            $this->record($context, $after->id, AccountAuditEvents::PRIMARY_CHANGED, AuditDiff::change(
+                ['isPrimary' => $before->isPrimary],
+                ['isPrimary' => $after->isPrimary],
+            ));
+        }
 
         if ($before->isClosed() === $after->isClosed()) {
             return;

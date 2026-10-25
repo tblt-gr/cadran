@@ -23,6 +23,7 @@ import { VoidTransactionDialog } from '@/features/transactions/void-transaction-
 interface TransactionModalsProps {
   accountOptions: Account[];
   activeAccountOptions: Account[];
+  defaultAccountId?: string;
   closeEditor: () => void;
   closeTransferEditor: () => void;
   closeVoiding: () => void;
@@ -52,6 +53,7 @@ interface TransactionModalsProps {
 export function TransactionModals({
   accountOptions,
   activeAccountOptions,
+  defaultAccountId,
   closeEditor,
   closeTransferEditor,
   closeVoiding,
@@ -86,6 +88,7 @@ export function TransactionModals({
       {editor ? (
         <TransactionEditor
           accounts={editor === 'create' ? activeAccountOptions : accountOptions}
+          defaultAccountId={defaultAccountId}
           close={closeEditor}
           onSubmit={(body) => save.mutate(body)}
           pending={save.isPending}

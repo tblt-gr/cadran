@@ -41,6 +41,7 @@ const PAYMENT_METHODS: Array<NonNullable<CreateTransactionRequest['paymentMethod
 interface TransactionFormProps {
   accounts: Account[];
   defaults?: TransactionFormDefaults;
+  defaultAccountId?: string;
   onSubmit: (body: CreateTransactionRequest | UpdateTransactionRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
@@ -52,7 +53,6 @@ export interface TransactionFormDefaults {
   bookedOn: string;
   category: SavedCategory & { type: TransactionFormValues['categoryType'] };
   nature: TransactionFormValues['nature'];
-  requireAccountChoice: boolean;
 }
 
 /**
@@ -62,6 +62,7 @@ export interface TransactionFormDefaults {
 export function TransactionForm({
   accounts,
   defaults,
+  defaultAccountId,
   onSubmit,
   pending,
   submitError,
@@ -78,7 +79,6 @@ export function TransactionForm({
     return transaction === undefined && defaults
       ? {
           ...initial,
-          accountId: defaults.requireAccountChoice ? '' : initial.accountId,
           bookedOn: defaults.bookedOn,
           categoryId: defaults.category.id,
           categoryType: defaults.category.type,
@@ -87,11 +87,20 @@ export function TransactionForm({
       : initial;
   });
   const [showErrors, setShowErrors] = useState(false);
+  const [accountChosen, setAccountChosen] = useState(false);
   // A split transaction is edited in the advanced section, so it opens there.
   const [advancedOpen, setAdvancedOpen] = useState(() => values.splitMode);
   const resolved =
-    !defaults?.requireAccountChoice && values.accountId === '' && accounts[0] !== undefined
-      ? { ...values, accountId: accounts[0].id }
+    !transaction && !accountChosen
+      ? {
+          ...values,
+          accountId:
+            accounts.find(
+              (account) => account.id === defaultAccountId && account.status === 'ACTIVE',
+            )?.id ??
+            accounts.find((account) => account.isPrimary && account.status === 'ACTIVE')?.id ??
+            '',
+        }
       : values;
   const errors = validateTransactionValues(resolved, accounts, today, transaction);
   const editing = transaction !== undefined;
@@ -149,10 +158,13 @@ export function TransactionForm({
             aria-invalid={showErrors && errors.accountId ? true : undefined}
             aria-label={t('transactions.fields.account')}
             disabled={editing}
-            onChange={(event) => set('accountId', event.target.value)}
+            onChange={(event) => {
+              setAccountChosen(true);
+              set('accountId', event.target.value);
+            }}
             value={resolved.accountId}
           >
-            {defaults?.requireAccountChoice ? (
+            {!editing ? (
               <option value="">{t('transactions.transfer.fields.selectAccount')}</option>
             ) : null}
             {accounts.map((account) => (

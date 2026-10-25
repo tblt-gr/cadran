@@ -1004,6 +1004,56 @@ describe('MonthlyBudgetPage', () => {
     );
   });
 
+  it('preselects the primary account in a budget transaction creation', async () => {
+    api.listAccounts.mockReturnValue(
+      ok({
+        items: [{ ...account, isPrimary: true, kind: 'CURRENT' }],
+        page: 1,
+        pageSize: 100,
+        total: 1,
+      }),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter un revenu dans Salaire' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Nouvelle transaction' });
+    await waitFor(() =>
+      expect(
+        (within(dialog).getByRole('combobox', { name: 'Compte' }) as HTMLSelectElement).value,
+      ).toBe(accountId),
+    );
+  });
+
+  it('keeps the real draft frozen while account options load', async () => {
+    let resolveAccounts: ((value: Awaited<ReturnType<typeof ok>>) => void) | undefined;
+    api.listAccounts.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveAccounts = resolve;
+        }),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter un revenu dans Salaire' }));
+    const skeleton = await screen.findByTestId('budget-creation-skeleton');
+    expect(skeleton.querySelector('fieldset[disabled][inert]')).toBeTruthy();
+    const frozenForm = skeleton.querySelector('form')!;
+    const tags = Array.from(
+      frozenForm.querySelectorAll('*:not(option)'),
+      (element) => element.tagName,
+    );
+    expect(within(skeleton).getAllByRole('status')).toHaveLength(1);
+    resolveAccounts?.(await ok({ items: [account], page: 1, pageSize: 100, total: 1 }));
+    await waitFor(() => expect(screen.queryByTestId('budget-creation-skeleton')).toBeNull());
+    const form = screen
+      .getByRole('dialog', { name: 'Nouvelle transaction' })
+      .querySelector('form')!;
+    expect(
+      Array.from(form.querySelectorAll('*:not(option)'), (element) => element.tagName),
+    ).toEqual(tags);
+    expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
+      'Salaire',
+    );
+  });
+
   it('opens the shared transaction modal with month, nature and category prefilled', async () => {
     renderPage();
 
@@ -1611,6 +1661,8 @@ describe('MonthlyBudgetPage', () => {
     );
     renderPage();
 
+    await loaded();
+    await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
     fireEvent.click(
       await screen.findByRole('button', { name: 'Expliquer : Essentiel' }, { timeout: 5000 }),
     );

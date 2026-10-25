@@ -1,6 +1,6 @@
 import type { Account, Product } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AccountEditor } from './AccountEditor';
@@ -38,6 +38,7 @@ const account = {
   editable: true,
   kindEditable: true,
   kindEditReason: null,
+  isPrimary: false,
   version: 1,
   archivedAt: null,
   primaryGroupId: null,
@@ -75,15 +76,15 @@ function ok<T>(data: T) {
   return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
 }
 
-function renderEditor() {
+function renderEditor(editedAccount: Account = account, onSubmit = vi.fn()) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
     ...render(
       <QueryClientProvider client={queryClient}>
         <AccountEditor
-          account={account}
+          account={editedAccount}
           onCancel={vi.fn()}
-          onSubmit={vi.fn()}
+          onSubmit={onSubmit}
           pending={false}
           submitError={null}
         />
@@ -99,6 +100,36 @@ describe('AccountEditor', () => {
     vi.clearAllMocks();
   });
 
+  it('edits the primary preference and clears it on closure', async () => {
+    api.listAssets.mockReturnValue(ok({ items: [{ code: 'EUR', kind: 'FIAT' }] }));
+    api.listAccountGroups.mockReturnValue(ok({ items: [] }));
+    const submit = vi.fn();
+    renderEditor(
+      { ...account, kind: 'CURRENT', productCode: null, includeInNetWorth: false },
+      submit,
+    );
+    const preference = await screen.findByRole('checkbox', {
+      name: 'Utiliser comme compte principal',
+    });
+    fireEvent.click(preference);
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(submit.mock.calls[0]?.[0]).toMatchObject({ isPrimary: true });
+    fireEvent.change(screen.getByLabelText('Date de clôture'), { target: { value: '2026-01-11' } });
+    expect((preference as HTMLInputElement).disabled).toBe(true);
+    expect((preference as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(submit.mock.calls[1]?.[0]).toMatchObject({ isPrimary: false });
+    expect(screen.getByText(/Seul un compte courant ouvert/)).toBeTruthy();
+  });
+
+  it('hides the primary preference for accounts that are not current accounts', async () => {
+    api.listAssets.mockReturnValue(ok({ items: [{ code: 'EUR', kind: 'FIAT' }] }));
+    api.listAccountGroups.mockReturnValue(ok({ items: [] }));
+    renderEditor({ ...account, kind: 'SAVINGS', productCode: null, includeInNetWorth: false });
+    await screen.findByDisplayValue(account.label);
+    expect(screen.queryByRole('checkbox', { name: 'Utiliser comme compte principal' })).toBeNull();
+  });
+
   it('replaces its one named cold-load skeleton and keeps the form during a refetch', async () => {
     api.listAssets.mockReturnValue(ok({ items: [{ code: 'EUR', kind: 'FIAT' }] }));
     api.listAccountGroups.mockReturnValue(ok({ items: [] }));
@@ -109,15 +140,27 @@ describe('AccountEditor', () => {
           resolveProduct = resolve;
         }),
     );
-    const { queryClient } = renderEditor();
+    const { queryClient } = renderEditor({ ...account, kind: 'CURRENT' });
 
     expect(screen.getByTestId('account-editor-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     expect(within(screen.getByTestId('account-editor-skeleton')).getByRole('status')).toBeTruthy();
+    const frozenPreference = screen
+      .getByText('Compte principal')
+      .parentElement!.querySelector('input')!;
+    const preferenceMarkup = frozenPreference.parentElement?.outerHTML.replace(
+      /aria-describedby="[^"]*"/g,
+      '',
+    );
     resolveProduct?.(await ok(product));
     await waitFor(() => expect(screen.queryByTestId('account-editor-skeleton')).toBeNull());
     expect(screen.getByDisplayValue(account.label)).toBeTruthy();
     expect(screen.queryByTestId('account-editor-skeleton')).toBeNull();
+    expect(
+      screen
+        .getByRole('checkbox', { name: 'Utiliser comme compte principal' })
+        .parentElement?.outerHTML.replace(/aria-describedby="[^"]*"/g, ''),
+    ).toBe(preferenceMarkup);
 
     api.readProduct.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['product', account.productCode] });

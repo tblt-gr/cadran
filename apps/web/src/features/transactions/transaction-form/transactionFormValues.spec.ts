@@ -13,6 +13,7 @@ const account = {
   assetCode: 'EUR',
   openedOn: '2026-01-01',
   status: 'ACTIVE',
+  isPrimary: true,
 } as Account;
 
 const transaction = {

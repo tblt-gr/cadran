@@ -12858,6 +12858,7 @@ components:
       type: object
       additionalProperties: false
       required:
+        - isPrimary
         - id
         - label
         - assetCode
@@ -12885,6 +12886,9 @@ components:
         - share
         - valuation
       properties:
+        isPrimary:
+          description: Whether this active current account is the workspace default for new transactions.
+          type: boolean
         id:
           type: string
           format: uuid
@@ -13457,6 +13461,13 @@ components:
         - primaryGroupId
         - tagGroupIds
       properties:
+        isPrimary:
+          description: >-
+            Optional; omission preserves the current setting. True selects this active
+            transaction-capable CURRENT account and atomically clears the previous
+            primary in this workspace, advancing its version. False removes this
+            account as the default. Closing or archiving clears it automatically.
+          type: boolean
         label:
           type: string
           minLength: 1

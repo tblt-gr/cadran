@@ -11,6 +11,7 @@ test.describe('transaction entry', () => {
 
     await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
     const editor = page.getByRole('dialog', { name: 'Nouvelle transaction' });
+    await editor.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });
     await editor.getByLabel('Montant').fill('-12.34');
     await editor.getByLabel('Libellé').fill(label);
 

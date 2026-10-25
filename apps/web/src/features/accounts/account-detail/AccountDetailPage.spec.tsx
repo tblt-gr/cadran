@@ -78,6 +78,7 @@ const account: Account = {
   status: 'ACTIVE',
   netWorthSign: 1,
   used: false,
+  isPrimary: false,
   editable: true,
   kindEditable: true,
   kindEditReason: null,
@@ -934,7 +935,7 @@ describe('AccountDetailPage', () => {
 
     const dialog = await screen.findByRole('dialog');
     const select = within(dialog).getByLabelText('Compte') as HTMLSelectElement;
-    expect(within(select).getAllByRole('option')).toHaveLength(1);
+    expect(within(select).getAllByRole('option')).toHaveLength(2);
     expect(select.value).toBe(account.id);
   });
 

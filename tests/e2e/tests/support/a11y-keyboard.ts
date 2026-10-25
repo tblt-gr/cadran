@@ -82,6 +82,13 @@ export function keyboardJourneys() {
         await expect(
           dialog.getByLabel('Compte de destination').locator('option:checked'),
         ).toHaveText('Livret A');
+      } else {
+        const account = dialog.getByLabel('Compte', { exact: true });
+        await tabTo(page, account, true);
+        await page.keyboard.press('Home');
+        await page.keyboard.press('c');
+        await page.keyboard.press('Enter');
+        await expect(account.locator('option:checked')).toHaveText('Compte courant');
       }
       const amount = dialog.getByLabel(transfer ? 'Montant (EUR)' : 'Montant', { exact: true });
       await tabTo(page, amount);

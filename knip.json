@@ -3,7 +3,8 @@
   "workspaces": {
     ".": {
       "entry": ["scripts/*.mjs"],
-      "project": ["scripts/**/*.mjs"]
+      "project": ["scripts/**/*.mjs"],
+      "ignoreDependencies": ["lefthook"]
     },
     "apps/web": {
       "entry": ["scripts/*.mjs"],

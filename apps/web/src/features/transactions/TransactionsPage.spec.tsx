@@ -47,6 +47,8 @@ beforeEach(() => {
 const account = {
   id: '00000000-0000-7000-8000-0000000000d1',
   label: 'Compte courant',
+  isPrimary: true,
+  kind: 'CURRENT',
   assetCode: 'EUR',
   openedOn: '2026-01-01',
   status: 'ACTIVE',
@@ -1653,5 +1655,77 @@ describe('TransactionsPage', () => {
 
     await screen.findByText('CB FNAC 5678');
     await waitFor(() => expect(screen.getByRole('status').textContent).not.toBe(firstAnnouncement));
+  });
+});
+
+describe('primary account creation defaults', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    window.history.replaceState({}, '', '/transactions');
+  });
+
+  it.each([false, true])(
+    'uses primary=%s without falling back to the first account',
+    async (primary) => {
+      const other = {
+        ...account,
+        id: '00000000-0000-7000-8000-0000000000d2',
+        isPrimary: primary,
+        label: 'Principal',
+      };
+      api.listAccounts.mockImplementation(() =>
+        success({
+          items: [{ ...account, isPrimary: false }, other],
+          page: 1,
+          pageSize: 100,
+          total: 2,
+        }),
+      );
+      api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+      api.listCategories.mockImplementation(() =>
+        success({ items: [], page: 1, pageSize: 50, total: 0 }),
+      );
+      renderPage();
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+      );
+      const select = within(screen.getByRole('dialog')).getByRole('combobox', {
+        name: 'Compte',
+      }) as HTMLSelectElement;
+      expect(select.value).toBe(primary ? other.id : '');
+      fireEvent.change(select, { target: { value: account.id } });
+      expect(select.value).toBe(account.id);
+      fireEvent.change(select, { target: { value: '' } });
+      expect(select.value).toBe('');
+    },
+  );
+
+  it('prefers the filtered active account over the primary', async () => {
+    const other = {
+      ...account,
+      id: '00000000-0000-7000-8000-0000000000d2',
+      isPrimary: false,
+      label: 'Filtré',
+    };
+    window.history.replaceState({}, '', `/transactions?accountId=${other.id}`);
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account, other], page: 1, pageSize: 100, total: 2 }),
+    );
+    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
+    );
+    expect(
+      (
+        within(screen.getByRole('dialog')).getByRole('combobox', {
+          name: 'Compte',
+        }) as HTMLSelectElement
+      ).value,
+    ).toBe(other.id);
   });
 });

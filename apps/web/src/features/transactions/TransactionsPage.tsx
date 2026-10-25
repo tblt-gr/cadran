@@ -155,6 +155,9 @@ export function TransactionsPage() {
         <TransactionModals
           accountOptions={accountOptions}
           activeAccountOptions={activeAccountOptions}
+          defaultAccountId={
+            searchFilters.accountId.length === 1 ? searchFilters.accountId[0] : undefined
+          }
           closeEditor={closeEditor}
           closeTransferEditor={closeTransferEditor}
           closeVoiding={() => {}}

@@ -20,6 +20,8 @@ import {
 import { TransferEditor } from '@/features/transactions/transfer-editor/TransferEditor';
 import { defaultDayForMonth } from '@/features/budget/monthly-budget/budgetPeriod';
 import { useActiveBudgetAccounts } from './useActiveBudgetAccounts';
+import { budgetTransactionDefaults } from './budgetCreationDefaults';
+import { BudgetCreationSkeleton } from './BudgetCreationSkeleton';
 
 export type BudgetCreationDraft =
   /** A `null` row opens the form with no category, chosen inside the modal. */
@@ -71,7 +73,13 @@ export function BudgetCreationModals({
 
   if (!draft) return null;
 
-  if (accounts.isPending || accounts.isError) {
+  const bookedOn = defaultDayForMonth(month, today);
+
+  if (accounts.isPending) {
+    return <BudgetCreationSkeleton bookedOn={bookedOn} close={close} draft={draft} />;
+  }
+
+  if (accounts.isError) {
     return (
       <Modal
         close={close}
@@ -82,25 +90,19 @@ export function BudgetCreationModals({
             : 'transactions.form.createTitle',
         )}
       >
-        {accounts.isPending ? (
-          <p aria-live="polite">{t('budget.monthly.accountsLoading')}</p>
-        ) : (
-          <div role="alert">
-            <p>{t('budget.monthly.accountsError')}</p>
-            <button
-              className="secondary-action"
-              onClick={() => void accounts.refetch()}
-              type="button"
-            >
-              {t('foundation.retry')}
-            </button>
-          </div>
-        )}
+        <div role="alert">
+          <p>{t('budget.monthly.accountsError')}</p>
+          <button
+            className="secondary-action"
+            onClick={() => void accounts.refetch()}
+            type="button"
+          >
+            {t('foundation.retry')}
+          </button>
+        </div>
       </Modal>
     );
   }
-
-  const bookedOn = defaultDayForMonth(month, today);
 
   if (draft.kind === 'account') {
     return (
@@ -120,18 +122,7 @@ export function BudgetCreationModals({
     <TransactionEditor
       accounts={accounts.data}
       close={close}
-      defaults={{
-        bookedOn,
-        category: {
-          color: draft.row?.color ?? null,
-          icon: draft.row?.icon ?? null,
-          id: draft.row?.id ?? '',
-          label: draft.row?.label ?? '',
-          type: draft.kind === 'income' ? 'INCOME' : 'EXPENSE',
-        },
-        nature: draft.kind === 'income' ? 'INCOME' : 'EXPENSE',
-        requireAccountChoice: true,
-      }}
+      defaults={budgetTransactionDefaults(draft, bookedOn)}
       onSubmit={(body) => transaction.mutate(body as CreateTransactionRequest)}
       pending={transaction.isPending}
       submitError={transactionErrorKind(transaction.error, transaction.isError)}
