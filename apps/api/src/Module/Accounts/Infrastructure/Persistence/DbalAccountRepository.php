@@ -289,7 +289,7 @@ final readonly class DbalAccountRepository implements AccountRepository
             ['workspace_id' => $workspace->id],
         );
 
-        return false === $id ? null : (string) $id;
+        return is_string($id) ? $id : null;
     }
 
     public function update(Account $account, int $expectedVersion): bool
