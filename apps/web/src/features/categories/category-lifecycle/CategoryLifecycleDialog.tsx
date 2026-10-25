@@ -13,8 +13,12 @@ import {
   categoryErrorKind,
   categoryRequestError,
 } from '@/features/categories/categoryError';
+import { DeleteChoice, type DeleteChoiceValue } from './delete-choice/DeleteChoice';
 import { ImpactPreview } from './impact-preview/ImpactPreview';
 import styles from './CategoryLifecycleDialog.module.css';
+
+/** `DELETE` is a user-facing entry point that resolves to MERGE or ARCHIVE. */
+export type CategoryDialogOperation = CategoryLifecycleOperation | 'DELETE';
 
 export interface CategoryLifecycleConfirmation {
   effectiveFrom: string;
@@ -26,7 +30,7 @@ interface CategoryLifecycleDialogProps {
   category: Category;
   onCancel: () => void;
   onConfirm: (confirmation: CategoryLifecycleConfirmation) => void;
-  operation: CategoryLifecycleOperation;
+  operation: CategoryDialogOperation;
   pending: boolean;
   submitError: unknown;
   submitFailed: boolean;
@@ -44,7 +48,7 @@ export function CategoryLifecycleDialog({
   category,
   onCancel: _onCancel,
   onConfirm,
-  operation,
+  operation: requestedOperation,
   pending,
   submitError,
   submitFailed,
@@ -53,7 +57,16 @@ export function CategoryLifecycleDialog({
   const effectiveHintId = useId();
   const [targetId, setTargetId] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState('');
+  const [choice, setChoice] = useState<DeleteChoiceValue | null>(null);
 
+  const isDelete = requestedOperation === 'DELETE';
+  // Until "transfer" is picked, a deletion previews the archive: that preview also tells whether
+  // the category holds any history, and therefore whether a question is needed at all.
+  const operation: CategoryLifecycleOperation = isDelete
+    ? choice === 'transfer'
+      ? 'MERGE'
+      : 'ARCHIVE'
+    : requestedOperation;
   const needsTarget = operation !== 'ARCHIVE';
   const needsDate = operation === 'REPLACE';
   const movesToRoot = operation === 'MOVE' && targetId === '';
@@ -91,7 +104,12 @@ export function CategoryLifecycleDialog({
       : impact.isError
         ? 'error'
         : 'ready';
-  const confirmable = operandReady && impact.isSuccess && impact.data.allowed && !pending;
+  // The archive preview never counts classifications, so the category's own usage flag decides.
+  // A category without classified history is archived straight away: nothing to transfer or keep.
+  const unused = isDelete && !category.used;
+  const choiceMade = !isDelete || unused || choice !== null;
+  const confirmable =
+    operandReady && choiceMade && impact.isSuccess && impact.data.allowed && !pending;
 
   return (
     <form
@@ -110,7 +128,7 @@ export function CategoryLifecycleDialog({
       }}
     >
       <p className={styles.summary}>
-        {t(`categories.lifecycle.${operation}.description`, { label: category.label })}
+        {t(`categories.lifecycle.${requestedOperation}.description`, { label: category.label })}
       </p>
 
       {errorKind ? (
@@ -124,6 +142,14 @@ export function CategoryLifecycleDialog({
             </ul>
           ) : null}
         </div>
+      ) : null}
+
+      {isDelete ? (
+        unused ? (
+          <p className={styles.summary}>{t('categories.lifecycle.DELETE.unused')}</p>
+        ) : (
+          <DeleteChoice onChange={setChoice} value={choice} />
+        )
       ) : null}
 
       {needsTarget ? (
@@ -167,7 +193,7 @@ export function CategoryLifecycleDialog({
           {t(
             pending
               ? 'categories.lifecycle.confirming'
-              : `categories.lifecycle.${operation}.confirm`,
+              : `categories.lifecycle.${requestedOperation}.confirm`,
           )}
         </button>
       </div>

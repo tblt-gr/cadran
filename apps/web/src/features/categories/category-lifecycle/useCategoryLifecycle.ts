@@ -4,18 +4,22 @@ import {
   moveCategory,
   replaceCategory,
   type Category,
-  type CategoryLifecycleOperation,
 } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { CategoryRequestError, categoryRequestError } from '@/features/categories/categoryError';
-import type { CategoryLifecycleConfirmation } from './CategoryLifecycleDialog';
+import type {
+  CategoryDialogOperation,
+  CategoryLifecycleConfirmation,
+} from './CategoryLifecycleDialog';
+
+export type LifecycleOutcome = 'applied' | 'deletedKept' | 'deletedTransferred';
 
 interface LifecycleTarget {
   category: Category;
-  operation: CategoryLifecycleOperation;
+  operation: CategoryDialogOperation;
 }
 
 /**
@@ -25,7 +29,7 @@ interface LifecycleTarget {
  * opened, so a category changed elsewhere in the meantime is refused by the
  * backend instead of being reorganised against a stale preview.
  */
-export function useCategoryLifecycle(onApplied: () => void) {
+export function useCategoryLifecycle(onApplied: (outcome: LifecycleOutcome) => void) {
   const queryClient = useQueryClient();
   const [target, setTarget] = useState<LifecycleTarget | null>(null);
 
@@ -58,9 +62,12 @@ export function useCategoryLifecycle(onApplied: () => void) {
       }
       return result.data;
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, { operation }) => {
+      const deleted = target?.operation === 'DELETE';
       setTarget(null);
-      onApplied();
+      onApplied(
+        deleted ? (operation === 'MERGE' ? 'deletedTransferred' : 'deletedKept') : 'applied',
+      );
       await queryClient.invalidateQueries({ queryKey: ['categories'] });
       await queryClient.invalidateQueries({ queryKey: ['category-impact'] });
       await queryClient.invalidateQueries({ queryKey: ['category-candidates'] });
@@ -73,7 +80,7 @@ export function useCategoryLifecycle(onApplied: () => void) {
       setTarget(null);
       apply.reset();
     },
-    open: (category: Category, operation: CategoryLifecycleOperation) => {
+    open: (category: Category, operation: CategoryDialogOperation) => {
       apply.reset();
       setTarget({ category, operation });
     },

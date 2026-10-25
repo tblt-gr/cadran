@@ -1257,6 +1257,8 @@
     },
     "lifecycle": {
       "applied": "L’opération a été appliquée.",
+      "deletedKept": "Catégorie supprimée : elle n’est plus proposée, son historique reste classé dessus.",
+      "deletedTransferred": "Catégorie supprimée : son historique a été reporté sur la catégorie cible.",
       "confirming": "Application…",
       "MOVE": {
         "action": "Déplacer",
@@ -1271,7 +1273,7 @@
         "action": "Fusionner",
         "eyebrow": "Fusion",
         "title": "Fusionner la catégorie",
-        "description": "Fusionner « {{label}} » déplace ses sous-catégories vers la catégorie cible, redirige tout son historique et l’archive. Ce n’est pas une suppression.",
+        "description": "Fusionner « {{label}} » déplace ses sous-catégories vers la catégorie cible, redirige tout son historique et l’archive. Aucune écriture n’est perdue.",
         "target": "Catégorie qui reçoit l’historique",
         "confirm": "Fusionner"
       },
@@ -1289,8 +1291,25 @@
         "action": "Archiver",
         "eyebrow": "Archivage",
         "title": "Archiver la catégorie",
-        "description": "Archiver « {{label}} » la retire des choix proposés pour les nouvelles classifications. L’historique déjà classé la conserve : une catégorie n’est jamais supprimée.",
+        "description": "Archiver « {{label}} » la retire des choix proposés pour les nouvelles classifications. L’historique déjà classé la conserve : aucune écriture n’est jamais perdue.",
         "confirm": "Archiver"
+      },
+      "DELETE": {
+        "action": "Supprimer",
+        "eyebrow": "Suppression",
+        "title": "Supprimer la catégorie",
+        "description": "Supprimer « {{label}} » la retire des choix proposés. Aucun historique n’est jamais perdu : choisissez ce que deviennent les écritures déjà classées.",
+        "legend": "Écritures déjà classées dans cette catégorie",
+        "transfer": {
+          "label": "Reporter les écritures sur une autre catégorie",
+          "hint": "L’historique est redirigé vers la catégorie choisie et celle-ci est archivée."
+        },
+        "keep": {
+          "label": "Garder les écritures sur cette catégorie",
+          "hint": "La catégorie est archivée et n’est plus proposée ; son historique reste inchangé."
+        },
+        "unused": "Aucune écriture n’est classée dans cette catégorie : elle sera simplement archivée.",
+        "confirm": "Supprimer"
       },
       "impact": {
         "title": "Impact de l’opération",

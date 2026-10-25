@@ -18,7 +18,10 @@ import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { CategoryForm } from './category-form/CategoryForm';
 import { CategoryLifecycleDialog } from './category-lifecycle/CategoryLifecycleDialog';
-import { useCategoryLifecycle } from './category-lifecycle/useCategoryLifecycle';
+import {
+  useCategoryLifecycle,
+  type LifecycleOutcome,
+} from './category-lifecycle/useCategoryLifecycle';
 import { CategoryTree } from './category-tree/CategoryTree';
 import { CategoryTreeSkeleton } from './category-tree/CategoryTreeSkeleton';
 import { CategoryRequestError, categoryErrorKind, categoryRequestError } from './categoryError';
@@ -37,8 +40,8 @@ export function CategoryPage() {
   const queryClient = useQueryClient();
   const [includeArchived, setIncludeArchived] = useState(false);
   const [editor, setEditor] = useState<Editor>(null);
-  const [saved, setSaved] = useState<'applied' | 'saved' | null>(null);
-  const lifecycle = useCategoryLifecycle(() => setSaved('applied'));
+  const [saved, setSaved] = useState<LifecycleOutcome | 'saved' | null>(null);
+  const lifecycle = useCategoryLifecycle(setSaved);
 
   function openEditor(target: Exclude<Editor, null>) {
     setSaved(null);
@@ -141,7 +144,7 @@ export function CategoryPage() {
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>
-          {t(saved === 'applied' ? 'categories.lifecycle.applied' : 'categories.saved')}
+          {t(saved === 'saved' ? 'categories.saved' : `categories.lifecycle.${saved}`)}
         </Toast>
       ) : null}
 
