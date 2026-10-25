@@ -298,7 +298,7 @@ async function loaded() {
 describe('MonthlyBudgetPage', () => {
   beforeEach(() => {
     window.localStorage.removeItem('cadran.budget.showEmptyTransferAccounts');
-    window.history.replaceState({}, '', '/budget/2026-03');
+    window.history.replaceState({}, '', '/budget/2026/03');
     api.readMonthlyBounds.mockReturnValue(
       ok({ firstDataMonth: '2025-06', currentMonth: '2026-03' }),
     );
@@ -920,7 +920,7 @@ describe('MonthlyBudgetPage', () => {
   });
 
   it('preserves the selected axis in month links and ledger reads', async () => {
-    window.history.replaceState({}, '', '/budget/2026-03?axis=ESSENTIAL');
+    window.history.replaceState({}, '', '/budget/2026/03?axis=ESSENTIAL');
     api.readMonthlyLedger.mockReturnValue(ok({ ...ledger, axis: 'ESSENTIAL' as const }));
     renderPage();
     await loaded();
@@ -929,7 +929,7 @@ describe('MonthlyBudgetPage', () => {
       'ESSENTIAL',
     );
     expect(screen.getByRole('link', { name: 'Février' }).getAttribute('href')).toBe(
-      '/budget/2026-02?axis=ESSENTIAL',
+      '/budget/2026/02?axis=ESSENTIAL',
     );
     expect(api.readMonthlyLedger).toHaveBeenCalledWith(
       expect.objectContaining({ query: { axis: 'ESSENTIAL', month: '2026-03' } }),
@@ -1355,7 +1355,7 @@ describe('MonthlyBudgetPage', () => {
   });
 
   it('shows the selected axis total in the expense panel header', async () => {
-    window.history.replaceState({}, '', '/budget/2026-03?axis=ESSENTIAL');
+    window.history.replaceState({}, '', '/budget/2026/03?axis=ESSENTIAL');
     renderPage();
     await loaded();
     const panel = screen.getByRole('region', { name: 'Dépenses' });
@@ -1557,14 +1557,14 @@ describe('MonthlyBudgetPage', () => {
       api.readMonthlyBounds.mockReturnValue(
         ok({ firstDataMonth: '2023-11', currentMonth: '2026-03' }),
       );
-      window.history.replaceState({}, '', '/budget/2023-01?axis=FIXED');
+      window.history.replaceState({}, '', '/budget/2023/01?axis=FIXED');
       const events = navigationEvents();
       const length = window.history.length;
       renderPage('2023-01');
 
       await waitFor(() =>
         expect(window.location.pathname + window.location.search).toBe(
-          '/budget/2023-11?axis=FIXED',
+          '/budget/2023/11?axis=FIXED',
         ),
       );
       expect(window.history.length).toBe(length);
@@ -1580,12 +1580,12 @@ describe('MonthlyBudgetPage', () => {
       api.readMonthlyBounds.mockReturnValue(
         ok({ firstDataMonth: '2023-11', currentMonth: '2026-03' }),
       );
-      window.history.replaceState({}, '', '/budget/2024-05');
+      window.history.replaceState({}, '', '/budget/2024/05');
       const events = navigationEvents();
       renderPage('2024-05');
       await loaded();
 
-      expect(window.location.pathname).toBe('/budget/2024-05');
+      expect(window.location.pathname).toBe('/budget/2024/05');
       expect(events.listener).not.toHaveBeenCalled();
       expect(screen.getByRole('link', { name: 'Juin' })).toBeTruthy();
       events.stop();
@@ -1595,7 +1595,7 @@ describe('MonthlyBudgetPage', () => {
       api.readMonthlyBounds.mockReturnValue(
         ok({ firstDataMonth: '2023-11', currentMonth: '2026-03' }),
       );
-      window.history.replaceState({}, '', '/budget/2023-12');
+      window.history.replaceState({}, '', '/budget/2023/12');
       renderPage('2023-12');
       await loaded();
 
@@ -1609,7 +1609,7 @@ describe('MonthlyBudgetPage', () => {
 
     it('does not redirect an empty workspace and still offers the current month', async () => {
       api.readMonthlyBounds.mockReturnValue(ok({ firstDataMonth: null, currentMonth: '2026-03' }));
-      window.history.replaceState({}, '', '/budget/2026-03');
+      window.history.replaceState({}, '', '/budget/2026/03');
       const events = navigationEvents();
       renderPage('2026-03');
       await loaded();
@@ -1626,7 +1626,7 @@ describe('MonthlyBudgetPage', () => {
       cleanup();
       renderPage('2026-04');
       expect(screen.getByRole('alert').textContent).toContain('Période future');
-      expect(window.location.pathname).toBe('/budget/2026-03');
+      expect(window.location.pathname).toBe('/budget/2026/03');
     });
 
     it('disables the month controls while the bounds load and never fetches the ledger', async () => {
@@ -1643,12 +1643,12 @@ describe('MonthlyBudgetPage', () => {
       api.readMonthlyBounds.mockReturnValue(
         Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
       );
-      window.history.replaceState({}, '', '/budget/2023-01');
+      window.history.replaceState({}, '', '/budget/2023/01');
       renderPage('2023-01');
 
       fireEvent.click(await screen.findByRole('button', { name: 'Réessayer' }));
       await waitFor(() => expect(api.readMonthlyBounds).toHaveBeenCalledTimes(2));
-      expect(window.location.pathname).toBe('/budget/2023-01');
+      expect(window.location.pathname).toBe('/budget/2023/01');
       expect(api.readMonthlyLedger).not.toHaveBeenCalled();
     });
   });

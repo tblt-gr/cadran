@@ -8,6 +8,7 @@ import { formatCalendarDay } from '@/lib/decimal';
 import { formatFigure } from './formatFigure';
 import { formatGoalMonth } from '@/features/goals/goalMonth';
 import styles from './EmergencyFund.module.css';
+import { monthHref } from '@/features/budget/monthly-budget/budgetPeriod';
 
 interface Props {
   close: () => void;
@@ -109,9 +110,9 @@ export function EmergencyFundExplainModal({ close, coverage }: Props) {
                     <tr key={month.month}>
                       <th scope="row">
                         <a
-                          href={`/budget/${month.month}`}
+                          href={monthHref(month.month, null)}
                           onClick={(event) =>
-                            handleClientNavigation(event, `/budget/${month.month}`)
+                            handleClientNavigation(event, monthHref(month.month, null))
                           }
                         >
                           {formatGoalMonth(month.month, i18n.language)}

@@ -6,12 +6,14 @@ import {
   HeaderTitleProvider,
   useHeaderTitleValue,
 } from '@/components/layout/header/HeaderTitleContext';
+import { multiYearReport } from '@/features/reports/multi-year/multiYearFixtures';
 import { annualPreferences, annualReport } from './annualFixtures';
-import { AnnualReportPage } from './AnnualReportPage';
+import { BudgetYearPage } from '@/features/budget/year/BudgetYearPage';
 
 const api = vi.hoisted(() => ({
   readAnnualReport: vi.fn(),
   readMultiYearReport: vi.fn(),
+  readMonthlyBounds: vi.fn(),
   readAnnualReportPreferences: vi.fn(),
   saveAnnualReportPreferences: vi.fn(),
   explainAnnualReportColumn: vi.fn(),
@@ -35,13 +37,14 @@ function HeaderTitleProbe({ path }: { path: string }) {
 }
 
 function renderPage(year = 2026) {
+  window.history.replaceState({}, '', `/budget/${year}`);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
     ...render(
       <QueryClientProvider client={client}>
         <HeaderTitleProvider>
-          <AnnualReportPage today="2026-09-24" year={year} />
-          <HeaderTitleProbe path={`/reports/annual/${year}`} />
+          <BudgetYearPage today="2026-09-24" year={year} />
+          <HeaderTitleProbe path={`/budget/${year}`} />
         </HeaderTitleProvider>
       </QueryClientProvider>,
     ),
@@ -50,6 +53,9 @@ function renderPage(year = 2026) {
 }
 
 beforeEach(() => {
+  api.readMonthlyBounds.mockResolvedValue(
+    ok({ firstDataMonth: '2024-01', currentMonth: '2026-09', timezone: 'Europe/Paris' }),
+  );
   api.readAnnualReport.mockResolvedValue(ok(annualReport));
   api.readMultiYearReport.mockResolvedValue(ok({ availableFrom: 2024, from: 2024, to: 2026 }));
   api.readAnnualReportPreferences.mockResolvedValue(ok(annualPreferences));
@@ -89,26 +95,58 @@ describe('AnnualReportPage', () => {
     expect(screen.queryByTestId('annual-report-skeleton')).toBeNull();
   });
 
-  it('lists every year from the current year down to the first data year, newest first', async () => {
+  it('keeps the budget navigation on the annual view, with the annual report as the current page', async () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport annuel 2026/i });
     expect(screen.getByTestId('header-title').textContent).toBe('Rapport annuel 2026');
-    const nav = screen.getByRole('navigation', { name: 'Année' });
-    const links = within(nav).getAllByRole('link');
-    expect(links.map((link) => link.textContent)).toEqual(['2026', '2025', '2024']);
-    expect(links[1]?.getAttribute('href')).toBe('/reports/annual/2025');
+    const year = screen.getByRole('combobox', { name: 'Année' }) as HTMLSelectElement;
+    expect(year.value).toBe('2026');
+    expect(Array.from(year.options).map((option) => option.value)).toEqual([
+      '2026',
+      '2025',
+      '2024',
+    ]);
+    const nav = screen.getByRole('navigation', { name: 'Mois du budget' });
+    const annual = within(nav).getByRole('link', { name: 'Rapport annuel' });
+    expect(annual.getAttribute('aria-current')).toBe('page');
+    expect(annual.getAttribute('href')).toBe('/budget/2026');
+    expect(within(nav).getByRole('link', { name: 'Janvier' }).getAttribute('href')).toBe(
+      '/budget/2026/01',
+    );
+    expect(within(nav).queryByRole('link', { current: 'page', name: 'Janvier' })).toBeNull();
   });
 
-  it('marks the selected year as the current page and the current year distinctly', async () => {
+  it('keeps the selected past year on the annual view and navigates to another year', async () => {
     renderPage(2025);
     await screen.findByRole('table', { name: /rapport annuel/i });
     expect(screen.getByTestId('header-title').textContent).toBe('Rapport annuel 2025');
-    const selected = screen.getByRole('link', { name: '2025' });
-    expect(selected.getAttribute('aria-current')).toBe('page');
-    const current = screen.getByRole('link', { name: '2026' });
-    expect(current.getAttribute('aria-current')).toBeNull();
-    expect(current.getAttribute('data-current')).toBe('true');
-    expect(screen.getByRole('link', { name: '2024' }).hasAttribute('data-current')).toBe(false);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Année' }), {
+      target: { value: '2024' },
+    });
+    expect(window.location.pathname).toBe('/budget/2024');
+  });
+
+  it('switches to the multi-year view through the query string and back', async () => {
+    api.readMultiYearReport.mockResolvedValue(ok(multiYearReport));
+    renderPage();
+    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    fireEvent.click(screen.getByRole('button', { name: 'Pluriannuel' }));
+    expect(window.location.pathname + window.location.search).toBe('/budget/2026?view=multi');
+    expect(await screen.findByRole('table', { name: /pluriannuel/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Annuel' }));
+    expect(window.location.search).toBe('');
+    expect(await screen.findByRole('table', { name: /rapport annuel 2026/i })).toBeTruthy();
+  });
+
+  it('disables the multi-year view while the workspace has a single year of data', async () => {
+    api.readMultiYearReport.mockResolvedValue(ok({ availableFrom: 2026, from: 2026, to: 2026 }));
+    renderPage();
+    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: 'Pluriannuel' }) as HTMLButtonElement).disabled,
+      ).toBe(true),
+    );
   });
 
   it('renders exact amounts and rates, and a dash with a hidden reason for empty cells', async () => {
@@ -138,11 +176,9 @@ describe('AnnualReportPage', () => {
     const table = await screen.findByRole('table', { name: /rapport annuel 2026/i });
     const tableLinks = within(table).getAllByRole('link');
     expect(tableLinks.length).toBeGreaterThan(0);
-    expect(tableLinks[0]!.getAttribute('href')).toBe('/reports?month=2026-01');
+    expect(tableLinks[0]!.getAttribute('href')).toBe('/budget/2026/01');
     const cards = screen.getByRole('list', { name: /mois de 2026/i });
-    expect(within(cards).getAllByRole('link')[0]!.getAttribute('href')).toBe(
-      '/reports?month=2026-01',
-    );
+    expect(within(cards).getAllByRole('link')[0]!.getAttribute('href')).toBe('/budget/2026/01');
   });
 
   it('shows no info button beside a value that is not calculable', async () => {

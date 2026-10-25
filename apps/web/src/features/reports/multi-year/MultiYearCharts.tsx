@@ -14,6 +14,7 @@ import {
 import { scaleForGeometry, prefersReducedMotion } from '@/features/reports/annual/chartGeometry';
 import { formatAnnualValue } from '@/features/reports/annual/annualFormat';
 import { monthLabel } from '@/features/reports/annual/annualRowLabels';
+import { formatMonthLabel } from '@/lib/monthLabel';
 import styles from './MultiYearCharts.module.css';
 
 const FLOW_SERIES_IDS = ['cashIncome', 'budgetExpenses', 'budgetSurplus'] as const;
@@ -116,14 +117,17 @@ function MultiYearFlowsChart({ annualReports, report }: MultiYearChartsProps) {
       (item) => ('month' in item ? item.month : String(item.year)) === label,
     );
     if (!entry) return [];
-    return FLOW_SERIES_IDS.map((id) => {
-      const cell = 'month' in entry ? entry[id] : entry.cells[id];
-      const text =
-        cell?.value == null
-          ? t('reports.annual.notCalculable')
-          : formatAnnualValue(cell.value, 'FLOW', assetCode, i18n.language);
-      return `${t(`reports.annual.indicators.${id}`)} : ${text}`;
-    });
+    return [
+      'month' in entry ? formatMonthLabel(entry.month, i18n.language) : String(entry.year),
+      ...FLOW_SERIES_IDS.map((id) => {
+        const cell = 'month' in entry ? entry[id] : entry.cells[id];
+        const text =
+          cell?.value == null
+            ? t('reports.annual.notCalculable')
+            : formatAnnualValue(cell.value, 'FLOW', assetCode, i18n.language);
+        return `${t(`reports.annual.indicators.${id}`)} : ${text}`;
+      }),
+    ];
   };
 
   return (

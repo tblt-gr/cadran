@@ -22,7 +22,7 @@ export function MultiYearCards({ report }: MultiYearCardsProps) {
   return (
     <ul aria-label={t('reports.multiYear.cardsLabel')} className={styles.list}>
       {report.years.map((year) => {
-        const href = `/reports/annual/${year.year}`;
+        const href = `/budget/${year.year}`;
         const notes = multiYearYearNotes(year);
 
         return (

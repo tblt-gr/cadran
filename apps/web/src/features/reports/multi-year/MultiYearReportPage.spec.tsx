@@ -8,11 +8,12 @@ import {
 } from '@/components/layout/header/HeaderTitleContext';
 import { annualReport } from '@/features/reports/annual/annualFixtures';
 import { multiYearReport } from './multiYearFixtures';
-import { MultiYearReportPage } from './MultiYearReportPage';
+import { BudgetYearPage } from '@/features/budget/year/BudgetYearPage';
 
 const api = vi.hoisted(() => ({
   readAnnualReport: vi.fn(),
   readMultiYearReport: vi.fn(),
+  readMonthlyBounds: vi.fn(),
   readAnnualReportPreferences: vi.fn(),
   saveAnnualReportPreferences: vi.fn(),
 }));
@@ -31,14 +32,15 @@ function HeaderTitleProbe({ path }: { path: string }) {
   return <span data-testid="header-title">{useHeaderTitleValue(path)}</span>;
 }
 
-function renderPage() {
+function renderPage(search = '?view=multi') {
+  window.history.replaceState({}, '', `/budget/2026${search}`);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
     ...render(
       <QueryClientProvider client={client}>
         <HeaderTitleProvider>
-          <MultiYearReportPage today="2026-09-24" />
-          <HeaderTitleProbe path="/reports/all-years" />
+          <BudgetYearPage today="2026-09-24" year={2026} />
+          <HeaderTitleProbe path="/budget/2026" />
         </HeaderTitleProvider>
       </QueryClientProvider>,
     ),
@@ -47,6 +49,9 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  api.readMonthlyBounds.mockResolvedValue(
+    ok({ firstDataMonth: '2022-01', currentMonth: '2026-09', timezone: 'Europe/Paris' }),
+  );
   api.readMultiYearReport.mockResolvedValue(ok(multiYearReport));
   api.readAnnualReport.mockResolvedValue(ok(annualReport));
   api.readAnnualReportPreferences.mockResolvedValue(
@@ -137,9 +142,9 @@ describe('MultiYearReportPage', () => {
     const links = within(table).getAllByRole('link');
     expect(links.map((link) => link.textContent)).toEqual(['2024', '2025', '2026']);
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      '/reports/annual/2024',
-      '/reports/annual/2025',
-      '/reports/annual/2026',
+      '/budget/2024',
+      '/budget/2025',
+      '/budget/2026',
     ]);
     for (const link of links) {
       link.focus();
@@ -292,14 +297,14 @@ describe('MultiYearReportPage', () => {
     expect(await screen.findByRole('table', { name: /pluriannuel/i })).toBeTruthy();
   });
 
-  it('keeps report tabs present while the detailed annual reports are loading', async () => {
+  it('keeps the view switch present while the detailed annual reports are loading', async () => {
     api.readAnnualReport.mockReturnValue(new Promise(() => undefined));
     renderPage();
     await screen.findByRole('table', { name: /pluriannuel/i });
 
     fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
 
-    expect(screen.getByRole('navigation', { name: /type de rapport/i })).toBeTruthy();
+    expect(screen.getByRole('group', { name: /type de rapport/i })).toBeTruthy();
     expect((await screen.findAllByRole('status')).length).toBe(1);
     expect(screen.getByTestId('detailed-reports-skeleton').getAttribute('aria-busy')).toBe('true');
   });

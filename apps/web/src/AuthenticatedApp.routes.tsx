@@ -4,6 +4,11 @@ import { BudgetRouteRedirect } from '@/features/budget/monthly-budget/BudgetRout
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { lazyComponent } from '@/lib/lazyComponent';
 import { workspaceToday } from '@/lib/workspaceTime';
+import {
+  annualHref,
+  monthHref,
+  resolveBudgetMonthRoute,
+} from '@/features/budget/monthly-budget/budgetPeriod';
 
 /** Not a route entry: the root path depends on the foundation probe and is rendered by AuthenticatedApp. */
 export const DashboardPage = lazyComponent(
@@ -59,13 +64,9 @@ const MonthlyBudgetPage = lazyComponent(
   () => import('@/features/budget/monthly-budget/MonthlyBudgetPage'),
   'MonthlyBudgetPage',
 );
-const AnnualReportPage = lazyComponent(
-  () => import('@/features/reports/annual/AnnualReportPage'),
-  'AnnualReportPage',
-);
-const MultiYearReportPage = lazyComponent(
-  () => import('@/features/reports/multi-year/MultiYearReportPage'),
-  'MultiYearReportPage',
+const BudgetYearPage = lazyComponent(
+  () => import('@/features/budget/year/BudgetYearPage'),
+  'BudgetYearPage',
 );
 const GoalsPage = lazyComponent(() => import('@/features/goals/GoalsPage'), 'GoalsPage');
 const InstrumentsPage = lazyComponent(
@@ -80,7 +81,6 @@ const PortfolioAccountPage = lazyComponent(
   () => import('@/features/portfolio/portfolio-account/PortfolioAccountPage'),
   'PortfolioAccountPage',
 );
-const ReportsPage = lazyComponent(() => import('@/features/reports/ReportsPage'), 'ReportsPage');
 
 const BUDGET_PLAN_UUID_PATTERN =
   '[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
@@ -204,7 +204,7 @@ export function buildAuthenticatedRoutes(
       redirect: true,
       render: () => (
         <BudgetRouteRedirect
-          href={`/budget/${workspaceToday(new Date(), workspaceTimeZone).slice(0, 7)}`}
+          href={monthHref(workspaceToday(new Date(), workspaceTimeZone).slice(0, 7), null)}
         />
       ),
     },
@@ -214,29 +214,21 @@ export function buildAuthenticatedRoutes(
       preload: BudgetPage.preload,
       render: (match) => <BudgetPage planId={match[1]} />,
     },
-    { pattern: /^\/reports$/, preload: ReportsPage.preload, render: () => <ReportsPage /> },
     { pattern: /^\/goals$/, preload: GoalsPage.preload, render: () => <GoalsPage /> },
     {
-      pattern: /^\/reports\/annual\/([^/]+)$/,
-      preload: AnnualReportPage.preload,
+      pattern: /^\/budget\/(\d{4})$/,
+      preload: BudgetYearPage.preload,
       render: (match) => {
         const today = workspaceToday(new Date(), workspaceTimeZone);
         const currentYear = Number(today.slice(0, 4));
-        const year = /^\d{4}$/.test(match[1]!) ? Number(match[1]) : Number.NaN;
-        // An unknown year (not a year, before 1900 or in the future) is not an error
-        // worth showing: land on the current year instead of the 422 state.
+        const year = Number(match[1]);
+        // An unknown year (before 1900 or in the future) is not an error worth showing:
+        // land on the current year instead of the 422 state.
         if (!(year >= 1900 && year <= currentYear)) {
-          return (
-            <RouteRedirect statusKey="reports.loading" to={`/reports/annual/${currentYear}`} />
-          );
+          return <RouteRedirect statusKey="reports.loading" to={annualHref(currentYear)} />;
         }
-        return <AnnualReportPage today={today} year={year} />;
+        return <BudgetYearPage today={today} year={year} />;
       },
-    },
-    {
-      pattern: /^\/reports\/all-years$/,
-      preload: MultiYearReportPage.preload,
-      render: () => <MultiYearReportPage today={workspaceToday(new Date(), workspaceTimeZone)} />,
     },
     {
       pattern: new RegExp(`^/budget/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),
@@ -244,9 +236,17 @@ export function buildAuthenticatedRoutes(
       render: (match) => <BudgetRouteRedirect href={`/budget/plans/${match[1]}`} />,
     },
     {
-      pattern: /^\/budget\/([^/]+)$/,
+      pattern: /^\/budget\/(\d{4})\/(-?\d+)$/,
       preload: MonthlyBudgetPage.preload,
-      render: (match) => <MonthlyBudgetPage periodKey={match[1]!} />,
+      render: (match) => {
+        const today = workspaceToday(new Date(), workspaceTimeZone);
+        const resolved = resolveBudgetMonthRoute(match[1]!, match[2]!, today);
+        return resolved.kind === 'redirect' ? (
+          <BudgetRouteRedirect href={resolved.href} />
+        ) : (
+          <MonthlyBudgetPage periodKey={resolved.periodKey} />
+        );
+      },
     },
     {
       pattern: /^\/parameters\/profile$/,

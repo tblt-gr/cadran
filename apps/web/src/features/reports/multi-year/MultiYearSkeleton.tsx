@@ -6,7 +6,6 @@ import {
   SkeletonStatus,
   SkeletonText,
 } from '@/components/ui/skeleton/Skeleton';
-import { AnnualTableActions } from '@/features/reports/annual/AnnualTableActions';
 import { ChartFrame } from '@/features/reports/annual/ChartFrame';
 import chartStyles from './MultiYearCharts.module.css';
 import { MULTI_YEAR_SUMMARY_ROW_IDS } from './multiYearSummary';
@@ -64,12 +63,6 @@ export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps
           to={range?.to ?? currentYear}
         />
       </fieldset>
-      <AnnualTableActions
-        includeIncomplete={false}
-        onOpenColumns={noop}
-        onToggleIncomplete={noop}
-        saving
-      />
       <section aria-hidden="true" className={`card ${tableStyles.wrap}`}>
         <header className={tableStyles.header}>
           <h2 className={tableStyles.title}>

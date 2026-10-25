@@ -40,10 +40,8 @@ export function MultiYearTable({ report }: MultiYearTableProps) {
               <tr className={year.state === 'NO_DATA' ? styles.dimmed : undefined} key={year.year}>
                 <th scope="row">
                   <a
-                    href={`/reports/annual/${year.year}`}
-                    onClick={(event) =>
-                      handleClientNavigation(event, `/reports/annual/${year.year}`)
-                    }
+                    href={`/budget/${year.year}`}
+                    onClick={(event) => handleClientNavigation(event, `/budget/${year.year}`)}
                   >
                     {year.year}
                   </a>

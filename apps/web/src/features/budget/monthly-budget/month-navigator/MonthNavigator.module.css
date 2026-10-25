@@ -85,3 +85,14 @@
   color: var(--text-secondary);
   font-size: var(--font-size-label);
 }
+
+.tabs .annual {
+  margin-inline-start: var(--spacing-2);
+  border: var(--border-none);
+  background: var(--color-transparent);
+}
+
+.tabs a.annual:hover,
+.tabs a.annual:focus-visible {
+  background: var(--color-transparent);
+}

@@ -16,7 +16,7 @@ const gates = vi.hoisted(() => {
     accounts: createGate(),
     goals: createGate(),
     portfolios: createGate(),
-    reports: createGate(),
+    budget: createGate(),
     transactions: createGate(),
   };
 });
@@ -26,9 +26,9 @@ vi.mock('@/features/goals/GoalsPage', async () => {
   await gates.goals.opened;
   return { GoalsPage: () => <p>Contenu des objectifs</p> };
 });
-vi.mock('@/features/reports/ReportsPage', async () => {
-  await gates.reports.opened;
-  return { ReportsPage: () => <p>Contenu des rapports</p> };
+vi.mock('@/features/budget/monthly-budget/MonthlyBudgetPage', async () => {
+  await gates.budget.opened;
+  return { MonthlyBudgetPage: () => <p>Contenu du budget</p> };
 });
 vi.mock('@/features/transactions/TransactionsPage', async () => {
   await gates.transactions.opened;
@@ -145,18 +145,18 @@ describe('AuthenticatedApp lazy navigation', () => {
   });
 
   it('shows the shell with the real route title while an initial page chunk is pending', async () => {
-    window.history.replaceState({}, '', '/reports');
+    window.history.replaceState({}, '', '/budget/2020/03');
     renderApp();
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Rapports' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Budget' })).toBeTruthy();
     expect(screen.getByRole('navigation', { name: 'Navigation principale' })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toBe('Chargement de la page…');
 
     await act(async () => {
-      gates.reports.open();
+      gates.budget.open();
     });
 
-    await screen.findByText('Contenu des rapports');
+    await screen.findByText('Contenu du budget');
     expect(screen.queryByRole('status')).toBeNull();
   });
 

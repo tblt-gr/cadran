@@ -30,7 +30,6 @@ describe('AppShell', () => {
       'Comptes',
       'Investissements',
       'Budget',
-      'Rapports',
       'Objectifs',
       'Transactions',
       'Paramètres',
@@ -56,7 +55,7 @@ describe('AppShell', () => {
     expect(labels(mobile)).toEqual(['Synthèse', 'Comptes', 'Budget', 'Transactions']);
     fireEvent.click(within(mobile).getByRole('button', { name: 'Plus' }));
     const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
-    expect(labels(sheet)).toEqual(['Investissements', 'Rapports', 'Objectifs', 'Paramètres']);
+    expect(labels(sheet)).toEqual(['Investissements', 'Objectifs', 'Paramètres']);
   });
 
   it.each([
@@ -80,7 +79,6 @@ describe('AppShell', () => {
       '/accounts',
       '/portfolios',
       '/budget',
-      '/reports',
       '/goals',
       '/transactions',
       '/parameters/profile',
@@ -155,8 +153,8 @@ describe('AppShell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Plus' }));
     const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
-    fireEvent.pointerEnter(within(sheet).getByRole('link', { name: 'Rapports' }));
-    expect(onNavigationIntent).toHaveBeenLastCalledWith('/reports');
+    fireEvent.pointerEnter(within(sheet).getByRole('link', { name: 'Paramètres' }));
+    expect(onNavigationIntent).toHaveBeenLastCalledWith('/parameters/profile');
   });
 
   it('marks the content busy only while navigating', () => {

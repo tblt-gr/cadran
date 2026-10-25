@@ -1,17 +1,8 @@
 import type { AnnualReport } from '@cadran/api-client';
 import { Suspense, useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Toast } from '@/components/ui/toast/Toast';
 import { lazyComponent } from '@/lib/lazyComponent';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
-import { ReportsTabs } from '@/features/reports/ReportsTabs';
-import { AnnualTableActions } from '@/features/reports/annual/AnnualTableActions';
-import { ColumnPickerModal } from '@/features/reports/annual/ColumnPickerModal';
-import {
-  AnnualRequestError,
-  useAnnualReportPreferences,
-  useSaveAnnualReportPreferences,
-} from '@/features/reports/annual/useAnnualReport';
 import { MultiYearCards } from './MultiYearCards';
 import { DetailedAnnualReports } from './DetailedAnnualReports';
 import { MultiYearChartsSkeleton, MultiYearSkeleton } from './MultiYearSkeleton';
@@ -24,38 +15,28 @@ import styles from './MultiYearReportPage.module.css';
 const MultiYearCharts = lazyComponent(() => import('./MultiYearCharts'), 'MultiYearCharts');
 
 interface MultiYearReportPageProps {
-  /** Workspace-local date, `YYYY-MM-DD`. */
-  today: string;
+  /** Workspace-local year, the upper bound of the range. */
+  currentYear: number;
+  display: MultiYearDisplayMode;
+  onDisplayChange: (display: MultiYearDisplayMode) => void;
+  onRangeChange: (range: { from: number; to: number }) => void;
+  /** Requested range from the URL; null lets the backend apply its own default bounds. */
+  range: { from: number; to: number } | null;
+  /** Year of the route, which keys the header title. */
+  year: number;
 }
 
-export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
+export function MultiYearReportPage({
+  currentYear,
+  display,
+  onDisplayChange,
+  onRangeChange,
+  range,
+  year,
+}: MultiYearReportPageProps) {
   const { t } = useTranslation();
-  const currentYear = Number(today.slice(0, 4));
-  const [range, setRange] = useState<{ from: number; to: number } | null>(null);
-  const [display, setDisplay] = useState<MultiYearDisplayMode>('compact');
   const [detailedReports, setDetailedReports] = useState<AnnualReport[] | null>(null);
-  const preferences = useAnnualReportPreferences();
-  const save = useSaveAnnualReportPreferences();
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
-  function toggleIncomplete() {
-    if (!preferences.data) return;
-    save.mutate(
-      {
-        columns: preferences.data.columns,
-        incompleteMonths: preferences.data.incompleteMonths === 'include' ? 'exclude' : 'include',
-        version: preferences.data.version,
-      },
-      {
-        onError: (error) => {
-          if (error instanceof AnnualRequestError && error.status === 409) {
-            setNotice(t('reports.annual.conflict'));
-          }
-        },
-      },
-    );
-  }
   const setReportsReady = useCallback((reports: AnnualReport[] | null) => {
     setDetailedReports((current) =>
       current !== null &&
@@ -86,7 +67,7 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
       : effectiveRange.from === effectiveRange.to
         ? `${t('reports.multiYear.title')} ${effectiveRange.from}`
         : t('reports.multiYear.caption', { from: effectiveRange.from, to: effectiveRange.to });
-  useHeaderTitle('/reports/all-years', title);
+  useHeaderTitle(`/budget/${year}`, title);
 
   let content: ReactNode;
   if (report.isPending) {
@@ -117,7 +98,7 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
         minYear={boundsForRangeError!.availableFrom ?? boundsForRangeError!.from}
         onChange={(nextRange) => {
           setDetailedReports(null);
-          setRange(nextRange);
+          onRangeChange(nextRange);
         }}
         to={range?.to ?? boundsForRangeError!.to}
       />
@@ -138,19 +119,13 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
           minYear={bounds.data?.availableFrom ?? report.data.availableFrom ?? report.data.from}
           onChange={(nextRange) => {
             setDetailedReports(null);
-            setRange(nextRange);
+            onRangeChange(nextRange);
           }}
           onDisplayChange={(next) => {
             setDetailedReports(null);
-            setDisplay(next);
+            onDisplayChange(next);
           }}
           to={range?.to ?? report.data.to}
-        />
-        <AnnualTableActions
-          includeIncomplete={preferences.data?.incompleteMonths === 'include'}
-          onOpenColumns={() => setPickerOpen(true)}
-          onToggleIncomplete={toggleIncomplete}
-          saving={save.isPending || !preferences.data}
         />
         {display === 'compact' ? (
           <>
@@ -174,18 +149,5 @@ export function MultiYearReportPage({ today }: MultiYearReportPageProps) {
     );
   }
 
-  return (
-    <div className={styles.page}>
-      <ReportsTabs active="allYears" currentYear={currentYear} />
-      {content}
-      {pickerOpen && preferences.data ? (
-        <ColumnPickerModal
-          close={() => setPickerOpen(false)}
-          onConflict={() => setNotice(t('reports.annual.conflict'))}
-          preferences={preferences.data}
-        />
-      ) : null}
-      {notice ? <Toast onDismiss={() => setNotice(null)}>{notice}</Toast> : null}
-    </div>
-  );
+  return <div className={styles.page}>{content}</div>;
 }

@@ -1,4 +1,5 @@
 import type { AnnualAggregate } from '@cadran/api-client';
+import { monthHref } from '@/features/budget/monthly-budget/budgetPeriod';
 
 export const MAX_ANNUAL_COLUMNS = 40;
 
@@ -73,8 +74,7 @@ export function summaryFigure(aggregate: AnnualAggregate, row: SummaryRowId): Su
 }
 
 /**
- * Where a monthly cell's figure comes from: the monthly KPI report for an indicator or a group,
- * the month's budget for a category or an axis, the account detail for an account.
+ * Where a monthly cell's figure comes from: the month's budget for an indicator, a group, a category or an axis, the account detail for an account.
  */
 export function annualCellHref(columnId: string, month: string): string {
   const [type, reference = ''] = columnId.split(':', 2);
@@ -82,10 +82,8 @@ export function annualCellHref(columnId: string, month: string): string {
     case 'account':
       return `/accounts/${encodeURIComponent(reference)}`;
     case 'axis':
-      return `/budget/${month}?axis=${encodeURIComponent(reference)}`;
-    case 'category':
-      return `/budget/${month}`;
+      return `${monthHref(month, null)}?axis=${encodeURIComponent(reference)}`;
     default:
-      return `/reports?month=${month}`;
+      return monthHref(month, null);
   }
 }

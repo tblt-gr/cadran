@@ -131,7 +131,7 @@ test('dashboard and report charts retain readable data equivalents', async ({ pa
   const allocation = page.getByRole('region', { name: 'Allocation', exact: true });
   await expect(allocation.getByRole('list')).toBeVisible();
   expect(await allocation.getByRole('listitem').count()).toBeGreaterThan(0);
-  for (const route of ['annual', '/reports/all-years']) {
+  for (const route of ['annual', 'multi-year']) {
     await page.goto(routePath(route, fixtures));
     await settled(page);
     const disclosures = page

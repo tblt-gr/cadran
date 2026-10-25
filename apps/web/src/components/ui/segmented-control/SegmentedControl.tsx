@@ -6,7 +6,7 @@ interface SegmentedControlProps<T extends string> {
   label: string;
   disabled?: boolean;
   onChange: (value: T) => void;
-  options: readonly { value: T; label: string; description?: string }[];
+  options: readonly { value: T; label: string; description?: string; disabled?: boolean }[];
   value: T;
 }
 
@@ -29,7 +29,7 @@ export function SegmentedControl<T extends string>({
               aria-describedby={option.description ? descriptionId : undefined}
               aria-pressed={value === option.value}
               className={styles.segment}
-              disabled={disabled}
+              disabled={disabled || option.disabled}
               onClick={() => onChange(option.value)}
               title={option.description}
               type="button"

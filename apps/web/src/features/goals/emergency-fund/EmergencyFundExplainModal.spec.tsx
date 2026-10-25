@@ -55,7 +55,7 @@ describe('EmergencyFundExplainModal', () => {
     expect(screen.getByText('Utilisé')).toBeTruthy();
     expect(screen.getByText(/6 \/ 12 mois utilisés/)).toBeTruthy();
     expect(screen.getByRole('link', { name: /juillet 2025/i }).getAttribute('href')).toBe(
-      '/budget/2025-07',
+      '/budget/2025/07',
     );
   });
 });
