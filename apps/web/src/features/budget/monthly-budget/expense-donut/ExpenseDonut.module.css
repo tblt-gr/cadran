@@ -1,0 +1,82 @@
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-width: 0;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+}
+
+.card h3 {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-card);
+}
+
+.description,
+.state {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  min-width: 0;
+  gap: var(--spacing-6);
+}
+
+.link {
+  display: inline-flex;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.plotSkeleton {
+  min-width: 0;
+  height: var(--chart-plot-height-donut);
+}
+
+.plotSkeleton > * {
+  height: 100%;
+}
+
+.labelSkeleton {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 2);
+  max-width: 70%;
+  height: var(--font-size-body);
+}
+
+.shareSkeleton {
+  display: inline-block;
+  width: var(--spacing-12);
+  height: var(--font-size-sm);
+}
+
+.amountSkeleton {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-card-title);
+}
+
+@media (max-width: 42rem) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-4);
+  }
+}

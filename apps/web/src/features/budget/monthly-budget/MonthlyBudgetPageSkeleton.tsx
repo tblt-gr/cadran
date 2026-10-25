@@ -8,6 +8,7 @@ import ledgerStyles from './ledger-panels/LedgerPanels.module.css';
 import panelStyles from './ledger-panel/LedgerPanel.module.css';
 import rowStyles from './ledger-row/LedgerRow.module.css';
 import { LedgerPanelHeader } from './ledger-panel/LedgerPanelHeader';
+import { ExpenseDonut } from './expense-donut/ExpenseDonut';
 import { MonthlyRecapPlaceholder } from './monthly-recap/MonthlyRecapSkeleton';
 
 type PanelKind = 'income' | 'expense' | 'account';
@@ -80,6 +81,7 @@ export function MonthlyBudgetPageSkeleton({
           <LedgerPanelSkeleton axis={axis} kind="account" />
         </div>
       </div>
+      <ExpenseDonut axis={axis} period={{ from: '', to: '' }} rows={null} />
       <MonthlyRecapPlaceholder />
     </div>
   );
