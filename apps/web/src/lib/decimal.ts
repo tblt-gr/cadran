@@ -315,6 +315,25 @@ export function decimalRatioForGeometry(numerator: string, denominator: string):
 }
 
 /**
+ * Exact share of a part in a positive whole, truncated (never rounded) to `scale`
+ * decimal places: `decimalRatio('1', '3', 4)` is `0.3333`. The result is a canonical
+ * decimal string for `formatRatioPercentage`, never a `Number`.
+ */
+export function decimalRatio(numerator: string, denominator: string, scale: number): string {
+  const top = parseDecimal(numerator);
+  const bottom = parseDecimal(denominator);
+  if (bottom.coefficient <= 0n) {
+    throw new Error('A ratio expects a positive denominator');
+  }
+
+  const scaled =
+    (top.coefficient * 10n ** BigInt(bottom.scale + scale)) /
+    (bottom.coefficient * 10n ** BigInt(top.scale));
+
+  return canonicalFrom(scaled, scale);
+}
+
+/**
  * Orders two canonical unsigned decimals (`123`, `0`, `4.50`) without ever
  * reading them as a `Number`. Digits alone decide the order: the integer part
  * compares by length then lexicographically, since a canonical integer part

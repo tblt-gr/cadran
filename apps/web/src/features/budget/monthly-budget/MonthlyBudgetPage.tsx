@@ -16,6 +16,7 @@ import {
   BudgetCreationModals,
   type BudgetCreationDraft,
 } from './budget-creation-modals/BudgetCreationModals';
+import { ExpenseDonut } from './expense-donut/ExpenseDonut';
 import { LedgerPanels } from './ledger-panels/LedgerPanels';
 import { useBoundedMonth } from './useBoundedMonth';
 import { formatMonthLabel } from '@/lib/monthLabel';
@@ -206,6 +207,11 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
             onAxisChange={changeAxis}
             onDraft={setDraft}
             onEditTransaction={setEditingTransactionId}
+          />
+          <ExpenseDonut
+            axis={axis}
+            period={{ from: ledger.data.periodStart, to: ledger.data.periodEnd }}
+            rows={ledger.isPlaceholderData ? null : ledger.data.expenseCategories}
           />
           <MonthlyRecap month={month} />
         </div>

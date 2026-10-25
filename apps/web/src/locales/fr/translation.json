@@ -2976,6 +2976,17 @@
         "expense": "Total des dépenses",
         "account": "Total net des virements"
       },
+      "expenseDonut": {
+        "title": "Répartition des dépenses",
+        "description": "Dépenses du mois par catégorie du budget, remboursements déduits.",
+        "chart": "Répartition des dépenses du mois par catégorie",
+        "legend": "Dépenses du mois par catégorie",
+        "empty": "Aucune dépense dans le budget ce mois-ci.",
+        "mixedAssets": "Des dépenses utilisent des actifs différents : aucune répartition n’est calculée.",
+        "other_one": "Autres ({{count}} catégorie)",
+        "other_other": "Autres ({{count}} catégories)",
+        "showTransactions": "Afficher les transactions de {{label}}"
+      },
       "loading": "Chargement du budget mensuel…",
       "empty": "Aucune ligne active pour ce mois.",
       "totalLoading": "Chargement du total…",

@@ -4,6 +4,7 @@ import {
   addDecimals,
   compareDecimals,
   compareUnsignedDecimals,
+  decimalRatio,
   formatAmount,
   formatCalendarDay,
   formatCalendarNumericDay,
@@ -232,5 +233,22 @@ describe('roundDecimal', () => {
     expect(roundDecimal('99999999999999999999999999.999', 2)).toBe(
       '100000000000000000000000000.00',
     );
+  });
+});
+
+describe('decimalRatio', () => {
+  it('truncates an exact share to the requested scale', () => {
+    expect(decimalRatio('1', '3', 4)).toBe('0.3333');
+    expect(decimalRatio('2', '3', 4)).toBe('0.6666');
+    expect(decimalRatio('12.50', '50', 6)).toBe('0.250000');
+    expect(decimalRatio('0', '50', 2)).toBe('0.00');
+  });
+
+  it('stays exact beyond the Number range', () => {
+    expect(decimalRatio('12345678901234567890.12', '24691357802469135780.24', 3)).toBe('0.500');
+  });
+
+  it('refuses a non-positive whole', () => {
+    expect(() => decimalRatio('1', '0', 2)).toThrow();
   });
 });
