@@ -5,6 +5,7 @@ import { AnnualCellValue } from '@/features/reports/annual/AnnualCellValue';
 import { isEmptyState, monthLabel } from '@/features/reports/annual/annualRowLabels';
 import { groupStartIds, withoutLeadingEmptyMonths } from '@/features/reports/annual/annualColumns';
 import { ColumnHeader } from '@/features/reports/annual/ColumnHeader';
+import { useAnnualColumnLabel } from '@/features/reports/annual/columnLabel';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import cardStyles from '@/features/reports/annual/AnnualMonthCards.module.css';
 import tableStyles from '@/features/reports/annual/AnnualReportTable.module.css';
@@ -36,6 +37,7 @@ function selectedColumns(reports: AnnualReport[]): AnnualColumn[] {
  */
 export function ContinuousDetailedReport({ annualReports, report }: ContinuousDetailedReportProps) {
   const { t, i18n } = useTranslation();
+  const labelOf = useAnnualColumnLabel();
   const columns = selectedColumns(annualReports);
   // The first year may start mid-year: its empty leading months are not rows of the chronology.
   const rows = annualReports.flatMap((annualReport, index) =>
@@ -216,7 +218,7 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
                 const figure = multiYearDetailedAggregateFigure(aggregate, rowId);
                 return (
                   <dd key={column.id}>
-                    {column.label}
+                    {labelOf(column)}
                     {': '}
                     <AnnualCellValue
                       assetCode={column.assetCode}

@@ -11,6 +11,7 @@ import {
   withoutLeadingEmptyMonths,
 } from './annualColumns';
 import { ColumnHeader } from './ColumnHeader';
+import { useAnnualColumnLabel } from './columnLabel';
 import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualReportTable.module.css';
 
@@ -26,6 +27,7 @@ export function AnnualReportTable({
   titleId = 'annual-table-title',
 }: AnnualReportTableProps) {
   const { t, i18n } = useTranslation();
+  const labelOf = useAnnualColumnLabel();
   const rows = withoutLeadingEmptyMonths(report.rows);
   const starts = groupStartIds(report.columns);
   const edge = (id: string) => (starts.has(id) ? styles.groupStart : undefined);
@@ -99,7 +101,7 @@ export function AnnualReportTable({
                         <InfoButton
                           aria-haspopup="dialog"
                           className={styles.explain}
-                          label={t('reports.annual.explainColumn', { column: column.label })}
+                          label={t('reports.annual.explainColumn', { column: labelOf(column) })}
                           onClick={() => onExplain(column.id)}
                         />
                       ) : null}

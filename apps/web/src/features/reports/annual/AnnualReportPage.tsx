@@ -7,6 +7,7 @@ import { AnnualMonthCards } from './AnnualMonthCards';
 import { AnnualReportTable } from './AnnualReportTable';
 import { AnnualReportPageSkeleton } from './AnnualReportPageSkeleton';
 import { MixedPolicyBanner } from './MixedPolicyBanner';
+import { useAnnualColumnLabel } from './columnLabel';
 import { AnnualRequestError, useAnnualReport } from './useAnnualReport';
 import styles from './AnnualReportPage.module.css';
 
@@ -16,6 +17,7 @@ interface AnnualReportPageProps {
 
 export function AnnualReportPage({ year }: AnnualReportPageProps) {
   const { t } = useTranslation();
+  const labelOf = useAnnualColumnLabel();
   const report = useAnnualReport(year);
   const [explained, setExplained] = useState<string | null>(null);
   useHeaderTitle(`/budget/${year}`, t('reports.annual.caption', { year }));
@@ -65,7 +67,7 @@ export function AnnualReportPage({ year }: AnnualReportPageProps) {
             assetCode={explainedColumn.assetCode}
             close={() => setExplained(null)}
             columnId={explainedColumn.id}
-            columnLabel={explainedColumn.label}
+            columnLabel={labelOf(explainedColumn)}
             year={year}
           />
         ) : null}

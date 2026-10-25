@@ -23,7 +23,7 @@ describe('flowTooltipLines', () => {
     expect(lines[1]).toContain('Revenus');
     expect(lines[1]).toContain('2');
     expect(lines[2]).toContain('Dépenses');
-    expect(lines[3]).toContain('Solde budgétaire');
+    expect(lines[3]).toContain('Excédent');
   });
 
   it('keeps the month and names a figure that is not calculable instead of showing zero', () => {

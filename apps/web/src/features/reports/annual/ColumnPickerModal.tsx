@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Tabs } from '@/components/ui/tabs/Tabs';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
-import { SelectedColumns } from './SelectedColumns';
+import { ColumnHeader } from './ColumnHeader';
+import { SelectedColumns, type SelectedColumn } from './SelectedColumns';
 import { AXIS_IDS, INDICATOR_COLUMN_IDS, MAX_ANNUAL_COLUMNS } from './annualColumns';
 import { AnnualRequestError, useSaveAnnualReportPreferences } from './useAnnualReport';
 import { useColumnCatalogue, type CatalogueEntry } from './useColumnCatalogue';
@@ -45,21 +46,23 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
       return next;
     });
   }
-  /** Label of a selected id; null while the workspace entries load, so a row shows a placeholder. */
-  function labelOf(id: string): string | null {
+  /** The column behind a selected id; null while the workspace entries load. */
+  function columnOf(id: string): SelectedColumn | null {
     const [type = '', reference = ''] = id.split(':', 2);
-    if (type === 'axis') return t(`categories.axes.${reference}`, { defaultValue: reference });
-    if (!id.includes(':')) return t(`reports.annual.indicators.${id}`, { defaultValue: id });
-    if (!catalogue.data) return catalogue.isError ? t('reports.annual.picker.unknown') : null;
+    if (!id.includes(':') || type === 'axis') return { id, label: reference || id };
+    if (!catalogue.data) {
+      return catalogue.isError ? { id, label: t('reports.annual.picker.unknown') } : null;
+    }
     const entries =
       type === 'category'
         ? catalogue.data.categories
         : type === 'account'
           ? catalogue.data.accounts
           : catalogue.data.groups;
-    return (
-      entries.find((entry) => entry.id === reference)?.label ?? t('reports.annual.picker.unknown')
-    );
+    const entry = entries.find((candidate) => candidate.id === reference);
+    return entry
+      ? { id, institution: entry.institution, label: entry.label }
+      : { id, label: t('reports.annual.picker.unknown') };
   }
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -96,7 +99,11 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
                   onChange={() => toggle(id)}
                   type="checkbox"
                 />
-                {entry.label}
+                <span>
+                  <ColumnHeader
+                    column={{ id, institution: entry.institution, label: entry.label }}
+                  />
+                </span>
               </label>
             );
           })}
@@ -184,7 +191,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
             },
           ]}
         />
-        <SelectedColumns labelOf={labelOf} onMove={move} onRemove={toggle} selected={selected} />
+        <SelectedColumns columnOf={columnOf} onMove={move} onRemove={toggle} selected={selected} />
         <div className={styles.actions}>
           <button className="secondary-action" onClick={close} type="button">
             {t('actions.cancel')}

@@ -1,11 +1,19 @@
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
+import { ColumnHeader } from './ColumnHeader';
+import { useAnnualColumnLabel } from './columnLabel';
 import styles from './SelectedColumns.module.css';
 
+export interface SelectedColumn {
+  id: string;
+  institution?: string | null;
+  label: string;
+}
+
 interface SelectedColumnsProps {
-  /** Label of a column id; null while the workspace's own entries are still loading. */
-  labelOf: (id: string) => string | null;
+  /** The column behind an id; null while the workspace's own entries are still loading. */
+  columnOf: (id: string) => SelectedColumn | null;
   onMove: (index: number, offset: -1 | 1) => void;
   onRemove: (id: string) => void;
   selected: readonly string[];
@@ -15,8 +23,9 @@ interface SelectedColumnsProps {
  * The chosen columns in the order the report shows them, one column of rows. Each row can be moved
  * up or down and removed with plain buttons, so the order is reachable by keyboard.
  */
-export function SelectedColumns({ labelOf, onMove, onRemove, selected }: SelectedColumnsProps) {
+export function SelectedColumns({ columnOf, onMove, onRemove, selected }: SelectedColumnsProps) {
   const { t } = useTranslation();
+  const labelOf = useAnnualColumnLabel();
 
   return (
     <section aria-labelledby="selected-columns-title" className={styles.section}>
@@ -26,12 +35,16 @@ export function SelectedColumns({ labelOf, onMove, onRemove, selected }: Selecte
       ) : (
         <ol className={styles.list}>
           {selected.map((id, index) => {
-            const label = labelOf(id);
-            const name = label ?? t('reports.annual.picker.unknown');
+            const column = columnOf(id);
+            const name = column ? labelOf(column) : t('reports.annual.picker.unknown');
             return (
               <li className={styles.row} key={id}>
                 <span className={styles.label}>
-                  {label === null ? <SkeletonBlock className={styles.skeleton} /> : label}
+                  {column === null ? (
+                    <SkeletonBlock className={styles.skeleton} />
+                  ) : (
+                    <ColumnHeader column={column} />
+                  )}
                 </span>
                 <button
                   aria-label={t('reports.annual.picker.moveUp', { column: name })}

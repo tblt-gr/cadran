@@ -316,6 +316,26 @@ describe('AnnualReportPage', () => {
     expect(headers[1]!.className).not.toContain('groupStart');
   });
 
+  it('titles the columns exactly as the column picker does', async () => {
+    api.readAnnualReport.mockResolvedValue(
+      ok({
+        ...annualReport,
+        columns: [
+          { id: 'budgetSurplus', label: 'Solde budgétaire', kind: 'FLOW', assetCode: 'EUR' },
+          { id: 'axis:FIXED', label: 'Dépenses : Fixe', kind: 'FLOW', assetCode: 'EUR' },
+        ],
+      }),
+    );
+    renderPage();
+    const table = await screen.findByRole('table', { name: /rapport 2026/i });
+    const headers = within(table.querySelector('thead')!)
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers).toEqual(['Mois', 'Excédent', 'Fixe']);
+    const cards = screen.getByRole('list', { name: /mois de 2026/i });
+    expect(within(cards).queryByText('Solde budgétaire')).toBeNull();
+  });
+
   it('always asks for the running month to be included, and never labels it provisional', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /rapport 2026/i });

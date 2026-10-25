@@ -455,9 +455,9 @@ describe('MonthlyBudgetPage', () => {
     expect(loadingSettings.hasAttribute('disabled')).toBe(true);
     expect(screen.queryByRole('button', { name: 'Informations sur la synthèse' })).toBeNull();
     const loadingExplanation = screen.getByRole('button', {
-      name: 'Expliquer : Revenus en espèces',
+      name: 'Expliquer : Revenus',
     });
-    expect(loadingExplanation.textContent).toBe('Revenus en espèces');
+    expect(loadingExplanation.textContent).toBe('Revenus');
     expect(loadingExplanation.hasAttribute('disabled')).toBe(true);
     expect(screen.getAllByRole('status')).toHaveLength(1);
     await waitFor(() => expect(resolveLedger).toBeDefined());
@@ -674,16 +674,14 @@ describe('MonthlyBudgetPage', () => {
     expect(settings.textContent).toBe('');
     expect(settings.getAttribute('title')).toBe('Configurer l’affichage');
     const explanation = within(totals).getByRole('button', {
-      name: 'Expliquer : Revenus en espèces',
+      name: 'Expliquer : Revenus',
     });
-    expect(explanation.textContent).toBe('Revenus en espèces');
+    expect(explanation.textContent).toBe('Revenus');
     expect(explanation.querySelector('svg')).toBeNull();
     explanation.focus();
     expect(document.activeElement).toBe(explanation);
     fireEvent.click(explanation);
-    expect(
-      await screen.findByRole('dialog', { name: 'Expliquer : Revenus en espèces' }),
-    ).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Expliquer : Revenus' })).toBeTruthy();
   });
 
   it('shows every flow indicator of the former monthly report in the flow summary', async () => {
@@ -692,12 +690,12 @@ describe('MonthlyBudgetPage', () => {
     await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
     const totals = screen.getByRole('region', { name: 'Synthèse des flux' });
     for (const label of [
-      'Revenus en espèces',
+      'Revenus',
       'Avantages non monétaires',
       'Dépenses des avantages',
       'Dépenses',
       'Dépenses non catégorisées',
-      'Solde budgétaire',
+      'Excédent',
       'Virements vers l’épargne',
       'Taux d’épargne',
       'Entrées vers l’épargne',
@@ -726,9 +724,7 @@ describe('MonthlyBudgetPage', () => {
       .getByRole('button', { name: 'Expliquer : Avantages non monétaires' })
       .closest('li')!;
     expect(row.textContent).toMatch(/Non calculable/);
-    expect(
-      within(totals).getByRole('button', { name: 'Expliquer : Revenus en espèces' }),
-    ).toBeTruthy();
+    expect(within(totals).getByRole('button', { name: 'Expliquer : Revenus' })).toBeTruthy();
   });
 
   it('sorts exact expense totals descending with stable ties and unavailable values last', async () => {

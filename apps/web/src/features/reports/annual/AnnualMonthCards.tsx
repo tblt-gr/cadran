@@ -10,6 +10,7 @@ import {
   withoutLeadingEmptyMonths,
 } from './annualColumns';
 import { ColumnHeader } from './ColumnHeader';
+import { useAnnualColumnLabel } from './columnLabel';
 import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualMonthCards.module.css';
 
@@ -21,6 +22,7 @@ interface AnnualMonthCardsProps {
 /** Below 640 px the table becomes one card per month, then one summary card, with the same values. */
 export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
   const { t, i18n } = useTranslation();
+  const labelOf = useAnnualColumnLabel();
 
   return (
     <ul aria-label={t('reports.annual.cardsLabel', { year: report.year })} className={styles.list}>
@@ -73,7 +75,7 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
                   <InfoButton
                     aria-haspopup="dialog"
                     className={styles.explain}
-                    label={t('reports.annual.explainColumn', { column: column.label })}
+                    label={t('reports.annual.explainColumn', { column: labelOf(column) })}
                     onClick={() => onExplain(column.id)}
                   />
                 ) : null}

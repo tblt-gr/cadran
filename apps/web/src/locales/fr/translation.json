@@ -138,11 +138,11 @@
     "transactionSources": "Transactions sources",
     "noSources": "Aucune source dans le périmètre.",
     "metrics": {
-      "cashIncome": "Revenus en espèces",
+      "cashIncome": "Revenus",
       "nonCashBenefits": "Avantages non monétaires",
       "budgetExpenses": "Dépenses",
       "uncategorizedExpenses": "Dépenses non catégorisées",
-      "budgetSurplus": "Solde budgétaire",
+      "budgetSurplus": "Excédent",
       "savingsTransfers": "Virements vers l’épargne",
       "cashSavingsRate": "Taux d’épargne",
       "savingsInflows": "Entrées vers l’épargne",
@@ -150,7 +150,7 @@
       "netSavingsTransfers": "Épargne nette par virements",
       "netSavingsRate": "Taux d’épargne net",
       "beginningNetWorth": "Patrimoine initial",
-      "endNetWorth": "Patrimoine final",
+      "endNetWorth": "Patrimoine net",
       "netWorthDelta": "Variation du patrimoine",
       "benefitSpending": "Dépenses des avantages"
     },
@@ -182,14 +182,14 @@
         "budgetExpenses": "Dépenses",
         "benefitSpending": "Dépenses des avantages",
         "uncategorizedExpenses": "Dépenses non catégorisées",
-        "budgetSurplus": "Solde budgétaire",
+        "budgetSurplus": "Excédent",
         "cashSavingsRate": "Taux d’épargne",
         "savingsInflows": "Entrées vers l’épargne",
         "savingsWithdrawals": "Sorties de l’épargne",
         "netSavingsTransfers": "Épargne nette par virements",
         "netSavingsRate": "Taux d’épargne net",
         "netWorthDelta": "Variation du patrimoine",
-        "endNetWorth": "Patrimoine final"
+        "endNetWorth": "Patrimoine net"
       },
       "summary": {
         "total": "Total",
@@ -312,7 +312,7 @@
       "netSavingsTransfers": "Épargne nette par virements = entrées vers l’épargne − sorties de l’épargne",
       "netSavingsRate": "Taux d’épargne net = épargne nette par virements / revenus",
       "beginningNetWorth": "Patrimoine initial = somme des valorisations signées éligibles au dernier jour civil du mois précédent",
-      "endNetWorth": "Patrimoine final = somme des valorisations signées éligibles au dernier jour effectif du mois",
+      "endNetWorth": "Patrimoine net = somme des valorisations signées éligibles au dernier jour effectif du mois",
       "netWorthDelta": "Variation du patrimoine = patrimoine final − patrimoine initial",
       "budgetComparison": "Écart budgétaire = montant réalisé − montant cible du budget"
     }
@@ -3266,7 +3266,7 @@
       "netSavingsRate": "Taux d’épargne nette"
     },
     "formulas": {
-      "BUDGET_SURPLUS_OVER_CASH_INCOME": "Solde budgétaire divisé par les revenus de trésorerie",
+      "BUDGET_SURPLUS_OVER_CASH_INCOME": "Excédent divisé par les revenus de trésorerie",
       "NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME": "Épargne nette transférée divisée par les revenus de trésorerie"
     },
     "history": {
