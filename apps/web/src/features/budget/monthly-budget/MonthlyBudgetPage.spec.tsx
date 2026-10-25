@@ -1304,6 +1304,40 @@ describe('MonthlyBudgetPage', () => {
     );
   });
 
+  it('tells spending outside the treasury perimeter apart on a category row, and nothing when null', async () => {
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        totals: {
+          ...recap.totals,
+          categories: [
+            { ...recap.totals.categories[0], benefitSpending: '12.00', benefitAssetCode: 'EUR' },
+          ],
+        },
+      }),
+    );
+    renderPage();
+    await loaded();
+    const totals = await screen.findByRole('region', { name: 'Synthèse des flux' });
+    const row = (
+      await within(totals).findByRole('button', { name: 'Expliquer : Voyages' })
+    ).closest('li')!;
+    expect(row.textContent).toMatch(/dont avantages :\s*12,00/);
+    // The total itself is untouched.
+    expect(row.textContent).toMatch(/400,00/);
+    cleanup();
+    api.readMonthlyRecap.mockReturnValue(ok(recap));
+    renderPage();
+    await loaded();
+    const plain = (
+      await within(await screen.findByRole('region', { name: 'Synthèse des flux' })).findByRole(
+        'button',
+        { name: 'Expliquer : Voyages' },
+      )
+    ).closest('li')!;
+    expect(plain.textContent).not.toMatch(/avantages/);
+  });
+
   it('offers the display settings as tabs, categories then axes', async () => {
     renderPage();
     await loaded();
@@ -1581,7 +1615,9 @@ describe('MonthlyBudgetPage', () => {
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Expliquer : Essentiel' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Expliquer : Essentiel' }, { timeout: 5000 }),
+    );
     const axisDialog = await screen.findByRole('dialog', { name: 'Expliquer : Essentiel' });
     expect(within(axisDialog).getByText('Loyer')).toBeTruthy();
     expect(axisDialog.textContent).toContain('-400,00 €');

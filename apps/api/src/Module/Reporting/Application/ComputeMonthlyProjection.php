@@ -93,6 +93,10 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
             $transactionFacts->booked,
             static fn (MonthlyTransactionFact $fact): bool => !($policy->policy?->isExcluded($accountsById[$fact->accountId]->kind ?? null) ?? false),
         )));
+        $benefitEntries = null === $policy->policy ? [] : MonthlyLedgerFacts::entries(array_values(array_filter(
+            $transactionFacts->booked,
+            static fn (MonthlyTransactionFact $fact): bool => $policy->policy->isExcluded($accountsById[$fact->accountId]->kind ?? null),
+        )));
         $childrenOf = [];
         foreach ($categoryFacts as $category) {
             if (null !== $category->parentId) {
@@ -108,7 +112,7 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
                 : MonthlyRecapCategoryView::of($category, $ledgerEntries);
             $rollup = $unknownPolicy
                 ? $metric
-                : MonthlyRecapCategoryView::of($category, $ledgerEntries, self::descendantIds($category->id, $childrenOf));
+                : MonthlyRecapCategoryView::of($category, $ledgerEntries, self::descendantIds($category->id, $childrenOf), $benefitEntries);
             if (null === $category->archivedAt || [] !== $rollup->metric->sourceTransactionIds) {
                 $categoryRollups[] = $rollup;
             }

@@ -81,14 +81,17 @@ function MetricRow({
   month,
   metric,
   rate = false,
+  benefit = null,
 }: {
+  /** Spending outside the treasury perimeter (meal vouchers...), told apart from the total. */
+  benefit?: { assetCode: string; value: string } | null;
   axis?: MonthlyRecapAxis['axis'];
   label?: string;
   month: string;
   metric: RecapMetric | null;
   rate?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [open, setOpen] = useState(false);
   const label =
     suppliedLabel ??
@@ -107,6 +110,12 @@ function MetricRow({
           <Value metric={metric} rate={rate} />
         )}
       </div>
+      {benefit ? (
+        <p className={styles.benefit}>
+          {t('budget.monthly.recap.totals.benefitSpending')}{' '}
+          <MoneyValue value={formatAmount(benefit.value, benefit.assetCode, i18n.language)} />
+        </p>
+      ) : null}
       {open && metric ? (
         <MetricExplanationModal
           close={() => setOpen(false)}
@@ -121,7 +130,18 @@ function MetricRow({
 }
 
 function CategoryRow({ category, month }: { category: MonthlyRecapCategory; month: string }) {
-  return <MetricRow label={category.label} month={month} metric={category} />;
+  return (
+    <MetricRow
+      benefit={
+        category.benefitSpending != null && category.benefitAssetCode != null
+          ? { assetCode: category.benefitAssetCode, value: category.benefitSpending }
+          : null
+      }
+      label={category.label}
+      month={month}
+      metric={category}
+    />
+  );
 }
 
 export function TotalsCard({

@@ -348,6 +348,95 @@ final class MonthlyRecapControllerTest extends WebTestCase
     }
 
     /**
+     * Reproduces the "Tickets restaurant missing from Alimentation" report. Courses 30.00 and
+     * Cantine 8.00 sit on the current account; Tickets restaurant 12.00 sits on an
+     * EMPLOYEE_BENEFIT account, outside the treasury perimeter of the active metric policy. The
+     * roll-up reaches every direct child (Alimentation = 38.00); the voucher spending is benefit
+     * spending by the policy, so it leaves every category total, not only the parent's.
+     */
+    public function testAParentCategoryRollsUpEverySiblingButNotSpendingOutsideTheTreasuryPerimeter(): void
+    {
+        $food = '00000000-0000-7000-8000-0000000000e1';
+        $groceries = '00000000-0000-7000-8000-0000000000e2';
+        $vouchers = '00000000-0000-7000-8000-0000000000e3';
+        $canteen = '00000000-0000-7000-8000-0000000000e4';
+        $voucherAccount = '00000000-0000-7000-8000-0000000000a5';
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->account($voucherAccount, WorkspaceFixture::OWN_WORKSPACE, 'Ticket Restaurant', 'EMPLOYEE_BENEFIT');
+        $this->category($food, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Alimentation');
+        $this->category($groceries, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Courses', $food);
+        $this->category($vouchers, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Tickets restaurant', $food);
+        $this->category($canteen, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Cantine', $food);
+        $this->transaction('21', self::CURRENT, '-30.00', 'EXPENSE', '-30.00', [], WorkspaceFixture::OWN_WORKSPACE, $groceries);
+        $this->transaction('22', $voucherAccount, '-12.00', 'EXPENSE', '-12.00', [], WorkspaceFixture::OWN_WORKSPACE, $vouchers);
+        $this->transaction('23', self::CURRENT, '-8.00', 'EXPENSE', '-8.00', [], WorkspaceFixture::OWN_WORKSPACE, $canteen);
+
+        $totals = self::fields($this->read()['totals']);
+        $categories = self::index($totals['categories'], 'id');
+
+        self::assertSame('38.00', $categories[$food]['value']);
+        self::assertSame('30.00', $categories[$groceries]['value']);
+        self::assertSame('8.00', $categories[$canteen]['value']);
+        self::assertNull($categories[$vouchers]['value']);
+        self::assertSame('NO_MOVEMENTS', $categories[$vouchers]['reason']);
+        self::assertSame('38.00', self::metric($totals, 'budgetExpenses'));
+        // The voucher spending is told apart, never summed into the totals above.
+        self::assertSame('12.00', $categories[$food]['benefitSpending']);
+        self::assertSame('12.00', $categories[$vouchers]['benefitSpending']);
+        self::assertSame('EUR', $categories[$vouchers]['benefitAssetCode']);
+        self::assertNull($categories[$groceries]['benefitAssetCode']);
+        self::assertNull($categories[$groceries]['benefitSpending']);
+        self::assertNull($categories[$canteen]['benefitSpending']);
+    }
+
+    /**
+     * Benefit spending per category, hand-computed: Tickets restaurant −12.00 and a +2.00 refund
+     * on the voucher account leave 10.00 (refunds reduce); a voucher expense of another workspace
+     * and an income category never show any.
+     */
+    public function testBenefitSpendingPerCategoryRollsUpAndRefundsReduceIt(): void
+    {
+        $food = '00000000-0000-7000-8000-0000000000e1';
+        $vouchers = '00000000-0000-7000-8000-0000000000e3';
+        $voucherAccount = '00000000-0000-7000-8000-0000000000a5';
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->account($voucherAccount, WorkspaceFixture::OWN_WORKSPACE, 'Ticket Restaurant', 'EMPLOYEE_BENEFIT');
+        $this->category($food, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Alimentation');
+        $this->category($vouchers, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Tickets restaurant', $food);
+        $this->category(self::INCOME_CATEGORY, WorkspaceFixture::OWN_WORKSPACE, false, 'INCOME', 'Salaire');
+        $this->category(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, true, 'EXPENSE', 'Secret');
+        $this->transaction('31', $voucherAccount, '-12.00', 'EXPENSE', '-12.00', [], WorkspaceFixture::OWN_WORKSPACE, $vouchers);
+        $this->transaction('32', $voucherAccount, '2.00', 'REFUND', '2.00', [], WorkspaceFixture::OWN_WORKSPACE, $vouchers);
+        $this->transaction('33', $voucherAccount, '200.00', 'INCOME', '200.00', [], WorkspaceFixture::OWN_WORKSPACE, self::INCOME_CATEGORY);
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Ticket étranger', 'EMPLOYEE_BENEFIT');
+        $this->transaction('91', self::OTHER_ACCOUNT, '-99.00', 'EXPENSE', '-99.00', [], WorkspaceFixture::OTHER_WORKSPACE, self::OTHER_CATEGORY);
+
+        $categories = self::index(self::fields($this->read()['totals'])['categories'], 'id');
+
+        self::assertSame('10.00', $categories[$vouchers]['benefitSpending']);
+        self::assertSame('10.00', $categories[$food]['benefitSpending']);
+        self::assertNull($categories[$vouchers]['value']);
+        self::assertNull($categories[self::INCOME_CATEGORY]['benefitSpending']);
+        self::assertArrayNotHasKey(self::OTHER_CATEGORY, $categories);
+    }
+
+    public function testACategoryWithoutBenefitMovementsHasNoBenefitSpending(): void
+    {
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->category(self::CATEGORY, WorkspaceFixture::OWN_WORKSPACE, true);
+        $this->transaction('41', self::CURRENT, '-5.00', 'EXPENSE', '-5.00');
+
+        $category = self::index(self::fields($this->read()['totals'])['categories'], 'id')[self::CATEGORY];
+
+        self::assertSame('5.00', $category['value']);
+        self::assertArrayHasKey('benefitSpending', $category);
+        self::assertNull($category['benefitSpending']);
+    }
+
+    /**
      * Hand-computed axis facets for the closed month, all on budget-included
      * categories: rent −1000.00 on ESSENTIAL and FIXED, snacks −200.00 on
      * DISCRETIONARY. ESSENTIAL = 1000.00, FIXED = 1000.00,

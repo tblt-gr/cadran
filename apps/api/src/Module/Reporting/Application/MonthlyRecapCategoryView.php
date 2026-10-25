@@ -19,6 +19,9 @@ final readonly class MonthlyRecapCategoryView
         public string $type,
         public MonthlyMetricView $metric,
         public array $sourceTransactions = [],
+        /** Spending on accounts outside the treasury perimeter, told apart and never part of `metric`. */
+        public ?string $benefitSpending = null,
+        public ?string $benefitAssetCode = null,
     ) {
     }
 
@@ -28,8 +31,9 @@ final readonly class MonthlyRecapCategoryView
      *
      * @param list<MonthlyLedgerEntry> $entries
      * @param list<string>             $descendantIds
+     * @param list<MonthlyLedgerEntry> $benefitEntries booked movements of the accounts the metric policy excludes
      */
-    public static function of(BudgetCategoryFact $category, array $entries, array $descendantIds = []): self
+    public static function of(BudgetCategoryFact $category, array $entries, array $descendantIds = [], array $benefitEntries = []): self
     {
         $sources = MonthlyLedgerCalculator::categorySources($entries, $category->type, [$category->id, ...$descendantIds], null);
         $total = MonthlyLedgerCalculator::total($sources, 'EXPENSE' === $category->type);
@@ -38,6 +42,18 @@ final readonly class MonthlyRecapCategoryView
             $sources,
         )));
         sort($sourceTransactionIds, SORT_STRING);
+        $benefitSpending = null;
+        $benefitAssetCode = null;
+        if ('EXPENSE' === $category->type && [] !== $benefitEntries) {
+            // Same sign convention as the benefit spending indicator: expenses and fees count,
+            // refunds reduce, and the result is null when nothing moved or the assets are mixed.
+            $benefit = MonthlyLedgerCalculator::total(
+                MonthlyLedgerCalculator::categorySources($benefitEntries, $category->type, [$category->id, ...$descendantIds], null),
+                true,
+            );
+            $benefitSpending = $benefit->value?->toString();
+            $benefitAssetCode = null === $benefitSpending ? null : $benefit->asset?->toString();
+        }
 
         return new self(
             $category->id,
@@ -49,6 +65,9 @@ final readonly class MonthlyRecapCategoryView
                 $total->reason,
                 $sourceTransactionIds,
             ),
+            [],
+            $benefitSpending,
+            $benefitAssetCode,
         );
     }
 }
