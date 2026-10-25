@@ -217,7 +217,7 @@ export function AccountForm({
         />
       </div>
 
-      {account ? (
+      {account && kind === 'CURRENT' ? (
         <PrimaryAccountField
           checked={primaryEligible && isPrimary}
           eligible={primaryEligible}

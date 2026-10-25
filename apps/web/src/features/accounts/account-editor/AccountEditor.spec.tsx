@@ -122,6 +122,14 @@ describe('AccountEditor', () => {
     expect(screen.getByText(/Si ce compte est principal/)).toBeTruthy();
   });
 
+  it('hides the primary preference for accounts that are not current accounts', async () => {
+    api.listAssets.mockReturnValue(ok({ items: [{ code: 'EUR', kind: 'FIAT' }] }));
+    api.listAccountGroups.mockReturnValue(ok({ items: [] }));
+    renderEditor({ ...account, kind: 'SAVINGS', productCode: null, includeInNetWorth: false });
+    await screen.findByDisplayValue(account.label);
+    expect(screen.queryByRole('checkbox', { name: 'Utiliser comme compte principal' })).toBeNull();
+  });
+
   it('replaces its one named cold-load skeleton and keeps the form during a refetch', async () => {
     api.listAssets.mockReturnValue(ok({ items: [{ code: 'EUR', kind: 'FIAT' }] }));
     api.listAccountGroups.mockReturnValue(ok({ items: [] }));
@@ -132,7 +140,7 @@ describe('AccountEditor', () => {
           resolveProduct = resolve;
         }),
     );
-    const { queryClient } = renderEditor();
+    const { queryClient } = renderEditor({ ...account, kind: 'CURRENT' });
 
     expect(screen.getByTestId('account-editor-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
