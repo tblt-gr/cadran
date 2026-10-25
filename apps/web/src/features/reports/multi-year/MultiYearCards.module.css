@@ -53,3 +53,11 @@
 .card a:focus-visible {
   text-decoration: underline;
 }
+
+/* The year link reaches the touch target width too, without any visible box. */
+@media (pointer: coarse) {
+  .card h3 a {
+    justify-content: center;
+    min-inline-size: var(--touch-target-min);
+  }
+}

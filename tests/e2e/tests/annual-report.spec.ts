@@ -48,7 +48,7 @@ test.describe('annual report', () => {
 
     await page
       .getByRole('group', { name: 'Type de rapport' })
-      .getByRole('button', { name: 'Annuel' })
+      .getByRole('button', { name: 'Annuel', exact: true })
       .click();
     await settled(page);
     await expect(page).toHaveURL(/\/budget\/\d{4}$/);
