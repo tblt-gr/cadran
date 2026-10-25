@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAnnualValue } from '@/features/reports/annual/annualFormat';
+import { ColumnHeader } from '@/features/reports/annual/ColumnHeader';
 import { MultiYearCellValue } from './MultiYearCellValue';
 import { MULTI_YEAR_SUMMARY_ROW_IDS, multiYearSummaryFigure } from './multiYearSummary';
 import { multiYearYearNotes } from './multiYearYearNotes';
@@ -22,7 +23,7 @@ export function MultiYearCards({ report }: MultiYearCardsProps) {
   return (
     <ul aria-label={t('reports.multiYear.cardsLabel')} className={styles.list}>
       {report.years.map((year) => {
-        const href = `/reports/annual/${year.year}`;
+        const href = `/budget/${year.year}`;
         const notes = multiYearYearNotes(year);
 
         return (
@@ -35,21 +36,21 @@ export function MultiYearCards({ report }: MultiYearCardsProps) {
                 {year.year}
               </a>
             </h3>
-            <p>
-              {year.metricPolicy.state === 'MIXED'
-                ? t('reports.multiYear.mixedPolicy')
-                : `v${year.metricPolicy.version}`}
-              {notes.map((note) => (
-                <small className={styles.meta} key={note.key}>
-                  {' '}
-                  {t(note.key, note.params)}
-                </small>
-              ))}
-            </p>
+            {notes.length > 0 ? (
+              <p>
+                {notes.map((note) => (
+                  <small className={styles.meta} key={note.key}>
+                    {t(note.key, note.params)}
+                  </small>
+                ))}
+              </p>
+            ) : null}
             <dl>
               {report.columns.map((column) => (
                 <div key={column.id}>
-                  <dt>{column.label}</dt>
+                  <dt>
+                    <ColumnHeader column={column} />
+                  </dt>
                   <dd>
                     <MultiYearCellValue
                       assetCode={column.assetCode}
@@ -71,7 +72,9 @@ export function MultiYearCards({ report }: MultiYearCardsProps) {
 
           return (
             <section key={column.id}>
-              <h4>{column.label}</h4>
+              <h4>
+                <ColumnHeader column={column} />
+              </h4>
               <dl>
                 {MULTI_YEAR_SUMMARY_ROW_IDS.map((rowId) => {
                   const figure = multiYearSummaryFigure(summary, rowId);
@@ -81,6 +84,7 @@ export function MultiYearCards({ report }: MultiYearCardsProps) {
                       <dd>
                         {figure.value === null ? (
                           <EmptyValue
+                            quiet
                             label={t('reports.annual.notCalculable')}
                             reason={
                               figure.reason

@@ -14950,6 +14950,17 @@ components:
         type:
           type: string
           enum: [INCOME, EXPENSE]
+        benefitSpending:
+          description: >-
+            Spending of this category, descendants included, on accounts outside the treasury
+            perimeter of the metric policy (for example meal vouchers), as a positive cost with
+            refunds reducing it. It is told apart and never part of `value` or of the budget
+            expenses. Null when the category (an expense one) has no such movement or the assets
+            are mixed.
+          type: [string, 'null']
+        benefitAssetCode:
+          description: Asset of `benefitSpending`; null whenever `benefitSpending` is null.
+          type: [string, 'null']
         kpi:
           type: 'null'
         value:
@@ -15388,6 +15399,9 @@ components:
         label: { type: string }
         kind: { $ref: '#/components/schemas/AnnualColumnKind' }
         assetCode: { type: [string, 'null'] }
+        institution:
+          description: Institution of an account column, shown under its label; null for any other column.
+          type: [string, 'null']
     AnnualCell:
       description: An exact decimal string, or null with the reason it cannot be produced.
       type: object

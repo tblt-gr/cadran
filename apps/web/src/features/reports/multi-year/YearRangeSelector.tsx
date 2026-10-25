@@ -1,23 +1,16 @@
 import { useTranslation } from 'react-i18next';
-import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
+import { GhostSelect } from '@/components/ui/ghost-select/GhostSelect';
 import styles from './YearRangeSelector.module.css';
 
 const MAX_SPAN_YEARS = 14;
 
-export type MultiYearDisplayMode = 'compact' | 'detailed';
-
 interface YearRangeSelectorProps {
-  /** Omitted while the range itself is invalid: there is nothing to switch the display of yet. */
-  display?: MultiYearDisplayMode;
-  /** Inline message shown when the backend refused the current range (422). */
-  error?: string | null;
   from: number;
   /** The current workspace-local year: no bound goes beyond it. */
   maxYear: number;
   /** The workspace's first data year: no bound goes before it. */
   minYear: number;
   onChange: (range: { from: number; to: number }) => void;
-  onDisplayChange?: (display: MultiYearDisplayMode) => void;
   to: number;
 }
 
@@ -27,15 +20,12 @@ function yearRange(min: number, max: number): number[] {
   return years;
 }
 
-/** Two bounded selects: the options themselves never allow `from > to` or a span over 15 years. */
+/** "Depuis [year] jusqu'à [year]": the options themselves never allow `from > to` or a span over 15 years. */
 export function YearRangeSelector({
-  display,
-  error,
   from,
   maxYear,
   minYear,
   onChange,
-  onDisplayChange,
   to,
 }: YearRangeSelectorProps) {
   const { t } = useTranslation();
@@ -52,54 +42,30 @@ export function YearRangeSelector({
 
   return (
     <div className={styles.selector}>
-      <div className={styles.row}>
-        <div className={styles.fields}>
-          <div className={styles.field}>
-            <label htmlFor="multi-year-range-from">{t('reports.multiYear.from')}</label>
-            <select
-              id="multi-year-range-from"
-              onChange={(event) => changeFrom(Number(event.target.value))}
-              value={from}
-            >
-              {fromOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className={styles.field}>
-            <label htmlFor="multi-year-range-to">{t('reports.multiYear.to')}</label>
-            <select
-              id="multi-year-range-to"
-              onChange={(event) => changeTo(Number(event.target.value))}
-              value={to}
-            >
-              {toOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {display && onDisplayChange ? (
-          <SegmentedControl
-            label={t('reports.multiYear.displayMode')}
-            onChange={onDisplayChange}
-            options={[
-              { value: 'compact', label: t('reports.multiYear.compact') },
-              { value: 'detailed', label: t('reports.multiYear.detailed') },
-            ]}
-            value={display}
-          />
-        ) : null}
-      </div>
-      {error ? (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      ) : null}
+      <label htmlFor="multi-year-range-from">{t('reports.multiYear.from')}</label>
+      <GhostSelect
+        id="multi-year-range-from"
+        onChange={(event) => changeFrom(Number(event.target.value))}
+        value={from}
+      >
+        {fromOptions.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </GhostSelect>
+      <label htmlFor="multi-year-range-to">{t('reports.multiYear.to')}</label>
+      <GhostSelect
+        id="multi-year-range-to"
+        onChange={(event) => changeTo(Number(event.target.value))}
+        value={to}
+      >
+        {toOptions.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </GhostSelect>
     </div>
   );
 }

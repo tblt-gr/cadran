@@ -227,7 +227,7 @@ describe('GoalsPage', () => {
     activateWithKeyboard(screen.getByRole('button', { name: 'Voir le détail mensuel' }));
     expect(await screen.findByRole('dialog', { name: 'Détail de l’objectif' })).toBeTruthy();
     expect((await screen.findByRole('link', { name: 'septembre 2026' })).getAttribute('href')).toBe(
-      '/budget/2026-09',
+      '/budget/2026/09',
     );
     expect(screen.getByTitle('Une valeur mensuelle est manquante')).toBeTruthy();
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });

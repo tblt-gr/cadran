@@ -22,8 +22,8 @@ export const multiYearReport: MultiYearReport = {
   inflationAdjusted: false,
   incompleteMonths: 'exclude',
   columns: [
-    { id: 'cashIncome', label: 'Revenus de trésorerie', kind: 'FLOW', assetCode: 'EUR' },
-    { id: 'endNetWorth', label: 'Patrimoine final', kind: 'STOCK', assetCode: 'EUR' },
+    { id: 'cashIncome', label: 'Revenus', kind: 'FLOW', assetCode: 'EUR' },
+    { id: 'endNetWorth', label: 'Patrimoine net', kind: 'STOCK', assetCode: 'EUR' },
     { id: 'cashSavingsRate', label: 'Taux d’épargne', kind: 'RATE', assetCode: null },
   ],
   years: [

@@ -311,6 +311,132 @@ final class MonthlyRecapControllerTest extends WebTestCase
     }
 
     /**
+     * Hand-computed roll-up on expenses: Maison −10.00 of its own, its child Énergie −5.50 and its
+     * child Eau −2.25 give Maison 17.75; Énergie stays 5.50 and Eau 2.25. A category of another
+     * workspace never joins the sum, and a parent without any movement in its subtree stays null.
+     */
+    public function testAParentCategoryTotalIsItsOwnPlusItsDescendants(): void
+    {
+        $parent = '00000000-0000-7000-8000-0000000000d1';
+        $energy = '00000000-0000-7000-8000-0000000000d2';
+        $water = '00000000-0000-7000-8000-0000000000d3';
+        $lonely = '00000000-0000-7000-8000-0000000000d4';
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->category($parent, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Maison');
+        $this->category($energy, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Énergie', $parent);
+        $this->category($water, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Eau', $parent);
+        $this->category($lonely, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Seul');
+        $this->category(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, true, 'EXPENSE', 'Secret');
+        $this->transaction('11', self::CURRENT, '-10.00', 'EXPENSE', '-10.00', [], WorkspaceFixture::OWN_WORKSPACE, $parent);
+        $this->transaction('12', self::CURRENT, '-5.50', 'EXPENSE', '-5.50', [], WorkspaceFixture::OWN_WORKSPACE, $energy);
+        $this->transaction('13', self::CURRENT, '-2.25', 'EXPENSE', '-2.25', [], WorkspaceFixture::OWN_WORKSPACE, $water);
+
+        $categories = self::index(self::fields($this->read()['totals'])['categories'], 'id');
+
+        self::assertSame('17.75', $categories[$parent]['value']);
+        self::assertSame('5.50', $categories[$energy]['value']);
+        self::assertSame('2.25', $categories[$water]['value']);
+        self::assertSame([
+            '00000000-0000-7000-8000-000000000111',
+            '00000000-0000-7000-8000-000000000112',
+            '00000000-0000-7000-8000-000000000113',
+        ], $categories[$parent]['sourceTransactionIds']);
+        self::assertNull($categories[$lonely]['value']);
+        self::assertSame('NO_MOVEMENTS', $categories[$lonely]['reason']);
+        self::assertArrayNotHasKey(self::OTHER_CATEGORY, $categories);
+    }
+
+    /**
+     * Reproduces the "Tickets restaurant missing from Alimentation" report. Courses 30.00 and
+     * Cantine 8.00 sit on the current account; Tickets restaurant 12.00 sits on an
+     * EMPLOYEE_BENEFIT account, outside the treasury perimeter of the active metric policy. The
+     * roll-up reaches every direct child (Alimentation = 38.00); the voucher spending is benefit
+     * spending by the policy, so it leaves every category total, not only the parent's.
+     */
+    public function testAParentCategoryRollsUpEverySiblingButNotSpendingOutsideTheTreasuryPerimeter(): void
+    {
+        $food = '00000000-0000-7000-8000-0000000000e1';
+        $groceries = '00000000-0000-7000-8000-0000000000e2';
+        $vouchers = '00000000-0000-7000-8000-0000000000e3';
+        $canteen = '00000000-0000-7000-8000-0000000000e4';
+        $voucherAccount = '00000000-0000-7000-8000-0000000000a5';
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->account($voucherAccount, WorkspaceFixture::OWN_WORKSPACE, 'Ticket Restaurant', 'EMPLOYEE_BENEFIT');
+        $this->category($food, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Alimentation');
+        $this->category($groceries, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Courses', $food);
+        $this->category($vouchers, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Tickets restaurant', $food);
+        $this->category($canteen, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Cantine', $food);
+        $this->transaction('21', self::CURRENT, '-30.00', 'EXPENSE', '-30.00', [], WorkspaceFixture::OWN_WORKSPACE, $groceries);
+        $this->transaction('22', $voucherAccount, '-12.00', 'EXPENSE', '-12.00', [], WorkspaceFixture::OWN_WORKSPACE, $vouchers);
+        $this->transaction('23', self::CURRENT, '-8.00', 'EXPENSE', '-8.00', [], WorkspaceFixture::OWN_WORKSPACE, $canteen);
+
+        $totals = self::fields($this->read()['totals']);
+        $categories = self::index($totals['categories'], 'id');
+
+        self::assertSame('38.00', $categories[$food]['value']);
+        self::assertSame('30.00', $categories[$groceries]['value']);
+        self::assertSame('8.00', $categories[$canteen]['value']);
+        self::assertNull($categories[$vouchers]['value']);
+        self::assertSame('NO_MOVEMENTS', $categories[$vouchers]['reason']);
+        self::assertSame('38.00', self::metric($totals, 'budgetExpenses'));
+        // The voucher spending is told apart, never summed into the totals above.
+        self::assertSame('12.00', $categories[$food]['benefitSpending']);
+        self::assertSame('12.00', $categories[$vouchers]['benefitSpending']);
+        self::assertSame('EUR', $categories[$vouchers]['benefitAssetCode']);
+        self::assertNull($categories[$groceries]['benefitAssetCode']);
+        self::assertNull($categories[$groceries]['benefitSpending']);
+        self::assertNull($categories[$canteen]['benefitSpending']);
+    }
+
+    /**
+     * Benefit spending per category, hand-computed: Tickets restaurant −12.00 and a +2.00 refund
+     * on the voucher account leave 10.00 (refunds reduce); a voucher expense of another workspace
+     * and an income category never show any.
+     */
+    public function testBenefitSpendingPerCategoryRollsUpAndRefundsReduceIt(): void
+    {
+        $food = '00000000-0000-7000-8000-0000000000e1';
+        $vouchers = '00000000-0000-7000-8000-0000000000e3';
+        $voucherAccount = '00000000-0000-7000-8000-0000000000a5';
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->account($voucherAccount, WorkspaceFixture::OWN_WORKSPACE, 'Ticket Restaurant', 'EMPLOYEE_BENEFIT');
+        $this->category($food, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Alimentation');
+        $this->category($vouchers, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Tickets restaurant', $food);
+        $this->category(self::INCOME_CATEGORY, WorkspaceFixture::OWN_WORKSPACE, false, 'INCOME', 'Salaire');
+        $this->category(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, true, 'EXPENSE', 'Secret');
+        $this->transaction('31', $voucherAccount, '-12.00', 'EXPENSE', '-12.00', [], WorkspaceFixture::OWN_WORKSPACE, $vouchers);
+        $this->transaction('32', $voucherAccount, '2.00', 'REFUND', '2.00', [], WorkspaceFixture::OWN_WORKSPACE, $vouchers);
+        $this->transaction('33', $voucherAccount, '200.00', 'INCOME', '200.00', [], WorkspaceFixture::OWN_WORKSPACE, self::INCOME_CATEGORY);
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Ticket étranger', 'EMPLOYEE_BENEFIT');
+        $this->transaction('91', self::OTHER_ACCOUNT, '-99.00', 'EXPENSE', '-99.00', [], WorkspaceFixture::OTHER_WORKSPACE, self::OTHER_CATEGORY);
+
+        $categories = self::index(self::fields($this->read()['totals'])['categories'], 'id');
+
+        self::assertSame('10.00', $categories[$vouchers]['benefitSpending']);
+        self::assertSame('10.00', $categories[$food]['benefitSpending']);
+        self::assertNull($categories[$vouchers]['value']);
+        self::assertNull($categories[self::INCOME_CATEGORY]['benefitSpending']);
+        self::assertArrayNotHasKey(self::OTHER_CATEGORY, $categories);
+    }
+
+    public function testACategoryWithoutBenefitMovementsHasNoBenefitSpending(): void
+    {
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->category(self::CATEGORY, WorkspaceFixture::OWN_WORKSPACE, true);
+        $this->transaction('41', self::CURRENT, '-5.00', 'EXPENSE', '-5.00');
+
+        $category = self::index(self::fields($this->read()['totals'])['categories'], 'id')[self::CATEGORY];
+
+        self::assertSame('5.00', $category['value']);
+        self::assertArrayHasKey('benefitSpending', $category);
+        self::assertNull($category['benefitSpending']);
+    }
+
+    /**
      * Hand-computed axis facets for the closed month, all on budget-included
      * categories: rent −1000.00 on ESSENTIAL and FIXED, snacks −200.00 on
      * DISCRETIONARY. ESSENTIAL = 1000.00, FIXED = 1000.00,
@@ -647,10 +773,11 @@ final class MonthlyRecapControllerTest extends WebTestCase
         bool $included,
         string $type = 'EXPENSE',
         string $label = 'Budget',
+        ?string $parent = null,
     ): void {
         $this->connection->insert('category_categories', [
-            'id' => $id, 'workspace_id' => $workspace, 'type' => $type, 'label' => $label,
-            'default_analytic_axes' => '[]', 'budget_included' => $included, 'sort_order' => 0, 'depth' => 1,
+            'id' => $id, 'workspace_id' => $workspace, 'type' => $type, 'label' => $label, 'parent_id' => $parent,
+            'default_analytic_axes' => '[]', 'budget_included' => $included, 'sort_order' => 0, 'depth' => null === $parent ? 1 : 2,
             'version' => 1, 'created_at' => '2026-01-01 12:00:00+00', 'updated_at' => '2026-01-01 12:00:00+00',
         ], ['budget_included' => ParameterType::BOOLEAN]);
     }

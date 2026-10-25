@@ -93,11 +93,29 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
             $transactionFacts->booked,
             static fn (MonthlyTransactionFact $fact): bool => !($policy->policy?->isExcluded($accountsById[$fact->accountId]->kind ?? null) ?? false),
         )));
-        $categoryMetrics = [];
+        $benefitEntries = null === $policy->policy ? [] : MonthlyLedgerFacts::entries(array_values(array_filter(
+            $transactionFacts->booked,
+            static fn (MonthlyTransactionFact $fact): bool => $policy->policy->isExcluded($accountsById[$fact->accountId]->kind ?? null),
+        )));
+        $childrenOf = [];
         foreach ($categoryFacts as $category) {
-            $metric = null === $policy->policy
+            if (null !== $category->parentId) {
+                $childrenOf[$category->parentId][] = $category->id;
+            }
+        }
+        $categoryMetrics = [];
+        $categoryRollups = [];
+        foreach ($categoryFacts as $category) {
+            $unknownPolicy = null === $policy->policy;
+            $metric = $unknownPolicy
                 ? new MonthlyRecapCategoryView($category->id, $category->label, $category->type, new MonthlyMetricView(null, null, MonthlyProjectionReason::UNKNOWN_METRIC_POLICY->value))
                 : MonthlyRecapCategoryView::of($category, $ledgerEntries);
+            $rollup = $unknownPolicy
+                ? $metric
+                : MonthlyRecapCategoryView::of($category, $ledgerEntries, self::descendantIds($category->id, $childrenOf), $benefitEntries);
+            if (null === $category->archivedAt || [] !== $rollup->metric->sourceTransactionIds) {
+                $categoryRollups[] = $rollup;
+            }
             if (null !== $category->archivedAt && [] === $metric->metric->sourceTransactionIds) {
                 continue;
             }
@@ -186,6 +204,7 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
             $netWorth,
             $policy->reference(),
             self::budgetExpenseCategoryIds($categoryFacts, $categoryMetrics),
+            $categoryRollups,
         );
     }
 
@@ -240,5 +259,29 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
             0 === $comparison => 'ZERO',
             default => 'POSITIVE',
         };
+    }
+
+    /**
+     * Every category below `$id`, however deep (the tree is at most eight levels). Visited ids are
+     * tracked so a malformed tree can never loop.
+     *
+     * @param array<string, list<string>> $childrenOf
+     *
+     * @return list<string>
+     */
+    private static function descendantIds(string $id, array $childrenOf): array
+    {
+        $found = [];
+        $queue = $childrenOf[$id] ?? [];
+        while ([] !== $queue) {
+            $next = array_shift($queue);
+            if ($next === $id || isset($found[$next])) {
+                continue;
+            }
+            $found[$next] = true;
+            array_push($queue, ...($childrenOf[$next] ?? []));
+        }
+
+        return array_keys($found);
     }
 }

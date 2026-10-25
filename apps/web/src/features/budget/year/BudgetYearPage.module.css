@@ -1,0 +1,9 @@
+/* `align-content: start`: the shell's `main` stretches to the viewport height, which would
+   otherwise spread the leftover space over every row of this grid. */
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-width: 0;
+  gap: var(--spacing-4);
+}

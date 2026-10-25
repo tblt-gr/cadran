@@ -64,6 +64,7 @@ export function AnnualDonut({ assetCode, legend, label, slices, visibleRows }: A
           amount:
             row.amount === null ? (
               <EmptyValue
+                quiet
                 label={notCalculable}
                 reason={
                   row.reason
@@ -79,7 +80,7 @@ export function AnnualDonut({ assetCode, legend, label, slices, visibleRows }: A
           label: row.label,
           share:
             row.share === null ? (
-              <EmptyValue label={notCalculable} />
+              <EmptyValue quiet label={notCalculable} />
             ) : (
               formatRatioPercentage(row.share, i18n.language)
             ),

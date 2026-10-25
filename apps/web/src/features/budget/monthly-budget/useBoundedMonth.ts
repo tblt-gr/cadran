@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMonthlyBounds } from '@/features/reports/useMonthlyBounds';
+import { useMonthlyBounds } from './useMonthlyBounds';
 import { isBeforeFirstDataMonth } from '@/lib/monthBounds';
 
 interface BoundedMonthOptions {

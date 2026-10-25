@@ -6,7 +6,6 @@ import {
   SkeletonStatus,
   SkeletonText,
 } from '@/components/ui/skeleton/Skeleton';
-import { AnnualTableActions } from '@/features/reports/annual/AnnualTableActions';
 import { ChartFrame } from '@/features/reports/annual/ChartFrame';
 import chartStyles from './MultiYearCharts.module.css';
 import { MULTI_YEAR_SUMMARY_ROW_IDS } from './multiYearSummary';
@@ -14,9 +13,6 @@ import pageStyles from './MultiYearReportPage.module.css';
 import styles from './MultiYearSkeleton.module.css';
 import tableStyles from './MultiYearTable.module.css';
 import cardStyles from './MultiYearCards.module.css';
-import { YearRangeSelector } from './YearRangeSelector';
-
-const noop = () => undefined;
 
 /** The column set is the user's own choice: four placeholders stand for it until it is known. */
 const PLACEHOLDER_COLUMNS = [0, 1, 2, 3];
@@ -28,8 +24,6 @@ const MAX_ROWS = 15;
 const UNKNOWN_RANGE_YEARS = 3;
 
 interface MultiYearSkeletonProps {
-  /** Current year of the workspace, the upper bound of the selector. */
-  currentYear: number;
   /** The requested or default range once known, so the year labels can be real. */
   range: { from: number; to: number } | null;
 }
@@ -42,7 +36,7 @@ function Cell() {
  * Mirrors the compact multi-year report element for element: selector, caption,
  * year and summary labels are real; columns and figures are pending.
  */
-export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps) {
+export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
   const { t } = useTranslation();
   const count = range ? Math.min(range.to - range.from + 1, MAX_ROWS) : 0;
   const years = range
@@ -53,25 +47,8 @@ export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps
   return (
     <div aria-busy="true" className={pageStyles.page} data-testid="multi-year-report-skeleton">
       <SkeletonStatus>{t('reports.loading')}</SkeletonStatus>
-      <fieldset className={styles.frozen} disabled>
-        <YearRangeSelector
-          display="compact"
-          from={range?.from ?? currentYear}
-          maxYear={currentYear}
-          minYear={range?.from ?? currentYear}
-          onChange={noop}
-          onDisplayChange={noop}
-          to={range?.to ?? currentYear}
-        />
-      </fieldset>
-      <AnnualTableActions
-        includeIncomplete={false}
-        onOpenColumns={noop}
-        onToggleIncomplete={noop}
-        saving
-      />
       <section aria-hidden="true" className={`card ${tableStyles.wrap}`}>
-        <header className={tableStyles.header}>
+        <header className="sr-only">
           <h2 className={tableStyles.title}>
             {range ? (
               t('reports.multiYear.caption', { from: range.from, to: range.to })
@@ -85,7 +62,6 @@ export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps
             <thead>
               <tr>
                 <th scope="col">{t('reports.multiYear.year')}</th>
-                <th scope="col">{t('reports.multiYear.policy')}</th>
                 {PLACEHOLDER_COLUMNS.map((column) => (
                   <th key={column} scope="col">
                     <Cell />
@@ -97,9 +73,6 @@ export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps
               {rows.map((year, index) => (
                 <tr key={year ?? index}>
                   <th scope="row">{year ?? <Cell />}</th>
-                  <td>
-                    <Cell />
-                  </td>
                   {PLACEHOLDER_COLUMNS.map((column) => (
                     <td key={column}>
                       <Cell />
@@ -111,9 +84,7 @@ export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps
             <tfoot>
               {MULTI_YEAR_SUMMARY_ROW_IDS.map((rowId) => (
                 <tr key={rowId}>
-                  <th colSpan={2} scope="row">
-                    {t(`reports.multiYear.summary.${rowId}`)}
-                  </th>
+                  <th scope="row">{t(`reports.multiYear.summary.${rowId}`)}</th>
                   {PLACEHOLDER_COLUMNS.map((column) => (
                     <td key={column}>
                       <Cell />
@@ -124,14 +95,16 @@ export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps
             </tfoot>
           </table>
         </div>
+        <footer className={tableStyles.notes}>
+          <p>
+            <Cell />
+          </p>
+        </footer>
       </section>
       <ul aria-hidden="true" className={cardStyles.list}>
         {rows.map((year, index) => (
           <li className={`card ${cardStyles.card}`} key={year ?? index}>
             <h3>{year ?? <Cell />}</h3>
-            <p>
-              <Cell />
-            </p>
             <dl>
               {PLACEHOLDER_COLUMNS.slice(0, 3).map((column) => (
                 <div key={column}>

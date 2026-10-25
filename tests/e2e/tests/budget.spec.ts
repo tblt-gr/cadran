@@ -6,17 +6,18 @@ test.describe('monthly budget', () => {
     await page.goto('/');
     await navigateTo(page, 'Budget');
 
-    await expect(page).toHaveURL(/\/budget\/\d{4}-\d{2}$/);
+    await expect(page).toHaveURL(/\/budget\/\d{4}\/\d{2}$/);
     await expect(page.getByRole('heading', { level: 1, name: /^Budget de / })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Revenus', exact: true })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Dépenses', exact: true })).toBeVisible();
 
     // The previous month of the demo ledger is closed: the page says so instead of hiding it.
     const months = page.getByRole('navigation', { name: 'Mois du budget' });
+    // The last link is the annual report, the one before it the current month.
     const current = await months.getByRole('link').count();
     await months
       .getByRole('link')
-      .nth(current - 2)
+      .nth(current - 3)
       .click();
     await settled(page);
 
@@ -37,7 +38,7 @@ test.describe('monthly budget', () => {
     await page.goto('/budget');
     await settled(page);
 
-    await expect(page).toHaveURL(/\/budget\/\d{4}-\d{2}$/);
+    await expect(page).toHaveURL(/\/budget\/\d{4}\/\d{2}$/);
     await expect(page.getByRole('heading', { level: 1, name: /^Budget de / })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Revenus', exact: true })).toBeVisible();
   });

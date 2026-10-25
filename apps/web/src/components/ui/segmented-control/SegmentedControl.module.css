@@ -52,3 +52,23 @@
     transition-duration: var(--duration-reduced-motion);
   }
 }
+
+/* No track, no pressed background: the pressed segment is told apart by colour and weight, and
+   by `aria-pressed` for assistive technology. */
+.text {
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  background: var(--color-transparent);
+}
+
+.text .segment {
+  padding: var(--spacing-1) var(--spacing-2);
+  border-color: var(--color-transparent);
+  background: var(--color-transparent);
+}
+
+.text .segment[aria-pressed='true'] {
+  border-color: var(--color-transparent);
+  color: var(--gold-300);
+  background: var(--color-transparent);
+}

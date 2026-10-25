@@ -175,4 +175,83 @@ describe('MonthNavigator', () => {
     expect(active.className).toContain('active');
     expect(screen.getByRole('link', { name: 'Février' }).className).toBe('');
   });
+
+  describe('annual report', () => {
+    it('offers the annual report after the last month tab, pointing at the year', () => {
+      render(
+        <MonthNavigator
+          axis={null}
+          currentMonth="2026-03"
+          firstDataMonth="2020-01"
+          month="2026-03"
+        />,
+      );
+
+      const tabs = screen.getByRole('navigation', { name: 'Mois du budget' });
+      const entries = within(tabs).getAllByRole('link').concat(within(tabs).getAllByRole('button'));
+      const annual = within(tabs).getByRole('link', { name: 'Rapport' });
+      expect(annual.getAttribute('href')).toBe('/budget/2026');
+      expect(annual.getAttribute('aria-current')).toBeNull();
+      expect(entries).toContain(annual);
+      expect(tabs.lastElementChild).toBe(annual);
+      expect(within(tabs).getByRole('link', { name: 'Février' }).getAttribute('href')).toBe(
+        '/budget/2026/02',
+      );
+    });
+
+    it('marks only the annual report as current on the year view', () => {
+      render(
+        <MonthNavigator
+          axis={null}
+          currentMonth="2026-03"
+          firstDataMonth="2020-01"
+          month={null}
+          year={2025}
+        />,
+      );
+
+      expect(screen.getByRole('link', { name: 'Rapport' }).getAttribute('aria-current')).toBe(
+        'page',
+      );
+      expect(screen.getByRole('link', { name: 'Mars' }).getAttribute('aria-current')).toBeNull();
+      expect((screen.getByRole('combobox', { name: 'Année' }) as HTMLSelectElement).value).toBe(
+        '2025',
+      );
+    });
+
+    it('keeps future months of the year disabled on the year view', () => {
+      render(
+        <MonthNavigator
+          axis={null}
+          currentMonth="2026-03"
+          firstDataMonth="2020-01"
+          month={null}
+          year={2026}
+        />,
+      );
+
+      expect((screen.getByRole('button', { name: 'Avril' }) as HTMLButtonElement).disabled).toBe(
+        true,
+      );
+    });
+
+    it('stays on the annual report when another year is chosen on the year view', () => {
+      window.history.replaceState({}, '', '/budget/2026');
+      render(
+        <MonthNavigator
+          axis={null}
+          currentMonth="2026-03"
+          firstDataMonth="2020-01"
+          month={null}
+          year={2026}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('combobox', { name: 'Année' }), {
+        target: { value: '2024' },
+      });
+
+      expect(window.location.pathname).toBe('/budget/2024');
+    });
+  });
 });

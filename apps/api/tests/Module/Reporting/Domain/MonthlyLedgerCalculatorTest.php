@@ -36,6 +36,51 @@ final class MonthlyLedgerCalculatorTest extends TestCase
         self::assertSame([], MonthlyLedgerCalculator::categorySources([$expense, $refund], 'EXPENSE', 'food', 'VARIABLE'));
     }
 
+    /**
+     * Hand-computed roll-up: parent 10.00 of its own, child A 5.50, child B 2.25 and a sibling
+     * category 4.00 that belongs to no one of them. The parent subtree is 10.00 + 5.50 + 2.25 = 17.75.
+     */
+    public function testACategorySubtreeIsTheSumOfItsOwnAndItsDescendantsMovements(): void
+    {
+        $entries = [
+            self::entry('01', MonthlyMovementKind::INCOME, [new MonthlySplit('parent', DecimalValue::fromString('10.00'), [])]),
+            self::entry('02', MonthlyMovementKind::INCOME, [new MonthlySplit('child-a', DecimalValue::fromString('5.50'), [])]),
+            self::entry('03', MonthlyMovementKind::INCOME, [new MonthlySplit('child-b', DecimalValue::fromString('2.25'), [])]),
+            self::entry('04', MonthlyMovementKind::INCOME, [new MonthlySplit('other', DecimalValue::fromString('4.00'), [])]),
+        ];
+
+        $subtree = MonthlyLedgerCalculator::categorySources($entries, 'INCOME', ['parent', 'child-a', 'child-b'], null);
+        $total = MonthlyLedgerCalculator::total($subtree, invert: false);
+
+        self::assertSame('17.75', $total->value?->toString());
+        self::assertSame(3, $total->movementCount);
+        // A single id keeps meaning that category alone.
+        self::assertSame('10.00', MonthlyLedgerCalculator::total(MonthlyLedgerCalculator::categorySources($entries, 'INCOME', 'parent', null), invert: false)->value?->toString());
+    }
+
+    public function testASubtreeCountsATransactionSplitAcrossTheParentAndAChildOnce(): void
+    {
+        $split = self::entry('01', MonthlyMovementKind::EXPENSE, [
+            new MonthlySplit('parent', DecimalValue::fromString('-6.00'), []),
+            new MonthlySplit('child-a', DecimalValue::fromString('-4.00'), []),
+        ]);
+
+        $sources = MonthlyLedgerCalculator::categorySources([$split], 'EXPENSE', ['parent', 'child-a'], null);
+
+        self::assertCount(1, $sources);
+        self::assertSame('10.00', MonthlyLedgerCalculator::total($sources, invert: true)->value?->toString());
+    }
+
+    public function testASubtreeWithoutAnyMovementStaysNotCalculableAndNeverZero(): void
+    {
+        $entries = [self::entry('01', MonthlyMovementKind::INCOME, [new MonthlySplit('other', DecimalValue::fromString('4.00'), [])])];
+
+        $total = MonthlyLedgerCalculator::total(MonthlyLedgerCalculator::categorySources($entries, 'INCOME', ['parent', 'child-a'], null), invert: false);
+
+        self::assertNull($total->value);
+        self::assertSame('NO_MOVEMENTS', $total->reason);
+    }
+
     public function testEmptyActualZeroAndMixedAssetsRemainDistinct(): void
     {
         $empty = MonthlyLedgerCalculator::total([], invert: false);

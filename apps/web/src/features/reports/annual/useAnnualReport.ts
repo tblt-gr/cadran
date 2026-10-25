@@ -9,6 +9,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 
+/**
+ * The current, still incomplete month always counts in the figures; a future month never does,
+ * whatever this says (the backend excludes it). Sent on every read so the stored preference,
+ * which only picks columns for the user, cannot drop the running month.
+ */
+export const INCOMPLETE_MONTHS_INCLUDED = { incompleteMonths: 'include' } as const;
+
 const ANNUAL_PREFERENCES_QUERY_KEY = ['annual-report-preferences'];
 
 export class AnnualRequestError extends Error {
@@ -28,7 +35,12 @@ export function annualReportQueryOptions(year: number) {
   return {
     queryKey: ['annual-report', year],
     queryFn: async ({ signal }: { signal: AbortSignal }) => {
-      const result = await readAnnualReport({ ...authApiOptions(), path: { year }, signal });
+      const result = await readAnnualReport({
+        ...authApiOptions(),
+        path: { year },
+        query: INCOMPLETE_MONTHS_INCLUDED,
+        signal,
+      });
       if (!result.response?.ok || !result.data) throw requestError(result);
       return result.data;
     },
@@ -86,6 +98,7 @@ export function useAnnualColumnExplanation(year: number, columnId: string | null
       const result = await explainAnnualReportColumn({
         ...authApiOptions(),
         path: { year, columnId: columnId! },
+        query: INCOMPLETE_MONTHS_INCLUDED,
         signal,
       });
       if (!result.response?.ok || !result.data) throw requestError(result);

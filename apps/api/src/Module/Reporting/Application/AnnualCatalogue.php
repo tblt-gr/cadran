@@ -18,19 +18,19 @@ final readonly class AnnualCatalogue
     public const int DEFAULT_ACCOUNT_COLUMNS = 3;
 
     private const array FIXED = [
-        'cashIncome' => [ColumnKind::FLOW, 'Revenus de trésorerie'],
+        'cashIncome' => [ColumnKind::FLOW, 'Revenus'],
         'nonCashBenefits' => [ColumnKind::FLOW, 'Avantages hors trésorerie'],
-        'budgetExpenses' => [ColumnKind::FLOW, 'Dépenses budgétaires'],
+        'budgetExpenses' => [ColumnKind::FLOW, 'Dépenses'],
         'benefitSpending' => [ColumnKind::FLOW, 'Dépenses en avantages'],
         'uncategorizedExpenses' => [ColumnKind::FLOW, 'Dépenses non catégorisées'],
-        'budgetSurplus' => [ColumnKind::FLOW, 'Excédent budgétaire'],
-        'cashSavingsRate' => [ColumnKind::RATE, 'Taux d’épargne de trésorerie'],
+        'budgetSurplus' => [ColumnKind::FLOW, 'Excédent'],
+        'cashSavingsRate' => [ColumnKind::RATE, 'Taux d’épargne'],
         'savingsInflows' => [ColumnKind::FLOW, 'Entrées d’épargne'],
         'savingsWithdrawals' => [ColumnKind::FLOW, 'Sorties d’épargne'],
         'netSavingsTransfers' => [ColumnKind::FLOW, 'Épargne nette'],
         'netSavingsRate' => [ColumnKind::RATE, 'Taux d’épargne nette'],
         'netWorthDelta' => [ColumnKind::FLOW, 'Variation du patrimoine net'],
-        'endNetWorth' => [ColumnKind::STOCK, 'Patrimoine net en fin de mois'],
+        'endNetWorth' => [ColumnKind::STOCK, 'Patrimoine net'],
     ];
 
     private const array AXIS_LABELS = [
@@ -77,7 +77,7 @@ final readonly class AnnualCatalogue
                 : null,
             'category' => '' === $reference ? null : $known($this->categories[$reference] ?? null),
             'group' => '' === $reference ? null : self::stock($id, $this->groups[$reference] ?? null),
-            'account' => '' === $reference ? null : self::stock($id, isset($this->accounts[$reference]) ? $this->accounts[$reference]->label : null),
+            'account' => '' === $reference ? null : self::stock($id, isset($this->accounts[$reference]) ? $this->accounts[$reference]->label : null, $this->accounts[$reference]->institution ?? null),
             default => null,
         };
     }
@@ -116,8 +116,8 @@ final readonly class AnnualCatalogue
         ];
     }
 
-    private static function stock(string $id, ?string $label): AnnualColumn
+    private static function stock(string $id, ?string $label, ?string $institution = null): AnnualColumn
     {
-        return new AnnualColumn($id, $label ?? self::UNKNOWN_LABEL, ColumnKind::STOCK, null !== $label);
+        return new AnnualColumn($id, $label ?? self::UNKNOWN_LABEL, ColumnKind::STOCK, null !== $label, $institution);
     }
 }

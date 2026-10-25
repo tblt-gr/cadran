@@ -5,6 +5,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAmount } from '@/lib/decimal';
 import { formatGoalMonth } from './goalMonth';
 import styles from './GoalsPage.module.css';
+import { monthHref } from '@/features/budget/monthly-budget/budgetPeriod';
 
 export function GoalDetailModal({
   assetCode,
@@ -40,7 +41,7 @@ export function GoalDetailModal({
               {annual.months.map((month) => (
                 <tr key={month.month}>
                   <th scope="row">
-                    <a href={`/budget/${month.month}`}>
+                    <a href={monthHref(month.month, null)}>
                       {formatGoalMonth(month.month, i18n.language)}
                     </a>
                   </th>

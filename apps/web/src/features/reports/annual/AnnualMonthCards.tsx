@@ -3,7 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { AnnualCellValue } from './AnnualCellValue';
-import { SUMMARY_ROW_IDS, annualCellHref, summaryFigure } from './annualColumns';
+import {
+  SUMMARY_ROW_IDS,
+  annualCellHref,
+  summaryFigure,
+  withoutLeadingEmptyMonths,
+} from './annualColumns';
+import { ColumnHeader } from './ColumnHeader';
+import { useAnnualColumnLabel } from './columnLabel';
 import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualMonthCards.module.css';
 
@@ -15,10 +22,11 @@ interface AnnualMonthCardsProps {
 /** Below 640 px the table becomes one card per month, then one summary card, with the same values. */
 export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
   const { t, i18n } = useTranslation();
+  const labelOf = useAnnualColumnLabel();
 
   return (
     <ul aria-label={t('reports.annual.cardsLabel', { year: report.year })} className={styles.list}>
-      {report.rows.map((row) => (
+      {withoutLeadingEmptyMonths(report.rows).map((row) => (
         <li
           className={`card ${styles.card} ${isEmptyState(row.state) ? styles.dimmed : ''}`}
           key={row.month}
@@ -26,17 +34,19 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
           <h3>{monthLabel(row.month, i18n.language)}</h3>
           {row.state === 'FUTURE' ? (
             <p>
-              <EmptyValue label={t('reports.annual.future')} />
+              <EmptyValue quiet label={t('reports.annual.future')} />
             </p>
           ) : row.state === 'NO_DATA' ? (
             <p>
-              <EmptyValue label={t('reports.annual.noData')} />
+              <EmptyValue quiet label={t('reports.annual.noData')} />
             </p>
           ) : (
             <dl>
               {report.columns.map((column) => (
                 <div key={column.id}>
-                  <dt>{column.label}</dt>
+                  <dt>
+                    <ColumnHeader column={column} />
+                  </dt>
                   <dd>
                     <AnnualCellValue
                       assetCode={column.assetCode}
@@ -60,12 +70,12 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
           return (
             <section key={column.id}>
               <h4>
-                {column.label}
+                <ColumnHeader column={column} />
                 {aggregate.total !== null ? (
                   <InfoButton
                     aria-haspopup="dialog"
                     className={styles.explain}
-                    label={t('reports.annual.explainColumn', { column: column.label })}
+                    label={t('reports.annual.explainColumn', { column: labelOf(column) })}
                     onClick={() => onExplain(column.id)}
                   />
                 ) : null}

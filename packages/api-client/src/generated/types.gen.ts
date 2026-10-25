@@ -2813,6 +2813,14 @@ export type MonthlyRecapCategory = {
     id: string;
     label: string;
     type: 'INCOME' | 'EXPENSE';
+    /**
+     * Spending of this category, descendants included, on accounts outside the treasury perimeter of the metric policy (for example meal vouchers), as a positive cost with refunds reducing it. It is told apart and never part of `value` or of the budget expenses. Null when the category (an expense one) has no such movement or the assets are mixed.
+     */
+    benefitSpending?: string | null;
+    /**
+     * Asset of `benefitSpending`; null whenever `benefitSpending` is null.
+     */
+    benefitAssetCode?: string | null;
     kpi: null;
     value: string | null;
     assetCode: string | null;
@@ -2997,6 +3005,10 @@ export type AnnualColumn = {
     label: string;
     kind: AnnualColumnKind;
     assetCode: string | null;
+    /**
+     * Institution of an account column, shown under its label; null for any other column.
+     */
+    institution?: string | null;
 };
 
 /**

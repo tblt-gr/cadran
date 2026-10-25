@@ -207,14 +207,13 @@ describe('App', () => {
   it.each([
     ['/', 'Synthèse'],
     ['/transactions', 'Transactions'],
-    ['/budget/2026-03', 'Budget de mars 2026'],
+    ['/budget/2026/03', 'Budget de mars 2026'],
     ['/budget/plans', 'Plans budgétaires'],
     ['/accounts', 'Comptes'],
     ['/accounts/demo', 'Détail du compte'],
     ['/portfolios', 'Investissements'],
     ['/life-insurance/demo', 'Assurance-vie'],
-    ['/reports/annual/2026', 'Rapport annuel 2026'],
-    ['/reports/all-years', 'Rapport pluriannuel'],
+    ['/budget/2026', 'Rapport 2026'],
     ['/goals', 'Objectifs'],
     ['/parameters/profile', 'Paramètres'],
     ['/parameters/catalog', 'Catalogue produits'],
@@ -321,7 +320,7 @@ describe('App', () => {
     expect((await screen.findAllByRole('heading', { name: /^Budget de / })).length).toBeGreaterThan(
       0,
     );
-    expect(window.location.pathname).toMatch(/^\/budget\/\d{4}-\d{2}$/);
+    expect(window.location.pathname).toMatch(/^\/budget\/\d{4}\/\d{2}$/);
   });
 
   it('redirects an old UUID-shaped budget link to the plan subroute', async () => {

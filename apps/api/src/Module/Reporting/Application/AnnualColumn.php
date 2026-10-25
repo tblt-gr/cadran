@@ -14,6 +14,8 @@ final readonly class AnnualColumn
         public string $label,
         public ColumnKind $kind,
         public bool $known,
+        /** Institution of an account column, shown under its label; null for every other column. */
+        public ?string $institution = null,
     ) {
     }
 }

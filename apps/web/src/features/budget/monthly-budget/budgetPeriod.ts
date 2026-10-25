@@ -56,7 +56,44 @@ export function readAxis(search: string): BudgetAxis | null {
   return BUDGET_AXES.find((candidate) => candidate === axis) ?? null;
 }
 
+/** `/budget/YYYY/MM`; the month is a `YYYY-MM` key. */
 export function monthHref(month: string, axis: BudgetAxis | null): string {
   const search = axis === null ? '' : `?axis=${axis}`;
-  return `/budget/${month}${search}`;
+  return `/budget/${month.slice(0, 4)}/${month.slice(5)}${search}`;
+}
+
+/** The annual report of a year; the multi-year mode and its options live in the query string. */
+export function annualHref(year: number | string, search = ''): string {
+  return `/budget/${year}${search}`;
+}
+
+export type BudgetMonthRoute =
+  { kind: 'month'; periodKey: string } | { kind: 'redirect'; href: string };
+
+/**
+ * Resolves the `/budget/:year/:month` segments. A month outside 1..12 never reaches the page:
+ * a complete year clamps to January or December, the year in progress to January or to the
+ * current month. Digits are compared as text, so no number conversion can overflow.
+ */
+export function resolveBudgetMonthRoute(
+  year: string,
+  month: string,
+  today: string,
+): BudgetMonthRoute {
+  const negative = month.startsWith('-');
+  const digits = (negative ? month.slice(1) : month).replace(/^0+(?=\d)/, '');
+  const inRange = !negative && digits.length <= 2 && Number(digits) >= 1 && Number(digits) <= 12;
+  const target = (value: string) => ({
+    kind: 'redirect' as const,
+    href: `/budget/${year}/${value}`,
+  });
+  if (inRange) {
+    const padded = digits.padStart(2, '0');
+    return padded === month ? { kind: 'month', periodKey: `${year}-${padded}` } : target(padded);
+  }
+  if (Number(year) > Number(today.slice(0, 4)))
+    return { kind: 'month', periodKey: `${year}-${month}` };
+  const belowRange = negative || Number(digits) === 0;
+  if (belowRange) return target('01');
+  return target(year === today.slice(0, 4) ? today.slice(5, 7) : '12');
 }

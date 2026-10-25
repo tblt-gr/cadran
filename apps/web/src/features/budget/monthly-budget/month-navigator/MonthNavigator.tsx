@@ -1,7 +1,12 @@
 import { useTranslation } from 'react-i18next';
+import { GhostSelect } from '@/components/ui/ghost-select/GhostSelect';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { clampMonth } from '@/lib/monthBounds';
-import { monthHref, type BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
+import {
+  annualHref,
+  monthHref,
+  type BudgetAxis,
+} from '@/features/budget/monthly-budget/budgetPeriod';
 import styles from './MonthNavigator.module.css';
 
 interface MonthNavigatorProps {
@@ -9,10 +14,13 @@ interface MonthNavigatorProps {
   currentMonth: string;
   /** Oldest month with eligible workspace data; null when the workspace has none. */
   firstDataMonth?: string | null;
-  month: string;
+  /** Selected month; null on the annual view, where no month tab is current. */
+  month: string | null;
   onRetry?: () => void;
   /** Bounds query state: controls stay disabled until it is `ready`. */
   status?: 'loading' | 'error' | 'ready';
+  /** Selected year; defaults to the year of `month`, required on the annual view. */
+  year?: number;
 }
 
 export function MonthNavigator({
@@ -22,10 +30,11 @@ export function MonthNavigator({
   month,
   onRetry,
   status = 'ready',
+  year,
 }: MonthNavigatorProps) {
   const { t, i18n } = useTranslation();
-  const selectedYear = Number.parseInt(month.slice(0, 4), 10);
-  const selectedMonthNumber = month.slice(5, 7);
+  const selectedYear = year ?? Number.parseInt(month!.slice(0, 4), 10);
+  const selectedMonthNumber = month === null ? null : month.slice(5, 7);
   const currentYear = Number.parseInt(currentMonth.slice(0, 4), 10);
   // Years before the first transaction have nothing to show; the selected year stays listed
   // so a deep link never leaves the select without its own value.
@@ -41,10 +50,18 @@ export function MonthNavigator({
     (_, index) => currentYear - index,
   );
 
-  function chooseYear(year: number) {
-    const candidate = `${year}-${selectedMonthNumber}`;
-    const destination = clampMonth(candidate, earliestMonth, currentMonth);
-    const href = monthHref(destination, axis);
+  function chooseYear(chosen: number) {
+    let href: string;
+    if (selectedMonthNumber === null) {
+      href = annualHref(chosen);
+    } else {
+      const destination = clampMonth(
+        `${chosen}-${selectedMonthNumber}`,
+        earliestMonth,
+        currentMonth,
+      );
+      href = monthHref(destination, axis);
+    }
     window.history.pushState({}, '', href);
     window.dispatchEvent(new PopStateEvent('popstate'));
   }
@@ -52,7 +69,7 @@ export function MonthNavigator({
   return (
     <section className={styles.navigator} aria-label={t('budget.monthly.months')}>
       <label className={styles.year}>
-        <select
+        <GhostSelect
           aria-label={t('budget.monthly.year')}
           disabled={!ready}
           onChange={(event) => chooseYear(Number.parseInt(event.target.value, 10))}
@@ -63,7 +80,7 @@ export function MonthNavigator({
               {year}
             </option>
           ))}
-        </select>
+        </GhostSelect>
       </label>
 
       <nav aria-label={t('budget.monthly.months')} className={styles.tabs}>
@@ -109,6 +126,20 @@ export function MonthNavigator({
             </a>
           );
         })}
+        {ready ? (
+          <a
+            aria-current={month === null ? 'page' : undefined}
+            className={`${styles.annual} ${month === null ? styles.active : ''}`.trim()}
+            href={annualHref(selectedYear)}
+            onClick={(event) => handleClientNavigation(event, annualHref(selectedYear))}
+          >
+            {t('budget.monthly.annualReport')}
+          </a>
+        ) : (
+          <button className={`${styles.annual} ${styles.disabled}`} disabled type="button">
+            {t('budget.monthly.annualReport')}
+          </button>
+        )}
       </nav>
 
       {status === 'error' ? (

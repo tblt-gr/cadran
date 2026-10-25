@@ -335,6 +335,19 @@ final class AnnualReportControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testAnAccountColumnCarriesItsInstitutionAndOtherColumnsDoNot(): void
+    {
+        $this->signIn();
+        $this->seedYear();
+        $this->put(['cashIncome', 'account:'.self::ACCOUNT], 'exclude', 0);
+        $this->connection->executeStatement('UPDATE account_financial_accounts SET institution = ? WHERE id = ?', ['Banque Exemple', self::ACCOUNT]);
+
+        $columns = self::rowsOf($this->annual($this->year)['columns']);
+
+        self::assertNull($columns[0]['institution']);
+        self::assertSame('Banque Exemple', $columns[1]['institution']);
+    }
+
     public function testAStoredColumnWhoseReferenceNoLongerResolvesStaysWithNullCells(): void
     {
         $this->signIn();

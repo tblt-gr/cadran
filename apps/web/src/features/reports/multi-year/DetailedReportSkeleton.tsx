@@ -1,6 +1,7 @@
 import type { MultiYearReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { ColumnHeader } from '@/features/reports/annual/ColumnHeader';
 import cardStyles from '@/features/reports/annual/AnnualMonthCards.module.css';
 import tableStyles from '@/features/reports/annual/AnnualReportTable.module.css';
 import localStyles from './ContinuousDetailedReport.module.css';
@@ -38,7 +39,7 @@ export function DetailedReportSkeleton({ report }: { report: MultiYearReport }) 
                   <th scope="col">{t('reports.annual.month')}</th>
                   {report.columns.map((column) => (
                     <th key={column.id} scope="col">
-                      {column.label}
+                      <ColumnHeader column={column} />
                     </th>
                   ))}
                 </tr>
@@ -69,7 +70,9 @@ export function DetailedReportSkeleton({ report }: { report: MultiYearReport }) 
               <dl>
                 {report.columns.map((column) => (
                   <div key={column.id}>
-                    <dt>{column.label}</dt>
+                    <dt>
+                      <ColumnHeader column={column} />
+                    </dt>
                     <dd>
                       <SkeletonBlock className={skeletonStyles.cell} />
                     </dd>

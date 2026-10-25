@@ -61,9 +61,8 @@ export const routeCases = [
   'month',
   '/budget/plans',
   'plan',
-  '/reports',
   'annual',
-  '/reports/all-years',
+  'multi-year',
   '/goals',
   '/portfolios',
   '/portfolios/instruments',
@@ -83,9 +82,10 @@ export function routePath(route: string, fixtures: AuditFixtures): string {
   const now = new Date();
   if (route === 'month') {
     const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return `/budget/${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, '0')}`;
+    return `/budget/${previous.getFullYear()}/${String(previous.getMonth() + 1).padStart(2, '0')}`;
   }
-  if (route === 'annual') return `/reports/annual/${now.getFullYear()}`;
+  if (route === 'annual') return `/budget/${now.getFullYear()}`;
+  if (route === 'multi-year') return `/budget/${now.getFullYear()}?view=multi`;
   const [key, tab] = route.split(':');
   if (key && key in fixtures) {
     const path = fixtures[key as keyof AuditFixtures];

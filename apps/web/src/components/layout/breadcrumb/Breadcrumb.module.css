@@ -54,3 +54,11 @@
   width: 8ch;
   height: 1em;
 }
+
+/* A short link such as a year reaches the touch target in both directions, without any visible box. */
+@media (pointer: coarse) {
+  .item a {
+    justify-content: center;
+    min-inline-size: var(--touch-target-min);
+  }
+}

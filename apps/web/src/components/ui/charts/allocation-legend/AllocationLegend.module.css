@@ -89,9 +89,8 @@
 
 .more {
   justify-self: start;
-  padding: var(--spacing-1) var(--spacing-3);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-button);
+  padding: var(--spacing-none);
+  border: var(--border-none);
   color: var(--text-secondary);
   background: var(--color-transparent);
   font: inherit;

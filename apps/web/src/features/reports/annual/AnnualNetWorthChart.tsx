@@ -25,6 +25,7 @@ export function AnnualNetWorthChart({ netWorth }: { netWorth: AnnualNetWorthSeri
       value:
         text === null ? (
           <EmptyValue
+            quiet
             label={t('reports.annual.notCalculable')}
             reason={
               point.value.reason

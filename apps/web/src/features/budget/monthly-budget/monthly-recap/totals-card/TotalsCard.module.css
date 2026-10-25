@@ -108,3 +108,10 @@
   width: calc(var(--spacing-12) * 1.5);
   height: var(--font-size-label);
 }
+
+/* Told apart from the row's total: muted, smaller, never summed into it. */
+.benefit {
+  margin: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
