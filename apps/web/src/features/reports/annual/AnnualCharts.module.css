@@ -11,9 +11,14 @@
   min-width: 0;
   gap: var(--spacing-3);
   padding: var(--spacing-4);
+  font-size: var(--font-size-body);
 }
 .chart h3 {
   margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-card);
 }
 .plot {
   min-width: 0;
@@ -32,11 +37,13 @@
 .chart summary {
   cursor: pointer;
   color: var(--text-secondary);
+  font-size: var(--font-size-label);
 }
 .data {
   width: 100%;
   margin-top: var(--spacing-3);
   border-collapse: collapse;
+  font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
 }
 .data th,

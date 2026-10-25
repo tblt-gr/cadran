@@ -189,7 +189,7 @@ describe('MonthNavigator', () => {
 
       const tabs = screen.getByRole('navigation', { name: 'Mois du budget' });
       const entries = within(tabs).getAllByRole('link').concat(within(tabs).getAllByRole('button'));
-      const annual = within(tabs).getByRole('link', { name: 'Rapport annuel' });
+      const annual = within(tabs).getByRole('link', { name: 'Rapport' });
       expect(annual.getAttribute('href')).toBe('/budget/2026');
       expect(annual.getAttribute('aria-current')).toBeNull();
       expect(entries).toContain(annual);
@@ -210,9 +210,9 @@ describe('MonthNavigator', () => {
         />,
       );
 
-      expect(
-        screen.getByRole('link', { name: 'Rapport annuel' }).getAttribute('aria-current'),
-      ).toBe('page');
+      expect(screen.getByRole('link', { name: 'Rapport' }).getAttribute('aria-current')).toBe(
+        'page',
+      );
       expect(screen.getByRole('link', { name: 'Mars' }).getAttribute('aria-current')).toBeNull();
       expect((screen.getByRole('combobox', { name: 'Année' }) as HTMLSelectElement).value).toBe(
         '2025',

@@ -116,16 +116,18 @@ describe('MultiYearReportPage', () => {
     expect(await screen.findByRole('table', { name: /pluriannuel/i })).toBeTruthy();
   });
 
-  it('surfaces a 422 range error inline next to the selector, keeping it usable', async () => {
+  it('surfaces a 422 range error as a message, keeping the toolbar selector usable', async () => {
     renderPage();
     await screen.findByRole('table', { name: /pluriannuel/i });
-    api.readMultiYearReport.mockResolvedValueOnce(failure(422));
+    api.readMultiYearReport.mockImplementation(async ({ query }: { query: { from?: number } }) =>
+      query.from === 2025 ? failure(422) : ok(multiYearReport),
+    );
     const fromSelect = screen.getByLabelText('Depuis') as HTMLSelectElement;
     fireEvent.change(fromSelect, { target: { value: '2025' } });
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch(/15 ans|postérieure/i);
     expect(screen.getByLabelText('Depuis')).toBeTruthy();
-    expect(screen.getByLabelText("Jusqu'à")).toBeTruthy();
+    expect(screen.getByLabelText(/jusqu/i)).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();
   });
 
@@ -431,7 +433,7 @@ describe('MultiYearReportPage', () => {
     renderPage();
     await screen.findByRole('table', { name: /pluriannuel/i });
     const fromSelect = screen.getByLabelText('Depuis') as HTMLSelectElement;
-    const toSelect = screen.getByLabelText("Jusqu'à") as HTMLSelectElement;
+    const toSelect = screen.getByLabelText(/jusqu/i) as HTMLSelectElement;
     fireEvent.change(fromSelect, { target: { value: '2025' } });
     await screen.findByRole('table', { name: /pluriannuel/i });
     expect(api.readMultiYearReport).toHaveBeenLastCalledWith(

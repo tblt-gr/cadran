@@ -4,15 +4,25 @@ import { Icon } from '@/components/ui/icon/Icon';
 import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
 import { Toast } from '@/components/ui/toast/Toast';
 import { ColumnPickerModal } from '@/features/reports/annual/ColumnPickerModal';
-import {
-  AnnualRequestError,
-  useAnnualReportPreferences,
-  useSaveAnnualReportPreferences,
-} from '@/features/reports/annual/useAnnualReport';
-import type { YearView } from './yearViewSearch';
+import { useAnnualReportPreferences } from '@/features/reports/annual/useAnnualReport';
+import { YearRangeSelector } from '@/features/reports/multi-year/YearRangeSelector';
+import { DisplayModeSwitch } from './DisplayModeSwitch';
+import type { MultiYearDisplay, YearView } from './yearViewSearch';
 import styles from './ReportToolbar.module.css';
 
+/** What only the multi-year view adds to the row: its year range and its display mode. */
+interface MultiYearControls {
+  display: MultiYearDisplay;
+  maxYear: number;
+  minYear: number;
+  onDisplayChange: (display: MultiYearDisplay) => void;
+  onRangeChange: (range: { from: number; to: number }) => void;
+  /** Null while the default bounds are still loading: the selector waits for them. */
+  range: { from: number; to: number } | null;
+}
+
 interface ReportToolbarProps {
+  multi?: MultiYearControls;
   onViewChange: (view: YearView) => void;
   /** The multi-year view needs at least two years of data. */
   multiYearAvailable: boolean;
@@ -20,37 +30,19 @@ interface ReportToolbarProps {
 }
 
 /**
- * Switch between the annual and the multi-year view, next to the report's own settings:
- * the column picker and the incomplete-month switch, both stored as workspace preferences.
+ * One quiet row: the annual or multi-year switch, the year range and display mode of the
+ * multi-year view, then the column picker (stored as a workspace preference).
  */
-export function ReportToolbar({ multiYearAvailable, onViewChange, view }: ReportToolbarProps) {
+export function ReportToolbar({
+  multi,
+  multiYearAvailable,
+  onViewChange,
+  view,
+}: ReportToolbarProps) {
   const { t } = useTranslation();
   const preferences = useAnnualReportPreferences();
-  const save = useSaveAnnualReportPreferences();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const includeIncomplete = preferences.data?.incompleteMonths === 'include';
-  const incompleteLabel = t('reports.annual.incompleteMonths', {
-    state: t(includeIncomplete ? 'reports.annual.included' : 'reports.annual.excluded'),
-  });
-
-  function toggleIncomplete() {
-    if (!preferences.data) return;
-    save.mutate(
-      {
-        columns: preferences.data.columns,
-        incompleteMonths: includeIncomplete ? 'exclude' : 'include',
-        version: preferences.data.version,
-      },
-      {
-        onError: (error) => {
-          if (error instanceof AnnualRequestError && error.status === 409) {
-            setNotice(t('reports.annual.conflict'));
-          }
-        },
-      },
-    );
-  }
 
   return (
     <div className={styles.toolbar}>
@@ -67,8 +59,21 @@ export function ReportToolbar({ multiYearAvailable, onViewChange, view }: Report
           },
         ]}
         value={view}
+        variant="text"
       />
+      {multi?.range ? (
+        <YearRangeSelector
+          from={multi.range.from}
+          maxYear={multi.maxYear}
+          minYear={multi.minYear}
+          onChange={multi.onRangeChange}
+          to={multi.range.to}
+        />
+      ) : null}
       <div className={styles.actions}>
+        {multi ? (
+          <DisplayModeSwitch onChange={multi.onDisplayChange} value={multi.display} />
+        ) : null}
         <button
           aria-label={t('reports.annual.columns')}
           className={`icon-ghost ${styles.button}`}
@@ -78,17 +83,6 @@ export function ReportToolbar({ multiYearAvailable, onViewChange, view }: Report
           type="button"
         >
           <Icon name="columns" size={16} />
-        </button>
-        <button
-          aria-label={incompleteLabel}
-          aria-pressed={includeIncomplete}
-          className={`icon-ghost ${styles.button}`}
-          disabled={save.isPending || !preferences.data}
-          onClick={toggleIncomplete}
-          title={incompleteLabel}
-          type="button"
-        >
-          <Icon name={includeIncomplete ? 'eye' : 'eye-off'} size={16} />
         </button>
       </div>
       {pickerOpen && preferences.data ? (

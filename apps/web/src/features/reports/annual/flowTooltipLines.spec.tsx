@@ -20,9 +20,9 @@ describe('flowTooltipLines', () => {
 
     expect(lines).toHaveLength(4);
     expect(lines[0]).toBe('Mars 2026');
-    expect(lines[1]).toContain('Revenus de trésorerie');
+    expect(lines[1]).toContain('Revenus');
     expect(lines[1]).toContain('2');
-    expect(lines[2]).toContain('Dépenses budgétaires');
+    expect(lines[2]).toContain('Dépenses');
     expect(lines[3]).toContain('Solde budgétaire');
   });
 

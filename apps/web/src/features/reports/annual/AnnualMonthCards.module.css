@@ -15,10 +15,21 @@
 .card h4 {
   margin: var(--spacing-none);
 }
+.card h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-card);
+}
+.card h4 {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
 .card dl {
   display: grid;
   gap: var(--spacing-2);
   margin: var(--spacing-none);
+  font-size: var(--font-size-body);
 }
 .card dl div {
   display: flex;
@@ -50,4 +61,15 @@
 /* White "i" icon on every reports page, beating InfoButton's own colour. */
 button.explain {
   color: var(--text-primary);
+}
+/* A link inside a figure is plain text until hovered or focused. */
+.table a,
+.card a {
+  text-decoration: none;
+}
+.table a:hover,
+.table a:focus-visible,
+.card a:hover,
+.card a:focus-visible {
+  text-decoration: underline;
 }

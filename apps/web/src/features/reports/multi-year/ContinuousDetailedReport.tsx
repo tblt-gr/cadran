@@ -100,9 +100,6 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
                   >
                     <th scope="row">
                       {monthLabel(row.month, i18n.language)} {annualReport.year}
-                      {row.state === 'PROVISIONAL' ? (
-                        <small> {t('reports.annual.provisional')}</small>
-                      ) : null}
                     </th>
                     {columns.map((column) => {
                       const cell = row.cells[column.id];

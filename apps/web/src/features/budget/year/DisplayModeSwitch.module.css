@@ -1,0 +1,13 @@
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.mode {
+  color: var(--text-secondary);
+}
+
+.mode[aria-pressed='true'] {
+  color: var(--gold-300);
+}

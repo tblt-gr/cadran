@@ -10,14 +10,14 @@ test.describe('annual report', () => {
     await navigateTo(page, 'Budget');
     await page
       .getByRole('navigation', { name: 'Mois du budget' })
-      .getByRole('link', { name: 'Rapport annuel', exact: true })
+      .getByRole('link', { name: 'Rapport', exact: true })
       .click();
     await settled(page);
 
     await expect(page).toHaveURL(/\/budget\/\d{4}$/);
-    const table = page.getByRole('table', { name: /^Rapport annuel \d{4}$/ });
+    const table = page.getByRole('table', { name: /^Rapport \d{4}$/ });
     await expect(table).toBeVisible();
-    await expect(table.getByRole('columnheader', { name: 'Revenus de trésorerie' })).toBeVisible();
+    await expect(table.getByRole('columnheader', { name: 'Revenus' })).toBeVisible();
 
     const source = table.getByRole('row').nth(1).getByRole('link').first();
     await expect(source).toHaveAttribute('href', /\/budget\/\d{4}\/\d{2}$/);
@@ -33,7 +33,7 @@ test.describe('annual report', () => {
     await settled(page);
     await page
       .getByRole('navigation', { name: 'Mois du budget' })
-      .getByRole('link', { name: 'Rapport annuel', exact: true })
+      .getByRole('link', { name: 'Rapport', exact: true })
       .click();
     await settled(page);
 

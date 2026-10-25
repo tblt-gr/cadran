@@ -6,9 +6,10 @@ import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { MultiYearCards } from './MultiYearCards';
 import { DetailedAnnualReports } from './DetailedAnnualReports';
 import { MultiYearChartsSkeleton, MultiYearSkeleton } from './MultiYearSkeleton';
+import type { MultiYearDisplay } from '@/features/budget/year/yearViewSearch';
 import { MultiYearTable } from './MultiYearTable';
 import { MultiYearRequestError, useMultiYearReport } from './useMultiYearReport';
-import { YearRangeSelector, type MultiYearDisplayMode } from './YearRangeSelector';
+
 import styles from './MultiYearReportPage.module.css';
 
 // recharts loads on demand, after the report's own figures.
@@ -16,24 +17,14 @@ const MultiYearCharts = lazyComponent(() => import('./MultiYearCharts'), 'MultiY
 
 interface MultiYearReportPageProps {
   /** Workspace-local year, the upper bound of the range. */
-  currentYear: number;
-  display: MultiYearDisplayMode;
-  onDisplayChange: (display: MultiYearDisplayMode) => void;
-  onRangeChange: (range: { from: number; to: number }) => void;
+  display: MultiYearDisplay;
   /** Requested range from the URL; null lets the backend apply its own default bounds. */
   range: { from: number; to: number } | null;
   /** Year of the route, which keys the header title. */
   year: number;
 }
 
-export function MultiYearReportPage({
-  currentYear,
-  display,
-  onDisplayChange,
-  onRangeChange,
-  range,
-  year,
-}: MultiYearReportPageProps) {
+export function MultiYearReportPage({ display, range, year }: MultiYearReportPageProps) {
   const { t } = useTranslation();
   const [detailedReports, setDetailedReports] = useState<AnnualReport[] | null>(null);
 
@@ -47,15 +38,11 @@ export function MultiYearReportPage({
         : reports,
     );
   }, []);
-  // The unfiltered response carries `availableFrom`, the workspace's true first
-  // data year. Its displayed `from` may be capped to the latest 15-year window,
-  // so it must not become the selector's lower bound.
   const bounds = useMultiYearReport();
   const report = useMultiYearReport(range?.from, range?.to);
   const status = report.error instanceof MultiYearRequestError ? report.error.status : 0;
-  // A range the selector itself cannot construct (see its own bounded options)
-  // was still refused by the backend: the selector and its bounds are known, so
-  // the error can stay inline next to it instead of replacing the whole screen.
+  // A range the selector itself cannot construct was still refused by the backend: the
+  // toolbar selector stays usable, so the error is only a message, not a replaced screen.
   const boundsForRangeError = report.isError && status === 422 && bounds.data ? bounds.data : null;
   const effectiveRange =
     range ??
@@ -71,7 +58,7 @@ export function MultiYearReportPage({
 
   let content: ReactNode;
   if (report.isPending) {
-    content = <MultiYearSkeleton currentYear={currentYear} range={effectiveRange} />;
+    content = <MultiYearSkeleton range={effectiveRange} />;
   } else if (report.isError && boundsForRangeError === null) {
     content = (
       <section className={`card ${styles.state}`} role="alert">
@@ -90,18 +77,11 @@ export function MultiYearReportPage({
       </section>
     );
   } else if (report.isError) {
+    // The range selector in the toolbar stays usable: only the message sits here.
     content = (
-      <YearRangeSelector
-        error={t('reports.multiYear.invalidRange')}
-        from={range?.from ?? boundsForRangeError!.from}
-        maxYear={currentYear}
-        minYear={boundsForRangeError!.availableFrom ?? boundsForRangeError!.from}
-        onChange={(nextRange) => {
-          setDetailedReports(null);
-          onRangeChange(nextRange);
-        }}
-        to={range?.to ?? boundsForRangeError!.to}
-      />
+      <section className={`card ${styles.state}`} role="alert">
+        <h2>{t('reports.multiYear.invalidRange')}</h2>
+      </section>
     );
   } else if (report.data.years.length === 0) {
     content = (
@@ -112,21 +92,6 @@ export function MultiYearReportPage({
   } else {
     content = (
       <>
-        <YearRangeSelector
-          display={display}
-          from={range?.from ?? report.data.from}
-          maxYear={currentYear}
-          minYear={bounds.data?.availableFrom ?? report.data.availableFrom ?? report.data.from}
-          onChange={(nextRange) => {
-            setDetailedReports(null);
-            onRangeChange(nextRange);
-          }}
-          onDisplayChange={(next) => {
-            setDetailedReports(null);
-            onDisplayChange(next);
-          }}
-          to={range?.to ?? report.data.to}
-        />
         {display === 'compact' ? (
           <>
             <MultiYearTable report={report.data} />

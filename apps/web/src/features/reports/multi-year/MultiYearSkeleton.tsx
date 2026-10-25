@@ -13,9 +13,6 @@ import pageStyles from './MultiYearReportPage.module.css';
 import styles from './MultiYearSkeleton.module.css';
 import tableStyles from './MultiYearTable.module.css';
 import cardStyles from './MultiYearCards.module.css';
-import { YearRangeSelector } from './YearRangeSelector';
-
-const noop = () => undefined;
 
 /** The column set is the user's own choice: four placeholders stand for it until it is known. */
 const PLACEHOLDER_COLUMNS = [0, 1, 2, 3];
@@ -27,8 +24,6 @@ const MAX_ROWS = 15;
 const UNKNOWN_RANGE_YEARS = 3;
 
 interface MultiYearSkeletonProps {
-  /** Current year of the workspace, the upper bound of the selector. */
-  currentYear: number;
   /** The requested or default range once known, so the year labels can be real. */
   range: { from: number; to: number } | null;
 }
@@ -41,7 +36,7 @@ function Cell() {
  * Mirrors the compact multi-year report element for element: selector, caption,
  * year and summary labels are real; columns and figures are pending.
  */
-export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps) {
+export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
   const { t } = useTranslation();
   const count = range ? Math.min(range.to - range.from + 1, MAX_ROWS) : 0;
   const years = range
@@ -52,17 +47,6 @@ export function MultiYearSkeleton({ currentYear, range }: MultiYearSkeletonProps
   return (
     <div aria-busy="true" className={pageStyles.page} data-testid="multi-year-report-skeleton">
       <SkeletonStatus>{t('reports.loading')}</SkeletonStatus>
-      <fieldset className={styles.frozen} disabled>
-        <YearRangeSelector
-          display="compact"
-          from={range?.from ?? currentYear}
-          maxYear={currentYear}
-          minYear={range?.from ?? currentYear}
-          onChange={noop}
-          onDisplayChange={noop}
-          to={range?.to ?? currentYear}
-        />
-      </fieldset>
       <section aria-hidden="true" className={`card ${tableStyles.wrap}`}>
         <header className={tableStyles.header}>
           <h2 className={tableStyles.title}>

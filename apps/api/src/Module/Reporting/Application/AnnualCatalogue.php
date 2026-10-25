@@ -18,19 +18,19 @@ final readonly class AnnualCatalogue
     public const int DEFAULT_ACCOUNT_COLUMNS = 3;
 
     private const array FIXED = [
-        'cashIncome' => [ColumnKind::FLOW, 'Revenus de trésorerie'],
+        'cashIncome' => [ColumnKind::FLOW, 'Revenus'],
         'nonCashBenefits' => [ColumnKind::FLOW, 'Avantages hors trésorerie'],
-        'budgetExpenses' => [ColumnKind::FLOW, 'Dépenses budgétaires'],
+        'budgetExpenses' => [ColumnKind::FLOW, 'Dépenses'],
         'benefitSpending' => [ColumnKind::FLOW, 'Dépenses en avantages'],
         'uncategorizedExpenses' => [ColumnKind::FLOW, 'Dépenses non catégorisées'],
-        'budgetSurplus' => [ColumnKind::FLOW, 'Excédent budgétaire'],
-        'cashSavingsRate' => [ColumnKind::RATE, 'Taux d’épargne de trésorerie'],
+        'budgetSurplus' => [ColumnKind::FLOW, 'Excédent'],
+        'cashSavingsRate' => [ColumnKind::RATE, 'Taux d’épargne'],
         'savingsInflows' => [ColumnKind::FLOW, 'Entrées d’épargne'],
         'savingsWithdrawals' => [ColumnKind::FLOW, 'Sorties d’épargne'],
         'netSavingsTransfers' => [ColumnKind::FLOW, 'Épargne nette'],
         'netSavingsRate' => [ColumnKind::RATE, 'Taux d’épargne nette'],
         'netWorthDelta' => [ColumnKind::FLOW, 'Variation du patrimoine net'],
-        'endNetWorth' => [ColumnKind::STOCK, 'Patrimoine net en fin de mois'],
+        'endNetWorth' => [ColumnKind::STOCK, 'Patrimoine net'],
     ];
 
     private const array AXIS_LABELS = [

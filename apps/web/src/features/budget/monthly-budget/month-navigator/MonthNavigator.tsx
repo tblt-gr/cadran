@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { GhostSelect } from '@/components/ui/ghost-select/GhostSelect';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { clampMonth } from '@/lib/monthBounds';
 import {
@@ -68,7 +69,7 @@ export function MonthNavigator({
   return (
     <section className={styles.navigator} aria-label={t('budget.monthly.months')}>
       <label className={styles.year}>
-        <select
+        <GhostSelect
           aria-label={t('budget.monthly.year')}
           disabled={!ready}
           onChange={(event) => chooseYear(Number.parseInt(event.target.value, 10))}
@@ -79,7 +80,7 @@ export function MonthNavigator({
               {year}
             </option>
           ))}
-        </select>
+        </GhostSelect>
       </label>
 
       <nav aria-label={t('budget.monthly.months')} className={styles.tabs}>

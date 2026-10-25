@@ -13,9 +13,10 @@
 .title {
   min-width: 0;
   margin: var(--spacing-none);
-  color: var(--text-secondary);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-normal);
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-card);
 }
 .scroll {
   position: relative;
@@ -25,6 +26,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: var(--spacing-none);
+  font-size: var(--font-size-body);
   font-variant-numeric: tabular-nums;
 }
 .table th,
@@ -93,4 +95,15 @@
     min-inline-size: var(--touch-target-min);
     justify-content: center;
   }
+}
+/* A link inside a figure is plain text until hovered or focused. */
+.table a,
+.card a {
+  text-decoration: none;
+}
+.table a:hover,
+.table a:focus-visible,
+.card a:hover,
+.card a:focus-visible {
+  text-decoration: underline;
 }

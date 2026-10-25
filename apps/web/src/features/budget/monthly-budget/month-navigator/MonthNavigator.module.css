@@ -65,18 +65,6 @@
   }
 }
 
-.year select {
-  min-height: var(--control-height-compact);
-  border: var(--border-line-transparent);
-  background: var(--color-transparent);
-  color: var(--text-primary);
-  font-size: var(--font-size-label);
-  padding: var(--spacing-1) var(--spacing-2);
-}
-.year select:focus-visible {
-  outline: var(--outline-focus);
-}
-
 .retry {
   display: flex;
   flex: 0 0 auto;

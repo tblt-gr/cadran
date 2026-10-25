@@ -36,7 +36,7 @@ describe('global breadcrumb', () => {
     ['/categories/rules', ['Accueil', 'Transactions', 'Catégories', 'Règles de catégorisation']],
     ['/budget', ['Accueil', 'Budget']],
     ['/budget/2026/03', ['Accueil', 'Budget', '2026-03']],
-    ['/budget/2026', ['Accueil', 'Budget', 'Rapport annuel 2026']],
+    ['/budget/2026', ['Accueil', 'Budget', 'Rapport 2026']],
     ['/budget/2026-03', ['Accueil', 'Page introuvable']],
     ['/budget/plans', ['Accueil', 'Budget', 'Plans budgétaires']],
     ['/budget/plans/plan-1', ['Accueil', 'Budget', 'Plans budgétaires', 'Plan budgétaire']],

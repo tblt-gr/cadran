@@ -2,11 +2,18 @@ import type { AnnualReportPreferences } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { Tabs } from '@/components/ui/tabs/Tabs';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { AXIS_IDS, INDICATOR_COLUMN_IDS, MAX_ANNUAL_COLUMNS } from './annualColumns';
 import { AnnualRequestError, useSaveAnnualReportPreferences } from './useAnnualReport';
 import { useColumnCatalogue, type CatalogueEntry } from './useColumnCatalogue';
 import styles from './ColumnPickerModal.module.css';
+
+interface CatalogueData {
+  accounts: CatalogueEntry[];
+  categories: CatalogueEntry[];
+  groups: CatalogueEntry[];
+}
 
 interface ColumnPickerModalProps {
   close: () => void;
@@ -47,10 +54,9 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
       },
     );
   }
-  function group(legend: string, prefix: string, entries: CatalogueEntry[]) {
+  function options(prefix: string, entries: CatalogueEntry[]) {
     return (
-      <fieldset key={legend}>
-        <legend>{legend}</legend>
+      <>
         {entries.length === 0 ? <p>{t('reports.annual.picker.none')}</p> : null}
         <div className={styles.options}>
           {entries.map((entry) => {
@@ -69,22 +75,39 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
             );
           })}
         </div>
-      </fieldset>
+      </>
     );
   }
 
-  /** The same fieldset as `group` while the workspace's own entries load. */
-  function pendingGroup(legend: string) {
-    return (
-      <fieldset key={legend}>
-        <legend>{legend}</legend>
-        <div aria-hidden="true" className={styles.options}>
-          {Array.from({ length: 4 }, (_, index) => (
-            <SkeletonBlock className={styles.skeletonOption} key={index} />
-          ))}
+  /** The workspace's own entries: placeholders while they load, a retry when they failed. */
+  function catalogueOptions(prefix: string, pick: (data: CatalogueData) => CatalogueEntry[]) {
+    if (catalogue.isPending) {
+      return (
+        <div aria-busy="true">
+          <SkeletonStatus>{t('reports.annual.picker.loading')}</SkeletonStatus>
+          <div aria-hidden="true" className={styles.options}>
+            {Array.from({ length: 4 }, (_, index) => (
+              <SkeletonBlock className={styles.skeletonOption} key={index} />
+            ))}
+          </div>
         </div>
-      </fieldset>
-    );
+      );
+    }
+    if (catalogue.isError) {
+      return (
+        <div role="alert">
+          <p>{t('reports.annual.picker.catalogueError')}</p>
+          <button
+            className="secondary-action"
+            onClick={() => void catalogue.refetch()}
+            type="button"
+          >
+            {t('reports.retry')}
+          </button>
+        </div>
+      );
+    }
+    return options(prefix, pick(catalogue.data));
   }
 
   return (
@@ -96,41 +119,45 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
       <form className={styles.form} onSubmit={submit}>
         <p aria-live="polite">{`${selected.length} / ${MAX_ANNUAL_COLUMNS}`}</p>
         {failed ? <p role="alert">{t('reports.annual.picker.error')}</p> : null}
-        {group(
-          t('reports.annual.picker.indicators'),
-          '',
-          INDICATOR_COLUMN_IDS.map((id) => ({ id, label: t(`reports.annual.indicators.${id}`) })),
-        )}
-        {group(
-          t('reports.annual.picker.axes'),
-          'axis:',
-          AXIS_IDS.map((id) => ({ id, label: t(`categories.axes.${id}`) })),
-        )}
-        {catalogue.isPending ? (
-          <div aria-busy="true" className={styles.pendingGroups}>
-            <SkeletonStatus>{t('reports.annual.picker.loading')}</SkeletonStatus>
-            {pendingGroup(t('reports.annual.picker.categories'))}
-            {pendingGroup(t('reports.annual.picker.groups'))}
-            {pendingGroup(t('reports.annual.picker.accounts'))}
-          </div>
-        ) : catalogue.isError ? (
-          <div role="alert">
-            <p>{t('reports.annual.picker.catalogueError')}</p>
-            <button
-              className="secondary-action"
-              onClick={() => void catalogue.refetch()}
-              type="button"
-            >
-              {t('reports.retry')}
-            </button>
-          </div>
-        ) : (
-          <>
-            {group(t('reports.annual.picker.categories'), 'category:', catalogue.data.categories)}
-            {group(t('reports.annual.picker.groups'), 'group:', catalogue.data.groups)}
-            {group(t('reports.annual.picker.accounts'), 'account:', catalogue.data.accounts)}
-          </>
-        )}
+        <Tabs
+          label={t('reports.annual.picker.title')}
+          tabs={[
+            {
+              id: 'indicators',
+              label: t('reports.annual.picker.indicators'),
+              content: options(
+                '',
+                INDICATOR_COLUMN_IDS.map((id) => ({
+                  id,
+                  label: t(`reports.annual.indicators.${id}`),
+                })),
+              ),
+            },
+            {
+              id: 'axes',
+              label: t('reports.annual.picker.axes'),
+              content: options(
+                'axis:',
+                AXIS_IDS.map((id) => ({ id, label: t(`categories.axes.${id}`) })),
+              ),
+            },
+            {
+              id: 'categories',
+              label: t('reports.annual.picker.categories'),
+              content: catalogueOptions('category:', (data) => data.categories),
+            },
+            {
+              id: 'accounts',
+              label: t('reports.annual.picker.accounts'),
+              content: catalogueOptions('account:', (data) => data.accounts),
+            },
+            {
+              id: 'groups',
+              label: t('reports.annual.picker.groups'),
+              content: catalogueOptions('group:', (data) => data.groups),
+            },
+          ]}
+        />
         <div className={styles.actions}>
           <button className="secondary-action" onClick={close} type="button">
             {t('actions.cancel')}

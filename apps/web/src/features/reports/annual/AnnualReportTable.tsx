@@ -42,12 +42,7 @@ export function AnnualReportTable({
           <tbody>
             {report.rows.map((row) => (
               <tr className={isEmptyState(row.state) ? styles.dimmed : undefined} key={row.month}>
-                <th scope="row">
-                  {monthLabel(row.month, i18n.language)}
-                  {row.state === 'PROVISIONAL' ? (
-                    <small> {t('reports.annual.provisional')}</small>
-                  ) : null}
-                </th>
+                <th scope="row">{monthLabel(row.month, i18n.language)}</th>
                 {report.columns.map((column) => {
                   const cell = row.cells[column.id];
                   return (

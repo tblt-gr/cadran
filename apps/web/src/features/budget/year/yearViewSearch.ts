@@ -1,9 +1,9 @@
-import type { MultiYearDisplayMode } from '@/features/reports/multi-year/YearRangeSelector';
 export type YearView = 'annual' | 'multi';
+export type MultiYearDisplay = 'compact' | 'detailed';
 
 export interface YearViewState {
   view: YearView;
-  display: MultiYearDisplayMode;
+  display: MultiYearDisplay;
   /** Requested multi-year range; null lets the backend apply its own default bounds. */
   range: { from: number; to: number } | null;
 }

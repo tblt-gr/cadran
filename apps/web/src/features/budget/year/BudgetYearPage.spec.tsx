@@ -49,19 +49,19 @@ afterEach(() => {
 describe('BudgetYearPage', () => {
   it('shows the compact annual report by default, without any query string', async () => {
     renderPage();
-    expect(await screen.findByRole('table', { name: /rapport annuel 2026/i })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: /rapport 2026/i })).toBeTruthy();
     expect(url()).toBe('/budget/2026');
   });
 
   it('writes the multi-year mode to the query string and clears it on the way back', async () => {
     renderPage();
-    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    await screen.findByRole('table', { name: /rapport 2026/i });
     fireEvent.click(screen.getByRole('button', { name: 'Pluriannuel' }));
     expect(url()).toBe('/budget/2026?view=multi');
     expect(await screen.findByRole('table', { name: /pluriannuel/i })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Annuel' }));
     expect(url()).toBe('/budget/2026');
-    expect(await screen.findByRole('table', { name: /rapport annuel 2026/i })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: /rapport 2026/i })).toBeTruthy();
   });
 
   it('writes the display mode and the year range to the query string', async () => {
@@ -77,7 +77,7 @@ describe('BudgetYearPage', () => {
     renderPage('?view=multi&from=2025&to=2026');
     await screen.findByRole('table', { name: /pluriannuel/i });
     expect(api.readMultiYearReport).toHaveBeenCalledWith(
-      expect.objectContaining({ query: { from: 2025, to: 2026 } }),
+      expect.objectContaining({ query: { incompleteMonths: 'include', from: 2025, to: 2026 } }),
     );
   });
 
@@ -85,13 +85,13 @@ describe('BudgetYearPage', () => {
     renderPage('?view=multi&from=2025');
     await screen.findByRole('table', { name: /pluriannuel/i });
     for (const call of api.readMultiYearReport.mock.calls) {
-      expect(call[0].query).toEqual({});
+      expect(call[0].query).toEqual({ incompleteMonths: 'include' });
     }
   });
 
   it('follows the browser history (popstate) between the two views', async () => {
     renderPage();
-    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    await screen.findByRole('table', { name: /rapport 2026/i });
     act(() => {
       window.history.pushState({}, '', '/budget/2026?view=multi');
       window.dispatchEvent(new PopStateEvent('popstate'));
@@ -101,7 +101,7 @@ describe('BudgetYearPage', () => {
       window.history.pushState({}, '', '/budget/2026');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
-    expect(await screen.findByRole('table', { name: /rapport annuel 2026/i })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: /rapport 2026/i })).toBeTruthy();
   });
 
   it('drops the multi-year view when the year select changes: it lands on the compact annual report', async () => {
@@ -123,11 +123,44 @@ describe('BudgetYearPage', () => {
   it('disables the multi-year view when the workspace has a single year of data', async () => {
     api.readMultiYearReport.mockResolvedValue(ok({ availableFrom: 2026, from: 2026, to: 2026 }));
     renderPage();
-    await screen.findByRole('table', { name: /rapport annuel 2026/i });
+    await screen.findByRole('table', { name: /rapport 2026/i });
     await waitFor(() =>
       expect(
         (screen.getByRole('button', { name: 'Pluriannuel' }) as HTMLButtonElement).disabled,
       ).toBe(true),
     );
+  });
+
+  it('reads the range as "Depuis [année] jusqu’à [année]" in the same row as the view switch', async () => {
+    renderPage('?view=multi&from=2025&to=2026');
+    await screen.findByRole('table', { name: /pluriannuel/i });
+    const from = screen.getByLabelText('Depuis') as HTMLSelectElement;
+    const to = screen.getByLabelText('jusqu’à') as HTMLSelectElement;
+    expect([from.value, to.value]).toEqual(['2025', '2026']);
+    const row = screen.getByRole('group', { name: /type de rapport/i }).parentElement!;
+    expect(row.contains(from)).toBe(true);
+    expect(row.contains(screen.getByRole('button', { name: 'Colonnes' }))).toBe(true);
+  });
+
+  it('switches compact and detailed with icon-only buttons named by aria-label', async () => {
+    renderPage('?view=multi');
+    await screen.findByRole('table', { name: /pluriannuel/i });
+    const compact = screen.getByRole('button', { name: /vue compacte/i });
+    const detailed = screen.getByRole('button', { name: /vue détaillée/i });
+    expect(compact.textContent).toBe('');
+    expect(compact.getAttribute('aria-pressed')).toBe('true');
+    expect(detailed.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(detailed);
+    expect(url()).toBe('/budget/2026?view=multi&display=detailed');
+    expect(
+      screen.getByRole('button', { name: /vue détaillée/i }).getAttribute('aria-pressed'),
+    ).toBe('true');
+  });
+
+  it('shows no range or display controls on the annual view', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /rapport 2026/i });
+    expect(screen.queryByLabelText('Depuis')).toBeNull();
+    expect(screen.queryByRole('button', { name: /vue compacte/i })).toBeNull();
   });
 });

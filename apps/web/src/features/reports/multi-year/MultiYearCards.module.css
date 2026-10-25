@@ -9,10 +9,23 @@
   display: grid;
   gap: var(--spacing-2);
 }
+.card h3 {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-card);
+}
 .card dl {
   display: grid;
   gap: var(--spacing-1);
   margin: var(--spacing-none);
+  font-size: var(--font-size-body);
+}
+.card h4 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
 }
 .card dt {
   color: var(--text-secondary);
@@ -28,4 +41,15 @@
   .list {
     display: none;
   }
+}
+/* A link inside a figure is plain text until hovered or focused. */
+.table a,
+.card a {
+  text-decoration: none;
+}
+.table a:hover,
+.table a:focus-visible,
+.card a:hover,
+.card a:focus-visible {
+  text-decoration: underline;
 }

@@ -50,16 +50,27 @@ export function BudgetYearPage({ today, year }: BudgetYearPageProps) {
         year={year}
       />
       <ReportToolbar
+        multi={
+          state.view === 'multi'
+            ? {
+                display: state.display,
+                maxYear: currentYear,
+                minYear: years.data?.availableFrom ?? years.data?.from ?? currentYear,
+                onDisplayChange: (display) => navigate({ ...state, display }),
+                onRangeChange: (range) => navigate({ ...state, range }),
+                range:
+                  state.range ?? (years.data ? { from: years.data.from, to: years.data.to } : null),
+              }
+            : undefined
+        }
         multiYearAvailable={multiYearAvailable}
         onViewChange={(view) => navigate({ ...state, view })}
         view={state.view}
       />
       {state.view === 'multi' ? (
         <MultiYearReportPage
-          currentYear={currentYear}
+          key={`${state.display}-${state.range?.from}-${state.range?.to}`}
           display={state.display}
-          onDisplayChange={(display) => navigate({ ...state, display })}
-          onRangeChange={(range) => navigate({ ...state, range })}
           range={state.range}
           year={year}
         />

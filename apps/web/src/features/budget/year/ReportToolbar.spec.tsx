@@ -59,14 +59,11 @@ describe('ReportToolbar', () => {
     expect(multi.getAttribute('title')).toBe('Nécessite au moins deux années de données');
   });
 
-  it('keeps the columns and incomplete-month controls disabled until preferences load', async () => {
+  it('keeps the columns control disabled until preferences load', async () => {
     renderToolbar();
     expect((screen.getByRole('button', { name: 'Colonnes' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
-    expect(
-      (screen.getByRole('button', { name: /mois incomplets/i }) as HTMLButtonElement).disabled,
-    ).toBe(true);
     await waitFor(() =>
       expect((screen.getByRole('button', { name: 'Colonnes' }) as HTMLButtonElement).disabled).toBe(
         false,
@@ -85,35 +82,29 @@ describe('ReportToolbar', () => {
     expect(await screen.findByRole('dialog')).toBeTruthy();
   });
 
-  it('toggles the incomplete months with the stored version', async () => {
+  it('offers no incomplete-month switch: the running month always counts', async () => {
     renderToolbar();
     await waitFor(() =>
-      expect(
-        (screen.getByRole('button', { name: /mois incomplets/i }) as HTMLButtonElement).disabled,
-      ).toBe(false),
-    );
-    fireEvent.click(screen.getByRole('button', { name: /mois incomplets/i }));
-    await waitFor(() =>
-      expect(api.saveAnnualReportPreferences).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: { columns: annualPreferences.columns, incompleteMonths: 'include', version: 3 },
-        }),
+      expect((screen.getByRole('button', { name: 'Colonnes' }) as HTMLButtonElement).disabled).toBe(
+        false,
       ),
     );
+    expect(screen.queryByRole('button', { name: /mois incomplets/i })).toBeNull();
   });
 
-  it('tells the user when the preferences changed elsewhere (409)', async () => {
+  it('tells the user when the preferences changed elsewhere (409) while saving columns', async () => {
     api.saveAnnualReportPreferences.mockResolvedValue({
       data: undefined,
       response: { ok: false, status: 409 },
     });
     renderToolbar();
     await waitFor(() =>
-      expect(
-        (screen.getByRole('button', { name: /mois incomplets/i }) as HTMLButtonElement).disabled,
-      ).toBe(false),
+      expect((screen.getByRole('button', { name: 'Colonnes' }) as HTMLButtonElement).disabled).toBe(
+        false,
+      ),
     );
-    fireEvent.click(screen.getByRole('button', { name: /mois incomplets/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Colonnes' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer' }));
     expect(
       await screen.findByText('Les préférences ont changé ailleurs : elles ont été rechargées.'),
     ).toBeTruthy();
