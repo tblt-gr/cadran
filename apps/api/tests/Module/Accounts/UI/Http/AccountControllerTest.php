@@ -148,13 +148,15 @@ final class AccountControllerTest extends WebTestCase
         $this->requestUpdate(self::stringValue($first, 'id'), [...$first, 'isPrimary' => true]);
         self::assertResponseStatusCodeSame(409);
         $this->requestUpdate(self::stringValue($primary, 'id'), [...$primary, 'closedOn' => '2026-02-01']);
+        self::assertResponseStatusCodeSame(422);
+        $this->requestUpdate(self::stringValue($primary, 'id'), [...$primary, 'closedOn' => '2026-02-01', 'isPrimary' => false]);
         self::assertResponseIsSuccessful();
         self::assertFalse($this->decode()['isPrimary']);
         $events = $this->connection->fetchAllAssociative(
             "SELECT before_json, after_json FROM audit_events WHERE workspace_id = :workspace_id AND event_type = 'account.primary_changed'",
             ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE],
         );
-        self::assertCount(3, $events);
+        self::assertCount(4, $events);
         foreach ($events as $event) {
             self::assertIsString($event['after_json']);
             self::assertStringNotContainsString('Premier', $event['after_json']);
@@ -197,6 +199,8 @@ final class AccountControllerTest extends WebTestCase
         $this->requestUpdate($id, [...$primary, 'isPrimary' => 'true']);
         self::assertResponseStatusCodeSame(422);
         $this->requestUpdate($id, [...$primary, 'closedOn' => '2026-02-01']);
+        self::assertResponseStatusCodeSame(422);
+        $this->requestUpdate($id, [...$primary, 'closedOn' => '2026-02-01', 'isPrimary' => false]);
         self::assertResponseIsSuccessful();
         $closed = $this->decode();
         $this->requestUpdate($id, [...$closed, 'isPrimary' => true]);

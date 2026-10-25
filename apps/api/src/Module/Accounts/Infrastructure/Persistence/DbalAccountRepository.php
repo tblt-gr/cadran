@@ -282,6 +282,16 @@ final readonly class DbalAccountRepository implements AccountRepository
         }
     }
 
+    public function primaryId(WorkspaceScope $workspace): ?string
+    {
+        $id = $this->connection->fetchOne(
+            'SELECT id FROM account_financial_accounts WHERE workspace_id = :workspace_id AND is_primary = true',
+            ['workspace_id' => $workspace->id],
+        );
+
+        return false === $id ? null : (string) $id;
+    }
+
     public function update(Account $account, int $expectedVersion): bool
     {
         try {

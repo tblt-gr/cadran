@@ -190,6 +190,17 @@ final class InMemoryAccountRepository implements AccountRepository
         $this->accounts[] = $account;
     }
 
+    public function primaryId(WorkspaceScope $workspace): ?string
+    {
+        foreach ($this->accounts as $stored) {
+            if ($stored->isPrimary && $stored->workspace->equals($workspace)) {
+                return $stored->id;
+            }
+        }
+
+        return null;
+    }
+
     public function update(Account $account, int $expectedVersion): bool
     {
         foreach ($this->accounts as $stored) {

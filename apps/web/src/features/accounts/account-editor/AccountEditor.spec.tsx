@@ -119,7 +119,7 @@ describe('AccountEditor', () => {
     expect((preference as HTMLInputElement).checked).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(submit.mock.calls[1]?.[0]).toMatchObject({ isPrimary: false });
-    expect(screen.getByText(/Si ce compte est principal/)).toBeTruthy();
+    expect(screen.getByText(/Seul un compte courant ouvert/)).toBeTruthy();
   });
 
   it('hides the primary preference for accounts that are not current accounts', async () => {

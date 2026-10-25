@@ -102,6 +102,9 @@ interface AccountRepository
 
     public function add(Account $account): void;
 
+    /** Identifier of the workspace's current primary account, so a switch can audit the one it clears. */
+    public function primaryId(WorkspaceScope $workspace): ?string;
+
     /**
      * Returns false when the expected version is stale, without changing any account.
      * Selecting a primary atomically clears the previous primary in this workspace

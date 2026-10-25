@@ -26,8 +26,9 @@ export function PrimaryAccountField({ checked, eligible, onChange }: PrimaryAcco
         <span>{t('accounts.primary.use')}</span>
       </label>
       <small className={styles.hint} id={hintId}>
-        {t(eligible ? 'accounts.primary.hint' : 'accounts.primary.ineligible')}{' '}
-        {t('accounts.primary.fallback')}
+        {eligible
+          ? `${t('accounts.primary.hint')} ${t('accounts.primary.fallback')}`
+          : t('accounts.primary.ineligible')}
       </small>
     </fieldset>
   );
