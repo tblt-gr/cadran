@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
-import { TransactionList } from '@/features/transactions/transaction-list/TransactionList';
+import { TransactionDayList } from '@/features/transactions/transaction-list/transaction-day-list/TransactionDayList';
 import { CategoryPage } from './CategoryPage';
 
 const api = vi.hoisted(() => ({ listCategories: vi.fn(), updateCategory: vi.fn() }));
@@ -86,7 +86,13 @@ const transaction: Transaction = {
 };
 
 function rows(transactions: Transaction[]) {
-  return <TransactionList accounts={[]} transactions={transactions} />;
+  return (
+    <TransactionDayList
+      accounts={[]}
+      label="Transactions de l’espace"
+      transactions={transactions}
+    />
+  );
 }
 
 function success<T>(data: T) {
@@ -135,7 +141,7 @@ describe('category identity flow', () => {
     );
 
     const selected = screen.getByRole('combobox', { name: 'Catégorie choisie' });
-    const row = screen.getByRole('row', { name: /Déjeuner/ });
+    const row = screen.getByText(/Déjeuner/, { selector: 'button' }).closest('li') as HTMLElement;
     // The swatch sits inside the control, beside the text: the value stays plain
     // editable text.
     await waitFor(() =>
@@ -190,7 +196,7 @@ describe('category identity flow', () => {
     };
     render(rows([plain]));
 
-    const row = screen.getByRole('row', { name: /Déjeuner/ });
+    const row = screen.getByText(/Déjeuner/, { selector: 'button' }).closest('li') as HTMLElement;
     const pill = row.querySelector('[data-icon="none"]') as HTMLElement;
 
     expect(within(row).getByText('Restaurants')).toBeTruthy();
@@ -201,7 +207,7 @@ describe('category identity flow', () => {
   it('shows no identity pill for an uncategorised transaction', () => {
     render(rows([{ ...transaction, splits: [] }]));
 
-    const row = screen.getByRole('row', { name: /Déjeuner/ });
+    const row = screen.getByText(/Déjeuner/, { selector: 'button' }).closest('li') as HTMLElement;
     expect(within(row).getByText('À catégoriser')).toBeTruthy();
     expect(row.querySelector('[data-icon]')).toBeNull();
   });

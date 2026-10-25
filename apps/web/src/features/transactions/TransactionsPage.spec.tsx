@@ -182,20 +182,20 @@ describe('TransactionsPage', () => {
     );
     const { queryClient } = renderPage();
 
-    expect(screen.getByTestId('transactions-page-skeleton')).toBeTruthy();
+    expect(screen.getByTestId('transaction-day-list-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveTransactions?.({
       data: { items: [transaction], nextCursor: null },
       response: new Response('{}', { status: 200 }),
     });
     expect(await screen.findByText(transaction.rawLabel)).toBeTruthy();
-    expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull();
+    expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
 
     api.listTransactions.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['transactions'] });
     await waitFor(() => expect(api.listTransactions).toHaveBeenCalledTimes(2));
     expect(screen.getByText(transaction.rawLabel)).toBeTruthy();
-    expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull();
+    expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
   });
 
   it('opens the monthly closure flow from the header overflow menu', async () => {
@@ -873,7 +873,7 @@ describe('TransactionsPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByRole('row', { name: /CB CARREFOUR/ })).toBeTruthy();
+    expect(await screen.findByText(/CB CARREFOUR/, { selector: 'button' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
     fireEvent.click(
@@ -910,9 +910,11 @@ describe('TransactionsPage', () => {
 
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(document.querySelector('img')).toBeNull();
-    // Scoped to the table: the new filter bar also offers a "Voided" state checkbox with the
+    // Scoped to the list: the new filter bar also offers a "Voided" state checkbox with the
     // same label, so an unscoped query would match both.
-    expect(within(screen.getByRole('table')).getByText('Annulée')).toBeTruthy();
+    expect(
+      within(screen.getByRole('list', { name: /^Transactions de l/ })).getByText('Annulée'),
+    ).toBeTruthy();
     expect(screen.getByLabelText(/Sortie de/)).toBeTruthy();
   });
 
@@ -928,8 +930,8 @@ describe('TransactionsPage', () => {
     );
     renderPage();
 
-    await waitFor(() => expect(screen.queryByTestId('transactions-page-skeleton')).toBeNull());
-    const table = screen.getByRole('table');
+    await waitFor(() => expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull());
+    const table = screen.getByRole('list', { name: /^Transactions de l/ });
     expect(within(table).getByText('En attente')).toBeTruthy();
     expect(within(table).queryByText('Comptabilisée')).toBeNull();
   });
@@ -1284,7 +1286,7 @@ describe('TransactionsPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByRole('cell', { name: 'Ancien compte' })).toBeTruthy();
+    expect(await screen.findByText('Ancien compte')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
     fireEvent.focus(screen.getByRole('combobox', { name: 'Filtrer par compte' }));
     expect(screen.getByRole('option', { name: 'Ancien compte' })).toBeTruthy();
@@ -1511,6 +1513,26 @@ describe('TransactionsPage', () => {
     );
 
     window.history.replaceState({}, '', '/transactions');
+  });
+
+  it('groups the loaded page by booking day with a weekday and date heading', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({
+        items: [{ ...transaction, id: 'first', bookedOn: '2026-03-15' }, transaction],
+        nextCursor: null,
+      }),
+    );
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: /dimanche 15 mars 2026/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /samedi 14 mars 2026/ })).toBeTruthy();
+    expect(screen.queryByText(/Total du jour|Jour incomplet/)).toBeNull();
   });
 
   it('keeps the loaded rows and offers a reload when a page request finds the cursor stale', async () => {

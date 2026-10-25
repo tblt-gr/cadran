@@ -138,6 +138,17 @@ export function formatCalendarDay(value: string, locale: string): string {
   }).format(new Date(`${value}T12:00:00Z`));
 }
 
+/** Weekday, day, month and year of an ISO 8601 calendar day, read at midday UTC like its siblings. */
+export function formatCalendarWeekdayDay(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+    weekday: 'long',
+    year: 'numeric',
+  }).format(new Date(`${value}T12:00:00Z`));
+}
+
 /** Same as `formatCalendarDay` without the year, for lists already scoped to one month. */
 export function formatCalendarDayMonth(value: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, {

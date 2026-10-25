@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import type { AuditFixtures } from './a11y';
-import { settled, uniqueLabel } from './page';
+import { movementRows, settled, uniqueLabel } from './page';
 
 export const modalCases = [
   'transaction create',
@@ -70,7 +70,7 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
     await creation.getByRole('button', { name: 'Enregistrer', exact: true }).click();
     await expect(creation).toBeHidden();
     await settled(page);
-    const row = page.getByRole('row').filter({ hasText: label });
+    const row = movementRows(page, label);
     await expect(row).toHaveCount(1);
     await row.getByRole('button', { name: /^Actions de la transaction/ }).click();
     await button(/^Modifier/).click();

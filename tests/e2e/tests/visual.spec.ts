@@ -18,11 +18,12 @@ test.describe('visual comparison', () => {
   test('transaction list', async ({ page }) => {
     await page.goto('/transactions');
     await settled(page);
-    await expect(page.getByRole('table').locator('tbody tr').first()).toBeVisible();
+    const transactionList = page.getByRole('list', { name: /^Transactions de l/ });
+    await expect(transactionList.getByRole('listitem').first()).toBeVisible();
 
     // The list is the demo ledger itself, which rolls with the calendar: only its frame is compared.
     await expect(page).toHaveScreenshot('transactions.png', {
-      mask: [...visualMasks(page), page.getByRole('table').locator('tbody')],
+      mask: [...visualMasks(page), transactionList],
     });
   });
 

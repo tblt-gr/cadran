@@ -26,9 +26,11 @@ describe('AccountMovementsSection loading', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Mouvements' })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Libellé' })).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'Mouvements de ce compte' })).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
-    expect(screen.getByTestId('account-movements-skeleton').getAttribute('aria-busy')).toBe('true');
+    expect(screen.getByTestId('transaction-day-list-skeleton').getAttribute('aria-busy')).toBe(
+      'true',
+    );
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
   });
 });
