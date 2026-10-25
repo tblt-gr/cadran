@@ -94,7 +94,9 @@ final class ReadNetWorthHistoryTest extends TestCase
     public function testNamedDefaultHasExactlyTheLegacyTwelvePoints(): void
     {
         $read = $this->read();
-        self::assertEquals($read(months: 12)->points, $read(period: 'LAST_12_MONTHS')->points);
+        self::assertCount(12, $read(months: 12)->points);
+        self::assertCount(13, $read(period: 'LAST_12_MONTHS')->points);
+        self::assertEquals($read(months: 12)->points, array_slice($read(period: 'LAST_12_MONTHS')->points, 1));
         self::assertSame('LAST_12_MONTHS', $read()->period);
         self::assertNull($read(months: 12)->period);
     }
@@ -102,8 +104,8 @@ final class ReadNetWorthHistoryTest extends TestCase
     public function testYearToDateIncludesJanuaryAndEndsOnAsOf(): void
     {
         $history = ($this->read())(asOf: '2026-03-07', period: 'YTD');
-        self::assertSame(['2026-01-31', '2026-02-28', '2026-03-07'], array_map(static fn ($point): string => $point->on, $history->points));
-        self::assertCount(1, ($this->read())(asOf: '2026-01-07', period: 'YTD')->points);
+        self::assertSame(['2025-12-31', '2026-01-31', '2026-02-28', '2026-03-07'], array_map(static fn ($point): string => $point->on, $history->points));
+        self::assertCount(2, ($this->read())(asOf: '2026-01-07', period: 'YTD')->points);
         self::assertNull($history->points[0]->total);
     }
 

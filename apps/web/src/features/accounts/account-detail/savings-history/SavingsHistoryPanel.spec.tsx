@@ -67,7 +67,7 @@ it('uses the 12 month range by default and exposes exact dated amounts and fresh
   expect(screen.getByRole('table').textContent).toContain('01/10/2026');
   fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
   await waitFor(() =>
-    expect(api.readAccountValuationHistory.mock.calls.at(-1)?.[0].query.from).toBe('2026-01-01'),
+    expect(api.readAccountValuationHistory.mock.calls.at(-1)?.[0].query.from).toBe('2025-12-31'),
   );
 });
 it('offers Tout, 12 mois and Depuis janvier in canonical order, defaulting to 12 mois', async () => {

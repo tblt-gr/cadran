@@ -199,9 +199,10 @@ final class NetWorthControllerTest extends WebTestCase
         self::assertNull($legacy['period']);
         $default = $this->read('/api/v1/net-worth/history?asOf=2026-09-05');
         self::assertSame('LAST_12_MONTHS', $default['period']);
-        self::assertSame($legacy['points'], $default['points']);
+        self::assertSame($legacy['points'], array_slice($this->rows($default, 'points'), 1));
+        self::assertCount(13, $this->rows($default, 'points'));
         $january = $this->read('/api/v1/net-worth/history?asOf=2026-01-07&period=YTD');
-        self::assertCount(1, $this->rows($january, 'points'));
+        self::assertSame(['2025-12-31', '2026-01-07'], array_column($this->rows($january, 'points'), 'on'));
     }
 
     public function testAllHistoryExcludesForeignFutureAndSupersededSnapshots(): void
@@ -243,7 +244,7 @@ final class NetWorthControllerTest extends WebTestCase
         self::assertSame('2026-06', $history['firstDataMonth']);
         self::assertCount(4, $this->rows($history, 'points'));
         $delta = self::fields((array) $history['delta']);
-        self::assertSame('2026-06-05', $delta['comparedOn']);
+        self::assertSame('2026-06-30', $delta['comparedOn']);
         self::assertNull($delta['previousTotal']);
         self::assertSame('MISSING_VALUATION', $delta['previousReason']);
         $this->insertSnapshot(self::CASH, '2026-05-15', '12.00');
@@ -270,7 +271,7 @@ final class NetWorthControllerTest extends WebTestCase
         $truncated = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period=ALL');
         self::assertTrue($truncated['truncated']);
         self::assertSame('2020-01', $truncated['firstDataMonth']);
-        self::assertSame('2020-01-10', self::fields((array) $truncated['delta'])['comparedOn']);
+        self::assertSame('2020-01-31', self::fields((array) $truncated['delta'])['comparedOn']);
         self::assertCount(60, $this->rows($truncated, 'points'));
         self::assertSame('2021-10-31', $this->rows($truncated, 'points')[0]['on']);
     }
@@ -282,13 +283,13 @@ final class NetWorthControllerTest extends WebTestCase
         $this->connection->update('account_financial_accounts', ['opened_on' => '2020-01-01'], [
             'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::CASH,
         ]);
-        foreach (['2020-05-15' => '500.00', '2025-09-05' => '800.00', '2026-01-01' => '1000.00', '2026-01-31' => '1100.00', '2026-09-05' => '1200.00'] as $day => $amount) {
+        foreach (['2020-05-15' => '500.00', '2025-09-05' => '800.00', '2025-12-31' => '1000.00', '2026-01-31' => '1100.00', '2026-09-05' => '1200.00'] as $day => $amount) {
             $this->insertSnapshot(self::CASH, $day, $amount);
         }
         foreach ([
-            'ALL' => ['2020-05-15', '500.00', '700.00', '140.00'],
+            'ALL' => ['2020-05-31', '500.00', '700.00', '140.00'],
             'LAST_12_MONTHS' => ['2025-09-05', '800.00', '400.00', '50.00'],
-            'YTD' => ['2026-01-01', '1000.00', '200.00', '20.00'],
+            'YTD' => ['2025-12-31', '1000.00', '200.00', '20.00'],
         ] as $period => [$day, $base, $amount, $percent]) {
             $history = $this->read('/api/v1/net-worth/history?asOf=2026-09-05&period='.$period);
             $delta = self::fields((array) $history['delta']);

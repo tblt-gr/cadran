@@ -26,9 +26,10 @@ export function subtractCalendarMonths(day: string, months: number): string {
   return `${pad(targetYear, 4)}-${pad(targetMonth)}-${pad(Math.min(dayOfMonth, lastDay))}`;
 }
 
-/** First day of a preset ending on `referenceDay`; undefined for ALL, which each API resolves itself. */
+/** Start day of a preset ending on `referenceDay`; undefined for ALL, which each API resolves itself. */
 export function chartPeriodFrom(period: ChartPeriod, referenceDay: string): string | undefined {
   if (period === 'ALL') return undefined;
-  if (period === 'YTD') return `${referenceDay.slice(0, 4)}-01-01`;
+  // Closing balance of the previous December 31, so January movements are counted.
+  if (period === 'YTD') return `${Number(referenceDay.slice(0, 4)) - 1}-12-31`;
   return subtractCalendarMonths(referenceDay, ROLLING_MONTHS[period]);
 }

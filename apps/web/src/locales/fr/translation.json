@@ -1740,7 +1740,7 @@
       "YTD": "Depuis janvier"
     },
     "descriptions": {
-      "YTD": "Du 1er janvier au jour de référence de l’espace de travail"
+      "YTD": "Depuis la clôture du 31 décembre précédent jusqu’au jour de référence de l’espace de travail"
     }
   },
   "dashboard": {
@@ -1760,7 +1760,7 @@
       "truncated": "Seuls les 60 derniers mois sont affichés.",
       "empty": "Aucun point calculable sur la période.",
       "loading": "Chargement de l’historique…",
-      "monthColumn": "Mois",
+      "dateColumn": "Date",
       "showTable": "Voir les données sous forme de tableau",
       "summary": "Évolution du patrimoine net entre {{startPeriod}} et {{endPeriod}}.",
       "title": "Évolution du patrimoine",
