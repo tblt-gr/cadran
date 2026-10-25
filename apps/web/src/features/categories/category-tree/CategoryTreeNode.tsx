@@ -1,4 +1,5 @@
-import type { Category, CategoryLifecycleOperation } from '@cadran/api-client';
+import type { Category } from '@cadran/api-client';
+import type { CategoryDialogOperation } from '../category-lifecycle/CategoryLifecycleDialog';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
@@ -13,7 +14,7 @@ interface CategoryTreeNodeProps {
   /** An orphan root names the parent that is not part of the list. */
   root?: boolean;
   onEdit: (category: Category) => void;
-  onLifecycle: (category: Category, operation: CategoryLifecycleOperation) => void;
+  onLifecycle: (category: Category, operation: CategoryDialogOperation) => void;
 }
 
 export function CategoryTreeNode({

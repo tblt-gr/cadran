@@ -1,4 +1,5 @@
-import type { Category, CategoryLifecycleOperation } from '@cadran/api-client';
+import type { Category } from '@cadran/api-client';
+import type { CategoryDialogOperation } from '../category-lifecycle/CategoryLifecycleDialog';
 import { useTranslation } from 'react-i18next';
 import { buildCategoryTree } from './buildCategoryTree';
 import { CategoryTreeNode } from './CategoryTreeNode';
@@ -7,7 +8,7 @@ import styles from './CategoryTree.module.css';
 interface CategoryTreeProps {
   categories: Category[];
   onEdit: (category: Category) => void;
-  onLifecycle: (category: Category, operation: CategoryLifecycleOperation) => void;
+  onLifecycle: (category: Category, operation: CategoryDialogOperation) => void;
 }
 
 export function CategoryTree({ categories, onEdit, onLifecycle }: CategoryTreeProps) {

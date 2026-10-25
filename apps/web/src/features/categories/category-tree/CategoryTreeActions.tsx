@@ -1,11 +1,19 @@
-import type { Category, CategoryLifecycleOperation } from '@cadran/api-client';
+import type { Category } from '@cadran/api-client';
+import type { CategoryDialogOperation } from '../category-lifecycle/CategoryLifecycleDialog';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 
-const LIFECYCLE_ACTIONS: CategoryLifecycleOperation[] = ['MOVE', 'MERGE', 'REPLACE', 'ARCHIVE'];
+const LIFECYCLE_ACTIONS: CategoryDialogOperation[] = [
+  'MOVE',
+  'MERGE',
+  'REPLACE',
+  'ARCHIVE',
+  'DELETE',
+];
 
 const LIFECYCLE_ICONS = {
   ARCHIVE: 'archive',
+  DELETE: 'delete',
   MERGE: 'merge',
   MOVE: 'move',
   REPLACE: 'calendar',
@@ -14,7 +22,7 @@ const LIFECYCLE_ICONS = {
 interface CategoryTreeActionsProps {
   category: Category;
   onEdit: (category: Category) => void;
-  onLifecycle: (category: Category, operation: CategoryLifecycleOperation) => void;
+  onLifecycle: (category: Category, operation: CategoryDialogOperation) => void;
 }
 
 export function CategoryTreeActions({ category, onEdit, onLifecycle }: CategoryTreeActionsProps) {

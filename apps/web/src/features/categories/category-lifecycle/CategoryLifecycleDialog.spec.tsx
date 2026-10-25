@@ -1,10 +1,10 @@
-import type { Category, CategoryImpact, CategoryLifecycleOperation } from '@cadran/api-client';
+import type { Category, CategoryImpact } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { CategoryRequestError } from '@/features/categories/categoryError';
-import { CategoryLifecycleDialog } from './CategoryLifecycleDialog';
+import { CategoryLifecycleDialog, type CategoryDialogOperation } from './CategoryLifecycleDialog';
 
 const api = vi.hoisted(() => ({
   listCategories: vi.fn(),
@@ -81,9 +81,10 @@ async function chooseTarget(label: string) {
 }
 
 function renderDialog(
-  operation: CategoryLifecycleOperation,
+  operation: CategoryDialogOperation,
   onConfirm = vi.fn(),
   submitError: unknown = null,
+  subject: Category = category,
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -91,7 +92,7 @@ function renderDialog(
   render(
     <QueryClientProvider client={queryClient}>
       <CategoryLifecycleDialog
-        category={category}
+        category={subject}
         onCancel={vi.fn()}
         onConfirm={onConfirm}
         operation={operation}
@@ -272,5 +273,109 @@ describe('CategoryLifecycleDialog', () => {
     expect(
       screen.getByRole('button', { name: 'Archiver' }).getAttribute('disabled'),
     ).not.toBeNull();
+  });
+
+  describe('Delete', () => {
+    // The backend's archive preview never counts classifications: it always reports 0.
+    const archiveImpact = () =>
+      impact({
+        operation: 'ARCHIVE',
+        targetId: null,
+        targetLabel: null,
+        redirectsHistory: false,
+        affectedClassifications: 0,
+      });
+
+    it('archives an unused category without asking a question', async () => {
+      api.previewCategoryImpact.mockImplementation(() => success(archiveImpact()));
+      const onConfirm = renderDialog('DELETE', vi.fn(), null, { ...category, used: false });
+
+      expect(
+        await screen.findByText(/Aucune écriture n’est classée dans cette catégorie/),
+      ).toBeTruthy();
+      expect(screen.queryByRole('radio')).toBeNull();
+      const confirm = screen.getByRole('button', { name: 'Supprimer' });
+      await waitFor(() => expect(confirm.getAttribute('disabled')).toBeNull());
+      fireEvent.click(confirm);
+
+      expect(onConfirm).toHaveBeenCalledWith({
+        effectiveFrom: '',
+        operation: 'ARCHIVE',
+        targetId: null,
+      });
+    });
+
+    it('keeps the history by archiving when "keep" is chosen', async () => {
+      api.previewCategoryImpact.mockImplementation(() => success(archiveImpact()));
+      const onConfirm = renderDialog('DELETE');
+
+      fireEvent.click(await screen.findByRole('radio', { name: /Garder les écritures/ }));
+      const confirm = screen.getByRole('button', { name: 'Supprimer' });
+      await waitFor(() => expect(confirm.getAttribute('disabled')).toBeNull());
+      fireEvent.click(confirm);
+
+      expect(onConfirm).toHaveBeenCalledWith({
+        effectiveFrom: '',
+        operation: 'ARCHIVE',
+        targetId: null,
+      });
+    });
+
+    it('still offers the transfer for a used category whose archive preview reports 0', async () => {
+      api.previewCategoryImpact.mockImplementation(() => success(archiveImpact()));
+      renderDialog('DELETE');
+
+      expect(await screen.findByRole('radio', { name: /Reporter les écritures/ })).toBeTruthy();
+      expect(
+        screen.getByRole('button', { name: 'Supprimer' }).getAttribute('disabled'),
+      ).not.toBeNull();
+    });
+
+    it('merges into the chosen category when "transfer" is chosen', async () => {
+      api.listCategories.mockImplementation(() =>
+        success({ items: [target], page: 1, pageSize: 50, total: 1 }),
+      );
+      api.previewCategoryImpact.mockImplementation(({ query }) =>
+        success(query.operation === 'MERGE' ? impact() : archiveImpact()),
+      );
+      const onConfirm = renderDialog('DELETE');
+
+      fireEvent.click(await screen.findByRole('radio', { name: /Reporter les écritures/ }));
+      await chooseTarget('Catégorie qui reçoit l’historique');
+      const confirm = screen.getByRole('button', { name: 'Supprimer' });
+      await waitFor(() => expect(confirm.getAttribute('disabled')).toBeNull());
+      fireEvent.click(confirm);
+
+      expect(onConfirm).toHaveBeenCalledWith({
+        effectiveFrom: '',
+        operation: 'MERGE',
+        targetId: target.id,
+      });
+    });
+
+    it('shows the merge refusals and refuses to confirm a blocked transfer', async () => {
+      api.listCategories.mockImplementation(() =>
+        success({ items: [target], page: 1, pageSize: 50, total: 1 }),
+      );
+      api.previewCategoryImpact.mockImplementation(({ query }) =>
+        success(
+          query.operation === 'MERGE'
+            ? impact({ allowed: false, blockers: ['ACTIVE_CHILDREN'] })
+            : archiveImpact(),
+        ),
+      );
+      const onConfirm = renderDialog('DELETE');
+
+      fireEvent.click(await screen.findByRole('radio', { name: /Reporter les écritures/ }));
+      await chooseTarget('Catégorie qui reçoit l’historique');
+
+      expect(
+        await screen.findByText(
+          'Cette catégorie possède encore des sous-catégories actives. Archivez-les d’abord.',
+        ),
+      ).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
+      expect(onConfirm).not.toHaveBeenCalled();
+    });
   });
 });
