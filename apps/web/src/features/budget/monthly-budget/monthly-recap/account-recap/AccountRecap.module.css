@@ -159,7 +159,7 @@
 }
 .panel tbody a:hover,
 .panel tbody a:focus-visible {
-  color: var(--gold-300);
+  color: var(--text-primary);
   text-decoration: underline;
 }
 

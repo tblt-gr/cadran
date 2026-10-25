@@ -23,11 +23,15 @@ final readonly class MonthlyRecapCategoryView
     }
 
     /**
+     * The total covers the category and all its descendants, so a parent never reads zero while its
+     * subcategories carry the month's movements.
+     *
      * @param list<MonthlyLedgerEntry> $entries
+     * @param list<string>             $descendantIds
      */
-    public static function of(BudgetCategoryFact $category, array $entries): self
+    public static function of(BudgetCategoryFact $category, array $entries, array $descendantIds = []): self
     {
-        $sources = MonthlyLedgerCalculator::categorySources($entries, $category->type, $category->id, null);
+        $sources = MonthlyLedgerCalculator::categorySources($entries, $category->type, [$category->id, ...$descendantIds], null);
         $total = MonthlyLedgerCalculator::total($sources, 'EXPENSE' === $category->type);
         $sourceTransactionIds = array_values(array_unique(array_map(
             static fn ($source): string => $source->transactionId,

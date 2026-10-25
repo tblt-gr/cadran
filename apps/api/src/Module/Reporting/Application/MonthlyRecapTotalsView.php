@@ -48,7 +48,7 @@ final readonly class MonthlyRecapTotalsView
                 $category->metric,
                 self::sources($category->metric->sourceTransactionIds, $sourceTransactionsById),
             ),
-            $projection->categoryMetrics,
+            $projection->recapCategories(),
         );
 
         return new self(

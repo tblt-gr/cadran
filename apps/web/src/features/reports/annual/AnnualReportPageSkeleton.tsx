@@ -29,7 +29,7 @@ export function AnnualReportPageSkeleton({ status, year }: { status: string; yea
     <div aria-busy="true" className={styles.page} data-testid="annual-report-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
       <section aria-hidden="true" className={`card ${tableStyles.wrap}`}>
-        <header className={tableStyles.header}>
+        <header className="sr-only">
           <h2 className={tableStyles.title}>{t('reports.annual.caption', { year })}</h2>
         </header>
         <div className={tableStyles.scroll}>

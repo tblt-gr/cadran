@@ -311,6 +311,43 @@ final class MonthlyRecapControllerTest extends WebTestCase
     }
 
     /**
+     * Hand-computed roll-up on expenses: Maison −10.00 of its own, its child Énergie −5.50 and its
+     * child Eau −2.25 give Maison 17.75; Énergie stays 5.50 and Eau 2.25. A category of another
+     * workspace never joins the sum, and a parent without any movement in its subtree stays null.
+     */
+    public function testAParentCategoryTotalIsItsOwnPlusItsDescendants(): void
+    {
+        $parent = '00000000-0000-7000-8000-0000000000d1';
+        $energy = '00000000-0000-7000-8000-0000000000d2';
+        $water = '00000000-0000-7000-8000-0000000000d3';
+        $lonely = '00000000-0000-7000-8000-0000000000d4';
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->category($parent, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Maison');
+        $this->category($energy, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Énergie', $parent);
+        $this->category($water, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Eau', $parent);
+        $this->category($lonely, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Seul');
+        $this->category(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, true, 'EXPENSE', 'Secret');
+        $this->transaction('11', self::CURRENT, '-10.00', 'EXPENSE', '-10.00', [], WorkspaceFixture::OWN_WORKSPACE, $parent);
+        $this->transaction('12', self::CURRENT, '-5.50', 'EXPENSE', '-5.50', [], WorkspaceFixture::OWN_WORKSPACE, $energy);
+        $this->transaction('13', self::CURRENT, '-2.25', 'EXPENSE', '-2.25', [], WorkspaceFixture::OWN_WORKSPACE, $water);
+
+        $categories = self::index(self::fields($this->read()['totals'])['categories'], 'id');
+
+        self::assertSame('17.75', $categories[$parent]['value']);
+        self::assertSame('5.50', $categories[$energy]['value']);
+        self::assertSame('2.25', $categories[$water]['value']);
+        self::assertSame([
+            '00000000-0000-7000-8000-000000000111',
+            '00000000-0000-7000-8000-000000000112',
+            '00000000-0000-7000-8000-000000000113',
+        ], $categories[$parent]['sourceTransactionIds']);
+        self::assertNull($categories[$lonely]['value']);
+        self::assertSame('NO_MOVEMENTS', $categories[$lonely]['reason']);
+        self::assertArrayNotHasKey(self::OTHER_CATEGORY, $categories);
+    }
+
+    /**
      * Hand-computed axis facets for the closed month, all on budget-included
      * categories: rent −1000.00 on ESSENTIAL and FIXED, snacks −200.00 on
      * DISCRETIONARY. ESSENTIAL = 1000.00, FIXED = 1000.00,
@@ -647,10 +684,11 @@ final class MonthlyRecapControllerTest extends WebTestCase
         bool $included,
         string $type = 'EXPENSE',
         string $label = 'Budget',
+        ?string $parent = null,
     ): void {
         $this->connection->insert('category_categories', [
-            'id' => $id, 'workspace_id' => $workspace, 'type' => $type, 'label' => $label,
-            'default_analytic_axes' => '[]', 'budget_included' => $included, 'sort_order' => 0, 'depth' => 1,
+            'id' => $id, 'workspace_id' => $workspace, 'type' => $type, 'label' => $label, 'parent_id' => $parent,
+            'default_analytic_axes' => '[]', 'budget_included' => $included, 'sort_order' => 0, 'depth' => null === $parent ? 1 : 2,
             'version' => 1, 'created_at' => '2026-01-01 12:00:00+00', 'updated_at' => '2026-01-01 12:00:00+00',
         ], ['budget_included' => ParameterType::BOOLEAN]);
     }

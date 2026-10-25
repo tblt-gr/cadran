@@ -232,7 +232,13 @@
         "axes": "Axe",
         "categories": "Catégories",
         "groups": "Groupes",
-        "accounts": "Comptes"
+        "accounts": "Comptes",
+        "selected": "Colonnes sélectionnées",
+        "selectedNone": "Aucune colonne sélectionnée.",
+        "moveUp": "Monter : {{column}}",
+        "moveDown": "Descendre : {{column}}",
+        "remove": "Retirer : {{column}}",
+        "unknown": "Élément introuvable"
       },
       "charts": {
         "viewData": "Voir les données",

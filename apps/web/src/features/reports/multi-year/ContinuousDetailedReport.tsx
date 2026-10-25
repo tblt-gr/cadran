@@ -60,7 +60,7 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
   return (
     <div>
       <section aria-labelledby={titleId} className={`card ${tableStyles.wrap}`}>
-        <header className={tableStyles.header}>
+        <header className="sr-only">
           <h2 className={tableStyles.title} id={titleId}>
             {t('reports.multiYear.detailedCaption', { from: report.from, to: report.to })}
           </h2>

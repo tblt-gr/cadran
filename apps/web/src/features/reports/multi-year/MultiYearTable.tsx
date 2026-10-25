@@ -18,7 +18,7 @@ export function MultiYearTable({ report }: MultiYearTableProps) {
 
   return (
     <section aria-labelledby="multi-year-table-title" className={`card ${styles.wrap}`}>
-      <header className={styles.header}>
+      <header className="sr-only">
         <h2 className={styles.title} id="multi-year-table-title">
           {t('reports.multiYear.caption', { from: report.from, to: report.to })}
         </h2>

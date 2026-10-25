@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Tabs } from '@/components/ui/tabs/Tabs';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { SelectedColumns } from './SelectedColumns';
 import { AXIS_IDS, INDICATOR_COLUMN_IDS, MAX_ANNUAL_COLUMNS } from './annualColumns';
 import { AnnualRequestError, useSaveAnnualReportPreferences } from './useAnnualReport';
 import { useColumnCatalogue, type CatalogueEntry } from './useColumnCatalogue';
@@ -33,6 +34,31 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
   function toggle(id: string) {
     setSelected((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
+  }
+  function move(index: number, offset: -1 | 1) {
+    setSelected((current) => {
+      const target = index + offset;
+      if (target < 0 || target >= current.length) return current;
+      const next = [...current];
+      [next[index], next[target]] = [next[target]!, next[index]!];
+      return next;
+    });
+  }
+  /** Label of a selected id; null while the workspace entries load, so a row shows a placeholder. */
+  function labelOf(id: string): string | null {
+    const [type = '', reference = ''] = id.split(':', 2);
+    if (type === 'axis') return t(`categories.axes.${reference}`, { defaultValue: reference });
+    if (!id.includes(':')) return t(`reports.annual.indicators.${id}`, { defaultValue: id });
+    if (!catalogue.data) return catalogue.isError ? t('reports.annual.picker.unknown') : null;
+    const entries =
+      type === 'category'
+        ? catalogue.data.categories
+        : type === 'account'
+          ? catalogue.data.accounts
+          : catalogue.data.groups;
+    return (
+      entries.find((entry) => entry.id === reference)?.label ?? t('reports.annual.picker.unknown')
     );
   }
   function submit(event: FormEvent) {
@@ -158,6 +184,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
             },
           ]}
         />
+        <SelectedColumns labelOf={labelOf} onMove={move} onRemove={toggle} selected={selected} />
         <div className={styles.actions}>
           <button className="secondary-action" onClick={close} type="button">
             {t('actions.cancel')}

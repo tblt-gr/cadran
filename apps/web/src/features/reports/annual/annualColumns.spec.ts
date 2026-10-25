@@ -34,6 +34,15 @@ describe('column families', () => {
     ]);
     expect(groupStartIds([]).size).toBe(0);
   });
+
+  it('follows the user order: a separator opens wherever the family changes', () => {
+    const ids = ['cashIncome', 'category:a', 'cashSavingsRate', 'category:b'];
+    expect([...groupStartIds(ids.map((id) => ({ id })))]).toEqual([
+      'category:a',
+      'cashSavingsRate',
+      'category:b',
+    ]);
+  });
 });
 
 describe('data that starts mid-year', () => {

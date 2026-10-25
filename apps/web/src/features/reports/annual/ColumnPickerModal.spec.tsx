@@ -99,4 +99,67 @@ describe('ColumnPickerModal', () => {
     );
     expect(screen.getAllByRole('button', { name: 'Réessayer' }).length).toBeGreaterThan(0);
   });
+
+  it('lists the selected columns in one ordered list, with move and remove buttons', async () => {
+    renderModal();
+    const list = screen.getByRole('list');
+    expect(within(list).getAllByRole('listitem')).toHaveLength(annualPreferences.columns.length);
+    expect(
+      within(
+        screen.getByRole('heading', { name: 'Colonnes sélectionnées' }).parentElement!,
+      ).getAllByRole('button').length,
+    ).toBe(annualPreferences.columns.length * 3);
+  });
+
+  it('moves a column up or down and saves the chosen order', async () => {
+    renderModal();
+    const items = () =>
+      within(screen.getByRole('list'))
+        .getAllByRole('listitem')
+        .map((item) => item.textContent);
+    const [first, second] = items();
+    // The first row cannot go up, the last cannot go down.
+    const rows = within(screen.getByRole('list')).getAllByRole('listitem');
+    expect(
+      (within(rows[0]!).getByRole('button', { name: /Monter/ }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      (
+        within(rows[rows.length - 1]!).getByRole('button', {
+          name: /Descendre/,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+
+    fireEvent.click(within(rows[0]!).getByRole('button', { name: /Descendre/ }));
+    expect(items().slice(0, 2)).toEqual([second, first]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() =>
+      expect(api.saveAnnualReportPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            columns: [
+              annualPreferences.columns[1],
+              annualPreferences.columns[0],
+              ...annualPreferences.columns.slice(2),
+            ],
+          }),
+        }),
+      ),
+    );
+  });
+
+  it('removes a column from the selection and lets it come back at the end', async () => {
+    renderModal();
+    const rows = within(screen.getByRole('list')).getAllByRole('listitem');
+    fireEvent.click(within(rows[0]!).getByRole('button', { name: /Retirer/ }));
+    expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(
+      annualPreferences.columns.length - 1,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Catégories' }));
+    fireEvent.click(await screen.findByLabelText('Courses'));
+    const labels = within(screen.getByRole('list')).getAllByRole('listitem');
+    expect(labels[labels.length - 1]!.textContent).toContain('Courses');
+  });
 });

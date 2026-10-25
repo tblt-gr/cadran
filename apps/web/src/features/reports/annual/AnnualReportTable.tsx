@@ -32,7 +32,7 @@ export function AnnualReportTable({
 
   return (
     <section aria-labelledby={titleId} className={`card ${styles.wrap}`}>
-      <header className={styles.header}>
+      <header className="sr-only">
         <h2 className={styles.title} id={titleId}>
           {t('reports.annual.caption', { year: report.year })}
         </h2>

@@ -48,7 +48,7 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
     <div aria-busy="true" className={pageStyles.page} data-testid="multi-year-report-skeleton">
       <SkeletonStatus>{t('reports.loading')}</SkeletonStatus>
       <section aria-hidden="true" className={`card ${tableStyles.wrap}`}>
-        <header className={tableStyles.header}>
+        <header className="sr-only">
           <h2 className={tableStyles.title}>
             {range ? (
               t('reports.multiYear.caption', { from: range.from, to: range.to })

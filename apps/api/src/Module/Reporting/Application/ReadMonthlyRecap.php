@@ -86,7 +86,7 @@ final readonly class ReadMonthlyRecap
                 $ids[$id] = true;
             }
         }
-        foreach ($projection->categoryMetrics as $category) {
+        foreach ($projection->recapCategories() as $category) {
             foreach ($category->metric->sourceTransactionIds as $id) {
                 $ids[$id] = true;
             }
