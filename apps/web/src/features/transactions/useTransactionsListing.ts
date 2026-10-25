@@ -1,4 +1,4 @@
-import { listAccounts, listTransactions, type TransactionPage } from '@cadran/api-client';
+import { listTransactions, type TransactionPage } from '@cadran/api-client';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -9,7 +9,11 @@ import {
 } from './transaction-filters/filterState';
 import { useTransactionFilters } from './transaction-filters/useTransactionFilters';
 import { TransactionRequestError, transactionRequestError } from './transactionError';
-import { listReferencedAccounts, mergeAccountOptions } from './transactionAccounts';
+import {
+  listActiveAccounts,
+  listReferencedAccounts,
+  mergeAccountOptions,
+} from './transactionAccounts';
 
 /**
  * Filters, cursor paging and the three queries the transactions screen reads from: the
@@ -55,17 +59,7 @@ export function useTransactionsListing() {
 
   const accounts = useQuery({
     queryKey: ['accounts', { includeArchived: false, includeClosed: false, page: 1 }],
-    queryFn: async ({ signal }) => {
-      const result = await listAccounts({
-        ...authApiOptions(),
-        query: { includeArchived: false, includeClosed: false, page: 1, pageSize: 100 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) {
-        throw transactionRequestError(result);
-      }
-      return result.data;
-    },
+    queryFn: ({ signal }) => listActiveAccounts(signal),
     retry: false,
   });
 

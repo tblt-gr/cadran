@@ -22,6 +22,7 @@ final readonly class AccountRepresentation
     {
         return [
             'id' => $account->id,
+            'isPrimary' => $account->isPrimary,
             'label' => $account->label,
             'assetCode' => $account->assetCode,
             'kind' => $account->kind,

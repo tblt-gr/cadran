@@ -23,6 +23,7 @@ final readonly class UpdateAccountInput
         public ?string $primaryGroupId = null,
         /** @var list<string> */
         public array $tagGroupIds = [],
+        public ?bool $isPrimary = null,
     ) {
     }
 }

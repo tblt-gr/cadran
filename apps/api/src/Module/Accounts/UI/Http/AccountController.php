@@ -168,7 +168,7 @@ final readonly class AccountController
         }
 
         try {
-            $payload = AccountPayload::of($body, [...self::WRITE_FIELDS, 'version']);
+            $payload = AccountPayload::of($body, [...self::WRITE_FIELDS, 'version', ...(array_key_exists('isPrimary', $body) ? ['isPrimary'] : [])]);
             $account = $updateAccount($id, new UpdateAccountInput(
                 label: $payload->string('label'),
                 kind: $payload->string('kind'),
@@ -185,6 +185,7 @@ final readonly class AccountController
                 version: $payload->integer('version'),
                 primaryGroupId: $payload->nullableString('primaryGroupId'),
                 tagGroupIds: $payload->stringList('tagGroupIds'),
+                isPrimary: array_key_exists('isPrimary', $body) ? $payload->boolean('isPrimary') : null,
             ));
         } catch (AccountArchived) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);

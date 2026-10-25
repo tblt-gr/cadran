@@ -4,13 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { depositCeilingOf } from '@/lib/depositCeiling';
+import { AccountNameCell } from '@/features/accounts/account-list/account-name-cell/AccountNameCell';
 import styles from './AccountList.module.css';
 
 interface AccountListProps {
@@ -114,11 +113,7 @@ export function AccountList({
               ? Array.from({ length: SKELETON_ROWS }, (_, row) => (
                   <tr key={row}>
                     <th data-label={t('accounts.fields.label')} scope="row">
-                      <div className={styles.labelCell}>
-                        <a className={styles.accountLink}>
-                          <SkeletonBlock />
-                        </a>
-                      </div>
+                      <AccountNameCell account={null} />
                     </th>
                     <td data-label={t('accounts.overview.columnIdentity')}>
                       <SkeletonBlock />
@@ -150,22 +145,7 @@ export function AccountList({
                   return (
                     <tr key={account.id}>
                       <th data-label={t('accounts.fields.label')} scope="row">
-                        <div className={styles.labelCell}>
-                          <a
-                            className={styles.accountLink}
-                            href={`/accounts/${account.id}`}
-                            onClick={(event) =>
-                              handleClientNavigation(event, `/accounts/${account.id}`)
-                            }
-                          >
-                            {account.label}
-                          </a>
-                          {account.status !== 'ACTIVE' ? (
-                            <StatusBadge tone={account.status === 'CLOSED' ? 'info' : 'warning'}>
-                              {t(`accounts.statuses.${account.status}`)}
-                            </StatusBadge>
-                          ) : null}
-                        </div>
+                        <AccountNameCell account={account} />
                       </th>
                       <td data-label={t('accounts.overview.columnIdentity')}>
                         <span>{productName(account)}</span>

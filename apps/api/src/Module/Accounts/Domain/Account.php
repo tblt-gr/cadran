@@ -59,6 +59,7 @@ final readonly class Account
         public ?string $primaryGroupId = null,
         /** @var list<string> */
         public array $tagGroupIds = [],
+        public bool $isPrimary = false,
     ) {
         self::assertIdentifier($id);
         self::assertLabel($label);
@@ -79,6 +80,10 @@ final readonly class Account
 
         if ($includeInEmergencyFund && !$includeInNetWorth) {
             throw new InvalidAccount('An account excluded from net worth cannot be part of the emergency fund.');
+        }
+
+        if ($isPrimary && (AccountKind::CURRENT !== $kind || AccountValuationMode::TRANSACTIONS !== $valuationMode || null !== $closedOn || null !== $archivedAt)) {
+            throw new InvalidAccount('Only an active transaction-capable current account can be primary.');
         }
 
         self::assertLifecycle($openedOn, $closedOn, $createdAt, $updatedAt);
@@ -113,6 +118,7 @@ final readonly class Account
         ?string $primaryGroupId = null,
         array $tagGroupIds = [],
         bool $keepGrouping = true,
+        ?bool $isPrimary = null,
     ): self {
         $this->assertWritable();
 
@@ -168,6 +174,21 @@ final readonly class Account
             archivedAt: $this->archivedAt,
             primaryGroupId: $keepGrouping ? $this->primaryGroupId : $primaryGroupId,
             tagGroupIds: $keepGrouping ? $this->tagGroupIds : $tagGroupIds,
+            isPrimary: null !== $closedOn ? false : ($isPrimary ?? $this->isPrimary),
+        );
+    }
+
+    public function withPrimary(bool $isPrimary, \DateTimeImmutable $updatedAt): self
+    {
+        if ($isPrimary && $this->isClosed()) {
+            throw new InvalidAccount('A closed account cannot be primary.');
+        }
+
+        return $this->reconfigure(
+            $this->label, $this->kind, $this->productCode, $this->productModelId,
+            $this->institution, $this->maskedIdentifier, $this->valuationMode,
+            $this->liquidityLevel, $this->includeInNetWorth, $this->includeInEmergencyFund,
+            $this->openedOn, $this->closedOn, $updatedAt, isPrimary: $isPrimary,
         );
     }
 
@@ -209,6 +230,7 @@ final readonly class Account
             archivedAt: $this->archivedAt,
             primaryGroupId: $primaryGroupId,
             tagGroupIds: $tagGroupIds,
+            isPrimary: $this->isPrimary,
         );
     }
 
@@ -297,6 +319,7 @@ final readonly class Account
             archivedAt: $this->archivedAt,
             primaryGroupId: $this->primaryGroupId,
             tagGroupIds: $this->tagGroupIds,
+            isPrimary: $this->isPrimary,
         );
     }
 

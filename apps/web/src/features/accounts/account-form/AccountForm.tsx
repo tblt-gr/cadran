@@ -19,6 +19,7 @@ import { type AccountOrigin, originProductCode, originProductModelId } from './a
 import { IdentityFields } from './identity-fields/IdentityFields';
 import { InclusionFieldset } from './inclusion-fieldset/InclusionFieldset';
 import { LifecycleFields } from './lifecycle-fields/LifecycleFields';
+import { PrimaryAccountField } from './primary-account-field/PrimaryAccountField';
 import { useAssetOptions } from './useAssetOptions';
 import { POSITION_KINDS } from './positionKinds';
 import { productFeedsValuationMode } from './valuationModes';
@@ -69,6 +70,7 @@ export function AccountForm({
   );
   const [openedOn, setOpenedOn] = useState(initial.openedOn);
   const [closedOn, setClosedOn] = useState(initial.closedOn);
+  const [isPrimary, setIsPrimary] = useState(account?.isPrimary ?? false);
   const [primaryGroupId, setPrimaryGroupId] = useState(initial.primaryGroupId);
   const [tagGroupIds, setTagGroupIds] = useState(initial.tagGroupIds);
   const [showErrors, setShowErrors] = useState(false);
@@ -93,6 +95,11 @@ export function AccountForm({
     (valuationMode === 'PORTFOLIO' && !POSITION_KINDS.includes(kind)) ||
     !productFeedsValuationMode(origin, valuationMode);
   const groupingInvalid = includeInNetWorth && primaryGroupId === '';
+  const primaryEligible =
+    kind === 'CURRENT' &&
+    valuationMode === 'TRANSACTIONS' &&
+    closedOn === '' &&
+    account?.archivedAt === null;
 
   const values: AccountFormValues = {
     label,
@@ -154,6 +161,7 @@ export function AccountForm({
             ...common,
             ...grouping,
             version: account.version,
+            isPrimary: primaryEligible && isPrimary,
           }
         : { ...common, ...grouping, assetCode: assets.selected },
       values,
@@ -208,6 +216,14 @@ export function AccountForm({
           today={today}
         />
       </div>
+
+      {account ? (
+        <PrimaryAccountField
+          checked={primaryEligible && isPrimary}
+          eligible={primaryEligible}
+          onChange={setIsPrimary}
+        />
+      ) : null}
 
       <GroupingFields
         includeInNetWorth={includeInNetWorth}

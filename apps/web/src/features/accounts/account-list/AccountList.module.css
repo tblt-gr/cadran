@@ -59,15 +59,8 @@
 }
 
 .panel tbody th > span,
-.panel tbody th small,
-.accountLink {
+.panel tbody th small {
   display: block;
-}
-
-.accountLink {
-  color: inherit;
-  font-weight: var(--font-weight-strong);
-  text-decoration: none;
 }
 
 .panel tbody th small {
@@ -91,13 +84,6 @@
 .shareSkeleton {
   width: calc(var(--spacing-12) + var(--spacing-4));
   height: var(--spacing-4);
-}
-
-.labelCell {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-2);
 }
 
 .panel tbody td > span,

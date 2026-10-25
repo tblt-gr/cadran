@@ -921,6 +921,14 @@
         "description": "Les filtres actifs masquent tous les comptes de l’espace de travail.",
         "reset": "Réinitialiser les filtres"
       }
+    },
+    "primary": {
+      "legend": "Compte principal",
+      "use": "Utiliser comme compte principal",
+      "badge": "Principal",
+      "hint": "Ce compte sera proposé pour les nouvelles transactions. Il remplace le compte principal précédent ; un filtre de compte reste prioritaire.",
+      "ineligible": "Seul un compte courant ouvert valorisé par ses mouvements peut être principal.",
+      "fallback": "Si ce compte est principal, sa clôture ou son archivage supprime la présélection pour les nouvelles transactions. Un filtre de compte reste prioritaire."
     }
   },
   "accountGroups": {

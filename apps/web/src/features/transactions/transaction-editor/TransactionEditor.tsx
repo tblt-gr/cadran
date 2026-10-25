@@ -16,6 +16,7 @@ interface TransactionEditorProps {
   accounts: Account[];
   close: () => void;
   defaults?: TransactionFormDefaults;
+  defaultAccountId?: string;
   onSubmit: (body: CreateTransactionRequest | UpdateTransactionRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
@@ -27,6 +28,7 @@ export function TransactionEditor({
   accounts,
   close,
   defaults,
+  defaultAccountId,
   onSubmit,
   pending,
   submitError,
@@ -45,6 +47,7 @@ export function TransactionEditor({
       <TransactionForm
         accounts={accounts}
         defaults={defaults}
+        defaultAccountId={defaultAccountId}
         key={creating ? 'create' : transaction.id}
         onSubmit={onSubmit}
         pending={pending}

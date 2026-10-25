@@ -216,6 +216,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
       {transactionEditorOpen ? (
         <TransactionEditor
           accounts={[current]}
+          defaultAccountId={current.id}
           close={closeTransactionEditor}
           onSubmit={(body) => saveTransaction.mutate(body as CreateTransactionRequest)}
           pending={saveTransaction.isPending}

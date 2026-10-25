@@ -77,6 +77,9 @@ final readonly class UpdateAccount
             if (null !== $current->archivedAt) {
                 throw new AccountArchived('An archived account is read-only.');
             }
+            if (true === $input->isPrimary && $current->isClosed() && null !== $closedOn) {
+                throw new InvalidAccountInput('A closed account cannot become primary.');
+            }
             if ($openedOn != $current->openedOn || $closedOn != $current->closedOn) {
                 $this->periods->assertAccountLifecycleUnchangedForClosures(
                     $context->workspace,
@@ -124,6 +127,7 @@ final readonly class UpdateAccount
                     primaryGroupId: $primaryGroupId,
                     tagGroupIds: $tagGroupIds,
                     keepGrouping: false,
+                    isPrimary: $input->isPrimary,
                 );
             } catch (InvalidAccount $exception) {
                 throw new InvalidAccountInput($exception->getMessage(), previous: $exception);
@@ -217,6 +221,13 @@ final readonly class UpdateAccount
             AccountAuditFingerprint::of($before),
             AccountAuditFingerprint::of($after),
         ));
+
+        if ($before->isPrimary !== $after->isPrimary) {
+            $this->record($context, $after->id, AccountAuditEvents::PRIMARY_CHANGED, AuditDiff::change(
+                ['isPrimary' => $before->isPrimary],
+                ['isPrimary' => $after->isPrimary],
+            ));
+        }
 
         if ($before->isClosed() === $after->isClosed()) {
             return;

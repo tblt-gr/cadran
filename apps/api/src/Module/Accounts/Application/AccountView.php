@@ -36,6 +36,7 @@ final readonly class AccountView
         public array $tagGroupIds = [],
         public ?ShareView $share = null,
         public ?ValuationView $valuation = null,
+        public bool $isPrimary = false,
     ) {
     }
 
@@ -45,6 +46,7 @@ final readonly class AccountView
 
         return new self(
             id: $account->id,
+            isPrimary: $account->isPrimary,
             label: $account->label,
             assetCode: $account->assetCode->toString(),
             kind: $account->kind->value,

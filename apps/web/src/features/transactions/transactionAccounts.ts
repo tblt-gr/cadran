@@ -1,9 +1,27 @@
-import { listAccounts, type Account } from '@cadran/api-client';
+import { listAccounts, type Account, type AccountPage } from '@cadran/api-client';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { transactionRequestError } from './transactionError';
 
 const PAGE_SIZE = 100;
 const MAX_PAGE = 1_000;
+
+/** Read every option so a primary account beyond the first page is still offered. */
+export async function listActiveAccounts(signal?: AbortSignal): Promise<AccountPage> {
+  const items: Account[] = [];
+
+  for (let page = 1; page <= MAX_PAGE; page += 1) {
+    const result = await listAccounts({
+      ...authApiOptions(),
+      query: { includeArchived: false, includeClosed: false, page, pageSize: PAGE_SIZE },
+      signal,
+    });
+    if (!result.response?.ok || !result.data) throw transactionRequestError(result);
+    items.push(...result.data.items);
+    if (page * PAGE_SIZE >= result.data.total) return { ...result.data, items };
+  }
+
+  throw new Error('The account option limit was exceeded.');
+}
 
 export async function listReferencedAccounts(
   accountIds: readonly string[],

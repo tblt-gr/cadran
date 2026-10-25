@@ -1990,6 +1990,10 @@ export type ArchiveAccountGroupRequest = {
 };
 
 export type Account = {
+    /**
+     * Whether this active current account is the workspace default for new transactions.
+     */
+    isPrimary: boolean;
     id: string;
     label: string;
     /**
@@ -2219,6 +2223,10 @@ export type CreateAccountRequest = {
 };
 
 export type UpdateAccountRequest = {
+    /**
+     * Optional; omission preserves the current setting. True selects this active transaction-capable CURRENT account and atomically clears the previous primary in this workspace, advancing its version. False removes this account as the default. Closing or archiving clears it automatically.
+     */
+    isPrimary?: boolean;
     label: string;
     kind: AccountKind;
     /**

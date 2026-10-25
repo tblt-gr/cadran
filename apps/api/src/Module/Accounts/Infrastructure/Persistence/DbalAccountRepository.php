@@ -26,11 +26,12 @@ final readonly class DbalAccountRepository implements AccountRepository
      * storing as a silent `false`.
      */
     private const array COLUMN_TYPES = [
+        'is_primary' => ParameterType::BOOLEAN,
         'include_in_net_worth' => ParameterType::BOOLEAN,
         'include_in_emergency_fund' => ParameterType::BOOLEAN,
     ];
 
-    private const string COLUMNS = 'id, workspace_id, label, asset_code, kind, product_code, product_model_id, institution, masked_identifier, valuation_mode, liquidity_level, include_in_net_worth, include_in_emergency_fund, opened_on, closed_on, version, created_at, updated_at, used_at, archived_at, primary_group_id';
+    private const string COLUMNS = 'is_primary, id, workspace_id, label, asset_code, kind, product_code, product_model_id, institution, masked_identifier, valuation_mode, liquidity_level, include_in_net_worth, include_in_emergency_fund, opened_on, closed_on, version, created_at, updated_at, used_at, archived_at, primary_group_id';
 
     /**
      * Every member of one group with its rank. A saved position only counts
@@ -65,6 +66,8 @@ final readonly class DbalAccountRepository implements AccountRepository
 
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Account
     {
+        // Lock the workspace before any account row so concurrent switches cannot invert row locks.
+        $this->connection->executeQuery('SELECT pg_advisory_xact_lock(hashtextextended(:workspace_id, 14014))', ['workspace_id' => $workspace->id]);
         $row = $this->connection->fetchAssociative(
             'SELECT '.self::COLUMNS.' FROM account_financial_accounts WHERE workspace_id = :workspace_id AND id = :id FOR UPDATE',
             ['workspace_id' => $workspace->id, 'id' => $id],
@@ -282,24 +285,40 @@ final readonly class DbalAccountRepository implements AccountRepository
     public function update(Account $account, int $expectedVersion): bool
     {
         try {
-            $written = 1 === (int) $this->connection->update(
-                'account_financial_accounts',
-                AccountRow::columns($account),
-                [
-                    'workspace_id' => $account->workspace->id,
-                    'id' => $account->id,
-                    'version' => $expectedVersion,
-                ],
-                self::COLUMN_TYPES,
-            );
-            if ($written) {
-                $this->replaceTags($account);
-            }
-
-            return $written;
+            return $this->connection->transactional(fn (): bool => $this->updateLockedAccount($account, $expectedVersion));
         } catch (UniqueConstraintViolationException $exception) {
             throw new AccountConflict('An active account already uses this label.', previous: $exception);
         }
+    }
+
+    private function updateLockedAccount(Account $account, int $expectedVersion): bool
+    {
+        $current = $this->findForUpdate($account->workspace, $account->id);
+        if (null === $current || $current->version !== $expectedVersion) {
+            return false;
+        }
+        if ($account->isPrimary) {
+            $this->connection->executeStatement(
+                'UPDATE account_financial_accounts SET is_primary = false, version = version + 1, updated_at = :updated_at'
+                .' WHERE workspace_id = :workspace_id AND id <> :id AND is_primary = true',
+                ['workspace_id' => $account->workspace->id, 'id' => $account->id, 'updated_at' => $account->updatedAt->format('Y-m-d H:i:s.uP')],
+            );
+        }
+        $written = 1 === (int) $this->connection->update(
+            'account_financial_accounts',
+            AccountRow::columns($account),
+            [
+                'workspace_id' => $account->workspace->id,
+                'id' => $account->id,
+                'version' => $expectedVersion,
+            ],
+            self::COLUMN_TYPES,
+        );
+        if ($written) {
+            $this->replaceTags($account);
+        }
+
+        return $written;
     }
 
     private static function prefixed(string $alias, string $columns): string

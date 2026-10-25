@@ -102,6 +102,10 @@ interface AccountRepository
 
     public function add(Account $account): void;
 
-    /** Returns false when the expected version is stale. */
+    /**
+     * Returns false when the expected version is stale, without changing any account.
+     * Selecting a primary atomically clears the previous primary in this workspace
+     * and advances its version, so an old editor cannot restore an implicit default.
+     */
     public function update(Account $account, int $expectedVersion): bool;
 }

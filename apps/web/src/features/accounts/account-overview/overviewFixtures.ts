@@ -38,6 +38,7 @@ export function buildAccount(id: string, label: string, overrides: Partial<Accou
     status: 'ACTIVE',
     netWorthSign: 1,
     used: false,
+    isPrimary: false,
     editable: true,
     kindEditable: true,
     kindEditReason: null,

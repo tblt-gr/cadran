@@ -43,7 +43,10 @@ export function useAccountsPageMutations({
       error instanceof AccountRequestError &&
       (error.kind === 'stale' || error.kind === 'archived')
     ) {
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['account'] }),
+      ]);
     }
   }
 
@@ -71,7 +74,10 @@ export function useAccountsPageMutations({
     onSuccess: async () => {
       closeEditor();
       notify('saved');
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['account'] }),
+      ]);
     },
   });
 
@@ -93,7 +99,10 @@ export function useAccountsPageMutations({
     onSuccess: async () => {
       closeArchive();
       notify('archived');
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['account'] }),
+      ]);
     },
   });
 

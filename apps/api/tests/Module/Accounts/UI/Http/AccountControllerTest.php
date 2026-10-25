@@ -82,7 +82,7 @@ final class AccountControllerTest extends WebTestCase
         // The published field set, asserted whole: a view field added without a
         // matching schema change would otherwise reach clients unnoticed.
         self::assertSame([
-            'id', 'label', 'assetCode', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier',
+            'id', 'isPrimary', 'label', 'assetCode', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier',
             'valuationMode', 'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund',
             'openedOn', 'closedOn', 'status', 'netWorthSign', 'used', 'editable', 'kindEditable',
             'kindEditReason', 'version', 'archivedAt', 'primaryGroupId', 'tagGroupIds', 'share', 'valuation',
@@ -129,6 +129,82 @@ final class AccountControllerTest extends WebTestCase
         self::assertSame('ARCHIVED', $archived['status']);
         self::assertFalse($archived['editable']);
         self::assertNotNull($archived['archivedAt']);
+    }
+
+    public function testPrimarySwitchClearsPreviousAndClosingRemovesDefault(): void
+    {
+        $first = $this->createAccount('Premier', ['kind' => 'CURRENT']);
+        $second = $this->createAccount('Second', ['kind' => 'CURRENT']);
+        $this->requestUpdate(self::stringValue($first, 'id'), [...$first, 'isPrimary' => true]);
+        self::assertResponseIsSuccessful();
+        self::assertTrue($this->decode()['isPrimary']);
+        $this->requestUpdate(self::stringValue($second, 'id'), [...$second, 'isPrimary' => true]);
+        self::assertResponseIsSuccessful();
+        $primary = $this->decode();
+        $this->client->request('GET', '/api/v1/accounts/'.self::stringValue($first, 'id'));
+        $previous = $this->decode();
+        self::assertFalse($previous['isPrimary']);
+        self::assertSame(3, $previous['version']);
+        $this->requestUpdate(self::stringValue($first, 'id'), [...$first, 'isPrimary' => true]);
+        self::assertResponseStatusCodeSame(409);
+        $this->requestUpdate(self::stringValue($primary, 'id'), [...$primary, 'closedOn' => '2026-02-01']);
+        self::assertResponseIsSuccessful();
+        self::assertFalse($this->decode()['isPrimary']);
+        $events = $this->connection->fetchAllAssociative(
+            "SELECT before_json, after_json FROM audit_events WHERE workspace_id = :workspace_id AND event_type = 'account.primary_changed'",
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE],
+        );
+        self::assertCount(3, $events);
+        foreach ($events as $event) {
+            self::assertIsString($event['after_json']);
+            self::assertStringNotContainsString('Premier', $event['after_json']);
+            self::assertStringNotContainsString('Second', $event['after_json']);
+        }
+    }
+
+    public function testSavingsCannotBePrimaryAndExplicitFalseAndArchiveClearPrimary(): void
+    {
+        $savings = $this->createAccount('Livret');
+        $this->requestUpdate(self::stringValue($savings, 'id'), [...$savings, 'isPrimary' => true]);
+        self::assertResponseStatusCodeSame(422);
+        $current = $this->createAccount('Courant', ['kind' => 'CURRENT']);
+        $id = self::stringValue($current, 'id');
+        $this->requestUpdate($id, [...$current, 'isPrimary' => true]);
+        $primary = $this->decode();
+        $this->requestUpdate($id, [...$primary, 'isPrimary' => false]);
+        self::assertResponseIsSuccessful();
+        $cleared = $this->decode();
+        self::assertFalse($cleared['isPrimary']);
+        $this->requestUpdate($id, [...$cleared, 'isPrimary' => true]);
+        $primary = $this->decode();
+        $this->requestArchive($id, self::intValue($primary, 'version'));
+        self::assertResponseIsSuccessful();
+        self::assertFalse($this->decode()['isPrimary']);
+    }
+
+    public function testOmittingPrimaryPreservesItAndInvalidPrimaryInputsAreRefused(): void
+    {
+        $current = $this->createAccount('Courant', ['kind' => 'CURRENT']);
+        $id = self::stringValue($current, 'id');
+        $this->requestUpdate($id, [...$current, 'isPrimary' => true]);
+        $primary = $this->decode();
+        $body = $this->updateBody($primary);
+        unset($body['isPrimary']);
+        $this->client->request('PUT', '/api/v1/accounts/'.$id, server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
+        self::assertResponseIsSuccessful();
+        $primary = $this->decode();
+        self::assertTrue($primary['isPrimary']);
+        $this->requestUpdate($id, [...$primary, 'isPrimary' => 'true']);
+        self::assertResponseStatusCodeSame(422);
+        $this->requestUpdate($id, [...$primary, 'closedOn' => '2026-02-01']);
+        self::assertResponseIsSuccessful();
+        $closed = $this->decode();
+        $this->requestUpdate($id, [...$closed, 'isPrimary' => true]);
+        self::assertResponseStatusCodeSame(422);
+        $this->requestArchive($id, self::intValue($closed, 'version'));
+        self::assertResponseIsSuccessful();
+        $this->requestUpdate($id, [...$this->decode(), 'isPrimary' => true]);
+        self::assertResponseStatusCodeSame(422);
     }
 
     public function testALiabilityIsSignedNegativelyForNetWorth(): void
@@ -258,6 +334,7 @@ final class AccountControllerTest extends WebTestCase
         $body = $this->payload('Changed');
         unset($body['assetCode']);
         $body['version'] = 1;
+        $body['isPrimary'] = true;
         $body['primaryGroupId'] = null;
         $body['tagGroupIds'] = [];
         $this->client->request('PUT', '/api/v1/accounts/'.$foreignId, server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
@@ -974,6 +1051,7 @@ final class AccountControllerTest extends WebTestCase
     {
         return [
             'label' => $account['label'],
+            'isPrimary' => $account['isPrimary'] ?? false,
             'kind' => $account['kind'],
             'productCode' => $account['productCode'],
             'productModelId' => $account['productModelId'],

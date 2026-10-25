@@ -21,6 +21,7 @@ final class AccountAuditFingerprint
     {
         return [
             'kind' => $account->kind->value,
+            'isPrimary' => $account->isPrimary,
             // The catalogue code is a system reference. The model identifier
             // is the workspace counterpart: a UUID, not a label or an amount,
             // and the only way a reviewer can tell a template-backed account
