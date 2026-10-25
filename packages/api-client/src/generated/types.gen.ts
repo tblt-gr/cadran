@@ -11193,7 +11193,7 @@ export type ReadNetWorthHistoryData = {
          */
         months?: number;
         /**
-         * Server-resolved period. ALL starts at the first active snapshot, non-voided booked transaction or portfolio valuation on or before asOf, capped to the most recent 60 months. YTD starts in January of asOf's year. Cannot be combined with months. Defaults to LAST_12_MONTHS when neither is supplied.
+         * Server-resolved period. ALL starts at the first active snapshot, non-voided booked transaction or portfolio valuation on or before asOf, capped to the most recent 60 months; its comparison day is the last day of that month. YTD compares against December 31 of the year before asOf and draws that day first. Cannot be combined with months. Defaults to LAST_12_MONTHS when neither is supplied.
          */
         period?: 'ALL' | 'LAST_12_MONTHS' | 'YTD';
     };

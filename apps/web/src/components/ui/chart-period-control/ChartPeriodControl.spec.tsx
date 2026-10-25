@@ -84,13 +84,13 @@ describe('ChartPeriodControl', () => {
       />,
     );
     expect(screen.getByRole('button', { name: 'Depuis janvier' }).getAttribute('title')).toMatch(
-      /1er janvier/,
+      /31 décembre précédent/,
     );
     expect(screen.getByRole('button', { name: 'Tout' }).getAttribute('title')).toBeNull();
     const ytd = screen.getByRole('button', { name: 'Depuis janvier' });
     const described = document.getElementById(ytd.getAttribute('aria-describedby')!);
     expect(described?.className).toBe('sr-only');
-    expect(described?.textContent).toMatch(/1er janvier/);
+    expect(described?.textContent).toMatch(/31 décembre précédent/);
     expect(
       screen.getByRole('button', { name: 'Tout' }).getAttribute('aria-describedby'),
     ).toBeNull();

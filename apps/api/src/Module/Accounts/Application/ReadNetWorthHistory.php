@@ -11,8 +11,12 @@ use App\Module\Reference\Application\AssetCatalog;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
- * The net-worth curve of the calling workspace, one point per month end and a
- * final point on the requested day.
+ * The net-worth curve of the calling workspace: the comparison day, one point
+ * per following month end and a final point on the requested day.
+ *
+ * A named period draws its comparison day as the first point, so the curve and
+ * the change printed above it agree. The one exception is a truncated ALL
+ * history, whose comparison day lies before the 60 drawn month ends.
  *
  * Each point is recomputed from the valuations that were valid on its own
  * day, so a figure recorded late lands on the day it describes rather than on
@@ -50,7 +54,8 @@ final readonly class ReadNetWorthHistory
         $firstDataDay = $this->firstData->onOrBefore($workspace, $requestedOn);
         $firstDataMonth = $firstDataDay?->format('Y-m');
         if ('YTD' === $resolvedPeriod) {
-            $span = (int) $requestedOn->format('n');
+            // One extra month end lands on December 31 of the previous year, the closing baseline.
+            $span = (int) $requestedOn->format('n') + 1;
         } elseif ('ALL' === $resolvedPeriod) {
             $first = null === $firstDataMonth ? $requestedOn : new \DateTimeImmutable($firstDataMonth.'-01', new \DateTimeZone('UTC'));
             $span = ((int) $requestedOn->format('Y') - (int) $first->format('Y')) * 12
@@ -60,10 +65,13 @@ final readonly class ReadNetWorthHistory
         $dates = NetWorthDay::monthEndsUpTo($requestedOn, min($span, self::MAX_MONTHS));
 
         $comparedOn = match ($resolvedPeriod) {
-            'ALL' => $firstDataDay ?? $requestedOn,
-            'YTD' => $requestedOn->setDate((int) $requestedOn->format('Y'), 1, 1),
+            'ALL' => null === $firstDataDay ? $requestedOn : min($firstDataDay->modify('last day of this month'), $requestedOn),
+            'YTD' => $requestedOn->setDate((int) $requestedOn->format('Y') - 1, 12, 31),
             default => NetWorthDay::monthsEarlier($requestedOn, $months ?? self::DEFAULT_MONTHS),
         };
+        if ('LAST_12_MONTHS' === $resolvedPeriod && !in_array($comparedOn, $dates, false)) {
+            array_unshift($dates, $comparedOn);
+        }
         // The baseline is independent of the displayed range, including when ALL is truncated.
         $readDates = $dates;
         if (!in_array($comparedOn, $readDates, false)) {

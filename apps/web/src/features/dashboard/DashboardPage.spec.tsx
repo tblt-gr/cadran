@@ -235,7 +235,7 @@ describe('DashboardPage', () => {
     expect(window.location.search).toBe('?periode=tout');
     const chart = screen.getByRole('figure', { name: 'Évolution du patrimoine' });
     expect(chart.closest('[aria-busy]')?.getAttribute('aria-busy')).toBe('true');
-    expect(chart.textContent).toContain('Juillet 2026');
+    expect(chart.textContent).toContain('31 juillet 2026');
     expect(screen.getByText('1,42 %').closest('[aria-busy]')?.getAttribute('aria-busy')).toBe(
       'true',
     );
@@ -246,7 +246,7 @@ describe('DashboardPage', () => {
     await waitFor(() =>
       expect(chart.closest('[aria-busy]')?.getAttribute('aria-busy')).toBe('false'),
     );
-    expect(chart.textContent).not.toContain('Juillet 2026');
+    expect(chart.textContent).not.toContain('31 juillet 2026');
     expect(chart.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(screen.getByText('Seuls les 60 derniers mois sont affichés.')).toBeTruthy();
   });
@@ -256,7 +256,7 @@ describe('DashboardPage', () => {
     const comparisons = {
       LAST_12_MONTHS: { value: '400.00', rate: '50.00', on: '2025-09-05' },
       ALL: { value: '600.00', rate: '100.00', on: '2020-03-12' },
-      YTD: { value: '200.00', rate: '20.00', on: '2026-01-01' },
+      YTD: { value: '200.00', rate: '20.00', on: '2025-12-31' },
     };
     api.readNetWorthHistory.mockImplementation(
       ({ query }: { query: { period: keyof typeof comparisons } }) => {
@@ -285,7 +285,7 @@ describe('DashboardPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
     await waitFor(() => expect(within(card).getByText('20,00 %')).toBeTruthy());
     expect(within(card).getByRole('img', { name: `Hausse de 200,00${NBSP}€` })).toBeTruthy();
-    expect(card.textContent).toContain('depuis le 1 janvier 2026');
+    expect(card.textContent).toContain('depuis le 31 décembre 2025');
     expect(card.textContent).not.toContain('1,42 %');
   });
 
@@ -345,7 +345,7 @@ describe('DashboardPage', () => {
     const table = within(screen.getByTestId('dashboard-skeleton')).getByRole('table', {
       name: 'Évolution du patrimoine',
     });
-    expect(within(table).getByRole('columnheader', { name: 'Mois' })).toBeTruthy();
+    expect(within(table).getByRole('columnheader', { name: 'Date' })).toBeTruthy();
     expect(within(table).getByRole('columnheader', { name: 'Patrimoine net' })).toBeTruthy();
   });
 
@@ -440,7 +440,7 @@ describe('DashboardPage', () => {
 
     expect(screen.queryByText('Voir les données sous forme de tableau')).toBeNull();
     const table = screen.getByRole('table', { name: 'Évolution du patrimoine' });
-    expect(within(table).getByText('Juillet 2026')).toBeTruthy();
+    expect(within(table).getByText('31 juillet 2026')).toBeTruthy();
     expect(within(table).getAllByText('Non calculable').length).toBe(1);
     expect(table.textContent).toContain(`124${NARROW}680,00${NBSP}€`);
   });

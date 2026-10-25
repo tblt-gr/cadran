@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Application;
 
 use App\Module\Accounts\Application\FirstNetWorthDataDayReader;
+use App\Module\Accounts\Application\NetWorthHistoryView;
+use App\Module\Accounts\Application\NetWorthPointView;
 use App\Module\Accounts\Application\ReadNetWorthHistory;
 use App\Module\Accounts\Application\ResolveNetWorthContributions;
 use App\Module\Accounts\Domain\Account;
@@ -38,14 +40,14 @@ final class NetWorthHistoryPerformanceTest extends TestCase
             '2020-05-15' => '500.00',
             '2025-09-05' => '800.00',
             '2025-10-31' => '900.00',
-            '2026-01-01' => '1000.00',
+            '2025-12-31' => '1000.00',
             '2026-01-31' => '1100.00',
             '2026-09-05' => '1200.00',
         ], '2020-05-15');
         foreach ([
-            'ALL' => ['2020-05-15', '700.00', '140.00'],
+            'ALL' => ['2020-05-31', '700.00', '140.00'],
             'LAST_12_MONTHS' => ['2025-09-05', '400.00', '50.00'],
-            'YTD' => ['2026-01-01', '200.00', '20.00'],
+            'YTD' => ['2025-12-31', '200.00', '20.00'],
         ] as $period => [$day, $amount, $percent]) {
             $history = $read(period: $period);
             self::assertSame($day, $history->delta->comparedOn);
@@ -73,23 +75,97 @@ final class NetWorthHistoryPerformanceTest extends TestCase
         self::assertCount(1, $legacy->points);
     }
 
-    public function testSameDayInceptionAndJanuaryFirstHaveZeroChangeFromTheirKnownBase(): void
+    public function testSameDayInceptionHasZeroChangeFromItsKnownBase(): void
     {
-        $read = $this->read(['2026-01-01' => '1000.00'], '2026-01-01');
-        foreach (['ALL', 'YTD'] as $period) {
-            $history = $read(asOf: '2026-01-01', period: $period);
-            self::assertCount(1, $history->points);
-            self::assertSame('2026-01-01', $history->delta->comparedOn);
-            self::assertSame('0.00', $history->delta->amount?->amount);
-            self::assertSame('0.00', $history->delta->ratePercentDisplay);
+        $history = ($this->read(['2026-01-01' => '1000.00'], '2026-01-01'))(asOf: '2026-01-01', period: 'ALL');
+        self::assertCount(1, $history->points);
+        self::assertSame('2026-01-01', $history->delta->comparedOn);
+        self::assertSame('0.00', $history->delta->amount?->amount);
+        self::assertSame('0.00', $history->delta->ratePercentDisplay);
+    }
+
+    public function testWorkedExampleDrawsTheComparisonDayFirstAndTheChangeEqualsLastMinusFirst(): void
+    {
+        $read = $this->read([
+            '2020-05-15' => '500.00', '2025-09-05' => '800.00', '2025-12-31' => '1000.00',
+            '2026-01-01' => '850.00', '2026-03-03' => '1200.00',
+        ], '2020-05-15');
+        $totals = static fn (NetWorthHistoryView $history): array => array_map(static fn (NetWorthPointView $p): array => [$p->on, $p->total?->amount], $history->points);
+
+        $ytd = $read(period: 'YTD');
+        self::assertSame([
+            ['2025-12-31', '1000.00'], ['2026-01-31', '850.00'], ['2026-02-28', '850.00'],
+            ['2026-03-31', '1200.00'], ['2026-04-30', '1200.00'], ['2026-05-31', '1200.00'],
+            ['2026-06-30', '1200.00'], ['2026-07-31', '1200.00'], ['2026-08-31', '1200.00'], ['2026-09-05', '1200.00'],
+        ], $totals($ytd));
+        self::assertSame('2025-12-31', $ytd->delta->comparedOn);
+        self::assertSame('200.00', $ytd->delta->amount?->amount);
+
+        $rolling = $read(period: 'LAST_12_MONTHS');
+        self::assertCount(13, $rolling->points);
+        self::assertSame(['2025-09-05', '800.00'], $totals($rolling)[0]);
+        self::assertSame('2025-09-05', $rolling->delta->comparedOn);
+        self::assertSame('400.00', $rolling->delta->amount?->amount);
+        self::assertSame($rolling->delta->comparedOn, $rolling->points[0]->on);
+        self::assertEquals($read(months: 12)->points, array_slice($rolling->points, 1));
+
+        $all = $read(period: 'ALL');
+        self::assertTrue($all->truncated);
+        self::assertSame('2020-05-31', $all->delta->comparedOn);
+        self::assertSame('700.00', $all->delta->amount?->amount);
+    }
+
+    public function testTheChangeEqualsTheLastPointMinusTheFirstPointAndLegacyMonthsKeepTheirBaseline(): void
+    {
+        $read = $this->read(['2025-09-05' => '800.00', '2025-12-31' => '1000.00', '2026-03-03' => '1200.00'], '2025-09-05');
+        foreach (['YTD' => ['1000.00', '200.00'], 'LAST_12_MONTHS' => ['800.00', '400.00'], 'ALL' => ['800.00', '400.00']] as $period => [$first, $change]) {
+            $history = $read(period: $period);
+            self::assertFalse($history->truncated);
+            self::assertSame($first, $history->points[0]->total?->amount);
+            self::assertSame('1200.00', $history->points[count($history->points) - 1]->total?->amount);
+            self::assertSame($history->delta->comparedOn, $history->points[0]->on);
+            self::assertSame($change, $history->delta->amount?->amount);
         }
+        self::assertSame('2025-09-05', $read(months: 12)->delta->comparedOn);
+        self::assertSame('2025-12-05', $read(months: 9)->delta->comparedOn);
+    }
+
+    public function testJanuaryFirstAndDecemberThirtyFirstAsOf(): void
+    {
+        $read = $this->read(['2025-12-31' => '1000.00', '2026-01-01' => '850.00'], '2025-12-31');
+        $january = $read(asOf: '2026-01-01', period: 'YTD');
+        self::assertSame(['2025-12-31', '2026-01-01'], array_map(static fn ($p): string => $p->on, $january->points));
+        self::assertSame('-150.00', $january->delta->amount?->amount);
+        self::assertSame('-15.00', $january->delta->ratePercentDisplay);
+
+        $december = $read(asOf: '2026-12-31', period: 'YTD');
+        self::assertCount(13, $december->points);
+        self::assertSame('2026-12-31', $december->points[12]->on);
+        self::assertSame('2025-12-31', $december->points[0]->on);
+    }
+
+    public function testAllComparesOnTheFirstMonthEndOrOnAsOfWithinThatMonth(): void
+    {
+        $read = $this->read(['2026-09-01' => '1000.00', '2026-09-05' => '1200.00'], '2026-09-01');
+        $history = $read(period: 'ALL');
+        self::assertSame('2026-09-05', $history->delta->comparedOn);
+        self::assertCount(1, $history->points);
+    }
+
+    public function testANonCalculableDecemberBaselineKeepsTheChangeNonCalculable(): void
+    {
+        $history = ($this->read(['2026-03-03' => '1200.00'], '2026-03-03'))(period: 'YTD');
+        self::assertSame('2025-12-31', $history->delta->comparedOn);
+        self::assertSame('MISSING_VALUATION', $history->delta->previousReason);
+        self::assertNull($history->delta->amount);
+        self::assertNull($history->points[0]->total);
     }
 
     public function testMissingInceptionValueIsNotReplacedByTheFirstComputableValue(): void
     {
-        $read = $this->read(['2026-07-31' => '1000.00', '2026-09-05' => '1200.00'], '2026-07-15');
+        $read = $this->read(['2026-08-15' => '1000.00', '2026-09-05' => '1200.00'], '2026-07-15');
         $history = $read(period: 'ALL');
-        self::assertSame('2026-07-15', $history->delta->comparedOn);
+        self::assertSame('2026-07-31', $history->delta->comparedOn);
         self::assertSame('MISSING_VALUATION', $history->delta->previousReason);
         self::assertNull($history->delta->amount);
         self::assertNull($history->delta->ratePercentDisplay);
@@ -103,6 +179,7 @@ final class NetWorthHistoryPerformanceTest extends TestCase
         self::assertNull($history->delta->previousTotal);
         self::assertNull($history->delta->amount);
         self::assertNull($history->delta->ratePercentDisplay);
+        self::assertSame('2026-09-05', $history->delta->comparedOn);
         self::assertSame('NO_ELIGIBLE_ACCOUNT', $history->delta->previousReason);
     }
 
@@ -139,7 +216,7 @@ final class NetWorthHistoryPerformanceTest extends TestCase
         );
         ($this->read(['2026-09-05' => '1200.00'], '2020-05-15', $snapshots))(period: 'ALL');
         self::assertCount(61, array_unique($seen));
-        self::assertContains('2020-05-15', $seen);
+        self::assertContains('2020-05-31', $seen);
     }
 
     /** @param array<string, string> $amounts */

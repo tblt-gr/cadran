@@ -126,7 +126,7 @@ describe('ValueHistoryCard', () => {
     expect(window.location.search).toContain('history=ytd');
     await waitFor(() =>
       expect(api.readPortfolioValuationHistory.mock.calls.at(-1)?.[0].query).toEqual({
-        from: '2026-01-01',
+        from: '2025-12-31',
         to: '2026-10-03',
       }),
     );

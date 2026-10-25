@@ -34,24 +34,24 @@ describe('chartPeriodRange', () => {
     expect(chartPeriodFrom('ALL', '2026-10-03')).toBeUndefined();
     expect(chartPeriodFrom('LAST_12_MONTHS', '2026-10-03')).toBe('2025-10-03');
     expect(chartPeriodFrom('LAST_24_MONTHS', '2026-10-03')).toBe('2024-10-03');
-    expect(chartPeriodFrom('YTD', '2026-10-03')).toBe('2026-01-01');
+    expect(chartPeriodFrom('YTD', '2026-10-03')).toBe('2025-12-31');
   });
 
   it('handles year boundaries', () => {
-    expect(chartPeriodFrom('YTD', '2026-01-01')).toBe('2026-01-01');
-    expect(chartPeriodFrom('YTD', '2025-12-31')).toBe('2025-01-01');
+    expect(chartPeriodFrom('YTD', '2026-01-01')).toBe('2025-12-31');
+    expect(chartPeriodFrom('YTD', '2025-12-31')).toBe('2024-12-31');
     expect(chartPeriodFrom('LAST_12_MONTHS', '2026-01-01')).toBe('2025-01-01');
     expect(chartPeriodFrom('LAST_24_MONTHS', '2026-01-15')).toBe('2024-01-15');
   });
 
   it('follows the workspace day across midnight', () => {
     const instant = new Date('2026-12-31T23:30:00Z');
-    expect(chartPeriodFrom('YTD', workspaceToday(instant, 'UTC'))).toBe('2026-01-01');
-    expect(chartPeriodFrom('YTD', workspaceToday(instant, 'Europe/Paris'))).toBe('2027-01-01');
+    expect(chartPeriodFrom('YTD', workspaceToday(instant, 'UTC'))).toBe('2025-12-31');
+    expect(chartPeriodFrom('YTD', workspaceToday(instant, 'Europe/Paris'))).toBe('2026-12-31');
   });
 
   it('uses an explicit historical reference day rather than today', () => {
-    expect(chartPeriodFrom('YTD', '2023-06-30')).toBe('2023-01-01');
+    expect(chartPeriodFrom('YTD', '2023-06-30')).toBe('2022-12-31');
     expect(chartPeriodFrom('LAST_12_MONTHS', '2023-06-30')).toBe('2022-06-30');
   });
 });

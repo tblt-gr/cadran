@@ -4,7 +4,12 @@ import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/
 import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
-import { formatAmount, formatCalendarMonth, formatCalendarNumericDay } from '@/lib/decimal';
+import {
+  formatAmount,
+  formatCalendarDay,
+  formatCalendarMonth,
+  formatCalendarNumericDay,
+} from '@/lib/decimal';
 import styles from './WealthChart.module.css';
 
 interface WealthChartProps {
@@ -72,7 +77,7 @@ export function WealthChart({ points }: WealthChartProps) {
         <caption>{t('dashboard.chart.title')}</caption>
         <thead>
           <tr>
-            <th scope="col">{t('dashboard.chart.monthColumn')}</th>
+            <th scope="col">{t('dashboard.chart.dateColumn')}</th>
             <th scope="col">{t('dashboard.chart.valueColumn')}</th>
           </tr>
         </thead>
@@ -89,7 +94,7 @@ export function WealthChart({ points }: WealthChartProps) {
           ) : (
             points.map((point) => (
               <tr key={point.on}>
-                <th scope="row">{formatCalendarMonth(point.on, i18n.language)}</th>
+                <th scope="row">{formatCalendarDay(point.on, i18n.language)}</th>
                 <td>
                   <NetWorthFigure amount={point.total} reason={point.reason} />
                 </td>
