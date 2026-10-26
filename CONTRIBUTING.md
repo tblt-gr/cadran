@@ -84,15 +84,16 @@ Do not add a required quality tool without wiring it into the matching global co
 For the 1.0.0 MVP, browser checks are required for applicable application changes. CI selects
 critical browser journeys for frontend, API, client, tooling and runtime changes; documentation-only
 changes can skip the browser job according to its path filter. The aggregate gate accepts that
-intentional skip. To run browser checks on a **disposable development stack**, provision its
-throwaway owner and demo data first (never run these commands against personal data):
+intentional skip. Browser checks run on their own disposable stack (compose project `cadran_e2e`,
+own containers, volumes and secrets, HTTPS on port 8444), never on the personal installation.
+Provision its throwaway owner and demo data first:
 
 ```bash
 make e2e-provision
 make e2e
 ```
 
-The runner uses the Linux host network. `E2E_BASE_URL` must match the published HTTPS URL;
+The runner uses the Linux host network. `E2E_PORT` (default 8444) sets the published HTTPS port;
 `E2E_OWNER_EMAIL` and `E2E_OWNER_PASSWORD` must match that disposable owner. These command
 arguments are test credentials, never production credentials. Failures leave sanitized-by-review
 traces and screenshots in `var/e2e-results/`; inspect them for sensitive content before sharing.
