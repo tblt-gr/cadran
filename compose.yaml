@@ -8,7 +8,7 @@ services:
       args:
         CADRAN_VERSION: ${CADRAN_VERSION:-unknown}
     image: cadran_app:local
-    container_name: cadran_app
+    container_name: ${CADRAN_STACK:-cadran}_app
     user: '33:33'
     environment:
       APP_ENV: prod
@@ -55,7 +55,7 @@ services:
       context: .
       dockerfile: docker/postgres/Dockerfile
     image: cadran_db:local
-    container_name: cadran_db
+    container_name: ${CADRAN_STACK:-cadran}_db
     user: '70:70'
     environment:
       POSTGRES_DB: cadran
@@ -87,21 +87,21 @@ services:
 
 networks:
   edge:
-    name: cadran_edge
+    name: ${CADRAN_STACK:-cadran}_edge
   internal:
-    name: cadran_internal
+    name: ${CADRAN_STACK:-cadran}_internal
     internal: true
 
 volumes:
   caddy_data:
-    name: cadran_caddy_data
+    name: ${CADRAN_STACK:-cadran}_caddy_data
   caddy_config:
-    name: cadran_caddy_config
+    name: ${CADRAN_STACK:-cadran}_caddy_config
   db_data:
-    name: cadran_db_data
+    name: ${CADRAN_STACK:-cadran}_db_data
 
 secrets:
   app_secret:
-    file: ./var/docker-secrets/app_secret
+    file: ${CADRAN_SECRETS_DIR:-./var/docker-secrets}/app_secret
   db_password:
-    file: ./var/docker-secrets/db_password
+    file: ${CADRAN_SECRETS_DIR:-./var/docker-secrets}/db_password

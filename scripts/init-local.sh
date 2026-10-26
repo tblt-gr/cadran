@@ -14,8 +14,10 @@ if [ ! -f .env.local ]; then
     install -m 600 .env.example .env.local
 fi
 
-mkdir -p var/docker-secrets
-chmod 700 var/docker-secrets
+secrets_dir=${CADRAN_SECRETS_DIR:-var/docker-secrets}
+
+mkdir -p "$secrets_dir"
+chmod 700 "$secrets_dir"
 
 generate_secret() {
     destination=$1
@@ -29,7 +31,7 @@ generate_secret() {
     printf '\n' >> "$destination"
 }
 
-generate_secret var/docker-secrets/app_secret
-generate_secret var/docker-secrets/db_password
+generate_secret "$secrets_dir/app_secret"
+generate_secret "$secrets_dir/db_password"
 
-chmod 444 var/docker-secrets/app_secret var/docker-secrets/db_password
+chmod 444 "$secrets_dir/app_secret" "$secrets_dir/db_password"
