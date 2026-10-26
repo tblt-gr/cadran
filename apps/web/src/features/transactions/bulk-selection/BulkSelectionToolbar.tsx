@@ -5,28 +5,28 @@ import type { BulkSelection } from './useBulkSelection';
 import styles from './BulkSelectionToolbar.module.css';
 
 interface BulkSelectionToolbarProps {
-  /** Null while the list loads: the same chrome shows, disabled, so the layout holds. */
-  bulk: BulkSelection | null;
+  bulk: BulkSelection;
+  /** Leaves the bulk edit mode; the host drops the selection with it. */
+  onExit: () => void;
 }
 
 /** Select-all, selection counter, the filter-wide scope offer and the bulk actions. */
-export function BulkSelectionToolbar({ bulk }: BulkSelectionToolbarProps) {
+export function BulkSelectionToolbar({ bulk, onExit }: BulkSelectionToolbarProps) {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
-  const selected = bulk?.selectedCount ?? 0;
+  const selected = bulk.selectedCount;
 
   return (
     <div className={styles.toolbar} role="group" aria-label={t('transactions.bulk.toolbar')}>
       <div className={styles.row}>
         <label className={styles.selectAll}>
           <input
-            checked={bulk?.allPageSelected ?? false}
-            disabled={bulk === null || bulk.pageCount === 0}
-            onChange={() => bulk?.togglePage()}
+            checked={bulk.allPageSelected}
+            disabled={bulk.pageCount === 0}
+            onChange={() => bulk.togglePage()}
             ref={(element) => {
               if (element) {
-                element.indeterminate =
-                  (bulk?.somePageSelected ?? false) && !(bulk?.allPageSelected ?? false);
+                element.indeterminate = (bulk?.somePageSelected ?? false) && !bulk.allPageSelected;
               }
             }}
             type="checkbox"
@@ -40,7 +40,7 @@ export function BulkSelectionToolbar({ bulk }: BulkSelectionToolbarProps) {
         </p>
         <button
           className="secondary-action"
-          disabled={bulk === null || selected === 0}
+          disabled={selected === 0}
           onClick={() => setModalOpen(true)}
           type="button"
         >
@@ -48,18 +48,21 @@ export function BulkSelectionToolbar({ bulk }: BulkSelectionToolbarProps) {
         </button>
         <button
           className="secondary-action"
-          disabled={bulk === null || selected === 0}
-          onClick={() => bulk?.clear()}
+          disabled={selected === 0}
+          onClick={() => bulk.clear()}
           type="button"
         >
           {t('transactions.bulk.clear')}
         </button>
+        <button className="secondary-action" onClick={onExit} type="button">
+          {t('transactions.bulk.exit')}
+        </button>
       </div>
-      {bulk?.filterScopeSelected ? (
+      {bulk.filterScopeSelected ? (
         <p className={styles.banner} role="status">
           {t('transactions.bulk.filterScopeSelected', { count: bulk.selectedCount })}
         </p>
-      ) : bulk?.offerFilterScope && bulk.matchingCount !== null ? (
+      ) : bulk.offerFilterScope && bulk.matchingCount !== null ? (
         <p className={styles.banner}>
           <span>{t('transactions.bulk.pageSelected', { count: bulk.pageCount })}</span>
           <button className="secondary-action" onClick={bulk.selectFilterScope} type="button">
@@ -67,7 +70,7 @@ export function BulkSelectionToolbar({ bulk }: BulkSelectionToolbarProps) {
           </button>
         </p>
       ) : null}
-      {modalOpen && bulk?.scope ? (
+      {modalOpen && bulk.scope ? (
         <BulkCategoryModal
           close={(applied) => {
             setModalOpen(false);

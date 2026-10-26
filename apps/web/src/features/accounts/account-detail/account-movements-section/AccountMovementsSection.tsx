@@ -2,12 +2,10 @@ import type { Transaction } from '@cadran/api-client';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
-import {
-  NO_ROW_SELECTION,
-  type BulkSelection,
-} from '@/features/transactions/bulk-selection/useBulkSelection';
+import type { BulkSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { TransactionListFooter } from '@/features/transactions/transaction-list/TransactionListFooter';
 import { TransactionsState } from '@/features/transactions/transactions-state/TransactionsState';
+import { Icon } from '@/components/ui/icon/Icon';
 import { formatCalendarMonth } from '@/lib/decimal';
 import { TransactionDayList } from '@/features/transactions/transaction-list/transaction-day-list/TransactionDayList';
 import styles from './AccountMovementsSection.module.css';
@@ -21,6 +19,8 @@ import styles from './AccountMovementsSection.module.css';
  */
 export function AccountMovementsSection({
   bulk = null,
+  bulkMode = false,
+  onBulkModeChange,
   canCreate,
   displayedPageHasMore,
   items,
@@ -37,6 +37,9 @@ export function AccountMovementsSection({
 }: {
   /** Row selection for bulk edits; absent while the account's own data is not ready. */
   bulk?: BulkSelection | null;
+  bulkMode?: boolean;
+  /** Absent hides the entry point of the bulk edit mode. */
+  onBulkModeChange?: (active: boolean) => void;
   canCreate: boolean;
   displayedPageHasMore: boolean;
   items: Transaction[];
@@ -69,18 +72,25 @@ export function AccountMovementsSection({
             </button>
           </p>
         ) : null}
+        {onBulkModeChange && !bulkMode && !transactions.isPending && items.length > 0 ? (
+          <button
+            aria-label={t('transactions.bulk.enter')}
+            className="icon-button"
+            onClick={() => onBulkModeChange(true)}
+            title={t('transactions.bulk.enter')}
+            type="button"
+          >
+            <Icon name="check-circle" size={18} />
+          </button>
+        ) : null}
       </div>
 
       {transactions.isPending ? (
-        <>
-          <BulkSelectionToolbar bulk={null} />
-          <TransactionDayList
-            headingLevel={4}
-            label={t('accounts.detail.movements.caption')}
-            selection={NO_ROW_SELECTION}
-            transactions={null}
-          />
-        </>
+        <TransactionDayList
+          headingLevel={4}
+          label={t('accounts.detail.movements.caption')}
+          transactions={null}
+        />
       ) : transactions.isError && !staleCursorError && (items.length === 0 || unauthorized) ? (
         <TransactionsState
           canCreate={canCreate}
@@ -97,11 +107,13 @@ export function AccountMovementsSection({
         />
       ) : (
         <>
-          <BulkSelectionToolbar bulk={bulk} />
+          {bulkMode && bulk ? (
+            <BulkSelectionToolbar bulk={bulk} onExit={() => onBulkModeChange?.(false)} />
+          ) : null}
           <TransactionDayList
             headingLevel={4}
             label={t('accounts.detail.movements.caption')}
-            selection={bulk?.rowSelection}
+            selection={bulkMode ? bulk?.rowSelection : undefined}
             transactions={items}
           />
           {transactions.isError && !staleCursorError ? (

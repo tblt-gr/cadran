@@ -34,17 +34,11 @@ describe('AccountMovementsSection loading', () => {
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
   });
 
-  it('shows the selection chrome and a disabled checkbox per row while loading', () => {
+  it('shows no selection chrome while loading, nor an entry to the bulk mode', () => {
     renderSection({ isPending: true });
 
-    expect(
-      screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }),
-    ).toBeTruthy();
-    expect(
-      (screen.getByRole('button', { name: 'Changer la catégorie' }) as HTMLButtonElement).disabled,
-    ).toBe(true);
-    const rows = screen.getAllByRole('checkbox', { name: 'Sélectionner un mouvement' });
-    expect(rows.every((row) => (row as HTMLInputElement).disabled)).toBe(true);
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Édition groupée' })).toBeNull();
   });
 });
 

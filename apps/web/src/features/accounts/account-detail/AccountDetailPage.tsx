@@ -76,12 +76,13 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
     transactions,
     unauthorized: movementsUnauthorized,
   } = movements;
+  const [bulkMode, setBulkMode] = useState(false);
   const bulk = useBulkSelection({
     hasMore: !staleCursorError && Boolean(displayedPage?.nextCursor),
     items,
     query: bulkQuery,
     reloadAfterWrite,
-    resetKey: `${accountId}:${month ?? ''}`,
+    resetKey: `${accountId}:${month ?? ''}:${bulkMode}`,
   });
 
   const activeAccounts = useQuery({
@@ -259,6 +260,8 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
       >
         <AccountMovementsSection
           bulk={bulk}
+          bulkMode={bulkMode}
+          onBulkModeChange={setBulkMode}
           canCreate={creatable}
           displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
           items={items}

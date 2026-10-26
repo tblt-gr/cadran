@@ -29,6 +29,7 @@ export function TransactionsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [transferEditorOpen, setTransferEditorOpen] = useState(false);
   const [periodClosureOpen, setPeriodClosureOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
 
   const listing = useTransactionsListing();
   const {
@@ -57,7 +58,8 @@ export function TransactionsPage() {
     items,
     query: bulkQuery,
     reloadAfterWrite,
-    resetKey: String(loadSequence),
+    // Leaving the mode is a reset too: the selection never outlives it.
+    resetKey: `${loadSequence}:${bulkMode}`,
   });
 
   const mutations = useTransactionMutations({
@@ -139,6 +141,13 @@ export function TransactionsPage() {
                 label: t('closures.title'),
                 onSelect: () => setPeriodClosureOpen(true),
                 text: t('closures.title'),
+              },
+              {
+                icon: 'check-circle',
+                id: 'bulk',
+                label: t('transactions.bulk.enter'),
+                onSelect: () => setBulkMode(true),
+                text: t('transactions.bulk.enter'),
               },
               {
                 icon: 'categories',
@@ -224,11 +233,13 @@ export function TransactionsPage() {
           />
         ) : (
           <>
-            <BulkSelectionToolbar bulk={bulk} />
+            {bulkMode ? (
+              <BulkSelectionToolbar bulk={bulk} onExit={() => setBulkMode(false)} />
+            ) : null}
             <TransactionDayList
               accounts={accountOptions}
               label={t('transactions.list.caption')}
-              selection={bulk.rowSelection}
+              selection={bulkMode ? bulk.rowSelection : undefined}
               transactions={items}
             />
             <TransactionListFooter

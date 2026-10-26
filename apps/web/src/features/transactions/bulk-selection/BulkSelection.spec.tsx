@@ -1,5 +1,6 @@
 import type { Category, Transaction } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
@@ -67,18 +68,25 @@ const reloadAfterWrite = vi.fn(() => Promise.resolve());
 
 function Harness({ hasMore = false, resetKey = 'a' }: { hasMore?: boolean; resetKey?: string }) {
   const items = [tx(FIRST, 'Carrefour'), tx(SECOND, 'Monoprix')];
+  const [active, setActive] = useState(true);
   const bulk = useBulkSelection({
     hasMore,
     items,
     query: { q: 'market' },
     reloadAfterWrite,
-    resetKey,
+    resetKey: `${resetKey}:${active}`,
   });
 
   return (
     <>
-      <BulkSelectionToolbar bulk={bulk} />
-      <TransactionDayList selection={bulk.rowSelection} transactions={items} />
+      {active ? (
+        <BulkSelectionToolbar bulk={bulk} onExit={() => setActive(false)} />
+      ) : (
+        <button onClick={() => setActive(true)} type="button">
+          Entrer
+        </button>
+      )}
+      <TransactionDayList selection={active ? bulk.rowSelection : undefined} transactions={items} />
     </>
   );
 }
@@ -131,6 +139,18 @@ describe('bulk selection', () => {
     ).toBe(true);
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
+    expect(screen.getByText('Aucune sélection')).toBeTruthy();
+  });
+
+  it('leaves the mode with Terminer, dropping checkboxes and the selection', () => {
+    renderHarness();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Terminer' }));
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByText('1 mouvement sélectionné')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Entrer' }));
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
   });
 

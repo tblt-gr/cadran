@@ -1729,7 +1729,7 @@ describe('primary account creation defaults', () => {
     ).toBe(other.id);
   });
 
-  it('selects rows for a bulk edit and clears the selection when a filter changes', async () => {
+  it('shows no selection chrome until the bulk edit mode is chosen, and clears on leaving', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
@@ -1738,9 +1738,12 @@ describe('primary account creation defaults', () => {
     );
     renderPage();
 
-    expect(
-      screen.getAllByRole('checkbox', { name: 'Sélectionner un mouvement' }).length,
-    ).toBeGreaterThan(0);
+    await screen.findByText('CB CARREFOUR 1234');
+    expect(screen.queryByRole('checkbox', { name: /^Sélectionner/ })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Sélection de mouvements' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
     fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
     );
@@ -1748,6 +1751,28 @@ describe('primary account creation defaults', () => {
     expect(
       (screen.getByRole('button', { name: 'Changer la catégorie' }) as HTMLButtonElement).disabled,
     ).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Terminer' }));
+    expect(screen.queryByRole('checkbox', { name: /^Sélectionner/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
+    expect(screen.getByText('Aucune sélection')).toBeTruthy();
+  });
+
+  it('clears the bulk selection when a filter changes', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    renderPage();
+    await screen.findByText('CB CARREFOUR 1234');
+    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));

@@ -31,9 +31,6 @@ export interface RowSelection {
   selectedIds: ReadonlySet<string>;
 }
 
-/** Selection of a list still loading: every checkbox is shown, disabled and unchecked. */
-export const NO_ROW_SELECTION: RowSelection = { onToggle: () => {}, selectedIds: new Set() };
-
 export interface BulkSelection {
   allPageSelected: boolean;
   clear: () => void;
