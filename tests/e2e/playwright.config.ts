@@ -5,6 +5,12 @@ import { ownerStorageState } from './tests/support/session';
 // so no webServer is declared here. Point the run at it with E2E_BASE_URL.
 const baseURL = process.env.E2E_BASE_URL ?? 'https://localhost:8443';
 
+/**
+ * Pixel comparison is off until the interface is settled for 1.0.0: every layout change would
+ * otherwise force a baseline refresh. Opt in with E2E_VISUAL=1 (`make e2e E2E_VISUAL=1`).
+ */
+const visualSpecs = process.env.E2E_VISUAL === '1' ? [] : [/visual\.spec\.ts/];
+
 /** Specs that compare pixels also run on the phone viewport (the audit spec drives its own widths). */
 const mobileSpecs = /(?:visual|a11y)\.spec\.ts/;
 
@@ -42,13 +48,14 @@ export default defineConfig({
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
     {
       name: 'Desktop Chrome',
-      testIgnore: [/auth\.setup\.ts/, /smoke\.spec\.ts/],
+      testIgnore: [/auth\.setup\.ts/, /smoke\.spec\.ts/, ...visualSpecs],
       use: { ...devices['Desktop Chrome'], storageState: ownerStorageState },
       dependencies: ['setup'],
     },
     {
       name: 'Mobile 360',
       testMatch: mobileSpecs,
+      testIgnore: visualSpecs,
       use: {
         ...devices['Pixel 5'],
         viewport: { width: 360, height: 740 },
