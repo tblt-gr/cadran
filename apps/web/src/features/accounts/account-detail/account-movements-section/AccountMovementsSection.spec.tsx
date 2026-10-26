@@ -34,15 +34,17 @@ describe('AccountMovementsSection loading', () => {
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
   });
 
-  it('shows no selection chrome while loading, nor an entry to the bulk mode', () => {
-    renderSection({ isPending: true });
+  it('shows the pen as disabled chrome and no checkbox while loading', () => {
+    renderSection({ isPending: true }, vi.fn());
 
     expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Édition groupée' })).toBeNull();
+    expect(
+      (screen.getByRole('button', { name: 'Édition groupée' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
 });
 
-function renderSection(state: { isPending: boolean }) {
+function renderSection(state: { isPending: boolean }, onBulkModeChange?: () => void) {
   render(
     <AccountMovementsSection
       canCreate
@@ -51,6 +53,7 @@ function renderSection(state: { isPending: boolean }) {
       language="fr"
       loadingMore={false}
       month={null}
+      onBulkModeChange={onBulkModeChange}
       onClearMonth={vi.fn()}
       onCreate={vi.fn()}
       onLoadMore={vi.fn()}

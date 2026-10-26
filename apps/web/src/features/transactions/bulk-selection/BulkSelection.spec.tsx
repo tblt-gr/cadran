@@ -79,13 +79,7 @@ function Harness({ hasMore = false, resetKey = 'a' }: { hasMore?: boolean; reset
 
   return (
     <>
-      {active ? (
-        <BulkSelectionToolbar bulk={bulk} onExit={() => setActive(false)} />
-      ) : (
-        <button onClick={() => setActive(true)} type="button">
-          Entrer
-        </button>
-      )}
+      <BulkSelectionToolbar active={active} bulk={bulk} onToggleActive={() => setActive(!active)} />
       <TransactionDayList selection={active ? bulk.rowSelection : undefined} transactions={items} />
     </>
   );
@@ -132,6 +126,10 @@ describe('bulk selection', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
     expect(screen.getByText('1 mouvement sélectionné')).toBeTruthy();
 
+    expect(screen.getByText('1 mouvement sélectionné')).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
+    expect(screen.getByText('Aucune sélection')).toBeTruthy();
+
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
     expect(screen.getByText('2 mouvements sélectionnés')).toBeTruthy();
     expect(
@@ -142,15 +140,18 @@ describe('bulk selection', () => {
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
   });
 
-  it('leaves the mode with Terminer, dropping checkboxes and the selection', () => {
+  it('leaves the mode with the pen, dropping checkboxes and the selection', () => {
     renderHarness();
+    const pen = screen.getByRole('button', { name: 'Édition groupée' });
+    expect(pen.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Terminer' }));
+    fireEvent.click(pen);
+    expect(pen.getAttribute('aria-pressed')).toBe('false');
     expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(screen.queryByText('1 mouvement sélectionné')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Changer la catégorie' })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Entrer' }));
+    fireEvent.click(pen);
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
   });
 

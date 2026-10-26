@@ -2302,8 +2302,6 @@
       "selected_one": "{{count}} mouvement sélectionné",
       "selected_other": "{{count}} mouvements sélectionnés",
       "changeCategory": "Changer la catégorie",
-      "clear": "Désélectionner",
-      "exit": "Terminer",
       "enter": "Édition groupée",
       "pageSelected_one": "Le mouvement chargé est sélectionné.",
       "pageSelected_other": "Les {{count}} mouvements chargés sont sélectionnés.",

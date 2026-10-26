@@ -106,7 +106,8 @@ export function useBulkSelection({
   function togglePage() {
     setState({
       filterScope: false,
-      ids: allPageSelected ? new Set() : new Set(pageIds),
+      // Any selection, full or partial, is dropped: unchecking is the only way to clear.
+      ids: somePageSelected ? new Set() : new Set(pageIds),
       signature,
     });
   }

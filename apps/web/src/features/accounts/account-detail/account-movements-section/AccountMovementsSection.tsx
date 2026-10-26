@@ -5,7 +5,6 @@ import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/Bul
 import type { BulkSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { TransactionListFooter } from '@/features/transactions/transaction-list/TransactionListFooter';
 import { TransactionsState } from '@/features/transactions/transactions-state/TransactionsState';
-import { Icon } from '@/components/ui/icon/Icon';
 import { formatCalendarMonth } from '@/lib/decimal';
 import { TransactionDayList } from '@/features/transactions/transaction-list/transaction-day-list/TransactionDayList';
 import styles from './AccountMovementsSection.module.css';
@@ -72,25 +71,19 @@ export function AccountMovementsSection({
             </button>
           </p>
         ) : null}
-        {onBulkModeChange && !bulkMode && !transactions.isPending && items.length > 0 ? (
-          <button
-            aria-label={t('transactions.bulk.enter')}
-            className="icon-button"
-            onClick={() => onBulkModeChange(true)}
-            title={t('transactions.bulk.enter')}
-            type="button"
-          >
-            <Icon name="check-circle" size={18} />
-          </button>
-        ) : null}
       </div>
 
       {transactions.isPending ? (
-        <TransactionDayList
-          headingLevel={4}
-          label={t('accounts.detail.movements.caption')}
-          transactions={null}
-        />
+        <>
+          {onBulkModeChange ? (
+            <BulkSelectionToolbar active={false} bulk={null} onToggleActive={() => {}} />
+          ) : null}
+          <TransactionDayList
+            headingLevel={4}
+            label={t('accounts.detail.movements.caption')}
+            transactions={null}
+          />
+        </>
       ) : transactions.isError && !staleCursorError && (items.length === 0 || unauthorized) ? (
         <TransactionsState
           canCreate={canCreate}
@@ -107,8 +100,12 @@ export function AccountMovementsSection({
         />
       ) : (
         <>
-          {bulkMode && bulk ? (
-            <BulkSelectionToolbar bulk={bulk} onExit={() => onBulkModeChange?.(false)} />
+          {bulk && onBulkModeChange ? (
+            <BulkSelectionToolbar
+              active={bulkMode}
+              bulk={bulk}
+              onToggleActive={() => onBulkModeChange(!bulkMode)}
+            />
           ) : null}
           <TransactionDayList
             headingLevel={4}

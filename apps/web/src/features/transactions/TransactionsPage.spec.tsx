@@ -1740,9 +1740,8 @@ describe('primary account creation defaults', () => {
 
     await screen.findByText('CB CARREFOUR 1234');
     expect(screen.queryByRole('checkbox', { name: /^Sélectionner/ })).toBeNull();
-    expect(screen.queryByRole('group', { name: 'Sélection de mouvements' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Changer la catégorie' })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
     fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
     fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
@@ -1752,9 +1751,8 @@ describe('primary account creation defaults', () => {
       (screen.getByRole('button', { name: 'Changer la catégorie' }) as HTMLButtonElement).disabled,
     ).toBe(false);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Terminer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
     expect(screen.queryByRole('checkbox', { name: /^Sélectionner/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
     fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
   });
@@ -1768,7 +1766,6 @@ describe('primary account creation defaults', () => {
     );
     renderPage();
     await screen.findByText('CB CARREFOUR 1234');
-    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
     fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
     fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),

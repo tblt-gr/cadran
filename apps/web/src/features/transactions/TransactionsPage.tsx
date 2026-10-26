@@ -143,13 +143,6 @@ export function TransactionsPage() {
                 text: t('closures.title'),
               },
               {
-                icon: 'check-circle',
-                id: 'bulk',
-                label: t('transactions.bulk.enter'),
-                onSelect: () => setBulkMode(true),
-                text: t('transactions.bulk.enter'),
-              },
-              {
                 icon: 'categories',
                 id: 'categories',
                 label: t('transactions.manageCategories'),
@@ -233,9 +226,11 @@ export function TransactionsPage() {
           />
         ) : (
           <>
-            {bulkMode ? (
-              <BulkSelectionToolbar bulk={bulk} onExit={() => setBulkMode(false)} />
-            ) : null}
+            <BulkSelectionToolbar
+              active={bulkMode}
+              bulk={bulk}
+              onToggleActive={() => setBulkMode((active) => !active)}
+            />
             <TransactionDayList
               accounts={accountOptions}
               label={t('transactions.list.caption')}
