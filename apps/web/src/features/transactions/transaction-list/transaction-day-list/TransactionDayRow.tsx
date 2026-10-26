@@ -35,7 +35,7 @@ export function TransactionDayRow({ accounts, selection, transaction }: Transact
   return (
     <li className={selection ? `${styles.row} ${styles.selectable}` : styles.row}>
       {selection ? (
-        <span className={styles.select}>
+        <label className={styles.select}>
           <input
             aria-label={
               transaction
@@ -47,7 +47,7 @@ export function TransactionDayRow({ accounts, selection, transaction }: Transact
             onChange={() => transaction && selection.onToggle(transaction.id)}
             type="checkbox"
           />
-        </span>
+        </label>
       ) : null}
       <div className={styles.primary}>
         <TransactionInspectButton transaction={transaction} />
