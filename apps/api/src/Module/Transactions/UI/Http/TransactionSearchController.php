@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Transactions\Application\CountTransactions;
 use App\Module\Transactions\Application\InvalidTransactionInput;
 use App\Module\Transactions\Application\ListTransactions;
 use App\Module\Transactions\Application\ListTransactionsQuery;
 use App\Module\Transactions\Application\TransactionCursorStale;
-use App\Module\Transactions\Domain\TransactionNature;
-use App\Module\Transactions\Domain\TransactionSource;
-use App\Module\Transactions\Domain\TransactionState;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -30,17 +27,60 @@ final readonly class TransactionSearchController
         'minAmount', 'maxAmount', 'assetCode', 'source', 'categorization', 'q', 'includeVoided',
         'pageSize', 'cursor',
     ];
-    private const int MAX_MULTI_VALUE_FILTER = 20;
-    private const string DATE_PATTERN = '/^\d{4}-\d{2}-\d{2}$/D';
 
-    public function __construct(private TransactionHttpEnvelope $envelope)
+    public function __construct(private TransactionHttpEnvelope $envelope, private TransactionFilterShape $shape)
     {
     }
 
     #[Route('/api/v1/transactions', name: 'api_v1_transactions_list', methods: ['GET'])]
     public function list(Request $request, ListTransactions $listTransactions): Response
     {
-        if ([] !== array_diff(array_keys($request->query->all()), self::LIST_QUERY_FIELDS)) {
+        $listQuery = $this->parse($request, self::LIST_QUERY_FIELDS);
+        if ($listQuery instanceof Response) {
+            return $listQuery;
+        }
+
+        try {
+            $page = $listTransactions($listQuery);
+        } catch (InvalidTransactionInput) {
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
+        } catch (TransactionCursorStale) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_cursor_stale', '/problems/transactions.cursor_stale');
+        } catch (WorkspaceAccessDenied) {
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        }
+
+        return $this->envelope->json(TransactionRepresentation::page($page));
+    }
+
+    /**
+     * The exact size of the filtered listing, so a filter-wide bulk action can
+     * show and confirm the number it is about to touch. It takes the listing's
+     * filters, without paging.
+     */
+    #[Route('/api/v1/transactions/count', name: 'api_v1_transactions_count', methods: ['GET'], priority: 10)]
+    public function count(Request $request, CountTransactions $countTransactions): Response
+    {
+        $query = $this->parse($request, array_values(array_diff(self::LIST_QUERY_FIELDS, ['pageSize', 'cursor'])));
+        if ($query instanceof Response) {
+            return $query;
+        }
+
+        try {
+            $count = $countTransactions($query);
+        } catch (InvalidTransactionInput) {
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
+        } catch (WorkspaceAccessDenied) {
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        }
+
+        return $this->envelope->json(['count' => $count]);
+    }
+
+    /** @param list<string> $allowedFields */
+    private function parse(Request $request, array $allowedFields): ListTransactionsQuery|Response
+    {
+        if ([] !== array_diff(array_keys($request->query->all()), $allowedFields)) {
             return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
         }
 
@@ -63,56 +103,11 @@ final readonly class TransactionSearchController
         $axes = self::repeatedQueryValues($request, 'axis');
         $sources = self::repeatedQueryValues($request, 'source');
 
-        if (count($accountIds) > self::MAX_MULTI_VALUE_FILTER || count($categoryIds) > self::MAX_MULTI_VALUE_FILTER
-            || count($states) > self::MAX_MULTI_VALUE_FILTER || count($natures) > self::MAX_MULTI_VALUE_FILTER
-            || count($axes) > self::MAX_MULTI_VALUE_FILTER || count($sources) > self::MAX_MULTI_VALUE_FILTER
-            || !self::allMatch($accountIds, $this->envelope->isIdentifier(...))
-            || !self::allMatch($categoryIds, $this->envelope->isIdentifier(...))
-            || !self::allMatch($states, static fn (string $value): bool => null !== TransactionState::tryFrom($value))
-            || !self::allMatch($natures, static fn (string $value): bool => null !== TransactionNature::tryFrom($value))
-            || !self::allMatch($axes, static fn (string $value): bool => null !== AnalyticAxis::tryFrom($value))
-            || !self::allMatch($sources, static fn (string $value): bool => null !== TransactionSource::tryFrom($value))
-            || (null !== $from && 1 !== preg_match(self::DATE_PATTERN, $from))
-            || (null !== $to && 1 !== preg_match(self::DATE_PATTERN, $to))
-            || (null !== $includeVoided && !in_array($includeVoided, ['true', 'false'], true))
-            || (null !== $includeDescendants && !in_array($includeDescendants, ['true', 'false'], true))
-            || (null !== $pageSize && 1 !== preg_match('/^[0-9]{1,3}$/D', $pageSize))
-            || (null !== $cursor && ('' === $cursor || strlen($cursor) > 200))
-            || (null !== $categorization && !in_array($categorization, ['ANY', 'NONE'], true))
-            || (null !== $q && mb_strlen($q, 'UTF-8') > ListTransactions::MAX_TEXT_QUERY_LENGTH)
-            || (null !== $assetCode && '' === $assetCode)) {
-            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
-        }
-
-        try {
-            $page = $listTransactions(new ListTransactionsQuery(
-                from: $from,
-                to: $to,
-                accountIds: $accountIds,
-                states: $states,
-                natures: $natures,
-                categoryIds: $categoryIds,
-                includeDescendants: 'true' === $includeDescendants,
-                axes: $axes,
-                minAmount: $minAmount,
-                maxAmount: $maxAmount,
-                assetCode: $assetCode,
-                sources: $sources,
-                categorizationNone: 'NONE' === $categorization,
-                q: $q,
-                includeVoided: 'true' === $includeVoided,
-                pageSize: null === $pageSize ? null : (int) $pageSize,
-                cursor: $cursor,
-            ));
-        } catch (InvalidTransactionInput) {
-            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
-        } catch (TransactionCursorStale) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_cursor_stale', '/problems/transactions.cursor_stale');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
-        }
-
-        return $this->envelope->json(TransactionRepresentation::page($page));
+        return $this->shape->query(
+            $from, $to, $accountIds, $categoryIds, $states, $natures, $axes, $sources,
+            $includeVoided, $includeDescendants, $categorization, $q, $minAmount, $maxAmount, $assetCode,
+            $pageSize, $cursor,
+        ) ?? $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
     }
 
     /**
@@ -161,17 +156,5 @@ final readonly class TransactionSearchController
         }
 
         return $multimap;
-    }
-
-    /** @param list<string> $values */
-    private static function allMatch(array $values, \Closure $predicate): bool
-    {
-        foreach ($values as $value) {
-            if (!$predicate($value)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

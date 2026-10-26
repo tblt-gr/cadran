@@ -558,6 +558,12 @@ api:
     invalid_transaction_query:
       title: 'Requête de transactions invalide'
       detail: 'Vérifiez la période, les filtres répétés, le montant, la taille de page et le curseur : chacun doit respecter sa forme et ses bornes.'
+    bulk_scope_too_large:
+      title: 'Sélection trop large'
+      detail: 'Une opération groupée porte sur 500 transactions au plus. Affinez les filtres ou la sélection.'
+    bulk_scope_changed:
+      title: 'Sélection modifiée entre-temps'
+      detail: 'Le nombre de transactions correspondant aux filtres a changé depuis son décompte. Rechargez-le puis confirmez de nouveau.'
     transaction_cursor_stale:
       title: 'Page de transactions obsolète'
       detail: 'Des transactions ont changé depuis le chargement de cette page. Rechargez la liste depuis le début.'

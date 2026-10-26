@@ -1728,4 +1728,31 @@ describe('primary account creation defaults', () => {
       ).value,
     ).toBe(other.id);
   });
+
+  it('selects rows for a bulk edit and clears the selection when a filter changes', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    renderPage();
+
+    expect(
+      screen.getAllByRole('checkbox', { name: 'Sélectionner un mouvement' }).length,
+    ).toBeGreaterThan(0);
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
+    );
+    expect(screen.getByText('1 mouvement sélectionné')).toBeTruthy();
+    expect(
+      (screen.getByRole('button', { name: 'Changer la catégorie' }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
+
+    await waitFor(() => expect(screen.getByText('Aucune sélection')).toBeTruthy());
+    window.history.replaceState({}, '', '/transactions');
+  });
 });

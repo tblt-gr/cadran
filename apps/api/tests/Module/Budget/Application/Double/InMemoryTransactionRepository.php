@@ -49,6 +49,16 @@ final class InMemoryTransactionRepository implements TransactionRepository, Book
         throw new \LogicException('Not needed by the Budget module.');
     }
 
+    public function findManyForUpdate(WorkspaceScope $workspace, array $ids): array
+    {
+        return $this->findMany($workspace, $ids);
+    }
+
+    public function countMatching(WorkspaceScope $workspace, TransactionFilters $filters): int
+    {
+        return count($this->search($workspace, $filters, PHP_INT_MAX, null));
+    }
+
     public function search(WorkspaceScope $workspace, TransactionFilters $filters, int $limit, ?TransactionPosition $after): array
     {
         $rows = array_values(array_filter($this->transactions, static function (Transaction $transaction) use ($workspace, $filters): bool {

@@ -51,8 +51,9 @@ export function useTransactionsListing() {
   }
 
   const impossible = isImpossibleCombination(searchFilters);
+  const bulkQuery = toListTransactionsQuery(searchFilters, new Date());
   const filters = {
-    ...toListTransactionsQuery(searchFilters, new Date()),
+    ...bulkQuery,
     cursor: cursor ?? undefined,
     pageSize: 50,
   };
@@ -144,6 +145,7 @@ export function useTransactionsListing() {
 
   return {
     accountOptions,
+    bulkQuery,
     activeAccountOptions,
     categorization,
     displayedPage,

@@ -5,6 +5,8 @@ import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
+import { BulkSelectionToolbar } from './bulk-selection/BulkSelectionToolbar';
+import { useBulkSelection } from './bulk-selection/useBulkSelection';
 import { TransactionWorkflow } from './transaction-workflow/TransactionWorkflow';
 import { TransactionDayList } from './transaction-list/transaction-day-list/TransactionDayList';
 import { TransactionsPageSkeleton } from './TransactionsPageSkeleton';
@@ -32,6 +34,7 @@ export function TransactionsPage() {
   const {
     accountOptions,
     activeAccountOptions,
+    bulkQuery,
     categorization,
     displayedPage,
     filtersRevision,
@@ -48,6 +51,14 @@ export function TransactionsPage() {
     unauthorized,
     updateFilters,
   } = listing;
+
+  const bulk = useBulkSelection({
+    hasMore: !staleCursorError && Boolean(displayedPage?.nextCursor),
+    items,
+    query: bulkQuery,
+    reloadAfterWrite,
+    resetKey: String(loadSequence),
+  });
 
   const mutations = useTransactionMutations({
     editor,
@@ -213,9 +224,11 @@ export function TransactionsPage() {
           />
         ) : (
           <>
+            <BulkSelectionToolbar bulk={bulk} />
             <TransactionDayList
               accounts={accountOptions}
               label={t('transactions.list.caption')}
+              selection={bulk.rowSelection}
               transactions={items}
             />
             <TransactionListFooter

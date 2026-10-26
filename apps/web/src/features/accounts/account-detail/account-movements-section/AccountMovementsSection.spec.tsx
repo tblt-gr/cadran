@@ -33,4 +33,37 @@ describe('AccountMovementsSection loading', () => {
     );
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
   });
+
+  it('shows the selection chrome and a disabled checkbox per row while loading', () => {
+    renderSection({ isPending: true });
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }),
+    ).toBeTruthy();
+    expect(
+      (screen.getByRole('button', { name: 'Changer la catégorie' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    const rows = screen.getAllByRole('checkbox', { name: 'Sélectionner un mouvement' });
+    expect(rows.every((row) => (row as HTMLInputElement).disabled)).toBe(true);
+  });
 });
+
+function renderSection(state: { isPending: boolean }) {
+  render(
+    <AccountMovementsSection
+      canCreate
+      displayedPageHasMore={false}
+      items={[]}
+      language="fr"
+      loadingMore={false}
+      month={null}
+      onClearMonth={vi.fn()}
+      onCreate={vi.fn()}
+      onLoadMore={vi.fn()}
+      onReloadFromFirstPage={vi.fn()}
+      staleCursorError={false}
+      transactions={{ ...state, isError: false, refetch: vi.fn() }}
+      unauthorized={false}
+    />,
+  );
+}

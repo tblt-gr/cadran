@@ -1,6 +1,11 @@
 import type { Transaction } from '@cadran/api-client';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
+import {
+  NO_ROW_SELECTION,
+  type BulkSelection,
+} from '@/features/transactions/bulk-selection/useBulkSelection';
 import { TransactionListFooter } from '@/features/transactions/transaction-list/TransactionListFooter';
 import { TransactionsState } from '@/features/transactions/transactions-state/TransactionsState';
 import { formatCalendarMonth } from '@/lib/decimal';
@@ -15,6 +20,7 @@ import styles from './AccountMovementsSection.module.css';
  * it on the page.
  */
 export function AccountMovementsSection({
+  bulk = null,
   canCreate,
   displayedPageHasMore,
   items,
@@ -29,6 +35,8 @@ export function AccountMovementsSection({
   transactions,
   unauthorized,
 }: {
+  /** Row selection for bulk edits; absent while the account's own data is not ready. */
+  bulk?: BulkSelection | null;
   canCreate: boolean;
   displayedPageHasMore: boolean;
   items: Transaction[];
@@ -64,11 +72,15 @@ export function AccountMovementsSection({
       </div>
 
       {transactions.isPending ? (
-        <TransactionDayList
-          headingLevel={4}
-          label={t('accounts.detail.movements.caption')}
-          transactions={null}
-        />
+        <>
+          <BulkSelectionToolbar bulk={null} />
+          <TransactionDayList
+            headingLevel={4}
+            label={t('accounts.detail.movements.caption')}
+            selection={NO_ROW_SELECTION}
+            transactions={null}
+          />
+        </>
       ) : transactions.isError && !staleCursorError && (items.length === 0 || unauthorized) ? (
         <TransactionsState
           canCreate={canCreate}
@@ -85,9 +97,11 @@ export function AccountMovementsSection({
         />
       ) : (
         <>
+          <BulkSelectionToolbar bulk={bulk} />
           <TransactionDayList
             headingLevel={4}
             label={t('accounts.detail.movements.caption')}
+            selection={bulk?.rowSelection}
             transactions={items}
           />
           {transactions.isError && !staleCursorError ? (

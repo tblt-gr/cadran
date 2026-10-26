@@ -71,6 +71,45 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
         int $limit,
         ?TransactionPosition $after,
     ): array {
+        $rows = $this->runFiltered($workspace, $filters, $limit, $after);
+        \assert(\is_array($rows));
+
+        return $this->hydrateMany($workspace, $rows);
+    }
+
+    public function countMatching(WorkspaceScope $workspace, TransactionFilters $filters): int
+    {
+        $count = $this->runFiltered($workspace, $filters, null, null);
+        \assert(\is_int($count));
+
+        return $count;
+    }
+
+    public function findManyForUpdate(WorkspaceScope $workspace, array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+
+        // Locked in identifier order, the same order every other bulk writer uses, so two
+        // overlapping bulk runs queue instead of deadlocking.
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.self::COLUMNS.' FROM transaction_transactions WHERE workspace_id = :workspace_id AND id IN (:ids) ORDER BY id ASC FOR UPDATE',
+            ['workspace_id' => $workspace->id, 'ids' => $ids],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        return $this->hydrateMany($workspace, $rows);
+    }
+
+    /**
+     * One statement for a search page and for its count, so both always apply
+     * the same filters. A null $limit counts the matching rows instead.
+     *
+     * @return int|list<array<string, mixed>> the count, or the raw rows of the page
+     */
+    private function runFiltered(WorkspaceScope $workspace, TransactionFilters $filters, ?int $limit, ?TransactionPosition $after): int|array
+    {
         // The three EXISTS fragments below carry their own bound :workspace_id
         // predicate rather than comparing s.workspace_id to t.workspace_id: an
         // EXISTS subquery must never let the outer, already-scoped table vouch
@@ -89,8 +128,8 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
             .([] !== $filters->axes
                 ? ' AND EXISTS (SELECT 1 FROM transaction_splits s, jsonb_array_elements_text(s.analytic_axes) elem(value) WHERE s.workspace_id = :workspace_id AND s.transaction_id = t.id AND elem.value IN (:axes))'
                 : '');
-        $parameters = ['workspace_id' => $workspace->id, 'limit' => $limit];
-        $types = ['limit' => ParameterType::INTEGER];
+        $parameters = ['workspace_id' => $workspace->id];
+        $types = [];
 
         // The default (no explicit state filter) state scope is a business
         // decision the caller has already resolved into a concrete, non-empty
@@ -159,15 +198,18 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
                 .'OR lower(t.counterparty) LIKE :pattern ESCAPE \'\\\')';
             $parameters['pattern'] = '%'.$escaped.'%';
         }
+        if (null === $limit) {
+            return (int) TransactionRow::text($this->connection->fetchOne('SELECT count(*) FROM ('.$sql.') AS matched', $parameters, $types));
+        }
+        $parameters['limit'] = $limit;
+        $types['limit'] = ParameterType::INTEGER;
         if (null !== $after) {
             $sql .= ' AND (t.booked_on, t.id) < (:booked_on, :cursor_id)';
             $parameters['booked_on'] = $after->bookedOn->format('Y-m-d');
             $parameters['cursor_id'] = $after->id;
         }
-        $sql .= ' ORDER BY t.booked_on DESC, t.id DESC LIMIT :limit';
-        $rows = $this->connection->fetchAllAssociative($sql, $parameters, $types);
 
-        return $this->hydrateMany($workspace, $rows);
+        return $this->connection->fetchAllAssociative($sql.' ORDER BY t.booked_on DESC, t.id DESC LIMIT :limit', $parameters, $types);
     }
 
     public function watermark(WorkspaceScope $workspace): ?TransactionWatermark

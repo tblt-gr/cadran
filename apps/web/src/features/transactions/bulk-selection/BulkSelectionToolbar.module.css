@@ -1,0 +1,36 @@
+.toolbar {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2) var(--spacing-3);
+}
+
+.selectAll {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  justify-content: center;
+}
+
+.counter {
+  flex: 1;
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2) var(--spacing-3);
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
