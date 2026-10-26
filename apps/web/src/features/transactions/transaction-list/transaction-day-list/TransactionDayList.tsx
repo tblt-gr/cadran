@@ -2,6 +2,7 @@ import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { formatCalendarWeekdayDay } from '@/lib/decimal';
+import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { TransactionDayRow } from './TransactionDayRow';
 import { groupTransactionsByDay, type DayGroup } from './groupTransactionsByDay';
 import styles from './TransactionDayList.module.css';
@@ -12,6 +13,8 @@ interface TransactionDayListProps {
   headingLevel?: 3 | 4;
   /** Accessible name of the list; defaults to the transactions caption. */
   label?: string;
+  /** Adds a checkbox per row for bulk editing. */
+  selection?: RowSelection;
   /** Pending rows: the loading list mirrors the loaded markup element for element. */
   transactions: Transaction[] | null;
   announce?: boolean;
@@ -25,6 +28,7 @@ export function TransactionDayList({
   announce = true,
   headingLevel = 3,
   label,
+  selection,
   transactions,
 }: TransactionDayListProps) {
   const { i18n, t } = useTranslation();
@@ -58,6 +62,7 @@ export function TransactionDayList({
                   <TransactionDayRow
                     accounts={accounts}
                     key={transaction?.id ?? rowIndex}
+                    selection={selection}
                     transaction={transaction}
                   />
                 ))}

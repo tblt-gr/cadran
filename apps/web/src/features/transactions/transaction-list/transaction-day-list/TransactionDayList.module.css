@@ -42,6 +42,22 @@
   row-gap: var(--spacing-1);
 }
 
+.selectable {
+  grid-template-areas:
+    'select primary amount actions'
+    'select meta meta actions';
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.select {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  grid-area: select;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+}
+
 .day:last-child .row:last-child {
   border-bottom: var(--border-none);
 }

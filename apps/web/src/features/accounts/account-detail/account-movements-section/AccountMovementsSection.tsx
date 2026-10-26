@@ -1,6 +1,8 @@
 import type { Transaction } from '@cadran/api-client';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
+import type { BulkSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { TransactionListFooter } from '@/features/transactions/transaction-list/TransactionListFooter';
 import { TransactionsState } from '@/features/transactions/transactions-state/TransactionsState';
 import { formatCalendarMonth } from '@/lib/decimal';
@@ -15,6 +17,9 @@ import styles from './AccountMovementsSection.module.css';
  * it on the page.
  */
 export function AccountMovementsSection({
+  bulk = null,
+  bulkMode = false,
+  onBulkModeChange,
   canCreate,
   displayedPageHasMore,
   items,
@@ -29,6 +34,11 @@ export function AccountMovementsSection({
   transactions,
   unauthorized,
 }: {
+  /** Row selection for bulk edits; absent while the account's own data is not ready. */
+  bulk?: BulkSelection | null;
+  bulkMode?: boolean;
+  /** Absent hides the entry point of the bulk edit mode. */
+  onBulkModeChange?: (active: boolean) => void;
   canCreate: boolean;
   displayedPageHasMore: boolean;
   items: Transaction[];
@@ -64,11 +74,16 @@ export function AccountMovementsSection({
       </div>
 
       {transactions.isPending ? (
-        <TransactionDayList
-          headingLevel={4}
-          label={t('accounts.detail.movements.caption')}
-          transactions={null}
-        />
+        <>
+          {onBulkModeChange ? (
+            <BulkSelectionToolbar active={false} bulk={null} onToggleActive={() => {}} />
+          ) : null}
+          <TransactionDayList
+            headingLevel={4}
+            label={t('accounts.detail.movements.caption')}
+            transactions={null}
+          />
+        </>
       ) : transactions.isError && !staleCursorError && (items.length === 0 || unauthorized) ? (
         <TransactionsState
           canCreate={canCreate}
@@ -85,9 +100,17 @@ export function AccountMovementsSection({
         />
       ) : (
         <>
+          {bulk && onBulkModeChange ? (
+            <BulkSelectionToolbar
+              active={bulkMode}
+              bulk={bulk}
+              onToggleActive={() => onBulkModeChange(!bulkMode)}
+            />
+          ) : null}
           <TransactionDayList
             headingLevel={4}
             label={t('accounts.detail.movements.caption')}
+            selection={bulkMode ? bulk?.rowSelection : undefined}
             transactions={items}
           />
           {transactions.isError && !staleCursorError ? (

@@ -19,6 +19,7 @@ import { transactionErrorKind } from '@/features/transactions/transactionError';
 import { AccountDetailActions } from './account-detail-actions/AccountDetailActions';
 import { AccountIdentityCard } from './account-identity/AccountIdentityCard';
 import { AccountMovementsSection } from './account-movements-section/AccountMovementsSection';
+import { useBulkSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { useAccountMovements } from './account-movements/useAccountMovements';
 import { SavingsHistoryPanel } from './savings-history/SavingsHistoryPanel';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
@@ -65,6 +66,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   );
   const movements = useAccountMovements(accountId, month);
   const {
+    bulkQuery,
     displayedPage,
     items,
     loadMore,
@@ -74,6 +76,14 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
     transactions,
     unauthorized: movementsUnauthorized,
   } = movements;
+  const [bulkMode, setBulkMode] = useState(false);
+  const bulk = useBulkSelection({
+    hasMore: !staleCursorError && Boolean(displayedPage?.nextCursor),
+    items,
+    query: bulkQuery,
+    reloadAfterWrite,
+    resetKey: `${accountId}:${month ?? ''}:${bulkMode}`,
+  });
 
   const activeAccounts = useQuery({
     enabled: transferEditorOpen || account.data !== undefined,
@@ -249,6 +259,9 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
         reloadAfterWrite={reloadAfterWrite}
       >
         <AccountMovementsSection
+          bulk={bulk}
+          bulkMode={bulkMode}
+          onBulkModeChange={setBulkMode}
           canCreate={creatable}
           displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
           items={items}

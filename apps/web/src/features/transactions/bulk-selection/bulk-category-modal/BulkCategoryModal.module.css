@@ -1,0 +1,56 @@
+.form {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.form p {
+  margin: var(--spacing-none);
+}
+
+.note {
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+}
+
+.error {
+  color: var(--negative);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+}
+
+.skippedTitle {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-body);
+}
+
+.reasons {
+  display: grid;
+  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-2);
+  list-style: none;
+}
+
+.reasons summary {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  min-height: var(--touch-target-min);
+  align-items: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.skippedItems {
+  display: grid;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none) var(--spacing-none) var(--spacing-2) var(--spacing-4);
+  gap: var(--spacing-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+}

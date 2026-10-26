@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
 import { AccountDetailActionsSkeleton } from './account-detail-actions/AccountDetailActions';
 import identityStyles from './account-identity/AccountIdentityCard.module.css';
+import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
 import { TransactionDayList } from '@/features/transactions/transaction-list/transaction-day-list/TransactionDayList';
 import sectionStyles from './account-movements-section/AccountMovementsSection.module.css';
 import styles from './AccountDetailPage.module.css';
@@ -44,6 +45,7 @@ export function AccountDetailPageSkeleton({ status }: { status: string }) {
       <div className={sectionStyles.movementsHeading}>
         <h3 className={sectionStyles.movementsTitle}>{t('accounts.detail.movements.title')}</h3>
       </div>
+      <BulkSelectionToolbar active={false} bulk={null} onToggleActive={() => {}} />
       <TransactionDayList
         announce={false}
         headingLevel={4}

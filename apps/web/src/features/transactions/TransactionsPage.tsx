@@ -5,6 +5,8 @@ import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
+import { BulkSelectionToolbar } from './bulk-selection/BulkSelectionToolbar';
+import { useBulkSelection } from './bulk-selection/useBulkSelection';
 import { TransactionWorkflow } from './transaction-workflow/TransactionWorkflow';
 import { TransactionDayList } from './transaction-list/transaction-day-list/TransactionDayList';
 import { TransactionsPageSkeleton } from './TransactionsPageSkeleton';
@@ -27,11 +29,13 @@ export function TransactionsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [transferEditorOpen, setTransferEditorOpen] = useState(false);
   const [periodClosureOpen, setPeriodClosureOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
 
   const listing = useTransactionsListing();
   const {
     accountOptions,
     activeAccountOptions,
+    bulkQuery,
     categorization,
     displayedPage,
     filtersRevision,
@@ -48,6 +52,15 @@ export function TransactionsPage() {
     unauthorized,
     updateFilters,
   } = listing;
+
+  const bulk = useBulkSelection({
+    hasMore: !staleCursorError && Boolean(displayedPage?.nextCursor),
+    items,
+    query: bulkQuery,
+    reloadAfterWrite,
+    // Leaving the mode is a reset too: the selection never outlives it.
+    resetKey: `${loadSequence}:${bulkMode}`,
+  });
 
   const mutations = useTransactionMutations({
     editor,
@@ -213,9 +226,15 @@ export function TransactionsPage() {
           />
         ) : (
           <>
+            <BulkSelectionToolbar
+              active={bulkMode}
+              bulk={bulk}
+              onToggleActive={() => setBulkMode((active) => !active)}
+            />
             <TransactionDayList
               accounts={accountOptions}
               label={t('transactions.list.caption')}
+              selection={bulkMode ? bulk.rowSelection : undefined}
               transactions={items}
             />
             <TransactionListFooter

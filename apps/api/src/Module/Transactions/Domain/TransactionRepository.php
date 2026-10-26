@@ -37,6 +37,19 @@ interface TransactionRepository
         ?TransactionPosition $after,
     ): array;
 
+    /** The exact number of transactions the filters match, without paging. */
+    public function countMatching(WorkspaceScope $workspace, TransactionFilters $filters): int;
+
+    /**
+     * Like {@see findMany()} but takes a row lock on each existing row, locking
+     * in identifier order so concurrent bulk writers cannot deadlock.
+     *
+     * @param list<string> $ids
+     *
+     * @return list<Transaction>
+     */
+    public function findManyForUpdate(WorkspaceScope $workspace, array $ids): array;
+
     /**
      * The latest (updated_at, id) pair written in the workspace, or null when
      * it holds no transaction at all. Used to detect a background change

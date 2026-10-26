@@ -6764,6 +6764,261 @@ paths:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/PortfolioAccountRequiresOperationsProblem'
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/transactions/count:
+    get:
+      operationId: countTransactions
+      summary: Count the transactions matching the listing filters
+      description: >-
+        The exact number of transactions of the calling workspace that
+        `listTransactions` would return across all its pages for the same
+        filters, so a filter-wide bulk action can show and confirm it. Takes
+        every filter of the listing except `pageSize` and `cursor`. Never
+        reveals rows of another workspace.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: Inclusive booked_on lower bound.
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: Inclusive booked_on upper bound.
+          schema:
+            type: string
+            format: date
+        - name: accountId
+          in: query
+          required: false
+          description: Repeatable. Any of the accounts. At most 20 values.
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              type: string
+              format: uuid
+        - name: state
+          in: query
+          required: false
+          description: >-
+            Repeatable. When present, replaces the default state scope
+            entirely (PENDING and BOOKED, plus VOIDED only when
+            includeVoided is set).
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionState'
+        - name: nature
+          in: query
+          required: false
+          description: Repeatable. Any of the natures.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionNature'
+        - name: categoryId
+          in: query
+          required: false
+          description: Repeatable. The transaction has a split on any of them. At most 20 values.
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              type: string
+              format: uuid
+        - name: includeDescendants
+          in: query
+          required: false
+          description: Extends categoryId to the category subtrees.
+          schema:
+            type: boolean
+            default: false
+        - name: axis
+          in: query
+          required: false
+          description: Repeatable. The transaction has a split carrying any of them.
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - DISCRETIONARY
+                - ESSENTIAL
+                - FIXED
+                - PERSONAL
+                - PROFESSIONAL
+                - VARIABLE
+        - name: minAmount
+          in: query
+          required: false
+          description: Signed lower bound on the amount, in assetCode. Requires assetCode.
+          schema:
+            type: string
+        - name: maxAmount
+          in: query
+          required: false
+          description: Signed upper bound on the amount, in assetCode. Requires assetCode.
+          schema:
+            type: string
+        - name: assetCode
+          in: query
+          required: false
+          description: The asset minAmount and maxAmount are expressed in.
+          schema:
+            type: string
+        - name: source
+          in: query
+          required: false
+          description: Repeatable. Any of the sources.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionSource'
+        - name: q
+          in: query
+          required: false
+          description: >-
+            Free text matched against the normalized label, the raw label and
+            the counterparty, case-insensitively.
+          schema:
+            type: string
+            maxLength: 80
+        - name: includeVoided
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: categorization
+          in: query
+          required: false
+          description: >-
+            `NONE` restricts the page to the transactions carrying no split at
+            all — the "to categorise" queue.
+          schema:
+            type: string
+            enum:
+              - ANY
+              - NONE
+            default: ANY
+      responses:
+        '200':
+          description: The exact size of the filtered set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionCount'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/transactions/bulk-category:
+    post:
+      operationId: bulkCategorizeTransactions
+      summary: Change the category of several transactions at once
+      description: >-
+        Moves the selected transactions to one category in a single
+        PostgreSQL transaction. The scope is either explicit identifiers
+        (`IDS`) or the filters of the listing with the count the user
+        confirmed (`FILTER`); a filter scope is re-resolved server side at
+        confirmation time and refused with 409
+        (`type: /problems/transactions.bulk-scope-changed`) when it no longer
+        matches `expectedCount`. At most 500 transactions per operation: a
+        larger identifier list, or a filter matching more, is refused with 422
+        (`type: /problems/transactions.bulk-scope-too-large`) and nothing is
+        written. Eligible transactions are written and the others are
+        reported with a reason and left untouched; when none is eligible
+        nothing is written and `changed` is 0. Transfer legs, refunds,
+        originals with live refunds, voided or rejected transactions,
+        multi-category transactions, transactions of a closed period,
+        transactions already in the category, and transactions whose sign
+        contradicts the category type (an outflow needs an expense category,
+        an inflow an income one) are skipped. An identifier that does not
+        exist in the calling workspace, including one of another workspace,
+        is reported `NOT_FOUND`. The `Idempotency-Key` header is required and
+        a replay returns the stored result for seven days, unless a period it
+        touched has been closed since.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: >-
+            Retries the same operation safely for seven days. A replayed
+            response adds `Idempotency-Replayed: true`.
+          schema:
+            type: string
+            minLength: 16
+            maxLength: 255
+            pattern: '^[A-Za-z0-9_.:-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCategorizeRequest'
+      responses:
+        '200':
+          description: How many transactions changed and which were skipped, or the stored response of a replay.
+          headers:
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkCategorizeResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TransactionMutationForbidden'
+        '404':
+          description: The target category does not exist in the calling workspace.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: >-
+            The filter scope no longer matches the confirmed count
+            (`type: /problems/transactions.bulk-scope-changed`, with `actualCount`),
+            the Idempotency-Key was reused with another body or is in flight,
+            or a transaction changed concurrently. A replay touching a closed
+            period is refused with `type: /problems/period-closed`.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/TransactionPayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The body or the Idempotency-Key is invalid, the target category is
+            archived, or the scope exceeds 500 transactions
+            (`type: /problems/transactions.bulk-scope-too-large`, with `limit`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/void:
     post:
       operationId: voidTransaction
@@ -17442,6 +17697,195 @@ components:
               minLength: 1
               maxLength: 140
             - type: 'null'
+    TransactionCount:
+      type: object
+      additionalProperties: false
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+          minimum: 0
+    BulkTransactionFilters:
+      type: object
+      additionalProperties: false
+      description: The filters of `listTransactions`, in body form. An absent field does not restrict.
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        accountIds:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            format: uuid
+        states:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/TransactionState'
+        natures:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/TransactionNature'
+        categoryIds:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            format: uuid
+        includeDescendants:
+          type: boolean
+        axes:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            enum:
+              - DISCRETIONARY
+              - ESSENTIAL
+              - FIXED
+              - PERSONAL
+              - PROFESSIONAL
+              - VARIABLE
+        minAmount:
+          type: string
+        maxAmount:
+          type: string
+        assetCode:
+          type: string
+        sources:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/TransactionSource'
+        categorization:
+          type: string
+          enum:
+            - ANY
+            - NONE
+        q:
+          type: string
+          maxLength: 80
+        includeVoided:
+          type: boolean
+    BulkIdsScope:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - ids
+      properties:
+        type:
+          type: string
+          enum:
+            - IDS
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 500
+          description: At most 500 distinct identifiers; more is refused with 422.
+          items:
+            type: string
+            format: uuid
+    BulkFilterScope:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - filters
+        - expectedCount
+      properties:
+        type:
+          type: string
+          enum:
+            - FILTER
+        filters:
+          $ref: '#/components/schemas/BulkTransactionFilters'
+        expectedCount:
+          type: integer
+          minimum: 0
+          description: The count the user confirmed, from `countTransactions`.
+    BulkCategorizeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - categoryId
+        - scope
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        scope:
+          oneOf:
+            - $ref: '#/components/schemas/BulkIdsScope'
+            - $ref: '#/components/schemas/BulkFilterScope'
+          discriminator:
+            propertyName: type
+            mapping:
+              IDS: '#/components/schemas/BulkIdsScope'
+              FILTER: '#/components/schemas/BulkFilterScope'
+    BulkSkipReason:
+      type: string
+      description: >-
+        Why a transaction was left untouched: it does not exist in the
+        workspace, it stopped matching the filters of a filter scope before
+        the write, it is a transfer leg, a refund, an original with live
+        refunds, voided or rejected, split across several categories, in a
+        closed period, of a sign contradicting the category type, or already
+        in the category.
+      enum:
+        - NOT_FOUND
+        - NO_LONGER_MATCHING
+        - TRANSFER_LEG
+        - REFUND
+        - HAS_REFUNDS
+        - TERMINAL
+        - SPLIT
+        - CLOSED_PERIOD
+        - SIGN_MISMATCH
+        - ALREADY_IN_CATEGORY
+    BulkSkippedTransaction:
+      type: object
+      additionalProperties: false
+      required:
+        - transactionId
+        - reason
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+        reason:
+          $ref: '#/components/schemas/BulkSkipReason'
+    BulkCategorizeResult:
+      type: object
+      additionalProperties: false
+      required:
+        - requestedCount
+        - changed
+        - skipped
+        - maximum
+      properties:
+        requestedCount:
+          type: integer
+          minimum: 0
+          description: Distinct transactions the scope named or matched.
+        changed:
+          type: integer
+          minimum: 0
+        skipped:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/BulkSkippedTransaction'
+        maximum:
+          type: integer
+          description: The maximum number of transactions per operation.
     VoidTransactionRequest:
       type: object
       additionalProperties: false

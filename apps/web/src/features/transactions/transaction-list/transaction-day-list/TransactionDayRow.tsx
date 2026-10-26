@@ -9,6 +9,7 @@ import {
 } from '@/features/transactions/transaction-workflow/transaction-row-actions/TransactionRowActions';
 import { TransactionAmount } from '@/features/transactions/transaction-list/transaction-amount/TransactionAmount';
 import { TransactionCategories } from '@/features/transactions/transaction-list/transaction-categories/TransactionCategories';
+import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import styles from './TransactionDayList.module.css';
 
 const STATE_TONE = {
@@ -20,17 +21,34 @@ const STATE_TONE = {
 
 interface TransactionDayRowProps {
   accounts: Account[] | undefined;
+  /** Adds the selection checkbox column; rows still loading show it disabled. */
+  selection?: RowSelection;
   /** Null while loading: the row keeps its final structure and shows blocks for the values. */
   transaction: Transaction | null;
 }
 
 /** One compact movement. The columns of the former table live in the detail modal. */
-export function TransactionDayRow({ accounts, transaction }: TransactionDayRowProps) {
+export function TransactionDayRow({ accounts, selection, transaction }: TransactionDayRowProps) {
   const { t } = useTranslation();
   const account = accounts?.find((candidate) => candidate.id === transaction?.accountId);
 
   return (
-    <li className={styles.row}>
+    <li className={selection ? `${styles.row} ${styles.selectable}` : styles.row}>
+      {selection ? (
+        <label className={styles.select}>
+          <input
+            aria-label={
+              transaction
+                ? t('transactions.bulk.selectRow', { label: transaction.displayLabel })
+                : t('transactions.bulk.selectRowLoading')
+            }
+            checked={transaction ? selection.selectedIds.has(transaction.id) : false}
+            disabled={transaction === null}
+            onChange={() => transaction && selection.onToggle(transaction.id)}
+            type="checkbox"
+          />
+        </label>
+      ) : null}
       <div className={styles.primary}>
         <TransactionInspectButton transaction={transaction} />
         {transaction?.transferId != null ? (

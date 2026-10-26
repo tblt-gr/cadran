@@ -125,6 +125,7 @@ export function useAccountMovements(accountId: string, initialMonth: string | nu
   }
 
   return {
+    bulkQuery: { accountId: [accountId], from, to },
     displayedPage,
     items,
     loadMore,

@@ -3957,6 +3957,80 @@ export type TransactionSplitInput = {
     note: string | null;
 };
 
+export type TransactionCount = {
+    count: number;
+};
+
+/**
+ * The filters of `listTransactions`, in body form. An absent field does not restrict.
+ */
+export type BulkTransactionFilters = {
+    from?: string;
+    to?: string;
+    accountIds?: Array<string>;
+    states?: Array<TransactionState>;
+    natures?: Array<TransactionNature>;
+    categoryIds?: Array<string>;
+    includeDescendants?: boolean;
+    axes?: Array<'DISCRETIONARY' | 'ESSENTIAL' | 'FIXED' | 'PERSONAL' | 'PROFESSIONAL' | 'VARIABLE'>;
+    minAmount?: string;
+    maxAmount?: string;
+    assetCode?: string;
+    sources?: Array<TransactionSource>;
+    categorization?: 'ANY' | 'NONE';
+    q?: string;
+    includeVoided?: boolean;
+};
+
+export type BulkIdsScope = {
+    type: 'IDS';
+    /**
+     * At most 500 distinct identifiers; more is refused with 422.
+     */
+    ids: Array<string>;
+};
+
+export type BulkFilterScope = {
+    type: 'FILTER';
+    filters: BulkTransactionFilters;
+    /**
+     * The count the user confirmed, from `countTransactions`.
+     */
+    expectedCount: number;
+};
+
+export type BulkCategorizeRequest = {
+    categoryId: string;
+    scope: ({
+        type: 'IDS';
+    } & BulkIdsScope) | ({
+        type: 'FILTER';
+    } & BulkFilterScope);
+};
+
+/**
+ * Why a transaction was left untouched: it does not exist in the workspace, it stopped matching the filters of a filter scope before the write, it is a transfer leg, a refund, an original with live refunds, voided or rejected, split across several categories, in a closed period, of a sign contradicting the category type, or already in the category.
+ */
+export type BulkSkipReason = 'NOT_FOUND' | 'NO_LONGER_MATCHING' | 'TRANSFER_LEG' | 'REFUND' | 'HAS_REFUNDS' | 'TERMINAL' | 'SPLIT' | 'CLOSED_PERIOD' | 'SIGN_MISMATCH' | 'ALREADY_IN_CATEGORY';
+
+export type BulkSkippedTransaction = {
+    transactionId: string;
+    reason: BulkSkipReason;
+};
+
+export type BulkCategorizeResult = {
+    /**
+     * Distinct transactions the scope named or matched.
+     */
+    requestedCount: number;
+    changed: number;
+    skipped: Array<BulkSkippedTransaction>;
+    /**
+     * The maximum number of transactions per operation.
+     */
+    maximum: number;
+};
+
 export type VoidTransactionRequest = {
     version: number;
 };
@@ -12879,6 +12953,168 @@ export type CreateTransactionRefundResponses = {
 };
 
 export type CreateTransactionRefundResponse = CreateTransactionRefundResponses[keyof CreateTransactionRefundResponses];
+
+export type CountTransactionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Inclusive booked_on lower bound.
+         */
+        from?: string;
+        /**
+         * Inclusive booked_on upper bound.
+         */
+        to?: string;
+        /**
+         * Repeatable. Any of the accounts. At most 20 values.
+         */
+        accountId?: Array<string>;
+        /**
+         * Repeatable. When present, replaces the default state scope entirely (PENDING and BOOKED, plus VOIDED only when includeVoided is set).
+         */
+        state?: Array<TransactionState>;
+        /**
+         * Repeatable. Any of the natures.
+         */
+        nature?: Array<TransactionNature>;
+        /**
+         * Repeatable. The transaction has a split on any of them. At most 20 values.
+         */
+        categoryId?: Array<string>;
+        /**
+         * Extends categoryId to the category subtrees.
+         */
+        includeDescendants?: boolean;
+        /**
+         * Repeatable. The transaction has a split carrying any of them.
+         */
+        axis?: Array<'DISCRETIONARY' | 'ESSENTIAL' | 'FIXED' | 'PERSONAL' | 'PROFESSIONAL' | 'VARIABLE'>;
+        /**
+         * Signed lower bound on the amount, in assetCode. Requires assetCode.
+         */
+        minAmount?: string;
+        /**
+         * Signed upper bound on the amount, in assetCode. Requires assetCode.
+         */
+        maxAmount?: string;
+        /**
+         * The asset minAmount and maxAmount are expressed in.
+         */
+        assetCode?: string;
+        /**
+         * Repeatable. Any of the sources.
+         */
+        source?: Array<TransactionSource>;
+        /**
+         * Free text matched against the normalized label, the raw label and the counterparty, case-insensitively.
+         */
+        q?: string;
+        includeVoided?: boolean;
+        /**
+         * `NONE` restricts the page to the transactions carrying no split at all — the "to categorise" queue.
+         */
+        categorization?: 'ANY' | 'NONE';
+    };
+    url: '/api/v1/transactions/count';
+};
+
+export type CountTransactionsErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type CountTransactionsError = CountTransactionsErrors[keyof CountTransactionsErrors];
+
+export type CountTransactionsResponses = {
+    /**
+     * The exact size of the filtered set.
+     */
+    200: TransactionCount;
+};
+
+export type CountTransactionsResponse = CountTransactionsResponses[keyof CountTransactionsResponses];
+
+export type BulkCategorizeTransactionsData = {
+    body: BulkCategorizeRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+        /**
+         * Retries the same operation safely for seven days. A replayed response adds `Idempotency-Replayed: true`.
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/transactions/bulk-category';
+};
+
+export type BulkCategorizeTransactionsErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * Either the CSRF / Origin check failed (`type: /problems/csrf-token`), or the authenticated session belongs to no workspace (`type: about:blank`).
+     */
+    403: Problem;
+    /**
+     * The target category does not exist in the calling workspace.
+     */
+    404: Problem;
+    /**
+     * The filter scope no longer matches the confirmed count (`type: /problems/transactions.bulk-scope-changed`, with `actualCount`), the Idempotency-Key was reused with another body or is in flight, or a transaction changed concurrently. A replay touching a closed period is refused with `type: /problems/period-closed`.
+     */
+    409: Problem;
+    /**
+     * The transaction JSON body exceeds 32 KiB.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * The body or the Idempotency-Key is invalid, the target category is archived, or the scope exceeds 500 transactions (`type: /problems/transactions.bulk-scope-too-large`, with `limit`).
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type BulkCategorizeTransactionsError = BulkCategorizeTransactionsErrors[keyof BulkCategorizeTransactionsErrors];
+
+export type BulkCategorizeTransactionsResponses = {
+    /**
+     * How many transactions changed and which were skipped, or the stored response of a replay.
+     */
+    200: BulkCategorizeResult;
+};
+
+export type BulkCategorizeTransactionsResponse = BulkCategorizeTransactionsResponses[keyof BulkCategorizeTransactionsResponses];
 
 export type VoidTransactionData = {
     body: VoidTransactionRequest;
