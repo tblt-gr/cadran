@@ -501,7 +501,7 @@ describe('MonthlyBudgetPage', () => {
     ).toBeTruthy();
 
     expect(
-      screen.getByTestId('monthly-recap-skeleton').querySelectorAll('[role="status"]'),
+      screen.getByTestId('monthly-recap-skeleton').querySelectorAll(':scope > [role="status"]'),
     ).toHaveLength(1);
     resolveRecap?.({ data: recap, response: new Response('{}', { status: 200 }) });
     expect(await screen.findByText('Salaire')).toBeTruthy();

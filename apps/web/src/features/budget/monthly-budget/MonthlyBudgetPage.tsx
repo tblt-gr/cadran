@@ -208,12 +208,16 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
             onDraft={setDraft}
             onEditTransaction={setEditingTransactionId}
           />
-          <ExpenseDonut
-            axis={axis}
-            period={{ from: ledger.data.periodStart, to: ledger.data.periodEnd }}
-            rows={ledger.isPlaceholderData ? null : ledger.data.expenseCategories}
+          <MonthlyRecap
+            leading={
+              <ExpenseDonut
+                axis={axis}
+                period={{ from: ledger.data.periodStart, to: ledger.data.periodEnd }}
+                rows={ledger.isPlaceholderData ? null : ledger.data.expenseCategories}
+              />
+            }
+            month={month}
           />
-          <MonthlyRecap month={month} />
         </div>
       )}
 
