@@ -49,19 +49,22 @@ final class ReadCurrentGroupTreeTest extends TestCase
         }
     }
 
-    public function testReportReferencesLabelEachGroupByItsFullPathInDepthFirstOrder(): void
+    public function testReportReferencesLabelEachGroupByItsOwnNameWithItsParentLabelInDepthFirstOrder(): void
     {
         $references = (new ReadReportReferences(new InMemoryAccountRepository(), $this->tree()))(WorkspaceScope::fromString(AccountGroupFixture::WORKSPACE));
 
         self::assertSame([
             AccountGroupFixture::ID => 'Investissement',
-            self::BOURSE => 'Investissement › Bourse',
-            self::IMMOBILIER => 'Investissement › Immobilier',
-            self::ARCHIVED => 'Investissement › Ancien',
+            self::BOURSE => 'Bourse',
+            self::IMMOBILIER => 'Immobilier',
+            self::ARCHIVED => 'Ancien',
         ], $references->groups);
         self::assertSame([
-            AccountGroupFixture::ID, self::BOURSE, self::IMMOBILIER, self::ARCHIVED,
-        ], array_keys($references->groups));
+            AccountGroupFixture::ID => null,
+            self::BOURSE => 'Investissement',
+            self::IMMOBILIER => 'Investissement',
+            self::ARCHIVED => 'Investissement',
+        ], $references->groupParents);
     }
 
     /** @param list<\App\Module\Accounts\Domain\Account> $accounts */

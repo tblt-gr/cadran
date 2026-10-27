@@ -15652,6 +15652,11 @@ components:
         institution:
           description: Institution of an account column, shown under its label; null for any other column.
           type: [string, 'null']
+        parentLabel:
+          description: >-
+            Label of the immediate parent group of a sub-group column, shown beside its name (`label` is the
+            sub-group name only); null for a root group and for any other column.
+          type: [string, 'null']
     AnnualCell:
       description: An exact decimal string, or null with the reason it cannot be produced.
       type: object

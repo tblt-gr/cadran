@@ -55,7 +55,7 @@ describe('GroupingFields', () => {
     renderFields();
 
     const bourse = await screen.findByRole('option', { name: 'Investissement › Bourse' });
-    expect(bourse.textContent).toBe('  Bourse');
+    expect(bourse.textContent).toBe('\u00a0\u00a0Bourse (Investissement)');
     const options = screen.getAllByRole('option').map((option) => option.getAttribute('value'));
     expect(options).toEqual(['inv', 'immo', 'bourse', 'cash']);
     expect(screen.getByRole('option', { name: 'Investissement' }).textContent).toBe(

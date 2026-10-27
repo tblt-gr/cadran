@@ -11,6 +11,8 @@ export interface OrderedGroup<T extends OrderableGroup> {
   group: T;
   /** 1 for a root group. */
   depth: number;
+  /** Label of the immediate parent, null for a root group. */
+  parentLabel: string | null;
   /** Labels of the ancestors and of the group itself, joined by the path separator. */
   path: string;
 }
@@ -36,15 +38,20 @@ export function orderGroupsDepthFirst<T extends OrderableGroup>(groups: T[]): Or
   }
 
   const ordered: OrderedGroup<T>[] = [];
-  const visit = (parentKey: string | null, depth: number, parentPath: string | null) => {
+  const visit = (
+    parentKey: string | null,
+    depth: number,
+    parentPath: string | null,
+    parentLabel: string | null,
+  ) => {
     for (const group of [...(children.get(parentKey) ?? [])].sort(savedOrder)) {
       const path =
         parentPath === null ? group.label : `${parentPath}${GROUP_PATH_SEPARATOR}${group.label}`;
-      ordered.push({ group, depth, path });
-      visit(group.id, depth + 1, path);
+      ordered.push({ group, depth, parentLabel, path });
+      visit(group.id, depth + 1, path, group.label);
     }
   };
-  visit(null, 1, null);
+  visit(null, 1, null, null);
 
   return ordered;
 }

@@ -3005,6 +3005,10 @@ export type AnnualColumn = {
      * Institution of an account column, shown under its label; null for any other column.
      */
     institution?: string | null;
+    /**
+     * Label of the immediate parent group of a sub-group column, shown beside its name (`label` is the sub-group name only); null for a root group and for any other column.
+     */
+    parentLabel?: string | null;
 };
 
 /**

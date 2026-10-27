@@ -12,6 +12,10 @@ export interface CatalogueEntry {
   label: string;
   /** Where an account is held; shown under its label, as in the report headers. */
   institution?: string | null;
+  /** Immediate parent of a sub-group, shown beside its name. */
+  parentLabel?: string | null;
+  /** Full path of a group, the accessible name of its option. */
+  path?: string;
 }
 
 interface Page<T> {
@@ -55,7 +59,12 @@ export function useColumnCatalogue(enabled: boolean) {
           }),
         ),
         listAllAccountGroups(true).then((groups): CatalogueEntry[] =>
-          orderGroupsDepthFirst(groups).map(({ group, path }) => ({ id: group.id, label: path })),
+          orderGroupsDepthFirst(groups).map(({ group, parentLabel, path }) => ({
+            id: group.id,
+            label: group.label,
+            parentLabel,
+            path,
+          })),
         ),
         collect((page) =>
           listAccounts({

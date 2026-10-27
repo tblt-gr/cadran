@@ -66,9 +66,10 @@ export function GroupingFields({
           ) : (
             <option value="">{t('accounts.form.noGroup')}</option>
           )}
-          {items.map(({ group, depth, path }) => (
+          {items.map(({ group, depth, parentLabel, path }) => (
             <option aria-label={path} key={group.id} value={group.id}>
-              {'\u00a0\u00a0'.repeat(depth - 1) + group.label}
+              {'\u00a0\u00a0'.repeat(depth - 1) +
+                (parentLabel === null ? group.label : `${group.label} (${parentLabel})`)}
             </option>
           ))}
         </select>

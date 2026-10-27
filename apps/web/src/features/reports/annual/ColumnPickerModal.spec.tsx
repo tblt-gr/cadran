@@ -85,16 +85,16 @@ describe('ColumnPickerModal', () => {
     renderModal();
     fireEvent.click(screen.getByRole('tab', { name: 'Groupes' }));
 
-    await screen.findByLabelText('Investissement › Bourse');
-    const labels = screen
-      .getAllByRole('checkbox')
-      .map((box) => box.getAttribute('aria-label') ?? box.closest('label')?.textContent);
+    const bourse = await screen.findByLabelText('Investissement › Bourse');
+    expect(bourse.closest('label')?.textContent).toBe('Bourse (Investissement)');
+    const labels = screen.getAllByRole('checkbox').map((box) => box.getAttribute('aria-label'));
     expect(labels).toEqual([
       'Investissement',
       'Investissement › Immobilier',
       'Investissement › Bourse',
       'Liquidités',
     ]);
+    expect(screen.getByLabelText('Liquidités').closest('label')?.textContent).toBe('Liquidités');
   });
 
   it('keeps the selection across tabs and saves it all at once', async () => {

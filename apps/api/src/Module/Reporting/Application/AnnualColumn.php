@@ -16,6 +16,8 @@ final readonly class AnnualColumn
         public bool $known,
         /** Institution of an account column, shown under its label; null for every other column. */
         public ?string $institution = null,
+        /** Label of the immediate parent of a sub-group column, shown beside its name; null for a root group and every other column. */
+        public ?string $parentLabel = null,
     ) {
     }
 }

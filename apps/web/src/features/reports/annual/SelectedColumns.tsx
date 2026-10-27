@@ -9,6 +9,7 @@ export interface SelectedColumn {
   id: string;
   institution?: string | null;
   label: string;
+  parentLabel?: string | null;
 }
 
 interface SelectedColumnsProps {
@@ -43,7 +44,7 @@ export function SelectedColumns({ columnOf, onMove, onRemove, selected }: Select
                   {column === null ? (
                     <SkeletonBlock className={styles.skeleton} />
                   ) : (
-                    <ColumnHeader column={column} />
+                    <ColumnHeader column={column} inlineParent />
                   )}
                 </span>
                 <button

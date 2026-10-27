@@ -27,6 +27,16 @@ describe('orderGroupsDepthFirst', () => {
     ]);
   });
 
+  it('exposes the immediate parent label, null for a root', () => {
+    const ordered = orderGroupsDepthFirst([
+      group('inv', 'Investissement', null),
+      group('bourse', 'Bourse', 'inv'),
+      group('pea', 'PEA', 'bourse'),
+    ]);
+
+    expect(ordered.map((entry) => entry.parentLabel)).toEqual([null, 'Investissement', 'Bourse']);
+  });
+
   it('exposes the full path of each group', () => {
     const ordered = orderGroupsDepthFirst([
       group('inv', 'Investissement', null),

@@ -138,17 +138,15 @@ final class AnnualReportGroupColumnsTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
-    public function testTheColumnHeaderIsTheFullPathOfTheGroup(): void
+    public function testAGroupColumnCarriesItsOwnNameAndTheLabelOfItsParent(): void
     {
         $this->client->request('GET', '/api/v1/reports/annual/'.$this->year);
         $report = json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($report);
         self::assertIsArray($report['columns']);
 
-        self::assertSame(
-            ['Investissement', 'Investissement › Bourse', 'Investissement › Immobilier', 'Patrimoine net'],
-            array_column($report['columns'], 'label'),
-        );
+        self::assertSame(['Investissement', 'Bourse', 'Immobilier', 'Patrimoine net'], array_column($report['columns'], 'label'));
+        self::assertSame([null, 'Investissement', 'Investissement', null], array_column($report['columns'], 'parentLabel'));
     }
 
     /** @return list<array<mixed>> */
