@@ -450,7 +450,7 @@ final class ReadGoalStatusTest extends TestCase
         $month = new CalendarMonth(2026, 1);
         $figures = new MonthFigures($month->key(), 1, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), [
             'netSavingsTransfers' => new MonthlyMetricView('100.00', 'USD', null),
-        ], [], []);
+        ], [], [], []);
         $months = [new AnnualMonth($month, MonthState::COMPLETE, false, false, $figures)];
         $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
@@ -549,7 +549,7 @@ final class ReadGoalStatusTest extends TestCase
         $month = new CalendarMonth($year, $index);
         $views = array_map(static fn (?string $value): MonthlyMetricView => new MonthlyMetricView($value, null === $value ? null : 'EUR', null === $value ? 'NO_MOVEMENTS' : null), $cells);
 
-        return new AnnualMonth($month, $state, false, false, new MonthFigures($month->key(), 1, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), $views, $budgetCategoryIds, []));
+        return new AnnualMonth($month, $state, false, false, new MonthFigures($month->key(), 1, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), $views, $budgetCategoryIds, [], []));
     }
 
     private static function category(string $id, ?string $parentId, WorkspaceScope $workspace, ?\DateTimeImmutable $archivedAt = null): Category
@@ -571,7 +571,7 @@ final class ReadGoalStatusTest extends TestCase
         $month = new CalendarMonth($year, $index);
         $figures = MonthState::NO_DATA === $state ? null : new MonthFigures($month->key(), $policy, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), [
             $cell => new MonthlyMetricView($value, null === $value ? null : 'EUR', null === $value ? 'NO_ACCOUNT' : null),
-        ], [], []);
+        ], [], [], []);
 
         return new AnnualMonth($month, $state, false, false, $figures);
     }

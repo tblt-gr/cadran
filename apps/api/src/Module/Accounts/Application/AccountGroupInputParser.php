@@ -14,23 +14,4 @@ final class AccountGroupInputParser
 
         return $value;
     }
-
-    /**
-     * @param list<string> $values
-     *
-     * @return list<string>
-     */
-    public static function identifiers(array $values): array
-    {
-        $ids = [];
-        foreach ($values as $value) {
-            if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
-                throw new InvalidAccountInput('A group identifier is malformed.');
-            }
-
-            $ids[] = $value;
-        }
-
-        return $ids;
-    }
 }

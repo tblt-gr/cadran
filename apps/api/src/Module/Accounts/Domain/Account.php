@@ -57,15 +57,13 @@ final readonly class Account
         public ?\DateTimeImmutable $usedAt = null,
         public ?\DateTimeImmutable $archivedAt = null,
         public ?string $primaryGroupId = null,
-        /** @var list<string> */
-        public array $tagGroupIds = [],
         public bool $isPrimary = false,
     ) {
         self::assertIdentifier($id);
         self::assertLabel($label);
         self::assertInstitution($institution);
         self::assertProductModelId($productModelId);
-        self::assertGrouping($primaryGroupId, $tagGroupIds);
+        self::assertGrouping($primaryGroupId);
         // Hydration of a row written before this rule still reaches here
         // without a group. Writes go through reconfigure/regroup/open and
         // refuse an included account that has none.
@@ -98,8 +96,6 @@ final readonly class Account
      * denomination change would silently reinterpret every figure already
      * recorded against the account, so it is a migration of data rather than an
      * edit.
-     *
-     * @param list<string> $tagGroupIds
      */
     public function reconfigure(
         string $label,
@@ -116,7 +112,6 @@ final readonly class Account
         ?\DateTimeImmutable $closedOn,
         \DateTimeImmutable $updatedAt,
         ?string $primaryGroupId = null,
-        array $tagGroupIds = [],
         bool $keepGrouping = true,
         ?bool $isPrimary = null,
     ): self {
@@ -173,7 +168,6 @@ final readonly class Account
             usedAt: $this->usedAt,
             archivedAt: $this->archivedAt,
             primaryGroupId: $keepGrouping ? $this->primaryGroupId : $primaryGroupId,
-            tagGroupIds: $keepGrouping ? $this->tagGroupIds : $tagGroupIds,
             isPrimary: null !== $closedOn ? false : ($isPrimary ?? $this->isPrimary),
         );
     }
@@ -193,15 +187,12 @@ final readonly class Account
     }
 
     /**
-     * Exclusive membership is the primary group; tags are extra labels that
-     * never join that exclusive weight. Clearing the primary group leaves the
-     * account ungrouped, the way it is created.
-     *
-     * @param list<string> $tagGroupIds
+     * Exclusive membership is the primary group, possibly a sub-group: the
+     * account also counts in every ancestor of that group. Clearing the primary
+     * group leaves the account ungrouped, the way it is created.
      */
     public function regroup(
         ?string $primaryGroupId,
-        array $tagGroupIds,
         \DateTimeImmutable $updatedAt,
     ): self {
         $this->assertWritable();
@@ -229,7 +220,6 @@ final readonly class Account
             usedAt: $this->usedAt,
             archivedAt: $this->archivedAt,
             primaryGroupId: $primaryGroupId,
-            tagGroupIds: $tagGroupIds,
             isPrimary: $this->isPrimary,
         );
     }
@@ -264,7 +254,6 @@ final readonly class Account
             usedAt: $this->usedAt,
             archivedAt: $archivedAt,
             primaryGroupId: $this->primaryGroupId,
-            tagGroupIds: $this->tagGroupIds,
         );
     }
 
@@ -318,7 +307,6 @@ final readonly class Account
             usedAt: $usedAt,
             archivedAt: $this->archivedAt,
             primaryGroupId: $this->primaryGroupId,
-            tagGroupIds: $this->tagGroupIds,
             isPrimary: $this->isPrimary,
         );
     }
@@ -369,27 +357,10 @@ final readonly class Account
         }
     }
 
-    /**
-     * @param list<string> $tagGroupIds
-     */
-    private static function assertGrouping(?string $primaryGroupId, array $tagGroupIds): void
+    private static function assertGrouping(?string $primaryGroupId): void
     {
         if (null !== $primaryGroupId) {
             self::assertIdentifier($primaryGroupId);
-        }
-
-        $seen = [];
-        foreach ($tagGroupIds as $tagGroupId) {
-            self::assertIdentifier($tagGroupId);
-            if ($tagGroupId === $primaryGroupId) {
-                throw new InvalidAccount('A tag cannot repeat the primary group.');
-            }
-
-            if (isset($seen[$tagGroupId])) {
-                throw new InvalidAccount('A group tag cannot be assigned twice.');
-            }
-
-            $seen[$tagGroupId] = true;
         }
     }
 

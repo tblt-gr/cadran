@@ -88,7 +88,6 @@ const account: Account = {
   version: 1,
   archivedAt: null,
   primaryGroupId: '00000000-0000-7000-8000-0000000000c1',
-  tagGroupIds: [],
   share: { ratio: null, percent: null, percentDisplay: null, reason: 'MISSING_VALUATION' },
   valuation: missingValuation,
 };
@@ -529,7 +528,6 @@ describe('AccountsPage', () => {
       openedOn: '2026-01-10',
       closedOn: null,
       primaryGroupId: defaultGroup.id,
-      tagGroupIds: [],
     });
     const toast = await screen.findByText('Le compte a été enregistré.');
     expect(toast.closest('[role="status"]')).toBeTruthy();
@@ -588,7 +586,6 @@ describe('AccountsPage', () => {
     expect(api.createAccount.mock.calls[0]?.[0].body).toMatchObject({
       label: 'Livret A Banque X',
       primaryGroupId: epargne.id,
-      tagGroupIds: [],
     });
   });
 
@@ -693,7 +690,6 @@ describe('AccountsPage', () => {
       'primaryGroupId',
       'productCode',
       'productModelId',
-      'tagGroupIds',
       'valuationMode',
     ]);
   });

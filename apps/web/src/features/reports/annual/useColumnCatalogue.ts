@@ -1,5 +1,7 @@
-import { listAccountGroups, listAccounts, listCategories } from '@cadran/api-client';
+import { listAccounts, listCategories } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
+import { orderGroupsDepthFirst } from '@/features/accounts/groups/groupPaths';
+import { listAllAccountGroups } from '@/features/accounts/groups/listAllAccountGroups';
 import { authApiOptions } from '@/features/auth/apiOptions';
 
 const PAGE_SIZE = 50;
@@ -52,11 +54,8 @@ export function useColumnCatalogue(enabled: boolean) {
             query: { includeArchived: true, page, pageSize: PAGE_SIZE },
           }),
         ),
-        collect((page) =>
-          listAccountGroups({
-            ...authApiOptions(),
-            query: { includeArchived: true, page, pageSize: PAGE_SIZE },
-          }),
+        listAllAccountGroups(true).then((groups): CatalogueEntry[] =>
+          orderGroupsDepthFirst(groups).map(({ group, path }) => ({ id: group.id, label: path })),
         ),
         collect((page) =>
           listAccounts({

@@ -13142,7 +13142,6 @@ components:
         - version
         - archivedAt
         - primaryGroupId
-        - tagGroupIds
         - share
         - valuation
       properties:
@@ -13265,20 +13264,12 @@ components:
         primaryGroupId:
           description: >-
             Exclusive membership used by group weights. Null until the account
-            is assigned. A tag is never this field.
+            is assigned. It may name a sub-group: the account then also counts
+            in every ancestor of that group.
           oneOf:
             - type: string
               format: uuid
             - type: 'null'
-        tagGroupIds:
-          description: >-
-            Extra group labels that never enter an exclusive denominator.
-            Each identifier is unique and distinct from `primaryGroupId`.
-          type: array
-          maxItems: 32
-          items:
-            type: string
-            format: uuid
         share:
           $ref: '#/components/schemas/NetWorthShare'
         valuation:
@@ -13620,7 +13611,6 @@ components:
         - openedOn
         - closedOn
         - primaryGroupId
-        - tagGroupIds
       properties:
         label:
           type: string
@@ -13687,20 +13677,14 @@ components:
         primaryGroupId:
           description: >-
             Optional exclusive membership used by group weights. Null leaves
-            the account ungrouped. A tag is never this field.
+            the account ungrouped. It may name a sub-group: the account then
+            also counts in every ancestor of that group. The retired field
+            `tagGroupIds` is refused with a 422 field error `tagGroupIds` /
+            `unsupported_field`.
           oneOf:
             - type: string
               format: uuid
             - type: 'null'
-        tagGroupIds:
-          description: >-
-            Extra group labels that never enter an exclusive denominator.
-            Each identifier is unique and distinct from `primaryGroupId`.
-          type: array
-          maxItems: 32
-          items:
-            type: string
-            format: uuid
     UpdateAccountRequest:
       type: object
       additionalProperties: false
@@ -13719,7 +13703,6 @@ components:
         - closedOn
         - version
         - primaryGroupId
-        - tagGroupIds
       properties:
         isPrimary:
           description: >-
@@ -13787,18 +13770,14 @@ components:
         primaryGroupId:
           description: >-
             Exclusive membership used by group weights, or null to leave the
-            account ungrouped. An unknown or foreign group is refused.
+            account ungrouped. It may name a sub-group: the account then also
+            counts in every ancestor of that group. An unknown or foreign group
+            is refused, and so is the retired field `tagGroupIds` (422 field
+            error `tagGroupIds` / `unsupported_field`).
           oneOf:
             - type: string
               format: uuid
             - type: 'null'
-        tagGroupIds:
-          description: Extra group labels that never enter an exclusive denominator.
-          type: array
-          maxItems: 32
-          items:
-            type: string
-            format: uuid
     ArchiveAccountRequest:
       type: object
       additionalProperties: false

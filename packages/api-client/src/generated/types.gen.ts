@@ -2050,13 +2050,9 @@ export type Account = {
     version: number;
     archivedAt: string | null;
     /**
-     * Exclusive membership used by group weights. Null until the account is assigned. A tag is never this field.
+     * Exclusive membership used by group weights. Null until the account is assigned. It may name a sub-group: the account then also counts in every ancestor of that group.
      */
     primaryGroupId: string | null;
-    /**
-     * Extra group labels that never enter an exclusive denominator. Each identifier is unique and distinct from `primaryGroupId`.
-     */
-    tagGroupIds: Array<string>;
     share: NetWorthShare;
     valuation: AccountValuation;
 };
@@ -2213,13 +2209,9 @@ export type CreateAccountRequest = {
     openedOn: string;
     closedOn: string | null;
     /**
-     * Optional exclusive membership used by group weights. Null leaves the account ungrouped. A tag is never this field.
+     * Optional exclusive membership used by group weights. Null leaves the account ungrouped. It may name a sub-group: the account then also counts in every ancestor of that group. The retired field `tagGroupIds` is refused with a 422 field error `tagGroupIds` / `unsupported_field`.
      */
     primaryGroupId: string | null;
-    /**
-     * Extra group labels that never enter an exclusive denominator. Each identifier is unique and distinct from `primaryGroupId`.
-     */
-    tagGroupIds: Array<string>;
 };
 
 export type UpdateAccountRequest = {
@@ -2250,13 +2242,9 @@ export type UpdateAccountRequest = {
     closedOn: string | null;
     version: number;
     /**
-     * Exclusive membership used by group weights, or null to leave the account ungrouped. An unknown or foreign group is refused.
+     * Exclusive membership used by group weights, or null to leave the account ungrouped. It may name a sub-group: the account then also counts in every ancestor of that group. An unknown or foreign group is refused, and so is the retired field `tagGroupIds` (422 field error `tagGroupIds` / `unsupported_field`).
      */
     primaryGroupId: string | null;
-    /**
-     * Extra group labels that never enter an exclusive denominator.
-     */
-    tagGroupIds: Array<string>;
 };
 
 export type ArchiveAccountRequest = {

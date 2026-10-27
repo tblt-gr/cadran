@@ -21,8 +21,6 @@ final readonly class CreateAccountInput
         public string $openedOn,
         public ?string $closedOn,
         public ?string $primaryGroupId = null,
-        /** @var list<string> */
-        public array $tagGroupIds = [],
     ) {
     }
 }

@@ -19,8 +19,10 @@ use App\Module\Reporting\Application\MonthlyMetricView;
 use App\Module\Reporting\Application\MonthlyProjectionView;
 use App\Module\Reporting\Application\MonthlyProjector;
 use App\Module\Reporting\Application\ReadFirstDataMonth;
+use App\Module\Reporting\Application\RegroupMonthFigures;
 use App\Module\Reporting\Application\WorkspaceToday;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
+use App\Tests\Module\Reporting\Application\Double\FixedGroupTree;
 use App\Tests\Module\Reporting\Application\Double\InMemoryMonthSnapshotStore;
 use App\Tests\Module\Reporting\Application\Double\InMemoryPeriodClosureRepository;
 use App\Tests\Module\Reporting\Application\Double\MonthlyProjectionFixture;
@@ -84,6 +86,7 @@ final class ReportingGoalMonthSourceTest extends TestCase
             new InMemoryPeriodClosureRepository(),
             new InMemoryMonthSnapshotStore(),
             $this->calendar(),
+            new RegroupMonthFigures(new FixedGroupTree()),
         );
 
         return new ReportingGoalMonthSource($load, new ReadFirstDataMonth($first, new WorkspaceToday(new MockClock('2026-09-14T09:12:00+00:00'), $timezones)));

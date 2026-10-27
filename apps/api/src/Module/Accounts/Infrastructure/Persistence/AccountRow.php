@@ -30,9 +30,8 @@ final readonly class AccountRow
      * object that looks legitimate.
      *
      * @param array<string, mixed> $row
-     * @param list<string>         $tagGroupIds
      */
-    public static function hydrate(array $row, WorkspaceScope $workspace, array $tagGroupIds = []): Account
+    public static function hydrate(array $row, WorkspaceScope $workspace): Account
     {
         if ($workspace->id !== self::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('An account row escaped its requested workspace.');
@@ -63,7 +62,6 @@ final readonly class AccountRow
             usedAt: self::instant($row['used_at'] ?? null),
             archivedAt: self::instant($row['archived_at'] ?? null),
             primaryGroupId: self::nullableText($row['primary_group_id'] ?? null),
-            tagGroupIds: $tagGroupIds,
             isPrimary: self::boolean($row['is_primary'] ?? false),
         );
     }

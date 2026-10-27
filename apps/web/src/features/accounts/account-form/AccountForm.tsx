@@ -72,7 +72,6 @@ export function AccountForm({
   const [closedOn, setClosedOn] = useState(initial.closedOn);
   const [isPrimary, setIsPrimary] = useState(account?.isPrimary ?? false);
   const [primaryGroupId, setPrimaryGroupId] = useState(initial.primaryGroupId);
-  const [tagGroupIds, setTagGroupIds] = useState(initial.tagGroupIds);
   const [showErrors, setShowErrors] = useState(false);
 
   const assets = useAssetOptions(assetSelection);
@@ -114,7 +113,6 @@ export function AccountForm({
     openedOn,
     closedOn,
     primaryGroupId,
-    tagGroupIds,
   };
 
   function submit(event: React.FormEvent) {
@@ -152,7 +150,6 @@ export function AccountForm({
 
     const grouping = {
       primaryGroupId: primaryGroupId === '' ? null : primaryGroupId,
-      tagGroupIds,
     };
 
     onSubmit(
@@ -229,10 +226,8 @@ export function AccountForm({
         includeInNetWorth={includeInNetWorth}
         invalid={showErrors && groupingInvalid}
         onPrimaryChange={setPrimaryGroupId}
-        onTagsChange={setTagGroupIds}
         primaryGroupId={primaryGroupId}
         share={account?.share}
-        tagGroupIds={tagGroupIds}
       />
 
       <InclusionFieldset

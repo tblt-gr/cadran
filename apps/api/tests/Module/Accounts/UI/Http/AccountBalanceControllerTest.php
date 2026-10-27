@@ -451,7 +451,6 @@ final class AccountBalanceControllerTest extends WebTestCase
                 'closedOn' => $current['closedOn'],
                 'version' => $current['version'],
                 'primaryGroupId' => $current['primaryGroupId'],
-                'tagGroupIds' => $current['tagGroupIds'],
             ], JSON_THROW_ON_ERROR),
         );
         self::assertResponseIsSuccessful();
@@ -718,7 +717,6 @@ final class AccountBalanceControllerTest extends WebTestCase
                 'openedOn' => '2026-01-10',
                 'closedOn' => null,
                 'primaryGroupId' => self::DEFAULT_GROUP,
-                'tagGroupIds' => [],
             ], JSON_THROW_ON_ERROR),
         );
         self::assertResponseStatusCodeSame(201);

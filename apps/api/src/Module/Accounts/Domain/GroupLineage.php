@@ -8,7 +8,7 @@ namespace App\Module\Accounts\Domain;
  * A group and the exclusive ancestors that inherit its weight, self first.
  *
  * Parent roll-up uses this list so a child contribution is counted once on
- * the child and once on each ancestor — the exclusive tree — never via tags.
+ * the child and once on each ancestor of the exclusive tree.
  */
 final readonly class GroupLineage
 {

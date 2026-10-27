@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Reporting\Application;
 
+use App\Module\Accounts\Application\NetWorthContributionView;
+
 /**
  * Every figure of one month an annual column can read, keyed by column id: what the annual report
  * takes from a live projection or from the snapshot of a closed month. It holds no label, since
@@ -25,6 +27,8 @@ final readonly class MonthFigures
      * @param array<string, MonthlyMetricView> $cells
      * @param list<string>                     $budgetExpenseCategoryIds
      * @param list<AllocationFigure>           $allocation
+     * @param list<AccountWeight>|null         $accountWeights           frozen signed end value of every account of the net worth;
+     *                                                                   null for a snapshot written before they were kept
      */
     public function __construct(
         public string $month,
@@ -35,6 +39,7 @@ final readonly class MonthFigures
         public array $cells,
         public array $budgetExpenseCategoryIds,
         public array $allocation,
+        public ?array $accountWeights,
     ) {
     }
 
@@ -74,6 +79,13 @@ final readonly class MonthFigures
             );
         }
 
+        $accountWeights = array_map(static fn (NetWorthContributionView $contribution): AccountWeight => new AccountWeight(
+            $contribution->accountId,
+            $contribution->signedAmount?->amount,
+            $contribution->signedAmount?->asset,
+            $contribution->eligible,
+        ), $projection->netWorth->contributions);
+
         return new self(
             $projection->month,
             $projection->metricPolicy->version ?? 1,
@@ -83,6 +95,7 @@ final readonly class MonthFigures
             $cells,
             $projection->budgetExpenseCategoryIds,
             $allocation,
+            $accountWeights,
         );
     }
 
@@ -112,6 +125,8 @@ final readonly class MonthFigures
                 'share' => $item->share,
                 'reason' => $item->reason,
             ], $this->allocation),
+            'accountWeights' => null === $this->accountWeights
+                ? throw new \LogicException('A snapshot without account weights is never written.') : array_map(static fn (AccountWeight $weight): array => $weight->toPayload(), $this->accountWeights),
         ];
     }
 
@@ -150,6 +165,14 @@ final readonly class MonthFigures
                 self::nullableString($item['reason'] ?? null),
             );
         }
+        $accountWeights = null;
+        if (array_key_exists('accountWeights', $payload)) {
+            $weights = self::list($payload['accountWeights']);
+            if (!array_is_list($weights)) {
+                throw new \UnexpectedValueException('A snapshot payload lists its account weights.');
+            }
+            $accountWeights = array_map(static fn (mixed $weight): AccountWeight => AccountWeight::fromPayload(self::list($weight)), $weights);
+        }
         $month = $payload['month'] ?? null;
         $quality = $payload['quality'] ?? null;
         $asOf = $payload['netWorthAsOf'] ?? null;
@@ -166,6 +189,7 @@ final readonly class MonthFigures
             $cells,
             self::strings($payload['budgetExpenseCategoryIds'] ?? null),
             $allocation,
+            $accountWeights,
         );
     }
 

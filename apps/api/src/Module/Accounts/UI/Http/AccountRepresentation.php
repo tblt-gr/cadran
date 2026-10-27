@@ -45,7 +45,6 @@ final readonly class AccountRepresentation
             'version' => $account->version,
             'archivedAt' => $account->archivedAt,
             'primaryGroupId' => $account->primaryGroupId,
-            'tagGroupIds' => $account->tagGroupIds,
             'share' => AccountGroupRepresentation::share($account->share ?? ShareView::notApplicable()),
             'valuation' => AccountValuationRepresentation::of(
                 $account->valuation ?? throw new \LogicException('An account view must carry a valuation.'),

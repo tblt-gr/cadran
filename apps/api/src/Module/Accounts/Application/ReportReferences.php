@@ -9,7 +9,7 @@ final readonly class ReportReferences
 {
     /**
      * @param list<ReportAccountReference> $accounts ordered by label
-     * @param array<string, string>        $groups   label by group id
+     * @param array<string, string>        $groups   full path label by group id, depth-first saved order
      */
     public function __construct(public array $accounts, public array $groups)
     {

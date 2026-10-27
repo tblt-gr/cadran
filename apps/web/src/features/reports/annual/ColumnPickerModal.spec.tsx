@@ -63,6 +63,40 @@ describe('ColumnPickerModal', () => {
     expect(await screen.findByLabelText('Épargne')).toBeTruthy();
   });
 
+  it('labels each group with its full path, in saved depth-first order', async () => {
+    const group = (id: string, label: string, parentId: string | null, sortOrder: number) => ({
+      id,
+      label,
+      parentId,
+      sortOrder,
+    });
+    api.listAccountGroups.mockResolvedValue(
+      ok({
+        items: [
+          group('bourse', 'Bourse', 'inv', 20),
+          group('cash', 'Liquidités', null, 20),
+          group('immo', 'Immobilier', 'inv', 10),
+          group('inv', 'Investissement', null, 10),
+        ],
+        total: 4,
+        pageSize: 100,
+      }),
+    );
+    renderModal();
+    fireEvent.click(screen.getByRole('tab', { name: 'Groupes' }));
+
+    await screen.findByLabelText('Investissement › Bourse');
+    const labels = screen
+      .getAllByRole('checkbox')
+      .map((box) => box.getAttribute('aria-label') ?? box.closest('label')?.textContent);
+    expect(labels).toEqual([
+      'Investissement',
+      'Investissement › Immobilier',
+      'Investissement › Bourse',
+      'Liquidités',
+    ]);
+  });
+
   it('keeps the selection across tabs and saves it all at once', async () => {
     renderModal();
     fireEvent.click(screen.getByRole('tab', { name: 'Catégories' }));

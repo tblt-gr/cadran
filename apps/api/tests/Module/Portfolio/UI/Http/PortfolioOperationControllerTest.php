@@ -812,7 +812,7 @@ final class PortfolioOperationControllerTest extends WebTestCase
             'label' => 'Compte-titres', 'kind' => 'PORTFOLIO', 'productCode' => null, 'productModelId' => null, 'institution' => null,
             'maskedIdentifier' => null, 'valuationMode' => 'PORTFOLIO', 'liquidityLevel' => 'IMMEDIATE', 'includeInNetWorth' => false,
             'includeInEmergencyFund' => false, 'openedOn' => '2026-01-01', 'closedOn' => null, 'version' => is_numeric($version) ? (int) $version : 0,
-            'primaryGroupId' => null, 'tagGroupIds' => [],
+            'primaryGroupId' => null,
         ];
 
         $this->send('PUT', '/api/v1/accounts/'.self::ACCOUNT, [...$body, 'valuationMode' => 'SNAPSHOTS']);

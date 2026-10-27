@@ -103,11 +103,6 @@ final readonly class UpdateAccount
             $productCode = $this->resolveProduct($current, $input->productCode, $kind, $valuationMode);
             $productModelId = $this->resolveModel($context->workspace, $current, $input->productModelId, $kind, $valuationMode);
             $primaryGroupId = $this->resolveGroup($context->workspace, $input->primaryGroupId);
-            $tagGroupIds = [];
-            foreach (AccountGroupInputParser::identifiers($input->tagGroupIds) as $tagGroupId) {
-                $tagGroupIds[] = $this->resolveGroup($context->workspace, $tagGroupId)
-                    ?? throw new InvalidAccountInput('The account group must exist in this workspace.');
-            }
 
             try {
                 $updated = $current->reconfigure(
@@ -125,7 +120,6 @@ final readonly class UpdateAccount
                     closedOn: $closedOn,
                     updatedAt: $this->clock->now(),
                     primaryGroupId: $primaryGroupId,
-                    tagGroupIds: $tagGroupIds,
                     keepGrouping: false,
                     isPrimary: $input->isPrimary,
                 );

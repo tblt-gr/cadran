@@ -42,11 +42,12 @@ final readonly class AccountController
     public const string TYPE_STALE_VERSION = '/problems/stale-version';
     public const string TYPE_ARCHIVED = '/problems/account-archived';
 
+    private const string REMOVED_TAGS_FIELD = 'tagGroupIds';
     private const int MAX_BODY_BYTES = 16_384;
     private const array WRITE_FIELDS = [
         'label', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier', 'valuationMode',
         'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund', 'openedOn', 'closedOn',
-        'primaryGroupId', 'tagGroupIds',
+        'primaryGroupId',
     ];
 
     public function __construct(private TranslatorInterface $translator)
@@ -110,7 +111,6 @@ final readonly class AccountController
                 openedOn: $payload->string('openedOn'),
                 closedOn: $payload->nullableString('closedOn'),
                 primaryGroupId: $payload->nullableString('primaryGroupId'),
-                tagGroupIds: $payload->stringList('tagGroupIds'),
             ));
         } catch (AccountArchived) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);
@@ -184,7 +184,6 @@ final readonly class AccountController
                 closedOn: $payload->nullableString('closedOn'),
                 version: $payload->integer('version'),
                 primaryGroupId: $payload->nullableString('primaryGroupId'),
-                tagGroupIds: $payload->stringList('tagGroupIds'),
                 isPrimary: array_key_exists('isPrimary', $body) ? $payload->boolean('isPrimary') : null,
             ));
         } catch (AccountArchived) {
@@ -289,10 +288,23 @@ final readonly class AccountController
         }
 
         try {
-            return $request->toArray();
+            $body = $request->toArray();
         } catch (\Throwable) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
         }
+
+        // Tags were removed: a stale client must learn its write was not saved
+        // rather than see the field silently dropped.
+        if (array_key_exists(self::REMOVED_TAGS_FIELD, $body)) {
+            return ApiProblem::response(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                $this->translator->trans('api.problem.invalid_account.title'),
+                $this->translator->trans('api.problem.invalid_account.detail'),
+                extensions: ['errors' => [['field' => self::REMOVED_TAGS_FIELD, 'code' => 'unsupported_field']]],
+            );
+        }
+
+        return $body;
     }
 
     private static function flag(string $value): bool

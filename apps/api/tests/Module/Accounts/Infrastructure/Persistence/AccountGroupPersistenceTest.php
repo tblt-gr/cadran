@@ -117,23 +117,25 @@ final class AccountGroupPersistenceTest extends KernelTestCase
 
         $this->expectException(DbalException::class);
         $this->accounts->update(
-            $account->regroup(self::OTHER_GROUP, [], new \DateTimeImmutable('2026-09-05T12:00:00+00:00')),
+            $account->regroup(self::OTHER_GROUP, new \DateTimeImmutable('2026-09-05T12:00:00+00:00')),
             1,
         );
     }
 
-    public function testATagCannotComeFromAnotherWorkspace(): void
+    public function testOnlyAPrimaryMemberKeepsAGroupFromBeingArchived(): void
     {
         $this->groups->add($this->group(self::OWN_GROUP, WorkspaceFixture::own()));
-        $this->groups->add($this->group(self::OTHER_GROUP, WorkspaceFixture::other()));
+        $this->groups->add($this->group(self::OWN_CHILD, WorkspaceFixture::own(), label: 'Bourse', parentId: self::OWN_GROUP, depth: 2));
         $account = $this->account(self::OWN_ACCOUNT, WorkspaceFixture::own());
         $this->accounts->add($account);
 
-        $this->expectException(DbalException::class);
-        $this->accounts->update(
-            $account->regroup(self::OWN_GROUP, [self::OTHER_GROUP], new \DateTimeImmutable('2026-09-05T12:00:00+00:00')),
-            1,
-        );
+        self::assertFalse($this->groups->isReferencedByAccount(WorkspaceFixture::own(), self::OWN_CHILD));
+
+        $this->accounts->update($account->regroup(self::OWN_CHILD, new \DateTimeImmutable('2026-09-05T12:00:00+00:00')), 1);
+
+        self::assertTrue($this->groups->isReferencedByAccount(WorkspaceFixture::own(), self::OWN_CHILD));
+        self::assertFalse($this->groups->isReferencedByAccount(WorkspaceFixture::own(), self::OWN_GROUP), 'A parent is held by its active children, not by a member of its child.');
+        self::assertFalse($this->groups->isReferencedByAccount(WorkspaceFixture::other(), self::OWN_CHILD));
     }
 
     public function testReparentingAMiddleNodeKeepsDescendantDepthsValid(): void

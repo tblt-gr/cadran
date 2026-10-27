@@ -202,7 +202,7 @@ final class AccountOverviewControllerTest extends WebTestCase
         $account['primaryGroupId'] = self::PARENT;
         $this->client->request('PUT', '/api/v1/accounts/'.$movedId, server: self::jsonHeaders(), content: json_encode(array_intersect_key($account, array_flip([
             'label', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier', 'valuationMode', 'liquidityLevel',
-            'includeInNetWorth', 'includeInEmergencyFund', 'openedOn', 'closedOn', 'version', 'primaryGroupId', 'tagGroupIds',
+            'includeInNetWorth', 'includeInEmergencyFund', 'openedOn', 'closedOn', 'version', 'primaryGroupId',
         ])), JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(200);
 
