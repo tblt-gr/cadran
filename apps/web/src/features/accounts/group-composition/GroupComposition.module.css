@@ -94,3 +94,8 @@
     padding: var(--spacing-2);
   }
 }
+
+/* Icon-only buttons stay circular; icon-ghost supplies the borderless, transparent look. */
+.pie {
+  border-radius: var(--radius-circle);
+}

@@ -2,6 +2,7 @@ import { Suspense, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { lazyComponent } from '@/lib/lazyComponent';
+import styles from './GroupComposition.module.css';
 
 // Keeps the donut and its modal out of the accounts route chunk until a button is pressed.
 const GroupCompositionModal = lazyComponent(
@@ -26,7 +27,7 @@ export function GroupCompositionButton({ asOf, groupId, label }: GroupCompositio
     <>
       <button
         aria-label={name}
-        className="icon-button"
+        className={`icon-ghost ${styles.pie}`}
         onClick={() => setOpen(true)}
         ref={button}
         title={name}
