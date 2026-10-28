@@ -1,10 +1,15 @@
 import { groupColor, groupColorInk } from '@/features/accounts/group-color';
-import type { NetWorthAmount, NetWorthAllocationEntry, NetWorthReason } from '@cadran/api-client';
+import type {
+  NetWorthAllocationEntry,
+  NetWorthAmount,
+  NetWorthReason,
+  NetWorthShare,
+} from '@cadran/api-client';
 import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import {
   allocationEntries,
   type AllocationItem,
-} from '@/features/dashboard/allocation-panel/allocationEntries';
+} from '@/features/accounts/grouping-mode/allocationEntries';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Treemap } from 'recharts';
@@ -42,7 +47,9 @@ interface AllocationChartsProps {
   total?: NetWorthAmount | null;
 }
 
-function sliceFromEntry(entry: AllocationItem): AllocationSlice | null {
+function sliceFromEntry(
+  entry: AllocationItem<NetWorthAmount, NetWorthShare>,
+): AllocationSlice | null {
   if (entry.share.percent === null) {
     return null;
   }
@@ -157,7 +164,7 @@ export function AllocationCharts({
   const { i18n, t } = useTranslation();
   const [view, setView] = useState<ChartView>('treemap');
   const { ref, size } = useBoxSize();
-  const entries = allocationEntries(allocation, mode);
+  const entries = allocationEntries(allocation, mode, (amount) => amount.value);
   const slices = entries
     .map(sliceFromEntry)
     .filter((slice): slice is AllocationSlice => slice !== null);

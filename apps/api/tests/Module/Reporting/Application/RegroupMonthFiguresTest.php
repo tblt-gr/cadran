@@ -78,6 +78,80 @@ final class RegroupMonthFiguresTest extends TestCase
         self::assertSame('1000.00', $byGroup[self::B]->value);
     }
 
+    /**
+     * Net worth 1300.25. Direct totals: I (a3) -200.25, B (a1) 1000.00, M (a2) 500.50, E 0.00; they
+     * sum back to 1300.25 like the root roll-ups (I 1300.25 + E 0).
+     */
+    public function testTheAllocationAlsoCarriesTheDirectFiguresDepthAndParent(): void
+    {
+        $regrouped = $this->regroup($this->figures([
+            new AccountWeight('a1', '1000.00', 'EUR', true),
+            new AccountWeight('a2', '500.50', 'EUR', true),
+            new AccountWeight('a3', '-200.25', 'EUR', true),
+            new AccountWeight('a4', '9999', 'EUR', false),
+        ], []), ['a1' => self::B, 'a2' => self::M, 'a3' => self::I, 'a4' => self::B]);
+
+        $byGroup = [];
+        foreach ($regrouped->allocation as $item) {
+            $byGroup[$item->groupId] = $item;
+        }
+        self::assertSame('-200.25', $byGroup[self::I]->directValue);
+        self::assertSame('1000.00', $byGroup[self::B]->directValue);
+        self::assertSame('500.50', $byGroup[self::M]->directValue);
+        self::assertSame('0', $byGroup[self::E]->directValue);
+        self::assertSame([null, self::I, self::I, null], array_map(static fn (string $id): ?string => $byGroup[$id]->parentId, [self::I, self::B, self::M, self::E]));
+        self::assertSame([1, 2, 2, 1], array_map(static fn (string $id): int => $byGroup[$id]->depth, [self::I, self::B, self::M, self::E]));
+        self::assertNotNull($byGroup[self::B]->directShare);
+        self::assertStringStartsWith('0.769082', $byGroup[self::B]->directShare);
+        self::assertNull($byGroup[self::B]->directReason);
+    }
+
+    public function testALiabilityInASubGroupIsNegativeDirectlyAndRolledUpIntoItsParent(): void
+    {
+        // A1 1000.00 in Immobilier, A2 500.50 in Investissement itself, loan A3 -200.25 in Bourse: net worth 1300.25.
+        $regrouped = $this->regroup($this->figures([
+            new AccountWeight('a1', '1000.00', 'EUR', true),
+            new AccountWeight('a2', '500.50', 'EUR', true),
+            new AccountWeight('a3', '-200.25', 'EUR', true),
+        ], []), ['a1' => self::M, 'a2' => self::I, 'a3' => self::B]);
+
+        $byGroup = [];
+        foreach ($regrouped->allocation as $item) {
+            $byGroup[$item->groupId] = $item;
+        }
+        self::assertSame('-200.25', $byGroup[self::B]->directValue);
+        self::assertSame('-200.25', $byGroup[self::B]->value);
+        self::assertSame('500.50', $byGroup[self::I]->directValue);
+        self::assertSame('1300.25', $byGroup[self::I]->value);
+        self::assertNotNull($byGroup[self::B]->directShare);
+        self::assertStringStartsWith('-0.154', $byGroup[self::B]->directShare);
+    }
+
+    public function testAMissingValuationLeavesNoDirectFigureButAReason(): void
+    {
+        $regrouped = $this->regroup($this->figures([
+            new AccountWeight('a1', null, null, true),
+        ], []), ['a1' => self::B]);
+
+        foreach ($regrouped->allocation as $item) {
+            self::assertNull($item->directValue);
+            self::assertNull($item->directShare);
+            self::assertNotNull($item->directReason);
+        }
+    }
+
+    public function testAMonthSnapshotWrittenBeforeTheDirectFiguresStillLoads(): void
+    {
+        $payload = $this->figures([new AccountWeight('a1', '1', 'EUR', true)], [])->toPayload();
+        $payload['allocation'] = [['groupId' => 'stale', 'value' => '1', 'asset' => 'EUR', 'share' => '1', 'reason' => null]];
+
+        $item = MonthFigures::fromPayload($payload)->allocation[0];
+
+        self::assertNull($item->parentId);
+        self::assertSame(1, $item->depth);
+        self::assertNull($item->directValue);
+    }
+
     public function testAGroupMovedUnderAnotherParentRollsUpIntoItsNewAncestors(): void
     {
         $tree = new CurrentGroupTree([

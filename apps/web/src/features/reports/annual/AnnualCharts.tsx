@@ -1,6 +1,11 @@
 import type { AnnualCategoryShare, AnnualReport } from '@cadran/api-client';
 import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
+import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
+import { allocationEntries } from '@/features/accounts/grouping-mode/allocationEntries';
+import { useGroupingMode } from '@/features/accounts/grouping-mode/useGroupingMode';
+import { canonicalGroupColor } from '@/features/accounts/group-color';
+import { canonicalCategoryColor } from '@/features/categories/category-color';
 import { SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
 import { lazyComponent } from '@/lib/lazyComponent';
 import { firstDataMonth, fromFirstDataMonth } from './annualColumns';
@@ -18,6 +23,7 @@ const TOP_VISIBLE_ROWS = 6;
 function toRow(item: AnnualCategoryShare): AnnualDonutItem & AnnualLegendRow {
   return {
     amount: item.total,
+    color: canonicalCategoryColor(item.color) ?? undefined,
     key: item.categoryId ?? item.label ?? '',
     label: item.label ?? '',
     share: item.share,
@@ -33,6 +39,7 @@ export function AnnualCharts({
   report: AnnualReport;
 }) {
   const { t } = useTranslation();
+  const [mode, setMode] = useGroupingMode('cadran.reports.allocation.grouping', 'PRIMARY');
   const { topExpenseCategories: top, allocation } = report.charts;
   // The series start at the first month with data, not in January of a year that began later.
   const first = firstDataMonth(report.rows);
@@ -42,7 +49,10 @@ export function AnnualCharts({
   };
   const netWorth = {
     ...report.charts.netWorth,
-    months: fromFirstDataMonth(report.charts.netWorth.months, first),
+    months:
+      report.charts.netWorth.opening === null
+        ? fromFirstDataMonth(report.charts.netWorth.months, first)
+        : report.charts.netWorth.months,
   };
   const reasonText = (reason: string | null) =>
     t('reports.annual.notCalculable') +
@@ -51,6 +61,21 @@ export function AnnualCharts({
    * bucket's individual items, exact amount and share each, no summed
    * "Autres" slice. */
   const topCategoryRows = [...top.items, ...(top.other?.items ?? [])].map(toRow);
+
+  const itemsById = new Map(allocation.items.map((item) => [item.groupId, item]));
+  const allocationRows = allocationEntries(allocation.items, mode, (amount) => amount).map(
+    (entry) => ({
+      amount: entry.value,
+      color: canonicalGroupColor(entry.color) ?? undefined,
+      key: entry.groupId,
+      label: entry.path,
+      reason:
+        (mode === 'PARENT'
+          ? itemsById.get(entry.groupId)?.reason
+          : itemsById.get(entry.groupId)?.directReason) ?? null,
+      share: entry.share,
+    }),
+  );
 
   return (
     <div className={styles.grid}>
@@ -85,24 +110,19 @@ export function AnnualCharts({
           />
         )}
       </ChartFrame>
-      <ChartFrame title={t('reports.annual.charts.allocation')}>
+      <ChartFrame
+        actions={<GroupingModeToggle mode={mode} onChange={setMode} />}
+        title={t('reports.annual.charts.allocation')}
+      >
         {allocation.reason !== null || allocation.assetCode === null ? (
           <p>{reasonText(allocation.reason)}</p>
         ) : (
           <AnnualDonut
             assetCode={allocation.assetCode}
             label={t('reports.annual.charts.allocation')}
-            legend={allocation.items.map((item) => ({
-              amount: item.value,
-              key: item.groupId,
-              label: item.label,
-              reason: item.reason,
-              share: item.share,
-            }))}
-            slices={allocation.items.flatMap((item) =>
-              item.value === null || item.share === null
-                ? []
-                : [{ amount: item.value, key: item.groupId, label: item.label, share: item.share }],
+            legend={allocationRows}
+            slices={allocationRows.flatMap(({ amount, color, key, label, share }) =>
+              amount === null || share === null ? [] : [{ amount, color, key, label, share }],
             )}
           />
         )}

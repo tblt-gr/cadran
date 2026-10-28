@@ -7,7 +7,7 @@ import { AllocationLegend as Legend } from '@/components/ui/charts/allocation-le
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { formatSharePercent } from '@/lib/formatSharePercent';
-import { allocationEntries } from './allocationEntries';
+import { allocationEntries } from '@/features/accounts/grouping-mode/allocationEntries';
 import styles from './AllocationPanel.module.css';
 
 interface AllocationLegendProps {
@@ -22,7 +22,7 @@ export function AllocationLegend({ allocation, mode = 'PARENT', reason }: Alloca
 
   return (
     <Legend
-      items={allocationEntries(allocation, mode).map((entry) => ({
+      items={allocationEntries(allocation, mode, (amount) => amount.value).map((entry) => ({
         amount: <NetWorthFigure amount={entry.value} reason={reason} />,
         barPercent: entry.share.percentDisplay,
         key: entry.groupId,

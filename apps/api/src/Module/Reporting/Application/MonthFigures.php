@@ -76,6 +76,11 @@ final readonly class MonthFigures
                 $item->value?->asset,
                 $item->share->ratio,
                 $item->share->reason,
+                $item->parentId,
+                $item->depth,
+                $item->directValue?->amount,
+                $item->directShare->ratio,
+                $item->directShare->reason,
             );
         }
 
@@ -124,6 +129,11 @@ final readonly class MonthFigures
                 'asset' => $item->asset,
                 'share' => $item->share,
                 'reason' => $item->reason,
+                'parentId' => $item->parentId,
+                'depth' => $item->depth,
+                'directValue' => $item->directValue,
+                'directShare' => $item->directShare,
+                'directReason' => $item->directReason,
             ], $this->allocation),
             'accountWeights' => null === $this->accountWeights
                 ? throw new \LogicException('A snapshot without account weights is never written.') : array_map(static fn (AccountWeight $weight): array => $weight->toPayload(), $this->accountWeights),
@@ -163,6 +173,11 @@ final readonly class MonthFigures
                 self::nullableString($item['asset'] ?? null),
                 self::nullableString($item['share'] ?? null),
                 self::nullableString($item['reason'] ?? null),
+                self::nullableString($item['parentId'] ?? null),
+                is_int($item['depth'] ?? null) ? $item['depth'] : 1,
+                self::nullableString($item['directValue'] ?? null),
+                self::nullableString($item['directShare'] ?? null),
+                self::nullableString($item['directReason'] ?? null),
             );
         }
         $accountWeights = null;

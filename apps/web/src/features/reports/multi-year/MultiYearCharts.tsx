@@ -17,9 +17,10 @@ import {
   yearStartTicks,
 } from '@/features/reports/annual/chartGeometry';
 import { formatAnnualValue } from '@/features/reports/annual/annualFormat';
-import { monthLabel } from '@/features/reports/annual/annualRowLabels';
+import { monthLabel, monthYearLabel } from '@/features/reports/annual/annualRowLabels';
 import { axisTickLabel, formatMonthLabel } from '@/lib/monthLabel';
 import { firstDataMonth, fromFirstDataMonth } from '@/features/reports/annual/annualColumns';
+import { netWorthPoints } from '@/features/reports/annual/netWorthPoints';
 import styles from './MultiYearCharts.module.css';
 
 const FLOW_SERIES_IDS = ['cashIncome', 'budgetExpenses', 'budgetSurplus'] as const;
@@ -105,12 +106,47 @@ function flowEntries(annualReports: AnnualReport[] | undefined) {
   );
 }
 
-function netWorthEntries(annualReports: AnnualReport[] | undefined) {
-  return annualReports?.flatMap((annualReport, index) =>
-    index === 0
-      ? fromFirstDataMonth(annualReport.charts.netWorth.months, firstDataMonth(annualReport.rows))
-      : annualReport.charts.netWorth.months,
-  );
+interface NetWorthRow {
+  isOpening: boolean;
+  /** `YYYY-MM` for a month, null when the row is a whole year. */
+  month: string | null;
+  value: string | null;
+  year: number | null;
+}
+
+function netWorthRows(
+  annualReports: AnnualReport[] | undefined,
+  report: MultiYearReport,
+): NetWorthRow[] {
+  if (!annualReports) {
+    return report.years.map((entry) => ({
+      isOpening: false,
+      month: null,
+      value: entry.cells[NET_WORTH_ID]?.value ?? null,
+      year: entry.year,
+    }));
+  }
+
+  return annualReports
+    .flatMap(({ charts, rows }, index) => {
+      const { netWorth } = charts;
+      // Only the first year draws its opening: later openings repeat the previous December.
+      if (index > 0) {
+        return netWorthPoints({ months: netWorth.months, opening: null });
+      }
+      const months =
+        netWorth.opening === null
+          ? fromFirstDataMonth(netWorth.months, firstDataMonth(rows))
+          : netWorth.months;
+
+      return netWorthPoints({ months, opening: netWorth.opening });
+    })
+    .map(({ isOpening, point }) => ({
+      isOpening,
+      month: point.month,
+      value: point.value.value,
+      year: null,
+    }));
 }
 
 function MultiYearFlowsChart({ annualReports, report }: MultiYearChartsProps) {
@@ -209,23 +245,24 @@ function NetWorthDataTable({ annualReports, report }: MultiYearChartsProps) {
         </tr>
       </thead>
       <tbody>
-        {(netWorthEntries(annualReports) ?? report.years).map((entry) => {
-          const cell = 'month' in entry ? entry.value : entry.cells[NET_WORTH_ID];
-          return (
-            <tr key={'month' in entry ? entry.month : entry.year}>
-              <th scope="row">
-                {'month' in entry ? monthLabel(entry.month, i18n.language) : entry.year}
-              </th>
-              <td>
-                {cell?.value == null ? (
-                  <EmptyValue quiet label={t('reports.annual.notCalculable')} />
-                ) : (
-                  formatAnnualValue(cell.value, 'STOCK', assetCode, i18n.language)
-                )}
-              </td>
-            </tr>
-          );
-        })}
+        {netWorthRows(annualReports, report).map((row) => (
+          <tr key={row.month ?? row.year}>
+            <th scope="row">
+              {row.month === null
+                ? row.year
+                : row.isOpening
+                  ? monthYearLabel(row.month, i18n.language)
+                  : monthLabel(row.month, i18n.language)}
+            </th>
+            <td>
+              {row.value === null ? (
+                <EmptyValue quiet label={t('reports.annual.notCalculable')} />
+              ) : (
+                formatAnnualValue(row.value, 'STOCK', assetCode, i18n.language)
+              )}
+            </td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
@@ -234,16 +271,14 @@ function NetWorthDataTable({ annualReports, report }: MultiYearChartsProps) {
 function MultiYearNetWorthChart({ annualReports, report }: MultiYearChartsProps) {
   const { t, i18n } = useTranslation();
   const assetCode = netWorthAssetCode(annualReports, report);
-  const entries = netWorthEntries(annualReports) ?? report.years;
-  const points: CurvePoint[] = entries.map((entry) => {
-    const cell = 'month' in entry ? entry.value : entry.cells[NET_WORTH_ID];
-    const label = 'month' in entry ? entry.month : String(entry.year);
+  const points: CurvePoint[] = netWorthRows(annualReports, report).map((row) => {
+    const label = row.month ?? String(row.year);
     const text =
-      cell?.value == null ? null : formatAnnualValue(cell.value, 'STOCK', assetCode, i18n.language);
+      row.value === null ? null : formatAnnualValue(row.value, 'STOCK', assetCode, i18n.language);
 
     return {
       axisLabel: label,
-      geometryValue: cell?.value ?? null,
+      geometryValue: row.value,
       hitLabel: text === null ? label : `${label}, ${text}`,
       key: label,
       tooltipTitle: label,

@@ -79,4 +79,38 @@ describe('AnnualDonut', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(9);
     expect(toggle.textContent).toBe('Voir moins');
   });
+
+  it('paints slices and legend bars with the identity color when there is one', async () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      bottom: 0,
+      height: 200,
+      left: 0,
+      right: 0,
+      top: 0,
+      width: 200,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    const colored = [
+      { ...items(2)[0]!, color: '#2E7D32' },
+      { ...items(2)[1]!, color: '#1565C0' },
+    ];
+    const { container } = render(
+      <AnnualDonut assetCode="EUR" label="Diagramme" legend={colored} slices={colored} />,
+    );
+
+    await waitFor(
+      () => expect(container.querySelectorAll('path.recharts-sector')).toHaveLength(2),
+      { timeout: 5000 },
+    );
+    const fills = Array.from(container.querySelectorAll('path.recharts-sector')).map((sector) =>
+      sector.getAttribute('fill'),
+    );
+    expect(fills).toEqual(['#2E7D32', '#1565C0']);
+    const bars = Array.from(container.querySelectorAll('li rect')).map((rect) =>
+      rect.getAttribute('fill'),
+    );
+    expect(bars).toEqual(['#2E7D32', '#1565C0']);
+  });
 });

@@ -65,6 +65,9 @@ final class ReadCurrentGroupTreeTest extends TestCase
             self::IMMOBILIER => 'Investissement',
             self::ARCHIVED => 'Investissement',
         ], $references->groupParents);
+        // Every group of the workspace resolves a color, none from another workspace.
+        self::assertEqualsCanonicalizing(array_keys($references->groups), array_keys($references->groupColors));
+        self::assertArrayNotHasKey(self::FOREIGN_GROUP, $references->groupColors);
     }
 
     /** @param list<\App\Module\Accounts\Domain\Account> $accounts */

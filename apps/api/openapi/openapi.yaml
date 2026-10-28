@@ -16301,10 +16301,13 @@ components:
     AnnualCategoryShare:
       type: object
       additionalProperties: false
-      required: [total, share]
+      required: [color, total, share]
       properties:
         categoryId: { type: string, format: uuid }
         label: { type: string }
+        color:
+          type: [string, 'null']
+          description: Effective color of the category (its own, else its nearest ancestor's); null when it has none.
         total: { type: string }
         share: { type: string }
     AnnualTopExpenseCategories:
@@ -16325,9 +16328,12 @@ components:
     AnnualOtherCategories:
       type: object
       additionalProperties: false
-      required: [total, share, items]
+      required: [color, total, share, items]
       description: The categories beyond the top ones; total and share are the exact sum of items.
       properties:
+        color:
+          type: [string, 'null']
+          description: Always null, the aggregate has no color of its own.
         total: { type: string }
         share: { type: string }
         items:
@@ -16336,13 +16342,39 @@ components:
     AnnualAllocationItem:
       type: object
       additionalProperties: false
-      required: [groupId, label, value, share, reason]
+      required:
+        [
+          groupId,
+          label,
+          value,
+          share,
+          reason,
+          parentId,
+          depth,
+          hasChildren,
+          directValue,
+          directShare,
+          directReason,
+          color,
+        ]
       properties:
         groupId: { type: string, format: uuid }
-        label: { type: string }
-        value: { type: [string, 'null'] }
+        label:
+          {
+            type: string,
+            description: The group's own name; the parent name is derived from parentId.,
+          }
+        value: { type: [string, 'null'], description: Roll-up of the whole subtree. }
         share: { type: [string, 'null'] }
         reason: { type: [string, 'null'] }
+        parentId: { type: [string, 'null'], format: uuid }
+        depth: { type: integer, minimum: 1 }
+        hasChildren: { type: boolean }
+        directValue:
+          { type: [string, 'null'], description: Total of the accounts held directly by the group. }
+        directShare: { type: [string, 'null'] }
+        directReason: { type: [string, 'null'] }
+        color: { type: [string, 'null'], description: Effective group color; null when unresolved. }
     AnnualAllocation:
       type: object
       additionalProperties: false
@@ -16382,9 +16414,16 @@ components:
     AnnualNetWorthSeries:
       type: object
       additionalProperties: false
-      required: [assetCode, months]
+      required: [assetCode, opening, months]
       properties:
         assetCode: { type: [string, 'null'] }
+        opening:
+          description: >-
+            Closing balance of December of the previous year, the same value as that month in the
+            previous year's report; null when that month has no figures.
+          oneOf:
+            - { $ref: '#/components/schemas/AnnualNetWorthPoint' }
+            - { type: 'null' }
         months:
           type: array
           items: { $ref: '#/components/schemas/AnnualNetWorthPoint' }

@@ -3,14 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/CurveChart';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAnnualValue } from './annualFormat';
-import { monthLabel } from './annualRowLabels';
+import { monthLabel, monthYearLabel } from './annualRowLabels';
+import { netWorthPoints } from './netWorthPoints';
 import styles from './AnnualCharts.module.css';
 
 /** Year-end net worth per month, drawn like the dashboard curve from the backend's exact strings. */
 export function AnnualNetWorthChart({ netWorth }: { netWorth: AnnualNetWorthSeries }) {
   const { i18n, t } = useTranslation();
-  const points: CurvePoint[] = netWorth.months.map((point) => {
-    const month = monthLabel(point.month, i18n.language);
+  const points: CurvePoint[] = netWorthPoints(netWorth).map(({ isOpening, point }) => {
+    const month = isOpening
+      ? monthYearLabel(point.month, i18n.language)
+      : monthLabel(point.month, i18n.language);
     const text =
       point.value.value === null
         ? null

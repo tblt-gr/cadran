@@ -1,7 +1,8 @@
 import type { AnnualFlows, AnnualNetWorthSeries } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { AnnualCellValue } from './AnnualCellValue';
-import { monthLabel } from './annualRowLabels';
+import { monthLabel, monthYearLabel } from './annualRowLabels';
+import { netWorthPoints } from './netWorthPoints';
 import styles from './AnnualCharts.module.css';
 
 export function FlowsDataTable({ flows }: { flows: AnnualFlows }) {
@@ -53,9 +54,13 @@ export function NetWorthDataTable({ netWorth }: { netWorth: AnnualNetWorthSeries
         </tr>
       </thead>
       <tbody>
-        {netWorth.months.map((point) => (
+        {netWorthPoints(netWorth).map(({ isOpening, point }) => (
           <tr key={point.month}>
-            <th scope="row">{monthLabel(point.month, i18n.language)}</th>
+            <th scope="row">
+              {isOpening
+                ? monthYearLabel(point.month, i18n.language)
+                : monthLabel(point.month, i18n.language)}
+            </th>
             <td>
               <AnnualCellValue
                 assetCode={netWorth.assetCode}

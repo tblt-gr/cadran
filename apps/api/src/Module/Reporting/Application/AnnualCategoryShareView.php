@@ -10,6 +10,7 @@ final readonly class AnnualCategoryShareView
     public function __construct(
         public ?string $categoryId,
         public string $label,
+        public ?string $color,
         public string $total,
         public string $share,
         public array $items = [],

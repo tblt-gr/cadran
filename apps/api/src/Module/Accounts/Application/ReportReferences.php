@@ -11,8 +11,9 @@ final readonly class ReportReferences
      * @param list<ReportAccountReference> $accounts     ordered by label
      * @param array<string, string>        $groups       label by group id, depth-first saved order
      * @param array<string, ?string>       $groupParents label of the immediate parent by group id, null for a root
+     * @param array<string, string>        $groupColors  effective color by group id, as the net worth shows it
      */
-    public function __construct(public array $accounts, public array $groups, public array $groupParents = [])
+    public function __construct(public array $accounts, public array $groups, public array $groupParents = [], public array $groupColors = [])
     {
     }
 }

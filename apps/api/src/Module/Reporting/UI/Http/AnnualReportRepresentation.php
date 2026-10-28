@@ -56,6 +56,13 @@ final class AnnualReportRepresentation
                         'value' => $item->value,
                         'share' => $item->share,
                         'reason' => $item->reason,
+                        'parentId' => $item->parentId,
+                        'depth' => $item->depth,
+                        'hasChildren' => $item->hasChildren,
+                        'directValue' => $item->directValue,
+                        'directShare' => $item->directShare,
+                        'directReason' => $item->directReason,
+                        'color' => $item->color,
                     ], $report->allocation->items),
                     'reason' => $report->allocation->reason,
                 ],
@@ -70,6 +77,7 @@ final class AnnualReportRepresentation
                 ],
                 'netWorth' => [
                     'assetCode' => $report->netWorth->assetCode,
+                    'opening' => null === $report->netWorth->opening ? null : ['month' => $report->netWorth->opening->month, 'value' => self::cell($report->netWorth->opening->value)],
                     'months' => array_map(static fn ($point): array => ['month' => $point->month, 'value' => self::cell($point->value)], $report->netWorth->months),
                 ],
             ],
@@ -139,7 +147,7 @@ final class AnnualReportRepresentation
     /** @return array<string, mixed> */
     private static function share(AnnualCategoryShareView $share): array
     {
-        $item = ['categoryId' => $share->categoryId, 'label' => $share->label, 'total' => $share->total, 'share' => $share->share];
+        $item = ['categoryId' => $share->categoryId, 'label' => $share->label, 'color' => $share->color, 'total' => $share->total, 'share' => $share->share];
         if (null === $share->categoryId) {
             unset($item['categoryId'], $item['label']);
             $item['items'] = array_map(self::share(...), $share->items);
