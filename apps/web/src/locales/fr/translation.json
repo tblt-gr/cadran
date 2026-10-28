@@ -358,6 +358,7 @@
     "manageGroups": "Gérer les groupes",
     "actions": {
       "groups": "Groupes",
+      "subGroups": "Sous-groupes",
       "reorder": "Réorganiser",
       "done": "Terminer"
     },

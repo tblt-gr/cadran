@@ -57,7 +57,15 @@ export function AccountsPageActions({
           <Icon name="layers" />
           <span className={styles.secondaryLabel}>{t('accounts.actions.groups')}</span>
         </a>
-        <GroupingModeToggle mode={grouping} onChange={onGroupingChange} />
+        <GroupingModeToggle
+          className={`secondary-action ${styles.secondary}`}
+          icon="treemap"
+          mode={grouping}
+          onChange={onGroupingChange}
+          visibleLabel={
+            <span className={styles.secondaryLabel}>{t('accounts.actions.subGroups')}</span>
+          }
+        />
         <button
           aria-label={reorderLabel}
           aria-pressed={reordering}
