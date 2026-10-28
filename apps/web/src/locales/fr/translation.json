@@ -927,6 +927,19 @@
     "addFirst": "Créer le premier groupe",
     "includeArchived": "Afficher les groupes archivés",
     "loading": "Chargement des groupes…",
+    "reorder": {
+      "start": "Réorganiser les groupes",
+      "stop": "Terminer la réorganisation",
+      "start_short": "Réorganiser",
+      "stop_short": "Terminer",
+      "hint": "Utilisez les flèches pour déplacer les groupes parmi leurs voisins. Les changements sont enregistrés au fur et à mesure.",
+      "moveUp": "Monter {{label}}",
+      "moveDown": "Descendre {{label}}",
+      "moved": "{{label}} déplacé en position {{rank}} sur {{count}}.",
+      "moveFailed": "Le déplacement n’a pas été enregistré. L’ordre affiché est l’ordre enregistré.",
+      "retry": "Réessayer le déplacement",
+      "reload": "Recharger l’ordre"
+    },
     "toasts": {
       "saved": "Le groupe a été enregistré.",
       "archived": "Le groupe a été archivé."
@@ -934,8 +947,7 @@
     "fields": {
       "color": "Couleur du groupe",
       "label": "Libellé",
-      "parent": "Groupe parent",
-      "order": "Ordre d’affichage"
+      "parent": "Groupe parent"
     },
     "form": {
       "resetColor": "Rétablir la couleur par défaut",
@@ -953,14 +965,14 @@
       "saving": "Enregistrement…"
     },
     "validation": {
-      "label": "Le libellé doit contenir entre 1 et 80 caractères.",
-      "order": "L’ordre doit être un entier compris entre 0 et 32767."
+      "label": "Le libellé doit contenir entre 1 et 80 caractères."
     },
     "errors": {
       "color": "Choisissez un mode de couleur valide et, si besoin, une couleur au format #RRGGBB.",
       "conflict": "Un groupe actif porte déjà ce libellé au même niveau. Choisissez-en un autre.",
       "invalid": "Le groupe est invalide. Vérifiez son libellé, son parent et l’absence de cycle.",
       "network": "L’enregistrement a échoué. Réessayez.",
+      "staleOrder": "L’ordre des groupes a changé. Rechargez pour réessayer.",
       "stale": "Ce groupe a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le groupe puis réappliquez votre modification.",
       "colorMode": "Ce mode de couleur n’est pas disponible pour ce groupe."
     },

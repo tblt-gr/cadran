@@ -84,7 +84,6 @@ final class UpdateAccountGroupTest extends TestCase
         $updated = ($this->update($groups))($child->id, new UpdateAccountGroupInput(
             label: $child->label,
             parentId: $root->id,
-            sortOrder: 2,
             version: 1,
         ));
 
@@ -94,6 +93,33 @@ final class UpdateAccountGroupTest extends TestCase
         $encoded = json_encode($this->trail->events[0]->diff, JSON_THROW_ON_ERROR);
         self::assertStringNotContainsString('Épargne', $encoded);
         self::assertSame('true', $this->trail->events[0]->diff->after['parentChanged']);
+    }
+
+    public function testReparentingAppendsAfterTheLastSiblingOfTheNewParent(): void
+    {
+        $root = AccountGroupFixture::group(label: 'Patrimoine');
+        $existing = AccountGroupFixture::group(id: AccountGroupFixture::CHILD_ID, label: 'A', parentId: $root->id, depth: 2, sortOrder: 7);
+        $moving = AccountGroupFixture::group(id: AccountGroupFixture::OTHER_ID, label: 'B', sortOrder: 0);
+        $groups = new InMemoryAccountGroupRepository($root, $existing, $moving);
+
+        $updated = ($this->update($groups))($moving->id, new UpdateAccountGroupInput(
+            label: 'B',
+            parentId: $root->id,
+            version: 1,
+            sortOrder: 0,
+        ));
+
+        self::assertSame(8, $updated->sortOrder);
+    }
+
+    public function testAnAbsentSortOrderKeepsTheCurrentOneWhenTheParentStays(): void
+    {
+        $group = AccountGroupFixture::group(sortOrder: 4);
+        $groups = new InMemoryAccountGroupRepository($group);
+
+        $updated = ($this->update($groups))($group->id, new UpdateAccountGroupInput(label: 'Renamed', parentId: null, version: 1));
+
+        self::assertSame(4, $updated->sortOrder);
     }
 
     public function testReparentingRewritesDescendantDepths(): void
@@ -122,7 +148,6 @@ final class UpdateAccountGroupTest extends TestCase
         ($this->update($groups))($mid->id, new UpdateAccountGroupInput(
             label: $mid->label,
             parentId: $branch->id,
-            sortOrder: 0,
             version: 1,
         ));
 

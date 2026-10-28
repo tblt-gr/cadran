@@ -1,6 +1,6 @@
 import type { AccountGroupInputProblem } from '@cadran/api-client';
 
-export type GroupErrorKind = 'color' | 'conflict' | 'invalid' | 'network' | 'stale';
+export type GroupErrorKind = 'color' | 'conflict' | 'invalid' | 'network' | 'stale' | 'staleOrder';
 
 /**
  * A refused group request, classified by its RFC 9457 problem type rather
@@ -22,6 +22,8 @@ function classify(status: number, problemType: string | undefined): GroupErrorKi
   switch (problemType) {
     case '/problems/stale-version':
       return 'stale';
+    case '/problems/stale-account-group-order':
+      return 'staleOrder';
     case '/problems/account-group-label-taken':
       return 'conflict';
     default:

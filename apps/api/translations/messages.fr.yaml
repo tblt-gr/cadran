@@ -471,6 +471,15 @@ api:
     invalid_account_group:
       title: 'Groupe de comptes invalide'
       detail: 'Vérifiez le libellé, le parent et l’ordre du groupe. Un arbre de groupes ne peut pas contenir de cycle ni un parent d’un autre espace.'
+    invalid_account_group_move:
+      title: 'Déplacement de groupe invalide'
+      detail: "Le déplacement attend un groupe de repère optionnel et l'ordre affiché des groupes frères : 1 à 100 identifiants uniques."
+    account_group_invalid_anchor:
+      title: 'Groupe de repère invalide'
+      detail: 'Le groupe de repère doit être un autre groupe frère actif du groupe déplacé.'
+    account_group_stale_order:
+      title: 'Ordre des groupes modifié entre-temps'
+      detail: "L'ordre des groupes a changé depuis son affichage. Rechargez les groupes puis réappliquez le déplacement."
     account_group_payload_too_large:
       title: 'Corps de groupe trop volumineux'
       detail: 'Le corps JSON dépasse la taille maximale autorisée.'

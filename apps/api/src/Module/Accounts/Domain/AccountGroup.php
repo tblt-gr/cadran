@@ -106,6 +106,26 @@ final readonly class AccountGroup
         );
     }
 
+    /** Ordering is display metadata: it neither bumps the version nor touches `updatedAt`. */
+    public function withSortOrder(int $sortOrder): self
+    {
+        return new self(
+            id: $this->id,
+            workspace: $this->workspace,
+            label: $this->label,
+            parentId: $this->parentId,
+            sortOrder: $sortOrder,
+            depth: $this->depth,
+            version: $this->version,
+            createdAt: $this->createdAt,
+            updatedAt: $this->updatedAt,
+            archivedAt: $this->archivedAt,
+            color: $this->color,
+            colorMode: $this->colorMode,
+            colorSlot: $this->colorSlot,
+        );
+    }
+
     public function archive(\DateTimeImmutable $archivedAt): self
     {
         if (null !== $this->archivedAt) {

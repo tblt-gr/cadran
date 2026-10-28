@@ -387,6 +387,195 @@ final class AccountGroupControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function testAMovePersistsTheOrderKeepsTheVersionAndIsAudited(): void
+    {
+        [$parent, $a, $b, $c] = $this->parentWithChildren(['A', 'B', 'C']);
+
+        $this->requestMove($c, $a, [$a, $b, $c]);
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame(['parentId' => $parent, 'siblingIds' => [$c, $a, $b], 'rank' => 1], $this->decode());
+        self::assertSame([$c, $a, $b], $this->childIds($parent));
+        self::assertSame([1, 1, 1], array_map(fn (string $id): int => $this->groupVersion($id), [$a, $b, $c]));
+        self::assertSame(1, $this->movedEventCount());
+
+        $this->requestMove($c, null, [$c, $a, $b]);
+        self::assertSame([$a, $b, $c], $this->childIds($parent));
+        self::assertSame(3, $this->decode()['rank']);
+        self::assertSame([0, 1, 2], $this->sortOrders([$a, $b, $c]));
+    }
+
+    public function testAHiddenArchivedSiblingKeepsItsPlaceWhenAVisibleOneMoves(): void
+    {
+        [$parent, $a, $b, $c] = $this->parentWithChildren(['A', 'B', 'C']);
+        $this->connection->update('account_groups', ['archived_at' => '2026-09-01 12:00:00+00'], ['id' => $b]);
+
+        $this->requestMove($c, $a, [$a, $c]);
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame([$c, $a], $this->decode()['siblingIds']);
+        // Full order was A B C: C moves before A, B stays after A.
+        self::assertSame([0, 1, 2], $this->sortOrders([$c, $a, $b]));
+    }
+
+    public function testAStaleSiblingListIsAConflictAndTheSavedOrderStaysIntact(): void
+    {
+        [$parent, $a, $b, $c] = $this->parentWithChildren(['A', 'B', 'C']);
+        $this->requestMove($c, $a, [$a, $b, $c]);
+        self::assertResponseStatusCodeSame(200);
+
+        $this->requestMove($b, $a, [$a, $b, $c]);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/stale-account-group-order', $this->decode()['type']);
+        self::assertSame([$c, $a, $b], $this->childIds($parent));
+    }
+
+    public function testMalformedAndOversizedSiblingListsAreRefusedBeforeAnyWrite(): void
+    {
+        [$parent, $a, $b] = $this->parentWithChildren(['A', 'B']);
+        $many = array_map(static fn (int $n): string => sprintf('00000000-0000-7000-8000-%012d', $n), range(1, 101));
+        $exactlyMax = array_slice($many, 0, 100);
+
+        foreach ([[], [$a, $a], ['not-a-uuid'], $many, ['x' => $a], null] as $expected) {
+            $this->requestRaw('POST', '/api/v1/account-groups/'.$b.'/move', ['beforeGroupId' => $a, 'expectedSiblingIds' => $expected]);
+            self::assertResponseStatusCodeSame(422);
+        }
+        $this->requestRaw('POST', '/api/v1/account-groups/'.$b.'/move', ['beforeGroupId' => 'nope', 'expectedSiblingIds' => [$a, $b]]);
+        self::assertResponseStatusCodeSame(422);
+        $this->requestRaw('POST', '/api/v1/account-groups/'.$b.'/move', ['expectedSiblingIds' => [$a, $b]]);
+        self::assertResponseStatusCodeSame(422);
+
+        // 100 unique ids pass validation and fail on the saved order, not on size.
+        $this->requestMove($b, null, $exactlyMax);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame([$a, $b], $this->childIds($parent));
+    }
+
+    public function testForeignGroupsAnswerLikeUnknownOnesAndForeignAnchorsAreRefused(): void
+    {
+        [$parent, $a, $b] = $this->parentWithChildren(['A', 'B']);
+        $foreign = '00000000-0000-7000-8000-0000000f0002';
+        $this->insertGroup($foreign, WorkspaceFixture::OTHER_WORKSPACE, 'Foreign');
+
+        $this->requestMove($foreign, null, [$foreign]);
+        $foreignStatus = $this->client->getResponse()->getStatusCode();
+        $this->requestMove('00000000-0000-7000-8000-0000000f0003', null, ['00000000-0000-7000-8000-0000000f0003']);
+        self::assertSame(404, $foreignStatus);
+        self::assertResponseStatusCodeSame(404);
+
+        $this->requestMove($b, $foreign, [$a, $b]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/invalid-account-group-anchor', $this->decode()['type']);
+        self::assertSame([$a, $b], $this->childIds($parent));
+        self::assertSame(0, $this->sortOrders([$foreign])[0]);
+    }
+
+    public function testAnArchivedGroupAndAnArchivedOrNonSiblingAnchorAreRefused(): void
+    {
+        [$parent, $a, $b, $c] = $this->parentWithChildren(['A', 'B', 'C']);
+        $this->connection->update('account_groups', ['archived_at' => '2026-09-01 12:00:00+00'], ['id' => $c]);
+
+        $this->requestMove($c, null, [$a, $b]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/account-group-archived', $this->decode()['type']);
+
+        $this->requestMove($a, $c, [$a, $b]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/invalid-account-group-anchor', $this->decode()['type']);
+
+        $this->requestMove($a, $parent, [$a, $b]);
+        self::assertResponseStatusCodeSame(422);
+        $this->requestMove($a, $a, [$a, $b]);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testANewGroupIsAppendedAndIgnoresADeprecatedSortOrder(): void
+    {
+        [$parent, $a] = $this->parentWithChildren(['A']);
+
+        $this->requestRaw('POST', '/api/v1/account-groups', ['label' => 'B', 'parentId' => $parent, 'sortOrder' => 0]);
+        self::assertResponseStatusCodeSame(201);
+        $b = self::stringValue($this->decode(), 'id');
+        $this->requestRaw('POST', '/api/v1/account-groups', ['label' => 'C', 'parentId' => $parent]);
+        self::assertResponseStatusCodeSame(201);
+
+        self::assertSame([0, 1, 2], $this->sortOrders([$a, $b, self::stringValue($this->decode(), 'id')]));
+    }
+
+    public function testReparentingThroughTheModalAppendsAfterTheNewParentsLastSibling(): void
+    {
+        [$parent, $a, $b] = $this->parentWithChildren(['A', 'B']);
+        $other = $this->createGroup('Other');
+        $this->requestRaw('PUT', '/api/v1/account-groups/'.$b, ['label' => 'B', 'parentId' => $other['id'], 'version' => 1]);
+        self::assertResponseStatusCodeSame(200);
+        $this->requestRaw('PUT', '/api/v1/account-groups/'.$a, ['label' => 'A', 'parentId' => $other['id'], 'version' => 1]);
+        self::assertResponseStatusCodeSame(200);
+
+        self::assertSame([$b, $a], $this->childIds(self::stringValue($other, 'id')));
+    }
+
+    /**
+     * @param list<string> $labels
+     *
+     * @return list<string> the parent id, then each child id in creation order
+     */
+    private function parentWithChildren(array $labels): array
+    {
+        $parent = self::stringValue($this->createGroup('Parent'), 'id');
+        $ids = [$parent];
+        foreach ($labels as $label) {
+            $ids[] = self::stringValue($this->createGroup($label, $parent), 'id');
+        }
+
+        return $ids;
+    }
+
+    /** @param list<string> $expected */
+    private function requestMove(string $id, ?string $before, array $expected): void
+    {
+        $this->requestRaw('POST', '/api/v1/account-groups/'.$id.'/move', ['beforeGroupId' => $before, 'expectedSiblingIds' => $expected]);
+    }
+
+    /** @return list<string> */
+    private function childIds(string $parentId): array
+    {
+        /** @var list<string> $ids */
+        $ids = $this->connection->fetchFirstColumn(
+            'SELECT id FROM account_groups WHERE parent_id = :parent AND archived_at IS NULL ORDER BY sort_order, normalized_label, id',
+            ['parent' => $parentId],
+        );
+
+        return $ids;
+    }
+
+    /**
+     * @param list<string> $ids
+     *
+     * @return list<int>
+     */
+    private function sortOrders(array $ids): array
+    {
+        return array_map(fn (string $id): int => (int) self::scalar($this->connection->fetchOne('SELECT sort_order FROM account_groups WHERE id = :id', ['id' => $id])), $ids);
+    }
+
+    private function groupVersion(string $id): int
+    {
+        return (int) self::scalar($this->connection->fetchOne('SELECT version FROM account_groups WHERE id = :id', ['id' => $id]));
+    }
+
+    private static function scalar(mixed $value): int|string
+    {
+        self::assertTrue(is_int($value) || is_string($value));
+
+        return $value;
+    }
+
+    private function movedEventCount(): int
+    {
+        return (int) self::scalar($this->connection->fetchOne("SELECT count(*) FROM audit_events WHERE event_type = 'account_group.moved'"));
+    }
+
     /** @param array<string, mixed> $body */
     private function requestRaw(string $method, string $uri, array $body): void
     {

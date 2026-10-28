@@ -163,6 +163,44 @@ final class InMemoryAccountGroupRepository implements AccountGroupRepository
         return false;
     }
 
+    public function lockSiblings(WorkspaceScope $workspace, ?string $parentId, int $limit): array
+    {
+        $siblings = array_values(array_filter(
+            $this->groups,
+            static fn (AccountGroup $group): bool => $group->workspace->equals($workspace) && $group->parentId === $parentId,
+        ));
+        usort($siblings, static fn (AccountGroup $a, AccountGroup $b): int => [$a->sortOrder, mb_strtolower(trim($a->label)), $a->id] <=> [$b->sortOrder, mb_strtolower(trim($b->label)), $b->id]);
+
+        return array_slice($siblings, 0, $limit);
+    }
+
+    public function saveSiblingOrder(WorkspaceScope $workspace, ?string $parentId, array $orderedIds): void
+    {
+        foreach ($this->groups as $position => $group) {
+            $rank = array_search($group->id, $orderedIds, true);
+            if (false !== $rank && $group->workspace->equals($workspace) && $group->parentId === $parentId) {
+                $this->groups[$position] = $group->withSortOrder($rank);
+            }
+        }
+    }
+
+    public function appendPosition(WorkspaceScope $workspace, ?string $parentId): int
+    {
+        $siblings = $this->lockSiblings($workspace, $parentId, PHP_INT_MAX);
+        if ([] === $siblings) {
+            return 0;
+        }
+
+        $next = max(array_map(static fn (AccountGroup $group): int => $group->sortOrder, $siblings)) + 1;
+        if ($next <= AccountGroup::MAX_SORT_ORDER) {
+            return $next;
+        }
+
+        $this->saveSiblingOrder($workspace, $parentId, array_map(static fn (AccountGroup $group): string => $group->id, $siblings));
+
+        return count($siblings);
+    }
+
     /** @return list<AccountGroup> */
     private function matching(WorkspaceScope $workspace, bool $includeArchived): array
     {

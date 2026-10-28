@@ -30,7 +30,6 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
   const [parentColor, setParentColor] = useState(group?.parentResolvedColor ?? null);
   const [label, setLabel] = useState(group?.label ?? '');
   const [parentId, setParentId] = useState(group?.parentId ?? '');
-  const [sortOrder, setSortOrder] = useState(String(group?.sortOrder ?? 0));
   const [showErrors, setShowErrors] = useState(false);
 
   const root = parentId === '';
@@ -49,18 +48,11 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
   }
 
   const cleanLabel = label.trim();
-  const parsedOrder = Number.parseInt(sortOrder, 10);
   const labelInvalid = cleanLabel.length < 1 || [...cleanLabel].length > 80;
-  const orderInvalid =
-    sortOrder.trim() === '' ||
-    !/^[0-9]{1,5}$/.test(sortOrder.trim()) ||
-    Number.isNaN(parsedOrder) ||
-    parsedOrder < 0 ||
-    parsedOrder > 32767;
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (labelInvalid || orderInvalid) {
+    if (labelInvalid) {
       setShowErrors(true);
       return;
     }
@@ -70,7 +62,6 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
       colorMode,
       color: colorMode === 'CUSTOM' ? colorChoice.color : null,
       parentId: parentId === '' ? null : parentId,
-      sortOrder: parsedOrder,
     };
 
     onSubmit(group ? { ...common, version: group.version } : common);
@@ -109,18 +100,6 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
         />
 
         <ParentGroupField currentId={group?.id} onChange={changeParent} value={parentId} />
-
-        <label htmlFor="account-group-order">
-          <span>{t('accountGroups.fields.order')}</span>
-          <input
-            aria-invalid={showErrors && orderInvalid}
-            id="account-group-order"
-            inputMode="numeric"
-            onChange={(event) => setSortOrder(event.target.value)}
-            value={sortOrder}
-          />
-          {showErrors && orderInvalid ? <small>{t('accountGroups.validation.order')}</small> : null}
-        </label>
       </div>
 
       <div className={styles.actions}>

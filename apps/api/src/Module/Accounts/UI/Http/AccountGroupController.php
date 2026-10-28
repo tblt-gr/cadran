@@ -11,7 +11,10 @@ use App\Module\Accounts\Application\ArchiveAccountGroup;
 use App\Module\Accounts\Application\CreateAccountGroup;
 use App\Module\Accounts\Application\CreateAccountGroupInput;
 use App\Module\Accounts\Application\InvalidAccountGroupInput;
+use App\Module\Accounts\Application\InvalidAccountGroupMove;
 use App\Module\Accounts\Application\ListAccountGroups;
+use App\Module\Accounts\Application\MoveAccountGroup;
+use App\Module\Accounts\Application\StaleAccountGroupOrder;
 use App\Module\Accounts\Application\StaleAccountGroupVersion;
 use App\Module\Accounts\Application\UpdateAccountGroup;
 use App\Module\Accounts\Application\UpdateAccountGroupInput;
@@ -28,10 +31,15 @@ final readonly class AccountGroupController
     public const string TYPE_LABEL_TAKEN = '/problems/account-group-label-taken';
     public const string TYPE_STALE_VERSION = '/problems/stale-version';
     public const string TYPE_ARCHIVED = '/problems/account-group-archived';
+    public const string TYPE_STALE_ORDER = '/problems/stale-account-group-order';
+    public const string TYPE_INVALID_ANCHOR = '/problems/invalid-account-group-anchor';
 
     private const int MAX_BODY_BYTES = 16_384;
-    private const array CREATE_FIELDS = ['label', 'parentId', 'sortOrder'];
-    private const array UPDATE_FIELDS = ['label', 'parentId', 'sortOrder', 'version'];
+    private const int MAX_MOVE_SIBLINGS = 100;
+    private const array CREATE_FIELDS = ['label', 'parentId'];
+    private const array UPDATE_FIELDS = ['label', 'parentId', 'version'];
+    /** Deprecated on write: accepted and ignored on create, applied on update only while the parent stays. */
+    private const array DEPRECATED_FIELDS = ['sortOrder'];
 
     public function __construct(private TranslatorInterface $translator)
     {
@@ -85,11 +93,10 @@ final readonly class AccountGroupController
         }
 
         try {
-            $payload = AccountGroupPayload::of($body, self::CREATE_FIELDS, ['color', 'colorMode']);
+            $payload = AccountGroupPayload::of($body, self::CREATE_FIELDS, ['color', 'colorMode', ...self::DEPRECATED_FIELDS]);
             $group = $createAccountGroup(new CreateAccountGroupInput(
                 label: $payload->string('label'),
                 parentId: $payload->nullableString('parentId'),
-                sortOrder: $payload->integer('sortOrder'),
                 color: $payload->nullableString('color'),
                 colorMode: $color->mode,
             ));
@@ -127,15 +134,15 @@ final readonly class AccountGroupController
         }
 
         try {
-            $payload = AccountGroupPayload::of($body, self::UPDATE_FIELDS, ['color', 'colorMode']);
+            $payload = AccountGroupPayload::of($body, self::UPDATE_FIELDS, ['color', 'colorMode', ...self::DEPRECATED_FIELDS]);
             $group = $updateAccountGroup($id, new UpdateAccountGroupInput(
                 label: $payload->string('label'),
                 parentId: $payload->nullableString('parentId'),
-                sortOrder: $payload->integer('sortOrder'),
                 color: $payload->nullableString('color'),
                 version: $payload->integer('version'),
                 colorProvided: array_key_exists('color', $body),
                 colorMode: $color->mode,
+                sortOrder: array_key_exists('sortOrder', $body) ? $payload->integer('sortOrder') : null,
             ));
         } catch (AccountGroupArchived) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_group_archived', self::TYPE_ARCHIVED);
@@ -181,6 +188,65 @@ final readonly class AccountGroupController
         }
 
         return self::json(AccountGroupRepresentation::one($group));
+    }
+
+    /**
+     * Moving is its own resource: it changes display order only, never the
+     * group, so the group version is neither read nor bumped.
+     */
+    #[Route('/api/v1/account-groups/{id}/move', name: 'api_v1_account_groups_move', methods: ['POST'])]
+    public function move(string $id, Request $request, MoveAccountGroup $moveAccountGroup): Response
+    {
+        if (!self::identifier($id)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
+        }
+
+        $body = $this->readBody($request);
+        if ($body instanceof Response) {
+            return $body;
+        }
+
+        try {
+            $payload = AccountGroupPayload::of($body, ['beforeGroupId', 'expectedSiblingIds']);
+            $beforeGroupId = $payload->nullableString('beforeGroupId');
+            $expected = $body['expectedSiblingIds'] ?? null;
+            if ((null !== $beforeGroupId && !self::identifier($beforeGroupId)) || !self::siblingIds($expected)) {
+                throw new \UnexpectedValueException('The move identifiers are malformed.');
+            }
+
+            $moved = $moveAccountGroup($id, $beforeGroupId, $expected);
+        } catch (AccountGroupArchived) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_group_archived', self::TYPE_ARCHIVED);
+        } catch (InvalidAccountGroupMove $exception) {
+            return InvalidAccountGroupMove::INVALID_ANCHOR === $exception->reason
+                ? $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_group_invalid_anchor', self::TYPE_INVALID_ANCHOR)
+                : $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_group_move');
+        } catch (\UnexpectedValueException) {
+            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_group_move');
+        } catch (AccountGroupNotFound) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
+        } catch (StaleAccountGroupOrder) {
+            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_group_stale_order', self::TYPE_STALE_ORDER);
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_group_forbidden');
+        }
+
+        return self::json(['parentId' => $moved->parentId, 'siblingIds' => $moved->siblingIds, 'rank' => $moved->rank]);
+    }
+
+    /** @phpstan-assert-if-true list<string> $value */
+    private static function siblingIds(mixed $value): bool
+    {
+        if (!is_array($value) || !array_is_list($value) || [] === $value || count($value) > self::MAX_MOVE_SIBLINGS) {
+            return false;
+        }
+        foreach ($value as $id) {
+            if (!is_string($id) || !self::identifier($id)) {
+                return false;
+            }
+        }
+
+        return count(array_unique($value)) === count($value);
     }
 
     /** @return array<mixed>|Response */

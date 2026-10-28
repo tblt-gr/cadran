@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Infrastructure\Persistence;
 
 use App\Module\Accounts\Application\AccountGroupConflict;
+use App\Module\Accounts\Application\InvalidAccountGroupInput;
+use App\Module\Accounts\Application\MoveAccountGroup;
 use App\Module\Accounts\Domain\AccountGroup;
 use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -181,6 +183,60 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
         return $labels;
     }
 
+    public function lockSiblings(WorkspaceScope $workspace, ?string $parentId, int $limit): array
+    {
+        $this->lockSiblingRows($workspace, $parentId);
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.self::COLUMNS.' FROM account_groups'
+            .' WHERE workspace_id = :workspace_id AND parent_id IS NOT DISTINCT FROM :parent_id'
+            .' ORDER BY sort_order, normalized_label, id LIMIT :limit',
+            ['workspace_id' => $workspace->id, 'parent_id' => $parentId, 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(static fn (array $row): AccountGroup => AccountGroupRow::hydrate($row, $workspace), $rows);
+    }
+
+    public function saveSiblingOrder(WorkspaceScope $workspace, ?string $parentId, array $orderedIds): void
+    {
+        if ([] === $orderedIds) {
+            return;
+        }
+
+        $this->connection->executeStatement(
+            'UPDATE account_groups AS g SET sort_order = ordered.position - 1'
+            .' FROM unnest(CAST(:ids AS uuid[])) WITH ORDINALITY AS ordered(id, position)'
+            .' WHERE g.id = ordered.id AND g.workspace_id = :workspace_id AND g.parent_id IS NOT DISTINCT FROM :parent_id',
+            [
+                'ids' => '{'.implode(',', $orderedIds).'}',
+                'workspace_id' => $workspace->id,
+                'parent_id' => $parentId,
+            ],
+        );
+    }
+
+    public function appendPosition(WorkspaceScope $workspace, ?string $parentId): int
+    {
+        $this->lockSiblingRows($workspace, $parentId);
+        $next = (int) AccountGroupRow::text($this->connection->fetchOne(
+            'SELECT COALESCE(MAX(sort_order), -1) + 1 FROM account_groups'
+            .' WHERE workspace_id = :workspace_id AND parent_id IS NOT DISTINCT FROM :parent_id',
+            ['workspace_id' => $workspace->id, 'parent_id' => $parentId],
+        ));
+        if ($next <= AccountGroup::MAX_SORT_ORDER) {
+            return $next;
+        }
+
+        $siblings = $this->lockSiblings($workspace, $parentId, MoveAccountGroup::MAX_SIBLINGS + 1);
+        if (count($siblings) > MoveAccountGroup::MAX_SIBLINGS) {
+            throw new InvalidAccountGroupInput('This parent holds too many groups to renumber their order.');
+        }
+
+        $this->saveSiblingOrder($workspace, $parentId, array_map(static fn (AccountGroup $group): string => $group->id, $siblings));
+
+        return count($siblings);
+    }
+
     public function add(AccountGroup $group): void
     {
         try {
@@ -210,6 +266,16 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
         } catch (UniqueConstraintViolationException $exception) {
             throw new AccountGroupConflict('An active sibling already uses this label.', previous: $exception);
         }
+    }
+
+    /** Id order, so two writers on the same parent never deadlock. */
+    private function lockSiblingRows(WorkspaceScope $workspace, ?string $parentId): void
+    {
+        $this->connection->fetchFirstColumn(
+            'SELECT id FROM account_groups'
+            .' WHERE workspace_id = :workspace_id AND parent_id IS NOT DISTINCT FROM :parent_id ORDER BY id FOR UPDATE',
+            ['workspace_id' => $workspace->id, 'parent_id' => $parentId],
+        );
     }
 
     /**

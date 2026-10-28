@@ -120,4 +120,27 @@ describe('GroupTree', () => {
 
     expect(screen.getByText('Livrets')).toBeTruthy();
   });
+
+  it('moves a nested group among its own siblings only, with the displayed active order', () => {
+    const onMove = vi.fn();
+    const nested = [
+      make('p', 'Parent', null, 1, { hasChildren: true }),
+      make('x', 'Premier', 'p', 2),
+      make('y', 'Second', 'p', 2),
+      make('z', 'Archive', 'p', 2, { archivedAt: '2026-09-01T12:00:00+00:00' }),
+      make('r', 'Autre racine', null, 1),
+    ];
+    renderTree(nested, { onMove, reordering: true });
+    fireEvent.click(toggleOf('Parent'));
+
+    expect(screen.queryByRole('button', { name: 'Monter Archive' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Monter Premier' }).hasAttribute('disabled')).toBe(
+      true,
+    );
+    expect(screen.getByRole('button', { name: 'Descendre Second' }).hasAttribute('disabled')).toBe(
+      true,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Monter Second' }));
+    expect(onMove).toHaveBeenCalledWith(nested[2], 'x', ['x', 'y']);
+  });
 });

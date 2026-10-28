@@ -1887,6 +1887,73 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/account-groups/{id}/move:
+    post:
+      operationId: moveAccountGroup
+      x-cadran-idempotency: 'Moving before the same anchor again is a no-op; a stale sibling list answers 409 and changes nothing.'
+      summary: Move an account group among its siblings
+      description: >-
+        Places the group just before `beforeGroupId`, or last when it is null,
+        among the active groups sharing its parent. Hidden archived siblings
+        keep their relative place. Every sibling row is locked and
+        `expectedSiblingIds` must equal the saved active order, so concurrent
+        moves cannot both win. Sort orders are rewritten as `0..n-1` without
+        changing the group versions. The mutation requires the same-origin CSRF
+        token.
+      tags:
+        - Account groups
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveAccountGroupRequest'
+      responses:
+        '200':
+          description: The new active sibling order and the rank of the moved group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroupMove'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The displayed sibling order is stale (`type: /problems/stale-account-group-order`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: >-
+            The group is archived (`/problems/account-group-archived`), the anchor is not another
+            active sibling (`/problems/invalid-account-group-anchor`) or the sibling list is
+            malformed or longer than 100 identifiers.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/instruments:
     get:
       operationId: listInstruments
@@ -12895,6 +12962,51 @@ components:
         orderVersion:
           type: integer
           minimum: 0
+    MoveAccountGroupRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - beforeGroupId
+        - expectedSiblingIds
+      properties:
+        beforeGroupId:
+          description: The active sibling the group must precede, or null to move it last.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        expectedSiblingIds:
+          description: The active sibling order the client displayed, moved group included.
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+    AccountGroupMove:
+      type: object
+      additionalProperties: false
+      required:
+        - parentId
+        - siblingIds
+        - rank
+      properties:
+        parentId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        siblingIds:
+          description: The new active sibling order.
+          type: array
+          items:
+            type: string
+            format: uuid
+        rank:
+          description: 1-based position of the moved group among its active siblings.
+          type: integer
+          minimum: 1
     AccountMove:
       type: object
       additionalProperties: false
@@ -13072,7 +13184,6 @@ components:
       required:
         - label
         - parentId
-        - sortOrder
       properties:
         color:
           description: Explicit color, only with CUSTOM mode. Omitted means no explicit color.
@@ -13094,6 +13205,10 @@ components:
               format: uuid
             - type: 'null'
         sortOrder:
+          description: >-
+            Deprecated on write. Ignored on creation (the group is appended after its last sibling)
+            and on an update that changes the parent. Use the move operation to reorder siblings.
+          deprecated: true
           type: integer
           minimum: 0
           maximum: 32767
@@ -13103,7 +13218,6 @@ components:
       required:
         - label
         - parentId
-        - sortOrder
         - version
       properties:
         color:
@@ -13126,6 +13240,10 @@ components:
               format: uuid
             - type: 'null'
         sortOrder:
+          description: >-
+            Deprecated on write. Ignored on creation (the group is appended after its last sibling)
+            and on an update that changes the parent. Use the move operation to reorder siblings.
+          deprecated: true
           type: integer
           minimum: 0
           maximum: 32767
