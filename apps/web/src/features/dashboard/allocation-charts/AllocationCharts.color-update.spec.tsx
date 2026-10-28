@@ -18,6 +18,10 @@ it('updates the live Recharts tile and label when only the group color changes',
     depth: 1,
     value: null,
     share: { ratio: '1', percent: '100', percentDisplay: '100', reason: null },
+    directValue: null,
+    directShare: { ratio: null, percent: null, percentDisplay: null, reason: null },
+    directPreviousValue: null,
+    hasChildren: false,
   };
   const { container, rerender } = render(<AllocationCharts allocation={[entry]} reason={null} />);
   const tile = () => container.querySelector('rect[fill="#000000"], rect[fill="#FFFFFF"]');

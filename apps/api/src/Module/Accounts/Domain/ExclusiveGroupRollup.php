@@ -58,6 +58,39 @@ final class ExclusiveGroupRollup
     }
 
     /**
+     * Signed total of the included accounts whose primary group is exactly
+     * that group, descendants excluded. With the ungrouped bucket these totals
+     * partition eligible net worth, as the root roll-ups do.
+     *
+     * @param list<AccountShareInput> $included
+     * @param list<GroupLineage>      $lineages
+     *
+     * @return array<string, DecimalValue> one signed total per lineage, keyed by group
+     */
+    public static function directTotals(array $included, array $lineages): array
+    {
+        $totals = [];
+        foreach ($lineages as $lineage) {
+            $totals[$lineage->groupId] = DecimalValue::fromString('0');
+        }
+
+        foreach ($included as $account) {
+            if (null === $account->value || null === $account->primaryGroupId || !$account->includeInNetWorth) {
+                continue;
+            }
+
+            if (isset($totals[$account->primaryGroupId])) {
+                $totals[$account->primaryGroupId] = ExactDecimal::add(
+                    $totals[$account->primaryGroupId],
+                    ExactDecimal::signed($account->value, $account->netWorthSign),
+                );
+            }
+        }
+
+        return $totals;
+    }
+
+    /**
      * The signed value of included accounts that sit in no group: the bucket
      * beside the tree, so that tree roots and this bucket partition the
      * eligible net worth.

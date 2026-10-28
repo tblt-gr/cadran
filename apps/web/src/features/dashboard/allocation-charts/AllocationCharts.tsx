@@ -1,5 +1,10 @@
 import { groupColor, groupColorInk } from '@/features/accounts/group-color';
 import type { NetWorthAmount, NetWorthAllocationEntry, NetWorthReason } from '@cadran/api-client';
+import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
+import {
+  allocationEntries,
+  type AllocationItem,
+} from '@/features/dashboard/allocation-panel/allocationEntries';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Treemap } from 'recharts';
@@ -20,6 +25,8 @@ interface AllocationSlice {
   groupId: string;
   label: string;
   name: string;
+  parentLabel: string | null;
+  path: string;
   percentDisplay: string | null;
   size: number;
   value: NetWorthAmount | null;
@@ -28,13 +35,14 @@ interface AllocationSlice {
 interface AllocationChartsProps {
   allocation: NetWorthAllocationEntry[];
   className?: string;
+  mode?: GroupingMode;
   onViewChange?: (view: ChartView) => void;
   reason: NetWorthReason | null;
   total?: NetWorthAmount | null;
 }
 
-function sliceFromEntry(entry: NetWorthAllocationEntry): AllocationSlice | null {
-  if (entry.depth !== 1 || entry.share.percent === null) {
+function sliceFromEntry(entry: AllocationItem): AllocationSlice | null {
+  if (entry.share.percent === null) {
     return null;
   }
 
@@ -48,6 +56,8 @@ function sliceFromEntry(entry: NetWorthAllocationEntry): AllocationSlice | null 
     groupId: entry.groupId,
     label: entry.label,
     name: entry.label,
+    parentLabel: entry.parentLabel,
+    path: entry.path,
     percentDisplay: entry.share.percentDisplay,
     size,
     value: entry.value,
@@ -103,6 +113,7 @@ function TreemapTile(node: {
 
   return (
     <g>
+      {slice !== null ? <title>{slice.path}</title> : null}
       <rect
         className={styles.tile}
         fill={groupColor(slice?.fill)}
@@ -119,6 +130,9 @@ function TreemapTile(node: {
           y={node.y + 16}
         >
           {node.name}
+          {slice?.parentLabel ? (
+            <tspan className={styles.tileParent}>{` (${slice.parentLabel})`}</tspan>
+          ) : null}
           {percent ? ` · ${percent}` : ''}
         </text>
       ) : null}
@@ -133,6 +147,7 @@ function TreemapTile(node: {
 export function AllocationCharts({
   allocation,
   className,
+  mode = 'PARENT',
   onViewChange,
   reason: _reason,
   total = null,
@@ -140,8 +155,8 @@ export function AllocationCharts({
   const { i18n, t } = useTranslation();
   const [view, setView] = useState<ChartView>('treemap');
   const { ref, size } = useBoxSize();
-  const roots = allocation.filter((entry) => entry.depth === 1);
-  const slices = roots
+  const entries = allocationEntries(allocation, mode);
+  const slices = entries
     .map(sliceFromEntry)
     .filter((slice): slice is AllocationSlice => slice !== null);
 
@@ -150,7 +165,7 @@ export function AllocationCharts({
     onViewChange?.(next);
   }
 
-  if (roots.length === 0) {
+  if (!allocation.some((entry) => entry.depth === 1)) {
     return null;
   }
 
@@ -158,7 +173,10 @@ export function AllocationCharts({
   const fallback = t('states.notCalculable.label');
   const donutSlices: DonutSlice[] = slices.map((slice) => ({
     amountText: amountLabel(slice.value, fallback, i18n.language),
-    caption: sliceCaption(slice.label, slice.percentDisplay),
+    caption: sliceCaption(
+      slice.parentLabel === null ? slice.label : `${slice.label} (${slice.parentLabel})`,
+      slice.percentDisplay,
+    ),
     fill: slice.fill,
     key: slice.groupId,
     size: slice.size,

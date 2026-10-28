@@ -16414,6 +16414,10 @@ components:
         - depth
         - value
         - share
+        - directValue
+        - directShare
+        - directPreviousValue
+        - hasChildren
       properties:
         color:
           type: string
@@ -16438,6 +16442,24 @@ components:
             - type: 'null'
         share:
           $ref: '#/components/schemas/NetWorthShare'
+        directValue:
+          description: >-
+            The signed total of the accounts whose primary group is exactly this
+            group, descendants excluded. Direct totals of all groups plus the
+            ungrouped bucket equal eligible net worth. Null when not calculable.
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        directShare:
+          $ref: '#/components/schemas/NetWorthShare'
+        directPreviousValue:
+          description: The same direct total on the compared day; null when that day is not calculable.
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        hasChildren:
+          description: True when the group has at least one active sub-group.
+          type: boolean
     NetWorth:
       type: object
       additionalProperties: false

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
 import { AllocationChartsSkeleton } from './allocation-charts/AllocationChartsSkeleton';
 import allocationStyles from './allocation-panel/AllocationPanel.module.css';
 import cardStyles from './net-worth-card/NetWorthCard.module.css';
@@ -8,6 +9,8 @@ import { NetWorthPeriodControl } from './net-worth-period/NetWorthPeriodControl'
 import type { NetWorthPeriod } from './net-worth-period/useNetWorthPeriod';
 import { WealthChartSkeleton } from './wealth-chart/WealthChartSkeleton';
 import styles from './DashboardPageSkeleton.module.css';
+
+const noop = () => undefined;
 
 /**
  * Mirrors NetWorthCard and AllocationPanel element for element. Titles,
@@ -59,9 +62,12 @@ export function DashboardPageSkeleton({
             <h2 id="allocation-skeleton-title">{t('dashboard.allocation.title')}</h2>
             <p>{t('dashboard.allocation.description')}</p>
           </div>
-          <a className={allocationStyles.link} href="/accounts/groups">
-            {t('dashboard.allocation.viewGroups')}
-          </a>
+          <div className={allocationStyles.actions}>
+            <GroupingModeToggle disabled mode="PRIMARY" onChange={noop} />
+            <a className={allocationStyles.link} href="/accounts/groups">
+              {t('dashboard.allocation.viewGroups')}
+            </a>
+          </div>
         </div>
         <div className={allocationStyles.treeLayout}>
           <AllocationChartsSkeleton />

@@ -52,6 +52,10 @@ function entry(groupId: string, color: string): NetWorthAllocationEntry {
     depth: 1,
     value: null,
     share: { ratio: '0.5', percent: '50', percentDisplay: '50', reason: null },
+    directValue: null,
+    directShare: { ratio: null, percent: null, percentDisplay: null, reason: null },
+    directPreviousValue: null,
+    hasChildren: false,
   };
 }
 
@@ -83,7 +87,7 @@ describe('account group allocation colors', () => {
   it('renders matching legend markers/bars without coloring the label or amount', () => {
     const { container } = render(
       <AllocationLegend
-        entries={[entry('Noir', '#000000'), entry('Blanc', '#FFFFFF')]}
+        allocation={[entry('Noir', '#000000'), entry('Blanc', '#FFFFFF')]}
         reason={null}
       />,
     );

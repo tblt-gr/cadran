@@ -29,3 +29,8 @@
 .tileLabel {
   font-size: var(--font-size-xs);
 }
+
+.tileParent {
+  font-size: var(--font-size-2xs);
+  opacity: 0.8;
+}

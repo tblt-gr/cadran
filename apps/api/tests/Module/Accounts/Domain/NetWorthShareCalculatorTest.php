@@ -11,6 +11,8 @@ use App\Module\Accounts\Domain\NetWorthShareCalculator;
 use App\Module\Accounts\Domain\NetWorthShareReason;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\ExactDecimal;
+use App\Module\Foundation\Domain\RoundingMode;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -32,6 +34,9 @@ final class NetWorthShareCalculatorTest extends TestCase
     private const string LOAN = '00000000-0000-7000-8000-0000000000d4';
     private const string LIQUID = '00000000-0000-7000-8000-0000000000b1';
     private const string SAVINGS = '00000000-0000-7000-8000-0000000000b2';
+    private const string INVEST = '00000000-0000-7000-8000-0000000000b5';
+    private const string REAL_ESTATE = '00000000-0000-7000-8000-0000000000b6';
+    private const string STOCKS = '00000000-0000-7000-8000-0000000000b7';
     private const string DEBTS = '00000000-0000-7000-8000-0000000000b3';
 
     public function testAccountShareIsTheSignedValueOverEligibleNetWorth(): void
@@ -167,6 +172,139 @@ final class NetWorthShareCalculatorTest extends TestCase
 
         self::assertNull($shares->ungrouped()->percent);
         self::assertSame(NetWorthShareReason::ZERO_ELIGIBLE_NET_WORTH, $shares->ungrouped()->reason);
+    }
+
+    /**
+     * Investissement holds 100 itself, Immobilier 300 and Bourse 200 below it,
+     * 50 sits in no group. Eligible net worth is 650. Direct totals are 100,
+     * 300, 200 and 50 (sum 650); the root roll-up is 600 + 50 = 650.
+     * Direct shares: 15.38 %, 46.15 %, 30.77 %, ungrouped 7.69 %.
+     */
+    public function testDirectTotalsAndSharesPartitionEligibleNetWorth(): void
+    {
+        [$inputs, $lineages] = $this->investmentTree();
+
+        $direct = ExclusiveGroupRollup::directTotals($inputs, $lineages);
+        self::assertSame('100', $direct[self::INVEST]->toString());
+        self::assertSame('300', $direct[self::REAL_ESTATE]->toString());
+        self::assertSame('200', $direct[self::STOCKS]->toString());
+        self::assertSame('600', ExclusiveGroupRollup::totals(array_values(array_filter($inputs, static fn (AccountShareInput $i): bool => $i->includeInNetWorth)), $lineages)[self::INVEST]->toString());
+
+        $shares = NetWorthShareCalculator::compute($inputs, $lineages);
+        self::assertSame('15.38', $this->display($shares->directGroup(self::INVEST)->percent?->toString()));
+        self::assertSame('46.15', $this->display($shares->directGroup(self::REAL_ESTATE)->percent?->toString()));
+        self::assertSame('30.77', $this->display($shares->directGroup(self::STOCKS)->percent?->toString()));
+        self::assertSame('7.69', $this->display($shares->ungrouped()->percent?->toString()));
+        self::assertSame('92.31', $this->display($shares->group(self::INVEST)->percent?->toString()));
+    }
+
+    public function testADirectTotalIgnoresExcludedAndUnvaluedAccounts(): void
+    {
+        $inputs = [
+            $this->valued(self::CHECKING, self::LIQUID, '10'),
+            $this->valued(self::PIGGY, self::LIQUID, '99', included: false),
+            new AccountShareInput(self::LIVRET, true, 1, self::LIQUID, null, null),
+        ];
+        $direct = ExclusiveGroupRollup::directTotals($inputs, [new GroupLineage(self::LIQUID, [self::LIQUID])]);
+
+        self::assertSame('10', $direct[self::LIQUID]->toString());
+    }
+
+    public function testADirectLiabilityIsNegativeAndAGroupWithoutDirectAccountIsZero(): void
+    {
+        [$inputs, $lineages] = $this->investmentTree();
+        $inputs[] = $this->valued(self::LOAN, self::STOCKS, '50', sign: -1);
+
+        $direct = ExclusiveGroupRollup::directTotals($inputs, $lineages);
+        self::assertSame('150', $direct[self::STOCKS]->toString());
+
+        $empty = ExclusiveGroupRollup::directTotals([], $lineages);
+        self::assertSame('0', $empty[self::INVEST]->toString());
+    }
+
+    public function testDirectSharesFollowTheNullWithReasonPolicy(): void
+    {
+        [$inputs, $lineages] = $this->investmentTree();
+        $inputs[] = new AccountShareInput(self::PIGGY, true, 1, self::STOCKS, null, null);
+
+        $shares = NetWorthShareCalculator::compute($inputs, $lineages);
+
+        self::assertNull($shares->directGroup(self::STOCKS)->percent);
+        self::assertSame(NetWorthShareReason::MISSING_VALUATION, $shares->directGroup(self::STOCKS)->reason);
+        self::assertNull($shares->directGroup('unknown')->reason);
+    }
+
+    public function testDirectTotalsAndRootRollupsBothPartitionEligibleNetWorthOnRandomTrees(): void
+    {
+        mt_srand(20261028);
+        for ($round = 0; $round < 40; ++$round) {
+            $lineages = [];
+            $ids = [];
+            $roots = [];
+            for ($i = 0, $count = mt_rand(1, 25); $i < $count; ++$i) {
+                $id = sprintf('00000000-0000-7000-8000-%012d', $i + 1);
+                $parent = [] === $ids || 0 === mt_rand(0, 3) ? null : $ids[mt_rand(0, count($ids) - 1)];
+                $path = null === $parent ? [] : $lineages[$parent]->ancestorIdsIncludingSelf;
+                if (count($path) >= 8) {
+                    $parent = null;
+                    $path = [];
+                }
+                $lineages[$id] = new GroupLineage($id, [$id, ...$path]);
+                $ids[] = $id;
+                if (null === $parent) {
+                    $roots[] = $id;
+                }
+            }
+
+            $inputs = [];
+            $eligible = DecimalValue::fromString('0');
+            for ($j = 0, $n = mt_rand(0, 40); $j < $n; ++$j) {
+                $group = 0 === mt_rand(0, 4) ? null : $ids[mt_rand(0, count($ids) - 1)];
+                $value = sprintf('%d.%06d', mt_rand(0, 1_000_000), mt_rand(0, 999_999));
+                $sign = 0 === mt_rand(0, 2) ? -1 : 1;
+                $inputs[] = new AccountShareInput(sprintf('a%d', $j), true, $sign, $group, DecimalValue::fromString($value), AssetCode::fromString('EUR'));
+                $eligible = ExactDecimal::add($eligible, ExactDecimal::signed(DecimalValue::fromString($value), $sign));
+            }
+
+            $lineageList = array_values($lineages);
+            $ungrouped = ExclusiveGroupRollup::ungroupedTotal($inputs);
+            $directSum = $ungrouped;
+            foreach (ExclusiveGroupRollup::directTotals($inputs, $lineageList) as $total) {
+                $directSum = ExactDecimal::add($directSum, $total);
+            }
+            $rollupSum = $ungrouped;
+            $rollups = ExclusiveGroupRollup::totals($inputs, $lineageList);
+            foreach ($roots as $root) {
+                $rollupSum = ExactDecimal::add($rollupSum, $rollups[$root]);
+            }
+
+            self::assertTrue(ExactDecimal::isZero(ExactDecimal::subtract($eligible, $directSum)), 'direct partition, round '.$round);
+            self::assertTrue(ExactDecimal::isZero(ExactDecimal::subtract($eligible, $rollupSum)), 'root partition, round '.$round);
+        }
+    }
+
+    /** @return array{list<AccountShareInput>, list<GroupLineage>} */
+    private function investmentTree(): array
+    {
+        return [
+            [
+                $this->valued(self::CHECKING, self::INVEST, '100'),
+                $this->valued(self::LIVRET, self::REAL_ESTATE, '300'),
+                $this->valued('00000000-0000-7000-8000-0000000000d5', self::STOCKS, '200'),
+                new AccountShareInput(self::LOAN, true, 1, null, DecimalValue::fromString('50'), AssetCode::fromString('EUR')),
+                $this->valued(self::PIGGY, self::STOCKS, '999', included: false),
+            ],
+            [
+                new GroupLineage(self::INVEST, [self::INVEST]),
+                new GroupLineage(self::REAL_ESTATE, [self::REAL_ESTATE, self::INVEST]),
+                new GroupLineage(self::STOCKS, [self::STOCKS, self::INVEST]),
+            ],
+        ];
+    }
+
+    private function display(?string $percent): ?string
+    {
+        return null === $percent ? null : ExactDecimal::round(DecimalValue::fromString($percent), 2, RoundingMode::HALF_UP)->toString();
     }
 
     /** @return list<AccountShareInput> */

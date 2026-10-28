@@ -117,6 +117,48 @@ final class NetWorthControllerTest extends WebTestCase
         self::assertSame('125.00', self::nested($allocation[self::LIQUID], 'share', 'percentDisplay'));
     }
 
+    /**
+     * Liquidités holds Compte courant 60 000 itself and Épargne (child) holds
+     * Livret A 40 000; the Prêt (-20 000) is ungrouped. Eligible: 80 000.
+     * Direct: Liquidités 60 000 (75 %), Épargne 40 000 (50 %); the previous day
+     * (2026-08-05) holds 55 000 and 40 000.
+     */
+    public function testDirectFiguresCountOnlyTheGroupsOwnAccounts(): void
+    {
+        $this->signIn();
+        $this->seedPortfolio();
+
+        $allocation = $this->byKey($this->rows($this->read(self::ASK), 'allocation'), 'groupId');
+        $parent = $allocation[self::LIQUID];
+        $child = $allocation[self::SAVINGS];
+
+        self::assertSame('60000.00', self::nested($parent, 'directValue', 'value'));
+        self::assertSame('75.00', self::nested($parent, 'directShare', 'percentDisplay'));
+        self::assertSame('55000.00', self::nested($parent, 'directPreviousValue', 'value'));
+        self::assertTrue($parent['hasChildren']);
+        self::assertSame('40000.00', self::nested($child, 'directValue', 'value'));
+        self::assertSame('50.00', self::nested($child, 'directShare', 'percentDisplay'));
+        self::assertSame('40000.00', self::nested($child, 'directPreviousValue', 'value'));
+        self::assertFalse($child['hasChildren']);
+    }
+
+    public function testDirectFiguresAreNullWithAReasonWhenAValuationIsMissing(): void
+    {
+        $this->signIn();
+        $this->insertGroup(self::LIQUID, 'Liquidités');
+        $this->insertAccount(self::CASH, WorkspaceFixture::OWN_WORKSPACE, 'Compte courant', groupId: self::LIQUID);
+
+        $entry = $this->byKey($this->rows($this->read(self::ASK), 'allocation'), 'groupId')[self::LIQUID];
+
+        self::assertNull($entry['directValue']);
+        $direct = $entry['directShare'];
+        $share = $entry['share'];
+        self::assertIsArray($direct);
+        self::assertIsArray($share);
+        self::assertNull($direct['percent']);
+        self::assertSame($share['reason'], $direct['reason']);
+    }
+
     public function testTheDeltaKeepsItsAmountAndDropsTheRateOnANegativeBase(): void
     {
         $this->signIn();

@@ -167,6 +167,14 @@ final readonly class ReadNetWorth
         // the roll-up is published only when the aggregate itself holds.
         $rollup = self::rollup($netWorth, $shareInputs, $lineages);
         $previousRollup = self::rollup($previous, $previousShareInputs, $lineages);
+        $direct = self::rollup($netWorth, $shareInputs, $lineages, true);
+        $previousDirect = self::rollup($previous, $previousShareInputs, $lineages, true);
+        $parents = [];
+        foreach ($groups as $candidate) {
+            if (null !== $candidate->parentId && null === $candidate->archivedAt) {
+                $parents[$candidate->parentId] = true;
+            }
+        }
 
         // Same reading order as the accounts page, so every panel lists groups alike.
         $colors = \App\Module\Accounts\Domain\AccountGroupColors::of($groups);
@@ -186,6 +194,10 @@ final readonly class ReadNetWorth
                 $previousRollup[$group->id] ?? null,
                 $previous->asset,
                 $references->for($previous->asset),
+                $direct[$group->id] ?? null,
+                $shares->directGroup($group->id),
+                $previousDirect[$group->id] ?? null,
+                isset($parents[$group->id]),
             );
         }
 
@@ -198,11 +210,13 @@ final readonly class ReadNetWorth
      *
      * @return array<string, DecimalValue>
      */
-    private static function rollup(NetWorth $day, array $inputs, array $lineages): array
+    private static function rollup(NetWorth $day, array $inputs, array $lineages, bool $direct = false): array
     {
+        $totals = $direct ? ExclusiveGroupRollup::directTotals(...) : ExclusiveGroupRollup::totals(...);
+
         return null === $day->total
             ? []
-            : ExclusiveGroupRollup::totals(
+            : $totals(
                 array_values(array_filter(
                     $inputs,
                     static fn (AccountShareInput $input): bool => $input->includeInNetWorth,
