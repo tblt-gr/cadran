@@ -145,7 +145,6 @@ describe('AccountGroupsPage', () => {
     await loadedGroupsTree();
     openGroupActions('Épargne');
     fireEvent.click(screen.getByRole('button', { name: 'Modifier le groupe Épargne' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Personnalisée' }));
     const color = screen.getByLabelText('Couleur du groupe');
     fireEvent.change(color, { target: { value: '#ffffff' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -177,7 +176,6 @@ describe('AccountGroupsPage', () => {
     await loadedGroupsTree();
     openGroupActions('Épargne');
     fireEvent.click(screen.getByRole('button', { name: 'Modifier le groupe Épargne' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Personnalisée' }));
     fireEvent.change(screen.getByLabelText('Couleur du groupe'), { target: { value: '#000000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     await waitFor(() =>
@@ -340,9 +338,7 @@ describe('AccountGroupsPage', () => {
     );
     fireEvent.change(screen.getByLabelText('Groupe parent'), { target: { value: '' } });
     expect(screen.queryByRole('radio', { name: /Couleur du groupe parent/ })).toBeNull();
-    expect(
-      (screen.getByRole('radio', { name: 'Couleur par défaut' }) as HTMLInputElement).checked,
-    ).toBe(true);
+    expect(screen.queryByRole('radio')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
     await waitFor(() => expect(api.updateAccountGroup).toHaveBeenCalledOnce());

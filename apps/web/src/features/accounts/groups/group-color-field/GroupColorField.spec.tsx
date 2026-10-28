@@ -29,22 +29,17 @@ function swatchOf(radioName: string): string | undefined {
 describe('GroupColorField', () => {
   afterEach(cleanup);
 
-  it('is a fieldset named Couleur offering default and custom to a root', () => {
+  it('is a fieldset named Couleur with only the color input for a root', () => {
     renderField();
 
     const group = screen.getByRole('group', { name: 'Couleur' });
+    expect(within(group).queryAllByRole('radio')).toEqual([]);
     expect(
-      within(group)
-        .getAllByRole('radio')
-        .map((r) => r.closest('label')?.textContent),
-    ).toEqual(['Couleur par défaut', 'Personnalisée']);
-    expect(
-      (screen.getByRole('radio', { name: /Couleur par défaut/ }) as HTMLInputElement).checked,
-    ).toBe(true);
-    expect(swatchOf('Couleur par défaut')).toBe('rgb(72, 109, 240)');
+      (screen.getByLabelText('Couleur du groupe') as HTMLInputElement).value.toUpperCase(),
+    ).toBe('#486DF0');
   });
 
-  it('offers shade, parent color and custom to a sub-group with their swatches', () => {
+  it('offers shade and parent color to a sub-group with their swatches', () => {
     renderField({
       root: false,
       swatches: { AUTO: '#7B96F4', PARENT: '#486DF0' },
@@ -65,7 +60,7 @@ describe('GroupColorField', () => {
     expect(screen.getByText("Nuance attribuée à l'enregistrement".replace("'", '’'))).toBeTruthy();
   });
 
-  it('shows the color input and the reset button only in custom mode', () => {
+  it('shows the reset button only in custom mode', () => {
     const onChange = renderField({ mode: 'CUSTOM', color: '#112233' });
 
     expect((screen.getByLabelText('Couleur du groupe') as HTMLInputElement).value).toBe('#112233');
@@ -80,18 +75,19 @@ describe('GroupColorField', () => {
     expect(onChange).toHaveBeenCalledWith({ mode: 'AUTO', color: null });
   });
 
-  it('hides the input and the reset button outside custom mode', () => {
+  it('hides the reset button outside custom mode', () => {
     renderField();
 
-    expect(screen.queryByLabelText('Couleur du groupe')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Rétablir la couleur par défaut' })).toBeNull();
   });
 
-  it('switches to custom with a starting color and reports typed colors in canonical case', () => {
-    const onChange = renderField({ customStart: '#486DF0' });
+  it('switches to custom when a color is picked and clears it when an inherited mode is chosen', () => {
+    const onChange = renderField({ root: false, swatches: { AUTO: '#7B96F4', PARENT: '#486DF0' } });
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Personnalisée' }));
-    expect(onChange).toHaveBeenCalledWith({ mode: 'CUSTOM', color: '#486DF0' });
+    fireEvent.change(screen.getByLabelText('Couleur du groupe'), { target: { value: '#112233' } });
+    expect(onChange).toHaveBeenCalledWith({ mode: 'CUSTOM', color: '#112233' });
+    fireEvent.click(screen.getByRole('radio', { name: /Couleur du groupe parent/ }));
+    expect(onChange).toHaveBeenCalledWith({ mode: 'PARENT', color: null });
   });
 
   it('canonicalizes the picked color', () => {

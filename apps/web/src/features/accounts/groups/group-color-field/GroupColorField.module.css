@@ -15,8 +15,9 @@
 }
 
 .options {
-  display: grid;
-  gap: var(--spacing-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-4);
 }
 
 .option {
