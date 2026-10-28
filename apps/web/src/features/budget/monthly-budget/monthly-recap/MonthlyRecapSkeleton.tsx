@@ -102,7 +102,11 @@ export function MonthlyRecapPlaceholder({
         <div className={styles.accounts}>
           <section className={`card ${accountStyles.panel}`}>
             <div className={accountStyles.heading}>
-              <h3 id="monthly-recap-accounts-title">{t('budget.monthly.recap.accounts.title')}</h3>
+              <div className={accountStyles.titleGroup}>
+                <h3 id="monthly-recap-accounts-title">
+                  {t('budget.monthly.recap.accounts.title')}
+                </h3>
+              </div>
               <GroupingModeToggle disabled mode="PRIMARY" onChange={() => undefined} />
             </div>
             <div className={accountStyles.tableScroll}>

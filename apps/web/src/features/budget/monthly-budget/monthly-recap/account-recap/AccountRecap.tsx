@@ -42,12 +42,14 @@ export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: Ac
   return (
     <section aria-labelledby="monthly-recap-accounts-title" className={`card ${styles.panel}`}>
       <div className={styles.heading}>
-        <h3 id="monthly-recap-accounts-title">{t('budget.monthly.recap.accounts.title')}</h3>
-        {staleAge === null ? null : (
-          <span aria-label={staleLabel} className={styles.stale} role="img" title={staleLabel}>
-            <Icon name="alert" size={14} />
-          </span>
-        )}
+        <div className={styles.titleGroup}>
+          <h3 id="monthly-recap-accounts-title">{t('budget.monthly.recap.accounts.title')}</h3>
+          {staleAge === null ? null : (
+            <span aria-label={staleLabel} className={styles.stale} role="img" title={staleLabel}>
+              <Icon name="alert" size={14} />
+            </span>
+          )}
+        </div>
         <GroupingModeToggle mode={mode} onChange={setMode} />
       </div>
       {accounts.length === 0 ? (
