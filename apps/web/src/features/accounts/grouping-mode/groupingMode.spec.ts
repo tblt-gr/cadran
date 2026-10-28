@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupLabelParts, groupPath } from './groupingMode';
+import { groupLabelParts } from './groupingMode';
 
 const groups = new Map([
   ['inv', { label: 'Investissement', parentId: null }],
@@ -13,11 +13,5 @@ describe('groupLabelParts', () => {
   });
   it('has no parent label for a root', () => {
     expect(groupLabelParts('inv', groups)).toEqual({ label: 'Investissement', parentLabel: null });
-  });
-});
-
-describe('groupPath', () => {
-  it('keeps the full path', () => {
-    expect(groupPath('pea', groups)).toBe('Investissement › Bourse › PEA');
   });
 });

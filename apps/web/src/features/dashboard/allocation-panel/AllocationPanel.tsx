@@ -38,12 +38,9 @@ export function AllocationPanel({ netWorth }: AllocationPanelProps) {
           <h2 id="allocation-title">{t('dashboard.allocation.title')}</h2>
           <p>{t('dashboard.allocation.description')}</p>
         </div>
-        <div className={styles.actions}>
-          <GroupingModeToggle mode={mode} onChange={setMode} />
-          <a className={styles.link} href="/accounts/groups">
-            {t('dashboard.allocation.viewGroups')}
-          </a>
-        </div>
+        <a className={styles.link} href="/accounts/groups">
+          {t('dashboard.allocation.viewGroups')}
+        </a>
       </div>
 
       {!hasGroups ? (
@@ -53,6 +50,7 @@ export function AllocationPanel({ netWorth }: AllocationPanelProps) {
           <AllocationCharts
             allocation={netWorth.allocation}
             mode={mode}
+            modeToggle={<GroupingModeToggle mode={mode} onChange={setMode} />}
             onViewChange={setView}
             reason={netWorth.reason}
             total={netWorth.total}

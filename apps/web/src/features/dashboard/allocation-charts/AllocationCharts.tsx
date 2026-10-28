@@ -5,7 +5,7 @@ import {
   allocationEntries,
   type AllocationItem,
 } from '@/features/dashboard/allocation-panel/allocationEntries';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Treemap } from 'recharts';
 import { DonutChart, type DonutSlice } from '@/components/ui/charts/donut-chart/DonutChart';
@@ -36,6 +36,7 @@ interface AllocationChartsProps {
   allocation: NetWorthAllocationEntry[];
   className?: string;
   mode?: GroupingMode;
+  modeToggle?: ReactNode;
   onViewChange?: (view: ChartView) => void;
   reason: NetWorthReason | null;
   total?: NetWorthAmount | null;
@@ -148,6 +149,7 @@ export function AllocationCharts({
   allocation,
   className,
   mode = 'PARENT',
+  modeToggle = null,
   onViewChange,
   reason: _reason,
   total = null,
@@ -187,25 +189,32 @@ export function AllocationCharts({
       className={className ? `${styles.wrap} ${className}` : styles.wrap}
       data-allocation-view={view}
     >
-      <div className={styles.toggles} role="group" aria-label={t('dashboard.allocation.chartView')}>
-        <button
-          aria-label={t('dashboard.allocation.treemap')}
-          aria-pressed={view === 'treemap'}
-          className="icon-ghost"
-          onClick={() => changeView('treemap')}
-          type="button"
+      <div className={styles.toggles}>
+        {modeToggle}
+        <div
+          className={styles.viewToggles}
+          role="group"
+          aria-label={t('dashboard.allocation.chartView')}
         >
-          <Icon name="treemap" size={16} />
-        </button>
-        <button
-          aria-label={t('dashboard.allocation.pie')}
-          aria-pressed={view === 'pie'}
-          className="icon-ghost"
-          onClick={() => changeView('pie')}
-          type="button"
-        >
-          <Icon name="pie" size={16} />
-        </button>
+          <button
+            aria-label={t('dashboard.allocation.treemap')}
+            aria-pressed={view === 'treemap'}
+            className="icon-ghost"
+            onClick={() => changeView('treemap')}
+            type="button"
+          >
+            <Icon name="treemap" size={16} />
+          </button>
+          <button
+            aria-label={t('dashboard.allocation.pie')}
+            aria-pressed={view === 'pie'}
+            className="icon-ghost"
+            onClick={() => changeView('pie')}
+            type="button"
+          >
+            <Icon name="pie" size={16} />
+          </button>
+        </div>
       </div>
       {slices.length === 0 ? null : (
         <div className={styles.plot} data-visual-mask ref={ref}>

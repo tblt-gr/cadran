@@ -61,12 +61,12 @@ describe('allocationEntries', () => {
     ]);
   });
 
-  it('labels a sub-group by name and immediate parent, with the full path', () => {
+  it('labels a sub-group by name and immediate parent', () => {
     const bourse = allocationEntries(allocation, 'PRIMARY')[2];
     expect(bourse).toMatchObject({
       label: 'Bourse',
       parentLabel: 'Investissement',
-      path: 'Investissement › Bourse',
+      path: 'Bourse (Investissement)',
       color: '#Bourse',
     });
     expect(allocationEntries(allocation, 'PRIMARY')[0]?.parentLabel).toBeNull();

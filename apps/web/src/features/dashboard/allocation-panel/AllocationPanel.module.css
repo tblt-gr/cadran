@@ -27,19 +27,17 @@
 
 .link {
   flex: none;
-  color: var(--gold-300);
+  color: var(--text-primary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-strong);
+  text-decoration: none;
   text-decoration-thickness: var(--border-width-thin);
   text-underline-offset: var(--spacing-1);
   white-space: nowrap;
 }
 
-.actions {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: var(--spacing-2);
+.link:hover {
+  text-decoration: underline;
 }
 
 .parentLabel {

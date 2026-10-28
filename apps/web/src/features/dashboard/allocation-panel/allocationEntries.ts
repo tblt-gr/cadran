@@ -1,9 +1,5 @@
 import type { NetWorthAllocationEntry, NetWorthAmount, NetWorthShare } from '@cadran/api-client';
-import {
-  groupLabelParts,
-  groupPath,
-  type GroupingMode,
-} from '@/features/accounts/grouping-mode/groupingMode';
+import { groupLabelParts, type GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import { isZeroDecimal } from '@/lib/decimal';
 
 /** One slice or legend row, in the mode's own value and share. */
@@ -14,7 +10,7 @@ export interface AllocationItem {
   label: string;
   /** Immediate parent's name, null for a root group. */
   parentLabel: string | null;
-  /** Full path, used as the accessible name. */
+  /** Label as displayed, `Name (Parent)`: the tooltip and accessible name repeat it. */
   path: string;
   share: NetWorthShare;
   value: NetWorthAmount | null;
@@ -39,7 +35,7 @@ export function allocationEntries(
       groupId: entry.groupId,
       label: parts.label,
       parentLabel: parts.parentLabel,
-      path: groupPath(entry.groupId, groupsById),
+      path: parts.parentLabel === null ? parts.label : `${parts.label} (${parts.parentLabel})`,
     };
 
     if (mode === 'PARENT') {

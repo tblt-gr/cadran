@@ -6,7 +6,13 @@
 
 .toggles {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--spacing-2);
+}
+
+.viewToggles {
+  display: flex;
   gap: var(--spacing-1);
 }
 
