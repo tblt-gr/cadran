@@ -2,6 +2,7 @@ import { MetricLabelButton } from './totals-card/MetricLabelButton';
 import { RECAP_KPIS } from './totals-card/recapKpis';
 import { RecapSettingsButton } from './totals-card/RecapSettingsButton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
 import { AccountBalanceHeading } from './account-recap/AccountBalanceHeading';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -100,7 +101,14 @@ export function MonthlyRecapPlaceholder({
       <div className={styles.column}>
         <div className={styles.accounts}>
           <section className={`card ${accountStyles.panel}`}>
-            <h3>{t('budget.monthly.recap.accounts.title')}</h3>
+            <div className={accountStyles.heading}>
+              <div className={accountStyles.titleGroup}>
+                <h3 id="monthly-recap-accounts-title">
+                  {t('budget.monthly.recap.accounts.title')}
+                </h3>
+              </div>
+              <GroupingModeToggle disabled mode="PRIMARY" onChange={() => undefined} />
+            </div>
             <div className={accountStyles.tableScroll}>
               <table>
                 <caption className="sr-only">{t('budget.monthly.recap.accounts.caption')}</caption>

@@ -28,6 +28,7 @@ final class MonthlyRecapControllerTest extends WebTestCase
     private const string USD_ACCOUNT = '00000000-0000-7000-8000-0000000000a8';
     private const string GROUP_LIVRETS = '00000000-0000-7000-8000-0000000000b1';
     private const string GROUP_COURANT = '00000000-0000-7000-8000-0000000000b2';
+    private const string GROUP_BOURSE = '00000000-0000-7000-8000-0000000000b3';
     private const string CATEGORY = '00000000-0000-7000-8000-0000000000c1';
     private const string INCOME_CATEGORY = '00000000-0000-7000-8000-0000000000c2';
     private const string EMPTY_CATEGORY = '00000000-0000-7000-8000-0000000000c3';
@@ -229,6 +230,53 @@ final class MonthlyRecapControllerTest extends WebTestCase
         self::assertSame($this->today->modify('first day of this month')->modify('-1 day')->format('Y-m-d'), $recap['previousAsOf']);
         self::assertSame('100.00', self::fields(self::fields($recap['netWorth'])['current'])['value']);
         self::assertStringNotContainsString('777777', (string) $this->client->getResponse()->getContent());
+    }
+
+    /**
+     * Livrets holds Livret A directly and LDDS through its sub-group Bourse (EUR):
+     *   direct Livrets  N 5500.00  N-1 5000.00  = 5500/9000 = 61.11 %
+     *   direct Bourse   N 2300.00  N-1 2000.00  = 2300/9000 = 25.56 %
+     *   roll-up Livrets N 7800.00  N-1 7000.00  (direct + Bourse)
+     * Direct totals plus Courant (1200.00) give 9000.00, the eligible net worth.
+     */
+    public function testAParentWithDirectAccountsAndSubGroupsExposesDirectValuesBesideItsRollUp(): void
+    {
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->group(self::GROUP_BOURSE, 'Bourse', self::GROUP_LIVRETS, 1);
+        $this->connection->update('account_financial_accounts', ['primary_group_id' => self::GROUP_BOURSE], ['id' => self::LDDS]);
+
+        $groups = self::index($this->read()['groups'], 'groupId');
+
+        $livrets = $groups[self::GROUP_LIVRETS];
+        self::assertSame('7800.00', self::fields($livrets['value'])['value']);
+        self::assertSame('7000.00', self::fields($livrets['previousValue'])['value']);
+        self::assertSame('5500.00', self::fields($livrets['directValue'])['value']);
+        self::assertSame('5000.00', self::fields($livrets['directPreviousValue'])['value']);
+        self::assertSame('61.11', self::fields($livrets['directShare'])['percentDisplay']);
+        self::assertTrue($livrets['hasChildren']);
+
+        $bourse = $groups[self::GROUP_BOURSE];
+        self::assertSame('2300.00', self::fields($bourse['directValue'])['value']);
+        self::assertSame('2000.00', self::fields($bourse['directPreviousValue'])['value']);
+        self::assertSame('25.56', self::fields($bourse['directShare'])['percentDisplay']);
+        self::assertSame(self::GROUP_LIVRETS, $bourse['parentId']);
+        self::assertFalse($bourse['hasChildren']);
+
+        self::assertSame('1200.00', self::fields($groups[self::GROUP_COURANT]['directValue'])['value']);
+        self::assertFalse($groups[self::GROUP_COURANT]['hasChildren']);
+    }
+
+    public function testAnUnvaluedDirectAccountLeavesItsDirectValueNullNeverZero(): void
+    {
+        $this->signIn();
+        $this->seedThreeAccounts();
+        $this->account(self::ORPHAN, WorkspaceFixture::OWN_WORKSPACE, 'Livret sans valeur', 'SAVINGS', self::GROUP_LIVRETS);
+
+        $livrets = self::index($this->read()['groups'], 'groupId')[self::GROUP_LIVRETS];
+
+        self::assertNull($livrets['directValue']);
+        self::assertNull(self::fields($livrets['directShare'])['percentDisplay']);
     }
 
     public function testAMissingValuationLeavesTheGroupAndTheWealthCardNonCalculableRatherThanZero(): void
