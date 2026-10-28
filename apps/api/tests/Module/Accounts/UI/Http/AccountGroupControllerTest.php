@@ -95,7 +95,7 @@ final class AccountGroupControllerTest extends WebTestCase
             ...$this->payload('Invalid'), 'color' => 'red',
         ], JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(422);
-        self::assertSame([['field' => 'color', 'code' => 'INVALID_COLOR']], $this->decode()['errors']);
+        self::assertSame([['field' => 'color', 'code' => 'invalid_color']], $this->decode()['errors']);
         self::assertSame(2, $this->ownGroupCount());
     }
 
@@ -105,7 +105,7 @@ final class AccountGroupControllerTest extends WebTestCase
         foreach (['url(https://example.org)', '#123', 42, ['#000000']] as $color) {
             $this->requestUpdate(self::stringValue($group, 'id'), [...$group, 'color' => $color]);
             self::assertResponseStatusCodeSame(422);
-            self::assertSame([['field' => 'color', 'code' => 'INVALID_COLOR']], $this->decode()['errors']);
+            self::assertSame([['field' => 'color', 'code' => 'invalid_color']], $this->decode()['errors']);
         }
         $this->client->request('GET', '/api/v1/account-groups');
         self::assertSame(1, $this->items()[0]['version']);
@@ -296,6 +296,101 @@ final class AccountGroupControllerTest extends WebTestCase
             content: json_encode($oversized, JSON_THROW_ON_ERROR),
         );
         self::assertResponseStatusCodeSame(413);
+    }
+
+    public function testEachColorModeRoundTripsWithItsEffectiveColor(): void
+    {
+        $root = $this->createGroup('Root');
+        self::assertSame('AUTO', $root['colorMode']);
+        self::assertNull($root['parentResolvedColor']);
+        $this->requestRaw('PUT', '/api/v1/account-groups/'.self::stringValue($root, 'id'), [
+            'label' => 'Root', 'parentId' => null, 'sortOrder' => 0, 'version' => 1, 'colorMode' => 'CUSTOM', 'color' => '#486df0',
+        ]);
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('CUSTOM', $this->decode()['colorMode']);
+        self::assertSame('#486DF0', $this->decode()['resolvedColor']);
+
+        $this->requestRaw('POST', '/api/v1/account-groups', ['label' => 'First', 'parentId' => $root['id'], 'sortOrder' => 0]);
+        $first = $this->decode();
+        $this->requestRaw('POST', '/api/v1/account-groups', ['label' => 'Second', 'parentId' => $root['id'], 'sortOrder' => 1, 'colorMode' => 'AUTO']);
+        $second = $this->decode();
+        $this->requestRaw('POST', '/api/v1/account-groups', ['label' => 'Third', 'parentId' => $root['id'], 'sortOrder' => 2, 'colorMode' => 'PARENT']);
+        $third = $this->decode();
+
+        self::assertSame('#7B96F4', $first['resolvedColor']);
+        self::assertSame('#113BCF', $second['resolvedColor']);
+        self::assertSame('#486DF0', $second['parentResolvedColor']);
+        self::assertSame('PARENT', $third['colorMode']);
+        self::assertSame('#486DF0', $third['resolvedColor']);
+        self::assertSame($third['defaultColor'], '#B8C7F9');
+
+        // A custom parent change is seen by inheriting children without writing them.
+        $this->requestRaw('PUT', '/api/v1/account-groups/'.self::stringValue($root, 'id'), [
+            'label' => 'Root', 'parentId' => null, 'sortOrder' => 0, 'version' => 2, 'colorMode' => 'CUSTOM', 'color' => '#803078',
+        ]);
+        $this->client->request('GET', '/api/v1/account-groups');
+        $listed = array_values(array_filter($this->items(), static fn (array $item): bool => $item['id'] === $first['id']));
+        self::assertSame('#D897D2', $listed[0]['resolvedColor']);
+        self::assertSame(1, $listed[0]['version']);
+    }
+
+    public function testLegacyPayloadsKeepTheirMeaning(): void
+    {
+        $this->requestRaw('POST', '/api/v1/account-groups', ['label' => 'Legacy', 'parentId' => null, 'sortOrder' => 0, 'color' => '#aabbcc']);
+        self::assertSame('CUSTOM', $this->decode()['colorMode']);
+        $this->requestRaw('POST', '/api/v1/account-groups', ['label' => 'Plain', 'parentId' => null, 'sortOrder' => 0, 'color' => null]);
+        self::assertSame('AUTO', $this->decode()['colorMode']);
+    }
+
+    /** @return iterable<string, array{array<string, mixed>, bool, list<array{field: string, code: string}>}> */
+    public static function colorModeErrors(): iterable
+    {
+        yield 'unknown mode' => [['colorMode' => 'RAINBOW'], false, [['field' => 'colorMode', 'code' => 'invalid_choice']]];
+        yield 'numeric mode' => [['colorMode' => 3], false, [['field' => 'colorMode', 'code' => 'invalid_choice']]];
+        yield 'parent on root' => [['colorMode' => 'PARENT'], false, [['field' => 'colorMode', 'code' => 'parent_mode_on_root']]];
+        yield 'custom without color' => [['colorMode' => 'CUSTOM'], true, [['field' => 'color', 'code' => 'required_for_custom']]];
+        yield 'auto with color' => [['colorMode' => 'AUTO', 'color' => '#123456'], true, [['field' => 'color', 'code' => 'forbidden_unless_custom']]];
+        yield 'parent with color' => [['colorMode' => 'PARENT', 'color' => '#123456'], true, [['field' => 'color', 'code' => 'forbidden_unless_custom']]];
+        yield 'invalid color' => [['colorMode' => 'CUSTOM', 'color' => 'red'], true, [['field' => 'color', 'code' => 'invalid_color']]];
+    }
+
+    /**
+     * @param array<string, mixed>                     $extra
+     * @param list<array{field: string, code: string}> $errors
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('colorModeErrors')]
+    public function testEveryColorFieldErrorIsReportedWithoutWriting(array $extra, bool $withParent, array $errors): void
+    {
+        $parent = $this->createGroup('Parent');
+        $count = $this->ownGroupCount();
+        $this->requestRaw('POST', '/api/v1/account-groups', ['label' => 'Child', 'parentId' => $withParent ? $parent['id'] : null, 'sortOrder' => 0, ...$extra]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame($errors, $this->decode()['errors']);
+        self::assertSame($count, $this->ownGroupCount());
+
+        $this->requestRaw('PUT', '/api/v1/account-groups/'.self::stringValue($parent, 'id'), ['label' => 'Parent', 'parentId' => $withParent ? $parent['id'] : null, 'sortOrder' => 0, 'version' => 1, ...$extra]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame($errors, $this->decode()['errors']);
+    }
+
+    public function testAModeChangeWithAStaleVersionIsAConflictAndAForeignParentIsRefused(): void
+    {
+        $group = $this->createGroup('Group');
+        $this->requestRaw('PUT', '/api/v1/account-groups/'.self::stringValue($group, 'id'), [
+            'label' => 'Group', 'parentId' => null, 'sortOrder' => 0, 'version' => 7, 'colorMode' => 'AUTO',
+        ]);
+        self::assertResponseStatusCodeSame(409);
+
+        $foreign = '00000000-0000-7000-8000-0000000f0001';
+        $this->insertGroup($foreign, WorkspaceFixture::OTHER_WORKSPACE, 'Foreign');
+        $this->requestRaw('POST', '/api/v1/account-groups', ['label' => 'Child', 'parentId' => $foreign, 'sortOrder' => 0, 'colorMode' => 'PARENT']);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    /** @param array<string, mixed> $body */
+    private function requestRaw(string $method, string $uri, array $body): void
+    {
+        $this->client->request($method, $uri, server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
     }
 
     private function signIn(): void

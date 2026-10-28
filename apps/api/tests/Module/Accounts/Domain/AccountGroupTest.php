@@ -40,9 +40,9 @@ final class AccountGroupTest extends TestCase
     public function testDefaultColorsDependOnlyOnTheImmutableIdentifier(): void
     {
         $group = $this->group();
-        $before = \App\Module\Accounts\Domain\AccountGroupColor::resolve($group);
+        $before = \App\Module\Accounts\Domain\AccountGroupColor::defaultFor($group->id);
         $renamed = $group->reconfigure('Other', null, 9, 1, new \DateTimeImmutable());
-        self::assertSame($before, \App\Module\Accounts\Domain\AccountGroupColor::resolve($renamed));
+        self::assertSame($before, \App\Module\Accounts\Domain\AccountGroupColors::resolveAll([$renamed])[$renamed->id]);
         self::assertContains($before, \App\Module\Accounts\Domain\AccountGroupColor::PALETTE);
     }
 

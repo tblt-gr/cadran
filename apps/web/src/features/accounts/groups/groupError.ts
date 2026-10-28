@@ -46,6 +46,7 @@ export function groupRequestError(result: {
   return new GroupRequestError(
     result.response?.status ?? 0,
     problem?.type,
-    problem?.errors?.some((error) => error.field === 'color') ?? false,
+    problem?.errors?.some((error) => error.field === 'color' || error.field === 'colorMode') ??
+      false,
   );
 }

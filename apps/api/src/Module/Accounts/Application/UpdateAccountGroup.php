@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountGroup;
+use App\Module\Accounts\Domain\AccountGroupColorMode;
 use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\AccountGroupTree;
 use App\Module\Accounts\Domain\InvalidAccountGroup;
@@ -23,6 +24,7 @@ final readonly class UpdateAccountGroup
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
+        private ReadGroupColors $readGroupColors,
     ) {
     }
 
@@ -75,6 +77,8 @@ final readonly class UpdateAccountGroup
                 }
             }
 
+            [$mode, $color] = self::colorOf($current, $input, $parentId);
+
             try {
                 $updated = $current->reconfigure(
                     label: $label,
@@ -82,7 +86,11 @@ final readonly class UpdateAccountGroup
                     sortOrder: $input->sortOrder,
                     depth: $depth,
                     updatedAt: $now,
-                    color: $input->colorProvided ? $input->color : $current->color,
+                    color: $color,
+                    colorMode: $mode,
+                    colorSlot: $current->parentId === $parentId
+                        ? $current->colorSlot
+                        : (null === $parentId ? 0 : AccountGroup::nextColorSlot($this->groups->usedColorSlots($context->workspace, $parentId))),
                 );
             } catch (InvalidAccountGroup $exception) {
                 throw new InvalidAccountGroupInput($exception->getMessage(), previous: $exception);
@@ -121,7 +129,30 @@ final readonly class UpdateAccountGroup
                 $updated,
                 $this->groups->hasChildren($context->workspace, $updated->id),
                 $parent?->label,
+                ($this->readGroupColors)($context->workspace),
             );
         });
+    }
+
+    /**
+     * An explicit mode wins, then an explicit color (the pre-mode payload), then
+     * what the group already has. A group that leaves its parent behind cannot
+     * keep inheriting from it.
+     *
+     * @return array{?AccountGroupColorMode, ?string}
+     */
+    private static function colorOf(AccountGroup $current, UpdateAccountGroupInput $input, ?string $parentId): array
+    {
+        if (null !== $input->colorMode) {
+            return [$input->colorMode, $input->color];
+        }
+        if ($input->colorProvided) {
+            return [null, $input->color];
+        }
+        if (AccountGroupColorMode::PARENT === $current->colorMode && null === $parentId) {
+            return [AccountGroupColorMode::AUTO, null];
+        }
+
+        return [$current->colorMode, $current->color];
     }
 }

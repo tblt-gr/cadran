@@ -16,6 +16,7 @@ final readonly class ListAccountGroups
     public function __construct(
         private CallerWorkspace $caller,
         private AccountGroupRepository $groups,
+        private ReadGroupColors $readGroupColors,
     ) {
     }
 
@@ -42,12 +43,15 @@ final readonly class ListAccountGroups
             array_values(array_unique(array_filter(array_column($groups, 'parentId')))),
         );
 
+        $colors = ($this->readGroupColors)($workspace);
+
         return new AccountGroupPage(
             items: array_map(
-                static fn ($group): AccountGroupView => AccountGroupView::fromGroup(
+                fn ($group): AccountGroupView => AccountGroupView::fromGroup(
                     $group,
                     isset($parentIds[$group->id]),
                     null === $group->parentId ? null : ($parentLabels[$group->parentId] ?? null),
+                    $colors,
                 ),
                 $groups,
             ),

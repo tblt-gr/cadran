@@ -140,7 +140,7 @@ final class MonthlyRecapControllerTest extends WebTestCase
     {
         $this->signIn();
         $this->seedThreeAccounts();
-        $this->connection->update('account_groups', ['color' => '#000000'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::GROUP_LIVRETS]);
+        $this->connection->update('account_groups', ['color' => '#000000', 'color_mode' => 'CUSTOM'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => self::GROUP_LIVRETS]);
         $recap = $this->read();
         $groups = self::index($recap['groups'], 'groupId');
         $accounts = self::index($recap['accounts'], 'accountId');

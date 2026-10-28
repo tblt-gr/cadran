@@ -1,0 +1,141 @@
+.branch {
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+}
+
+.node .branch {
+  padding-inline-start: var(--spacing-4);
+  min-width: var(--spacing-none);
+}
+
+.node {
+  border-bottom: var(--border-line-subtle);
+}
+
+.node .branch {
+  animation: branch-in var(--duration-medium) var(--ease-out);
+}
+
+@keyframes branch-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--spacing-1)));
+  }
+}
+
+.branch > .node:last-child {
+  border-bottom: var(--border-none);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-2);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.row:hover,
+.row:focus-within {
+  background: var(--bg-surface-hover);
+}
+
+.row[data-archived='true'] .summary {
+  opacity: 0.55;
+}
+
+.summary {
+  display: grid;
+  flex: 1 1 12rem;
+  min-width: 0;
+  gap: var(--spacing-1);
+  justify-items: start;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-3);
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.toggle,
+.toggleSpacer {
+  flex: none;
+}
+
+.toggleSpacer {
+  width: var(--icon-size-lg);
+}
+
+.toggle svg {
+  transition: transform var(--duration-fast);
+}
+
+.toggle[data-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle svg,
+  .row,
+  .node .branch {
+    transition: none;
+    animation: none;
+  }
+}
+
+.skeletonIdentity {
+  display: block;
+  width: 9rem;
+  height: var(--icon-size-lg);
+}
+
+.skeletonMeta {
+  display: block;
+  width: 14rem;
+  max-width: 100%;
+  height: var(--spacing-4);
+}
+
+.skeletonAction {
+  display: block;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  overflow-wrap: anywhere;
+}
+
+.marker {
+  flex: none;
+  width: var(--spacing-3);
+  height: var(--spacing-3);
+  border-radius: var(--radius-circle);
+  background: var(--text-muted);
+}
+
+.skeletonMarker {
+  display: block;
+  flex: none;
+  width: var(--spacing-3);
+  height: var(--spacing-3);
+}
+
+.skeletonLabel {
+  display: block;
+  width: 9rem;
+  height: var(--spacing-4);
+}

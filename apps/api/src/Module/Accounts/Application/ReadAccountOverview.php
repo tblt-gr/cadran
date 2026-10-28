@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Accounts\Domain\AccountGroupColors;
 use App\Module\Accounts\Domain\AccountGroupTree;
 use App\Module\Accounts\Domain\AccountOrdering;
 use App\Module\Accounts\Domain\AccountOrderRepository;
@@ -46,6 +47,7 @@ final readonly class ReadAccountOverview
             }
         }
 
+        $colors = AccountGroupColors::of($figures->groups);
         $headings = [];
         foreach (AccountGroupTree::depthFirst($figures->groups) as $group) {
             $members = $counts[$group->id] ?? 0;
@@ -55,6 +57,7 @@ final readonly class ReadAccountOverview
 
             $headings[] = AccountOverviewGroupView::ofGroup(
                 $group,
+                $colors,
                 isset($parentsWithChildren[$group->id]),
                 $members,
                 NetWorthAmountView::of($figures->rollup[$group->id] ?? null, $netWorth->asset, $reference),

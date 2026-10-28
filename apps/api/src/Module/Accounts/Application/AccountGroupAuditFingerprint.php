@@ -18,6 +18,7 @@ final class AccountGroupAuditFingerprint
         return [
             'hasParent' => null !== $group->parentId,
             'depth' => $group->depth,
+            'colorMode' => $group->colorMode->value,
             'orderChanged' => false,
             'parentChanged' => $parentChanged,
             'version' => $group->version,

@@ -33,6 +33,13 @@ interface AccountGroupRepository
      */
     public function descendantsForUpdate(WorkspaceScope $workspace, string $ancestorId): array;
 
+    /**
+     * Color slots held by the siblings under `$parentId` (archived included).
+     *
+     * @return list<int>
+     */
+    public function usedColorSlots(WorkspaceScope $workspace, ?string $parentId): array;
+
     public function isReferencedByAccount(WorkspaceScope $workspace, string $id): bool;
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Infrastructure\Persistence;
 
 use App\Module\Accounts\Domain\AccountGroup;
+use App\Module\Accounts\Domain\AccountGroupColorMode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 final readonly class AccountGroupRow
@@ -30,6 +31,8 @@ final readonly class AccountGroupRow
             updatedAt: new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
             archivedAt: self::instant($row['archived_at'] ?? null),
             color: self::nullableText($row['color'] ?? null),
+            colorMode: AccountGroupColorMode::from(self::text($row['color_mode'] ?? null)),
+            colorSlot: (int) self::text($row['color_slot'] ?? null),
         );
     }
 
@@ -39,6 +42,8 @@ final readonly class AccountGroupRow
         return [
             'label' => $group->label,
             'color' => $group->color,
+            'color_mode' => $group->colorMode->value,
+            'color_slot' => $group->colorSlot,
             'parent_id' => $group->parentId,
             'sort_order' => $group->sortOrder,
             'depth' => $group->depth,

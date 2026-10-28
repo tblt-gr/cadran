@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(AccountGroupRepository::class)]
 final readonly class DbalAccountGroupRepository implements AccountGroupRepository
 {
-    private const string COLUMNS = 'id, workspace_id, label, color, parent_id, sort_order, depth, version, created_at, updated_at, archived_at';
+    private const string COLUMNS = 'id, workspace_id, label, color, color_mode, color_slot, parent_id, sort_order, depth, version, created_at, updated_at, archived_at';
 
     public function __construct(private Connection $connection)
     {
@@ -123,6 +123,17 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
         }
 
         return $found;
+    }
+
+    public function usedColorSlots(WorkspaceScope $workspace, ?string $parentId): array
+    {
+        $values = $this->connection->fetchFirstColumn(
+            'SELECT color_slot FROM account_groups'
+            .' WHERE workspace_id = :workspace_id AND parent_id IS NOT DISTINCT FROM :parent_id',
+            ['workspace_id' => $workspace->id, 'parent_id' => $parentId],
+        );
+
+        return array_map(static fn (mixed $value): int => (int) AccountGroupRow::text($value), $values);
     }
 
     public function isReferencedByAccount(WorkspaceScope $workspace, string $id): bool

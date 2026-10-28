@@ -99,6 +99,18 @@ final class InMemoryAccountGroupRepository implements AccountGroupRepository
         return $found;
     }
 
+    public function usedColorSlots(WorkspaceScope $workspace, ?string $parentId): array
+    {
+        $slots = [];
+        foreach ($this->groups as $group) {
+            if ($group->workspace->equals($workspace) && $group->parentId === $parentId) {
+                $slots[] = $group->colorSlot;
+            }
+        }
+
+        return $slots;
+    }
+
     public function isReferencedByAccount(WorkspaceScope $workspace, string $id): bool
     {
         return false;

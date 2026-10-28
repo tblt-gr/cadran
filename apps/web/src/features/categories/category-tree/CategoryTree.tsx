@@ -1,7 +1,7 @@
 import type { Category } from '@cadran/api-client';
 import type { CategoryDialogOperation } from '@/features/categories/category-lifecycle/CategoryLifecycleDialog';
 import { useTranslation } from 'react-i18next';
-import { buildCategoryTree } from './buildCategoryTree';
+import { buildTree } from '@/lib/tree/buildTree';
 import { CategoryTreeNode } from './CategoryTreeNode';
 import styles from './CategoryTree.module.css';
 
@@ -16,9 +16,9 @@ export function CategoryTree({ categories, onEdit, onLifecycle }: CategoryTreePr
 
   return (
     <ul aria-label={t('categories.list.caption')} className={styles.branch}>
-      {buildCategoryTree(categories).map((node) => (
+      {buildTree(categories).map((node) => (
         <CategoryTreeNode
-          key={node.category.id}
+          key={node.item.id}
           node={node}
           root
           onEdit={onEdit}

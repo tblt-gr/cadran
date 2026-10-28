@@ -1,5 +1,6 @@
 import { listAccountGroups, type AccountGroup } from '@cadran/api-client';
 import { authApiOptions } from '@/features/auth/apiOptions';
+import { groupRequestError } from '@/features/accounts/groups/groupError';
 
 const PAGE_SIZE = 100;
 
@@ -17,7 +18,7 @@ export async function listAllAccountGroups(
       ...(signal ? { signal } : {}),
     });
     if (!result.response?.ok || !result.data) {
-      throw new Error('Unable to load account groups.');
+      throw groupRequestError(result);
     }
     if (page === 1) {
       totalPages = Math.ceil(result.data.total / result.data.pageSize);
