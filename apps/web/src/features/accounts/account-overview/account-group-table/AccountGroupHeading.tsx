@@ -1,7 +1,6 @@
 import type { AccountOverviewGroup } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import { GroupCompositionButton } from '@/features/accounts/group-composition/GroupCompositionButton';
 import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
@@ -9,9 +8,8 @@ import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFi
 import styles from './AccountGroupHeading.module.css';
 
 interface AccountGroupHeadingProps {
-  /** Valuation date of the overview; with `grouping`, enables the composition button. */
+  /** Valuation date of the overview; enables the composition button. */
   asOf?: string;
-  grouping?: GroupingMode;
   headingId: string;
   /** Null while the overview is being read: only the values are blocks. */
   group: AccountOverviewGroup | null;
@@ -25,7 +23,6 @@ interface AccountGroupHeadingProps {
 export function AccountGroupHeading({
   asOf,
   group,
-  grouping,
   headingId,
   sole = false,
 }: AccountGroupHeadingProps) {
@@ -37,12 +34,9 @@ export function AccountGroupHeading({
         ? t(sole ? 'accounts.overview.sole' : 'accounts.overview.ungrouped')
         : group.label;
 
+  // A single account has nothing to compare, so no chart is offered.
   const composable =
-    grouping === 'PARENT' &&
-    asOf !== undefined &&
-    group !== null &&
-    group.groupId !== null &&
-    group.memberCount > 0;
+    asOf !== undefined && group !== null && group.groupId !== null && group.memberCount > 1;
 
   return (
     <header className={styles.heading}>

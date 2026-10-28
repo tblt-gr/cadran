@@ -81,13 +81,7 @@ export function AccountGroupTable({
 
   return (
     <section aria-labelledby={headingId} className={styles.group}>
-      <AccountGroupHeading
-        asOf={asOf}
-        group={group}
-        grouping={grouping}
-        headingId={headingId}
-        sole={sole}
-      />
+      <AccountGroupHeading asOf={asOf} group={group} headingId={headingId} sole={sole} />
       <p aria-live="polite" className="sr-only" role="status">
         {movedIndex >= 0 && accounts !== null
           ? t('accounts.overview.moved', {
