@@ -37,37 +37,20 @@
   margin: var(--spacing-none);
 }
 
-.scroll {
-  overflow-x: auto;
+.legendBlock {
+  display: grid;
+  gap: var(--spacing-3);
+  min-width: 0;
 }
 
-.scroll table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.scroll th,
-.scroll td {
-  padding: var(--spacing-3);
-  border-bottom: var(--border-line-subtle);
-  text-align: left;
-}
-
-.scroll td {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.scroll tfoot th,
-.scroll tfoot td {
+.total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: var(--spacing-none);
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
   font-weight: var(--font-weight-bold);
-}
-
-.entry {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-1) var(--spacing-2);
 }
 
 .institution {
@@ -86,13 +69,6 @@
   display: inline-block;
   width: calc(var(--spacing-12) * 1.25);
   height: var(--font-size-body);
-}
-
-@media (max-width: 47.999rem) {
-  .scroll th,
-  .scroll td {
-    padding: var(--spacing-2);
-  }
 }
 
 /* Icon-only buttons stay circular; icon-ghost supplies the borderless, transparent look. */

@@ -2,7 +2,7 @@ import type { AccountGroupComposition } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { accountEntries, subgroupEntries, type CompositionView } from './compositionEntries';
 import { GroupCompositionChart } from './GroupCompositionChart';
-import { GroupCompositionTable } from './GroupCompositionTable';
+import { GroupCompositionLegend } from './GroupCompositionLegend';
 import styles from './GroupComposition.module.css';
 
 interface GroupCompositionPanelProps {
@@ -29,7 +29,7 @@ export function GroupCompositionPanel({ composition, view }: GroupCompositionPan
         label={t('accounts.composition.chart', { label: composition?.label ?? '' })}
         total={composition?.total ?? null}
       />
-      <GroupCompositionTable composition={composition} entries={entries} view={view} />
+      <GroupCompositionLegend composition={composition} entries={entries} view={view} />
     </div>
   );
 }

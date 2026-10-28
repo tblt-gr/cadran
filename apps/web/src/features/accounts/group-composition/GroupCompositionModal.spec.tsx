@@ -60,7 +60,9 @@ describe('GroupCompositionModal', () => {
     expect(screen.getByText('25/10/2026')).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Par sous-groupe' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Par compte' })).toBeTruthy();
-    expect(screen.getAllByRole('columnheader', { name: 'Part' }).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('list', { name: 'Répartition par sous-groupe' }).length,
+    ).toBeGreaterThan(0);
     expect(document.querySelectorAll('[data-skeleton]').length).toBeGreaterThan(0);
     expect(screen.getAllByRole('status')[0]!.textContent).toBe('Chargement de la répartition...');
   });
@@ -73,10 +75,10 @@ describe('GroupCompositionModal', () => {
     const bySubgroup = screen.getByRole('tab', { name: 'Par sous-groupe' });
     expect(bySubgroup.getAttribute('aria-selected')).toBe('true');
     const panel = screen.getByRole('tabpanel', { name: 'Par sous-groupe' });
-    const rows = within(panel).getAllByRole('row');
-    expect(within(rows[1]!).getByText('Bourse')).toBeTruthy();
-    expect(within(rows[1]!).getByText(/900,00/)).toBeTruthy();
-    expect(within(rows[1]!).getByText(/60,00/)).toBeTruthy();
+    const rows = within(panel).getAllByRole('listitem');
+    expect(within(rows[0]!).getByText('Bourse')).toBeTruthy();
+    expect(within(rows[0]!).getByText(/900,00/)).toBeTruthy();
+    expect(within(rows[0]!).getByText(/60,00/)).toBeTruthy();
     expect(within(panel).getByText('Comptes directs')).toBeTruthy();
     expect(within(panel).getByText(/6,67/)).toBeTruthy();
 
@@ -95,7 +97,7 @@ describe('GroupCompositionModal', () => {
 
     await screen.findByText('PEA');
     expect(screen.queryByRole('tab')).toBeNull();
-    expect(screen.getByRole('table', { name: 'Répartition par compte' })).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'Répartition par compte' })).toBeTruthy();
   });
 
   it('draws the donut with the server share when the chart is available', async () => {
@@ -107,7 +109,7 @@ describe('GroupCompositionModal', () => {
     expect(screen.getByRole('img', { name: 'Répartition de Investissement' })).toBeTruthy();
   });
 
-  it('replaces the chart by the reason and keeps the table with dashes', async () => {
+  it('replaces the chart by the reason and keeps the legend with dashes', async () => {
     api.readAccountGroupComposition.mockReturnValue(
       success(
         workedExample({
