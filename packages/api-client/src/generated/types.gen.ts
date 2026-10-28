@@ -3419,6 +3419,19 @@ export type NetWorthAllocationEntry = {
     depth: number;
     value: NetWorthAmount | null;
     share: NetWorthShare;
+    /**
+     * The signed total of the accounts whose primary group is exactly this group, descendants excluded. Direct totals of all groups plus the ungrouped bucket equal eligible net worth. Null when not calculable.
+     */
+    directValue: NetWorthAmount | null;
+    directShare: NetWorthShare;
+    /**
+     * The same direct total on the compared day; null when that day is not calculable.
+     */
+    directPreviousValue: NetWorthAmount | null;
+    /**
+     * True when the group has at least one active sub-group.
+     */
+    hasChildren: boolean;
 };
 
 export type NetWorth = {

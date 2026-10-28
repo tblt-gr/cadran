@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Cell, Pie, PieChart } from 'recharts';
 import styles from './DonutChart.module.css';
+import { wrapCaption } from './wrapCaption';
+
+// Approximate glyph width and line count that fit the hole at the caption font size.
+const CAPTION_CHAR_WIDTH = 7.5;
+const CAPTION_MAX_LINES = 3;
+const CAPTION_LINE_HEIGHT = 16;
 
 const DONUT_COLORS = [
   'var(--chart-allocation-1)',
@@ -39,6 +45,12 @@ export function DonutChart({ height, label, slices, totalText, width }: DonutCha
   const radius = Math.max(48, Math.min(pieWidth, pieHeight) / 2 - 16);
   const focused = activeIndex === null ? null : (slices[activeIndex] ?? null);
   const centre = focused === null ? totalText : focused.amountText;
+  const holeWidth = radius * 0.62 * 2 * 0.85;
+  const captionLines =
+    focused === null
+      ? []
+      : wrapCaption(focused.caption, holeWidth / CAPTION_CHAR_WIDTH, CAPTION_MAX_LINES);
+  const lift = (Math.max(captionLines.length, 1) - 1) * (CAPTION_LINE_HEIGHT / 2);
 
   return (
     <PieChart
@@ -76,7 +88,7 @@ export function DonutChart({ height, label, slices, totalText, width }: DonutCha
           className={styles.centerTotal}
           textAnchor="middle"
           x={pieWidth / 2}
-          y={pieHeight / 2 - (focused === null ? 0 : 8)}
+          y={pieHeight / 2 - (focused === null ? 0 : 8 + lift)}
         >
           {centre}
         </text>
@@ -86,9 +98,17 @@ export function DonutChart({ height, label, slices, totalText, width }: DonutCha
           className={styles.centerTitle}
           textAnchor="middle"
           x={pieWidth / 2}
-          y={pieHeight / 2 + 16}
+          y={pieHeight / 2 + 16 - lift}
         >
-          {focused.caption}
+          {captionLines.map((line, index) => (
+            <tspan
+              dy={index === 0 ? 0 : CAPTION_LINE_HEIGHT}
+              key={`${index}-${line}`}
+              x={pieWidth / 2}
+            >
+              {line}
+            </tspan>
+          ))}
         </text>
       )}
     </PieChart>

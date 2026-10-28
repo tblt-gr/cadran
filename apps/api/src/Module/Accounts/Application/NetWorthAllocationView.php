@@ -29,7 +29,11 @@ final readonly class NetWorthAllocationView
         public ?NetWorthAmountView $value,
         public ShareView $share,
         public string $color,
-        public ?NetWorthAmountView $previousValue = null,
+        public ?NetWorthAmountView $previousValue,
+        public ?NetWorthAmountView $directValue,
+        public ShareView $directShare,
+        public ?NetWorthAmountView $directPreviousValue,
+        public bool $hasChildren,
     ) {
     }
 
@@ -43,6 +47,10 @@ final readonly class NetWorthAllocationView
         ?DecimalValue $previousValue = null,
         ?AssetCode $previousAsset = null,
         ?Asset $previousReference = null,
+        ?DecimalValue $directValue = null,
+        ?NetWorthShare $directShare = null,
+        ?DecimalValue $directPreviousValue = null,
+        bool $hasChildren = false,
     ): self {
         return new self(
             groupId: $group->id,
@@ -53,6 +61,10 @@ final readonly class NetWorthAllocationView
             share: ShareView::fromShare($share),
             color: $colors->effective($group),
             previousValue: NetWorthAmountView::of($previousValue, $previousAsset, $previousReference),
+            directValue: NetWorthAmountView::of($directValue, $asset, $reference),
+            directShare: ShareView::fromShare($directShare ?? NetWorthShare::none(null)),
+            directPreviousValue: NetWorthAmountView::of($directPreviousValue, $previousAsset, $previousReference),
+            hasChildren: $hasChildren,
         );
     }
 }

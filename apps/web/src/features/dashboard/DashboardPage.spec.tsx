@@ -88,6 +88,10 @@ const netWorth: NetWorth = {
         percentDisplay: '4.20',
         reason: null,
       },
+      directValue: amount('40104.00'),
+      directShare: { ratio: null, percent: '2.80', percentDisplay: '2.80', reason: null },
+      directPreviousValue: null,
+      hasChildren: true,
     },
     {
       color: '#486DF0',
@@ -102,6 +106,10 @@ const netWorth: NetWorth = {
         percentDisplay: '16.00',
         reason: null,
       },
+      directValue: amount('20000.00'),
+      directShare: { ratio: null, percent: '16.00', percentDisplay: '16.00', reason: null },
+      directPreviousValue: null,
+      hasChildren: false,
     },
   ],
 };
@@ -171,6 +179,7 @@ describe('DashboardPage', () => {
     cleanup();
     vi.resetAllMocks();
     window.history.replaceState({}, '', '/');
+    window.localStorage.clear();
   });
 
   it('replaces its one named cold-load skeleton and keeps data during a refetch', async () => {
@@ -375,7 +384,8 @@ describe('DashboardPage', () => {
     ).toBe('up');
   });
 
-  it('lists only the top-level exclusive groups in the allocation', async () => {
+  it('lists only the top-level exclusive groups in the allocation in parent mode', async () => {
+    window.localStorage.setItem('cadran.synthese.grouping', 'PARENT');
     api.readNetWorth.mockReturnValue(success(netWorth));
     api.readNetWorthHistory.mockReturnValue(success(history));
 
@@ -392,6 +402,66 @@ describe('DashboardPage', () => {
     expect(allocation.textContent).not.toContain('4,20080440935498286906');
     const bars = Array.from(allocation.querySelectorAll('svg[width$="%"]'));
     expect(bars.map((bar) => bar.getAttribute('width'))).toEqual(['4.2%']);
+  });
+
+  it('defaults to sub-group mode with direct values, then switches and remembers parent mode', async () => {
+    window.localStorage.clear();
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard();
+    await loaded();
+
+    const allocation = (await screen.findByRole('heading', { name: 'Allocation' })).closest(
+      'section',
+    ) as HTMLElement;
+    const toggle = within(allocation).getByRole('button', { name: 'Détailler par sous-groupe' });
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(allocation).getByRole('button', { name: 'Camembert' }));
+    expect(allocation.textContent).toContain('Livrets');
+    expect(allocation.textContent).toContain('(Liquidités)');
+    expect(allocation.textContent).toContain('2,80 %');
+    expect(allocation.textContent).toContain('16,00 %');
+    expect(allocation.textContent).not.toContain('4,20 %');
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    expect(window.localStorage.getItem('cadran.synthese.grouping')).toBe('PARENT');
+    expect(allocation.textContent).not.toContain('Livrets');
+    expect(allocation.textContent).toContain('4,20 %');
+    expect(api.readNetWorth).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the reason in the legend in sub-group mode when nothing is valued', async () => {
+    window.localStorage.clear();
+    const share = { ratio: null, percent: null, percentDisplay: null, reason: null };
+    api.readNetWorth.mockReturnValue(
+      success({
+        ...netWorth,
+        total: null,
+        reason: 'MISSING_VALUATION',
+        allocation: netWorth.allocation.map((entry) => ({
+          ...entry,
+          value: null,
+          share,
+          directValue: null,
+          directShare: share,
+        })),
+      }),
+    );
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard();
+    await loaded();
+
+    const allocation = (await screen.findByRole('heading', { name: 'Allocation' })).closest(
+      'section',
+    ) as HTMLElement;
+    fireEvent.click(within(allocation).getByRole('button', { name: 'Camembert' }));
+    expect(allocation.textContent).toContain('Livrets');
+    expect(allocation.textContent).toContain('Liquidités');
+    expect(allocation.querySelectorAll('ul li').length).toBe(2);
+    expect(allocation.querySelector('ul')?.textContent).not.toMatch(/\d,\d\d %/);
   });
 
   it('offers Treemap and Camembert toggles in the allocation section', async () => {

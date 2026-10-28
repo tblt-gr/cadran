@@ -347,6 +347,12 @@
     }
   },
   "accounts": {
+    "grouping": {
+      "toggle": "Détailler par sous-groupe",
+      "parent": "Groupe parent",
+      "primary": "Sous-groupe",
+      "direct": "Comptes propres"
+    },
     "add": "Nouveau compte",
     "addFirst": "Créer le premier compte",
     "manageGroups": "Gérer les groupes",

@@ -113,6 +113,10 @@ final readonly class NetWorthRepresentation
             'depth' => $allocation->depth,
             'value' => self::amount($allocation->value),
             'share' => AccountGroupRepresentation::share($allocation->share),
+            'directValue' => self::amount($allocation->directValue),
+            'directShare' => AccountGroupRepresentation::share($allocation->directShare),
+            'directPreviousValue' => self::amount($allocation->directPreviousValue),
+            'hasChildren' => $allocation->hasChildren,
         ];
     }
 

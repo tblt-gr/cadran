@@ -30,6 +30,7 @@ final class NetWorthShareCalculator
         $reason = self::nonCalculableReason($included);
         $accountShares = [];
         $groupShares = [];
+        $directShares = [];
 
         foreach ($accounts as $account) {
             $accountShares[$account->accountId] = $account->includeInNetWorth
@@ -38,9 +39,13 @@ final class NetWorthShareCalculator
         }
 
         $rollup = null === $reason ? ExclusiveGroupRollup::totals($included, $lineages) : [];
+        $direct = null === $reason ? ExclusiveGroupRollup::directTotals($included, $lineages) : [];
         foreach ($lineages as $lineage) {
             $groupShares[$lineage->groupId] = null === $reason
                 ? self::ratio($rollup[$lineage->groupId], self::eligibleNetWorth($included))
+                : NetWorthShare::none($reason);
+            $directShares[$lineage->groupId] = null === $reason
+                ? self::ratio($direct[$lineage->groupId], self::eligibleNetWorth($included))
                 : NetWorthShare::none($reason);
         }
 
@@ -48,7 +53,7 @@ final class NetWorthShareCalculator
             ? self::ratio(ExclusiveGroupRollup::ungroupedTotal($included), self::eligibleNetWorth($included))
             : NetWorthShare::none($reason);
 
-        return new NetWorthShares($accountShares, $groupShares, $ungrouped);
+        return new NetWorthShares($accountShares, $groupShares, $ungrouped, $directShares);
     }
 
     /**

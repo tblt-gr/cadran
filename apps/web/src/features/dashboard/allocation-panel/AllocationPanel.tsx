@@ -1,6 +1,8 @@
 import type { NetWorth } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
+import { useGroupingMode } from '@/features/accounts/grouping-mode/useGroupingMode';
 import {
   AllocationCharts,
   type ChartView,
@@ -13,17 +15,17 @@ interface AllocationPanelProps {
 }
 
 /**
- * The exclusive weight of each top-level group.
- *
- * Only the first level is listed: a child already counts inside its parent, so
- * showing both would let the same euro be read twice. Every percentage is the
+ * The exclusive weight of each group, by parent group (roll-up of root groups) or by sub-group
+ * (direct members only). Either way every account sits in exactly one slice, so no euro is read
+ * twice. Every percentage is the
  * two-decimal display string the backend produced; the bar repeats it and
  * carries no meaning of its own.
  */
 export function AllocationPanel({ netWorth }: AllocationPanelProps) {
   const { t } = useTranslation();
   const [view, setView] = useState<ChartView>('treemap');
-  const roots = netWorth.allocation.filter((entry) => entry.depth === 1);
+  const [mode, setMode] = useGroupingMode('cadran.synthese.grouping', 'PRIMARY');
+  const hasGroups = netWorth.allocation.some((entry) => entry.depth === 1);
 
   return (
     <section
@@ -41,17 +43,25 @@ export function AllocationPanel({ netWorth }: AllocationPanelProps) {
         </a>
       </div>
 
-      {roots.length === 0 ? (
+      {!hasGroups ? (
         <p className={styles.empty}>{t('dashboard.allocation.empty')}</p>
       ) : (
         <div className={view === 'pie' ? styles.pieLayout : styles.treeLayout}>
           <AllocationCharts
             allocation={netWorth.allocation}
+            mode={mode}
+            modeToggle={<GroupingModeToggle mode={mode} onChange={setMode} />}
             onViewChange={setView}
             reason={netWorth.reason}
             total={netWorth.total}
           />
-          {view === 'pie' ? <AllocationLegend entries={roots} reason={netWorth.reason} /> : null}
+          {view === 'pie' ? (
+            <AllocationLegend
+              allocation={netWorth.allocation}
+              mode={mode}
+              reason={netWorth.reason}
+            />
+          ) : null}
         </div>
       )}
     </section>
