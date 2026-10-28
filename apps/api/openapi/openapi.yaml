@@ -15490,12 +15490,25 @@ components:
           $ref: '#/components/schemas/NetWorthShare'
     MonthlyRecapGroup:
       description: >-
-        The exclusive subtotal of one primary group at N, and the share of
-        eligible net worth it represents. A secondary label never adds a second
-        total for the same account.
+        One group of the recap at N: its roll-up (own accounts plus every
+        descendant) and its direct total (accounts whose primary group is exactly
+        this group), each with its share of eligible net worth. A secondary label
+        never adds a second total for the same account.
       type: object
       additionalProperties: false
-      required: [color, groupId, label, parentId, depth, value, previousValue, share]
+      required:
+        - color
+        - groupId
+        - label
+        - parentId
+        - depth
+        - value
+        - previousValue
+        - share
+        - directValue
+        - directPreviousValue
+        - directShare
+        - hasChildren
       properties:
         color:
           type: string
@@ -15519,12 +15532,30 @@ components:
             - $ref: '#/components/schemas/NetWorthAmount'
             - type: 'null'
         previousValue:
-          description: The same exclusive subtotal at N-1; null when N-1 net worth is not calculable.
+          description: The same roll-up at N-1; null when N-1 net worth is not calculable.
           oneOf:
             - $ref: '#/components/schemas/NetWorthAmount'
             - type: 'null'
         share:
           $ref: '#/components/schemas/NetWorthShare'
+        directValue:
+          description: >-
+            The signed total at N of the accounts whose primary group is exactly
+            this group, descendants excluded. Direct totals of all groups plus
+            the ungrouped bucket equal eligible net worth. Null when not calculable.
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        directPreviousValue:
+          description: The same direct total at N-1; null when N-1 is not calculable.
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        directShare:
+          $ref: '#/components/schemas/NetWorthShare'
+        hasChildren:
+          description: True when the group has at least one active sub-group.
+          type: boolean
     MonthlyRecapNetWorth:
       description: >-
         The wealth card: N−1, N, the signed currency difference and the change

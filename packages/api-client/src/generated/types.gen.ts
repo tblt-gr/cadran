@@ -2927,7 +2927,7 @@ export type MonthlyRecapAccount = {
 };
 
 /**
- * The exclusive subtotal of one primary group at N, and the share of eligible net worth it represents. A secondary label never adds a second total for the same account.
+ * One group of the recap at N: its roll-up (own accounts plus every descendant) and its direct total (accounts whose primary group is exactly this group), each with its share of eligible net worth. A secondary label never adds a second total for the same account.
  */
 export type MonthlyRecapGroup = {
     color: string;
@@ -2937,10 +2937,23 @@ export type MonthlyRecapGroup = {
     depth: number;
     value: NetWorthAmount | null;
     /**
-     * The same exclusive subtotal at N-1; null when N-1 net worth is not calculable.
+     * The same roll-up at N-1; null when N-1 net worth is not calculable.
      */
     previousValue: NetWorthAmount | null;
     share: NetWorthShare;
+    /**
+     * The signed total at N of the accounts whose primary group is exactly this group, descendants excluded. Direct totals of all groups plus the ungrouped bucket equal eligible net worth. Null when not calculable.
+     */
+    directValue: NetWorthAmount | null;
+    /**
+     * The same direct total at N-1; null when N-1 is not calculable.
+     */
+    directPreviousValue: NetWorthAmount | null;
+    directShare: NetWorthShare;
+    /**
+     * True when the group has at least one active sub-group.
+     */
+    hasChildren: boolean;
 };
 
 /**

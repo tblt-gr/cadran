@@ -183,6 +183,15 @@ const recap = {
         percentDisplay: null,
         reason: 'MISSING_VALUATION' as const,
       },
+      directValue: null,
+      directPreviousValue: null,
+      directShare: {
+        ratio: null,
+        percent: null,
+        percentDisplay: null,
+        reason: 'MISSING_VALUATION' as const,
+      },
+      hasChildren: false,
     },
   ],
   netWorth: {
