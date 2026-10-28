@@ -75,7 +75,7 @@ final class ReadReferenceIncomeTest extends TestCase
         if (MonthState::NO_DATA !== $state) {
             $figures = new MonthFigures($month->key(), 1, 'COMPLETE', 0, $month->lastDay()->format('Y-m-d'), [
                 'cashIncome' => new MonthlyMetricView($cashIncome, 'EUR', null === $cashIncome ? 'NO_ACCOUNT' : null),
-            ], [], []);
+            ], [], [], []);
         }
 
         return new AnnualMonth($month, $state, false, false, $figures);

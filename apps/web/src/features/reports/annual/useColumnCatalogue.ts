@@ -1,5 +1,7 @@
-import { listAccountGroups, listAccounts, listCategories } from '@cadran/api-client';
+import { listAccounts, listCategories } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
+import { orderGroupsDepthFirst } from '@/features/accounts/groups/groupPaths';
+import { listAllAccountGroups } from '@/features/accounts/groups/listAllAccountGroups';
 import { authApiOptions } from '@/features/auth/apiOptions';
 
 const PAGE_SIZE = 50;
@@ -10,6 +12,10 @@ export interface CatalogueEntry {
   label: string;
   /** Where an account is held; shown under its label, as in the report headers. */
   institution?: string | null;
+  /** Immediate parent of a sub-group, shown beside its name. */
+  parentLabel?: string | null;
+  /** Full path of a group, the accessible name of its option. */
+  path?: string;
 }
 
 interface Page<T> {
@@ -52,11 +58,13 @@ export function useColumnCatalogue(enabled: boolean) {
             query: { includeArchived: true, page, pageSize: PAGE_SIZE },
           }),
         ),
-        collect((page) =>
-          listAccountGroups({
-            ...authApiOptions(),
-            query: { includeArchived: true, page, pageSize: PAGE_SIZE },
-          }),
+        listAllAccountGroups(true).then((groups): CatalogueEntry[] =>
+          orderGroupsDepthFirst(groups).map(({ group, parentLabel, path }) => ({
+            id: group.id,
+            label: group.label,
+            parentLabel,
+            path,
+          })),
         ),
         collect((page) =>
           listAccounts({

@@ -61,7 +61,12 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
           : catalogue.data.groups;
     const entry = entries.find((candidate) => candidate.id === reference);
     return entry
-      ? { id, institution: entry.institution, label: entry.label }
+      ? {
+          id,
+          institution: entry.institution,
+          label: entry.label,
+          parentLabel: entry.parentLabel,
+        }
       : { id, label: t('reports.annual.picker.unknown') };
   }
   function submit(event: FormEvent) {
@@ -94,6 +99,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
             return (
               <label key={id}>
                 <input
+                  aria-label={entry.path}
                   checked={checked}
                   disabled={!checked && full}
                   onChange={() => toggle(id)}
@@ -101,7 +107,13 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
                 />
                 <span>
                   <ColumnHeader
-                    column={{ id, institution: entry.institution, label: entry.label }}
+                    inlineParent
+                    column={{
+                      id,
+                      institution: entry.institution,
+                      label: entry.label,
+                      parentLabel: entry.parentLabel,
+                    }}
                   />
                 </span>
               </label>

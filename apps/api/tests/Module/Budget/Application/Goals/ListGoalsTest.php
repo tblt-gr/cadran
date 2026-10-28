@@ -245,7 +245,7 @@ final class ListGoalsTest extends TestCase
                 'category:'.self::CATEGORY_ID => new MonthlyMetricView('50.00', 'EUR', null),
             ];
             $state = 12 === $ordinal ? MonthState::PROVISIONAL : MonthState::COMPLETE;
-            $months[] = new AnnualMonth($month, $state, false, false, new MonthFigures($month->key(), 1, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), $cells, [self::CATEGORY_ID], []));
+            $months[] = new AnnualMonth($month, $state, false, false, new MonthFigures($month->key(), 1, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), $cells, [self::CATEGORY_ID], [], []));
         }
 
         return $months;

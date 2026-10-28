@@ -28,6 +28,7 @@ final class AnnualReportRepresentation
                 'kind' => $column->kind,
                 'assetCode' => $column->assetCode,
                 'institution' => $column->institution,
+                'parentLabel' => $column->parentLabel,
             ], $report->columns),
             'rows' => array_map(static fn ($row): array => [
                 'month' => $row->month,

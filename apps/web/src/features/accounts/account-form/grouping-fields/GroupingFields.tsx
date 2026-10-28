@@ -1,9 +1,10 @@
-import { listAccountGroups, type NetWorthShare } from '@cadran/api-client';
+import type { NetWorthShare } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
-import { authApiOptions } from '@/features/auth/apiOptions';
+import { orderGroupsDepthFirst } from '@/features/accounts/groups/groupPaths';
+import { listAllAccountGroups } from '@/features/accounts/groups/listAllAccountGroups';
 import styles from './GroupingFields.module.css';
 
 interface GroupingFieldsProps {
@@ -11,9 +12,7 @@ interface GroupingFieldsProps {
   invalid?: boolean;
   primaryGroupId: string;
   share?: NetWorthShare;
-  tagGroupIds: string[];
   onPrimaryChange: (primaryGroupId: string) => void;
-  onTagsChange: (tagGroupIds: string[]) => void;
 }
 
 export function GroupingFields({
@@ -21,43 +20,22 @@ export function GroupingFields({
   invalid = false,
   primaryGroupId,
   share,
-  tagGroupIds,
   onPrimaryChange,
-  onTagsChange,
 }: GroupingFieldsProps) {
   const { t } = useTranslation();
   const groups = useQuery({
     queryKey: ['account-groups', 'account-form'],
-    queryFn: async ({ signal }) => {
-      const result = await listAccountGroups({
-        ...authApiOptions(),
-        query: { page: 1, pageSize: 100 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) {
-        throw new Error('Unable to load account groups.');
-      }
-      return result.data;
-    },
+    queryFn: ({ signal }) => listAllAccountGroups(false, signal),
     retry: false,
   });
-  const items = groups.data?.items ?? [];
-  const tagCandidates = items.filter((group) => group.id !== primaryGroupId);
-  const onlyGroupId = items.length === 1 ? items[0]?.id : undefined;
+  const items = useMemo(() => orderGroupsDepthFirst(groups.data ?? []), [groups.data]);
+  const onlyGroupId = items.length === 1 ? items[0]?.group.id : undefined;
 
   useEffect(() => {
     if (includeInNetWorth && primaryGroupId === '' && onlyGroupId !== undefined) {
       onPrimaryChange(onlyGroupId);
     }
   }, [includeInNetWorth, onlyGroupId, onPrimaryChange, primaryGroupId]);
-
-  function toggleTag(id: string, checked: boolean) {
-    if (id === primaryGroupId) {
-      return;
-    }
-
-    onTagsChange(checked ? [...tagGroupIds, id] : tagGroupIds.filter((tag) => tag !== id));
-  }
 
   return (
     <fieldset className={styles.fieldset}>
@@ -77,11 +55,7 @@ export function GroupingFields({
         <select
           aria-invalid={invalid ? true : undefined}
           disabled={groups.isPending || groups.isError}
-          onChange={(event) => {
-            const next = event.target.value;
-            onPrimaryChange(next);
-            onTagsChange(tagGroupIds.filter((tag) => tag !== next));
-          }}
+          onChange={(event) => onPrimaryChange(event.target.value)}
           required={includeInNetWorth}
           value={primaryGroupId}
         >
@@ -92,13 +66,15 @@ export function GroupingFields({
           ) : (
             <option value="">{t('accounts.form.noGroup')}</option>
           )}
-          {items.map((group) => (
-            <option key={group.id} value={group.id}>
-              {group.label}
+          {items.map(({ group, depth, parentLabel, path }) => (
+            <option aria-label={path} key={group.id} value={group.id}>
+              {'\u00a0\u00a0'.repeat(depth - 1) +
+                (parentLabel === null ? group.label : `${group.label} (${parentLabel})`)}
             </option>
           ))}
         </select>
       </label>
+      <p className={styles.hint}>{t('accounts.form.primaryGroupHelp')}</p>
       {invalid ? (
         <p className={styles.error} role="alert">
           {items.length === 0
@@ -107,42 +83,7 @@ export function GroupingFields({
         </p>
       ) : null}
 
-      <fieldset className={styles.tags}>
-        <legend>{t('accounts.fields.tags')}</legend>
-        {groups.isPending ? (
-          <p className={styles.hint} role="status">
-            {t('accounts.form.groupsLoading')}
-          </p>
-        ) : groups.isError ? (
-          <p role="alert">{t('accounts.form.groupsError')}</p>
-        ) : items.length === 0 ? (
-          <p className={styles.hint}>{t('accounts.form.noTagCandidates')}</p>
-        ) : (
-          <>
-            {items.map((group) => {
-              const isPrimary = group.id === primaryGroupId;
-
-              return (
-                <label key={group.id}>
-                  <input
-                    checked={isPrimary || tagGroupIds.includes(group.id)}
-                    disabled={isPrimary}
-                    onChange={(event) => toggleTag(group.id, event.target.checked)}
-                    type="checkbox"
-                  />
-                  <span>
-                    {group.label}
-                    {isPrimary ? ` — ${t('accounts.form.tagIsPrimary')}` : ''}
-                  </span>
-                </label>
-              );
-            })}
-            {tagCandidates.length === 0 ? (
-              <p className={styles.hint}>{t('accounts.form.needAnotherGroupForTag')}</p>
-            ) : null}
-          </>
-        )}
-      </fieldset>
+      {groups.isError ? <p role="alert">{t('accounts.form.groupsError')}</p> : null}
 
       {share ? (
         <p className={styles.share}>

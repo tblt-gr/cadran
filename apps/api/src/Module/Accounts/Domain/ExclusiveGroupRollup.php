@@ -11,8 +11,8 @@ use App\Module\Foundation\Domain\ExactDecimal;
  * Rolls the signed value of every included account into its primary group and
  * each ancestor of that group, once.
  *
- * The exclusive tree is the only path used: a tag pointing at a second group
- * is informative and must never make the same euro count twice. Shares and
+ * Membership is exclusive: one account follows a single lineage, so the same
+ * euro never counts twice in groups of one depth. Shares and
  * allocation both read from here so the two can never disagree on what a
  * group is worth.
  */

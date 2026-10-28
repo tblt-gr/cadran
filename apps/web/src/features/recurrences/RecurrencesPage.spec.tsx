@@ -52,7 +52,6 @@ const account: Account = {
   version: 1,
   archivedAt: null,
   primaryGroupId: null,
-  tagGroupIds: [],
   share: { ratio: null, percent: null, percentDisplay: null, reason: 'MISSING_VALUATION' },
   valuation: {
     accountId: '00000000-0000-7000-8000-000000000011',

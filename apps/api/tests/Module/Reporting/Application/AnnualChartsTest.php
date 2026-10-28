@@ -175,7 +175,7 @@ final class AnnualChartsTest extends TestCase
      */
     private function figures(int $number, array $cells, array $categoryIds, array $allocation): MonthFigures
     {
-        return new MonthFigures(sprintf('2026-%02d', $number), 1, 'CURRENT', 0, sprintf('2026-%02d-28', $number), $cells, $categoryIds, $allocation);
+        return new MonthFigures(sprintf('2026-%02d', $number), 1, 'CURRENT', 0, sprintf('2026-%02d-28', $number), $cells, $categoryIds, $allocation, []);
     }
 
     private function aggregate(?DecimalValue $total, ?AggregateReason $reason): Aggregate

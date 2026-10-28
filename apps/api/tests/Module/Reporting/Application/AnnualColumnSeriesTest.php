@@ -88,7 +88,7 @@ final class AnnualColumnSeriesTest extends TestCase
             $months[] = new AnnualMonth(new CalendarMonth(2026, $number), MonthState::COMPLETE, false, false, new MonthFigures(
                 sprintf('2026-%02d', $number), 1, 'CURRENT', 0, sprintf('2026-%02d-28', $number),
                 ['category:c1' => in_array($number, [7, 8], true) ? new MonthlyMetricView('600', 'EUR', null) : new MonthlyMetricView(null, null, 'NO_MOVEMENTS')],
-                [], [],
+                [], [], [],
             ));
         }
         $column = (new AnnualCatalogue(['c1' => 'Vacances'], [], []))->column('category:c1');
@@ -127,7 +127,7 @@ final class AnnualColumnSeriesTest extends TestCase
             MonthState::COMPLETE,
             false,
             false,
-            new MonthFigures(sprintf('2026-%02d', $number), $policy, 'CURRENT', 0, sprintf('2026-%02d-28', $number), $cells, [], []),
+            new MonthFigures(sprintf('2026-%02d', $number), $policy, 'CURRENT', 0, sprintf('2026-%02d-28', $number), $cells, [], [], []),
         );
     }
 }

@@ -86,7 +86,7 @@ final class BudgetComparisonControllerTest extends WebTestCase
             'label' => 'EUR account', 'kind' => 'CURRENT', 'productCode' => null, 'productModelId' => null,
             'institution' => null, 'maskedIdentifier' => null, 'valuationMode' => 'TRANSACTIONS',
             'liquidityLevel' => 'IMMEDIATE', 'includeInNetWorth' => false, 'includeInEmergencyFund' => false,
-            'openedOn' => '2026-10-01', 'closedOn' => null, 'primaryGroupId' => null, 'tagGroupIds' => [],
+            'openedOn' => '2026-10-01', 'closedOn' => null, 'primaryGroupId' => null,
             'version' => 1,
         ]);
         self::assertResponseStatusCodeSame(409);

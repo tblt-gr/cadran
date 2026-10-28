@@ -11,7 +11,6 @@ use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\RankedAccount;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\WorkspaceScope;
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
@@ -57,11 +56,7 @@ final readonly class DbalAccountRepository implements AccountRepository
             ['workspace_id' => $workspace->id, 'id' => $id],
         );
 
-        return false === $row ? null : AccountRow::hydrate(
-            $row,
-            $workspace,
-            $this->tagsFor($workspace, [$id])[$id] ?? [],
-        );
+        return false === $row ? null : AccountRow::hydrate($row, $workspace);
     }
 
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Account
@@ -73,11 +68,7 @@ final readonly class DbalAccountRepository implements AccountRepository
             ['workspace_id' => $workspace->id, 'id' => $id],
         );
 
-        return false === $row ? null : AccountRow::hydrate(
-            $row,
-            $workspace,
-            $this->tagsFor($workspace, [$id])[$id] ?? [],
-        );
+        return false === $row ? null : AccountRow::hydrate($row, $workspace);
     }
 
     public function list(
@@ -276,7 +267,6 @@ final readonly class DbalAccountRepository implements AccountRepository
                 ...AccountRow::columns($account),
                 'created_at' => $account->createdAt->format('Y-m-d H:i:s.uP'),
             ], self::COLUMN_TYPES);
-            $this->replaceTags($account);
         } catch (UniqueConstraintViolationException $exception) {
             throw new AccountConflict('An active account already uses this label.', previous: $exception);
         }
@@ -324,9 +314,6 @@ final readonly class DbalAccountRepository implements AccountRepository
             ],
             self::COLUMN_TYPES,
         );
-        if ($written) {
-            $this->replaceTags($account);
-        }
 
         return $written;
     }
@@ -372,59 +359,9 @@ final readonly class DbalAccountRepository implements AccountRepository
      */
     private function hydrateMany(array $rows, WorkspaceScope $workspace): array
     {
-        $ids = array_map(static fn (array $row): string => AccountRow::text($row['id'] ?? null), $rows);
-        $tags = $this->tagsFor($workspace, $ids);
-
         return array_map(
-            static fn (array $row): Account => AccountRow::hydrate(
-                $row,
-                $workspace,
-                $tags[AccountRow::text($row['id'] ?? null)] ?? [],
-            ),
+            static fn (array $row): Account => AccountRow::hydrate($row, $workspace),
             $rows,
         );
-    }
-
-    /**
-     * @param list<string> $accountIds
-     *
-     * @return array<string, list<string>>
-     */
-    private function tagsFor(WorkspaceScope $workspace, array $accountIds): array
-    {
-        if ([] === $accountIds) {
-            return [];
-        }
-
-        $rows = $this->connection->fetchAllAssociative(
-            'SELECT account_id, group_id FROM account_group_tags'
-            .' WHERE workspace_id = :workspace_id AND account_id IN (:ids) ORDER BY group_id',
-            ['workspace_id' => $workspace->id, 'ids' => $accountIds],
-            ['ids' => ArrayParameterType::STRING],
-        );
-
-        $tags = [];
-        foreach ($rows as $row) {
-            $accountId = AccountRow::text($row['account_id'] ?? null);
-            $tags[$accountId][] = AccountRow::text($row['group_id'] ?? null);
-        }
-
-        return $tags;
-    }
-
-    private function replaceTags(Account $account): void
-    {
-        $this->connection->delete('account_group_tags', [
-            'workspace_id' => $account->workspace->id,
-            'account_id' => $account->id,
-        ]);
-
-        foreach ($account->tagGroupIds as $groupId) {
-            $this->connection->insert('account_group_tags', [
-                'workspace_id' => $account->workspace->id,
-                'account_id' => $account->id,
-                'group_id' => $groupId,
-            ]);
-        }
     }
 }

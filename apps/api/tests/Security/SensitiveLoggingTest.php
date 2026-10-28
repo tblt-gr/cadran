@@ -255,7 +255,7 @@ final class SensitiveLoggingTest extends WebTestCase
             'label' => $label, 'assetCode' => 'EUR', 'kind' => 'SAVINGS', 'productCode' => null, 'productModelId' => null,
             'institution' => null, 'maskedIdentifier' => null, 'valuationMode' => 'TRANSACTIONS', 'liquidityLevel' => 'IMMEDIATE',
             'includeInNetWorth' => true, 'includeInEmergencyFund' => false, 'openedOn' => '2026-01-10', 'closedOn' => null,
-            'primaryGroupId' => self::GROUP, 'tagGroupIds' => [],
+            'primaryGroupId' => self::GROUP,
         ]);
         self::assertResponseStatusCodeSame(201);
 

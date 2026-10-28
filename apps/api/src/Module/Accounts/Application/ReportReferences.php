@@ -8,10 +8,11 @@ namespace App\Module\Accounts\Application;
 final readonly class ReportReferences
 {
     /**
-     * @param list<ReportAccountReference> $accounts ordered by label
-     * @param array<string, string>        $groups   label by group id
+     * @param list<ReportAccountReference> $accounts     ordered by label
+     * @param array<string, string>        $groups       label by group id, depth-first saved order
+     * @param array<string, ?string>       $groupParents label of the immediate parent by group id, null for a root
      */
-    public function __construct(public array $accounts, public array $groups)
+    public function __construct(public array $accounts, public array $groups, public array $groupParents = [])
     {
     }
 }

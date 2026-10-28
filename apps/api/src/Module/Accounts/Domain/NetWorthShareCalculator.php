@@ -11,8 +11,8 @@ use App\Module\Foundation\Domain\ExactDecimal;
  * Exclusive account and group weights against eligible net worth.
  *
  * Only an account included in net worth, and only its primary group lineage,
- * enters the exclusive denominator. Tags are ignored here so a second label
- * cannot inflate a percentage.
+ * enters the exclusive denominator. An account has a single membership, so no
+ * second label can inflate a percentage.
  */
 final class NetWorthShareCalculator
 {

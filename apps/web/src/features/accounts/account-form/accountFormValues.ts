@@ -28,7 +28,6 @@ export interface AccountFormValues {
   openedOn: string;
   closedOn: string;
   primaryGroupId: string;
-  tagGroupIds: string[];
 }
 
 export function accountFormValues(account: Account): AccountFormValues {
@@ -45,7 +44,6 @@ export function accountFormValues(account: Account): AccountFormValues {
     openedOn: account.openedOn,
     closedOn: account.closedOn ?? '',
     primaryGroupId: account.primaryGroupId ?? '',
-    tagGroupIds: account.tagGroupIds,
   };
 }
 
@@ -68,6 +66,5 @@ export function emptyAccountFormValues(origin: AccountOrigin): AccountFormValues
     openedOn: '',
     closedOn: '',
     primaryGroupId: '',
-    tagGroupIds: [],
   };
 }

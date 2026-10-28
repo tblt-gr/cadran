@@ -45,7 +45,6 @@ export function buildAccount(id: string, label: string, overrides: Partial<Accou
     version: 1,
     archivedAt: null,
     primaryGroupId: null,
-    tagGroupIds: [],
     share: noShare,
     valuation: {
       accountId: id,

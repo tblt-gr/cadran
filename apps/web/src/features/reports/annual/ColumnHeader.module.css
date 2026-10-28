@@ -4,3 +4,9 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-normal);
 }
+
+.parentInline {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+}

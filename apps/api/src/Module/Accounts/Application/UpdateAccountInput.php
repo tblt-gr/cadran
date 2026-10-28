@@ -21,8 +21,6 @@ final readonly class UpdateAccountInput
         public ?string $closedOn,
         public int $version,
         public ?string $primaryGroupId = null,
-        /** @var list<string> */
-        public array $tagGroupIds = [],
         public ?bool $isPrimary = null,
     ) {
     }

@@ -9,9 +9,8 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 /**
  * A workspace-owned exclusive bucket in the account tree.
  *
- * An account may belong to one group as its primary membership. Additional
- * tags may point at other groups, but only this exclusive link rolls into a
- * group's net-worth weight. The tree itself carries no amounts.
+ * An account belongs to exactly one group, possibly a sub-group, and also
+ * counts in every ancestor of that group through the exclusive roll-up. The tree itself carries no amounts.
  */
 final readonly class AccountGroup
 {

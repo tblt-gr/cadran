@@ -85,7 +85,7 @@ final class AccountControllerTest extends WebTestCase
             'id', 'isPrimary', 'label', 'assetCode', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier',
             'valuationMode', 'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund',
             'openedOn', 'closedOn', 'status', 'netWorthSign', 'used', 'editable', 'kindEditable',
-            'kindEditReason', 'version', 'archivedAt', 'primaryGroupId', 'tagGroupIds', 'share', 'valuation',
+            'kindEditReason', 'version', 'archivedAt', 'primaryGroupId', 'share', 'valuation',
         ], array_keys($account));
         self::assertSame('EUR', $account['assetCode']);
         self::assertSame('SAVINGS', $account['kind']);
@@ -94,7 +94,6 @@ final class AccountControllerTest extends WebTestCase
         self::assertTrue($account['kindEditable']);
         self::assertNull($account['closedOn']);
         self::assertSame(self::DEFAULT_GROUP, $account['primaryGroupId']);
-        self::assertSame([], $account['tagGroupIds']);
         self::assertSame([
             'ratio' => null,
             'percent' => null,
@@ -340,7 +339,6 @@ final class AccountControllerTest extends WebTestCase
         $body['version'] = 1;
         $body['isPrimary'] = true;
         $body['primaryGroupId'] = null;
-        $body['tagGroupIds'] = [];
         $this->client->request('PUT', '/api/v1/accounts/'.$foreignId, server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(404);
         $foreign = (string) $this->client->getResponse()->getContent();
@@ -850,7 +848,7 @@ final class AccountControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
-    public function testAnAccountCanBeAssignedAPrimaryGroupAndTags(): void
+    public function testAnAccountCanBeAssignedAPrimaryGroup(): void
     {
         $this->client->request(
             'POST',
@@ -860,29 +858,37 @@ final class AccountControllerTest extends WebTestCase
         );
         self::assertResponseStatusCodeSame(201);
         $primary = $this->decode();
-        $this->client->request(
-            'POST',
-            '/api/v1/account-groups',
-            server: self::jsonHeaders(),
-            content: json_encode(['label' => 'Objectifs', 'parentId' => null, 'sortOrder' => 1], JSON_THROW_ON_ERROR),
-        );
-        self::assertResponseStatusCodeSame(201);
-        $tag = $this->decode();
 
         $account = $this->createAccount(label: 'Livret A Banque X');
         $this->requestUpdate(self::stringValue($account, 'id'), [
             ...$account,
             'primaryGroupId' => $primary['id'],
-            'tagGroupIds' => [$tag['id']],
         ]);
         self::assertResponseIsSuccessful();
         $updated = $this->decode();
         self::assertSame($primary['id'], $updated['primaryGroupId']);
-        self::assertSame([$tag['id']], $updated['tagGroupIds']);
         $share = $updated['share'];
         self::assertIsArray($share);
         self::assertSame('MISSING_VALUATION', $share['reason']);
         self::assertNull($share['percent']);
+    }
+
+    public function testAPayloadStillCarryingTagGroupIdsIsRefusedAsUnsupportedField(): void
+    {
+        $this->requestCreate($this->payload('Livret tag', ['tagGroupIds' => []]));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([['field' => 'tagGroupIds', 'code' => 'unsupported_field']], $this->decode()['errors']);
+
+        $account = $this->createAccount(label: 'Livret sans tag');
+        self::assertArrayNotHasKey('tagGroupIds', $account);
+        $this->client->request(
+            'PUT',
+            '/api/v1/accounts/'.self::stringValue($account, 'id'),
+            server: self::jsonHeaders(),
+            content: json_encode([...$this->updateBody($account), 'tagGroupIds' => []], JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([['field' => 'tagGroupIds', 'code' => 'unsupported_field']], $this->decode()['errors']);
     }
 
     public function testQueryBoundsAndPayloadSizeAreEnforced(): void
@@ -1069,7 +1075,6 @@ final class AccountControllerTest extends WebTestCase
             'closedOn' => $account['closedOn'],
             'version' => $account['version'],
             'primaryGroupId' => $account['primaryGroupId'] ?? null,
-            'tagGroupIds' => $account['tagGroupIds'] ?? [],
         ];
     }
 
@@ -1095,7 +1100,6 @@ final class AccountControllerTest extends WebTestCase
             'openedOn' => '2026-01-10',
             'closedOn' => null,
             'primaryGroupId' => self::DEFAULT_GROUP,
-            'tagGroupIds' => [],
             ...$overrides,
         ];
     }

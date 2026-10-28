@@ -100,11 +100,6 @@ final readonly class CreateAccount
 
             $now = $this->clock->now();
             $primaryGroupId = $this->resolveGroup($context->workspace, $input->primaryGroupId);
-            $tagGroupIds = [];
-            foreach (AccountGroupInputParser::identifiers($input->tagGroupIds) as $tagGroupId) {
-                $tagGroupIds[] = $this->resolveGroup($context->workspace, $tagGroupId)
-                    ?? throw new InvalidAccountInput('The account group must exist in this workspace.');
-            }
 
             try {
                 Account::assertIncludedHasPrimaryGroup($input->includeInNetWorth, $primaryGroupId);
@@ -128,7 +123,6 @@ final readonly class CreateAccount
                     createdAt: $now,
                     updatedAt: $now,
                     primaryGroupId: $primaryGroupId,
-                    tagGroupIds: $tagGroupIds,
                 );
             } catch (InvalidAccount $exception) {
                 throw new InvalidAccountInput($exception->getMessage(), previous: $exception);

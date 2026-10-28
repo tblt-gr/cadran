@@ -341,7 +341,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
             'PUT /api/v1/accounts/{id}' => [
                 'label' => 'Changed', 'kind' => 'SAVINGS', 'productCode' => null, 'productModelId' => null, 'institution' => null, 'maskedIdentifier' => null,
                 'valuationMode' => 'TRANSACTIONS', 'liquidityLevel' => 'IMMEDIATE', 'includeInNetWorth' => true, 'includeInEmergencyFund' => false,
-                'openedOn' => '2026-01-10', 'closedOn' => null, 'version' => 1, 'primaryGroupId' => null, 'tagGroupIds' => [],
+                'openedOn' => '2026-01-10', 'closedOn' => null, 'version' => 1, 'primaryGroupId' => null,
             ],
             'POST /api/v1/accounts/{id}/balances' => ['asOf' => '2026-03-31', 'amount' => '10.00', 'amountAssetCode' => 'EUR', 'comment' => null, 'version' => null],
             'POST /api/v1/accounts/{id}/rule-overrides' => [

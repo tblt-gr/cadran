@@ -167,7 +167,7 @@ final class ReadEmergencyFundCoverageTest extends TestCase
         $month = new CalendarMonth($year, $index);
         $views = array_map(static fn (?string $value): MonthlyMetricView => new MonthlyMetricView($value, null === $value ? null : 'EUR', null === $value ? 'NO_MOVEMENTS' : null), $cells);
 
-        return new AnnualMonth($month, $state, false, false, new MonthFigures($month->key(), 1, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), $views, $budgetCategoryIds, []));
+        return new AnnualMonth($month, $state, false, false, new MonthFigures($month->key(), 1, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), $views, $budgetCategoryIds, [], []));
     }
 
     private static function calendar(): WorkspaceCalendar

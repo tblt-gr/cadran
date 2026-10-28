@@ -334,14 +334,12 @@ final class AccountTest extends TestCase
         $account = $this->account();
 
         self::assertNull($account->primaryGroupId);
-        self::assertSame([], $account->tagGroupIds);
     }
 
     public function testAnIncludedAccountCannotClearItsPrimaryGroup(): void
     {
         $grouped = $this->account()->regroup(
             primaryGroupId: '00000000-0000-7000-8000-0000000000b1',
-            tagGroupIds: [],
             updatedAt: new \DateTimeImmutable(self::NOW),
         );
 
@@ -350,7 +348,6 @@ final class AccountTest extends TestCase
 
         $grouped->regroup(
             primaryGroupId: null,
-            tagGroupIds: [],
             updatedAt: new \DateTimeImmutable(self::NOW),
         );
     }
@@ -359,7 +356,6 @@ final class AccountTest extends TestCase
     {
         $cleared = $this->account(includeInNetWorth: false)->regroup(
             primaryGroupId: null,
-            tagGroupIds: [],
             updatedAt: new \DateTimeImmutable(self::NOW),
         );
 
@@ -367,44 +363,15 @@ final class AccountTest extends TestCase
         self::assertFalse($cleared->includeInNetWorth);
     }
 
-    public function testItAcceptsOnePrimaryGroupAndDistinctTags(): void
+    public function testItAcceptsOnePrimaryGroup(): void
     {
         $grouped = $this->account()->regroup(
             primaryGroupId: '00000000-0000-7000-8000-0000000000b1',
-            tagGroupIds: ['00000000-0000-7000-8000-0000000000b2'],
             updatedAt: new \DateTimeImmutable(self::NOW),
         );
 
         self::assertSame('00000000-0000-7000-8000-0000000000b1', $grouped->primaryGroupId);
-        self::assertSame(['00000000-0000-7000-8000-0000000000b2'], $grouped->tagGroupIds);
         self::assertSame(2, $grouped->version);
-    }
-
-    public function testATagCannotRepeatThePrimaryGroup(): void
-    {
-        $this->expectException(InvalidAccount::class);
-        $this->expectExceptionMessage('primary group');
-
-        $this->account()->regroup(
-            primaryGroupId: '00000000-0000-7000-8000-0000000000b1',
-            tagGroupIds: ['00000000-0000-7000-8000-0000000000b1'],
-            updatedAt: new \DateTimeImmutable(self::NOW),
-        );
-    }
-
-    public function testATagCannotBeAssignedTwice(): void
-    {
-        $this->expectException(InvalidAccount::class);
-        $this->expectExceptionMessage('tag');
-
-        $this->account()->regroup(
-            primaryGroupId: '00000000-0000-7000-8000-0000000000b1',
-            tagGroupIds: [
-                '00000000-0000-7000-8000-0000000000b2',
-                '00000000-0000-7000-8000-0000000000b2',
-            ],
-            updatedAt: new \DateTimeImmutable(self::NOW),
-        );
     }
 
     private function reconfigured(

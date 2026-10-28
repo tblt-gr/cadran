@@ -15,8 +15,8 @@ use App\Module\Reference\Domain\Asset;
  * The exclusive weight of one group: what its own accounts and its
  * descendants are worth, and the share of net worth that represents.
  *
- * A tag never enters this figure, so two groups of one depth never claim the
- * same account. They still do not add up to the published total: an account
+ * An account has one exclusive membership, so two groups of one depth never
+ * claim the same account. They still do not add up to the published total: an account
  * with no primary group belongs to no bucket at all.
  */
 final readonly class NetWorthAllocationView

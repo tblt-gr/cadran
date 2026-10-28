@@ -37,22 +37,17 @@ final class AssignAccountGroupTest extends TestCase
         $this->trail = new CollectingAuditEventRepository();
     }
 
-    public function testItAssignsAPrimaryGroupAndKeepsTagsOutOfTheExclusiveLink(): void
+    public function testItAssignsAPrimaryGroup(): void
     {
         $account = AccountFixture::account();
         $primary = AccountGroupFixture::group();
-        $tag = AccountGroupFixture::group(
-            id: AccountGroupFixture::CHILD_ID,
-            label: 'Projets',
-        );
 
-        $view = ($this->update(new InMemoryAccountRepository($account), new InMemoryAccountGroupRepository($primary, $tag)))(
+        $view = ($this->update(new InMemoryAccountRepository($account), new InMemoryAccountGroupRepository($primary)))(
             $account->id,
-            $this->input(primaryGroupId: $primary->id, tagGroupIds: [$tag->id]),
+            $this->input(primaryGroupId: $primary->id),
         );
 
         self::assertSame($primary->id, $view->primaryGroupId);
-        self::assertSame([$tag->id], $view->tagGroupIds);
         self::assertNotNull($view->share);
         self::assertSame('MISSING_VALUATION', $view->share->reason);
         self::assertStringNotContainsString($primary->label, json_encode($this->trail->events[0]->diff, JSON_THROW_ON_ERROR));
@@ -85,10 +80,7 @@ final class AssignAccountGroupTest extends TestCase
         ))(AccountFixture::ID, $this->input(primaryGroupId: $foreign->id));
     }
 
-    /**
-     * @param list<string> $tagGroupIds
-     */
-    private function input(?string $primaryGroupId, array $tagGroupIds = []): UpdateAccountInput
+    private function input(?string $primaryGroupId): UpdateAccountInput
     {
         $account = AccountFixture::account();
 
@@ -107,7 +99,6 @@ final class AssignAccountGroupTest extends TestCase
             closedOn: null,
             version: $account->version,
             primaryGroupId: $primaryGroupId,
-            tagGroupIds: $tagGroupIds,
         );
     }
 

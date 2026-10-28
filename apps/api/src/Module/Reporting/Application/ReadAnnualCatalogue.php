@@ -37,6 +37,6 @@ final readonly class ReadAnnualCatalogue
             $accounts[$account->id] = $account;
         }
 
-        return new AnnualCatalogue($categoryLabels, $references->groups, $accounts);
+        return new AnnualCatalogue($categoryLabels, $references->groups, $accounts, $references->groupParents);
     }
 }

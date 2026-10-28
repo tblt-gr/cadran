@@ -6,7 +6,7 @@ namespace App\Module\Accounts\Domain;
 
 /**
  * Walks the exclusive tree so a share calculator can roll a child into each
- * ancestor once, without consulting tags.
+ * ancestor once.
  */
 final class AccountGroupTree
 {

@@ -371,6 +371,11 @@ function scopedTables(string $migrationsDirectory): array
                 continue;
             }
 
+            if ('drop-table' === $operation['kind']) {
+                unset($tables[$table]);
+                continue;
+            }
+
             if ('add-workspace' === $operation['kind']) {
                 $tables[$table] = true;
                 continue;
@@ -464,6 +469,23 @@ function schemaOperations(string $sql): array
                 'newTable' => $operation['newTable'],
             ];
         }
+    }
+
+    // A dropped table leaves the schema: its later absence must not be read as a scoped table.
+    preg_match_all(
+        '/\bDROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:"?[a-z_][a-z0-9_]*"?\.)?"?([a-z_][a-z0-9_]*)"?/i',
+        $sql,
+        $drops,
+        PREG_SET_ORDER | PREG_OFFSET_CAPTURE,
+    );
+    foreach ($drops as $match) {
+        $operations[] = [
+            'offset' => $match[0][1],
+            'kind' => 'drop-table',
+            'table' => strtolower($match[1][0]),
+            'hasWorkspaceColumn' => false,
+            'newTable' => '',
+        ];
     }
 
     usort($operations, static fn (array $left, array $right): int => $left['offset'] <=> $right['offset']);

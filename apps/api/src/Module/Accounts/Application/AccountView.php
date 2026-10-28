@@ -32,8 +32,6 @@ final readonly class AccountView
         public int $version,
         public ?string $archivedAt,
         public ?string $primaryGroupId = null,
-        /** @var list<string> */
-        public array $tagGroupIds = [],
         public ?ShareView $share = null,
         public ?ValuationView $valuation = null,
         public bool $isPrimary = false,
@@ -83,7 +81,6 @@ final readonly class AccountView
             version: $account->version,
             archivedAt: $account->archivedAt?->format(DATE_ATOM),
             primaryGroupId: $account->primaryGroupId,
-            tagGroupIds: $account->tagGroupIds,
             share: $share ?? ($account->includeInNetWorth ? ShareView::missingValuation() : ShareView::notApplicable()),
             valuation: $valuation,
         );

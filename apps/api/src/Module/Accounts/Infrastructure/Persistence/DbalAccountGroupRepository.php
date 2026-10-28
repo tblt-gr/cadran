@@ -131,10 +131,6 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
             'SELECT 1 FROM account_financial_accounts'
             .' WHERE workspace_id = :workspace_id AND primary_group_id = :group_id LIMIT 1',
             ['workspace_id' => $workspace->id, 'group_id' => $id],
-        ) || false !== $this->connection->fetchOne(
-            'SELECT 1 FROM account_group_tags'
-            .' WHERE workspace_id = :workspace_id AND group_id = :group_id LIMIT 1',
-            ['workspace_id' => $workspace->id, 'group_id' => $id],
         );
     }
 
