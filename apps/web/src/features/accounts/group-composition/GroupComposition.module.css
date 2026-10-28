@@ -1,0 +1,77 @@
+.panel {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.plot {
+  width: 100%;
+  min-width: 0;
+  height: var(--chart-plot-height-donut);
+  overflow: hidden;
+}
+
+.plot :global(.recharts-wrapper),
+.plot :global(.recharts-surface) {
+  max-width: 100%;
+}
+
+.plotSkeleton {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.reason {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+}
+
+.error {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-3);
+}
+
+.error p {
+  margin: var(--spacing-none);
+}
+
+.legendBlock {
+  display: grid;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: var(--spacing-none);
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+  font-weight: var(--font-weight-bold);
+}
+
+.institution {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+}
+
+.labelSkeleton {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-body);
+}
+
+.valueSkeleton {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 1.25);
+  height: var(--font-size-body);
+}
+
+/* Icon-only buttons stay circular; icon-ghost supplies the borderless, transparent look. */
+.pie {
+  border-radius: var(--radius-circle);
+}

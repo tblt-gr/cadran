@@ -2044,7 +2044,48 @@ export type NetWorthShare = {
     reason: NetWorthShareReason | null;
 };
 
-export type NetWorthShareReason = 'MISSING_VALUATION' | 'MIXED_ASSETS' | 'ZERO_ELIGIBLE_NET_WORTH' | 'NEGATIVE_ELIGIBLE_NET_WORTH';
+export type NetWorthShareReason = 'MISSING_VALUATION' | 'MIXED_ASSETS' | 'ZERO_ELIGIBLE_NET_WORTH' | 'NEGATIVE_ELIGIBLE_NET_WORTH' | 'ZERO_GROUP_TOTAL' | 'NEGATIVE_GROUP_TOTAL';
+
+/**
+ * Why a pie of the group would mislead; the table stays available.
+ */
+export type GroupCompositionChartReason = 'MISSING_VALUATION' | 'MIXED_ASSETS' | 'ZERO_GROUP_TOTAL' | 'NEGATIVE_GROUP_TOTAL' | 'NEGATIVE_COMPONENT';
+
+export type GroupCompositionSubgroup = {
+    /**
+     * `SUBGROUP` is a direct sub-group roll-up; `DIRECT` is the group's own accounts, identified by the group itself.
+     */
+    kind: 'SUBGROUP' | 'DIRECT';
+    id: string;
+    label: string;
+    color: string;
+    value: NetWorthAmount | null;
+    share: NetWorthShare;
+};
+
+export type GroupCompositionAccount = {
+    id: string;
+    label: string;
+    institution: string | null;
+    primaryGroupId: string;
+    color: string;
+    value: NetWorthAmount | null;
+    share: NetWorthShare;
+};
+
+export type AccountGroupComposition = {
+    groupId: string;
+    label: string;
+    asOf: string;
+    total: NetWorthAmount | null;
+    totalReason: NetWorthReason | null;
+    chartReason: GroupCompositionChartReason | null;
+    /**
+     * Empty when the group has no sub-group holding an eligible account.
+     */
+    bySubgroup: Array<GroupCompositionSubgroup>;
+    byAccount: Array<GroupCompositionAccount>;
+};
 
 export type AccountGroupPage = {
     items: Array<AccountGroup>;
@@ -7784,6 +7825,58 @@ export type UpdateAccountGroupResponses = {
 };
 
 export type UpdateAccountGroupResponse = UpdateAccountGroupResponses[keyof UpdateAccountGroupResponses];
+
+export type ReadAccountGroupCompositionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        /**
+         * ISO 8601 calendar day, today in the workspace when omitted.
+         */
+        asOf?: string;
+    };
+    url: '/api/v1/account-groups/{id}/composition';
+};
+
+export type ReadAccountGroupCompositionErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The subtree holds more than 1000 accounts (`type: /problems/composition-too-large`), or the workspace holds more accounts or groups than one aggregate reads (`type: /problems/net-worth-scope-too-large`).
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadAccountGroupCompositionError = ReadAccountGroupCompositionErrors[keyof ReadAccountGroupCompositionErrors];
+
+export type ReadAccountGroupCompositionResponses = {
+    /**
+     * The composition of the group.
+     */
+    200: AccountGroupComposition;
+};
+
+export type ReadAccountGroupCompositionResponse = ReadAccountGroupCompositionResponses[keyof ReadAccountGroupCompositionResponses];
 
 export type ArchiveAccountGroupData = {
     body: ArchiveAccountGroupRequest;

@@ -98,6 +98,27 @@ afterEach(() => {
 });
 
 describe('AccountOverview', () => {
+  it.each(['PARENT', 'PRIMARY'] as const)(
+    'offers the composition button on a group with several accounts only (%s)',
+    async (grouping) => {
+      api.readAccountOverview.mockImplementation(() =>
+        success(
+          buildOverview([
+            buildHeading({ label: 'Épargne', memberCount: 2 }),
+            buildHeading({ groupId: 'solo', label: 'Seul', memberCount: 1 }),
+            buildHeading({ groupId: null, label: null, memberCount: 2 }),
+          ]),
+        ),
+      );
+      api.readAccountOverviewRows.mockImplementation(() => rows([buildAccount(A, 'Compte A')]));
+      renderOverview({ grouping });
+
+      await screen.findAllByText('Compte A');
+      expect(screen.getAllByRole('button', { name: /^Répartition de / })).toHaveLength(1);
+      expect(screen.getByRole('button', { name: 'Répartition de Épargne' })).toBeTruthy();
+    },
+  );
+
   it('identifies the primary account in words without highlighting its row', async () => {
     api.readAccountOverview.mockImplementation(() =>
       success(buildOverview([buildHeading({ memberCount: 2 })])),

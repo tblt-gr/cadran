@@ -6,6 +6,13 @@
   gap: var(--spacing-3) var(--spacing-6);
 }
 
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
 .title {
   display: flex;
   align-items: center;
