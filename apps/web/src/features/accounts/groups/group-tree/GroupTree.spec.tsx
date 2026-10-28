@@ -100,8 +100,8 @@ describe('GroupTree', () => {
     renderTree();
     fireEvent.click(toggleOf('Épargne'));
 
-    const marker = screen.getByText('Livrets').closest('li')?.querySelector('[data-marker]');
-    expect((marker as HTMLElement).style.backgroundColor).toBe('rgb(123, 150, 244)');
+    const marker = screen.getByText('Livrets').closest('[data-marker]');
+    expect((marker as HTMLElement).style.borderInlineStartColor).toBe('rgb(123, 150, 244)');
     expect(screen.queryByRole('columnheader')).toBeNull();
     expect(screen.queryByText('Actif')).toBeNull();
   });

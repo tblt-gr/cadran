@@ -22,7 +22,12 @@ export function GroupTreeNode({ node, onArchive, onEdit }: GroupTreeNodeProps) {
 
   return (
     <li className={styles.node}>
-      <div className={styles.row} data-archived={archived}>
+      <div
+        className={styles.row}
+        data-archived={archived}
+        data-marker
+        style={{ borderInlineStartColor: canonicalGroupColor(group.resolvedColor) ?? undefined }}
+      >
         {children.length > 0 ? (
           <button
             aria-controls={childrenId}
@@ -43,12 +48,6 @@ export function GroupTreeNode({ node, onArchive, onEdit }: GroupTreeNodeProps) {
         )}
         <div className={styles.summary}>
           <p className={styles.identity}>
-            <span
-              aria-hidden="true"
-              className={styles.marker}
-              data-marker
-              style={{ backgroundColor: canonicalGroupColor(group.resolvedColor) ?? undefined }}
-            />
             <span>{group.label}</span>
           </p>
           <p className={styles.meta}>

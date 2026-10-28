@@ -18,7 +18,6 @@ export function GroupTreeSkeleton({ status }: { status: string }) {
               <span aria-hidden="true" className={styles.toggleSpacer} />
               <div className={styles.summary}>
                 <p className={styles.identity}>
-                  <SkeletonBlock className={styles.skeletonMarker} />
                   <SkeletonBlock className={styles.skeletonLabel} />
                 </p>
                 <p className={styles.meta}>
