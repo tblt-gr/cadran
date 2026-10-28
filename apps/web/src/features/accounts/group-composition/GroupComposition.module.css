@@ -1,0 +1,96 @@
+.panel {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.plot {
+  width: 100%;
+  min-width: 0;
+  height: var(--chart-plot-height-donut);
+  overflow: hidden;
+}
+
+.plot :global(.recharts-wrapper),
+.plot :global(.recharts-surface) {
+  max-width: 100%;
+}
+
+.plotSkeleton {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.reason {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+}
+
+.error {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-3);
+}
+
+.error p {
+  margin: var(--spacing-none);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.scroll th,
+.scroll td {
+  padding: var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+}
+
+.scroll td {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.scroll tfoot th,
+.scroll tfoot td {
+  font-weight: var(--font-weight-bold);
+}
+
+.entry {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+
+.institution {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+}
+
+.labelSkeleton {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-body);
+}
+
+.valueSkeleton {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 1.25);
+  height: var(--font-size-body);
+}
+
+@media (max-width: 47.999rem) {
+  .scroll th,
+  .scroll td {
+    padding: var(--spacing-2);
+  }
+}

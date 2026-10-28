@@ -1829,6 +1829,65 @@ paths:
                 $ref: '#/components/schemas/AccountGroupInputProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/account-groups/{id}/composition:
+    get:
+      operationId: readAccountGroupComposition
+      summary: Read how a group splits between its sub-groups and accounts
+      description: >-
+        Weighs the direct sub-groups (plus the group's own accounts as a
+        `DIRECT` entry, only when it also has sub-groups) and every account of
+        the subtree against the group's own roll-up on `asOf`, never against
+        net worth. Only eligible accounts of the subtree are read. Shares are
+        exact ratios with a two-decimal display; amounts are signed. A value
+        that cannot be computed is null with a reason, never zero.
+        `chartReason` is null only when the total is positive and every
+        component is non-negative and valued; the entries stay available for a
+        table in every case. An archived, unknown or foreign group is a 404.
+      tags:
+        - Account groups
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: asOf
+          in: query
+          required: false
+          description: ISO 8601 calendar day, today in the workspace when omitted.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: The composition of the group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroupComposition'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: >-
+            The subtree holds more than 1000 accounts
+            (`type: /problems/composition-too-large`), or the workspace holds
+            more accounts or groups than one aggregate reads
+            (`type: /problems/net-worth-scope-too-large`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/account-groups/{id}/archive:
     post:
       operationId: archiveAccountGroup
@@ -13278,6 +13337,110 @@ components:
         - MIXED_ASSETS
         - ZERO_ELIGIBLE_NET_WORTH
         - NEGATIVE_ELIGIBLE_NET_WORTH
+        - ZERO_GROUP_TOTAL
+        - NEGATIVE_GROUP_TOTAL
+    GroupCompositionChartReason:
+      description: Why a pie of the group would mislead; the table stays available.
+      type: string
+      enum:
+        - MISSING_VALUATION
+        - MIXED_ASSETS
+        - ZERO_GROUP_TOTAL
+        - NEGATIVE_GROUP_TOTAL
+        - NEGATIVE_COMPONENT
+    GroupCompositionSubgroup:
+      type: object
+      additionalProperties: false
+      required: [kind, id, label, color, value, share]
+      properties:
+        kind:
+          description: >-
+            `SUBGROUP` is a direct sub-group roll-up; `DIRECT` is the group's
+            own accounts, identified by the group itself.
+          type: string
+          enum: [SUBGROUP, DIRECT]
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        color:
+          type: string
+          pattern: '^#[0-9A-F]{6}$'
+        value:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        share:
+          $ref: '#/components/schemas/NetWorthShare'
+    GroupCompositionAccount:
+      type: object
+      additionalProperties: false
+      required: [id, label, institution, primaryGroupId, color, value, share]
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        institution:
+          type: [string, 'null']
+        primaryGroupId:
+          type: string
+          format: uuid
+        color:
+          type: string
+          pattern: '^#[0-9A-F]{6}$'
+        value:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        share:
+          $ref: '#/components/schemas/NetWorthShare'
+    AccountGroupComposition:
+      type: object
+      additionalProperties: false
+      required:
+        - groupId
+        - label
+        - asOf
+        - total
+        - totalReason
+        - chartReason
+        - bySubgroup
+        - byAccount
+      properties:
+        groupId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        asOf:
+          type: string
+          format: date
+        total:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthAmount'
+            - type: 'null'
+        totalReason:
+          oneOf:
+            - $ref: '#/components/schemas/NetWorthReason'
+            - type: 'null'
+        chartReason:
+          oneOf:
+            - $ref: '#/components/schemas/GroupCompositionChartReason'
+            - type: 'null'
+        bySubgroup:
+          description: Empty when the group has no sub-group holding an eligible account.
+          type: array
+          maxItems: 1001
+          items:
+            $ref: '#/components/schemas/GroupCompositionSubgroup'
+        byAccount:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/GroupCompositionAccount'
     AccountGroupPage:
       type: object
       additionalProperties: false

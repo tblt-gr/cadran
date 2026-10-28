@@ -98,6 +98,31 @@ afterEach(() => {
 });
 
 describe('AccountOverview', () => {
+  it.each([
+    ['PARENT', 'a root group with accounts', 1],
+    ['PRIMARY', 'sub-group mode', 0],
+  ] as const)(
+    'shows the composition button only in parent mode (%s)',
+    async (grouping, _name, count) => {
+      api.readAccountOverview.mockImplementation(() =>
+        success(
+          buildOverview([
+            buildHeading({ label: 'Épargne', memberCount: 1 }),
+            buildHeading({ groupId: null, label: null, memberCount: 1 }),
+          ]),
+        ),
+      );
+      api.readAccountOverviewRows.mockImplementation(() => rows([buildAccount(A, 'Compte A')]));
+      renderOverview({ grouping });
+
+      await screen.findAllByText('Compte A');
+      expect(screen.queryAllByRole('button', { name: /^Répartition de / })).toHaveLength(count);
+      if (count === 1) {
+        expect(screen.getByRole('button', { name: 'Répartition de Épargne' })).toBeTruthy();
+      }
+    },
+  );
+
   it('identifies the primary account in words without highlighting its row', async () => {
     api.readAccountOverview.mockImplementation(() =>
       success(buildOverview([buildHeading({ memberCount: 2 })])),

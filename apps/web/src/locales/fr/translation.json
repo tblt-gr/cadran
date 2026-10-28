@@ -347,6 +347,35 @@
     }
   },
   "accounts": {
+    "composition": {
+      "open": "Répartition de {{label}}",
+      "title": "Répartition : {{label}}",
+      "tabs": "Vue de la répartition",
+      "bySubgroup": "Par sous-groupe",
+      "byAccount": "Par compte",
+      "direct": "Comptes directs",
+      "chart": "Répartition de {{label}}",
+      "loading": "Chargement de la répartition...",
+      "error": "Répartition indisponible.",
+      "retry": "Réessayer",
+      "caption": {
+        "subgroup": "Répartition par sous-groupe",
+        "account": "Répartition par compte"
+      },
+      "columns": {
+        "label": "Élément",
+        "amount": "Montant",
+        "share": "Part",
+        "total": "Total"
+      },
+      "chartReasons": {
+        "MISSING_VALUATION": "Le graphique n'est pas affiché : une valorisation manque dans ce groupe.",
+        "MIXED_ASSETS": "Le graphique n'est pas affiché : ce groupe mélange plusieurs unités.",
+        "ZERO_GROUP_TOTAL": "Le graphique n'est pas affiché : le total du groupe est nul.",
+        "NEGATIVE_GROUP_TOTAL": "Le graphique n'est pas affiché : le total du groupe est négatif.",
+        "NEGATIVE_COMPONENT": "Le graphique n'est pas affiché : une composante négative fausserait la lecture des parts."
+      }
+    },
     "grouping": {
       "toggle": "Détailler par sous-groupe",
       "parent": "Groupe parent",
@@ -1023,6 +1052,8 @@
         "MISSING_VALUATION": "Valorisation manquante",
         "ZERO_ELIGIBLE_NET_WORTH": "Patrimoine éligible nul",
         "NEGATIVE_ELIGIBLE_NET_WORTH": "Patrimoine éligible négatif",
+        "ZERO_GROUP_TOTAL": "Total du groupe nul",
+        "NEGATIVE_GROUP_TOTAL": "Total du groupe négatif",
         "MIXED_ASSETS": "Comptes libellés dans plusieurs unités"
       }
     },
