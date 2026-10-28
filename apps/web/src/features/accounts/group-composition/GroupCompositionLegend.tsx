@@ -4,7 +4,6 @@ import { AllocationLegend } from '@/components/ui/charts/allocation-legend/Alloc
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { groupColor } from '@/features/accounts/group-color';
-import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { formatAmount } from '@/lib/decimal';
 import { formatSharePercent } from '@/lib/formatSharePercent';
@@ -59,7 +58,6 @@ export function GroupCompositionLegend({
             key: entry.key,
             label: (
               <>
-                <GroupMarker color={entry.color} />
                 <span>{entry.label}</span>
                 {entry.institution ? (
                   <small className={styles.institution}>{entry.institution}</small>
