@@ -21,6 +21,7 @@ final readonly class ArchiveAccountGroup
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
+        private ReadGroupColors $readGroupColors,
     ) {
     }
 
@@ -68,7 +69,7 @@ final readonly class ArchiveAccountGroup
                 ),
             ));
 
-            return AccountGroupView::fromGroup($archived, false, null);
+            return AccountGroupView::fromGroup($archived, false, null, ($this->readGroupColors)($context->workspace));
         });
     }
 }

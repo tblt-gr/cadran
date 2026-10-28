@@ -65,6 +65,23 @@ final class ReadNetWorthTest extends TestCase
         self::assertNull($byAccount[self::LOAN]->primaryGroupColor);
     }
 
+    public function testInheritedShadesReachAllocationAndContributionsWithoutChangingFigures(): void
+    {
+        $plain = ($this->read(groups: [
+            AccountGroupFixture::group(id: self::LIQUID, label: 'Liquidités', color: '#486DF0'),
+            AccountGroupFixture::group(id: self::SAVINGS, label: 'Épargne', parentId: self::LIQUID, depth: 2, color: '#123456'),
+        ]))();
+        $inherited = ($this->read(groups: [
+            AccountGroupFixture::group(id: self::LIQUID, label: 'Liquidités', color: '#486DF0'),
+            AccountGroupFixture::group(id: self::SAVINGS, label: 'Épargne', parentId: self::LIQUID, depth: 2),
+        ]))();
+
+        self::assertSame(['#486DF0', '#7B96F4'], array_column($inherited->allocation, 'color'));
+        self::assertSame('#7B96F4', array_column($inherited->contributions, null, 'accountId')[self::LIVRET]->primaryGroupColor);
+        self::assertEquals($plain->total, $inherited->total);
+        self::assertEquals(array_column($plain->allocation, 'value'), array_column($inherited->allocation, 'value'));
+    }
+
     public function testTheTotalIsTheSumOfSignedIncludedValues(): void
     {
         $view = ($this->read())();

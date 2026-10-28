@@ -115,10 +115,9 @@ final readonly class ReadNetWorth
         NetWorthAssetReferences $references,
     ): array {
         $labels = [];
-        $colors = [];
+        $colors = \App\Module\Accounts\Domain\AccountGroupColors::resolveAll($groups);
         foreach ($groups as $group) {
             $labels[$group->id] = $group->label;
-            $colors[$group->id] = \App\Module\Accounts\Domain\AccountGroupColor::resolve($group);
         }
 
         $accounts = [];
@@ -170,6 +169,7 @@ final readonly class ReadNetWorth
         $previousRollup = self::rollup($previous, $previousShareInputs, $lineages);
 
         // Same reading order as the accounts page, so every panel lists groups alike.
+        $colors = \App\Module\Accounts\Domain\AccountGroupColors::of($groups);
         $views = [];
         foreach (AccountGroupTree::depthFirst($groups) as $group) {
             if (null !== $group->archivedAt) {
@@ -178,6 +178,7 @@ final readonly class ReadNetWorth
 
             $views[] = NetWorthAllocationView::of(
                 $group,
+                $colors,
                 $rollup[$group->id] ?? null,
                 $netWorth->asset,
                 $shares->group($group->id),

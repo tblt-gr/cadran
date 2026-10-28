@@ -1945,9 +1945,26 @@ export type AccountGroupPage = {
 };
 
 export type AccountGroup = {
+    /**
+     * Explicit color, non null only in CUSTOM mode.
+     */
     color: string | null;
+    /**
+     * AUTO is the palette color of a root or a shade of the parent for a sub-group, PARENT reuses the parent effective color, CUSTOM uses `color`.
+     */
+    colorMode: 'AUTO' | 'PARENT' | 'CUSTOM';
+    /**
+     * Effective color, resolved on read from the whole tree.
+     */
     resolvedColor: string;
+    /**
+     * What the default mode of the group would produce now.
+     */
     defaultColor: string;
+    /**
+     * Effective color of the parent, null for a root.
+     */
+    parentResolvedColor: string | null;
     id: string;
     label: string;
     parentId: string | null;
@@ -1966,9 +1983,13 @@ export type AccountGroup = {
 
 export type CreateAccountGroupRequest = {
     /**
-     * Explicit color or null to use the stable group default. Omitted means default.
+     * Explicit color, only with CUSTOM mode. Omitted means no explicit color.
      */
     color?: string | null;
+    /**
+     * AUTO, PARENT (sub-groups only) or CUSTOM (requires `color`). When omitted, a non-null `color` means CUSTOM and a null or omitted one means AUTO.
+     */
+    colorMode?: 'AUTO' | 'PARENT' | 'CUSTOM';
     label: string;
     parentId: string | null;
     sortOrder: number;
@@ -1976,9 +1997,13 @@ export type CreateAccountGroupRequest = {
 
 export type UpdateAccountGroupRequest = {
     /**
-     * Explicit color or null to use the stable group default. Omitted preserves the current color.
+     * Explicit color, only with CUSTOM mode. Omitted preserves the current mode and color.
      */
     color?: string | null;
+    /**
+     * AUTO, PARENT (sub-groups only) or CUSTOM (requires `color`). When omitted, a non-null `color` means CUSTOM and a null or omitted one means AUTO.
+     */
+    colorMode?: 'AUTO' | 'PARENT' | 'CUSTOM';
     label: string;
     parentId: string | null;
     sortOrder: number;
@@ -4533,8 +4558,8 @@ export type Problem = {
  */
 export type AccountGroupInputProblem = Problem & {
     errors?: Array<{
-        field: 'color';
-        code: 'INVALID_COLOR';
+        field: 'color' | 'colorMode';
+        code: 'invalid_choice' | 'parent_mode_on_root' | 'required_for_custom' | 'forbidden_unless_custom' | 'invalid_color';
     }>;
 };
 

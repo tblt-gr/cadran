@@ -8,6 +8,7 @@ use App\Module\Accounts\Application\AccountGroupConflict;
 use App\Module\Accounts\Application\CreateAccountGroup;
 use App\Module\Accounts\Application\CreateAccountGroupInput;
 use App\Module\Accounts\Application\InvalidAccountGroupInput;
+use App\Module\Accounts\Application\ReadGroupColors;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
@@ -96,6 +97,63 @@ final class CreateAccountGroupTest extends TestCase
         ));
     }
 
+    public function testASubGroupTakesTheSmallestSlotNoSiblingHoldsArchivedIncluded(): void
+    {
+        $root = AccountGroupFixture::group();
+        $first = AccountGroupFixture::group(id: AccountGroupFixture::CHILD_ID, label: 'A', parentId: $root->id, depth: 2, colorSlot: 0);
+        $archived = AccountGroupFixture::group(
+            id: AccountGroupFixture::OTHER_ID,
+            label: 'B',
+            parentId: $root->id,
+            depth: 2,
+            archivedAt: new \DateTimeImmutable('2026-09-01T12:00:00+00:00'),
+            colorSlot: 1,
+        );
+        $third = AccountGroupFixture::group(id: AccountGroupFixture::GRANDCHILD_ID, label: 'D', parentId: $root->id, depth: 2, colorSlot: 3);
+        $groups = new InMemoryAccountGroupRepository($root, $first, $archived, $third);
+
+        $view = ($this->create($groups))(new CreateAccountGroupInput(label: 'C', parentId: $root->id, sortOrder: 5));
+
+        self::assertSame('AUTO', $view->colorMode);
+        self::assertSame(\App\Module\Accounts\Domain\AccountGroupColor::shade($view->parentResolvedColor ?? '', 2), $view->resolvedColor);
+        self::assertSame($view->resolvedColor, $view->defaultColor);
+    }
+
+    public function testARootKeepsSlotZeroAndTheDefaultPaletteColor(): void
+    {
+        $view = ($this->create(new InMemoryAccountGroupRepository()))(new CreateAccountGroupInput(label: 'Root', parentId: null, sortOrder: 0));
+
+        self::assertSame('AUTO', $view->colorMode);
+        self::assertNull($view->parentResolvedColor);
+        self::assertSame($view->defaultColor, $view->resolvedColor);
+    }
+
+    public function testAParentModeOnARootIsRefused(): void
+    {
+        $this->expectException(InvalidAccountGroupInput::class);
+        ($this->create(new InMemoryAccountGroupRepository()))(new CreateAccountGroupInput(
+            label: 'Root',
+            parentId: null,
+            sortOrder: 0,
+            colorMode: \App\Module\Accounts\Domain\AccountGroupColorMode::PARENT,
+        ));
+    }
+
+    public function testASubGroupInheritingItsParentReusesItsEffectiveColor(): void
+    {
+        $root = AccountGroupFixture::group(color: '#486DF0');
+        $view = ($this->create(new InMemoryAccountGroupRepository($root)))(new CreateAccountGroupInput(
+            label: 'Child',
+            parentId: $root->id,
+            sortOrder: 0,
+            colorMode: \App\Module\Accounts\Domain\AccountGroupColorMode::PARENT,
+        ));
+
+        self::assertSame('PARENT', $view->colorMode);
+        self::assertSame('#486DF0', $view->resolvedColor);
+        self::assertNull($view->color);
+    }
+
     private function create(InMemoryAccountGroupRepository $groups): CreateAccountGroup
     {
         $uuids = new SequenceUuidGenerator();
@@ -107,6 +165,7 @@ final class CreateAccountGroupTest extends TestCase
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, $uuids),
             new MockClock('2026-09-05 10:00:00'),
+            new ReadGroupColors($groups),
         );
     }
 }

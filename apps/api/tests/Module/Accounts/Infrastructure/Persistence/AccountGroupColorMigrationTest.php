@@ -15,6 +15,8 @@ use Symfony\Component\Console\Tester\CommandTester;
 final class AccountGroupColorMigrationTest extends KernelTestCase
 {
     private const string MIGRATION = 'DoctrineMigrations\\Version20261021120000';
+    // Later migration that reads the color column; it is rolled back around this one.
+    private const string DEPENDENT_MIGRATION = 'DoctrineMigrations\\Version20261027120000';
     private Connection $connection;
     private WorkspaceFixture $fixture;
     private bool $migrationAtHead = true;
@@ -28,6 +30,7 @@ final class AccountGroupColorMigrationTest extends KernelTestCase
         $this->connection = $connection;
         $this->fixture = new WorkspaceFixture($connection);
         $this->fixture->reset();
+        $this->runMigration('down', self::DEPENDENT_MIGRATION);
         $this->runMigration('down');
         $this->migrationAtHead = false;
         self::assertFalse($this->connection->fetchOne("SELECT 1 FROM information_schema.columns WHERE table_name = 'account_groups' AND column_name = 'color'"));
@@ -39,6 +42,7 @@ final class AccountGroupColorMigrationTest extends KernelTestCase
         if (!$this->migrationAtHead) {
             $this->runMigration('up');
         }
+        $this->runMigration('up', self::DEPENDENT_MIGRATION);
         $this->fixture->reset();
         parent::tearDown();
     }
@@ -95,11 +99,11 @@ final class AccountGroupColorMigrationTest extends KernelTestCase
         return $id;
     }
 
-    private function runMigration(string $direction): void
+    private function runMigration(string $direction, string $migration = self::MIGRATION): void
     {
         $tester = new CommandTester((new Application(self::$kernel ?? self::bootKernel()))->find('doctrine:migrations:execute'));
         $tester->execute([
-            'versions' => [self::MIGRATION],
+            'versions' => [$migration],
             '--'.$direction => true,
             '--no-interaction' => true,
         ]);

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountGroup;
-use App\Module\Accounts\Domain\AccountGroupColor;
+use App\Module\Accounts\Domain\AccountGroupColors;
 
 /**
  * The heading of one table of the overview: a primary group, or the
@@ -37,6 +37,7 @@ final readonly class AccountOverviewGroupView
 
     public static function ofGroup(
         AccountGroup $group,
+        AccountGroupColors $colors,
         bool $isRollup,
         int $memberCount,
         ?NetWorthAmountView $total,
@@ -51,8 +52,8 @@ final readonly class AccountOverviewGroupView
             parentId: $group->parentId,
             depth: $group->depth,
             color: $group->color,
-            resolvedColor: AccountGroupColor::resolve($group),
-            defaultColor: AccountGroupColor::defaultFor($group->id),
+            resolvedColor: $colors->effective($group),
+            defaultColor: $colors->defaultFor($group),
             isRollup: $isRollup,
             memberCount: $memberCount,
             total: $total,

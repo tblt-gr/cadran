@@ -66,3 +66,9 @@ CVE-2026-54369
 # perl-base: required by dpkg and cannot be removed. The affected module
 # (Archive::Tar) is never run, and no process in the container invokes perl.
 CVE-2026-9538
+
+# review: 2026-12-31
+# go-jose (embedded in the FrankenPHP/Caddy binary): the DoS needs a JWK with
+# RSA keys parsed from untrusted input. The Caddyfile configures no JWT/JWK
+# module, so no request path parses a JWK. No fixed v3 release exists upstream.
+CVE-2026-116587

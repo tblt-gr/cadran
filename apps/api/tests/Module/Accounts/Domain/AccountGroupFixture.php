@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Domain;
 
 use App\Module\Accounts\Domain\AccountGroup;
+use App\Module\Accounts\Domain\AccountGroupColorMode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 final class AccountGroupFixture
@@ -27,6 +28,8 @@ final class AccountGroupFixture
         ?\DateTimeImmutable $archivedAt = null,
         ?string $color = null,
         int $sortOrder = 0,
+        ?AccountGroupColorMode $colorMode = null,
+        int $colorSlot = 0,
     ): AccountGroup {
         $now = new \DateTimeImmutable('2026-09-05T10:00:00+00:00');
 
@@ -42,6 +45,8 @@ final class AccountGroupFixture
             updatedAt: $now,
             archivedAt: $archivedAt,
             color: $color,
+            colorMode: $colorMode,
+            colorSlot: $colorSlot,
         );
     }
 }

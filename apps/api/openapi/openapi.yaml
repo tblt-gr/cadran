@@ -12987,8 +12987,10 @@ components:
       additionalProperties: false
       required:
         - color
+        - colorMode
         - resolvedColor
         - defaultColor
+        - parentResolvedColor
         - id
         - label
         - parentId
@@ -13002,13 +13004,26 @@ components:
         - archivedAt
       properties:
         color:
+          description: Explicit color, non null only in CUSTOM mode.
           type: [string, 'null']
           pattern: '^#[0-9A-F]{6}$'
+        colorMode:
+          description: >-
+            AUTO is the palette color of a root or a shade of the parent for a sub-group,
+            PARENT reuses the parent effective color, CUSTOM uses `color`.
+          type: string
+          enum: [AUTO, PARENT, CUSTOM]
         resolvedColor:
+          description: Effective color, resolved on read from the whole tree.
           type: string
           pattern: '^#[0-9A-F]{6}$'
         defaultColor:
+          description: What the default mode of the group would produce now.
           type: string
+          pattern: '^#[0-9A-F]{6}$'
+        parentResolvedColor:
+          description: Effective color of the parent, null for a root.
+          type: [string, 'null']
           pattern: '^#[0-9A-F]{6}$'
         id:
           type: string
@@ -13060,9 +13075,15 @@ components:
         - sortOrder
       properties:
         color:
-          description: Explicit color or null to use the stable group default. Omitted means default.
+          description: Explicit color, only with CUSTOM mode. Omitted means no explicit color.
           type: [string, 'null']
           pattern: '^#[0-9a-fA-F]{6}$'
+        colorMode:
+          description: >-
+            AUTO, PARENT (sub-groups only) or CUSTOM (requires `color`). When omitted, a non-null
+            `color` means CUSTOM and a null or omitted one means AUTO.
+          type: string
+          enum: [AUTO, PARENT, CUSTOM]
         label:
           type: string
           minLength: 1
@@ -13086,9 +13107,15 @@ components:
         - version
       properties:
         color:
-          description: Explicit color or null to use the stable group default. Omitted preserves the current color.
+          description: Explicit color, only with CUSTOM mode. Omitted preserves the current mode and color.
           type: [string, 'null']
           pattern: '^#[0-9a-fA-F]{6}$'
+        colorMode:
+          description: >-
+            AUTO, PARENT (sub-groups only) or CUSTOM (requires `color`). When omitted, a non-null
+            `color` means CUSTOM and a null or omitted one means AUTO.
+          type: string
+          enum: [AUTO, PARENT, CUSTOM]
         label:
           type: string
           minLength: 1
@@ -19215,10 +19242,15 @@ components:
                 properties:
                   field:
                     type: string
-                    const: color
+                    enum: [color, colorMode]
                   code:
                     type: string
-                    const: INVALID_COLOR
+                    enum:
+                      - invalid_choice
+                      - parent_mode_on_root
+                      - required_for_custom
+                      - forbidden_unless_custom
+                      - invalid_color
     AmountInputProblem:
       description:
         An RFC 9457 problem raised by the shared exact-amount parser. The JSON pointer names the

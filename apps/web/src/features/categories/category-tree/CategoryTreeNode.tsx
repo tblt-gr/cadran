@@ -5,12 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
 import { CategoryRedirection } from './category-redirection/CategoryRedirection';
-import type { CategoryTreeNodeData } from './buildCategoryTree';
+import type { TreeNode } from '@/lib/tree/buildTree';
 import { CategoryTreeActions } from './CategoryTreeActions';
 import styles from './CategoryTree.module.css';
 
 interface CategoryTreeNodeProps {
-  node: CategoryTreeNodeData;
+  node: TreeNode<Category>;
   /** An orphan root names the parent that is not part of the list. */
   root?: boolean;
   onEdit: (category: Category) => void;
@@ -26,7 +26,7 @@ export function CategoryTreeNode({
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const childrenId = useId();
-  const { category, children } = node;
+  const { item: category, children } = node;
   const archived = category.archivedAt !== null;
   const axes = category.defaultAnalyticAxes.map((axis) => t(`categories.axes.${axis}`)).join(', ');
 
@@ -83,7 +83,7 @@ export function CategoryTreeNode({
           {expanded
             ? children.map((child) => (
                 <CategoryTreeNode
-                  key={child.category.id}
+                  key={child.item.id}
                   node={child}
                   onEdit={onEdit}
                   onLifecycle={onLifecycle}

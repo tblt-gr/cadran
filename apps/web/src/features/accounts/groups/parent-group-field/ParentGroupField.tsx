@@ -1,4 +1,4 @@
-import { listAccountGroups } from '@cadran/api-client';
+import { listAccountGroups, type AccountGroup } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -6,7 +6,7 @@ import styles from './ParentGroupField.module.css';
 
 interface ParentGroupFieldProps {
   currentId?: string;
-  onChange: (parentId: string) => void;
+  onChange: (parentId: string, parent: AccountGroup | null) => void;
   value: string;
 }
 
@@ -35,7 +35,12 @@ export function ParentGroupField({ currentId, onChange, value }: ParentGroupFiel
       <span>{t('accountGroups.fields.parent')}</span>
       <select
         disabled={loading || candidates.isError}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) =>
+          onChange(
+            event.target.value,
+            parents.find((parent) => parent.id === event.target.value) ?? null,
+          )
+        }
         value={value}
       >
         <option value="">{t('accountGroups.form.noParent')}</option>

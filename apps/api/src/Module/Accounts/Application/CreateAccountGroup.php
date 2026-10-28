@@ -24,6 +24,7 @@ final readonly class CreateAccountGroup
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
+        private ReadGroupColors $readGroupColors,
     ) {
     }
 
@@ -59,6 +60,8 @@ final readonly class CreateAccountGroup
                     createdAt: $now,
                     updatedAt: $now,
                     color: $input->color,
+                    colorMode: $input->colorMode,
+                    colorSlot: null === $parentId ? 0 : AccountGroup::nextColorSlot($this->groups->usedColorSlots($context->workspace, $parentId)),
                 );
             } catch (InvalidAccountGroup $exception) {
                 throw new InvalidAccountGroupInput($exception->getMessage(), previous: $exception);
@@ -74,7 +77,7 @@ final readonly class CreateAccountGroup
                 diff: AuditDiff::creation(AccountGroupAuditFingerprint::of($group)),
             ));
 
-            return AccountGroupView::fromGroup($group, false, $parent?->label);
+            return AccountGroupView::fromGroup($group, false, $parent?->label, ($this->readGroupColors)($context->workspace));
         });
     }
 }

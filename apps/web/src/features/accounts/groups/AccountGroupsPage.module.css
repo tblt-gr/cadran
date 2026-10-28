@@ -4,19 +4,6 @@
   gap: var(--spacing-6);
 }
 
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-4);
-}
-
-.pagination span {
-  color: var(--text-secondary);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
-}
-
 @media (max-width: 47.999rem) {
   .addLabel {
     display: none;

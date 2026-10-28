@@ -1,7 +1,6 @@
 import {
   archiveAccountGroup,
   createAccountGroup,
-  listAccountGroups,
   updateAccountGroup,
   type AccountGroup,
   type CreateAccountGroupRequest,
@@ -18,14 +17,15 @@ import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { ArchiveGroupDialog } from '@/features/accounts/groups/archive-group-dialog/ArchiveGroupDialog';
 import { GroupForm } from '@/features/accounts/groups/group-form/GroupForm';
-import { GroupList } from '@/features/accounts/groups/group-list/GroupList';
+import { GroupTree } from '@/features/accounts/groups/group-tree/GroupTree';
+import { GroupTreeSkeleton } from '@/features/accounts/groups/group-tree/GroupTreeSkeleton';
+import { listAllAccountGroups } from '@/features/accounts/groups/listAllAccountGroups';
 import {
   groupErrorKind,
   GroupRequestError,
   groupRequestError,
 } from '@/features/accounts/groups/groupError';
 import { GroupsState } from '@/features/accounts/groups/groups-state/GroupsState';
-import { AccountGroupsPageSkeleton } from './AccountGroupsPageSkeleton';
 import styles from './AccountGroupsPage.module.css';
 
 type Editor = AccountGroup | 'create' | null;
@@ -34,7 +34,6 @@ export function AccountGroupsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<AccountGroup | null>(null);
   const [saved, setSaved] = useState<'saved' | 'archived' | null>(null);
@@ -51,18 +50,8 @@ export function AccountGroupsPage() {
   }
 
   const groups = useQuery({
-    queryKey: ['account-groups', includeArchived, page],
-    queryFn: async ({ signal }) => {
-      const result = await listAccountGroups({
-        ...authApiOptions(),
-        query: { includeArchived, page, pageSize: 50 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) {
-        throw groupRequestError(result);
-      }
-      return result.data;
-    },
+    queryKey: ['account-groups', includeArchived],
+    queryFn: ({ signal }) => listAllAccountGroups(includeArchived, signal),
     retry: false,
   });
 
@@ -135,13 +124,8 @@ export function AccountGroupsPage() {
   const submitError = groupErrorKind(save.error, save.isError);
   const archiveError = groupErrorKind(archive.error, archive.isError);
   const unauthorized = groups.error instanceof GroupRequestError && groups.error.status === 401;
-  const items = groups.data?.items ?? [];
-  const totalPages = Math.max(1, Math.ceil((groups.data?.total ?? 0) / 50));
+  const items = groups.data ?? [];
   const pagePending = groups.isPending && groups.data === undefined;
-
-  if (groups.data && page > totalPages) {
-    setPage(totalPages);
-  }
 
   return (
     <div className={styles.page}>
@@ -159,10 +143,7 @@ export function AccountGroupsPage() {
           aria-label={t('accountGroups.includeArchived')}
           aria-pressed={includeArchived}
           className="icon-button"
-          onClick={() => {
-            setIncludeArchived((current) => !current);
-            setPage(1);
-          }}
+          onClick={() => setIncludeArchived((current) => !current)}
           title={t('accountGroups.includeArchived')}
           type="button"
         >
@@ -220,7 +201,7 @@ export function AccountGroupsPage() {
       ) : null}
 
       {pagePending ? (
-        <AccountGroupsPageSkeleton status={t('accountGroups.loading')} />
+        <GroupTreeSkeleton status={t('accountGroups.loading')} />
       ) : groups.isError ? (
         <GroupsState
           includeArchived={includeArchived}
@@ -236,30 +217,8 @@ export function AccountGroupsPage() {
           onRetry={() => void groups.refetch()}
         />
       ) : (
-        <GroupList groups={items} onArchive={setArchiving} onEdit={openEditor} />
+        <GroupTree groups={items} onArchive={setArchiving} onEdit={openEditor} />
       )}
-
-      {groups.isSuccess && (totalPages > 1 || page > 1) ? (
-        <nav className={styles.pagination} aria-label={t('accountGroups.pagination.label')}>
-          <button
-            className="secondary-action"
-            disabled={page === 1}
-            onClick={() => setPage((current) => current - 1)}
-            type="button"
-          >
-            {t('accountGroups.pagination.previous')}
-          </button>
-          <span>{t('accountGroups.pagination.position', { page, total: totalPages })}</span>
-          <button
-            className="secondary-action"
-            disabled={page >= totalPages}
-            onClick={() => setPage((current) => current + 1)}
-            type="button"
-          >
-            {t('accountGroups.pagination.next')}
-          </button>
-        </nav>
-      ) : null}
     </div>
   );
 }

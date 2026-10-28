@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountGroup;
-use App\Module\Accounts\Domain\AccountGroupColor;
+use App\Module\Accounts\Domain\AccountGroupColors;
 use App\Module\Accounts\Domain\NetWorthShare;
 use App\Module\Accounts\Domain\NetWorthShareReason;
 
@@ -24,8 +24,10 @@ final readonly class AccountGroupView
         public ShareView $share,
         public ?string $archivedAt,
         public ?string $color,
+        public string $colorMode,
         public string $resolvedColor,
         public string $defaultColor,
+        public ?string $parentResolvedColor,
     ) {
     }
 
@@ -33,6 +35,7 @@ final readonly class AccountGroupView
         AccountGroup $group,
         bool $hasChildren,
         ?string $parentLabel,
+        AccountGroupColors $colors,
         ?NetWorthShare $share = null,
     ): self {
         return new self(
@@ -50,8 +53,10 @@ final readonly class AccountGroupView
             )),
             archivedAt: $group->archivedAt?->format(DATE_ATOM),
             color: $group->color,
-            resolvedColor: AccountGroupColor::resolve($group),
-            defaultColor: AccountGroupColor::defaultFor($group->id),
+            colorMode: $group->colorMode->value,
+            resolvedColor: $colors->effective($group),
+            defaultColor: $colors->defaultFor($group),
+            parentResolvedColor: $colors->parent($group),
         );
     }
 }

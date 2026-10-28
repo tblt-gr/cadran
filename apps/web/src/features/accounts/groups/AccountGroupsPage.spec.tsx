@@ -21,8 +21,10 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
 
 const group: AccountGroup = {
   color: null,
+  colorMode: 'AUTO',
   resolvedColor: '#486DF0',
-  defaultColor: '#803078',
+  defaultColor: '#486DF0',
+  parentResolvedColor: null,
   id: '00000000-0000-7000-8000-0000000000b1',
   label: 'Épargne',
   parentId: null,
@@ -55,10 +57,10 @@ function openGroupActions(label: string) {
   fireEvent.click(screen.getByRole('button', { name: `Actions du groupe ${label}` }));
 }
 
-/** The skeleton draws the same table: wait for it to leave before reading rows. */
-async function loadedGroupsTable() {
+/** The skeleton draws the same tree: wait for it to leave before reading rows. */
+async function loadedGroupsTree() {
   await waitFor(() => expect(screen.queryByTestId('account-groups-skeleton')).toBeNull());
-  return screen.getByRole('table', { name: 'Groupes de comptes' });
+  return screen.getByRole('list', { name: 'Groupes de comptes' });
 }
 
 function renderPage() {
@@ -126,6 +128,7 @@ describe('AccountGroupsPage', () => {
     await waitFor(() => expect(api.createAccountGroup).toHaveBeenCalledOnce());
     expect(api.createAccountGroup.mock.calls[0]?.[0].body).toMatchObject({
       label: 'Épargne',
+      colorMode: 'AUTO',
       color: null,
       parentId: null,
       sortOrder: 0,
@@ -139,20 +142,26 @@ describe('AccountGroupsPage', () => {
     );
     api.updateAccountGroup.mockImplementation(() => problem(422, '/problems/validation'));
     renderPage();
-    await loadedGroupsTable();
+    await loadedGroupsTree();
     openGroupActions('Épargne');
     fireEvent.click(screen.getByRole('button', { name: 'Modifier le groupe Épargne' }));
     const color = screen.getByLabelText('Couleur du groupe');
     fireEvent.change(color, { target: { value: '#ffffff' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     await waitFor(() => expect(api.updateAccountGroup).toHaveBeenCalledOnce());
-    expect(api.updateAccountGroup.mock.calls[0]?.[0].body.color).toBe('#FFFFFF');
+    expect(api.updateAccountGroup.mock.calls[0]?.[0].body).toMatchObject({
+      colorMode: 'CUSTOM',
+      color: '#FFFFFF',
+    });
     expect((color as HTMLInputElement).value.toUpperCase()).toBe('#FFFFFF');
     await screen.findByRole('alert');
     fireEvent.click(screen.getByRole('button', { name: 'Rétablir la couleur par défaut' }));
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     await waitFor(() => expect(api.updateAccountGroup).toHaveBeenCalledTimes(2));
-    expect(api.updateAccountGroup.mock.calls[1]?.[0].body.color).toBeNull();
+    expect(api.updateAccountGroup.mock.calls[1]?.[0].body).toMatchObject({
+      colorMode: 'AUTO',
+      color: null,
+    });
   });
 
   it('associates server validation with the color field and preserves its value', async () => {
@@ -160,11 +169,11 @@ describe('AccountGroupsPage', () => {
       success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
     api.updateAccountGroup.mockResolvedValue({
-      error: { type: '/problems/validation', errors: [{ field: 'color', code: 'INVALID_COLOR' }] },
+      error: { type: '/problems/validation', errors: [{ field: 'color', code: 'invalid_color' }] },
       response: new Response('{}', { status: 422 }),
     });
     renderPage();
-    await loadedGroupsTable();
+    await loadedGroupsTree();
     openGroupActions('Épargne');
     fireEvent.click(screen.getByRole('button', { name: 'Modifier le groupe Épargne' }));
     fireEvent.change(screen.getByLabelText('Couleur du groupe'), { target: { value: '#000000' } });
@@ -262,31 +271,82 @@ describe('AccountGroupsPage', () => {
     expect(screen.queryByRole('button', { name: 'Treemap' })).toBeNull();
   });
 
-  it('manages groups only: no account, net worth, total or share is read or shown', async () => {
+  it('manages groups only: no account, net worth, total, share, column or pagination', async () => {
     api.listAccountGroups.mockImplementation(() =>
       success({ items: [group], page: 1, pageSize: 50, total: 1 }),
     );
     renderPage();
 
-    const groupsTable = await loadedGroupsTable();
-    expect(within(groupsTable).getByText(group.label)).toBeTruthy();
-    expect(within(groupsTable).queryByRole('columnheader', { name: /Total/ })).toBeNull();
-    expect(within(groupsTable).queryByRole('columnheader', { name: /Poids/ })).toBeNull();
+    const tree = await loadedGroupsTree();
+    expect(within(tree).getByText(group.label)).toBeTruthy();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByRole('columnheader')).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Pagination des groupes' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Treemap' })).toBeNull();
     expect(api.listAccounts).not.toHaveBeenCalled();
     expect(api.readNetWorth).not.toHaveBeenCalled();
   });
 
-  it('marks a group column as sorted when its header is clicked', async () => {
-    api.listAccountGroups.mockImplementation(() =>
-      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
+  it('loads every page of groups into one tree', async () => {
+    api.listAccountGroups.mockImplementation(({ query }) =>
+      success({
+        items: [query.page === 1 ? group : { ...group, id: 'g2', label: 'Courant' }],
+        page: query.page,
+        pageSize: 1,
+        total: 2,
+      }),
     );
     renderPage();
 
-    const groupsTable = await loadedGroupsTable();
-    const labelHeader = within(groupsTable).getByRole('columnheader', { name: /Libellé/ });
-    expect(labelHeader.getAttribute('aria-sort')).toBe('ascending');
-    fireEvent.click(within(labelHeader).getByRole('button'));
-    expect(labelHeader.getAttribute('aria-sort')).toBe('descending');
+    const tree = await loadedGroupsTree();
+    await waitFor(() => expect(within(tree).getByText('Courant')).toBeTruthy());
+    expect(within(tree).getByText('Épargne')).toBeTruthy();
+  });
+
+  it('offers a sub-group the shade and parent modes and drops them when it becomes a root', async () => {
+    const child = {
+      ...group,
+      id: 'child',
+      label: 'Livrets',
+      parentId: group.id,
+      parentLabel: 'Épargne',
+      parentResolvedColor: '#486DF0',
+      resolvedColor: '#7B96F4',
+      defaultColor: '#7B96F4',
+      depth: 2,
+    };
+    api.listAccountGroups.mockImplementation(({ query }) =>
+      success({
+        items: query.parentEligible ? [group] : [group, child],
+        page: 1,
+        pageSize: 50,
+        total: query.parentEligible ? 1 : 2,
+      }),
+    );
+    api.updateAccountGroup.mockImplementation(({ body }) => success({ ...child, ...body }));
+    renderPage();
+
+    await loadedGroupsTree();
+    fireEvent.click(await screen.findByRole('button', { name: /sous-groupes de « Épargne »/ }));
+    openGroupActions('Livrets');
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le groupe Livrets' }));
+    expect(screen.getByText('Nuance du groupe parent')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Utiliser la couleur du groupe parent' }));
+
+    await waitFor(() =>
+      expect((screen.getByLabelText('Groupe parent') as HTMLSelectElement).disabled).toBe(false),
+    );
+    fireEvent.change(screen.getByLabelText('Groupe parent'), { target: { value: '' } });
+    expect(
+      screen.queryByRole('button', { name: 'Utiliser la couleur du groupe parent' }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.updateAccountGroup).toHaveBeenCalledOnce());
+    expect(api.updateAccountGroup.mock.calls[0]?.[0].body).toMatchObject({
+      colorMode: 'AUTO',
+      color: null,
+      parentId: null,
+    });
   });
 });

@@ -7,7 +7,10 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GroupErrorKind } from '@/features/accounts/groups/groupError';
 import { ParentGroupField } from '@/features/accounts/groups/parent-group-field/ParentGroupField';
-import { GroupColorField } from '@/features/accounts/groups/group-color-field/GroupColorField';
+import {
+  GroupColorField,
+  type GroupColorChange,
+} from '@/features/accounts/groups/group-color-field/GroupColorField';
 import styles from './GroupForm.module.css';
 
 interface GroupFormProps {
@@ -20,11 +23,30 @@ interface GroupFormProps {
 
 export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormProps) {
   const { t } = useTranslation();
-  const [color, setColor] = useState<string | null>(group?.color ?? null);
+  const [colorChoice, setColorChoice] = useState<GroupColorChange>({
+    mode: group?.colorMode ?? 'AUTO',
+    color: group?.color ?? null,
+  });
+  const [parentColor, setParentColor] = useState(group?.parentResolvedColor ?? null);
   const [label, setLabel] = useState(group?.label ?? '');
   const [parentId, setParentId] = useState(group?.parentId ?? '');
   const [sortOrder, setSortOrder] = useState(String(group?.sortOrder ?? 0));
   const [showErrors, setShowErrors] = useState(false);
+
+  const root = parentId === '';
+  const parentUnchanged = group !== undefined && parentId === (group.parentId ?? '');
+  // The shade depends on a slot only the server assigns: it is known solely for a group that keeps its parent.
+  const swatches = {
+    AUTO: group && parentUnchanged ? group.defaultColor : null,
+    PARENT: parentColor,
+  };
+  // A group that becomes a root cannot keep inheriting from a parent.
+  const colorMode = root && colorChoice.mode === 'PARENT' ? 'AUTO' : colorChoice.mode;
+
+  function changeParent(id: string, parent: AccountGroup | null) {
+    setParentId(id);
+    setParentColor(parent?.resolvedColor ?? null);
+  }
 
   const cleanLabel = label.trim();
   const parsedOrder = Number.parseInt(sortOrder, 10);
@@ -45,7 +67,8 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
 
     const common = {
       label: cleanLabel,
-      color,
+      colorMode,
+      color: colorMode === 'CUSTOM' ? colorChoice.color : null,
       parentId: parentId === '' ? null : parentId,
       sortOrder: parsedOrder,
     };
@@ -75,14 +98,17 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
         </label>
 
         <GroupColorField
-          value={color}
-          defaultColor={group?.defaultColor}
+          color={colorChoice.color}
+          customStart={group?.resolvedColor}
           disabled={pending}
           invalid={submitError === 'color'}
-          onChange={setColor}
+          mode={colorMode}
+          onChange={setColorChoice}
+          root={root}
+          swatches={swatches}
         />
 
-        <ParentGroupField currentId={group?.id} onChange={setParentId} value={parentId} />
+        <ParentGroupField currentId={group?.id} onChange={changeParent} value={parentId} />
 
         <label htmlFor="account-group-order">
           <span>{t('accountGroups.fields.order')}</span>

@@ -939,6 +939,7 @@
     },
     "form": {
       "resetColor": "Rétablir la couleur par défaut",
+      "useParentColor": "Utiliser la couleur du groupe parent",
       "colorHelp": "La couleur identifie le groupe et ses comptes. Le nom reste toujours visible.",
       "createEyebrow": "Création",
       "createTitle": "Nouveau groupe",
@@ -956,11 +957,12 @@
       "order": "L’ordre doit être un entier compris entre 0 et 32767."
     },
     "errors": {
-      "color": "Choisissez une couleur au format #RRGGBB.",
+      "color": "Choisissez un mode de couleur valide et, si besoin, une couleur au format #RRGGBB.",
       "conflict": "Un groupe actif porte déjà ce libellé au même niveau. Choisissez-en un autre.",
       "invalid": "Le groupe est invalide. Vérifiez son libellé, son parent et l’absence de cycle.",
       "network": "L’enregistrement a échoué. Réessayez.",
-      "stale": "Ce groupe a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le groupe puis réappliquez votre modification."
+      "stale": "Ce groupe a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le groupe puis réappliquez votre modification.",
+      "colorMode": "Ce mode de couleur n’est pas disponible pour ce groupe."
     },
     "empty": {
       "title": "Aucun groupe",
@@ -980,9 +982,7 @@
     },
     "list": {
       "caption": "Groupes de comptes",
-      "status": "État",
       "actions": "Actions",
-      "active": "Actif",
       "archived": "Archivé",
       "edit": "Modifier",
       "archive": "Archiver",
@@ -990,9 +990,7 @@
       "archiveGroup": "Archiver le groupe {{label}}",
       "openActions": "Actions du groupe {{label}}",
       "accountGroup": "Groupe",
-      "sortBy": "Trier par {{column}}",
-      "depth": "Niveau {{depth}}",
-      "unavailableParent": "Parent non affiché"
+      "sortBy": "Trier par {{column}}"
     },
     "archive": {
       "eyebrow": "Archivage",
@@ -1011,11 +1009,22 @@
         "MIXED_ASSETS": "Comptes libellés dans plusieurs unités"
       }
     },
-    "pagination": {
-      "label": "Pagination des groupes",
-      "previous": "Précédent",
-      "next": "Suivant",
-      "position": "Page {{page}} sur {{total}}"
+    "tree": {
+      "expand": "Afficher les sous-groupes de « {{label}} » ({{count}})",
+      "collapse": "Masquer les sous-groupes de « {{label}} »",
+      "childCount_one": "{{count}} sous-groupe",
+      "childCount_other": "{{count}} sous-groupes",
+      "level": "Niveau {{depth}}"
+    },
+    "color": {
+      "legend": "Couleur",
+      "modes": {
+        "AUTO_ROOT": "Couleur par défaut",
+        "AUTO_CHILD": "Nuance du groupe parent",
+        "PARENT": "Couleur du groupe parent",
+        "CUSTOM": "Personnalisée"
+      },
+      "pendingShade": "Nuance attribuée à l’enregistrement"
     }
   },
   "categories": {

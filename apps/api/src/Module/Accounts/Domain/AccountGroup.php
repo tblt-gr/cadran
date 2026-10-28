@@ -15,10 +15,12 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 final readonly class AccountGroup
 {
     public ?string $color;
+    public AccountGroupColorMode $colorMode;
 
     public const int MAX_LABEL_LENGTH = 80;
     public const int MAX_TREE_DEPTH = 8;
     public const int MAX_SORT_ORDER = 32767;
+    public const int MAX_COLOR_SLOT = 32767;
 
     public function __construct(
         public string $id,
@@ -32,8 +34,24 @@ final readonly class AccountGroup
         public \DateTimeImmutable $updatedAt,
         public ?\DateTimeImmutable $archivedAt = null,
         ?string $color = null,
+        ?AccountGroupColorMode $colorMode = null,
+        public int $colorSlot = 0,
     ) {
         $this->color = AccountGroupColor::normalize($color);
+        // A mode left out keeps the pre-mode meaning of a stored color.
+        $this->colorMode = $colorMode ?? (null === $this->color ? AccountGroupColorMode::AUTO : AccountGroupColorMode::CUSTOM);
+        if (AccountGroupColorMode::CUSTOM === $this->colorMode && null === $this->color) {
+            throw new InvalidAccountGroup('A custom group color requires a color.');
+        }
+        if (AccountGroupColorMode::CUSTOM !== $this->colorMode && null !== $this->color) {
+            throw new InvalidAccountGroup('Only a custom group color carries an explicit color.');
+        }
+        if (AccountGroupColorMode::PARENT === $this->colorMode && null === $parentId) {
+            throw new InvalidAccountGroup('A root group cannot inherit its parent color.');
+        }
+        if ($colorSlot < 0 || $colorSlot > self::MAX_COLOR_SLOT) {
+            throw new InvalidAccountGroup(sprintf('A group color slot must be between 0 and %d.', self::MAX_COLOR_SLOT));
+        }
         self::assertIdentifier($id);
         if (null !== $parentId) {
             self::assertIdentifier($parentId);
@@ -64,6 +82,8 @@ final readonly class AccountGroup
         int $depth,
         \DateTimeImmutable $updatedAt,
         ?string $color = null,
+        ?AccountGroupColorMode $colorMode = null,
+        ?int $colorSlot = null,
     ): self {
         if (null !== $this->archivedAt) {
             throw new InvalidAccountGroup('An archived group is read-only.');
@@ -81,6 +101,8 @@ final readonly class AccountGroup
             updatedAt: $updatedAt,
             archivedAt: $this->archivedAt,
             color: $color,
+            colorMode: $colorMode,
+            colorSlot: $colorSlot ?? $this->colorSlot,
         );
     }
 
@@ -102,6 +124,8 @@ final readonly class AccountGroup
             updatedAt: $archivedAt,
             archivedAt: $archivedAt,
             color: $this->color,
+            colorMode: $this->colorMode,
+            colorSlot: $this->colorSlot,
         );
     }
 
@@ -124,7 +148,26 @@ final readonly class AccountGroup
             updatedAt: $updatedAt,
             archivedAt: $this->archivedAt,
             color: $this->color,
+            colorMode: $this->colorMode,
+            colorSlot: $this->colorSlot,
         );
+    }
+
+    /**
+     * Smallest slot no current sibling holds, archived siblings included, so an
+     * effective color never moves while its sibling exists.
+     *
+     * @param list<int> $usedSlots
+     */
+    public static function nextColorSlot(array $usedSlots): int
+    {
+        $taken = array_flip($usedSlots);
+        $slot = 0;
+        while (isset($taken[$slot])) {
+            ++$slot;
+        }
+
+        return $slot;
     }
 
     public static function wouldCycle(string $groupId, ?string $newParentId, callable $parentOf): bool
