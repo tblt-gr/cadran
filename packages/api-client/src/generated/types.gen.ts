@@ -1883,28 +1883,114 @@ export type AccountOverviewGroup = {
     resolvedColor: string | null;
     defaultColor: string | null;
     /**
-     * A parent whose total already contains its children; never add the two.
+     * Label of the immediate parent group in `PRIMARY` mode; always null in `PARENT` mode and for a root or the ungrouped section.
      */
-    isRollup: boolean;
+    parentLabel: string | null;
     /**
-     * Members visible under the lifecycle filters.
+     * Members visible under the lifecycle filters, the whole subtree in `PARENT` mode.
      */
     memberCount: number;
     total: NetWorthAmount | null;
     totalReason: NetWorthReason | null;
     share: NetWorthShare;
+    /**
+     * Kept for compatibility; the interface no longer reads it.
+     */
     quality: ValuationQuality;
     /**
-     * Version to send back with a move inside this group.
+     * Order version of this group (sum over the subtree in `PARENT` mode); moves send the row `groupOrderVersion` instead.
      */
     orderVersion: number;
     archivedAt: string | null;
 };
 
 export type AccountOverviewRows = {
-    items: Array<Account>;
+    items: Array<AccountOverviewRow>;
     nextCursor: string | null;
     orderVersion: number;
+};
+
+/**
+ * An account row with the primary group it is ordered in (the account representation plus the group context).
+ */
+export type AccountOverviewRow = {
+    /**
+     * Label of the account primary group, null when ungrouped.
+     */
+    primaryGroupLabel: string | null;
+    /**
+     * Immediate parent label of the primary group, null when the primary group is the section group, a root or ungrouped.
+     */
+    primaryGroupParentLabel: string | null;
+    /**
+     * Order version of the row primary group, to send with a move of this row.
+     */
+    groupOrderVersion: number;
+    /**
+     * Whether this active current account is the workspace default for new transactions.
+     */
+    isPrimary: boolean;
+    id: string;
+    label: string;
+    /**
+     * The unit the account is denominated in, from the read-only system asset reference. It is fixed at creation: changing it would reinterpret every figure already recorded against the account.
+     */
+    assetCode: string;
+    kind: AccountKind;
+    /**
+     * The catalogue product this account was created from, or null for an account described by hand or from a workspace model. Only the reference is stored: ceilings, rates and methods stay in the catalogue and are read on the business date they are needed, so a regulatory revision is never frozen into an account.
+     */
+    productCode: ProductCode | null;
+    /**
+     * The reusable workspace product model this account was created from, or null for an account described by hand or from a catalogue product. An account carries at most one of `productCode` and `productModelId`. Only the reference is stored: any dated rule the model carries stays on the model and is read on the business date it is needed, so archiving the model never changes what an existing account resolves.
+     */
+    productModelId: string | null;
+    /**
+     * Free text naming where the account is held, such as the bank or the insurer. No reference of institutions ships with the application, so this is bounded rather than validated against a list.
+     */
+    institution: string | null;
+    /**
+     * The visible tail of a banking or contract identifier, such as `4821`. Bounded to eight characters, which cannot hold a full identifier.
+     */
+    maskedIdentifier: string | null;
+    valuationMode: AccountValuationMode;
+    liquidityLevel: LiquidityLevel;
+    includeInNetWorth: boolean;
+    /**
+     * Only an account counted in net worth may back the emergency fund.
+     */
+    includeInEmergencyFund: boolean;
+    openedOn: string;
+    /**
+     * The day the account was closed, or null while it is open.
+     */
+    closedOn: string | null;
+    status: AccountStatus;
+    /**
+     * The sign this account contributes to net worth: `1` for an asset, `-1` for a liability. It carries no amount; a balance arrives with its own record and stays null until then. The sign is independent of `includeInNetWorth`: an excluded account still reports its nature, so an aggregation must read the inclusion flag before applying the sign.
+     */
+    netWorthSign: -1 | 1;
+    used: boolean;
+    /**
+     * False for an archived account, which is read-only.
+     */
+    editable: boolean;
+    /**
+     * Backend-owned eligibility for changing the account kind.
+     */
+    kindEditable: boolean;
+    /**
+     * Why the kind is immutable, or null when it can be changed.
+     */
+    kindEditReason: 'ARCHIVED' | 'USED' | null;
+    version: number;
+    archivedAt: string | null;
+    /**
+     * Exclusive membership used by group weights. Null until the account is assigned. It may name a sub-group: the account then also counts in every ancestor of that group.
+     */
+    primaryGroupId: string | null;
+    share: NetWorthShare;
+    valuation: AccountValuation;
 };
 
 export type MoveAccountRequest = {
@@ -9695,6 +9781,10 @@ export type ReadAccountOverviewData = {
         asOf?: string;
         includeClosed?: boolean;
         includeArchived?: boolean;
+        /**
+         * `PARENT` (default) cuts one table per root group that rolls its subtree up; `PRIMARY` cuts one table per primary group with its direct accounts. Any other value is a 422 with a `grouping` / `invalid_choice` error.
+         */
+        grouping?: 'PARENT' | 'PRIMARY';
     };
     url: '/api/v1/accounts/overview';
 };
@@ -9713,7 +9803,7 @@ export type ReadAccountOverviewErrors = {
      */
     403: Problem;
     /**
-     * The workspace holds more accounts or groups than one overview reads (`type: /problems/net-worth-scope-too-large`).
+     * Invalid `grouping` (`errors[].field: grouping`, `code: invalid_choice`), or the workspace holds more accounts or groups than one overview reads (`type: /problems/net-worth-scope-too-large`).
      */
     422: Problem;
     /**
@@ -9743,6 +9833,10 @@ export type ReadAccountOverviewRowsData = {
         asOf?: string;
         includeClosed?: boolean;
         includeArchived?: boolean;
+        /**
+         * `PARENT` (default) cuts one table per root group that rolls its subtree up; `PRIMARY` cuts one table per primary group with its direct accounts. Any other value is a 422 with a `grouping` / `invalid_choice` error.
+         */
+        grouping?: 'PARENT' | 'PRIMARY';
     };
     url: '/api/v1/accounts/overview/{groupKey}/accounts';
 };
@@ -9769,7 +9863,7 @@ export type ReadAccountOverviewRowsErrors = {
      */
     409: Problem;
     /**
-     * The workspace holds more accounts or groups than one overview reads (`type: /problems/net-worth-scope-too-large`).
+     * Invalid `grouping` (`errors[].field: grouping`, `code: invalid_choice`), or the workspace holds more accounts or groups than one overview reads (`type: /problems/net-worth-scope-too-large`).
      */
     422: Problem;
     /**

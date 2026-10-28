@@ -1,7 +1,7 @@
 import type {
-  Account,
   AccountOverview,
   AccountOverviewGroup,
+  AccountOverviewRow,
   NetWorthShare,
 } from '@cadran/api-client';
 
@@ -19,7 +19,11 @@ export function share(percentDisplay: string): NetWorthShare {
   return { ratio: '0.1', percent: percentDisplay, percentDisplay, reason: null };
 }
 
-export function buildAccount(id: string, label: string, overrides: Partial<Account> = {}): Account {
+export function buildAccount(
+  id: string,
+  label: string,
+  overrides: Partial<AccountOverviewRow> = {},
+): AccountOverviewRow {
   return {
     id,
     label,
@@ -45,6 +49,9 @@ export function buildAccount(id: string, label: string, overrides: Partial<Accou
     version: 1,
     archivedAt: null,
     primaryGroupId: null,
+    primaryGroupLabel: null,
+    primaryGroupParentLabel: null,
+    groupOrderVersion: 3,
     share: noShare,
     valuation: {
       accountId: id,
@@ -64,7 +71,7 @@ export function buildAccount(id: string, label: string, overrides: Partial<Accou
       version: 1,
     },
     ...overrides,
-  } as Account;
+  } as AccountOverviewRow;
 }
 
 export function buildHeading(overrides: Partial<AccountOverviewGroup> = {}): AccountOverviewGroup {
@@ -76,7 +83,7 @@ export function buildHeading(overrides: Partial<AccountOverviewGroup> = {}): Acc
     color: null,
     resolvedColor: '#B87333',
     defaultColor: '#B87333',
-    isRollup: false,
+    parentLabel: null,
     memberCount: 2,
     total: {
       value: '600',

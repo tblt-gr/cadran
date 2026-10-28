@@ -1358,7 +1358,7 @@ export const createAccount = <ThrowOnError extends boolean = false>(options: Opt
 /**
  * Read the unified account overview headings
  *
- * One heading per primary group in tree order, then a null-ID ungrouped section when it holds members. Totals, shares and quality come from the eligible net worth of `asOf`, whatever the lifecycle filters show: showing closed or archived accounts only changes `memberCount`. A parent heading is a roll-up (`isRollup`) whose total already contains its children. A total or share that cannot be computed is null with a reason, never zero. Rows are read per group with `readAccountOverviewRows`.
+ * In `PARENT` mode one heading per root group with a visible account in its subtree (roll-up total and share, `memberCount` of the whole subtree); in `PRIMARY` mode one heading per group with a visible direct account (direct total and share, `parentLabel` of its immediate parent), in depth-first order. Then a null-ID ungrouped section when it holds members. Totals and shares come from the eligible net worth of `asOf`, whatever the lifecycle filters show: showing closed or archived accounts only changes `memberCount`. A total or share that cannot be computed is null with a reason, never zero. Rows are read per group with `readAccountOverviewRows`.
  */
 export const readAccountOverview = <ThrowOnError extends boolean = false>(options?: Options<ReadAccountOverviewData, ThrowOnError>): RequestResult<ReadAccountOverviewResponses, ReadAccountOverviewErrors, ThrowOnError> => (options?.client ?? client).get<ReadAccountOverviewResponses, ReadAccountOverviewErrors, ThrowOnError>({
     security: [{
@@ -1373,7 +1373,7 @@ export const readAccountOverview = <ThrowOnError extends boolean = false>(option
 /**
  * Read one bounded page of the members of an overview table
  *
- * `groupKey` is a group identifier of the calling workspace or the literal `ungrouped`. Pages hold at most 50 rows. Rows follow the saved order of that group, hidden members included in the rank, and reuse the account representation with its resolved valuation and its share of eligible net worth (null with `reason` when it cannot be computed, null without reason when the account is outside the eligible net worth). At most 50 rows per page; `nextCursor` is an opaque cursor bound to this group and to the `orderVersion` it was issued at.
+ * `groupKey` is a group identifier of the calling workspace or the literal `ungrouped`. Pages hold at most 50 rows. In `PRIMARY` mode rows follow the saved order of that group; in `PARENT` mode they page through the whole subtree ordered by depth-first group order, then saved order of each primary group. Hidden members are included in the rank. Rows reuse the account representation, plus the primary group context, with its resolved valuation and its share of eligible net worth (null with `reason` when it cannot be computed, null without reason when the account is outside the eligible net worth). At most 50 rows per page; `nextCursor` is an opaque cursor bound to this group, to the grouping and to the `orderVersion` it was issued at (the sum of the subtree group versions in `PARENT` mode).
  */
 export const readAccountOverviewRows = <ThrowOnError extends boolean = false>(options: Options<ReadAccountOverviewRowsData, ThrowOnError>): RequestResult<ReadAccountOverviewRowsResponses, ReadAccountOverviewRowsErrors, ThrowOnError> => (options.client ?? client).get<ReadAccountOverviewRowsResponses, ReadAccountOverviewRowsErrors, ThrowOnError>({
     security: [{

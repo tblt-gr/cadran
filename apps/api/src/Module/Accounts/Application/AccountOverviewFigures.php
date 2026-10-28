@@ -61,6 +61,7 @@ final readonly class AccountOverviewFigures
             lineages: $lineages,
             shares: NetWorthShareCalculator::compute($inputs, $lineages),
             rollup: $calculable ? ExclusiveGroupRollup::totals($included, $lineages) : [],
+            direct: $calculable ? ExclusiveGroupRollup::directTotals($included, $lineages) : [],
             ungroupedTotal: $calculable ? ExclusiveGroupRollup::ungroupedTotal($included) : null,
             contributions: $contributions,
         );

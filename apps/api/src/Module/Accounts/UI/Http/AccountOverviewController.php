@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\UI\Http;
 
 use App\Module\Accounts\Application\AccountNotFound;
+use App\Module\Accounts\Application\AccountOverviewGrouping;
 use App\Module\Accounts\Application\InvalidAccountOverviewQuery;
 use App\Module\Accounts\Application\ListAccountOverviewRows;
 use App\Module\Accounts\Application\MoveAccount;
@@ -48,11 +49,17 @@ final readonly class AccountOverviewController
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
         }
 
+        $grouping = $this->grouping($request);
+        if ($grouping instanceof Response) {
+            return $grouping;
+        }
+
         try {
             $overview = $readOverview(
                 '' === $request->query->getString('asOf') ? null : $request->query->getString('asOf'),
                 'true' === $includeClosed,
                 'true' === $includeArchived,
+                $grouping,
             );
         } catch (InvalidAccountOverviewQuery) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
@@ -80,6 +87,11 @@ final readonly class AccountOverviewController
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
         }
 
+        $grouping = $this->grouping($request);
+        if ($grouping instanceof Response) {
+            return $grouping;
+        }
+
         try {
             $page = $listRows(
                 self::UNGROUPED === $groupKey ? null : $groupKey,
@@ -87,6 +99,7 @@ final readonly class AccountOverviewController
                 '' === $request->query->getString('asOf') ? null : $request->query->getString('asOf'),
                 'true' === $includeClosed,
                 'true' === $includeArchived,
+                $grouping,
             );
         } catch (InvalidAccountOverviewQuery) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
@@ -148,6 +161,25 @@ final readonly class AccountOverviewController
         }
 
         return self::json(AccountOverviewRepresentation::move($moved));
+    }
+
+    private function grouping(Request $request): AccountOverviewGrouping|Response
+    {
+        if (!$request->query->has('grouping')) {
+            return AccountOverviewGrouping::PARENT;
+        }
+
+        $grouping = AccountOverviewGrouping::tryFrom($request->query->getString('grouping'));
+        if (null !== $grouping) {
+            return $grouping;
+        }
+
+        return ApiProblem::response(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            $this->translator->trans('api.problem.invalid_account_overview_query.title'),
+            $this->translator->trans('api.problem.invalid_account_overview_query.detail'),
+            extensions: ['errors' => [['field' => 'grouping', 'code' => 'invalid_choice']]],
+        );
     }
 
     private static function flag(string $value): bool

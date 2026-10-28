@@ -91,36 +91,127 @@ final class AccountOverviewControllerTest extends WebTestCase
         self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'));
     }
 
-    public function testHeadingsCarryExactTotalsSharesAndTheRollupMarker(): void
+    public function testParentModeIsTheDefaultAndRollsTheSubtreeUp(): void
     {
         $overview = $this->get('/api/v1/accounts/overview?asOf=2026-09-05');
+        $explicit = $this->get('/api/v1/accounts/overview?asOf=2026-09-05&grouping=PARENT');
+
+        self::assertSame($overview, $explicit);
+        $groups = $this->list($overview['groups']);
+        self::assertSame([self::PARENT, null], array_column($groups, 'groupId'));
+        self::assertSame(['900.00', '100.00'], array_map(fn (array $g): mixed => $this->map($g['total'])['value'], $groups));
+        self::assertSame(['90.00', '10.00'], array_map(fn (array $g): mixed => $this->map($g['share'])['percentDisplay'], $groups));
+        self::assertSame([2, 1], array_column($groups, 'memberCount'));
+        self::assertSame([null, null], array_column($groups, 'parentLabel'));
+        self::assertArrayNotHasKey('isRollup', $groups[0]);
+    }
+
+    public function testParentModeRowsListTheSubtreeWithTheirGroupContext(): void
+    {
+        $page = $this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05');
+
+        $rows = $this->list($page['items']);
+        self::assertSame([self::B, self::A], array_column($rows, 'id'));
+        self::assertSame([self::PARENT, self::CHILD], array_column($rows, 'primaryGroupId'));
+        self::assertSame(['Liquidités', 'Épargne'], array_column($rows, 'primaryGroupLabel'));
+        self::assertSame([null, 'Liquidités'], array_column($rows, 'primaryGroupParentLabel'));
+        self::assertSame([0, 0], array_column($rows, 'groupOrderVersion'));
+    }
+
+    public function testParentModeRowsPageAcrossSubGroupsWithAModeBoundCursor(): void
+    {
+        for ($index = 1; $index <= 55; ++$index) {
+            $this->insertAccount(sprintf('00000000-0000-7000-8000-00000001%04d', $index), sprintf('Compte %02d', $index), 1 === $index % 2 ? self::CHILD : self::PARENT);
+        }
+
+        $first = $this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05');
+        self::assertCount(50, $this->list($first['items']));
+        self::assertIsString($first['nextCursor']);
+        $second = $this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05&cursor='.rawurlencode($first['nextCursor']));
+        self::assertCount(7, $this->list($second['items']));
+        $ids = [...array_column($this->list($first['items']), 'id'), ...array_column($this->list($second['items']), 'id')];
+        self::assertCount(57, array_unique(array_map($this->text(...), $ids)));
+
+        $this->client->request('GET', '/api/v1/accounts/overview/'.self::PARENT.'/accounts?grouping=PRIMARY&cursor='.rawurlencode($first['nextCursor']));
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testParentModeRowsFollowTheSavedOrderOfEachPrimaryGroup(): void
+    {
+        $zeta = '00000000-0000-7000-8000-0000000000d6';
+        $this->insertAccount($zeta, 'Zeta', self::CHILD);
+        $this->move($zeta, self::CHILD, self::A, 0);
+        self::assertResponseStatusCodeSame(200);
+
+        $rows = $this->list($this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05')['items']);
+
+        self::assertSame([self::B, $zeta, self::A], array_column($rows, 'id'));
+        self::assertSame([0, 1, 1], array_column($rows, 'groupOrderVersion'));
+        $section = $this->list($this->get('/api/v1/accounts/overview?asOf=2026-09-05')['groups'])[0];
+        self::assertSame(1, $section['orderVersion']);
+    }
+
+    public function testAnInvalidGroupingIsRefusedWithAFieldError(): void
+    {
+        foreach ([
+            '/api/v1/accounts/overview?grouping=primary',
+            '/api/v1/accounts/overview?grouping=',
+            '/api/v1/accounts/overview/'.self::PARENT.'/accounts?grouping=CHILD',
+        ] as $uri) {
+            $this->client->request('GET', $uri);
+            self::assertResponseStatusCodeSame(422, $uri);
+            self::assertSame([['field' => 'grouping', 'code' => 'invalid_choice']], $this->decode()['errors'] ?? null);
+        }
+    }
+
+    public function testParentModeNeverLeaksAForeignWorkspaceGroup(): void
+    {
+        $this->client->request('GET', '/api/v1/accounts/overview/'.self::FOREIGN_GROUP.'/accounts?grouping=PARENT');
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testSubGroupHeadingsCarryDirectTotalsAndTheParentLabel(): void
+    {
+        $overview = $this->get('/api/v1/accounts/overview?asOf=2026-09-05&grouping=PRIMARY');
 
         self::assertSame(['asOf', 'accountCount', 'groups'], array_keys($overview));
         self::assertSame(4, $overview['accountCount']);
         $groups = $this->list($overview['groups']);
         self::assertSame([self::PARENT, self::CHILD, null], array_column($groups, 'groupId'));
-        self::assertSame(['900.00', '600.00', '100.00'], array_map(fn (array $g): mixed => $this->map($g['total'])['value'], $groups));
+        self::assertSame([null, 'Liquidités', null], array_column($groups, 'parentLabel'));
+        self::assertSame(['300.00', '600.00', '100.00'], array_map(fn (array $g): mixed => $this->map($g['total'])['value'], $groups));
+        self::assertSame(['30.00', '60.00', '10.00'], array_map(fn (array $g): mixed => $this->map($g['share'])['percentDisplay'], $groups));
+    }
+
+    public function testHeadingsCarryExactTotalsAndSharesOfEligibleNetWorth(): void
+    {
+        $overview = $this->get('/api/v1/accounts/overview?asOf=2026-09-05&grouping=PRIMARY');
+
+        self::assertSame(['asOf', 'accountCount', 'groups'], array_keys($overview));
+        self::assertSame(4, $overview['accountCount']);
+        $groups = $this->list($overview['groups']);
+        self::assertSame([self::PARENT, self::CHILD, null], array_column($groups, 'groupId'));
+        self::assertSame(['300.00', '600.00', '100.00'], array_map(fn (array $g): mixed => $this->map($g['total'])['value'], $groups));
         // The client reads `display` as an object (value + assetCode), like the net worth figures.
         self::assertSame(
-            ['value' => '900.00', 'assetCode' => 'EUR'],
+            ['value' => '300.00', 'assetCode' => 'EUR'],
             $this->map($this->map($groups[0]['total'])['display']),
         );
-        self::assertSame(['90.00', '60.00', '10.00'], array_map(fn (array $g): mixed => $this->map($g['share'])['percentDisplay'], $groups));
-        self::assertSame([true, false, false], array_column($groups, 'isRollup'));
         self::assertSame([1, 1, 1], array_column($groups, 'memberCount'));
         self::assertNull($groups[2]['label']);
     }
 
     public function testClosedAccountsAppearOnDemandWithoutMovingTotalsOrShares(): void
     {
-        $hidden = $this->list($this->get('/api/v1/accounts/overview?asOf=2026-09-05')['groups']);
-        $shown = $this->list($this->get('/api/v1/accounts/overview?asOf=2026-09-05&includeClosed=true')['groups']);
+        $hidden = $this->list($this->get('/api/v1/accounts/overview?asOf=2026-09-05&grouping=PRIMARY')['groups']);
+        $shown = $this->list($this->get('/api/v1/accounts/overview?asOf=2026-09-05&includeClosed=true&grouping=PRIMARY')['groups']);
 
         self::assertSame(array_column($hidden, 'total'), array_column($shown, 'total'));
         self::assertSame(array_column($hidden, 'share'), array_column($shown, 'share'));
         self::assertSame([2, 1, 1], array_column($shown, 'memberCount'));
 
-        $rows = $this->list($this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05&includeClosed=true')['items']);
+        $rows = $this->list($this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05&includeClosed=true&grouping=PRIMARY')['items']);
         self::assertSame([self::B, self::D], array_column($rows, 'id'));
         self::assertSame('30.00', $this->map($rows[0]['share'])['percentDisplay']);
         self::assertSame('CLOSED', $rows[1]['status']);
@@ -181,10 +272,10 @@ final class AccountOverviewControllerTest extends WebTestCase
         self::assertSame(['groupId' => self::PARENT, 'orderVersion' => 1, 'rank' => 2], $this->decode());
 
         // Alphabetical default was B, D, Epsilon; B now sits just before Epsilon.
-        $page = $this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05&includeClosed=true');
+        $page = $this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05&includeClosed=true&grouping=PRIMARY');
         self::assertSame([self::D, self::B, '00000000-0000-7000-8000-0000000000d5'], array_column($this->list($page['items']), 'id'));
         self::assertSame(1, $page['orderVersion']);
-        $overview = $this->list($this->get('/api/v1/accounts/overview?asOf=2026-09-05')['groups']);
+        $overview = $this->list($this->get('/api/v1/accounts/overview?asOf=2026-09-05&grouping=PRIMARY')['groups']);
         self::assertSame(1, $overview[0]['orderVersion']);
         self::assertSame(0, $overview[1]['orderVersion']);
     }
@@ -212,7 +303,7 @@ final class AccountOverviewControllerTest extends WebTestCase
         self::assertSame('/problems/stale-account-order', $this->decode()['type'] ?? null);
         $fresh = $this->list($this->get('/api/v1/accounts/overview/'.self::CHILD.'/accounts?asOf=2026-09-05')['items']);
         self::assertNotContains($items[9]['id'], array_column($fresh, 'id'));
-        $overview = $this->list($this->get('/api/v1/accounts/overview?asOf=2026-09-05')['groups']);
+        $overview = $this->list($this->get('/api/v1/accounts/overview?asOf=2026-09-05&grouping=PRIMARY')['groups']);
         self::assertSame([1, 1], array_column(array_slice($overview, 0, 2), 'orderVersion'));
     }
 
@@ -225,7 +316,7 @@ final class AccountOverviewControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(409);
         self::assertSame('/problems/stale-account-order', $this->decode()['type'] ?? null);
-        $page = $this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05&includeClosed=true');
+        $page = $this->get('/api/v1/accounts/overview/'.self::PARENT.'/accounts?asOf=2026-09-05&includeClosed=true&grouping=PRIMARY');
         self::assertSame([self::D, self::B], array_column($this->list($page['items']), 'id'));
     }
 

@@ -2,10 +2,14 @@ import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { AccountFilters } from '@/features/accounts/account-filters/AccountFilters';
+import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
+import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './AccountsPageActions.module.css';
 
 interface AccountsPageActionsProps {
+  grouping: GroupingMode;
+  onGroupingChange: (mode: GroupingMode) => void;
   includeArchived: boolean;
   includeClosed: boolean;
   onCreate: () => void;
@@ -17,6 +21,8 @@ interface AccountsPageActionsProps {
 
 /** One primary action and the tools that organise the account overview. */
 export function AccountsPageActions({
+  grouping,
+  onGroupingChange,
   includeArchived,
   includeClosed,
   onCreate,
@@ -51,6 +57,7 @@ export function AccountsPageActions({
           <Icon name="layers" />
           <span className={styles.secondaryLabel}>{t('accounts.actions.groups')}</span>
         </a>
+        <GroupingModeToggle mode={grouping} onChange={onGroupingChange} />
         <button
           aria-label={reorderLabel}
           aria-pressed={reordering}

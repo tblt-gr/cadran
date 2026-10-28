@@ -25,3 +25,19 @@
   width: var(--spacing-12);
   height: var(--font-size-xs);
 }
+
+.subGroup {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+}
+
+.subGroup .parentLabel {
+  margin: var(--spacing-none) var(--spacing-none) var(--spacing-none) var(--spacing-1);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: inherit;
+}

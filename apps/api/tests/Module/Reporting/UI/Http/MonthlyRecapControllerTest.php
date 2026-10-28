@@ -645,6 +645,7 @@ final class MonthlyRecapControllerTest extends WebTestCase
         $this->group($parent, 'Zeta enfant', self::GROUP_LIVRETS);
         $this->account(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, 'Livret A', 'SAVINGS', self::GROUP_LIVRETS, createdAt: '2025-01-03 12:00:00+00');
         $this->account(self::LDDS, WorkspaceFixture::OWN_WORKSPACE, 'LDDS', 'SAVINGS', self::GROUP_LIVRETS, createdAt: '2025-01-02 12:00:00+00');
+        $this->account('00000000-0000-7000-8000-0000000000a5', WorkspaceFixture::OWN_WORKSPACE, 'Enfant', 'SAVINGS', $parent);
         $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Compte courant', 'CURRENT', self::GROUP_COURANT);
         $this->account(self::ORPHAN, WorkspaceFixture::OWN_WORKSPACE, 'Sans groupe', 'CURRENT');
 
@@ -721,7 +722,7 @@ final class MonthlyRecapControllerTest extends WebTestCase
     /** @return list<string> */
     private function overviewGroupIds(): array
     {
-        $this->client->request('GET', '/api/v1/accounts/overview');
+        $this->client->request('GET', '/api/v1/accounts/overview?grouping=PRIMARY');
         self::assertResponseIsSuccessful();
         $overview = self::fields(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
 
@@ -734,7 +735,7 @@ final class MonthlyRecapControllerTest extends WebTestCase
     /** @return list<string> */
     private function overviewMemberIds(string $groupId): array
     {
-        $this->client->request('GET', '/api/v1/accounts/overview/'.$groupId.'/accounts');
+        $this->client->request('GET', '/api/v1/accounts/overview/'.$groupId.'/accounts?grouping=PRIMARY');
         self::assertResponseIsSuccessful();
         $page = self::fields(json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
 

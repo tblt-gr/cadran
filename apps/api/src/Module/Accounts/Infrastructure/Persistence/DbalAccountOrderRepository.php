@@ -41,16 +41,6 @@ final readonly class DbalAccountOrderRepository implements AccountOrderRepositor
         );
     }
 
-    public function version(WorkspaceScope $workspace, ?string $groupId): int
-    {
-        $version = $this->connection->fetchOne(
-            'SELECT version FROM account_overview_orders WHERE workspace_id = :workspace_id AND group_key = :group_key',
-            ['workspace_id' => $workspace->id, 'group_key' => AccountOrdering::key($groupId)],
-        );
-
-        return false === $version ? 0 : (int) AccountRow::text($version);
-    }
-
     public function versions(WorkspaceScope $workspace): array
     {
         $versions = [];

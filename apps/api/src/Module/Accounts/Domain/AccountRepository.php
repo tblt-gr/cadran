@@ -84,6 +84,24 @@ interface AccountRepository
     ): array;
 
     /**
+     * Members of several primary groups read as one sequence: groups in the
+     * given order, then each group's saved order. The rank counts hidden
+     * members too, like {@see listInGroupOrder()}.
+     *
+     * @param list<string> $groupIds primary groups, already in reading order
+     *
+     * @return list<RankedAccount>
+     */
+    public function listInGroupsOrder(
+        WorkspaceScope $workspace,
+        array $groupIds,
+        bool $includeArchived,
+        bool $includeClosed,
+        int $afterRank,
+        int $limit,
+    ): array;
+
+    /**
      * Every member of the group, whatever its lifecycle, in saved order,
      * capped at $limit.
      *

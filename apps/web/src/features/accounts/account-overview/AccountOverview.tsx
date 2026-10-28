@@ -2,12 +2,14 @@ import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { AccountsPageSkeleton } from '@/features/accounts/AccountsPageSkeleton';
+import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import { AccountsState } from '@/features/accounts/accounts-state/AccountsState';
 import { AccountGroupTable } from './account-group-table/AccountGroupTable';
 import { useAccountOverview } from './useAccountOverview';
 import styles from './AccountOverview.module.css';
 
 interface AccountOverviewProps {
+  grouping: GroupingMode;
   includeArchived: boolean;
   includeClosed: boolean;
   onArchive: (account: Account) => void;
@@ -26,6 +28,7 @@ interface AccountOverviewProps {
  * date; nothing here sums an amount.
  */
 export function AccountOverview({
+  grouping,
   includeArchived,
   includeClosed,
   onCreate,
@@ -34,7 +37,7 @@ export function AccountOverview({
   ...rowActions
 }: AccountOverviewProps) {
   const { t } = useTranslation();
-  const overview = useAccountOverview(includeClosed, includeArchived);
+  const overview = useAccountOverview(grouping, includeClosed, includeArchived);
 
   if (overview.isPending) {
     return <AccountsPageSkeleton status={t('accounts.loading')} />;
@@ -54,8 +57,7 @@ export function AccountOverview({
   }
 
   const { accountCount, asOf, groups } = overview.data;
-  // A group with no visible member and no children has no table to show.
-  const shown = groups.filter((group) => group.memberCount > 0 || group.isRollup);
+  const shown = groups.filter((group) => group.memberCount > 0);
 
   if (accountCount === 0) {
     return <AccountsState kind="empty" onCreate={onCreate} onRetry={() => undefined} />;
@@ -79,6 +81,7 @@ export function AccountOverview({
         <AccountGroupTable
           asOf={asOf}
           group={group}
+          grouping={grouping}
           includeArchived={includeArchived}
           includeClosed={includeClosed}
           key={group.groupId ?? 'ungrouped'}

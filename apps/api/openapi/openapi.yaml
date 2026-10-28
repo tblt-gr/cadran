@@ -3639,13 +3639,15 @@ paths:
       operationId: readAccountOverview
       summary: Read the unified account overview headings
       description: >-
-        One heading per primary group in tree order, then a null-ID ungrouped
-        section when it holds members. Totals, shares and quality come from the
-        eligible net worth of `asOf`, whatever the lifecycle filters show:
-        showing closed or archived accounts only changes `memberCount`. A
-        parent heading is a roll-up (`isRollup`) whose total already contains
-        its children. A total or share that cannot be computed is null with a
-        reason, never zero. Rows are read per group with
+        In `PARENT` mode one heading per root group with a visible account in
+        its subtree (roll-up total and share, `memberCount` of the whole
+        subtree); in `PRIMARY` mode one heading per group with a visible direct
+        account (direct total and share, `parentLabel` of its immediate parent),
+        in depth-first order. Then a null-ID ungrouped section when it holds
+        members. Totals and shares come from the eligible net worth of `asOf`,
+        whatever the lifecycle filters show: showing closed or archived
+        accounts only changes `memberCount`. A total or share that cannot be
+        computed is null with a reason, never zero. Rows are read per group with
         `readAccountOverviewRows`.
       tags:
         - Accounts
@@ -3671,6 +3673,18 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: grouping
+          in: query
+          required: false
+          description: >-
+            `PARENT` (default) cuts one table per root group that rolls its
+            subtree up; `PRIMARY` cuts one table per primary group with its
+            direct accounts. Any other value is a 422 with a `grouping` /
+            `invalid_choice` error.
+          schema:
+            type: string
+            enum: [PARENT, PRIMARY]
+            default: PARENT
       responses:
         '200':
           description: The ordered group headings.
@@ -3686,8 +3700,9 @@ paths:
           $ref: '#/components/responses/WorkspaceForbidden'
         '422':
           description: >-
-            The workspace holds more accounts or groups than one overview reads
-            (`type: /problems/net-worth-scope-too-large`).
+            Invalid `grouping` (`errors[].field: grouping`, `code:
+            invalid_choice`), or the workspace holds more accounts or groups
+            than one overview reads (`type: /problems/net-worth-scope-too-large`).
           content:
             application/problem+json:
               schema:
@@ -3700,13 +3715,17 @@ paths:
       summary: Read one bounded page of the members of an overview table
       description: >-
         `groupKey` is a group identifier of the calling workspace or the literal
-        `ungrouped`. Pages hold at most 50 rows. Rows follow the saved order of
-        that group, hidden members included in the rank, and reuse the account representation with its
+        `ungrouped`. Pages hold at most 50 rows. In `PRIMARY` mode rows follow
+        the saved order of that group; in `PARENT` mode they page through the
+        whole subtree ordered by depth-first group order, then saved order of
+        each primary group. Hidden members are included in the rank. Rows reuse
+        the account representation, plus the primary group context, with its
         resolved valuation and its share of eligible net worth (null with
         `reason` when it cannot be computed, null without reason when the
         account is outside the eligible net worth). At most 50 rows per page;
-        `nextCursor` is an opaque cursor bound to this group and to the
-        `orderVersion` it was issued at.
+        `nextCursor` is an opaque cursor bound to this group, to the grouping
+        and to the `orderVersion` it was issued at (the sum of the subtree
+        group versions in `PARENT` mode).
       tags:
         - Accounts
       security:
@@ -3742,6 +3761,18 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: grouping
+          in: query
+          required: false
+          description: >-
+            `PARENT` (default) cuts one table per root group that rolls its
+            subtree up; `PRIMARY` cuts one table per primary group with its
+            direct accounts. Any other value is a 422 with a `grouping` /
+            `invalid_choice` error.
+          schema:
+            type: string
+            enum: [PARENT, PRIMARY]
+            default: PARENT
       responses:
         '200':
           description: The members of the table, in saved order.
@@ -3767,8 +3798,9 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '422':
           description: >-
-            The workspace holds more accounts or groups than one overview reads
-            (`type: /problems/net-worth-scope-too-large`).
+            Invalid `grouping` (`errors[].field: grouping`, `code:
+            invalid_choice`), or the workspace holds more accounts or groups
+            than one overview reads (`type: /problems/net-worth-scope-too-large`).
           content:
             application/problem+json:
               schema:
@@ -12858,7 +12890,6 @@ components:
         - color
         - resolvedColor
         - defaultColor
-        - isRollup
         - memberCount
         - total
         - totalReason
@@ -12866,6 +12897,7 @@ components:
         - quality
         - orderVersion
         - archivedAt
+        - parentLabel
       properties:
         groupId:
           oneOf:
@@ -12892,11 +12924,11 @@ components:
         defaultColor:
           type: [string, 'null']
           pattern: '^#[0-9A-F]{6}$'
-        isRollup:
-          description: A parent whose total already contains its children; never add the two.
-          type: boolean
+        parentLabel:
+          description: Label of the immediate parent group in `PRIMARY` mode; always null in `PARENT` mode and for a root or the ungrouped section.
+          type: [string, 'null']
         memberCount:
-          description: Members visible under the lifecycle filters.
+          description: Members visible under the lifecycle filters, the whole subtree in `PARENT` mode.
           type: integer
           minimum: 0
         total:
@@ -12910,9 +12942,10 @@ components:
         share:
           $ref: '#/components/schemas/NetWorthShare'
         quality:
+          description: Kept for compatibility; the interface no longer reads it.
           $ref: '#/components/schemas/ValuationQuality'
         orderVersion:
-          description: Version to send back with a move inside this group.
+          description: Order version of this group (sum over the subtree in `PARENT` mode); moves send the row `groupOrderVersion` instead.
           type: integer
           minimum: 0
         archivedAt:
@@ -12932,7 +12965,7 @@ components:
           type: array
           maxItems: 50
           items:
-            $ref: '#/components/schemas/Account'
+            $ref: '#/components/schemas/AccountOverviewRow'
         nextCursor:
           oneOf:
             - type: string
@@ -12941,6 +12974,180 @@ components:
         orderVersion:
           type: integer
           minimum: 0
+    AccountOverviewRow:
+      description: An account row with the primary group it is ordered in (the account representation plus the group context).
+      type: object
+      additionalProperties: false
+      required:
+        - primaryGroupLabel
+        - primaryGroupParentLabel
+        - groupOrderVersion
+        - isPrimary
+        - id
+        - label
+        - assetCode
+        - kind
+        - productCode
+        - productModelId
+        - institution
+        - maskedIdentifier
+        - valuationMode
+        - liquidityLevel
+        - includeInNetWorth
+        - includeInEmergencyFund
+        - openedOn
+        - closedOn
+        - status
+        - netWorthSign
+        - used
+        - editable
+        - kindEditable
+        - kindEditReason
+        - version
+        - archivedAt
+        - primaryGroupId
+        - share
+        - valuation
+      properties:
+        primaryGroupLabel:
+          description: Label of the account primary group, null when ungrouped.
+          type: [string, 'null']
+        primaryGroupParentLabel:
+          description: Immediate parent label of the primary group, null when the primary group is the section group, a root or ungrouped.
+          type: [string, 'null']
+        groupOrderVersion:
+          description: Order version of the row primary group, to send with a move of this row.
+          type: integer
+          minimum: 0
+        isPrimary:
+          description: Whether this active current account is the workspace default for new transactions.
+          type: boolean
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        assetCode:
+          description: >-
+            The unit the account is denominated in, from the read-only system
+            asset reference. It is fixed at creation: changing it would
+            reinterpret every figure already recorded against the account.
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        kind:
+          $ref: '#/components/schemas/AccountKind'
+        productCode:
+          description: >-
+            The catalogue product this account was created from, or null for an
+            account described by hand or from a workspace model. Only the
+            reference is stored: ceilings, rates and methods stay in the
+            catalogue and are read on the business date they are needed, so a
+            regulatory revision is never frozen into an account.
+          oneOf:
+            - $ref: '#/components/schemas/ProductCode'
+            - type: 'null'
+        productModelId:
+          description: >-
+            The reusable workspace product model this account was created
+            from, or null for an account described by hand or from a
+            catalogue product. An account carries at most one of `productCode`
+            and `productModelId`. Only the reference is stored: any dated rule
+            the model carries stays on the model and is read on the business
+            date it is needed, so archiving the model never changes what an
+            existing account resolves.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        institution:
+          description: >-
+            Free text naming where the account is held, such as the bank or the
+            insurer. No reference of institutions ships with the application, so
+            this is bounded rather than validated against a list.
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 80
+            - type: 'null'
+        maskedIdentifier:
+          description: >-
+            The visible tail of a banking or contract identifier, such as
+            `4821`. Bounded to eight characters, which cannot hold a full
+            identifier.
+          oneOf:
+            - type: string
+              pattern: '^[A-Z0-9]{2,8}$'
+            - type: 'null'
+        valuationMode:
+          $ref: '#/components/schemas/AccountValuationMode'
+        liquidityLevel:
+          $ref: '#/components/schemas/LiquidityLevel'
+        includeInNetWorth:
+          type: boolean
+        includeInEmergencyFund:
+          description: Only an account counted in net worth may back the emergency fund.
+          type: boolean
+        openedOn:
+          type: string
+          format: date
+        closedOn:
+          description: The day the account was closed, or null while it is open.
+          oneOf:
+            - type: string
+              format: date
+            - type: 'null'
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        netWorthSign:
+          description: >-
+            The sign this account contributes to net worth: `1` for an asset,
+            `-1` for a liability. It carries no amount; a balance arrives with
+            its own record and stays null until then. The sign is independent of
+            `includeInNetWorth`: an excluded account still reports its nature, so
+            an aggregation must read the inclusion flag before applying the sign.
+          type: integer
+          enum:
+            - -1
+            - 1
+        used:
+          type: boolean
+        editable:
+          description: False for an archived account, which is read-only.
+          type: boolean
+        kindEditable:
+          description: Backend-owned eligibility for changing the account kind.
+          type: boolean
+        kindEditReason:
+          description: Why the kind is immutable, or null when it can be changed.
+          oneOf:
+            - type: string
+              enum:
+                - ARCHIVED
+                - USED
+            - type: 'null'
+        version:
+          type: integer
+          minimum: 1
+        archivedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        primaryGroupId:
+          description: >-
+            Exclusive membership used by group weights. Null until the account
+            is assigned. It may name a sub-group: the account then also counts
+            in every ancestor of that group.
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        share:
+          $ref: '#/components/schemas/NetWorthShare'
+        valuation:
+          $ref: '#/components/schemas/AccountValuation'
     MoveAccountRequest:
       type: object
       additionalProperties: false

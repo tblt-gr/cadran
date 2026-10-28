@@ -45,6 +45,12 @@ final readonly class DbalAccountRepository implements AccountRepository
         .' ON p.workspace_id = a.workspace_id AND p.account_id = a.id AND p.group_key = :group_key'
         .' WHERE a.workspace_id = :workspace_id AND a.primary_group_id IS NOT DISTINCT FROM :group_id';
 
+    private const string RANKED_SUBTREE_MEMBERS = 'SELECT a.id AS account_id, row_number() OVER ('
+        .'ORDER BY array_position(CAST(:group_ids AS uuid[]), a.primary_group_id), '.self::MEMBER_ORDER.') AS member_rank'
+        .' FROM account_financial_accounts a LEFT JOIN account_overview_positions p'
+        .' ON p.workspace_id = a.workspace_id AND p.account_id = a.id AND p.group_key = a.primary_group_id'
+        .' WHERE a.workspace_id = :workspace_id AND a.primary_group_id = ANY(CAST(:group_ids AS uuid[]))';
+
     public function __construct(private Connection $connection)
     {
     }
@@ -205,6 +211,41 @@ final readonly class DbalAccountRepository implements AccountRepository
         return array_map(
             static fn (Account $account, array $row): RankedAccount => new RankedAccount($account, (int) AccountRow::text($row['member_rank'] ?? null)),
             $accounts,
+            $rows,
+        );
+    }
+
+    public function listInGroupsOrder(
+        WorkspaceScope $workspace,
+        array $groupIds,
+        bool $includeArchived,
+        bool $includeClosed,
+        int $afterRank,
+        int $limit,
+    ): array {
+        if ([] === $groupIds) {
+            return [];
+        }
+
+        [$where, $parameters] = self::filters($workspace, $includeArchived, $includeClosed, null);
+        $parameters += [
+            'group_ids' => '{'.implode(',', $groupIds).'}',
+            'after_rank' => $afterRank,
+            'limit' => $limit,
+        ];
+        $rows = $this->connection->fetchAllAssociative(
+            'WITH ranked AS ('.self::RANKED_SUBTREE_MEMBERS.')'
+            .' SELECT '.self::COLUMNS.', ranked.member_rank FROM account_financial_accounts'
+            .' JOIN ranked ON ranked.account_id = account_financial_accounts.id'
+            .' WHERE workspace_id = :workspace_id AND ('.$where.') AND ranked.member_rank > :after_rank'
+            .' ORDER BY ranked.member_rank LIMIT :limit',
+            $parameters,
+            ['after_rank' => ParameterType::INTEGER, 'limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(
+            static fn (Account $account, array $row): RankedAccount => new RankedAccount($account, (int) AccountRow::text($row['member_rank'] ?? null)),
+            $this->hydrateMany($rows, $workspace),
             $rows,
         );
     }

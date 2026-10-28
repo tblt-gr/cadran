@@ -11,8 +11,8 @@ use App\Module\Accounts\Domain\AccountGroupColors;
  * The heading of one table of the overview: a primary group, or the
  * ungrouped section when `groupId` is null.
  *
- * A parent heading is a roll-up: its total already contains the totals of
- * its children, so the interface must not add the two.
+ * In parent mode the total is the roll-up of the whole subtree, in sub-group
+ * mode only the direct accounts: the server decides, the interface never sums.
  */
 final readonly class AccountOverviewGroupView
 {
@@ -24,7 +24,6 @@ final readonly class AccountOverviewGroupView
         public ?string $color,
         public ?string $resolvedColor,
         public ?string $defaultColor,
-        public bool $isRollup,
         public int $memberCount,
         public ?NetWorthAmountView $total,
         public ?string $totalReason,
@@ -32,19 +31,20 @@ final readonly class AccountOverviewGroupView
         public string $quality,
         public int $orderVersion,
         public ?string $archivedAt,
+        public ?string $parentLabel = null,
     ) {
     }
 
     public static function ofGroup(
         AccountGroup $group,
         AccountGroupColors $colors,
-        bool $isRollup,
         int $memberCount,
         ?NetWorthAmountView $total,
         ?string $totalReason,
         ShareView $share,
         string $quality,
         int $orderVersion,
+        ?string $parentLabel = null,
     ): self {
         return new self(
             groupId: $group->id,
@@ -54,7 +54,6 @@ final readonly class AccountOverviewGroupView
             color: $group->color,
             resolvedColor: $colors->effective($group),
             defaultColor: $colors->defaultFor($group),
-            isRollup: $isRollup,
             memberCount: $memberCount,
             total: $total,
             totalReason: $totalReason,
@@ -62,6 +61,7 @@ final readonly class AccountOverviewGroupView
             quality: $quality,
             orderVersion: $orderVersion,
             archivedAt: $group->archivedAt?->format(DATE_ATOM),
+            parentLabel: $parentLabel,
         );
     }
 }

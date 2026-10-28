@@ -6,6 +6,7 @@ namespace App\Module\Accounts\UI\Http;
 
 use App\Module\Accounts\Application\AccountMoveView;
 use App\Module\Accounts\Application\AccountOverviewGroupView;
+use App\Module\Accounts\Application\AccountOverviewRow;
 use App\Module\Accounts\Application\AccountOverviewRowPage;
 use App\Module\Accounts\Application\AccountOverviewView;
 use App\Module\Accounts\Application\NetWorthAmountView;
@@ -27,9 +28,19 @@ final readonly class AccountOverviewRepresentation
     public static function rows(AccountOverviewRowPage $page): array
     {
         return [
-            'items' => array_map(AccountRepresentation::one(...), $page->items),
+            'items' => array_map(self::row(...), $page->items),
             'nextCursor' => $page->nextCursor,
             'orderVersion' => $page->orderVersion,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function row(AccountOverviewRow $row): array
+    {
+        return AccountRepresentation::one($row->account) + [
+            'primaryGroupLabel' => $row->primaryGroupLabel,
+            'primaryGroupParentLabel' => $row->primaryGroupParentLabel,
+            'groupOrderVersion' => $row->groupOrderVersion,
         ];
     }
 
@@ -50,7 +61,6 @@ final readonly class AccountOverviewRepresentation
             'color' => $group->color,
             'resolvedColor' => $group->resolvedColor,
             'defaultColor' => $group->defaultColor,
-            'isRollup' => $group->isRollup,
             'memberCount' => $group->memberCount,
             'total' => self::amount($group->total),
             'totalReason' => $group->totalReason,
@@ -58,6 +68,7 @@ final readonly class AccountOverviewRepresentation
             'quality' => $group->quality,
             'orderVersion' => $group->orderVersion,
             'archivedAt' => $group->archivedAt,
+            'parentLabel' => $group->parentLabel,
         ];
     }
 
