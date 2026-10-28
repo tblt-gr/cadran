@@ -287,16 +287,15 @@ final class AccountOrderPersistenceTest extends KernelTestCase
 
     public function testTheVersionRowIsCreatedLockedAndAdvancedPerGroup(): void
     {
-        self::assertSame(0, $this->orders->version(WorkspaceFixture::own(), self::GROUP));
+        self::assertSame(0, $this->orders->versions(WorkspaceFixture::own())[self::GROUP] ?? 0);
 
         $this->connection->beginTransaction();
         self::assertSame(0, $this->orders->lockVersion(WorkspaceFixture::own(), self::GROUP));
         $this->orders->save(WorkspaceFixture::own(), self::GROUP, [], 1);
         $this->connection->commit();
 
-        self::assertSame(1, $this->orders->version(WorkspaceFixture::own(), self::GROUP));
-        self::assertSame(0, $this->orders->version(WorkspaceFixture::own(), null));
-        self::assertSame(0, $this->orders->version(WorkspaceFixture::other(), self::GROUP));
+        self::assertSame(1, $this->orders->versions(WorkspaceFixture::own())[self::GROUP] ?? 0);
+        self::assertSame([], $this->orders->versions(WorkspaceFixture::other()));
         self::assertSame([self::GROUP => 1], $this->orders->versions(WorkspaceFixture::own()));
     }
 

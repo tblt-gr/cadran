@@ -133,6 +133,30 @@ final class InMemoryAccountRepository implements AccountRepository
         return array_slice($ranked, 0, $limit);
     }
 
+    public function listInGroupsOrder(
+        WorkspaceScope $workspace,
+        array $groupIds,
+        bool $includeArchived,
+        bool $includeClosed,
+        int $afterRank,
+        int $limit,
+    ): array {
+        $ranked = [];
+        $rank = 0;
+        foreach ($groupIds as $groupId) {
+            foreach ($this->members($workspace, $groupId) as $account) {
+                ++$rank;
+                if ($rank > $afterRank
+                    && ($includeArchived || null === $account->archivedAt)
+                    && ($includeClosed || !$account->isClosed())) {
+                    $ranked[] = new RankedAccount($account, $rank);
+                }
+            }
+        }
+
+        return array_slice($ranked, 0, $limit);
+    }
+
     public function memberIdsInOrder(WorkspaceScope $workspace, ?string $groupId, int $limit): array
     {
         return array_slice(array_map(static fn (Account $account): string => $account->id, $this->members($workspace, $groupId)), 0, $limit);

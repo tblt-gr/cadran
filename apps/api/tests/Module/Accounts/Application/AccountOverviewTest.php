@@ -7,6 +7,8 @@ namespace App\Tests\Module\Accounts\Application;
 use App\Module\Accounts\Application\AccountNotFound;
 use App\Module\Accounts\Application\AccountOverviewCursorCodec;
 use App\Module\Accounts\Application\AccountOverviewFigures;
+use App\Module\Accounts\Application\AccountOverviewGrouping;
+use App\Module\Accounts\Application\AccountOverviewRowPage;
 use App\Module\Accounts\Application\InvalidAccountOverviewQuery;
 use App\Module\Accounts\Application\ListAccountOverviewRows;
 use App\Module\Accounts\Application\MoveAccount;
@@ -64,14 +66,23 @@ final class AccountOverviewTest extends TestCase
     private const string B = '00000000-0000-7000-8000-0000000000d2';
     private const string C = '00000000-0000-7000-8000-0000000000d3';
     private const string D = '00000000-0000-7000-8000-0000000000d4';
+    private const string E = '00000000-0000-7000-8000-0000000000d5';
+    private const string F = '00000000-0000-7000-8000-0000000000d6';
     private const string FOREIGN = '00000000-0000-7000-8000-0000000000d9';
 
+    private const string ROOT = AccountGroupFixture::ID;
+    private const string OTHER_ROOT = AccountGroupFixture::OTHER_ID;
+    private const string SUB = AccountGroupFixture::CHILD_ID;
+    private const string LEAF = AccountGroupFixture::GRANDCHILD_ID;
+
     private InMemoryAccountOrderRepository $orders;
+    /** @var list<\App\Module\Accounts\Domain\AccountGroup>|null */
+    private ?array $groupSet = null;
     private CollectingAuditEventRepository $trail;
 
-    public function testGroupHeadingsCarryExactTotalsAndSharesOfEligibleNetWorth(): void
+    public function testSubGroupHeadingsCarryDirectTotalsSharesAndTheParentLabel(): void
     {
-        $overview = ($this->overview())('2026-09-05', false, false);
+        $overview = ($this->overview())('2026-09-05', false, false, AccountOverviewGrouping::PRIMARY);
 
         self::assertSame('2026-09-05', $overview->asOf);
         $byGroup = [];
@@ -80,22 +91,85 @@ final class AccountOverviewTest extends TestCase
         }
 
         self::assertSame([self::PARENT, self::CHILD, 'none'], array_keys($byGroup));
-        self::assertSame('900.00', $byGroup[self::PARENT]->total?->amount);
-        self::assertSame('90.00', $byGroup[self::PARENT]->share->percentDisplay);
-        self::assertTrue($byGroup[self::PARENT]->isRollup);
+        self::assertSame('300.00', $byGroup[self::PARENT]->total?->amount);
+        self::assertSame('30.00', $byGroup[self::PARENT]->share->percentDisplay);
+        self::assertNull($byGroup[self::PARENT]->parentLabel);
         self::assertSame('600.00', $byGroup[self::CHILD]->total?->amount);
         self::assertSame('60.00', $byGroup[self::CHILD]->share->percentDisplay);
-        self::assertFalse($byGroup[self::CHILD]->isRollup);
+        self::assertSame('Liquidités', $byGroup[self::CHILD]->parentLabel);
         self::assertSame('100.00', $byGroup['none']->total?->amount);
         self::assertSame('10.00', $byGroup['none']->share->percentDisplay);
         self::assertSame('CURRENT', $byGroup['none']->quality);
         self::assertNull($byGroup['none']->parentId);
+        self::assertNull($byGroup['none']->parentLabel);
+    }
+
+    public function testParentHeadingsRollTheWholeSubtreeUpOnceAndNeverShowSubGroups(): void
+    {
+        $overview = ($this->overview())('2026-09-05', false, false);
+
+        self::assertSame([self::PARENT, null], array_column($overview->groups, 'groupId'));
+        self::assertSame('900.00', $overview->groups[0]->total?->amount);
+        self::assertSame('90.00', $overview->groups[0]->share->percentDisplay);
+        self::assertSame(2, $overview->groups[0]->memberCount);
+        self::assertNull($overview->groups[0]->parentLabel);
+        self::assertSame('100.00', $overview->groups[1]->total?->amount);
+    }
+
+    /**
+     * Net worth 1 000.00: C 300 in ROOT, B 200 in SUB, A 100 in LEAF (ROOT > SUB > LEAF),
+     * E 150 in OTHER_ROOT, F 250 ungrouped.
+     * Roll-ups: ROOT 600 (60 %), OTHER_ROOT 150 (15 %), ungrouped 250 (25 %).
+     * Direct: ROOT 300, SUB 200, LEAF 100, OTHER_ROOT 150, ungrouped 250.
+     */
+    public function testAThreeLevelTreeGivesRollupsInParentModeAndDirectTotalsInSubGroupMode(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = $this->threeLevelAccounts();
+        $snapshots = $this->threeLevelSnapshots();
+
+        $parent = ($this->overview($accounts, $snapshots))('2026-09-05', false, false);
+        self::assertSame([self::ROOT, self::OTHER_ROOT, null], array_column($parent->groups, 'groupId'));
+        self::assertSame(['600.00', '150.00', '250.00'], array_map(static fn ($g) => $g->total?->amount, $parent->groups));
+        self::assertSame(['60.00', '15.00', '25.00'], array_map(static fn ($g) => $g->share->percentDisplay, $parent->groups));
+        self::assertSame([3, 1, 1], array_column($parent->groups, 'memberCount'));
+
+        $primary = ($this->overview($accounts, $snapshots))('2026-09-05', false, false, AccountOverviewGrouping::PRIMARY);
+        self::assertSame([self::ROOT, self::SUB, self::LEAF, self::OTHER_ROOT, null], array_column($primary->groups, 'groupId'));
+        self::assertSame(['300.00', '200.00', '100.00', '150.00', '250.00'], array_map(static fn ($g) => $g->total?->amount, $primary->groups));
+        self::assertSame(['30.00', '20.00', '10.00', '15.00', '25.00'], array_map(static fn ($g) => $g->share->percentDisplay, $primary->groups));
+        self::assertSame([null, 'Root', 'Sub', null, null], array_column($primary->groups, 'parentLabel'));
+        self::assertSame([1, 1, 1, 1, 1], array_column($primary->groups, 'memberCount'));
+    }
+
+    public function testAParentSectionExistsOnlyWhenItsSubtreeHasAVisibleMember(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = [$this->account(self::A, 'A', self::LEAF, closedOn: '2026-09-01')];
+
+        $hidden = ($this->overview($accounts, []))('2026-09-05', false, false);
+        $shown = ($this->overview($accounts, []))('2026-09-05', true, false);
+
+        self::assertSame([], $hidden->groups);
+        self::assertSame([self::ROOT], array_column($shown->groups, 'groupId'));
+        self::assertSame(1, $shown->groups[0]->memberCount);
+    }
+
+    public function testAnEmptyGroupHasNoSectionInEitherMode(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = [$this->account(self::A, 'A', self::SUB)];
+        $snapshots = [$this->snapshot(self::A, '2026-09-05', '10.00')];
+
+        $primary = ($this->overview($accounts, $snapshots))('2026-09-05', false, false, AccountOverviewGrouping::PRIMARY);
+
+        self::assertSame([self::SUB], array_column($primary->groups, 'groupId'));
     }
 
     public function testShowingClosedAccountsChangesNeitherTotalsNorTheDenominator(): void
     {
-        $hidden = ($this->overview())('2026-09-05', false, false);
-        $shown = ($this->overview())('2026-09-05', true, false);
+        $hidden = ($this->overview())('2026-09-05', false, false, AccountOverviewGrouping::PRIMARY);
+        $shown = ($this->overview())('2026-09-05', true, false, AccountOverviewGrouping::PRIMARY);
 
         self::assertEquals(array_column($hidden->groups, 'total'), array_column($shown->groups, 'total'));
         self::assertEquals(array_column($hidden->groups, 'share'), array_column($shown->groups, 'share'));
@@ -130,13 +204,17 @@ final class AccountOverviewTest extends TestCase
 
     public function testRowsCarryTheirOwnShareAndTheValuationOfTheRequestedDay(): void
     {
-        $page = ($this->rows())(self::PARENT, null, '2026-09-05', true, false);
+        $page = ($this->rows())(self::PARENT, null, '2026-09-05', true, false, AccountOverviewGrouping::PRIMARY);
 
-        self::assertSame([self::B, self::D], array_column($page->items, 'id'));
-        self::assertSame('30.00', $page->items[0]->share?->percentDisplay);
-        self::assertSame('300.00', $page->items[0]->valuation?->amount);
-        self::assertNull($page->items[1]->share?->percent);
-        self::assertNull($page->items[1]->share?->reason);
+        self::assertSame([self::B, self::D], $this->ids($page));
+        self::assertSame('30.00', $page->items[0]->account->share?->percentDisplay);
+        self::assertSame('300.00', $page->items[0]->account->valuation?->amount);
+        self::assertNull($page->items[1]->account->share?->percent);
+        self::assertNull($page->items[1]->account->share?->reason);
+        self::assertSame(self::PARENT, $page->items[0]->account->primaryGroupId);
+        self::assertSame('Liquidités', $page->items[0]->primaryGroupLabel);
+        self::assertNull($page->items[0]->primaryGroupParentLabel);
+        self::assertSame(0, $page->items[0]->groupOrderVersion);
         self::assertNull($page->nextCursor);
         self::assertSame(0, $page->orderVersion);
     }
@@ -145,8 +223,131 @@ final class AccountOverviewTest extends TestCase
     {
         $page = ($this->rows())(null, null, '2026-09-05', false, false);
 
-        self::assertSame([self::C], array_column($page->items, 'id'));
-        self::assertSame('10.00', $page->items[0]->share?->percentDisplay);
+        self::assertSame([self::C], $this->ids($page));
+        self::assertSame('10.00', $page->items[0]->account->share?->percentDisplay);
+        self::assertNull($page->items[0]->primaryGroupLabel);
+        self::assertNull($page->items[0]->primaryGroupParentLabel);
+    }
+
+    public function testParentModeRowsConcatenateTheSubtreeInDepthFirstThenSavedOrder(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = $this->threeLevelAccounts();
+        $page = ($this->rows($accounts, $this->threeLevelSnapshots()))(self::ROOT, null, '2026-09-05', false, false);
+
+        self::assertSame([self::C, self::B, self::A], $this->ids($page));
+        self::assertSame([null, 'Root', 'Sub'], array_column($page->items, 'primaryGroupParentLabel'));
+        self::assertSame([self::ROOT, self::SUB, self::LEAF], array_map(static fn ($row) => $row->account->primaryGroupId, $page->items));
+        self::assertSame(['Root', 'Sub', 'Leaf'], array_column($page->items, 'primaryGroupLabel'));
+        self::assertSame('30.00', $page->items[0]->account->share?->percentDisplay);
+    }
+
+    public function testEachVisibleAccountAppearsExactlyOnceAcrossTheSectionsOfAMode(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = $this->threeLevelAccounts();
+        $snapshots = $this->threeLevelSnapshots();
+
+        foreach ([AccountOverviewGrouping::PARENT, AccountOverviewGrouping::PRIMARY] as $grouping) {
+            $seen = [];
+            foreach (($this->overview($accounts, $snapshots))('2026-09-05', false, false, $grouping)->groups as $section) {
+                $page = ($this->rows($accounts, $snapshots))($section->groupId, null, '2026-09-05', false, false, $grouping);
+                self::assertCount($section->memberCount, $page->items);
+                array_push($seen, ...$this->ids($page));
+            }
+            sort($seen);
+            $expected = array_map(static fn (Account $account) => $account->id, $accounts);
+            sort($expected);
+            self::assertSame($expected, $seen, $grouping->value);
+        }
+    }
+
+    public function testParentModeRowsReflectEachPrimaryGroupOrderVersionAndSavedOrder(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = [
+            $this->account(self::A, 'A', self::SUB),
+            $this->account(self::B, 'B', self::SUB),
+            $this->account(self::C, 'C', self::ROOT),
+        ];
+        $this->move($accounts)(self::B, self::SUB, self::A, 0);
+        $rows = $this->rows($accounts, []);
+
+        $page = $rows(self::ROOT, null, '2026-09-05', false, false);
+
+        self::assertSame([self::C, self::B, self::A], $this->ids($page));
+        self::assertSame([0, 1, 1], array_column($page->items, 'groupOrderVersion'));
+    }
+
+    public function testMoreThanFiftySubtreeMembersAcrossSubGroupsPageOnceEach(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = [];
+        for ($index = 1; $index <= 120; ++$index) {
+            $group = match (true) {
+                $index <= 40 => self::ROOT,
+                $index <= 80 => self::SUB,
+                default => self::LEAF,
+            };
+            $accounts[] = $this->account(sprintf('00000000-0000-7000-8000-00000001%04d', $index), sprintf('Compte %03d', $index), $group);
+        }
+        $rows = $this->rows($accounts, []);
+
+        $first = $rows(self::ROOT, null, '2026-09-05', false, false);
+        $second = $rows(self::ROOT, $first->nextCursor, '2026-09-05', false, false);
+        $third = $rows(self::ROOT, $second->nextCursor, '2026-09-05', false, false);
+
+        self::assertSame([50, 50, 20], [count($first->items), count($second->items), count($third->items)]);
+        self::assertNull($third->nextCursor);
+        $all = [...$this->ids($first), ...$this->ids($second), ...$this->ids($third)];
+        self::assertCount(120, array_unique($all));
+        self::assertSame(array_map(static fn (Account $account) => $account->id, $accounts), $all);
+    }
+
+    public function testACursorMintedInOneModeIsRefusedInTheOther(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = [];
+        for ($index = 1; $index <= 60; ++$index) {
+            $accounts[] = $this->account(sprintf('00000000-0000-7000-8000-00000001%04d', $index), sprintf('Compte %03d', $index), self::ROOT);
+        }
+        $rows = $this->rows($accounts, []);
+        $cursor = $rows(self::ROOT, null, '2026-09-05', false, false)->nextCursor;
+        self::assertNotNull($cursor);
+
+        $this->expectException(InvalidAccountOverviewQuery::class);
+
+        $rows(self::ROOT, $cursor, '2026-09-05', false, false, AccountOverviewGrouping::PRIMARY);
+    }
+
+    public function testAMoveInADescendantGroupMakesAParentModeCursorStale(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = [];
+        for ($index = 1; $index <= 60; ++$index) {
+            $accounts[] = $this->account(sprintf('00000000-0000-7000-8000-00000001%04d', $index), sprintf('Compte %03d', $index), 1 === $index % 2 ? self::ROOT : self::LEAF);
+        }
+        $rows = $this->rows($accounts, []);
+        $cursor = $rows(self::ROOT, null, '2026-09-05', false, false)->nextCursor;
+        $this->orders->bump(WorkspaceScope::fromString(self::WORKSPACE), self::LEAF);
+
+        $this->expectException(StaleAccountOrder::class);
+
+        $rows(self::ROOT, $cursor, '2026-09-05', false, false);
+    }
+
+    public function testParentModeSubtreeNeverIncludesAnotherWorkspaceOrSiblingRoot(): void
+    {
+        $this->groupSet = $this->threeLevelTree();
+        $accounts = [
+            $this->account(self::A, 'A', self::LEAF),
+            $this->account(self::E, 'E', self::OTHER_ROOT),
+            $this->account(self::FOREIGN, 'Voisin', self::LEAF, workspace: self::OTHER_WORKSPACE),
+        ];
+
+        $page = ($this->rows($accounts, []))(self::ROOT, null, '2026-09-05', false, false);
+
+        self::assertSame([self::A], $this->ids($page));
     }
 
     public function testMoreThanFiftyMembersArePagedByAGroupBoundCursor(): void
@@ -168,7 +369,7 @@ final class AccountOverviewTest extends TestCase
         $third = $rows(self::PARENT, $second->nextCursor, '2026-09-05', false, false);
         self::assertCount(20, $third->items);
         self::assertNull($third->nextCursor);
-        $all = array_merge(array_column($first->items, 'id'), array_column($second->items, 'id'), array_column($third->items, 'id'));
+        $all = array_merge($this->ids($first), $this->ids($second), $this->ids($third));
         self::assertCount(120, array_unique($all));
     }
 
@@ -214,7 +415,7 @@ final class AccountOverviewTest extends TestCase
         self::assertSame(1, $moved->orderVersion);
         self::assertSame(1, $moved->rank);
         $page = ($this->rows(accounts: $accounts))(self::PARENT, null, '2026-09-05', true, false);
-        self::assertSame([self::D, self::A, self::B], array_column($page->items, 'id'));
+        self::assertSame([self::D, self::A, self::B], $this->ids($page));
         self::assertSame(1, $page->orderVersion);
         self::assertCount(1, $this->trail->events);
         self::assertSame('account.moved', $this->trail->events[0]->eventType);
@@ -228,7 +429,7 @@ final class AccountOverviewTest extends TestCase
         $this->move($accounts)(self::A, self::PARENT, null, 0);
 
         $page = ($this->rows(accounts: $accounts))(self::PARENT, null, '2026-09-05', true, false);
-        self::assertSame([self::B, self::A], array_column($page->items, 'id'));
+        self::assertSame([self::B, self::A], $this->ids($page));
     }
 
     public function testFilteredReorderPreservesTheOrderOfHiddenMembers(): void
@@ -245,7 +446,7 @@ final class AccountOverviewTest extends TestCase
         $move(self::C, self::PARENT, self::A, 0);
 
         $all = ($this->rows(accounts: $accounts))(self::PARENT, null, '2026-09-05', true, false);
-        self::assertSame([self::C, self::A, self::B, self::D], array_column($all->items, 'id'));
+        self::assertSame([self::C, self::A, self::B, self::D], $this->ids($all));
     }
 
     public function testAStaleVersionIsRefusedAndNothingChanges(): void
@@ -377,10 +578,51 @@ final class AccountOverviewTest extends TestCase
 
     private function groupRepository(): InMemoryAccountGroupRepository
     {
-        return new InMemoryAccountGroupRepository(
+        return new InMemoryAccountGroupRepository(...($this->groupSet ?? [
             AccountGroupFixture::group(id: self::PARENT, label: 'Liquidités'),
             AccountGroupFixture::group(id: self::CHILD, label: 'Épargne', parentId: self::PARENT, depth: 2),
-        );
+        ]));
+    }
+
+    /** @return list<\App\Module\Accounts\Domain\AccountGroup> */
+    private function threeLevelTree(): array
+    {
+        return [
+            AccountGroupFixture::group(id: self::ROOT, label: 'Root'),
+            AccountGroupFixture::group(id: self::SUB, label: 'Sub', parentId: self::ROOT, depth: 2),
+            AccountGroupFixture::group(id: self::LEAF, label: 'Leaf', parentId: self::SUB, depth: 3),
+            AccountGroupFixture::group(id: self::OTHER_ROOT, label: 'Other', sortOrder: 1),
+        ];
+    }
+
+    /** @return list<Account> */
+    private function threeLevelAccounts(): array
+    {
+        return [
+            $this->account(self::A, 'A', self::LEAF),
+            $this->account(self::B, 'B', self::SUB),
+            $this->account(self::C, 'C', self::ROOT),
+            $this->account(self::E, 'E', self::OTHER_ROOT),
+            $this->account(self::F, 'F', null),
+        ];
+    }
+
+    /** @return list<AccountBalanceSnapshot> */
+    private function threeLevelSnapshots(): array
+    {
+        return [
+            $this->snapshot(self::A, '2026-09-05', '100.00'),
+            $this->snapshot(self::B, '2026-09-05', '200.00'),
+            $this->snapshot(self::C, '2026-09-05', '300.00'),
+            $this->snapshot(self::E, '2026-09-05', '150.00'),
+            $this->snapshot(self::F, '2026-09-05', '250.00'),
+        ];
+    }
+
+    /** @return list<string> */
+    private function ids(AccountOverviewRowPage $page): array
+    {
+        return array_map(static fn ($row): string => $row->account->id, $page->items);
     }
 
     /** @return list<Account> */

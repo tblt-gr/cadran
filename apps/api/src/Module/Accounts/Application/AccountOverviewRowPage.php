@@ -6,7 +6,7 @@ namespace App\Module\Accounts\Application;
 
 final readonly class AccountOverviewRowPage
 {
-    /** @param list<AccountView> $items */
+    /** @param list<AccountOverviewRow> $items */
     public function __construct(
         public array $items,
         public ?string $nextCursor,

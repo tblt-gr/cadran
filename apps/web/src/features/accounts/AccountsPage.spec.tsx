@@ -325,7 +325,7 @@ function installOverview() {
       color: null,
       resolvedColor: groupId === null ? null : '#B87333',
       defaultColor: groupId === null ? null : '#B87333',
-      isRollup: false,
+      parentLabel: null,
       memberCount: items.filter((item) => item.primaryGroupId === groupId).length,
       total: null,
       totalReason: 'MISSING_VALUATION' as const,
@@ -370,6 +370,7 @@ async function openAccountActions(label: string) {
 
 describe('AccountsPage', () => {
   beforeEach(() => {
+    window.localStorage.removeItem('cadran.accounts.grouping');
     installOverview();
     // Editing resolves the model an account follows before offering a kind, so
     // every edit path answers the catalogue read.
@@ -389,6 +390,33 @@ describe('AccountsPage', () => {
     api.listProducts.mockImplementation(() =>
       success({ items: [livretA], page: 1, pageSize: 100, total: 1 }),
     );
+  });
+
+  it('groups by parent by default and remembers the sub-group choice', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
+    );
+    const first = renderPage();
+    await screen.findByText(account.label);
+    expect(api.readAccountOverview).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ grouping: 'PARENT' }) }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Détailler par sous-groupe' }));
+    await waitFor(() =>
+      expect(api.readAccountOverview).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ grouping: 'PRIMARY' }) }),
+      ),
+    );
+    first.unmount();
+
+    renderPage();
+    await screen.findByText(account.label);
+    expect(
+      screen
+        .getByRole('button', { name: 'Détailler par sous-groupe' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
   });
 
   it('replaces its one named cold-load skeleton and keeps accounts during a refetch', async () => {

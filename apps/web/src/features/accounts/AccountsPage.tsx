@@ -1,6 +1,7 @@
 import type { Account } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useGroupingMode } from './grouping-mode/useGroupingMode';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { AccountsPageModals } from './accounts-page-modals/AccountsPageModals';
@@ -17,6 +18,7 @@ export function AccountsPage() {
   const [includeClosed, setIncludeClosed] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [reordering, setReordering] = useState(false);
+  const [grouping, setGrouping] = useGroupingMode('cadran.accounts.grouping', 'PARENT');
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<Account | null>(null);
   const [inspecting, setInspecting] = useState<Account | null>(null);
@@ -80,9 +82,11 @@ export function AccountsPage() {
   return (
     <div className={styles.page}>
       <AccountsPageActions
+        grouping={grouping}
         includeArchived={includeArchived}
         includeClosed={includeClosed}
         onCreate={() => openEditor('create')}
+        onGroupingChange={setGrouping}
         onIncludeArchivedChange={setIncludeArchived}
         onIncludeClosedChange={setIncludeClosed}
         onToggleReordering={() => setReordering((current) => !current)}
@@ -128,6 +132,7 @@ export function AccountsPage() {
       ) : null}
 
       <AccountOverview
+        grouping={grouping}
         includeArchived={includeArchived}
         includeClosed={includeClosed}
         onArchive={openArchive}

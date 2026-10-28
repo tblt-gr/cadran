@@ -24,8 +24,6 @@ interface AccountOrderRepository
      */
     public function bump(WorkspaceScope $workspace, ?string $groupId): void;
 
-    public function version(WorkspaceScope $workspace, ?string $groupId): int;
-
     /** @return array<string, int> versions keyed by {@see AccountOrdering::key()}, absent keys are 0 */
     public function versions(WorkspaceScope $workspace): array;
 

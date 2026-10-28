@@ -23,6 +23,7 @@ final readonly class OverviewFigures
      * @param list<AccountGroup>          $groups        every group, archived ones included
      * @param list<GroupLineage>          $lineages
      * @param array<string, DecimalValue> $rollup        signed exclusive total per group, empty when the aggregate is not calculable
+     * @param array<string, DecimalValue> $direct        signed total of each group's own accounts, empty when the aggregate is not calculable
      * @param list<NetWorthContribution>  $contributions
      */
     public function __construct(
@@ -32,6 +33,7 @@ final readonly class OverviewFigures
         public array $lineages,
         public NetWorthShares $shares,
         public array $rollup,
+        public array $direct,
         public ?DecimalValue $ungroupedTotal,
         public array $contributions,
     ) {

@@ -14,8 +14,8 @@ interface AccountGroupHeadingProps {
 }
 
 /**
- * Name, exact total and share of eligible net worth of one table. A parent is
- * named a rollup: its total already contains its children, never add the two.
+ * Name, exact total and share of eligible net worth of one table. In parent mode the total is a
+ * roll-up of the subtree; in sub-group mode the name carries its parent and the total is direct.
  */
 export function AccountGroupHeading({ group, headingId, sole = false }: AccountGroupHeadingProps) {
   const { t } = useTranslation();
@@ -31,8 +31,11 @@ export function AccountGroupHeading({ group, headingId, sole = false }: AccountG
       <h2 className={styles.title} id={headingId}>
         <GroupMarker color={group?.resolvedColor} pending={group === null} />
         <span>{name ?? <SkeletonBlock className={styles.nameSkeleton} />}</span>
-        {group?.isRollup ? (
-          <small className={styles.rollup}>{t('accounts.overview.rollup')}</small>
+        {group?.parentLabel ? (
+          <>
+            {' '}
+            <small className={styles.parent}>({group.parentLabel})</small>
+          </>
         ) : null}
       </h2>
       <dl className={styles.figures}>
@@ -53,16 +56,6 @@ export function AccountGroupHeading({ group, headingId, sole = false }: AccountG
               <SkeletonBlock className={styles.figureSkeleton} />
             ) : (
               <ShareCell share={group.share} />
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>{t('accounts.overview.quality')}</dt>
-          <dd>
-            {group === null ? (
-              <SkeletonBlock className={styles.figureSkeleton} />
-            ) : (
-              t(`accounts.balances.qualities.${group.quality}`)
             )}
           </dd>
         </div>

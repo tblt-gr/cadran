@@ -1,4 +1,4 @@
-import type { Account, AccountOverviewGroup } from '@cadran/api-client';
+import type { Account, AccountOverviewGroup, AccountOverviewRow } from '@cadran/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,12 +9,15 @@ import {
   useMoveAccount,
   type AccountMove,
 } from '@/features/accounts/account-overview/useMoveAccount';
+import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import { AccountGroupHeading } from './AccountGroupHeading';
+import { accountGroupName } from './accountGroupName';
 import styles from './AccountGroupTable.module.css';
 
 interface AccountGroupTableProps {
   asOf: string;
   group: AccountOverviewGroup;
+  grouping: GroupingMode;
   includeArchived: boolean;
   includeClosed: boolean;
   onArchive: (account: Account) => void;
@@ -30,6 +33,7 @@ interface AccountGroupTableProps {
 export function AccountGroupTable({
   asOf,
   group,
+  grouping,
   includeArchived,
   includeClosed,
   reordering,
@@ -45,6 +49,7 @@ export function AccountGroupTable({
     asOf,
     enabled: hasRows,
     groupKey: group.groupId ?? 'ungrouped',
+    grouping,
     includeArchived,
     includeClosed,
   });
@@ -53,10 +58,7 @@ export function AccountGroupTable({
   const accounts = rows.data?.pages.flatMap((page) => page.items) ?? null;
   // The position is read from the refetched visible list: the API rank also counts hidden members.
   const movedIndex = accounts?.findIndex((account) => account.id === movedId) ?? -1;
-  const name =
-    group.groupId === null
-      ? t(sole ? 'accounts.overview.sole' : 'accounts.overview.ungrouped')
-      : (group.label ?? '');
+  const name = accountGroupName(group, sole, t);
   const stale = move.error instanceof AccountRequestError && move.error.kind === 'stale';
 
   function reload() {
@@ -64,12 +66,13 @@ export function AccountGroupTable({
     void queryClient.invalidateQueries({ queryKey: ['accounts'] });
   }
 
-  function requestMove(account: Account, beforeAccountId: string | null) {
+  // A row is ordered inside its own primary group, which in parent mode is not the section's.
+  function requestMove(account: AccountOverviewRow, beforeAccountId: string | null) {
     const next = {
       account,
       beforeAccountId,
-      groupId: group.groupId,
-      orderVersion: group.orderVersion,
+      groupId: account.primaryGroupId,
+      orderVersion: account.groupOrderVersion,
     };
     setLastMove(next);
     setMovedId(null);

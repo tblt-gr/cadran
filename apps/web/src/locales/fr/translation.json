@@ -358,6 +358,7 @@
     "manageGroups": "Gérer les groupes",
     "actions": {
       "groups": "Groupes",
+      "subGroups": "Sous-groupes",
       "reorder": "Réorganiser",
       "done": "Terminer"
     },
@@ -896,10 +897,8 @@
     "overview": {
       "ungrouped": "Sans groupe",
       "sole": "Comptes",
-      "rollup": "Cumul des sous-groupes",
       "caption": "Comptes du groupe {{label}}",
       "total": "Total",
-      "quality": "Qualité",
       "columnIdentity": "Établissement et produit",
       "assetWarning": "Libellé en {{asset}}",
       "loadMore": "Afficher plus de comptes",

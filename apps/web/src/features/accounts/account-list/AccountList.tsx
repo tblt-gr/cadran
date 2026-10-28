@@ -1,10 +1,11 @@
-import type { Account } from '@cadran/api-client';
+import type { Account, AccountOverviewRow } from '@cadran/api-client';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
+import { useAccountGroupIdentities } from '@/features/accounts/useAccountGroupIdentities';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
@@ -14,7 +15,7 @@ import styles from './AccountList.module.css';
 
 interface AccountListProps {
   /** Null while the rows are being read: the table then mirrors its final markup with blocks. */
-  accounts: Account[] | null;
+  accounts: AccountOverviewRow[] | null;
   /** The asset of the group total: a row in another asset says so. */
   groupAssetCode?: string | null;
   /** More rows exist beyond the ones listed, so the last listed row cannot know its successor. */
@@ -25,7 +26,7 @@ interface AccountListProps {
   reordering?: boolean;
   onArchive: (account: Account) => void;
   /** Places the account before `beforeAccountId`, or last when it is null. */
-  onMove: (account: Account, beforeAccountId: string | null) => void;
+  onMove: (account: AccountOverviewRow, beforeAccountId: string | null) => void;
   onEdit: (account: Account) => void;
   onReconcile: (account: Account) => void;
   onRecordBalance: (account: Account) => void;
@@ -52,6 +53,8 @@ export function AccountList({
   const asOf = accounts?.find((account) => account.valuation.requestedOn)?.valuation.requestedOn;
   const products = useProductOptions(asOf ?? '');
   const models = useTemplateOptions();
+  const nestsSubGroups = accounts?.some((account) => account.primaryGroupParentLabel !== null);
+  const groupIdentities = useAccountGroupIdentities(nestsSubGroups === true);
   const pendingFocus = useRef<{ id: string; direction: 'up' | 'down' } | null>(null);
   const order = accounts?.map((account) => account.id).join('|');
 
@@ -80,7 +83,11 @@ export function AccountList({
     );
   }
 
-  function move(account: Account, direction: 'up' | 'down', beforeAccountId: string | null) {
+  function move(
+    account: AccountOverviewRow,
+    direction: 'up' | 'down',
+    beforeAccountId: string | null,
+  ) {
     pendingFocus.current = { id: account.id, direction };
     onMove(account, beforeAccountId);
   }
@@ -133,8 +140,15 @@ export function AccountList({
                 ))
               : accounts.map((account, index) => {
                   const last = index === accounts.length - 1;
-                  const canMoveUp = index > 0;
-                  const canMoveDown = !last && !(hasMore && index === accounts.length - 2);
+                  // A section can list several primary groups; an account only moves inside its own.
+                  const previous = accounts[index - 1];
+                  const next = accounts[index + 1];
+                  const after = accounts[index + 2];
+                  const sameGroup = (other: AccountOverviewRow | undefined) =>
+                    other !== undefined && other.primaryGroupId === account.primaryGroupId;
+                  const canMoveUp = sameGroup(previous);
+                  const canMoveDown =
+                    !last && sameGroup(next) && !(hasMore && index === accounts.length - 2);
                   const identity = [
                     account.institution,
                     account.maskedIdentifier && `••${account.maskedIdentifier}`,
@@ -145,7 +159,13 @@ export function AccountList({
                   return (
                     <tr key={account.id}>
                       <th data-label={t('accounts.fields.label')} scope="row">
-                        <AccountNameCell account={account} />
+                        <AccountNameCell
+                          account={account}
+                          groupColor={
+                            groupIdentities.data?.get(account.primaryGroupId ?? '')
+                              ?.resolvedColor ?? null
+                          }
+                        />
                       </th>
                       <td data-label={t('accounts.overview.columnIdentity')}>
                         <span>{productName(account)}</span>
@@ -179,7 +199,7 @@ export function AccountList({
                                 className={`icon-ghost ${styles.moveButton}`}
                                 data-move={`${account.id}:up`}
                                 disabled={moveDisabled || !canMoveUp}
-                                onClick={() => move(account, 'up', accounts[index - 1]!.id)}
+                                onClick={() => move(account, 'up', previous!.id)}
                                 title={t('accounts.overview.moveUp', { label: account.label })}
                                 type="button"
                               >
@@ -193,7 +213,7 @@ export function AccountList({
                                 data-move={`${account.id}:down`}
                                 disabled={moveDisabled || !canMoveDown}
                                 onClick={() =>
-                                  move(account, 'down', accounts[index + 2]?.id ?? null)
+                                  move(account, 'down', sameGroup(after) ? after!.id : null)
                                 }
                                 title={t('accounts.overview.moveDown', { label: account.label })}
                                 type="button"
