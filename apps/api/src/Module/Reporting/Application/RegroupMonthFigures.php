@@ -58,13 +58,16 @@ final readonly class RegroupMonthFigures
         $reason = self::reason($included);
         $asset = null === $reason ? self::asset($included) : null;
         $totals = null === $reason ? ExclusiveGroupRollup::totals($included, $tree->lineages) : [];
+        $directTotals = null === $reason ? ExclusiveGroupRollup::directTotals($included, $tree->lineages) : [];
         $shares = NetWorthShareCalculator::compute($inputs, $tree->lineages);
 
         $cells = array_filter($figures->cells, static fn (string $id): bool => !str_starts_with($id, 'group:'), ARRAY_FILTER_USE_KEY);
         $allocation = [];
         foreach ($tree->lineages as $lineage) {
             $total = $totals[$lineage->groupId] ?? null;
+            $directTotal = $directTotals[$lineage->groupId] ?? null;
             $share = $shares->group($lineage->groupId);
+            $directShare = $shares->directGroup($lineage->groupId);
             $cells['group:'.$lineage->groupId] = new MonthlyMetricView(
                 $total?->toString(),
                 null === $total ? null : $asset,
@@ -76,6 +79,11 @@ final readonly class RegroupMonthFigures
                 null === $total ? null : $asset,
                 $share->ratio?->toString(),
                 $share->reason?->value,
+                $lineage->ancestorIdsIncludingSelf[1] ?? null,
+                count($lineage->ancestorIdsIncludingSelf),
+                $directTotal?->toString(),
+                $directShare->ratio?->toString(),
+                $directShare->reason?->value,
             );
         }
 

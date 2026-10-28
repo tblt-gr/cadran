@@ -10,6 +10,8 @@ import styles from './AnnualDonut.module.css';
 export interface AnnualDonutItem {
   /** Exact backend amount, shown on hover. */
   amount: string;
+  /** Canonical identity color; the default palette applies when absent. */
+  color?: string;
   key: string;
   label: string;
   /** Exact backend ratio in [0, 1]; only its bounded ratio is used to draw. */
@@ -19,6 +21,7 @@ export interface AnnualDonutItem {
 /** One legend row; a null amount or share is not calculable and keeps its reason. */
 export interface AnnualLegendRow {
   amount: string | null;
+  color?: string;
   key: string;
   label: string;
   reason?: string | null;
@@ -42,6 +45,7 @@ export function AnnualDonut({ assetCode, legend, label, slices, visibleRows }: A
   const notCalculable = t('reports.annual.notCalculable');
   const donutSlices: DonutSlice[] = slices.map((item) => ({
     amountText: formatAmount(item.amount, assetCode, i18n.language),
+    fill: item.color,
     caption: `${item.label} · ${formatRatioPercentage(item.share, i18n.language)}`,
     key: item.key,
     size: decimalRatioForGeometry(item.share, '1'),
@@ -75,6 +79,7 @@ export function AnnualDonut({ assetCode, legend, label, slices, visibleRows }: A
             ) : (
               formatAmount(row.amount, assetCode, i18n.language)
             ),
+          color: row.color,
           barPercent: row.share === null ? null : ratioToPercent(row.share),
           key: row.key,
           label: row.label,

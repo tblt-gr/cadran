@@ -318,6 +318,50 @@ describe('MultiYearReportPage', () => {
     expect(await screen.findByRole('table', { name: /pluriannuel/i })).toBeTruthy();
   });
 
+  it('prefixes the first year opening only, never drawing a December twice', async () => {
+    api.readAnnualReport.mockImplementation(({ path }: { path: { year: number } }) =>
+      Promise.resolve(
+        ok({
+          ...annualReport,
+          year: path.year,
+          rows: annualReport.rows.map((row) => ({
+            ...row,
+            month: `${path.year}${row.month.slice(4)}`,
+          })),
+          charts: {
+            ...annualReport.charts,
+            flows: {
+              ...annualReport.charts.flows,
+              months: annualReport.charts.flows.months.map((month) => ({
+                ...month,
+                month: `${path.year}${month.month.slice(4)}`,
+              })),
+            },
+            netWorth: {
+              ...annualReport.charts.netWorth,
+              opening: { month: `${path.year - 1}-12`, value: { value: '1000.00', reason: null } },
+              months: annualReport.charts.netWorth.months.map((month) => ({
+                ...month,
+                month: `${path.year}${month.month.slice(4)}`,
+              })),
+            },
+          },
+        }),
+      ),
+    );
+    renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+
+    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+    await screen.findByRole('table', { name: /rapport détaillé 2024-2026/i });
+
+    const netWorth = [...document.querySelectorAll('details table')][1]!;
+    const labels = [...netWorth.querySelectorAll('tbody th')].map((cell) => cell.textContent);
+    expect(labels).toHaveLength(37);
+    expect(labels[0]).toMatch(/déc.*2023/i);
+    expect(labels.filter((label) => /^déc/i.test(label ?? ''))).toHaveLength(4);
+  });
+
   it('keeps the view switch present while the detailed annual reports are loading', async () => {
     api.readAnnualReport.mockReturnValue(new Promise(() => undefined));
     renderPage();

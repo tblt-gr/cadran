@@ -6,6 +6,7 @@ import {
   SkeletonStatus,
   SkeletonText,
 } from '@/components/ui/skeleton/Skeleton';
+import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
 import { ChartFrame } from './ChartFrame';
 import { SUMMARY_ROW_IDS } from './annualColumns';
 import { monthLabel } from './annualRowLabels';
@@ -16,6 +17,8 @@ import tableStyles from './AnnualReportTable.module.css';
 
 /** The column set is the user's own choice: four placeholders stand for it until it is known. */
 const PLACEHOLDER_COLUMNS = [0, 1, 2, 3];
+
+function noop() {}
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
 
@@ -120,7 +123,10 @@ export function AnnualReportPageSkeleton({ status, year }: { status: string; yea
         <ChartFrame title={t('reports.annual.charts.topCategories')}>
           <SkeletonChartArea />
         </ChartFrame>
-        <ChartFrame title={t('reports.annual.charts.allocation')}>
+        <ChartFrame
+          actions={<GroupingModeToggle disabled mode="PRIMARY" onChange={noop} />}
+          title={t('reports.annual.charts.allocation')}
+        >
           <SkeletonChartArea />
         </ChartFrame>
       </div>

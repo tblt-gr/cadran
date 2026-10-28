@@ -29,14 +29,16 @@ final readonly class ReadAnnualCatalogue
             throw new MonthlyProjectionScopeTooLarge('The annual report scope exceeds its bounds.', previous: $exception);
         }
         $categoryLabels = [];
+        $categoryColors = [];
         foreach ($categories as $category) {
             $categoryLabels[$category->id] = $category->label;
+            $categoryColors[$category->id] = $category->color;
         }
         $accounts = [];
         foreach ($references->accounts as $account) {
             $accounts[$account->id] = $account;
         }
 
-        return new AnnualCatalogue($categoryLabels, $references->groups, $accounts, $references->groupParents);
+        return new AnnualCatalogue($categoryLabels, $references->groups, $accounts, $references->groupParents, $categoryColors, $references->groupColors);
     }
 }

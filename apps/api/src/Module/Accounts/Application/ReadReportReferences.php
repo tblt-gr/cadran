@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
+use App\Module\Accounts\Domain\AccountGroupColors;
 use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\AccountGroupTree;
 use App\Module\Accounts\Domain\AccountRepository;
@@ -52,6 +53,6 @@ final readonly class ReadReportReferences
             $parents[$group->id] = null === $group->parentId ? null : ($byId[$group->parentId]->label ?? null);
         }
 
-        return new ReportReferences($references, $labels, $parents);
+        return new ReportReferences($references, $labels, $parents, AccountGroupColors::resolveAll($groups));
     }
 }

@@ -53,6 +53,7 @@ function renderPage(year = 2026) {
 }
 
 beforeEach(() => {
+  window.localStorage.clear();
   api.readMonthlyBounds.mockResolvedValue(
     ok({ firstDataMonth: '2024-01', currentMonth: '2026-09', timezone: 'Europe/Paris' }),
   );
@@ -81,6 +82,10 @@ describe('AnnualReportPage', () => {
     const { queryClient } = renderPage();
 
     expect(screen.getByTestId('annual-report-skeleton')).toBeTruthy();
+    const frozenToggle = within(screen.getByTestId('annual-report-skeleton')).getByRole('button', {
+      name: 'Détailler par sous-groupe',
+    });
+    expect((frozenToggle as HTMLButtonElement).disabled).toBe(true);
     expect(
       screen.getByTestId('annual-report-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
@@ -248,6 +253,7 @@ describe('AnnualReportPage', () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport 2026/i });
     const region = screen.getByRole('region', { name: 'Répartition en fin de période' });
+    fireEvent.click(within(region).getByRole('button', { name: 'Détailler par sous-groupe' }));
     expect(within(region).queryByText('Voir les données')).toBeNull();
     const rows = within(
       within(region).getByRole('list', { name: 'Répartition en fin de période' }),

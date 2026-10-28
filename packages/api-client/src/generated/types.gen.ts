@@ -3268,6 +3268,10 @@ export type AnnualAggregate = {
 export type AnnualCategoryShare = {
     categoryId?: string;
     label?: string;
+    /**
+     * Effective color of the category (its own, else its nearest ancestor's); null when it has none.
+     */
+    color: string | null;
     total: string;
     share: string;
 };
@@ -3283,6 +3287,10 @@ export type AnnualTopExpenseCategories = {
  * The categories beyond the top ones; total and share are the exact sum of items.
  */
 export type AnnualOtherCategories = {
+    /**
+     * Always null, the aggregate has no color of its own.
+     */
+    color: string | null;
     total: string;
     share: string;
     items: Array<AnnualCategoryShare>;
@@ -3290,10 +3298,29 @@ export type AnnualOtherCategories = {
 
 export type AnnualAllocationItem = {
     groupId: string;
+    /**
+     * The group's own name; the parent name is derived from parentId.
+     */
     label: string;
+    /**
+     * Roll-up of the whole subtree.
+     */
     value: string | null;
     share: string | null;
     reason: string | null;
+    parentId: string | null;
+    depth: number;
+    hasChildren: boolean;
+    /**
+     * Total of the accounts held directly by the group.
+     */
+    directValue: string | null;
+    directShare: string | null;
+    directReason: string | null;
+    /**
+     * Effective group color; null when unresolved.
+     */
+    color: string | null;
 };
 
 export type AnnualAllocation = {
@@ -3322,6 +3349,10 @@ export type AnnualNetWorthPoint = {
 
 export type AnnualNetWorthSeries = {
     assetCode: string | null;
+    /**
+     * Closing balance of December of the previous year, the same value as that month in the previous year's report; null when that month has no figures.
+     */
+    opening: AnnualNetWorthPoint | null;
     months: Array<AnnualNetWorthPoint>;
 };
 

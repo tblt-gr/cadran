@@ -44,14 +44,14 @@ const allocation = [
 
 describe('allocationEntries', () => {
   it('keeps root groups at their roll-up in PARENT mode', () => {
-    const items = allocationEntries(allocation, 'PARENT');
+    const items = allocationEntries(allocation, 'PARENT', (amount) => amount.value);
     expect(items.map((item) => item.groupId)).toEqual(['Investissement', 'Vide', 'Inconnu']);
     expect(items[0]?.value?.value).toBe('600');
     expect(items[0]?.share.percentDisplay).toBe('92.31');
   });
 
   it('lists every group with a direct total, at its direct value, in PRIMARY mode', () => {
-    const items = allocationEntries(allocation, 'PRIMARY');
+    const items = allocationEntries(allocation, 'PRIMARY', (amount) => amount.value);
     expect(
       items.map((item) => [item.groupId, item.value?.value, item.share.percentDisplay]),
     ).toEqual([
@@ -62,20 +62,23 @@ describe('allocationEntries', () => {
   });
 
   it('labels a sub-group by name and immediate parent', () => {
-    const bourse = allocationEntries(allocation, 'PRIMARY')[2];
+    const bourse = allocationEntries(allocation, 'PRIMARY', (amount) => amount.value)[2];
     expect(bourse).toMatchObject({
       label: 'Bourse',
       parentLabel: 'Investissement',
       path: 'Bourse (Investissement)',
       color: '#Bourse',
     });
-    expect(allocationEntries(allocation, 'PRIMARY')[0]?.parentLabel).toBeNull();
+    expect(
+      allocationEntries(allocation, 'PRIMARY', (amount) => amount.value)[0]?.parentLabel,
+    ).toBeNull();
   });
 
   it('keeps a tiny signed liability total as non-zero', () => {
     const items = allocationEntries(
       [entry('Dette', null, '-5', '-0.000000000000000000000001', '0', '0')],
       'PRIMARY',
+      (amount) => amount.value,
     );
     expect(items).toHaveLength(1);
   });
@@ -103,14 +106,14 @@ describe('allocationEntries', () => {
     ];
 
     it('keeps every group unvalued in PRIMARY mode', () => {
-      const items = allocationEntries(blank, 'PRIMARY');
+      const items = allocationEntries(blank, 'PRIMARY', (amount) => amount.value);
       expect(items.map((item) => item.groupId)).toEqual(['Investissement', 'Bourse']);
       expect(items.every((item) => item.value === null)).toBe(true);
       expect(items[1]?.share.reason).toBe('MISSING_VALUATION');
     });
 
     it('keeps the root groups unvalued in PARENT mode', () => {
-      const items = allocationEntries(blank, 'PARENT');
+      const items = allocationEntries(blank, 'PARENT', (amount) => amount.value);
       expect(items.map((item) => item.groupId)).toEqual(['Investissement']);
       expect(items[0]?.value).toBeNull();
     });

@@ -7,6 +7,7 @@ namespace App\Tests\Module\Reporting\Application;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Reporting\Application\AllocationFigure;
+use App\Module\Reporting\Application\AnnualAllocationItemView;
 use App\Module\Reporting\Application\AnnualAllocationView;
 use App\Module\Reporting\Application\AnnualCatalogue;
 use App\Module\Reporting\Application\AnnualCategoryShareView;
@@ -107,6 +108,105 @@ final class AnnualChartsTest extends TestCase
         self::assertSame('EUR', $allocation->assetCode);
     }
 
+    public function testCategoryColorsAreCarriedAndAnUncoloredOrForeignCategoryHasNone(): void
+    {
+        // c1 own color, c2 inherited from its parent (already effective in the catalogue), c3 none,
+        // c9 belongs to another workspace and is not in the catalogue at all.
+        $catalogue = new AnnualCatalogue(
+            ['c1' => 'Loyer', 'c2' => 'Sous-catégorie', 'c3' => 'Sans couleur'],
+            [],
+            [],
+            [],
+            ['c1' => '#112233', 'c2' => '#445566', 'c3' => null],
+        );
+        $cells = [
+            'category:c1' => new MonthlyMetricView('30', 'EUR', null),
+            'category:c2' => new MonthlyMetricView('20', 'EUR', null),
+            'category:c3' => new MonthlyMetricView('10', 'EUR', null),
+        ];
+        $chart = AnnualCharts::topExpenseCategories([$this->month(1, $cells, ['c1', 'c2', 'c3'])], $catalogue, $this->aggregate(DecimalValue::fromString('60'), null));
+
+        self::assertSame(['#112233', '#445566', null], array_map(static fn (AnnualCategoryShareView $item): ?string => $item->color, $chart->items));
+        self::assertNull($catalogue->categoryColor('c9'));
+    }
+
+    public function testTheOtherBucketHasNoColorWhileItsCategoriesKeepTheirOwn(): void
+    {
+        $ids = array_map(static fn (int $n): string => 'c'.$n, range(1, 8));
+        $colors = [];
+        $cells = [];
+        foreach ($ids as $index => $id) {
+            $colors[$id] = 'c8' === $id ? null : sprintf('#00000%d', $index);
+            $cells['category:'.$id] = new MonthlyMetricView((string) (80 - $index * 10), 'EUR', null);
+        }
+        $catalogue = new AnnualCatalogue(array_combine($ids, $ids), [], [], [], $colors);
+
+        $chart = AnnualCharts::topExpenseCategories([$this->month(1, $cells, $ids)], $catalogue, $this->aggregate(DecimalValue::fromString('360'), null));
+
+        self::assertNotNull($chart->other);
+        self::assertNull($chart->other->color);
+        self::assertSame(['#000006', null], array_map(static fn (AnnualCategoryShareView $item): ?string => $item->color, $chart->other->items));
+    }
+
+    /**
+     * Net worth 2500.00: Investissement holds 100.00 directly, Bourse 900.00, Immobilier 500.00, so its
+     * roll-up is 1500.00; Epargne holds 1000.00. Direct shares: 4 %, 36 %, 20 %, 40 %.
+     */
+    public function testTheAllocationCarriesRollUpAndDirectFiguresForBothGroupingModes(): void
+    {
+        $month = $this->month(8, [], [], [
+            new AllocationFigure('i', '1500.00', 'EUR', '0.6', null, null, 1, '100.00', '0.04', null),
+            new AllocationFigure('b', '900.00', 'EUR', '0.36', null, 'i', 2, '900.00', '0.36', null),
+            new AllocationFigure('m', '500.00', 'EUR', '0.2', null, 'i', 2, '500.00', '0.2', null),
+            new AllocationFigure('e', '1000.00', 'EUR', '0.4', null, null, 1, '1000.00', '0.4', null),
+        ]);
+        $catalogue = new AnnualCatalogue([], ['i' => 'Investissement', 'b' => 'Bourse', 'm' => 'Immobilier', 'e' => 'Épargne'], [], [], [], ['i' => '#aa0000', 'b' => '#bb0000']);
+
+        $items = AnnualCharts::allocation([$month], IncompleteMonths::EXCLUDE, $catalogue)->items;
+
+        self::assertSame([true, false, false, false], array_map(static fn (AnnualAllocationItemView $item): bool => $item->hasChildren, $items));
+        self::assertSame([null, 'i', 'i', null], array_map(static fn (AnnualAllocationItemView $item): ?string => $item->parentId, $items));
+        self::assertSame([1, 2, 2, 1], array_map(static fn (AnnualAllocationItemView $item): int => $item->depth, $items));
+        self::assertSame(['1500.00', '900.00', '500.00', '1000.00'], array_map(static fn (AnnualAllocationItemView $item): ?string => $item->value, $items));
+        self::assertSame(['100.00', '900.00', '500.00', '1000.00'], array_map(static fn (AnnualAllocationItemView $item): ?string => $item->directValue, $items));
+        self::assertSame(['0.04', '0.36', '0.2', '0.4'], array_map(static fn (AnnualAllocationItemView $item): ?string => $item->directShare, $items));
+        // Roots plus nothing else partition the net worth: 1500.00 + 1000.00; direct totals too: 100 + 900 + 500 + 1000.
+        self::assertSame(['#aa0000', '#bb0000', null, null], array_map(static fn (AnnualAllocationItemView $item): ?string => $item->color, $items));
+    }
+
+    /** A loan of 200.25 sits in the sub-group: its direct value is negative and the root rolls it up. */
+    public function testALiabilityInASubGroupKeepsItsSignedDirectAndRollUpFigures(): void
+    {
+        // Net worth 1300.25: Investissement holds 500.50 directly, Bourse the loan -200.25, Immobilier 1000.00.
+        $month = $this->month(8, [], [], [
+            new AllocationFigure('i', '1300.25', 'EUR', '1', null, null, 1, '500.50', '0.384935', null),
+            new AllocationFigure('b', '-200.25', 'EUR', '-0.154009', null, 'i', 2, '-200.25', '-0.154009', null),
+            new AllocationFigure('m', '1000.00', 'EUR', '0.769082', null, 'i', 2, '1000.00', '0.769082', null),
+        ]);
+
+        $items = AnnualCharts::allocation([$month], IncompleteMonths::EXCLUDE, new AnnualCatalogue([], ['i' => 'I', 'b' => 'B', 'm' => 'M'], []))->items;
+
+        self::assertSame(['1300.25', '-200.25', '1000.00'], array_map(static fn (AnnualAllocationItemView $item): ?string => $item->value, $items));
+        self::assertSame(['500.50', '-200.25', '1000.00'], array_map(static fn (AnnualAllocationItemView $item): ?string => $item->directValue, $items));
+        self::assertSame([null, null, null], array_map(static fn (AnnualAllocationItemView $item): ?string => $item->color, $items));
+    }
+
+    public function testAnUnvaluedGroupKeepsItsDirectReasonAndAnOlderSnapshotFallsBackToTheRollUpReason(): void
+    {
+        $month = $this->month(8, [], [], [
+            new AllocationFigure('g1', null, null, null, 'MISSING_VALUATION', null, 1, null, null, 'MISSING_VALUATION'),
+            new AllocationFigure('g2', null, null, null, 'MIXED_ASSETS'),
+            new AllocationFigure('g3', '0', 'EUR', '0', null, null, 1, '0', '0', null),
+        ]);
+
+        $items = AnnualCharts::allocation([$month], IncompleteMonths::EXCLUDE, new AnnualCatalogue([], [], []))->items;
+
+        self::assertSame('MISSING_VALUATION', $items[0]->directReason);
+        self::assertSame('MIXED_ASSETS', $items[1]->directReason);
+        self::assertNull($items[2]->directReason);
+        self::assertSame('0', $items[2]->directValue);
+    }
+
     public function testTheFlowsAndNetWorthSeriesCoverEveryMonthWhateverTheColumns(): void
     {
         $months = [
@@ -123,6 +223,67 @@ final class AnnualChartsTest extends TestCase
         self::assertNull($netWorth->months[0]->value->value);
         self::assertSame('MISSING_VALUATION', $netWorth->months[0]->value->reason);
         self::assertCount(2, $netWorth->months);
+    }
+
+    /** December 2025 closes at 1000.00 and January 2026 at 850.00: the curve opens on 1000.00. */
+    public function testTheNetWorthCurveOpensOnTheDecemberOfThePreviousYearAsItsOwnReportDrawsIt(): void
+    {
+        $previous = $this->yearOfNetWorth(2025, ['12' => '1000.00']);
+        $months = $this->yearOfNetWorth(2026, ['01' => '850.00']);
+
+        $netWorth = AnnualCharts::netWorth($months, $previous);
+
+        self::assertNotNull($netWorth->opening);
+        self::assertSame('2025-12', $netWorth->opening->month);
+        self::assertSame('1000.00', $netWorth->opening->value->value);
+        self::assertNull($netWorth->opening->value->reason);
+        // Same value as the December point of the previous year's own report.
+        $own = AnnualCharts::netWorth($previous);
+        self::assertEquals($own->months[11], $netWorth->opening);
+        self::assertSame('850.00', $netWorth->months[0]->value->value);
+        self::assertCount(12, $netWorth->months);
+        self::assertSame('EUR', $netWorth->assetCode);
+    }
+
+    public function testThereIsNoOpeningPointBeforeTheFirstMonthOfData(): void
+    {
+        $months = $this->yearOfNetWorth(2026, ['01' => '850.00']);
+        $noFigures = array_map(static fn (int $number): AnnualMonth => new AnnualMonth(new CalendarMonth(2025, $number), MonthState::COMPLETE, false, false, null), range(1, 12));
+
+        self::assertNull(AnnualCharts::netWorth($months, $noFigures)->opening);
+        self::assertNull(AnnualCharts::netWorth($months, [])->opening);
+        self::assertNull(AnnualCharts::netWorth($months)->opening);
+    }
+
+    public function testADecemberWithoutNetWorthIsAGapWithItsReasonNeverZero(): void
+    {
+        $previous = $this->yearOfNetWorth(2025, []);
+        $previous[11] = $this->month(12, ['endNetWorth' => new MonthlyMetricView(null, null, 'MISSING_VALUATION')], []);
+        $previous[11] = new AnnualMonth(new CalendarMonth(2025, 12), MonthState::COMPLETE, false, false, $previous[11]->figures);
+
+        $opening = AnnualCharts::netWorth($this->yearOfNetWorth(2026, ['01' => '850.00']), array_values($previous))->opening;
+
+        self::assertNotNull($opening);
+        self::assertNull($opening->value->value);
+        self::assertSame('MISSING_VALUATION', $opening->value->reason);
+    }
+
+    /**
+     * @param array<array-key, string> $values closing net worth by two-digit month; other months have figures without a value
+     *
+     * @return list<AnnualMonth>
+     */
+    private function yearOfNetWorth(int $year, array $values): array
+    {
+        $months = [];
+        foreach (range(1, 12) as $number) {
+            $key = sprintf('%02d', $number);
+            $metric = isset($values[$key]) ? new MonthlyMetricView($values[$key], 'EUR', null) : new MonthlyMetricView(null, null, 'NO_DATA');
+            $figures = new MonthFigures(sprintf('%d-%s', $year, $key), 1, 'CURRENT', 0, sprintf('%d-%s-28', $year, $key), ['endNetWorth' => $metric], [], [], []);
+            $months[] = new AnnualMonth(new CalendarMonth($year, $number), MonthState::COMPLETE, false, false, $figures);
+        }
+
+        return $months;
     }
 
     public function testAMissingCategoryFigureMakesTheChartNonCalculableNotZero(): void

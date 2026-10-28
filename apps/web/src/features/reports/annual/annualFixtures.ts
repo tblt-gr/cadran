@@ -91,6 +91,7 @@ export const annualReport: AnnualReport = {
     },
     netWorth: {
       assetCode: 'EUR',
+      opening: null,
       months: Array.from({ length: 12 }, (_, index) => ({
         month: month(index),
         value:
@@ -101,13 +102,16 @@ export const annualReport: AnnualReport = {
     },
     topExpenseCategories: {
       assetCode: 'EUR',
-      items: [{ categoryId: 'c1', label: 'Logement', total: '7200', share: '0.42' }],
+      items: [
+        { categoryId: 'c1', label: 'Logement', color: '#2E7D32', total: '7200', share: '0.42' },
+      ],
       other: {
+        color: null,
         total: '900',
         share: '0.05',
         items: [
-          { categoryId: 'c2', label: 'Loisirs', total: '600', share: '0.03' },
-          { categoryId: 'c3', label: 'Santé', total: '300', share: '0.02' },
+          { categoryId: 'c2', label: 'Loisirs', color: '#1565C0', total: '600', share: '0.03' },
+          { categoryId: 'c3', label: 'Santé', color: null, total: '300', share: '0.02' },
         ],
       },
       reason: null,
@@ -116,8 +120,8 @@ export const annualReport: AnnualReport = {
       asOf: '2026-08-31',
       assetCode: 'EUR',
       items: [
-        { groupId: 'g1', label: 'Liquidités', value: '5000', share: '0.12', reason: null },
-        { groupId: 'g2', label: 'Crypto', value: null, share: null, reason: 'MISSING_VALUATION' },
+        group('g1', 'Liquidités', null, 1, '5000', '0.12', '#112233'),
+        group('g2', 'Crypto', null, 1, null, null, null, 'MISSING_VALUATION'),
       ],
       reason: null,
     },
@@ -125,6 +129,32 @@ export const annualReport: AnnualReport = {
   quality: 'PROVISIONAL',
   previousYearHasData: true,
 };
+
+function group(
+  groupId: string,
+  label: string,
+  parentId: string | null,
+  depth: number,
+  value: string | null,
+  share: string | null,
+  color: string | null,
+  reason: string | null = null,
+) {
+  return {
+    groupId,
+    label,
+    value,
+    share,
+    reason,
+    parentId,
+    depth,
+    hasChildren: false,
+    directValue: value,
+    directShare: share,
+    directReason: reason,
+    color,
+  };
+}
 
 export const annualPreferences: AnnualReportPreferences = {
   columns: ['cashIncome', 'cashSavingsRate'],

@@ -13,6 +13,12 @@
   padding: var(--spacing-4);
   font-size: var(--font-size-body);
 }
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
 .chart h3 {
   margin: var(--spacing-none);
   color: var(--text-primary);

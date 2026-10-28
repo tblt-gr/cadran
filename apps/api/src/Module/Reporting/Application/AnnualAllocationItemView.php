@@ -12,6 +12,13 @@ final readonly class AnnualAllocationItemView
         public ?string $value,
         public ?string $share,
         public ?string $reason,
+        public ?string $parentId,
+        public int $depth,
+        public bool $hasChildren,
+        public ?string $directValue,
+        public ?string $directShare,
+        public ?string $directReason,
+        public ?string $color,
     ) {
     }
 }

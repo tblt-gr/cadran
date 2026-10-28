@@ -53,14 +53,14 @@ final class AnnualCharts
         foreach ($amounts as $id => $values) {
             $sum = ExactDecimal::sum(...$values);
             if (!ExactDecimal::isZero($sum)) {
-                $totals[] = [(string) $id, $sum, $catalogue->categoryLabel((string) $id) ?? AnnualCatalogue::UNKNOWN_LABEL];
+                $totals[] = [(string) $id, $sum, $catalogue->categoryLabel((string) $id) ?? AnnualCatalogue::UNKNOWN_LABEL, $catalogue->categoryColor((string) $id)];
             }
         }
         usort($totals, static fn (array $a, array $b): int => [$b[1]->compareTo($a[1]), $a[2], $a[0]] <=> [0, $b[2], $b[0]]);
 
         $items = [];
-        foreach (array_slice($totals, 0, self::TOP_CATEGORIES) as [$id, $sum, $label]) {
-            $items[] = new AnnualCategoryShareView($id, $label, $sum->toString(), ExactDecimal::divide($sum, $total)->toString());
+        foreach (array_slice($totals, 0, self::TOP_CATEGORIES) as [$id, $sum, $label, $color]) {
+            $items[] = new AnnualCategoryShareView($id, $label, $color, $sum->toString(), ExactDecimal::divide($sum, $total)->toString());
         }
         $rest = array_slice($totals, self::TOP_CATEGORIES);
         $other = [] === $rest ? null : self::other($rest, $total);
@@ -85,6 +85,12 @@ final class AnnualCharts
 
         $items = [];
         $asset = null;
+        $parents = [];
+        foreach ($last->figures->allocation as $item) {
+            if (null !== $item->parentId) {
+                $parents[$item->parentId] = true;
+            }
+        }
         foreach ($last->figures->allocation as $item) {
             $asset ??= $item->asset;
             $items[] = new AnnualAllocationItemView(
@@ -93,6 +99,13 @@ final class AnnualCharts
                 $item->value,
                 $item->share,
                 null === $item->value ? ($item->reason ?? AnnualColumnSeries::NOT_IN_PROJECTION) : null,
+                $item->parentId,
+                $item->depth,
+                isset($parents[$item->groupId]),
+                $item->directValue,
+                $item->directShare,
+                null === $item->directValue ? ($item->directReason ?? $item->reason ?? AnnualColumnSeries::NOT_IN_PROJECTION) : null,
+                $catalogue->groupColor($item->groupId),
             );
         }
 
@@ -119,8 +132,11 @@ final class AnnualCharts
         return new AnnualFlowsView(self::assetOf($months, ['cashIncome', 'budgetExpenses', 'budgetSurplus']), $points);
     }
 
-    /** @param list<AnnualMonth> $months */
-    public static function netWorth(array $months): AnnualNetWorthView
+    /**
+     * @param list<AnnualMonth> $months
+     * @param list<AnnualMonth> $previous the year before, January to December, or empty
+     */
+    public static function netWorth(array $months, array $previous = []): AnnualNetWorthView
     {
         $column = new AnnualColumn('endNetWorth', 'endNetWorth', ColumnKind::STOCK, true);
         $points = [];
@@ -128,7 +144,16 @@ final class AnnualCharts
             $points[] = new AnnualNetWorthPointView($month->month->key(), AnnualColumnSeries::cell($column, $month));
         }
 
-        return new AnnualNetWorthView(self::assetOf($months, ['endNetWorth']), $points);
+        // The last month of the year before, as the report already loaded it: no extra query. A month
+        // without figures (before the first data month) gives no opening point; one with a null
+        // endNetWorth keeps its point and its reason, never a zero.
+        $december = [] === $previous ? null : $previous[array_key_last($previous)];
+        $opening = null === $december?->figures
+            ? null
+            : new AnnualNetWorthPointView($december->month->key(), AnnualColumnSeries::cell($column, $december));
+        $asset = self::assetOf($months, ['endNetWorth']) ?? (null === $opening ? null : self::assetOf([$december], ['endNetWorth']));
+
+        return new AnnualNetWorthView($asset, $points, $opening);
     }
 
     /**
@@ -149,15 +174,15 @@ final class AnnualCharts
         return null;
     }
 
-    /** @param list<array{string, DecimalValue, string}> $rest */
+    /** @param list<array{string, DecimalValue, string, ?string}> $rest */
     private static function other(array $rest, DecimalValue $total): AnnualCategoryShareView
     {
         $sum = ExactDecimal::sum(...array_map(static fn (array $entry): DecimalValue => $entry[1], $rest));
         $items = [];
-        foreach ($rest as [$id, $amount, $label]) {
-            $items[] = new AnnualCategoryShareView($id, $label, $amount->toString(), ExactDecimal::divide($amount, $total)->toString());
+        foreach ($rest as [$id, $amount, $label, $color]) {
+            $items[] = new AnnualCategoryShareView($id, $label, $color, $amount->toString(), ExactDecimal::divide($amount, $total)->toString());
         }
 
-        return new AnnualCategoryShareView(null, 'Autres', $sum->toString(), ExactDecimal::divide($sum, $total)->toString(), $items);
+        return new AnnualCategoryShareView(null, 'Autres', null, $sum->toString(), ExactDecimal::divide($sum, $total)->toString(), $items);
     }
 }

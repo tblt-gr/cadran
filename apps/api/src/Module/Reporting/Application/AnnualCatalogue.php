@@ -53,6 +53,10 @@ final readonly class AnnualCatalogue
         private array $accounts,
         /** @var array<string, ?string> label of the immediate parent by group id */
         private array $groupParents = [],
+        /** @var array<string, ?string> effective color by category id */
+        private array $categoryColors = [],
+        /** @var array<string, string> effective color by group id */
+        private array $groupColors = [],
     ) {
     }
 
@@ -93,6 +97,17 @@ final readonly class AnnualCatalogue
     public function categoryLabel(string $id): ?string
     {
         return $this->categories[$id] ?? null;
+    }
+
+    /** The effective color of a category of this workspace, null when it has none or is unknown. */
+    public function categoryColor(string $id): ?string
+    {
+        return $this->categoryColors[$id] ?? null;
+    }
+
+    public function groupColor(string $id): ?string
+    {
+        return $this->groupColors[$id] ?? null;
     }
 
     public function groupLabel(string $id): ?string

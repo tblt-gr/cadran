@@ -1,10 +1,22 @@
-import type { NetWorthAllocationEntry, NetWorthAmount, NetWorthShare } from '@cadran/api-client';
 import { groupLabelParts, type GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import { isZeroDecimal } from '@/lib/decimal';
 
+/** The group figures both the Synthèse and the annual report carry, in their own amount and share types. */
+export interface AllocationSource<A, S> {
+  color: string | null;
+  depth: number;
+  directShare: S;
+  directValue: A | null;
+  groupId: string;
+  label: string;
+  parentId: string | null;
+  share: S;
+  value: A | null;
+}
+
 /** One slice or legend row, in the mode's own value and share. */
-export interface AllocationItem {
-  color: string;
+export interface AllocationItem<A, S> {
+  color: string | null;
   groupId: string;
   /** The group's own name. */
   label: string;
@@ -12,8 +24,8 @@ export interface AllocationItem {
   parentLabel: string | null;
   /** Label as displayed, `Name (Parent)`: the tooltip and accessible name repeat it. */
   path: string;
-  share: NetWorthShare;
-  value: NetWorthAmount | null;
+  share: S;
+  value: A | null;
 }
 
 /**
@@ -21,14 +33,15 @@ export interface AllocationItem {
  * total, at that direct total. When no direct total is calculable at all, every group is kept
  * unvalued so the reason stays visible. Values and shares are the backend's; nothing is summed here.
  */
-export function allocationEntries(
-  allocation: readonly NetWorthAllocationEntry[],
+export function allocationEntries<A, S>(
+  allocation: readonly AllocationSource<A, S>[],
   mode: GroupingMode,
-): AllocationItem[] {
+  decimalOf: (amount: A) => string,
+): AllocationItem<A, S>[] {
   const notCalculable = allocation.every((entry) => entry.directValue === null);
   const groupsById = new Map(allocation.map((entry) => [entry.groupId, entry]));
 
-  return allocation.flatMap((entry): AllocationItem[] => {
+  return allocation.flatMap((entry): AllocationItem<A, S>[] => {
     const parts = groupLabelParts(entry.groupId, groupsById);
     const base = {
       color: entry.color,
@@ -47,7 +60,7 @@ export function allocationEntries(
       return [{ ...base, share: entry.directShare, value: null }];
     }
 
-    if (entry.directValue === null || isZeroDecimal(entry.directValue.value)) {
+    if (entry.directValue === null || isZeroDecimal(decimalOf(entry.directValue))) {
       return [];
     }
 

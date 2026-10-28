@@ -67,7 +67,7 @@ final readonly class BuildAnnualReport
             AnnualCharts::topExpenseCategories($months, $catalogue, $budgetExpenses),
             AnnualCharts::allocation($months, $incomplete, $catalogue),
             AnnualCharts::flows($months),
-            AnnualCharts::netWorth($months),
+            AnnualCharts::netWorth($months, $previous),
             self::quality($months),
             self::hasData($previous),
         );
