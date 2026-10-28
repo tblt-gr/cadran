@@ -939,6 +939,7 @@
     },
     "form": {
       "resetColor": "Rétablir la couleur par défaut",
+      "useParentColor": "Utiliser la couleur du groupe parent",
       "colorHelp": "La couleur identifie le groupe et ses comptes. Le nom reste toujours visible.",
       "createEyebrow": "Création",
       "createTitle": "Nouveau groupe",

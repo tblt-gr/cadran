@@ -330,15 +330,16 @@ describe('AccountGroupsPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: /sous-groupes de « Épargne »/ }));
     openGroupActions('Livrets');
     fireEvent.click(screen.getByRole('button', { name: 'Modifier le groupe Livrets' }));
-    expect(screen.getByRole('radio', { name: /Nuance du groupe parent/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole('radio', { name: /Couleur du groupe parent/ }));
+    expect(screen.getByText('Nuance du groupe parent')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Utiliser la couleur du groupe parent' }));
 
     await waitFor(() =>
       expect((screen.getByLabelText('Groupe parent') as HTMLSelectElement).disabled).toBe(false),
     );
     fireEvent.change(screen.getByLabelText('Groupe parent'), { target: { value: '' } });
-    expect(screen.queryByRole('radio', { name: /Couleur du groupe parent/ })).toBeNull();
-    expect(screen.queryByRole('radio')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Utiliser la couleur du groupe parent' }),
+    ).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
     await waitFor(() => expect(api.updateAccountGroup).toHaveBeenCalledOnce());

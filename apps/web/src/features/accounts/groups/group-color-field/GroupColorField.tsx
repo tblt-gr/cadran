@@ -36,21 +36,22 @@ export function GroupColorField({
 }: GroupColorFieldProps) {
   const { t } = useTranslation();
   const defaultMode: ColorMode = 'AUTO';
-  // Custom is reached through the color input itself, so only inherited modes are radio options.
-  const modes: ColorMode[] = root ? [] : ['AUTO', 'PARENT'];
   const customColor = canonicalGroupColor(color) ?? customStart ?? NEW_GROUP_COLOR;
-  const inputColor =
-    mode === 'CUSTOM' ? customColor : (canonicalGroupColor(swatches[mode]) ?? customColor);
-
-  function optionLabel(option: ColorMode) {
-    return t(
-      `accountGroups.color.modes.${option === 'AUTO' ? (root ? 'AUTO_ROOT' : 'AUTO_CHILD') : option}`,
-    );
-  }
-
-  function swatchColor(option: ColorMode): string | null {
-    return canonicalGroupColor(swatches[option as 'AUTO' | 'PARENT']);
-  }
+  // A sub-group whose shade is not known yet previews the parent color until it is saved.
+  const inheritedColor =
+    canonicalGroupColor(swatches[mode === 'PARENT' ? 'PARENT' : 'AUTO']) ??
+    canonicalGroupColor(swatches.PARENT);
+  const inputColor = mode === 'CUSTOM' ? customColor : (inheritedColor ?? customColor);
+  const status =
+    mode === 'CUSTOM'
+      ? null
+      : mode === 'PARENT'
+        ? t('accountGroups.color.modes.PARENT')
+        : root
+          ? t('accountGroups.color.modes.AUTO_ROOT')
+          : swatches.AUTO
+            ? t('accountGroups.color.modes.AUTO_CHILD')
+            : t('accountGroups.color.pendingShade');
 
   return (
     <fieldset
@@ -59,36 +60,6 @@ export function GroupColorField({
       disabled={disabled}
     >
       <legend>{t('accountGroups.color.legend')}</legend>
-      {modes.length > 0 ? (
-        <div className={styles.options}>
-          {modes.map((option) => {
-            const swatch = swatchColor(option);
-
-            return (
-              <label className={styles.option} key={option}>
-                <input
-                  checked={mode === option}
-                  name="account-group-color-mode"
-                  onChange={() => onChange({ mode: option, color: null })}
-                  type="radio"
-                  value={option}
-                />
-                <span>{optionLabel(option)}</span>
-                {swatch ? (
-                  <span
-                    aria-hidden="true"
-                    className={styles.swatch}
-                    data-swatch
-                    style={{ backgroundColor: swatch }}
-                  />
-                ) : option === 'AUTO' && !root ? (
-                  <small>{t('accountGroups.color.pendingShade')}</small>
-                ) : null}
-              </label>
-            );
-          })}
-        </div>
-      ) : null}
       <div className={styles.controls}>
         <input
           aria-invalid={invalid || undefined}
@@ -101,7 +72,8 @@ export function GroupColorField({
           type="color"
           value={inputColor}
         />
-        {mode === 'CUSTOM' ? (
+        {status ? <span className={styles.status}>{status}</span> : null}
+        {mode !== defaultMode ? (
           <button
             className={styles.reset}
             onClick={() => onChange({ mode: defaultMode, color: null })}
@@ -111,6 +83,15 @@ export function GroupColorField({
           </button>
         ) : null}
       </div>
+      {!root && mode !== 'PARENT' ? (
+        <button
+          className={styles.reset}
+          onClick={() => onChange({ mode: 'PARENT', color: null })}
+          type="button"
+        >
+          {t('accountGroups.form.useParentColor')}
+        </button>
+      ) : null}
       {invalid ? (
         <small id="account-group-color-error">{t('accountGroups.errors.color')}</small>
       ) : null}

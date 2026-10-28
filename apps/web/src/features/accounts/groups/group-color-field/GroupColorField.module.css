@@ -14,41 +14,14 @@
   font-size: var(--font-size-label);
 }
 
-.options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-2) var(--spacing-4);
-}
-
-.option {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: var(--spacing-2);
+.status {
   color: var(--text-primary);
   font-size: var(--font-size-body);
 }
 
-.option input {
-  min-height: var(--spacing-none);
-  accent-color: var(--gold-300);
-}
-
-.option small {
-  color: var(--text-muted);
-  font-size: var(--font-size-label);
-}
-
-.swatch {
-  flex: none;
-  width: var(--spacing-4);
-  height: var(--spacing-4);
-  border: var(--border-line-strong);
-  border-radius: var(--radius-circle);
-}
-
 .controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-2);
 }
@@ -73,6 +46,7 @@
 }
 
 .field .reset {
+  justify-self: start;
   min-width: 0;
   min-block-size: var(--control-height-compact);
   padding: var(--spacing-none);
