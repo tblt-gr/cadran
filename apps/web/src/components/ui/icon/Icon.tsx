@@ -26,6 +26,7 @@ type IconName =
   | 'eye'
   | 'eye-off'
   | 'filter'
+  | 'folder'
   | 'goals'
   | 'home'
   | 'info'
@@ -153,6 +154,8 @@ function IconPath({ name }: { name: IconName }) {
       return (
         <path d="M4 4l16 16M9.9 5.8A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.8M6.2 7.6A16 16 0 0 0 2.5 12S6 18.5 12 18.5a9.4 9.4 0 0 0 3.6-.7M10 10.2a3 3 0 0 0 3.8 3.8" />
       );
+    case 'folder':
+      return <path d="M3 6.5h6l2 2.5h10v10H3z" />;
     case 'layers':
       return <path d="m12 3 9 5-9 5-9-5Zm-9 8.5 9 5 9-5M3 15.5l9 5 9-5" />;
     case 'lock':

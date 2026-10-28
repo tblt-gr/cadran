@@ -54,12 +54,11 @@ export function AccountsPageActions({
           onClick={(event) => handleClientNavigation(event, '/accounts/groups')}
           title={t('accounts.manageGroups')}
         >
-          <Icon name="layers" />
+          <Icon name="folder" />
           <span className={styles.secondaryLabel}>{t('accounts.actions.groups')}</span>
         </a>
         <GroupingModeToggle
           className={`secondary-action ${styles.secondary}`}
-          icon="treemap"
           mode={grouping}
           onChange={onGroupingChange}
           visibleLabel={

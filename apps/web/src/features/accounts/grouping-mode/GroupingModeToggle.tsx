@@ -35,7 +35,7 @@ export function GroupingModeToggle({
       title={label}
       type="button"
     >
-      <Icon name={icon} size={icon === 'layers' ? 16 : undefined} />
+      <Icon name={icon} size={visibleLabel ? undefined : 16} />
       {visibleLabel}
     </button>
   );
