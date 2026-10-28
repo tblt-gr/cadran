@@ -337,7 +337,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
             'POST /api/v1/budget-plans/{planId}/targets' => ['scopeType' => 'AXIS', 'scopeId' => 'ESSENTIAL', 'valueType' => 'AMOUNT', 'amount' => '300.00', 'ratio' => null],
             'PUT /api/v1/budget-plans/{id}' => ['periodType' => 'YEAR', 'period' => '2027', 'assetCode' => 'USD', 'version' => 1],
             'PUT /api/v1/budget-targets/{id}' => ['valueType' => 'AMOUNT', 'amount' => '450.125', 'ratio' => null, 'version' => 1],
-            'PUT /api/v1/account-groups/{id}' => ['label' => 'Changed', 'parentId' => null, 'sortOrder' => 0, 'version' => 1],
+            'PUT /api/v1/account-groups/{id}' => ['label' => 'Changed', 'parentId' => null, 'version' => 1],
             'PUT /api/v1/accounts/{id}' => [
                 'label' => 'Changed', 'kind' => 'SAVINGS', 'productCode' => null, 'productModelId' => null, 'institution' => null, 'maskedIdentifier' => null,
                 'valuationMode' => 'TRANSACTIONS', 'liquidityLevel' => 'IMMEDIATE', 'includeInNetWorth' => true, 'includeInEmergencyFund' => false,
@@ -349,6 +349,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
                 'validFrom' => '2026-01-01', 'validTo' => null, 'reason' => 'The branch confirmed a higher ceiling in writing.',
             ],
             'POST /api/v1/accounts/{id}/move' => ['groupId' => null, 'beforeAccountId' => null, 'orderVersion' => 0],
+            'POST /api/v1/account-groups/{id}/move' => ['beforeGroupId' => null, 'expectedSiblingIds' => ['00000000-0000-7000-8000-0000000000e1']],
             'POST /api/v1/categories/{id}/merge' => ['targetId' => self::OWN_CATEGORY, 'version' => 1],
             'POST /api/v1/categories/{id}/move' => ['parentId' => self::OWN_CATEGORY, 'version' => 1],
             'POST /api/v1/categories/{id}/replacement' => ['targetId' => self::OWN_CATEGORY, 'effectiveFrom' => '2026-09-01', 'version' => 1],

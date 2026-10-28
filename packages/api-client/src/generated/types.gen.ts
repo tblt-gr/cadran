@@ -1913,6 +1913,29 @@ export type MoveAccountRequest = {
     orderVersion: number;
 };
 
+export type MoveAccountGroupRequest = {
+    /**
+     * The active sibling the group must precede, or null to move it last.
+     */
+    beforeGroupId: string | null;
+    /**
+     * The active sibling order the client displayed, moved group included.
+     */
+    expectedSiblingIds: Array<string>;
+};
+
+export type AccountGroupMove = {
+    parentId: string | null;
+    /**
+     * The new active sibling order.
+     */
+    siblingIds: Array<string>;
+    /**
+     * 1-based position of the moved group among its active siblings.
+     */
+    rank: number;
+};
+
 export type AccountMove = {
     groupId: string | null;
     orderVersion: number;
@@ -1992,7 +2015,12 @@ export type CreateAccountGroupRequest = {
     colorMode?: 'AUTO' | 'PARENT' | 'CUSTOM';
     label: string;
     parentId: string | null;
-    sortOrder: number;
+    /**
+     * Deprecated on write. Ignored on creation (the group is appended after its last sibling) and on an update that changes the parent. Use the move operation to reorder siblings.
+     *
+     * @deprecated
+     */
+    sortOrder?: number;
 };
 
 export type UpdateAccountGroupRequest = {
@@ -2006,7 +2034,12 @@ export type UpdateAccountGroupRequest = {
     colorMode?: 'AUTO' | 'PARENT' | 'CUSTOM';
     label: string;
     parentId: string | null;
-    sortOrder: number;
+    /**
+     * Deprecated on write. Ignored on creation (the group is appended after its last sibling) and on an update that changes the parent. Use the move operation to reorder siblings.
+     *
+     * @deprecated
+     */
+    sortOrder?: number;
     version: number;
 };
 
@@ -7704,6 +7737,71 @@ export type ArchiveAccountGroupResponses = {
 };
 
 export type ArchiveAccountGroupResponse = ArchiveAccountGroupResponses[keyof ArchiveAccountGroupResponses];
+
+export type MoveAccountGroupData = {
+    body: MoveAccountGroupRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/account-groups/{id}/move';
+};
+
+export type MoveAccountGroupErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The displayed sibling order is stale (`type: /problems/stale-account-group-order`).
+     */
+    409: Problem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * The group is archived (`/problems/account-group-archived`), the anchor is not another active sibling (`/problems/invalid-account-group-anchor`) or the sibling list is malformed or longer than 100 identifiers.
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type MoveAccountGroupError = MoveAccountGroupErrors[keyof MoveAccountGroupErrors];
+
+export type MoveAccountGroupResponses = {
+    /**
+     * The new active sibling order and the rank of the moved group.
+     */
+    200: AccountGroupMove;
+};
+
+export type MoveAccountGroupResponse = MoveAccountGroupResponses[keyof MoveAccountGroupResponses];
 
 export type ListInstrumentsData = {
     body?: never;

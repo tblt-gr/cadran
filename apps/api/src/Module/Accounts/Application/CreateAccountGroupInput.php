@@ -11,7 +11,6 @@ final readonly class CreateAccountGroupInput
     public function __construct(
         public string $label,
         public ?string $parentId,
-        public int $sortOrder,
         public ?string $color = null,
         public ?AccountGroupColorMode $colorMode = null,
     ) {

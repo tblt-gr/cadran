@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Domain;
 
 /**
- * The order of the accounts inside one primary group, or inside the
- * ungrouped section.
+ * The order of a sequence of siblings: the accounts inside one primary group
+ * (or the ungrouped section), and the groups under one parent. One
+ * implementation serves both, so they cannot drift apart.
  *
  * The order is display metadata kept apart from group hierarchy: a sequence
- * covers every member of the group, hidden ones included, so moving one
+ * covers every member, hidden ones (archived groups) included, so moving one
  * visible row never reshuffles a row the owner cannot see.
  */
 final class AccountOrdering
@@ -28,7 +29,7 @@ final class AccountOrdering
      *
      * @return list<string> the new full sequence
      *
-     * @throws InvalidAccountMove when an identifier is not a member, or the anchor is the moved account
+     * @throws InvalidAccountMove when an identifier is not a member, or the anchor is the moved item
      */
     public static function move(array $order, string $accountId, ?string $beforeId): array
     {

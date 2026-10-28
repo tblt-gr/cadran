@@ -13,3 +13,39 @@
     padding: var(--spacing-control-block) var(--spacing-3);
   }
 }
+
+.reorderHint {
+  display: flex;
+  align-items: flex-start;
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  gap: var(--spacing-2);
+}
+
+.reorderHint > svg {
+  flex-shrink: 0;
+}
+
+.secondary:hover {
+  border-color: var(--text-secondary);
+}
+
+.secondary[aria-pressed='true'] {
+  color: var(--gold-300);
+  border-color: var(--gold-300);
+}
+
+@media (max-width: 63.999rem) {
+  .secondaryLabel {
+    display: none;
+  }
+
+  .secondary {
+    width: max(var(--icon-size-lg), var(--control-height));
+    height: max(var(--icon-size-lg), var(--control-height));
+    padding: var(--spacing-none);
+    border-radius: var(--radius-circle);
+  }
+}

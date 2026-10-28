@@ -54,7 +54,7 @@ final readonly class CreateAccountGroup
                     workspace: $context->workspace,
                     label: $label,
                     parentId: $parentId,
-                    sortOrder: $input->sortOrder,
+                    sortOrder: $this->groups->appendPosition($context->workspace, $parentId),
                     depth: null === $parent ? 1 : $parent->depth + 1,
                     version: 1,
                     createdAt: $now,

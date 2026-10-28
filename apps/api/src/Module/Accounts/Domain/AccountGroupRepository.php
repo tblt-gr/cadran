@@ -56,6 +56,29 @@ interface AccountGroupRepository
      */
     public function labelsByIds(WorkspaceScope $workspace, array $ids): array;
 
+    /**
+     * Locks every sibling row under `$parentId` (archived included, id order, so
+     * two moves never deadlock) and returns at most `$limit` of them in saved
+     * order: sort order, then label, then id.
+     *
+     * @return list<AccountGroup>
+     */
+    public function lockSiblings(WorkspaceScope $workspace, ?string $parentId, int $limit): array;
+
+    /**
+     * Rewrites `sort_order` as `0..n-1` for the listed siblings without bumping
+     * their version: ordering is not an edit of the group.
+     *
+     * @param list<string> $orderedIds every sibling under `$parentId`, archived included
+     */
+    public function saveSiblingOrder(WorkspaceScope $workspace, ?string $parentId, array $orderedIds): void;
+
+    /**
+     * The order a group appended after the last sibling of `$parentId` takes.
+     * When that would exceed the cap, siblings are renumbered to `0..n-1` first.
+     */
+    public function appendPosition(WorkspaceScope $workspace, ?string $parentId): int;
+
     public function add(AccountGroup $group): void;
 
     /** Returns false when the expected version is stale. */

@@ -11,14 +11,36 @@ interface GroupTreeNodeProps {
   node: TreeNode<AccountGroup>;
   onArchive: (group: AccountGroup) => void;
   onEdit: (group: AccountGroup) => void;
+  moveDisabled: boolean;
+  onMove: (
+    group: AccountGroup,
+    direction: 'up' | 'down',
+    beforeGroupId: string | null,
+    siblingIds: string[],
+  ) => void;
+  reordering: boolean;
+  /** The nodes sharing this node's parent, in saved order. */
+  siblings: TreeNode<AccountGroup>[];
 }
 
-export function GroupTreeNode({ node, onArchive, onEdit }: GroupTreeNodeProps) {
+export function GroupTreeNode({
+  node,
+  moveDisabled,
+  onArchive,
+  onEdit,
+  onMove,
+  reordering,
+  siblings,
+}: GroupTreeNodeProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const childrenId = useId();
   const { item: group, children } = node;
   const archived = group.archivedAt !== null;
+  // Archived siblings stay hidden from the order the server compares and keep their place.
+  const active = siblings.map((sibling) => sibling.item).filter((item) => item.archivedAt === null);
+  const index = active.findIndex((item) => item.id === group.id);
+  const siblingIds = active.map((item) => item.id);
 
   return (
     <li className={styles.node}>
@@ -58,6 +80,32 @@ export function GroupTreeNode({ node, onArchive, onEdit }: GroupTreeNodeProps) {
             {archived ? <span>{t('accountGroups.list.archived')}</span> : null}
           </p>
         </div>
+        {reordering && !archived ? (
+          <>
+            <button
+              aria-label={t('accountGroups.reorder.moveUp', { label: group.label })}
+              className={`icon-ghost ${styles.moveButton}`}
+              data-move={`${group.id}:up`}
+              disabled={moveDisabled || index <= 0}
+              onClick={() => onMove(group, 'up', active[index - 1]!.id, siblingIds)}
+              title={t('accountGroups.reorder.moveUp', { label: group.label })}
+              type="button"
+            >
+              <Icon name="arrow-up" />
+            </button>
+            <button
+              aria-label={t('accountGroups.reorder.moveDown', { label: group.label })}
+              className={`icon-ghost ${styles.moveButton}`}
+              data-move={`${group.id}:down`}
+              disabled={moveDisabled || index < 0 || index >= active.length - 1}
+              onClick={() => onMove(group, 'down', active[index + 2]?.id ?? null, siblingIds)}
+              title={t('accountGroups.reorder.moveDown', { label: group.label })}
+              type="button"
+            >
+              <Icon name="arrow-down" />
+            </button>
+          </>
+        ) : null}
         <GroupTreeActions group={group} onArchive={onArchive} onEdit={onEdit} />
       </div>
       {children.length > 0 ? (
@@ -66,9 +114,13 @@ export function GroupTreeNode({ node, onArchive, onEdit }: GroupTreeNodeProps) {
             ? children.map((child) => (
                 <GroupTreeNode
                   key={child.item.id}
+                  moveDisabled={moveDisabled}
                   node={child}
                   onArchive={onArchive}
                   onEdit={onEdit}
+                  onMove={onMove}
+                  reordering={reordering}
+                  siblings={children}
                 />
               ))
             : null}

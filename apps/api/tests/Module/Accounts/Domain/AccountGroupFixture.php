@@ -19,6 +19,11 @@ final class AccountGroupFixture
     public const string WORKSPACE = '00000000-0000-7000-8000-0000000000a1';
     public const string OTHER_WORKSPACE = '00000000-0000-7000-8000-0000000000a2';
 
+    public static function scope(string $workspace = self::WORKSPACE): WorkspaceScope
+    {
+        return WorkspaceScope::fromString($workspace);
+    }
+
     public static function group(
         string $id = self::ID,
         string $workspace = self::WORKSPACE,

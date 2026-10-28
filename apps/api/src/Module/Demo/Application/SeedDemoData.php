@@ -298,11 +298,11 @@ final readonly class SeedDemoData
             $existing[$item->label] = $item->id;
         }
         // System primary groups ship with a provisioned workspace: reuse them, create only what is missing.
-        $group = fn (string $label, int $order): string => $existing[$label]
-            ?? $this->createGroup->__invoke(new CreateAccountGroupInput($label, null, $order))->id;
-        $liquidity = $group('Liquidités', 0);
-        $savings = $group('Livrets', 1);
-        $investments = $group('Investissements', 2);
+        $group = fn (string $label): string => $existing[$label]
+            ?? $this->createGroup->__invoke(new CreateAccountGroupInput($label, null))->id;
+        $liquidity = $group('Liquidités');
+        $savings = $group('Livrets');
+        $investments = $group('Investissements');
 
         $open = fn (string $label, string $kind, ?string $product, string $liquid, bool $emergency, string $group, string $institution, string $valuationMode = 'TRANSACTIONS'): string => $this->createAccount->__invoke(new CreateAccountInput(
             label: $label,

@@ -9,6 +9,7 @@ use App\Module\Accounts\Application\CreateAccountGroup;
 use App\Module\Accounts\Application\CreateAccountGroupInput;
 use App\Module\Accounts\Application\InvalidAccountGroupInput;
 use App\Module\Accounts\Application\ReadGroupColors;
+use App\Module\Accounts\Domain\AccountGroup;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
@@ -34,7 +35,6 @@ final class CreateAccountGroupTest extends TestCase
         $view = ($this->create($groups))(new CreateAccountGroupInput(
             label: 'Épargne',
             parentId: null,
-            sortOrder: 0,
         ));
 
         self::assertSame('Épargne', $view->label);
@@ -64,7 +64,6 @@ final class CreateAccountGroupTest extends TestCase
         ($this->create($groups))(new CreateAccountGroupInput(
             label: 'Child',
             parentId: AccountGroupFixture::OTHER_ID,
-            sortOrder: 0,
         ));
     }
 
@@ -73,7 +72,6 @@ final class CreateAccountGroupTest extends TestCase
         ($this->create(new InMemoryAccountGroupRepository()))(new CreateAccountGroupInput(
             label: 'Épargne',
             parentId: null,
-            sortOrder: 0,
         ));
 
         self::assertCount(1, $this->trail->events);
@@ -93,7 +91,6 @@ final class CreateAccountGroupTest extends TestCase
         ($this->create($groups))(new CreateAccountGroupInput(
             label: 'Épargne',
             parentId: null,
-            sortOrder: 1,
         ));
     }
 
@@ -112,16 +109,56 @@ final class CreateAccountGroupTest extends TestCase
         $third = AccountGroupFixture::group(id: AccountGroupFixture::GRANDCHILD_ID, label: 'D', parentId: $root->id, depth: 2, colorSlot: 3);
         $groups = new InMemoryAccountGroupRepository($root, $first, $archived, $third);
 
-        $view = ($this->create($groups))(new CreateAccountGroupInput(label: 'C', parentId: $root->id, sortOrder: 5));
+        $view = ($this->create($groups))(new CreateAccountGroupInput(label: 'C', parentId: $root->id));
 
         self::assertSame('AUTO', $view->colorMode);
         self::assertSame(\App\Module\Accounts\Domain\AccountGroupColor::shade($view->parentResolvedColor ?? '', 2), $view->resolvedColor);
         self::assertSame($view->resolvedColor, $view->defaultColor);
     }
 
+    public function testANewGroupIsAppendedAfterTheLastSiblingArchivedOnesIncluded(): void
+    {
+        $first = AccountGroupFixture::group(id: AccountGroupFixture::ID, label: 'A', sortOrder: 0);
+        $archived = AccountGroupFixture::group(
+            id: AccountGroupFixture::CHILD_ID,
+            label: 'B',
+            archivedAt: new \DateTimeImmutable('2026-09-01T12:00:00+00:00'),
+            sortOrder: 5,
+        );
+        $otherParent = AccountGroupFixture::group(id: AccountGroupFixture::OTHER_ID, label: 'C', sortOrder: 40);
+        $groups = new InMemoryAccountGroupRepository($first, $archived, $otherParent);
+
+        $view = ($this->create($groups))(new CreateAccountGroupInput(label: 'D', parentId: null));
+        $child = ($this->create($groups))(new CreateAccountGroupInput(label: 'E', parentId: $first->id));
+
+        self::assertSame(41, $view->sortOrder);
+        self::assertSame(0, $child->sortOrder);
+    }
+
+    public function testTheFirstGroupOfAnEmptyParentTakesPositionZero(): void
+    {
+        $view = ($this->create(new InMemoryAccountGroupRepository()))(new CreateAccountGroupInput(label: 'Root', parentId: null));
+
+        self::assertSame(0, $view->sortOrder);
+    }
+
+    public function testSiblingsAreRenumberedWhenTheNextOrderWouldExceedTheCap(): void
+    {
+        $low = AccountGroupFixture::group(id: AccountGroupFixture::ID, label: 'A', sortOrder: 3);
+        $top = AccountGroupFixture::group(id: AccountGroupFixture::CHILD_ID, label: 'B', sortOrder: AccountGroup::MAX_SORT_ORDER);
+        $groups = new InMemoryAccountGroupRepository($low, $top);
+
+        $view = ($this->create($groups))(new CreateAccountGroupInput(label: 'C', parentId: null));
+
+        $workspace = \App\Module\Foundation\Domain\WorkspaceScope::fromString(AccountGroupFixture::WORKSPACE);
+        self::assertSame(2, $view->sortOrder);
+        self::assertSame(0, $groups->find($workspace, $low->id)?->sortOrder);
+        self::assertSame(1, $groups->find($workspace, $top->id)?->sortOrder);
+    }
+
     public function testARootKeepsSlotZeroAndTheDefaultPaletteColor(): void
     {
-        $view = ($this->create(new InMemoryAccountGroupRepository()))(new CreateAccountGroupInput(label: 'Root', parentId: null, sortOrder: 0));
+        $view = ($this->create(new InMemoryAccountGroupRepository()))(new CreateAccountGroupInput(label: 'Root', parentId: null));
 
         self::assertSame('AUTO', $view->colorMode);
         self::assertNull($view->parentResolvedColor);
@@ -134,7 +171,6 @@ final class CreateAccountGroupTest extends TestCase
         ($this->create(new InMemoryAccountGroupRepository()))(new CreateAccountGroupInput(
             label: 'Root',
             parentId: null,
-            sortOrder: 0,
             colorMode: \App\Module\Accounts\Domain\AccountGroupColorMode::PARENT,
         ));
     }
@@ -145,7 +181,6 @@ final class CreateAccountGroupTest extends TestCase
         $view = ($this->create(new InMemoryAccountGroupRepository($root)))(new CreateAccountGroupInput(
             label: 'Child',
             parentId: $root->id,
-            sortOrder: 0,
             colorMode: \App\Module\Accounts\Domain\AccountGroupColorMode::PARENT,
         ));
 

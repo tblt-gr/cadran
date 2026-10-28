@@ -16,6 +16,7 @@ import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { ArchiveGroupDialog } from '@/features/accounts/groups/archive-group-dialog/ArchiveGroupDialog';
+import { GroupMoveStatus } from '@/features/accounts/groups/group-move-status/GroupMoveStatus';
 import { GroupForm } from '@/features/accounts/groups/group-form/GroupForm';
 import { GroupTree } from '@/features/accounts/groups/group-tree/GroupTree';
 import { GroupTreeSkeleton } from '@/features/accounts/groups/group-tree/GroupTreeSkeleton';
@@ -26,6 +27,10 @@ import {
   groupRequestError,
 } from '@/features/accounts/groups/groupError';
 import { GroupsState } from '@/features/accounts/groups/groups-state/GroupsState';
+import {
+  useMoveAccountGroup,
+  type GroupMove,
+} from '@/features/accounts/groups/useMoveAccountGroup';
 import styles from './AccountGroupsPage.module.css';
 
 type Editor = AccountGroup | 'create' | null;
@@ -37,6 +42,9 @@ export function AccountGroupsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<AccountGroup | null>(null);
   const [saved, setSaved] = useState<'saved' | 'archived' | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const [lastMove, setLastMove] = useState<GroupMove | null>(null);
+  const [announcement, setAnnouncement] = useState<string | null>(null);
 
   function openEditor(target: Exclude<Editor, null>) {
     setSaved(null);
@@ -121,9 +129,38 @@ export function AccountGroupsPage() {
     },
   });
 
+  const move = useMoveAccountGroup((group, moved) =>
+    setAnnouncement(
+      t('accountGroups.reorder.moved', {
+        count: moved.siblingIds.length,
+        label: group.label,
+        rank: moved.rank,
+      }),
+    ),
+  );
+
+  function requestMove(group: AccountGroup, beforeGroupId: string | null, siblingIds: string[]) {
+    const next = { group, beforeGroupId, expectedSiblingIds: siblingIds };
+    setLastMove(next);
+    setAnnouncement(null);
+    move.mutate(next);
+  }
+
+  function reloadOrder() {
+    move.reset();
+    void queryClient.invalidateQueries({ queryKey: ['account-groups'] });
+  }
+
+  const moveFailure = !move.isError
+    ? null
+    : groupErrorKind(move.error, true) === 'staleOrder'
+      ? 'stale'
+      : 'failed';
+
   const submitError = groupErrorKind(save.error, save.isError);
   const archiveError = groupErrorKind(archive.error, archive.isError);
   const unauthorized = groups.error instanceof GroupRequestError && groups.error.status === 401;
+  const reorderLabel = t(reordering ? 'accountGroups.reorder.stop' : 'accountGroups.reorder.start');
   const items = groups.data ?? [];
   const pagePending = groups.isPending && groups.data === undefined;
 
@@ -149,7 +186,37 @@ export function AccountGroupsPage() {
         >
           <Icon name="archive" />
         </button>
+        <button
+          aria-label={reorderLabel}
+          aria-pressed={reordering}
+          className={`secondary-action ${styles.secondary}`}
+          onClick={() => setReordering((current) => !current)}
+          title={reorderLabel}
+          type="button"
+        >
+          <Icon name={reordering ? 'check-circle' : 'reorder'} />
+          <span className={styles.secondaryLabel}>
+            {t(
+              reordering ? 'accountGroups.reorder.stop_short' : 'accountGroups.reorder.start_short',
+            )}
+          </span>
+        </button>
       </HeaderActions>
+
+      {reordering ? (
+        <p className={styles.reorderHint}>
+          <Icon name="reorder" />
+          {t('accountGroups.reorder.hint')}
+        </p>
+      ) : null}
+      {pagePending ? null : (
+        <GroupMoveStatus
+          announcement={announcement}
+          failure={moveFailure}
+          onReload={reloadOrder}
+          onRetry={lastMove ? () => move.mutate(lastMove) : null}
+        />
+      )}
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`accountGroups.toasts.${saved}`)}</Toast>
@@ -217,7 +284,14 @@ export function AccountGroupsPage() {
           onRetry={() => void groups.refetch()}
         />
       ) : (
-        <GroupTree groups={items} onArchive={setArchiving} onEdit={openEditor} />
+        <GroupTree
+          groups={items}
+          moveDisabled={move.isPending}
+          onArchive={setArchiving}
+          onEdit={openEditor}
+          onMove={requestMove}
+          reordering={reordering}
+        />
       )}
     </div>
   );

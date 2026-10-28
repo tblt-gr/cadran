@@ -83,7 +83,9 @@ final readonly class UpdateAccountGroup
                 $updated = $current->reconfigure(
                     label: $label,
                     parentId: $parentId,
-                    sortOrder: $input->sortOrder,
+                    sortOrder: $current->parentId === $parentId
+                        ? ($input->sortOrder ?? $current->sortOrder)
+                        : $this->groups->appendPosition($context->workspace, $parentId),
                     depth: $depth,
                     updatedAt: $now,
                     color: $color,
