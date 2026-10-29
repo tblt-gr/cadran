@@ -112,6 +112,7 @@
 .empty {
   border-top: var(--border-line-subtle);
   padding: var(--spacing-4);
+  font-size: var(--font-size-body);
 }
 
 .totalSkeleton {
