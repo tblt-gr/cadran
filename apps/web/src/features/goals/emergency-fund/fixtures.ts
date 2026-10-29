@@ -40,6 +40,7 @@ export const coverageShortfall: EmergencyFundCoverage = {
     ],
   },
   targetMonths: '6.0',
+  target: { mode: 'MONTHS', amount: null, ratio: null, impliedMonths: '6.0', incomeAverage: null },
   requiredAmount: '12600.00',
   gap: '-2340.00',
   coveredMonths: '4.8857142857142857142857',
@@ -65,4 +66,7 @@ export const defaultPolicy: EmergencyFundPolicy = {
   trailingMonths: null,
   targetMonths: '6.0',
   version: 0,
+  targetMode: 'MONTHS',
+  targetAmount: null,
+  targetRatio: null,
 };

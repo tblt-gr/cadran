@@ -2977,7 +2977,8 @@
         "ZERO_ESSENTIAL_EXPENSES": "Aucune dépense essentielle sur la période de référence : la couverture ne peut pas être calculée.",
         "NEGATIVE_ESSENTIAL_EXPENSES": "Les dépenses essentielles de référence sont négatives : la couverture ne peut pas être calculée.",
         "STALE_VALUATION": "Calculé avec une ancienne valorisation.",
-        "UNKNOWN": "Couverture non calculable."
+        "UNKNOWN": "Couverture non calculable.",
+        "NO_REFERENCE_INCOME": "Aucun mois complet de revenus sur les 12 derniers mois : la part du revenu ne peut pas être calculée."
       },
       "explainTitle": "Calcul du fonds d’urgence",
       "accountsTitle": "Comptes éligibles",
@@ -3020,7 +3021,9 @@
       "validation": {
         "categories": "Choisissez de 1 à 50 catégories de dépense.",
         "trailingMonths": "Saisissez un entier de 1 à 24.",
-        "targetMonths": "Saisissez un nombre de 0 à 60 avec au plus une décimale."
+        "targetMonths": "Saisissez un nombre de 0 à 60 avec au plus une décimale.",
+        "targetAmount": "Saisissez un montant strictement positif, avec au plus 8 décimales.",
+        "targetRatio": "Saisissez un pourcentage supérieur à 0 et au plus 100, avec au plus 4 décimales."
       },
       "errors": {
         "conflict": "La politique a été modifiée ailleurs. Vos saisies sont conservées : enregistrez de nouveau pour les appliquer à la version actuelle.",
@@ -3029,7 +3032,20 @@
         "emergency_fund_scope_too_large": "L’espace contient trop de comptes ou de catégories pour calculer le fonds d’urgence."
       },
       "coverageOf": "de dépenses essentielles couverts, pour {{target}} mois visés",
-      "positionLabel": "Montant mis de côté, puis montant requis"
+      "positionLabel": "Montant mis de côté, puis montant requis",
+      "targetMode": "Montant à atteindre",
+      "targetModes": {
+        "MONTHS": "Mois de dépenses essentielles",
+        "AMOUNT": "Montant fixe",
+        "INCOME_RATIO": "Part du revenu annuel"
+      },
+      "targetAmount": "Montant visé",
+      "targetRatio": "Part du revenu annuel (en %)",
+      "targetRatioHint": "Calculée sur le revenu mensuel moyen des 12 derniers mois complets, multiplié par 12.",
+      "coverageOnly": "de dépenses essentielles couverts",
+      "targetTitle": "Montant visé",
+      "targetFixed": "Montant fixé à {{amount}}, indépendamment des dépenses.",
+      "targetIncome": "{{ratio}} du revenu annuel, soit 12 fois le revenu mensuel moyen ({{income}}) sur les 12 derniers mois complets."
     },
     "filtersOpen": "Filtres d’état des objectifs",
     "filtersTitle": "Filtres",

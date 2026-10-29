@@ -10236,6 +10236,16 @@ components:
     EmergencyFundReferenceMode:
       type: string
       enum: [PREVIOUS_YEAR, TRAILING_MONTHS]
+    EmergencyFundTargetMode:
+      description: >-
+        How the required amount is set: MONTHS of essential expenses (targetMonths), a fixed AMOUNT
+        (targetAmount), or an INCOME_RATIO of the annual income (targetRatio).
+      type: string
+      enum: [MONTHS, AMOUNT, INCOME_RATIO]
+    EmergencyFundTargetRatio:
+      description: Share of twelve times the average monthly income, above 0 and at most 1, with at most six decimals (0.5 is 50 %).
+      type: string
+      pattern: '^(0|1)(\.\d{1,6})?$'
     EmergencyFundTargetMonths:
       description: Months of essential expenses to cover, 0 to 60 with at most one decimal.
       type: string
@@ -10244,7 +10254,17 @@ components:
       type: object
       additionalProperties: false
       required:
-        [essentialMode, essentialCategories, referenceMode, trailingMonths, targetMonths, version]
+        [
+          essentialMode,
+          essentialCategories,
+          referenceMode,
+          trailingMonths,
+          targetMonths,
+          version,
+          targetMode,
+          targetAmount,
+          targetRatio,
+        ]
       properties:
         essentialMode: { $ref: '#/components/schemas/EmergencyFundEssentialMode' }
         essentialCategories:
@@ -10263,6 +10283,17 @@ components:
         trailingMonths: { type: [integer, 'null'], minimum: 1, maximum: 24 }
         targetMonths: { $ref: '#/components/schemas/EmergencyFundTargetMonths' }
         version: { type: integer, minimum: 0 }
+        targetMode: { $ref: '#/components/schemas/EmergencyFundTargetMode' }
+        targetAmount:
+          description: Set with AMOUNT only.
+          oneOf:
+            - $ref: '#/components/schemas/GoalAmountInput'
+            - type: 'null'
+        targetRatio:
+          description: Set with INCOME_RATIO only.
+          oneOf:
+            - $ref: '#/components/schemas/EmergencyFundTargetRatio'
+            - type: 'null'
     UpdateEmergencyFundPolicyRequest:
       type: object
       additionalProperties: false
@@ -10284,6 +10315,19 @@ components:
           maximum: 24
         targetMonths: { $ref: '#/components/schemas/EmergencyFundTargetMonths' }
         version: { type: integer, minimum: 0 }
+        targetMode:
+          description: Omitted keeps MONTHS.
+          $ref: '#/components/schemas/EmergencyFundTargetMode'
+        targetAmount:
+          description: Required with AMOUNT, null otherwise.
+          oneOf:
+            - $ref: '#/components/schemas/GoalAmountInput'
+            - type: 'null'
+        targetRatio:
+          description: Required with INCOME_RATIO, null otherwise.
+          oneOf:
+            - $ref: '#/components/schemas/EmergencyFundTargetRatio'
+            - type: 'null'
     EmergencyFundCoverage:
       x-cadran-asset-scope: 'Amounts are in `reference.assetCode`.'
       type: object
@@ -10294,6 +10338,7 @@ components:
           liquidAssets,
           reference,
           targetMonths,
+          target,
           requiredAmount,
           gap,
           coveredMonths,
@@ -10376,8 +10421,30 @@ components:
                   month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
                   value: { type: [string, 'null'] }
         targetMonths: { $ref: '#/components/schemas/EmergencyFundTargetMonths' }
+        target:
+          type: object
+          additionalProperties: false
+          required: [mode, amount, ratio, impliedMonths, incomeAverage]
+          properties:
+            mode: { $ref: '#/components/schemas/EmergencyFundTargetMode' }
+            amount:
+              oneOf:
+                - $ref: '#/components/schemas/GoalAmountInput'
+                - type: 'null'
+            ratio:
+              oneOf:
+                - $ref: '#/components/schemas/EmergencyFundTargetRatio'
+                - type: 'null'
+            impliedMonths:
+              description: Months of essential expenses the required amount stands for, one decimal; null when the average is unknown.
+              type: [string, 'null']
+            incomeAverage:
+              description: Average monthly cash income over the twelve complete months before the as-of month, used by INCOME_RATIO.
+              type: [string, 'null']
         requiredAmount:
-          description: Target months x average, in reference.assetCode; known whenever the average is.
+          description: >-
+            Target months x average, the fixed amount, or ratio x 12 x average monthly income,
+            according to target.mode. Known whenever its inputs are.
           type: [string, 'null']
         gap:
           description: Liquid assets - required amount, in reference.assetCode; positive is a surplus, negative a shortfall. Null when either side is unknown or the two assets differ.
@@ -10390,7 +10457,7 @@ components:
           description: >-
             Why covered months is null (NO_ELIGIBLE_ACCOUNT, MISSING_VALUATION, MIXED_ASSETS,
             NO_REFERENCE_MONTH, MISSING_MONTH_VALUE, MIXED_METRIC_POLICIES, ZERO_ESSENTIAL_EXPENSES,
-            NEGATIVE_ESSENTIAL_EXPENSES), or STALE_VALUATION when it is computed from a stale valuation.
+            NEGATIVE_ESSENTIAL_EXPENSES, or NO_REFERENCE_INCOME for an income target), or STALE_VALUATION when it is computed from a stale valuation.
           type: [string, 'null']
         quality: { type: string, enum: [COMPLETE, PARTIAL, NOT_CALCULABLE] }
     GoalVersion:

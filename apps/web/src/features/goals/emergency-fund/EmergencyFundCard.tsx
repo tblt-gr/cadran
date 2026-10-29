@@ -18,7 +18,13 @@ import { useEmergencyFundCoverage } from './useEmergencyFund';
 
 type Dialog = 'explain' | 'policy' | null;
 
-function Gap({ coverage }: { coverage: EmergencyFundCoverage }) {
+function Gap({
+  coverage,
+  assetCode,
+}: {
+  coverage: EmergencyFundCoverage;
+  assetCode: string | null;
+}) {
   const { t, i18n } = useTranslation();
   if (coverage.gap === null) return <EmptyValue label={t('goals.noData')} />;
   const order = compareDecimals(coverage.gap, '0');
@@ -27,17 +33,13 @@ function Gap({ coverage }: { coverage: EmergencyFundCoverage }) {
   return order < 0 ? (
     <>
       {t('goals.emergencyFund.gapShortfall', {
-        amount: formatFigure(
-          negateDecimal(coverage.gap),
-          coverage.reference.assetCode,
-          i18n.language,
-        ),
+        amount: formatFigure(negateDecimal(coverage.gap), assetCode, i18n.language),
       })}
     </>
   ) : (
     <>
       {t('goals.emergencyFund.gapSurplus', {
-        amount: formatFigure(coverage.gap, coverage.reference.assetCode, i18n.language),
+        amount: formatFigure(coverage.gap, assetCode, i18n.language),
       })}
     </>
   );
@@ -99,10 +101,16 @@ export function EmergencyFundCard() {
   const display = coverage.coveredMonthsDisplay;
   const notCalculable = coverage.coveredMonths === null || display === null;
 
+  // A fixed amount names its own asset; the other targets are in the expenses' (or else the fund's).
+  const requiredAsset =
+    coverage.target.amount?.assetCode ?? coverage.reference.assetCode ?? assetCode;
   const requiredLabel =
     coverage.requiredAmount === null
       ? null
-      : formatCeiledFigure(coverage.requiredAmount, coverage.reference.assetCode, i18n.language);
+      : formatCeiledFigure(coverage.requiredAmount, requiredAsset, i18n.language);
+  const monthsTarget = coverage.target.mode === 'MONTHS';
+  // A months target is not calculable without its covered months; the others only without a gap.
+  const unresolved = monthsTarget ? notCalculable : coverage.gap === null;
   const liquidLabel =
     coverage.liquidAssets.value === null || assetCode === null
       ? null
@@ -162,32 +170,36 @@ export function EmergencyFundCard() {
               </span>
             </p>
             <p className={styles.gap}>
-              <Gap coverage={coverage} />
+              <Gap assetCode={requiredAsset} coverage={coverage} />
             </p>
           </div>
           <CoverageGauge coverage={coverage} />
-          <p className={styles.coverage}>
-            {display === null || notCalculable ? (
-              <EmptyValue label={t('goals.emergencyFund.notCalculable')} />
-            ) : (
-              <strong className="money">
-                {t('goals.emergencyFund.months', {
-                  value: formatMonths(display, i18n.language),
-                })}
-              </strong>
-            )}
-            <span>
-              {t('goals.emergencyFund.coverageOf', {
-                target: formatMonths(coverage.targetMonths, i18n.language),
-              })}
-            </span>
-          </p>
+          {display === null && !monthsTarget ? null : (
+            <p className={styles.coverage}>
+              {display === null || notCalculable ? (
+                <EmptyValue label={t('goals.emergencyFund.notCalculable')} />
+              ) : (
+                <strong className="money">
+                  {t('goals.emergencyFund.months', {
+                    value: formatMonths(display, i18n.language),
+                  })}
+                </strong>
+              )}
+              <span>
+                {coverage.target.impliedMonths === null
+                  ? t('goals.emergencyFund.coverageOnly')
+                  : t('goals.emergencyFund.coverageOf', {
+                      target: formatMonths(coverage.target.impliedMonths, i18n.language),
+                    })}
+              </span>
+            </p>
+          )}
           {stale ? (
             <StatusBadge icon="alert" tone="warning">
               {t('goals.emergencyFund.stale')}
             </StatusBadge>
           ) : null}
-          {notCalculable && coverage.reason ? (
+          {unresolved && coverage.reason ? (
             <p className={styles.reason} role="note">
               {t(`goals.emergencyFund.reasons.${coverage.reason}`, {
                 defaultValue: t('goals.emergencyFund.reasons.UNKNOWN'),

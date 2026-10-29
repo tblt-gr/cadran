@@ -3,14 +3,14 @@
   flex-direction: column;
   margin: var(--spacing-none);
   padding: var(--spacing-none);
-  gap: var(--spacing-2);
   list-style: none;
 }
 .version {
-  padding: var(--spacing-3);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-control);
-  background: var(--bg-surface-2);
+  padding: var(--spacing-3) var(--spacing-none);
+  border-bottom: var(--border-line-subtle);
+}
+.version:last-child {
+  border-bottom: var(--border-none);
 }
 .skeletonVersion {
   width: 100%;
@@ -25,11 +25,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
+  padding-top: var(--spacing-3);
   font-size: var(--font-size-body);
 }
 .recorded {
   margin: var(--spacing-none);
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 .changes {
   display: flex;
@@ -55,5 +56,20 @@
   flex-wrap: wrap;
   color: var(--text-primary);
   font-weight: var(--font-weight-strong);
+  gap: var(--spacing-2);
+}
+.version summary {
+  width: 100%;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+.version summary > span:nth-child(3) {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-inline-start: var(--spacing-auto);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-normal);
   gap: var(--spacing-2);
 }

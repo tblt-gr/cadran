@@ -11,7 +11,13 @@ use App\Module\Budget\Domain\EmergencyFund\EmergencyFundCalculator;
 use App\Module\Budget\Domain\EmergencyFund\EmergencyFundPolicy;
 use App\Module\Budget\Domain\EmergencyFund\EmergencyFundPolicyRepository;
 use App\Module\Budget\Domain\EmergencyFund\EssentialMode;
+use App\Module\Budget\Application\Goals\ReadReferenceIncome;
+use App\Module\Budget\Domain\EmergencyFund\FixedRequirement;
 use App\Module\Budget\Domain\EmergencyFund\LiquidAccount;
+use App\Module\Budget\Domain\EmergencyFund\TargetMode;
+use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\ExactDecimal;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Categories\Application\BudgetCategoryScopeTooLarge;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Foundation\Application\CallerWorkspace;
@@ -48,10 +54,12 @@ final readonly class ReadEmergencyFundCoverage
                 EssentialMode::CATEGORIES === $policy->essentialMode ? ($this->categories)($workspace) : null,
             );
             $accounts = $this->accounts->eligibleOn($workspace, $day);
+            $incomeAverage = null;
+            $fixed = $this->fixedRequirement($policy, $workspace, CalendarMonth::containing($day), $incomeAverage);
         } catch (MonthlyProjectionScopeTooLarge|MonthlyTransactionScopeTooLarge|BudgetCategoryScopeTooLarge|NetWorthScopeTooLarge $exception) {
             throw new EmergencyFundScopeTooLarge('The emergency-fund scope exceeds its bounds.', previous: $exception);
         }
-        $coverage = EmergencyFundCalculator::compute($accounts, $values, $policy->targetMonths, $period->expectedMonths);
+        $coverage = EmergencyFundCalculator::compute($accounts, $values, $policy->targetMonths, $period->expectedMonths, $fixed);
 
         return new EmergencyFundCoverageView(
             $day->format('Y-m-d'),
@@ -82,7 +90,48 @@ final readonly class ReadEmergencyFundCoverage
             $coverage->coveredMonthsDisplay,
             $coverage->reason,
             $coverage->quality,
+            $policy->targetMode->value,
+            $policy->targetAmount?->toString(),
+            $policy->targetAssetCode?->toString(),
+            $policy->targetRatio?->toString(),
+            $this->impliedMonths($coverage->requiredAmount, $coverage->average, $policy),
+            $incomeAverage,
         );
+    }
+
+    /** The months of essential expenses a fixed or income-based amount stands for; null when not computable. */
+    private function impliedMonths(?string $required, ?string $average, EmergencyFundPolicy $policy): ?string
+    {
+        if (TargetMode::MONTHS === $policy->targetMode) {
+            return $policy->targetMonths->toString();
+        }
+        if (null === $required || null === $average || ExactDecimal::isZero(DecimalValue::fromString($average))) {
+            return null;
+        }
+
+        return ExactDecimal::divideForResponse($required, $average, EmergencyFundPolicy::TARGET_SCALE);
+    }
+
+    /**
+     * An income target reads the same twelve complete months as the rolling goals: ratio x 12 x the
+     * average monthly cash income. It sets $incomeAverage so the explanation can show it.
+     */
+    private function fixedRequirement(EmergencyFundPolicy $policy, WorkspaceScope $workspace, CalendarMonth $month, ?string &$incomeAverage): ?FixedRequirement
+    {
+        if (TargetMode::AMOUNT === $policy->targetMode) {
+            return new FixedRequirement($policy->targetAmount?->toString(), $policy->targetAssetCode?->toString(), null);
+        }
+        if (TargetMode::INCOME_RATIO !== $policy->targetMode) {
+            return null;
+        }
+        $income = ReadReferenceIncome::fromMonths($month, $this->months->between($workspace, ReadReferenceIncome::windowStart($month), CalendarMonth::containing($month->firstDay()->modify('-1 month'))));
+        $incomeAverage = $income->value?->toString();
+        if (null === $income->value || null === $policy->targetRatio) {
+            return new FixedRequirement(null, null, 'NO_REFERENCE_INCOME');
+        }
+        $annual = ExactDecimal::multiplyCanonicalForResponse($income->value->toString(), DecimalValue::fromString('12'));
+
+        return new FixedRequirement(ExactDecimal::multiplyCanonicalForResponse($annual, $policy->targetRatio), null, null);
     }
 
     /** Workspace-local today by default; an explicit date is a real calendar day that has already begun. */

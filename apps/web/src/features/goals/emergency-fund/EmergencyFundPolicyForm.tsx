@@ -1,7 +1,9 @@
 import type { EmergencyFundPolicy, UpdateEmergencyFundPolicyRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useWorkspaceBaseCurrency } from '@/features/auth/useWorkspaceBaseCurrency';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
+import { AmountInput } from '@/features/goals/AmountInput';
 import type { GoalErrorKind } from '@/features/goals/goalError';
 import {
   MAX_ESSENTIAL_CATEGORIES,
@@ -28,6 +30,7 @@ function policyErrorKey(
 /** The policy fields; the modal around it owns the title, the loading state and the save. */
 export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError }: Props) {
   const { t } = useTranslation();
+  const baseCurrency = useWorkspaceBaseCurrency();
   const [draft, setDraft] = useState<PolicyDraft>(() => draftFromPolicy(policy));
   const [showErrors, setShowErrors] = useState(false);
   const [pickerKey, setPickerKey] = useState(0);
@@ -46,11 +49,17 @@ export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!validity.categories || !validity.trailingMonths || !validity.targetMonths) {
+    if (
+      !validity.categories ||
+      !validity.trailingMonths ||
+      !validity.targetMonths ||
+      !validity.targetAmount ||
+      !validity.targetRatio
+    ) {
       setShowErrors(true);
       return;
     }
-    onSubmit(policyRequest(draft, policy.version));
+    onSubmit(policyRequest(draft, policy.version, policy.targetAmount?.assetCode ?? baseCurrency));
   };
 
   return (
@@ -151,20 +160,69 @@ export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError
           ) : null}
         </label>
       ) : null}
-      <label>
-        <span>{t('goals.emergencyFund.targetMonths')}</span>
-        <input
-          aria-invalid={flag(validity.targetMonths)}
-          inputMode="decimal"
-          onChange={(event) => patch({ targetMonths: event.target.value })}
-          value={draft.targetMonths}
-        />
-        {showErrors && !validity.targetMonths ? (
-          <small className={styles.fieldError}>
-            {t('goals.emergencyFund.validation.targetMonths')}
-          </small>
-        ) : null}
-      </label>
+      <fieldset className={styles.radios}>
+        <legend>{t('goals.emergencyFund.targetMode')}</legend>
+        {(['MONTHS', 'AMOUNT', 'INCOME_RATIO'] as const).map((mode) => (
+          <label key={mode}>
+            <input
+              checked={draft.targetMode === mode}
+              name="targetMode"
+              onChange={() => patch({ targetMode: mode })}
+              type="radio"
+            />
+            <span>{t(`goals.emergencyFund.targetModes.${mode}`)}</span>
+          </label>
+        ))}
+      </fieldset>
+      {draft.targetMode === 'MONTHS' ? (
+        <label>
+          <span>{t('goals.emergencyFund.targetMonths')}</span>
+          <input
+            aria-invalid={flag(validity.targetMonths)}
+            inputMode="decimal"
+            onChange={(event) => patch({ targetMonths: event.target.value })}
+            value={draft.targetMonths}
+          />
+          {showErrors && !validity.targetMonths ? (
+            <small className={styles.fieldError}>
+              {t('goals.emergencyFund.validation.targetMonths')}
+            </small>
+          ) : null}
+        </label>
+      ) : null}
+      {draft.targetMode === 'AMOUNT' ? (
+        <label>
+          <span>{t('goals.emergencyFund.targetAmount')}</span>
+          <AmountInput
+            aria-label={t('goals.emergencyFund.targetAmount')}
+            invalid={Boolean(flag(validity.targetAmount))}
+            onChange={(targetAmount) => patch({ targetAmount })}
+            value={draft.targetAmount}
+          />
+          {showErrors && !validity.targetAmount ? (
+            <small className={styles.fieldError}>
+              {t('goals.emergencyFund.validation.targetAmount')}
+            </small>
+          ) : null}
+        </label>
+      ) : null}
+      {draft.targetMode === 'INCOME_RATIO' ? (
+        <label>
+          <span>{t('goals.emergencyFund.targetRatio')}</span>
+          <input
+            aria-invalid={flag(validity.targetRatio)}
+            inputMode="decimal"
+            onChange={(event) => patch({ targetRatioPercent: event.target.value })}
+            value={draft.targetRatioPercent}
+          />
+          <small className={styles.hint}>{t('goals.emergencyFund.targetRatioHint')}</small>
+          {showErrors && !validity.targetRatio ? (
+            <small className={styles.fieldError}>
+              {t('goals.emergencyFund.validation.targetRatio')}
+            </small>
+          ) : null}
+        </label>
+      ) : null}
       <button className={`primary-action ${styles.submit}`} disabled={pending} type="submit">
         {t('goals.emergencyFund.save')}
       </button>

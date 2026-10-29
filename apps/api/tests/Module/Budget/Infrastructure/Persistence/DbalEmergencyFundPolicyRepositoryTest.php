@@ -7,6 +7,8 @@ namespace App\Tests\Module\Budget\Infrastructure\Persistence;
 use App\Module\Budget\Domain\EmergencyFund\EmergencyFundPolicy;
 use App\Module\Budget\Domain\EmergencyFund\EssentialMode;
 use App\Module\Budget\Domain\EmergencyFund\ReferenceMode;
+use App\Module\Budget\Domain\EmergencyFund\TargetMode;
+use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Budget\Infrastructure\Persistence\DbalEmergencyFundPolicyRepository;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Tests\Support\WorkspaceFixture;
@@ -51,6 +53,21 @@ final class DbalEmergencyFundPolicyRepositoryTest extends KernelTestCase
         self::assertNotNull($found);
         self::assertSame([EssentialMode::CATEGORIES, [self::CATEGORY], ReferenceMode::TRAILING_MONTHS, 6, '4.5', 1, WorkspaceFixture::OWNER_ID], [$found->essentialMode, $found->essentialCategoryIds, $found->referenceMode, $found->trailingMonths, $found->targetMonths->toString(), $found->version, $found->updatedBy]);
         self::assertNull($this->repository->find(WorkspaceFixture::other()));
+    }
+
+    public function testItRoundTripsAFixedAmountAndAnIncomeRatio(): void
+    {
+        $default = EmergencyFundPolicy::default(WorkspaceFixture::own());
+        $now = new \DateTimeImmutable('2026-09-29T10:00:00+00:00');
+        $amount = $default->revise(EssentialMode::AXIS, [], ReferenceMode::PREVIOUS_YEAR, null, DecimalValue::fromString('6'), $now, WorkspaceFixture::OWNER_ID, TargetMode::AMOUNT, DecimalValue::fromString('15000.5'), AssetCode::fromString('EUR'));
+        self::assertTrue($this->repository->save($amount, 0));
+        $found = $this->repository->find(WorkspaceFixture::own());
+        self::assertSame([TargetMode::AMOUNT, '15000.5', 'EUR', null], [$found?->targetMode, $found?->targetAmount?->toString(), $found?->targetAssetCode?->toString(), $found?->targetRatio]);
+
+        $ratio = $amount->revise(EssentialMode::AXIS, [], ReferenceMode::PREVIOUS_YEAR, null, DecimalValue::fromString('6'), $now, WorkspaceFixture::OWNER_ID, TargetMode::INCOME_RATIO, null, null, DecimalValue::fromString('0.35'));
+        self::assertTrue($this->repository->save($ratio, 1));
+        $found = $this->repository->find(WorkspaceFixture::own());
+        self::assertSame([TargetMode::INCOME_RATIO, null, null, '0.35'], [$found?->targetMode, $found?->targetAmount, $found?->targetAssetCode, $found?->targetRatio?->toString()]);
     }
 
     public function testConcurrentEditsFromTheSameVersionLetOnlyTheFirstOneWin(): void

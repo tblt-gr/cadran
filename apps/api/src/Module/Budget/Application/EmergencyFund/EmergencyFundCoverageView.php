@@ -34,6 +34,12 @@ final readonly class EmergencyFundCoverageView
         public ?string $coveredMonthsDisplay,
         public ?string $reason,
         public string $quality,
+        public string $targetMode = 'MONTHS',
+        public ?string $targetAmount = null,
+        public ?string $targetAssetCode = null,
+        public ?string $targetRatio = null,
+        public ?string $impliedTargetMonths = null,
+        public ?string $incomeAverage = null,
     ) {
     }
 }

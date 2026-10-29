@@ -75,8 +75,55 @@ describe('EmergencyFundCard', () => {
     expect(screen.getByText(/12\s600\s€/)).toBeTruthy();
     expect(screen.getByText(/Il manque 2\s340,00\s€/)).toBeTruthy();
     const meter = screen.getByRole('meter');
-    expect(meter.getAttribute('aria-valuenow')).toBe('0.816666');
+    expect(meter.getAttribute('aria-valuenow')).toBe('0.814285');
     expect(meter.getAttribute('aria-valuetext')).toBe('4,9 mois couverts sur 6');
+  });
+
+  it('reads a fixed amount target without needing the months to be calculable', async () => {
+    api.readEmergencyFundCoverage.mockImplementation(() =>
+      ok({
+        ...coverageShortfall,
+        coveredMonths: null,
+        coveredMonthsDisplay: null,
+        reason: null,
+        requiredAmount: '15000.00',
+        gap: '-4740.00',
+        target: {
+          mode: 'AMOUNT',
+          amount: { value: '15000.00', assetCode: 'EUR' },
+          ratio: null,
+          impliedMonths: null,
+          incomeAverage: null,
+        },
+      }),
+    );
+    renderCard();
+    expect(await screen.findByText(/Il manque 4\s740,00\s€/)).toBeTruthy();
+    expect(screen.getByText(/15\s000\s€/)).toBeTruthy();
+    expect(screen.queryByText('Non calculable')).toBeNull();
+    expect(screen.getByRole('meter')).toBeTruthy();
+  });
+
+  it('says why an income target cannot be calculated', async () => {
+    api.readEmergencyFundCoverage.mockImplementation(() =>
+      ok({
+        ...coverageShortfall,
+        requiredAmount: null,
+        gap: null,
+        reason: 'NO_REFERENCE_INCOME',
+        quality: 'NOT_CALCULABLE',
+        target: {
+          mode: 'INCOME_RATIO',
+          amount: null,
+          ratio: '0.5',
+          impliedMonths: null,
+          incomeAverage: null,
+        },
+      }),
+    );
+    renderCard();
+    expect(await screen.findByText(/revenus sur les 12 derniers mois/)).toBeTruthy();
+    expect(screen.queryByRole('meter')).toBeNull();
   });
 
   it('flags a stale valuation while still showing the figure', async () => {

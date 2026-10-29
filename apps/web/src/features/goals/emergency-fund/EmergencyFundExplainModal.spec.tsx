@@ -67,4 +67,19 @@ describe('EmergencyFundExplainModal', () => {
       '/budget/2025/07',
     );
   });
+
+  it('explains an income target with its share and the average income it reads', () => {
+    const coverage = {
+      ...coverageShortfall,
+      target: {
+        mode: 'INCOME_RATIO' as const,
+        amount: null,
+        ratio: '0.5',
+        impliedMonths: '8.6',
+        incomeAverage: '3000.00',
+      },
+    };
+    render(<EmergencyFundExplainModal close={() => {}} coverage={coverage} />);
+    expect(screen.getByText(/50,00 % du revenu annuel.*moyen \(3\s000,00\s€\)/)).toBeTruthy();
+  });
 });
