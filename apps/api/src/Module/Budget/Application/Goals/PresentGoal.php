@@ -22,7 +22,8 @@ final readonly class PresentGoal
     public function summary(Goal $goal, array $versions, int $year, ?GoalStatusView $status = null, ?GoalScopeView $scope = null): GoalSummaryView
     {
         $month = null === $status ? new CalendarMonth($year, 12) : CalendarMonth::fromString($status->month);
-        $current = GoalVersionResolver::forMonth($versions, $month) ?? throw new \LogicException('A listed goal must have a version for the selected month.');
+        // A goal that only starts after the chosen month shows its first definition, flagged as not started by its status.
+        $current = GoalVersionResolver::forMonth($versions, $month) ?? $versions[0] ?? throw new \LogicException('A listed goal carries at least one version.');
         $scope ??= ($this->scope)($goal->workspace, $goal->scopeType, $goal->scopeRef, true);
 
         return new GoalSummaryView($goal->id, $goal->label, $goal->kind->value, $goal->metric->value, $goal->direction()->value, $scope, $goal->assetCode->toString(), $goal->state->value, self::version($current), $goal->version, $scope->archived ? ['REFERENCE_ARCHIVED'] : [], $status);
