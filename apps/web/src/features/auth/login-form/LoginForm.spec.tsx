@@ -39,6 +39,27 @@ describe('LoginForm', () => {
     expect(window.location.pathname).toBe('/');
   });
 
+  it('asks the server to remember the device only when the box is checked', async () => {
+    respondWith(204);
+    const fetchMock = vi.mocked(fetch);
+    render(<LoginForm onSuccess={vi.fn()} />);
+
+    fillAndSubmit();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const first = fetchMock.mock.calls.at(-1)?.[0] as Request;
+    expect(JSON.parse(await first.clone().text()).remember).toBe(false);
+
+    cleanup();
+    respondWith(204);
+    render(<LoginForm onSuccess={vi.fn()} />);
+    fireEvent.click(screen.getByLabelText('Rester connecté 14 jours sur cet appareil'));
+    fillAndSubmit();
+    const fetchAgain = vi.mocked(fetch);
+    await waitFor(() => expect(fetchAgain).toHaveBeenCalled());
+    const second = fetchAgain.mock.calls.at(-1)?.[0] as Request;
+    expect(JSON.parse(await second.clone().text()).remember).toBe(true);
+  });
+
   it('keeps a direct private URL after login', async () => {
     window.history.replaceState({ returnTo: '/transactions?month=2026-03' }, '', '/connexion');
     respondWith(204);

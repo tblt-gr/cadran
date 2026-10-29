@@ -176,6 +176,31 @@ final class SessionControllerTest extends WebTestCase
         self::assertResponseHeaderSame('content-type', 'application/problem+json');
     }
 
+    public function testALoginIsABrowserSessionCookieByDefault(): void
+    {
+        $this->provisionOwner(plainPassword: self::PASSWORD);
+
+        $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: (string) json_encode(['email' => self::EMAIL, 'password' => self::PASSWORD]));
+
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame(0, $this->client->getResponse()->headers->getCookies()[0]->getExpiresTime());
+    }
+
+    public function testARememberedLoginGivesTheSessionCookieAFourteenDayLifetime(): void
+    {
+        $this->provisionOwner(plainPassword: self::PASSWORD);
+
+        $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: (string) json_encode(['email' => self::EMAIL, 'password' => self::PASSWORD, 'remember' => true]));
+
+        self::assertResponseStatusCodeSame(204);
+        $cookies = $this->client->getResponse()->headers->getCookies();
+        self::assertCount(1, $cookies);
+        self::assertEqualsWithDelta(time() + 1209600, $cookies[0]->getExpiresTime(), 5);
+        self::assertTrue($cookies[0]->isHttpOnly());
+        self::assertTrue($cookies[0]->isSecure());
+        self::assertSame('lax', $cookies[0]->getSameSite());
+    }
+
     public function testAMalformedJsonLoginPostReturnsACoherentClientError(): void
     {
         $this->provisionOwner(plainPassword: self::PASSWORD);

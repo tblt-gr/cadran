@@ -17,6 +17,10 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationSuccessHandlerI
  *
  * The audit event is parked on the request and written after the response, so
  * an audit failure can never undo a sign-in that already issued its cookie.
+ *
+ * The session cookie dies with the browser unless the caller opted in with
+ * `remember: true`; the opt-in is only flagged here and {@see RememberedSessionCookie}
+ * gives the cookie its lifetime, so a shared computer stays safe by default.
  */
 final class LoginSuccessHandler implements AuthenticationSuccessHandlerInterface
 {
@@ -27,6 +31,17 @@ final class LoginSuccessHandler implements AuthenticationSuccessHandlerInterface
             new SessionAuditIntent(IdentityAuditEvents::SESSION_OPENED, $token->getUserIdentifier()),
         );
 
+        if ($this->wantsToBeRemembered($request)) {
+            $request->attributes->set(RememberedSessionCookie::REQUEST_ATTRIBUTE, true);
+        }
+
         return new Response(status: Response::HTTP_NO_CONTENT, headers: ['Cache-Control' => 'no-store']);
+    }
+
+    private function wantsToBeRemembered(Request $request): bool
+    {
+        $body = json_decode($request->getContent(), true);
+
+        return \is_array($body) && true === ($body['remember'] ?? false);
     }
 }

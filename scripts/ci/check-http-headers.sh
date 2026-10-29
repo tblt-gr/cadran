@@ -194,6 +194,18 @@ if [ -n "${E2E_OWNER_EMAIL:-}" ] && [ -n "${E2E_OWNER_PASSWORD:-}" ]; then
                 pass "cadran_session cookie has no Expires or Max-Age"
             fi
         fi
+
+        # "Remember me" is the only way to a persistent cookie: 14 days, same as the server-side idle ceiling.
+        printf '{"email":"%s","password":"%s","remember":true}' "$E2E_OWNER_EMAIL" "$E2E_OWNER_PASSWORD" |
+            curl_run "$work_dir/remember" --config "$work_dir/csrf.conf" --cookie "$jar" \
+                --header 'Content-Type: application/json' --request POST --data-binary @- \
+                "$base_url/api/v1/session"
+        remember_line=$(cookie_line "$work_dir/remember.headers" cadran_session)
+        if printf '%s' "$remember_line" | grep -Eqi '; max-age=1209600'; then
+            pass "cadran_session cookie lives 14 days when remembered"
+        else
+            fail "cadran_session cookie must carry Max-Age=1209600 when remembered"
+        fi
     fi
 else
     printf 'SKIP session cookie flags (E2E_OWNER_EMAIL and E2E_OWNER_PASSWORD not set)\n'

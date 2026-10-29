@@ -1261,6 +1261,10 @@ export type SessionWorkspace = {
 export type LoginRequest = {
     email: string;
     password: string;
+    /**
+     * Keep the session cookie for 14 days instead of until the browser closes. Meant for a personal device.
+     */
+    remember?: boolean;
 };
 
 export type DefinePasswordRequest = {
