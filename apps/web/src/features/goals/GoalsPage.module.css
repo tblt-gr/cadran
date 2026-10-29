@@ -15,35 +15,28 @@
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
 }
-.toolbar,
-.toolbar fieldset,
-.toolbar label,
+
 .radios,
 .radios label {
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
 }
-.toolbar {
-  justify-content: flex-start;
-}
-.toolbar fieldset {
-  margin-inline-start: var(--spacing-auto);
-}
-.toolbar fieldset,
 .radios {
+  flex-wrap: wrap;
   padding: var(--spacing-none);
   border: var(--border-none);
 }
-.toolbar legend,
 .radios legend {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
+  margin-bottom: var(--spacing-2);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
 }
-.toolbar input:not([type='radio']) {
-  width: 6rem;
+.radios label {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
 }
-.toolbar input[type='radio'],
 .radios input {
   accent-color: var(--gold-300);
 }
@@ -96,7 +89,9 @@
 }
 .goalCard h3 {
   margin: var(--spacing-none);
-  font-size: var(--font-size-kpi);
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }
 .goalIdentity .metric {
@@ -119,7 +114,7 @@
 }
 .value strong {
   color: var(--text-primary);
-  font-size: var(--font-size-kpi);
+  font-size: var(--font-size-card-title);
   font-weight: var(--font-weight-strong);
   line-height: var(--line-height-tight);
   letter-spacing: var(--letter-spacing-kpi);
@@ -133,15 +128,11 @@
 .progress {
   gap: var(--spacing-3);
 }
-.progress label,
 .statusFacts dt,
 .progressFacts dt,
 .progressAmount span {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
-}
-.progress label {
-  text-align: right;
 }
 .progressHeading {
   display: flex;
@@ -158,13 +149,14 @@
 }
 .progressAmount strong {
   color: var(--text-primary);
-  font-size: var(--font-size-kpi);
+  font-size: var(--font-size-card-title);
   font-weight: var(--font-weight-strong);
   letter-spacing: var(--letter-spacing-kpi);
 }
-.progress meter {
-  width: 100%;
-  height: var(--spacing-3);
+.progressLabel {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
 }
 .progressFacts {
   display: grid;
@@ -258,10 +250,22 @@
 }
 .form > label {
   display: flex;
+  align-items: flex-start;
   flex-direction: column;
   gap: var(--spacing-1-5);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+.form > label input:not([type='radio']),
+.form > label select {
+  width: auto;
+  max-width: 100%;
+  font-weight: var(--font-weight-normal);
+}
+.form > label textarea {
+  width: 100%;
+  font-weight: var(--font-weight-normal);
 }
 .form small {
   color: var(--text-muted);
@@ -281,6 +285,9 @@
 .formActions {
   display: flex;
   justify-content: flex-end;
+}
+.formActions button {
+  width: fit-content;
 }
 .correctionConfirmation {
   display: flex;
@@ -304,20 +311,8 @@
   background: var(--bg-surface-2);
 }
 @media (max-width: 42rem) {
-  .toolbar,
-  .toolbar fieldset {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-  .toolbar,
   .formActions button {
     width: 100%;
-  }
-  .toolbar label {
-    width: 100%;
-  }
-  .toolbar fieldset {
-    margin-inline-start: var(--spacing-none);
   }
   .grid {
     grid-template-columns: 1fr;

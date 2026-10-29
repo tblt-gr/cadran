@@ -75,8 +75,8 @@ describe('EmergencyFundCard', () => {
     expect(screen.getByText(/12\s600\s€/)).toBeTruthy();
     expect(screen.getByText(/Il manque 2\s340,00\s€/)).toBeTruthy();
     const meter = screen.getByRole('meter');
-    expect(meter.getAttribute('aria-valuemax')).toBe('6');
-    expect(meter.getAttribute('aria-valuenow')).toBe('4.9');
+    expect(meter.getAttribute('aria-valuenow')).toBe('0.816666');
+    expect(meter.getAttribute('aria-valuetext')).toBe('4,9 mois couverts sur 6');
   });
 
   it('flags a stale valuation while still showing the figure', async () => {

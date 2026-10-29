@@ -1,6 +1,7 @@
 import type { GoalAnnualStatus, GoalAnnualStatusSummary } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
+import { ProgressGauge } from '@/components/ui/progress-gauge/ProgressGauge';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import styles from './GoalsPage.module.css';
@@ -45,14 +46,9 @@ export function GoalProgressBar({
             )}
           </strong>
         </p>
-        <label htmlFor={`goal-progress-${status.goalId}`}>{label}</label>
+        <p className={styles.progressLabel}>{label}</p>
       </div>
-      <meter
-        id={`goal-progress-${status.goalId}`}
-        max={1}
-        min={0}
-        value={status.progressRatioDisplay as unknown as number}
-      />
+      <ProgressGauge label={label} ratio={status.progressRatioDisplay} />
       <dl className={styles.progressFacts}>
         <div>
           <dt>{t('goals.expectedToDate')}</dt>

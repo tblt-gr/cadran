@@ -28,14 +28,12 @@ import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { CloseGoalDialog } from './CloseGoalDialog';
 import { GoalCard } from './GoalCard';
 import { GoalDetailModal } from './GoalDetailModal';
-import { GoalClosedFilter } from './GoalClosedFilter';
 import { GoalFilters } from './GoalFilters';
 import { GoalForm } from './GoalForm';
 import { GoalsPageSkeleton } from './GoalsPageSkeleton';
 import { CorrectionConfirmation } from './history/CorrectionConfirmation';
 import { GoalHistoryModal } from './history/GoalHistoryModal';
 import { EmergencyFundCard } from './emergency-fund/EmergencyFundCard';
-import { GoalScheduleTable } from './goal-schedule-table/GoalScheduleTable';
 import { goalErrorKind, goalErrorMismatch, goalRequestError } from './goalError';
 import { ReferenceIncomeNote } from './ReferenceIncomeNote';
 import styles from './GoalsPage.module.css';
@@ -260,12 +258,13 @@ export function GoalsPage() {
           {t('goals.add')}
         </button>
       </HeaderActions>
-      <GoalClosedFilter includeClosed={includeClosed} onIncludeClosedChange={setIncludeClosed} />
       <EmergencyFundCard />
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('goals.saved')}</Toast> : null}
       <GoalFilters
         currentMonth={workspaceMonth}
+        includeClosed={includeClosed}
         month={month}
+        onIncludeClosedChange={setIncludeClosed}
         onMonthChange={setMonth}
         onYearChange={(nextYear) => {
           setYear(nextYear);
@@ -330,16 +329,9 @@ export function GoalsPage() {
             setCorrection(null);
             setCorrectionConfirmed(false);
           }}
-          eyebrow={t(editor === 'create' ? 'goals.createEyebrow' : 'goals.editEyebrow')}
           title={t(editor === 'create' ? 'goals.createTitle' : 'goals.editTitle')}
         >
           {detail.data ? <ReferenceIncomeNote goal={detail.data as GoalDetail} /> : null}
-          {latestDetail?.kind === 'ANNUAL' ? (
-            <GoalScheduleTable
-              assetCode={latestDetail.assetCode}
-              schedule={latestDetail.currentVersion.schedule}
-            />
-          ) : null}
           {editingSummary && !latestDetail && detail.isPending ? (
             <GoalFormSkeleton baseCurrency={baseCurrency} goal={editingSummary} />
           ) : (
@@ -400,11 +392,7 @@ export function GoalsPage() {
       ) : null}
       {historyTarget ? (
         history.isPending ? (
-          <Modal
-            close={() => setHistoryTarget(null)}
-            eyebrow={t('goals.history.eyebrow')}
-            title={t('goals.history.title')}
-          >
+          <Modal close={() => setHistoryTarget(null)} title={t('goals.history.title')}>
             <GoalHistoryTableSkeleton />
           </Modal>
         ) : history.data ? (
@@ -414,22 +402,14 @@ export function GoalsPage() {
             items={history.data.items}
           />
         ) : (
-          <Modal
-            close={() => setHistoryTarget(null)}
-            eyebrow={t('goals.history.eyebrow')}
-            title={t('goals.history.title')}
-          >
+          <Modal close={() => setHistoryTarget(null)} title={t('goals.history.title')}>
             <p role="alert">{t('goals.error')}</p>
           </Modal>
         )
       ) : null}
       {detailTarget ? (
         statusDetail.isPending ? (
-          <Modal
-            close={() => setDetailTarget(null)}
-            eyebrow={t('goals.detailEyebrow')}
-            title={t('goals.detailTitle')}
-          >
+          <Modal close={() => setDetailTarget(null)} title={t('goals.detailTitle')}>
             <GoalStatusTableSkeleton />
           </Modal>
         ) : statusDetail.data ? (
@@ -439,11 +419,7 @@ export function GoalsPage() {
             status={statusDetail.data}
           />
         ) : (
-          <Modal
-            close={() => setDetailTarget(null)}
-            eyebrow={t('goals.detailEyebrow')}
-            title={t('goals.detailTitle')}
-          >
+          <Modal close={() => setDetailTarget(null)} title={t('goals.detailTitle')}>
             <p role="alert">{t('goals.error')}</p>
           </Modal>
         )
@@ -454,7 +430,6 @@ export function GoalsPage() {
             setCloseTarget(null);
             close.reset();
           }}
-          eyebrow={t('goals.closeEyebrow')}
           title={t('goals.closeTitle')}
         >
           <CloseGoalDialog

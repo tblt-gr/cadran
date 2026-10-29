@@ -23,7 +23,7 @@ export function GoalHistoryModal({
   const after = items.find((item) => item.versionNo === afterNo);
   const before = items.find((item) => item.versionNo === beforeNo);
   return (
-    <Modal close={close} eyebrow={t('goals.history.eyebrow')} title={t('goals.history.title')}>
+    <Modal close={close} title={t('goals.history.title')}>
       {items.length === 0 ? (
         <p>{t('goals.history.empty')}</p>
       ) : (
