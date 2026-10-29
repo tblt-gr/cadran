@@ -1,5 +1,6 @@
 import type { MetricPolicy } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import styles from './MetricPolicyPage.module.css';
 
 const DATE_TIME = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
@@ -58,15 +59,18 @@ export function MetricPolicyHistory({
                     : DATE_TIME.format(new Date(policy.createdAt))}
                 </td>
                 <td>
-                  <button
-                    aria-label={t('metricPolicy.history.activate', { version: policy.version })}
-                    className="secondary-action"
-                    disabled={policy.version === activeVersion}
-                    onClick={() => onActivate(policy)}
-                    type="button"
-                  >
-                    {t('metricPolicy.history.activateShort')}
-                  </button>
+                  {policy.version === activeVersion ? (
+                    <StatusBadge tone="positive">{t('metricPolicy.history.active')}</StatusBadge>
+                  ) : (
+                    <button
+                      aria-label={t('metricPolicy.history.activate', { version: policy.version })}
+                      className="secondary-action"
+                      onClick={() => onActivate(policy)}
+                      type="button"
+                    >
+                      {t('metricPolicy.history.activateShort')}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
