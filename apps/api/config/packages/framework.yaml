@@ -18,7 +18,7 @@ framework:
     # drop the Secure attribute if the application were ever served over plain
     # HTTP instead of failing visibly.
     cookie_secure: true
-    cookie_lifetime: 1209600 # 14 days, survives a browser restart; matches the server-side ceiling
+    cookie_lifetime: 0 # cookie dies with the browser session
     gc_maxlifetime: 1209600 # 14-day idle ceiling on the server side
     handler_id: Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
 

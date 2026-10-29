@@ -11250,6 +11250,12 @@ components:
         password:
           type: string
           format: password
+        remember:
+          type: boolean
+          default: false
+          description: >-
+            Keep the session cookie for 14 days instead of until the browser
+            closes. Meant for a personal device.
     DefinePasswordRequest:
       type: object
       additionalProperties: false

@@ -23,6 +23,7 @@ export function LoginForm({
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<LoginError | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,7 +34,7 @@ export function LoginForm({
 
     try {
       const { response } = await withCsrfRetry(() =>
-        openSession({ ...authApiOptions(), body: { email, password } }),
+        openSession({ ...authApiOptions(), body: { email, password, remember } }),
       );
 
       if (!response) {
@@ -92,6 +93,15 @@ export function LoginForm({
         onChange={setPassword}
         disabled={disabled}
       />
+      <label className={styles.remember}>
+        <input
+          type="checkbox"
+          checked={remember}
+          onChange={(event) => setRemember(event.target.checked)}
+          disabled={disabled}
+        />
+        <span>{t('auth.login.remember')}</span>
+      </label>
 
       <button
         className={`primary-action ${styles.submit}`}

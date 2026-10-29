@@ -38,6 +38,7 @@
     "login": {
       "title": "Connexion",
       "description": "Saisissez vos identifiants pour accéder à votre espace.",
+      "remember": "Rester connecté 14 jours sur cet appareil",
       "submit": "Se connecter",
       "submitting": "Connexion…",
       "errors": {
