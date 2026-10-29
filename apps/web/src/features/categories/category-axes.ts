@@ -3,7 +3,7 @@ import type { CreateCategoryRequest } from '@cadran/api-client';
 export type AnalyticAxis = CreateCategoryRequest['defaultAnalyticAxes'][number];
 
 /** Display order of the axes: need first, then regularity, then usage. */
-export const ORDERED_AXES: readonly AnalyticAxis[] = [
+const ORDERED_AXES: readonly AnalyticAxis[] = [
   'ESSENTIAL',
   'DISCRETIONARY',
   'FIXED',
