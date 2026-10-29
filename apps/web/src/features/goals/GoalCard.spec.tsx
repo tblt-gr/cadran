@@ -125,8 +125,9 @@ describe('GoalCard', () => {
       <GoalCard goal={{ ...baseGoal, status }} onClose={noop} onDetail={noop} onEdit={noop} />,
     );
 
-    expect(screen.getByText('Cible')).toBeTruthy();
-    expect(screen.queryByText('Objectif à cette date')).toBeNull();
+    expect(screen.getByText(/Il manque 250,00\s€/)).toBeTruthy();
+    expect(screen.getByText('Ratio visé : 30,00 %')).toBeTruthy();
+    expect(screen.queryByText(/Objectif à cette date/)).toBeNull();
   });
 
   it('labels a rolling ceiling goal\'s second amount "Limite" rather than a cumulative expected amount', () => {
@@ -149,8 +150,8 @@ describe('GoalCard', () => {
       />,
     );
 
-    expect(screen.getByText('Limite')).toBeTruthy();
-    expect(screen.queryByText('Objectif à cette date')).toBeNull();
+    expect(screen.getByText(/Marge de 250,00\s€ avant le plafond/)).toBeTruthy();
+    expect(screen.queryByText(/Objectif à cette date/)).toBeNull();
   });
 
   it('labels the annual remaining row "Reste à atteindre" when excess is not calculable', () => {
@@ -190,8 +191,10 @@ describe('GoalCard', () => {
       <GoalCard goal={{ ...annualGoal, status }} onClose={noop} onDetail={noop} onEdit={noop} />,
     );
 
-    expect(screen.getByText('Reste à atteindre')).toBeTruthy();
-    expect(screen.queryByText('Au-delà de l’objectif')).toBeNull();
+    expect(
+      screen.getAllByTitle('Les politiques d’indicateurs diffèrent selon les mois').length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/d’excédent/)).toBeNull();
   });
 
   it('offers the monthly detail of an annual goal only when a detail handler is provided', () => {
@@ -228,16 +231,15 @@ describe('GoalCard', () => {
       },
       status,
     };
-    const { container, rerender } = render(
+    const { rerender } = render(
       <GoalCard goal={annual} onClose={noop} onDetail={noop} onEdit={noop} />,
     );
     expect(screen.getByRole('button', { name: 'Voir le détail mensuel' })).toBeTruthy();
     expect(screen.getByText('En avance')).toBeTruthy();
-    expect(
-      Array.from(container.querySelectorAll('strong.money')).filter((node) =>
-        node.textContent?.replace(/\s/g, '').startsWith('12000,00'),
-      ),
-    ).toHaveLength(1);
+    expect(screen.getAllByText(/12\s000,00/)).toHaveLength(1);
+    expect(screen.getByText(/Il manque 3\s000,00\s€/)).toBeTruthy();
+    expect(screen.getByText(/Objectif à cette date : 9\s000,00\s€/)).toBeTruthy();
+    expect(screen.getByTestId('gauge-marker').getAttribute('style')).toContain('left: 75%');
 
     rerender(<GoalCard goal={annual} onClose={noop} onEdit={noop} />);
     expect(screen.queryByRole('button', { name: 'Voir le détail mensuel' })).toBeNull();

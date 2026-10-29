@@ -61,10 +61,7 @@
   gap: var(--spacing-3);
 }
 .closedCard h3,
-.closedCard .value strong,
-.closedCard .progressAmount strong,
-.closedCard .statusFacts dd,
-.closedCard .progressFacts dd {
+.closedCard .amounts strong {
   color: var(--text-secondary);
 }
 .failedCard {
@@ -84,6 +81,13 @@
   align-items: flex-start;
   gap: var(--spacing-3);
 }
+.cardActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+}
 .goalIdentity {
   min-width: var(--spacing-none);
 }
@@ -102,80 +106,33 @@
   font-size: var(--font-size-label);
   white-space: nowrap;
 }
-.value {
+.position {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: var(--spacing-1);
 }
-.direction {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-.value strong {
-  color: var(--text-primary);
-  font-size: var(--font-size-card-title);
-  font-weight: var(--font-weight-strong);
-  line-height: var(--line-height-tight);
-  letter-spacing: var(--letter-spacing-kpi);
-}
-.progress,
-.statusFacts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-}
-.progress {
-  gap: var(--spacing-3);
-}
-.statusFacts dt,
-.progressFacts dt,
-.progressAmount span {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-.progressHeading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
-}
-.progressAmount {
-  display: flex;
-  flex-direction: column;
-  margin: var(--spacing-none);
-  gap: var(--spacing-1);
-}
-.progressAmount strong {
-  color: var(--text-primary);
-  font-size: var(--font-size-card-title);
-  font-weight: var(--font-weight-strong);
-  letter-spacing: var(--letter-spacing-kpi);
-}
-.progressLabel {
-  margin: var(--spacing-none);
-  color: var(--text-secondary);
-  font-size: var(--font-size-body);
-}
-.progressFacts {
-  display: grid;
-  margin: var(--spacing-none);
-  gap: var(--spacing-2);
-}
-.progressFacts > div {
+.amounts {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--spacing-1) var(--spacing-3);
+  gap: var(--spacing-1) var(--spacing-2);
 }
-.progressFacts dd {
-  margin: var(--spacing-none);
+.amounts strong {
   color: var(--text-primary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-kpi);
   font-weight: var(--font-weight-strong);
-  overflow-wrap: anywhere;
+  letter-spacing: var(--letter-spacing-kpi);
+}
+.separator,
+.required {
+  color: var(--text-secondary);
+  font-size: var(--font-size-kpi);
+}
+.gap,
+.caption {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
 }
 .statusHeading {
   display: flex;
@@ -186,13 +143,6 @@
   border-top: var(--border-line-subtle);
   gap: var(--spacing-2);
 }
-.statusActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-3);
-}
 .statusMonth {
   margin: var(--spacing-none);
   color: var(--text-secondary);
@@ -201,13 +151,6 @@
 .statusReason {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
-}
-.statusFacts {
-  margin: var(--spacing-none);
-}
-.statusFacts dd {
-  margin: var(--spacing-none);
-  font-weight: var(--font-weight-strong);
 }
 .statusTableWrap {
   overflow-x: auto;

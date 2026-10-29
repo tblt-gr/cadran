@@ -1,3 +1,7 @@
+.gauge {
+  position: relative;
+  width: 100%;
+}
 .track {
   overflow: hidden;
   width: 100%;
@@ -9,4 +13,12 @@
   height: 100%;
   border-radius: var(--radius-full);
   background: var(--gold-300);
+}
+.marker {
+  position: absolute;
+  inset-block: calc(var(--spacing-1) * -1);
+  width: var(--border-width-focus);
+  border-radius: var(--radius-full);
+  background: var(--text-primary);
+  transform: translateX(-50%);
 }

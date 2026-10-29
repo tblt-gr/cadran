@@ -3051,7 +3051,17 @@
     "filtersActive_one": "{{count}} filtre actif",
     "includeClosed": "Afficher les objectifs clôturés",
     "closedError": "Impossible de charger les objectifs clôturés",
-    "filtersActive_other": "{{count}} filtres actifs"
+    "filtersActive_other": "{{count}} filtres actifs",
+    "position": {
+      "label": "Cumul réalisé, puis objectif",
+      "shortfall": "Il manque {{amount}}",
+      "surplus": "{{amount}} d’excédent",
+      "reached": "Objectif atteint",
+      "ceilingMargin": "Marge de {{amount}} avant le plafond",
+      "ceilingOver": "Dépassement de {{amount}}",
+      "expected": "Objectif à cette date : {{amount}}",
+      "ratio": "Ratio visé : {{ratio}}"
+    }
   },
   "budget": {
     "year": {

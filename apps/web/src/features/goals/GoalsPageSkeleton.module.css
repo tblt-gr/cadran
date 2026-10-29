@@ -17,7 +17,7 @@
 
 .amount {
   width: 55%;
-  height: var(--font-size-metric);
+  height: var(--font-size-kpi);
 }
 
 .badge {
@@ -27,5 +27,5 @@
 
 .progress {
   width: 100%;
-  height: var(--spacing-8);
+  height: var(--spacing-2);
 }
