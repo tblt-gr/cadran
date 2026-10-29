@@ -42,12 +42,7 @@ export function HistoryVersion({ assetCode, item, initiallyOpen }: Props) {
         title={t('goals.history.versionValue', { version: item.versionNo })}
       >
         <div className={styles.details}>
-          <p className={styles.recorded}>
-            {t('goals.history.recordedBy', {
-              author: item.createdBy.displayName,
-              date: recordedOn,
-            })}
-          </p>
+          <p className={styles.recorded}>{t('goals.history.recordedOn', { date: recordedOn })}</p>
           {item.retroactive && item.reason ? (
             <p className={styles.recorded}>
               {t('goals.history.reasonLine', { reason: item.reason })}

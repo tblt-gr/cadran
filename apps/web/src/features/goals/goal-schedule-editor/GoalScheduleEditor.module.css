@@ -63,3 +63,20 @@
     grid-template-columns: 1fr;
   }
 }
+.linkAction {
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  color: var(--text-primary);
+  background: var(--color-transparent);
+  cursor: pointer;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+.linkAction:hover:not(:disabled),
+.linkAction:focus-visible {
+  text-decoration: underline;
+}
+.linkAction:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}

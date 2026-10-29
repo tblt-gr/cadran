@@ -48,3 +48,8 @@
 .check input {
   accent-color: var(--gold-300);
 }
+.period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}

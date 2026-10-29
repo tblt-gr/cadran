@@ -69,11 +69,11 @@ describe('GoalHistoryModal', () => {
     expect(screen.getAllByText('À partir de janvier 2026')).toHaveLength(2);
   });
 
-  it('flags a retroactive correction and shows its reason, author and day', () => {
+  it('flags a retroactive correction and shows its reason and day', () => {
     render(<GoalHistoryModal assetCode="EUR" close={vi.fn()} items={items} />);
     expect(screen.getByText('Rétroactive')).toBeTruthy();
     expect(screen.getByText('Motif : Montant confirmé')).toBeTruthy();
-    expect(screen.getAllByText(/Enregistrée par Owner le/)).toHaveLength(2);
+    expect(screen.getAllByText(/Enregistrée le/)).toHaveLength(2);
   });
 
   it('lists the recorded change of a version with before and after in words for assistive technology', () => {
@@ -89,7 +89,7 @@ describe('GoalHistoryModal', () => {
     render(<GoalHistoryModal assetCode="EUR" close={vi.fn()} items={items} />);
     const older = screen.getByText('Version 1').closest('details')!;
     fireEvent.click(within(older).getByText('Version 1'));
-    expect(screen.getAllByText(/Enregistrée par Owner le/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Enregistrée le/).length).toBeGreaterThan(0);
   });
 
   it('summarizes a custom schedule instead of listing twelve amounts', () => {

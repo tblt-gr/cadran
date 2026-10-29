@@ -204,31 +204,33 @@ export function GoalForm({
         </p>
       ) : null}
       <div className={styles.group}>
-        <label>
-          <span>{t('goals.label')}</span>
-          <input
-            aria-describedby={flag(labelValid) ? validationId : undefined}
-            aria-invalid={flag(labelValid)}
-            data-autofocus
-            maxLength={80}
-            onChange={(e) => setLabel(e.target.value)}
-            value={label}
-          />
-        </label>
-        <fieldset className={styles.radios} disabled={Boolean(goal)}>
-          <legend>{t('goals.kind')}</legend>
-          {(['ANNUAL', 'ROLLING_RATIO'] as GoalKind[]).map((choice) => (
-            <label key={choice}>
-              <input
-                checked={kind === choice}
-                name="kind"
-                onChange={() => changeKind(choice)}
-                type="radio"
-              />
-              <span>{t(`goals.kinds.${choice}`)}</span>
-            </label>
-          ))}
-        </fieldset>
+        <div className={styles.row}>
+          <label>
+            <span>{t('goals.label')}</span>
+            <input
+              aria-describedby={flag(labelValid) ? validationId : undefined}
+              aria-invalid={flag(labelValid)}
+              data-autofocus
+              maxLength={80}
+              onChange={(e) => setLabel(e.target.value)}
+              value={label}
+            />
+          </label>
+          <fieldset className={styles.radios} disabled={Boolean(goal)}>
+            <legend>{t('goals.kind')}</legend>
+            {(['ANNUAL', 'ROLLING_RATIO'] as GoalKind[]).map((choice) => (
+              <label key={choice}>
+                <input
+                  checked={kind === choice}
+                  name="kind"
+                  onChange={() => changeKind(choice)}
+                  type="radio"
+                />
+                <span>{t(`goals.kinds.${choice}`)}</span>
+              </label>
+            ))}
+          </fieldset>
+        </div>
       </div>
       <div className={styles.group}>
         <div className={styles.row}>

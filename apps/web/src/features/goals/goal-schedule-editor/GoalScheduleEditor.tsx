@@ -173,7 +173,7 @@ export function GoalScheduleEditor({ assetCode, disabled, onChange, targetAmount
           </div>
           <div className={styles.actions}>
             <button
-              className="secondary-action"
+              className={styles.linkAction}
               disabled={disabled || !targetValid || previewPending}
               onClick={() => void distributeLinearly()}
               type="button"

@@ -86,42 +86,44 @@ export function GoalFilters({
       {open ? (
         <Modal close={() => setOpen(false)} returnFocus={trigger} title={t('goals.filtersTitle')}>
           <div className={styles.fields}>
-            <label>
-              <span>{t('goals.year')}</span>
-              <input
-                aria-invalid={yearText !== String(year) ? true : undefined}
-                inputMode="numeric"
-                maxLength={4}
-                onChange={(event) => {
-                  setYearText(event.target.value);
-                  if (/^\d{4}$/.test(event.target.value)) {
-                    const next = Number.parseInt(event.target.value, 10);
-                    if (next >= 1900 && next <= 2999) onYearChange(next);
-                  }
-                }}
-                value={yearText}
-              />
-            </label>
-            <label>
-              <span>{t('goals.month')}</span>
-              <input
-                aria-invalid={monthText !== month ? true : undefined}
-                disabled={futureYear}
-                max={monthMax}
-                min={monthMin}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  if (isSelectableMonth(next, year, currentMonth)) {
-                    setMonthDraft(null);
-                    onMonthChange(next);
-                  } else {
-                    setMonthDraft({ text: next, over: month });
-                  }
-                }}
-                type="month"
-                value={monthText}
-              />
-            </label>
+            <div className={styles.period}>
+              <label>
+                <span>{t('goals.year')}</span>
+                <input
+                  aria-invalid={yearText !== String(year) ? true : undefined}
+                  inputMode="numeric"
+                  maxLength={4}
+                  onChange={(event) => {
+                    setYearText(event.target.value);
+                    if (/^\d{4}$/.test(event.target.value)) {
+                      const next = Number.parseInt(event.target.value, 10);
+                      if (next >= 1900 && next <= 2999) onYearChange(next);
+                    }
+                  }}
+                  value={yearText}
+                />
+              </label>
+              <label>
+                <span>{t('goals.month')}</span>
+                <input
+                  aria-invalid={monthText !== month ? true : undefined}
+                  disabled={futureYear}
+                  max={monthMax}
+                  min={monthMin}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    if (isSelectableMonth(next, year, currentMonth)) {
+                      setMonthDraft(null);
+                      onMonthChange(next);
+                    } else {
+                      setMonthDraft({ text: next, over: month });
+                    }
+                  }}
+                  type="month"
+                  value={monthText}
+                />
+              </label>
+            </div>
             <label className={styles.check}>
               <input
                 checked={includeClosed}

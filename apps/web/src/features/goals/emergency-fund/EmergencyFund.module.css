@@ -130,7 +130,7 @@
   flex-direction: column;
   gap: var(--spacing-4);
 }
-.form > label {
+.group > label {
   display: flex;
   align-items: flex-start;
   flex-direction: column;
@@ -139,10 +139,19 @@
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-semibold);
 }
-.form > label input {
+.group > label input {
   width: auto;
   max-width: 100%;
   font-weight: var(--font-weight-normal);
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.group + .group {
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
 }
 .submit {
   align-self: flex-end;

@@ -2926,10 +2926,10 @@
         "schedule": "Calendrier mensuel"
       },
       "appliesFrom": "À partir de {{month}}",
-      "recordedBy": "Enregistrée par {{author}} le {{date}}",
       "reasonLine": "Motif : {{reason}}",
       "customSchedule": "Répartition personnalisée",
-      "month": "Mois"
+      "month": "Mois",
+      "recordedOn": "Enregistrée le {{date}}"
     },
     "schedule": {
       "legend": "Calendrier mensuel",
