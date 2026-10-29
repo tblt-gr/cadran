@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatCalendarDay } from '@/lib/decimal';
-import { formatFigure } from './formatFigure';
+import { formatCeiledFigure, formatFigure } from './formatFigure';
 import { formatGoalMonth } from '@/features/goals/goalMonth';
 import styles from './EmergencyFund.module.css';
 import { monthHref } from '@/features/budget/monthly-budget/budgetPeriod';
@@ -21,11 +21,7 @@ export function EmergencyFundExplainModal({ close, coverage }: Props) {
   const { reference } = coverage;
   const excluded = new Map(reference.excludedMonths.map((entry) => [entry.month, entry.reason]));
   return (
-    <Modal
-      close={close}
-      eyebrow={t('goals.emergencyFund.eyebrow')}
-      title={t('goals.emergencyFund.explainTitle')}
-    >
+    <Modal close={close} title={t('goals.emergencyFund.explainTitle')}>
       <div className={styles.explain}>
         <section aria-labelledby="emergency-fund-accounts">
           <h3 id="emergency-fund-accounts">{t('goals.emergencyFund.accountsTitle')}</h3>
@@ -89,7 +85,7 @@ export function EmergencyFundExplainModal({ close, coverage }: Props) {
               <EmptyValue label={t('goals.noData')} />
             ) : (
               t('goals.emergencyFund.average', {
-                amount: formatFigure(reference.average, reference.assetCode, i18n.language),
+                amount: formatCeiledFigure(reference.average, reference.assetCode, i18n.language),
               })
             )}
           </p>

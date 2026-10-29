@@ -2,16 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './GoalsPage.module.css';
 
-export type GoalListState = 'active' | 'closed';
 interface Props {
   year: number;
   month: string;
   /** The current workspace-local month (`YYYY-MM`), used to cap the month picker. */
   currentMonth: string;
-  state: GoalListState;
   onYearChange: (year: number) => void;
   onMonthChange: (month: string) => void;
-  onStateChange: (state: GoalListState) => void;
 }
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -25,15 +22,7 @@ function isSelectableMonth(value: string, year: number, currentMonth: string): b
 }
 
 /** The year only reaches the query once it is a plausible four-digit year; until then it is flagged. */
-export function GoalFilters({
-  year,
-  month,
-  currentMonth,
-  state,
-  onYearChange,
-  onMonthChange,
-  onStateChange,
-}: Props) {
+export function GoalFilters({ year, month, currentMonth, onYearChange, onMonthChange }: Props) {
   const { t } = useTranslation();
   const [yearText, setYearText] = useState(String(year));
   // The rejected entry is tied to the month it was typed over, so a year change that resets the
@@ -83,20 +72,6 @@ export function GoalFilters({
           value={monthText}
         />
       </label>
-      <fieldset>
-        <legend>{t('goals.state')}</legend>
-        {(['active', 'closed'] as const).map((choice) => (
-          <label key={choice}>
-            <input
-              checked={state === choice}
-              name="goal-state"
-              onChange={() => onStateChange(choice)}
-              type="radio"
-            />
-            {t(`goals.${choice}`)}
-          </label>
-        ))}
-      </fieldset>
     </section>
   );
 }

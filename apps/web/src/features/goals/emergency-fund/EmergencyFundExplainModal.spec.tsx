@@ -33,6 +33,15 @@ describe('EmergencyFundExplainModal', () => {
     expect(screen.getAllByText(/2\s100,00\s€/).length).toBeGreaterThan(0);
   });
 
+  it('rounds the reference average up to the whole unit', () => {
+    const coverage = {
+      ...coverageShortfall,
+      reference: { ...coverageShortfall.reference, average: '1056.88' },
+    };
+    render(<EmergencyFundExplainModal close={() => {}} coverage={coverage} />);
+    expect(screen.getByText(/moyenne 1\s057\s€/)).toBeTruthy();
+  });
+
   it('labels each reference month as used or excluded with its reason and links it to the budget', () => {
     const coverage = {
       ...coverageShortfall,

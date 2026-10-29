@@ -165,7 +165,7 @@ export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError
           </small>
         ) : null}
       </label>
-      <button className="primary-action" disabled={pending} type="submit">
+      <button className={`primary-action ${styles.submit}`} disabled={pending} type="submit">
         {t('goals.emergencyFund.save')}
       </button>
     </form>

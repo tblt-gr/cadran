@@ -1,15 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import styles from './EmergencyFund.module.css';
 import skeletonStyles from './EmergencyFundCardSkeleton.module.css';
 
-const FACTS = [
-  'goals.emergencyFund.liquid',
-  'goals.emergencyFund.required',
-  'goals.emergencyFund.gap',
-] as const;
-
-/** Mirrors EmergencyFundCard element for element: heading, buttons and fact labels are real; figures pending. */
+/** Mirrors EmergencyFundCard element for element: title and buttons are real; figures pending. */
 export function EmergencyFundCardSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   return (
@@ -20,36 +15,40 @@ export function EmergencyFundCardSkeleton({ status }: { status: string }) {
     >
       <SkeletonStatus>{status}</SkeletonStatus>
       <div className={styles.heading}>
-        <div>
-          <p className={styles.eyebrow}>{t('goals.emergencyFund.eyebrow')}</p>
-          <h3>{t('goals.emergencyFund.title')}</h3>
-        </div>
+        <h3>{t('goals.emergencyFund.title')}</h3>
         <div className={styles.actions}>
-          <button className="secondary-action" disabled type="button">
-            {t('goals.emergencyFund.explain')}
+          <button
+            aria-label={t('goals.emergencyFund.explain')}
+            className="icon-ghost"
+            disabled
+            type="button"
+          >
+            <Icon name="info" size={18} />
           </button>
-          <button className="secondary-action" disabled type="button">
-            {t('goals.emergencyFund.editPolicy')}
+          <button
+            aria-label={t('goals.emergencyFund.editPolicy')}
+            className="icon-ghost"
+            disabled
+            type="button"
+          >
+            <Icon name="settings" size={18} />
           </button>
         </div>
       </div>
-      <p className={styles.covered}>
-        <SkeletonBlock className={skeletonStyles.covered} />
-      </p>
-      <div className={styles.meter}>
-        <SkeletonBlock className={skeletonStyles.fact} />
-        <SkeletonBlock className={skeletonStyles.meter} />
+      <div className={styles.position}>
+        <p className={styles.amounts}>
+          <strong className="money">
+            <SkeletonBlock className={skeletonStyles.amount} />
+          </strong>
+        </p>
+        <p className={styles.gap}>
+          <SkeletonBlock className={skeletonStyles.fact} />
+        </p>
       </div>
-      <dl className={styles.facts}>
-        {FACTS.map((fact) => (
-          <div key={fact}>
-            <dt>{t(fact)}</dt>
-            <dd>
-              <SkeletonBlock className={skeletonStyles.fact} />
-            </dd>
-          </div>
-        ))}
-      </dl>
+      <SkeletonBlock className={skeletonStyles.meter} />
+      <p className={styles.coverage}>
+        <SkeletonBlock className={skeletonStyles.fact} />
+      </p>
     </article>
   );
 }

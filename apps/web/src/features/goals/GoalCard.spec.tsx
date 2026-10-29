@@ -271,4 +271,28 @@ describe('GoalCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Historique de l’objectif « Épargne »' }));
     expect(onHistory).toHaveBeenCalledOnce();
   });
+
+  it('flags a closed goal that missed its target and leaves an open or met one unflagged', () => {
+    const missed = { ...notCalculableRollingStatus, status: 'MISSED' as const };
+    const { container, rerender } = render(
+      <GoalCard
+        goal={{ ...baseGoal, state: 'CLOSED', status: missed }}
+        onClose={noop}
+        onEdit={noop}
+      />,
+    );
+    expect(container.querySelector('[data-failed="true"]')).not.toBeNull();
+
+    rerender(<GoalCard goal={{ ...baseGoal, status: missed }} onClose={noop} onEdit={noop} />);
+    expect(container.querySelector('[data-failed]')).toBeNull();
+
+    rerender(
+      <GoalCard
+        goal={{ ...baseGoal, state: 'CLOSED', status: { ...missed, status: 'MET' } }}
+        onClose={noop}
+        onEdit={noop}
+      />,
+    );
+    expect(container.querySelector('[data-failed]')).toBeNull();
+  });
 });

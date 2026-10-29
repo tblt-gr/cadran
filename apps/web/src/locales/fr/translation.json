@@ -2757,14 +2757,9 @@
     "add": "Nouvel objectif",
     "filters": "Filtres des objectifs",
     "year": "Année",
-    "state": "État",
-    "active": "Actifs",
-    "closed": "Clôturés",
     "loading": "Chargement des objectifs…",
     "error": "Impossible de charger les objectifs",
     "unauthorized": "Session expirée",
-    "empty": "Aucun objectif actif pour cette année",
-    "emptyClosed": "Aucun objectif clôturé pour cette année",
     "list": "Liste des objectifs",
     "month": "Mois",
     "achievedThisMonth": "Réalisé ce mois",
@@ -2977,8 +2972,7 @@
       }
     },
     "emergencyFund": {
-      "eyebrow": "Fonds d’urgence",
-      "title": "Couverture en mois de dépenses essentielles",
+      "title": "Fonds d’urgence",
       "loading": "Chargement du fonds d’urgence…",
       "error": "Impossible de charger le fonds d’urgence",
       "explain": "Voir le calcul",
@@ -2986,15 +2980,11 @@
       "empty": "Aucun compte n’est inclus dans le fonds d’urgence. Cochez cette option sur un compte pour l’y compter.",
       "manageAccounts": "Gérer les comptes",
       "months": "{{value}} mois",
-      "target": "objectif {{value}} mois",
       "meterLabel": "{{value}} mois couverts sur {{target}}",
       "notCalculable": "Non calculable",
       "stale": "Ancienne valorisation",
-      "liquid": "Liquidités éligibles",
-      "required": "Montant requis",
-      "gap": "Écart à l’objectif",
       "gapShortfall": "Il manque {{amount}}",
-      "gapSurplus": "Excédent de {{amount}}",
+      "gapSurplus": "{{amount}} d’excédent",
       "gapReached": "Objectif atteint",
       "missingValuation": "Sans valorisation",
       "reasons": {
@@ -3057,8 +3047,14 @@
         "invalid": "La politique est refusée : vérifiez les catégories et les valeurs saisies.",
         "invalid_emergency_fund_category": "Une catégorie choisie n’est pas éligible : seules les catégories de dépense actives et incluses au budget peuvent être retenues.",
         "emergency_fund_scope_too_large": "L’espace contient trop de comptes ou de catégories pour calculer le fonds d’urgence."
-      }
-    }
+      },
+      "coverageOf": "de dépenses essentielles couverts, pour {{target}} mois visés",
+      "positionLabel": "Montant mis de côté, puis montant requis"
+    },
+    "filtersOpen": "Filtres d’état des objectifs",
+    "filtersTitle": "Filtres",
+    "filtersActive": "1 filtre actif",
+    "includeClosed": "Afficher les objectifs clôturés"
   },
   "budget": {
     "year": {

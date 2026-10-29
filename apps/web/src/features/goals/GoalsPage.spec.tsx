@@ -232,7 +232,7 @@ describe('GoalsPage', () => {
     expect(screen.getByTitle('Une valeur mensuelle est manquante')).toBeTruthy();
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
   });
-  it('switches to closed goals and opens the close confirmation from the accessible action menu', async () => {
+  it('opens the close confirmation from the accessible action menu', async () => {
     mockSession();
     api.listGoals.mockImplementation(({ query }) =>
       ok({ items: query.state === 'closed' ? [] : [goal] }),
@@ -242,10 +242,31 @@ describe('GoalsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Actions de l’objectif « Épargne »' }));
     fireEvent.click(screen.getByRole('button', { name: 'Clôturer l’objectif « Épargne »' }));
     expect(screen.getByRole('dialog', { name: 'Clôturer l’objectif' })).toBeTruthy();
-    fireEvent.click(screen.getByLabelText('Clôturés'));
-    expect(
-      await screen.findByRole('heading', { name: 'Aucun objectif clôturé pour cette année' }),
-    ).toBeTruthy();
+  });
+  it('lists closed goals after the active ones once the header filter asks for them', async () => {
+    mockSession();
+    api.listGoals.mockImplementation(({ query }) =>
+      ok({
+        items:
+          query.state === 'closed'
+            ? [{ ...goal, id: 'closed-1', label: 'Voyage', state: 'CLOSED' as const }]
+            : [goal],
+      }),
+    );
+    renderPage();
+    expect(await screen.findByText('Épargne')).toBeTruthy();
+    expect(screen.queryByText('Voyage')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres d’état des objectifs' }));
+    fireEvent.click(screen.getByLabelText('Afficher les objectifs clôturés'));
+    expect(await screen.findByText('Voyage')).toBeTruthy();
+  });
+  it('shows neither a title nor an empty message when a year has no goal', async () => {
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [] }));
+    renderPage();
+    await waitFor(() => expect(screen.queryByTestId('goals-skeleton')).toBeNull());
+    expect(screen.queryByText(/Aucun objectif/)).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Liste des objectifs' })).toBeNull();
   });
   it('marks a closed goal and keeps its history action available', async () => {
     mockSession();

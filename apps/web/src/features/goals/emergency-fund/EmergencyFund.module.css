@@ -10,36 +10,46 @@
 }
 .heading {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--spacing-3);
 }
-.eyebrow {
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
-}
 .actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
 }
-.covered {
+.card h3,
+.explain h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-card);
+}
+.position {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.amounts {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: var(--spacing-1) var(--spacing-3);
+  gap: var(--spacing-1) var(--spacing-2);
 }
-.covered strong {
+.amounts strong {
   color: var(--text-primary);
   font-size: var(--font-size-kpi);
   font-weight: var(--font-weight-strong);
   letter-spacing: var(--letter-spacing-kpi);
 }
-.covered span,
+.separator,
+.required {
+  color: var(--text-secondary);
+  font-size: var(--font-size-kpi);
+}
+.gap,
+.coverage span,
 .hint,
 .reason,
 .empty p {
@@ -47,47 +57,22 @@
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
 }
+.coverage {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+.coverage strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-strong);
+}
 .empty {
   display: flex;
   align-items: flex-start;
   flex-direction: column;
   gap: var(--spacing-3);
-}
-.meter {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-}
-.meter label {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-.meter meter {
-  width: 100%;
-  height: var(--spacing-3);
-}
-.facts {
-  display: grid;
-  margin: var(--spacing-none);
-  gap: var(--spacing-2);
-}
-.facts > div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--spacing-1) var(--spacing-3);
-}
-.facts dt {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-.facts dd {
-  margin: var(--spacing-none);
-  color: var(--text-primary);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-strong);
-  overflow-wrap: anywhere;
 }
 .explain {
   display: flex;
@@ -98,6 +83,17 @@
   margin: var(--spacing-2) var(--spacing-none);
   color: var(--text-secondary);
   font-size: var(--font-size-body);
+}
+.table td {
+  color: var(--text-secondary);
+}
+.table a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.table a:hover,
+.table a:focus-visible {
+  text-decoration: underline;
 }
 .tableWrap {
   overflow-x: auto;
@@ -131,10 +127,21 @@
 }
 .form > label {
   display: flex;
+  align-items: flex-start;
   flex-direction: column;
   gap: var(--spacing-1-5);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+.form > label input {
+  width: auto;
+  max-width: 100%;
+  font-weight: var(--font-weight-normal);
+}
+.submit {
+  align-self: flex-end;
+  width: fit-content;
 }
 .radios,
 .radios label {
@@ -147,11 +154,18 @@
   border: var(--border-none);
 }
 .radios legend {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
+  margin-bottom: var(--spacing-2);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
 }
 .radios label {
   align-items: center;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+}
+.radios input {
+  accent-color: var(--gold-300);
 }
 .categories {
   display: flex;
@@ -185,10 +199,4 @@
 }
 .fieldError {
   font-size: var(--font-size-xs);
-}
-@media (max-width: 42rem) {
-  .actions,
-  .actions > * {
-    width: 100%;
-  }
 }

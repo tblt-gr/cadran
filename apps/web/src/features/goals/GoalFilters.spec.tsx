@@ -12,9 +12,7 @@ describe('GoalFilters', () => {
         currentMonth="2026-09"
         month="2026-09"
         onMonthChange={() => {}}
-        onStateChange={() => {}}
         onYearChange={() => {}}
-        state="active"
         year={2026}
       />,
     );
@@ -30,9 +28,7 @@ describe('GoalFilters', () => {
         currentMonth="2026-09"
         month="2024-12"
         onMonthChange={() => {}}
-        onStateChange={() => {}}
         onYearChange={() => {}}
-        state="active"
         year={2024}
       />,
     );
@@ -48,9 +44,7 @@ describe('GoalFilters', () => {
         currentMonth="2026-09"
         month="2027-01"
         onMonthChange={() => {}}
-        onStateChange={() => {}}
         onYearChange={() => {}}
-        state="active"
         year={2027}
       />,
     );

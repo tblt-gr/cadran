@@ -70,12 +70,13 @@ describe('EmergencyFundCard', () => {
     api.readEmergencyFundCoverage.mockImplementation(() => ok(coverageShortfall));
     renderCard();
     expect(await screen.findByText('4,9 mois')).toBeTruthy();
-    expect(screen.getByText(/objectif 6 mois/i)).toBeTruthy();
-    expect(screen.getByText(/12\s600,00\s€/)).toBeTruthy();
+    expect(screen.getByText(/pour 6 mois visés/i)).toBeTruthy();
+    expect(screen.getByText(/10\s260,00\s€/)).toBeTruthy();
+    expect(screen.getByText(/12\s600\s€/)).toBeTruthy();
     expect(screen.getByText(/Il manque 2\s340,00\s€/)).toBeTruthy();
     const meter = screen.getByRole('meter');
-    expect(meter.getAttribute('max')).toBe('6');
-    expect(meter.getAttribute('value')).toBe('4.9');
+    expect(meter.getAttribute('aria-valuemax')).toBe('6');
+    expect(meter.getAttribute('aria-valuenow')).toBe('4.9');
   });
 
   it('flags a stale valuation while still showing the figure', async () => {
@@ -89,7 +90,7 @@ describe('EmergencyFundCard', () => {
       ok({ ...coverageShortfall, gap: '500.00', reason: null, quality: 'COMPLETE' }),
     );
     renderCard();
-    expect(await screen.findByText(/Excédent de 500,00\s€/)).toBeTruthy();
+    expect(await screen.findByText(/500,00\s€ d’excédent/)).toBeTruthy();
   });
 
   it('never shows a shortfall for an exactly reached target', async () => {
@@ -190,7 +191,7 @@ describe('EmergencyFundCard', () => {
     );
     renderCard();
     await screen.findByText('4,9 mois');
-    expect(screen.getByText(/12\s600,00\s€/)).toBeTruthy();
+    expect(screen.getByText(/12\s600\s€/)).toBeTruthy();
     expect(screen.getByText(/Il manque 2\s340,00\s€/)).toBeTruthy();
     expect(screen.getByText(/10\s260,00\s\$US/)).toBeTruthy();
   });

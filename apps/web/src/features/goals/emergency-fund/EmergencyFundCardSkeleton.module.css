@@ -1,11 +1,11 @@
-.covered {
-  width: 40%;
-  height: var(--font-size-metric);
+.amount {
+  width: 55%;
+  height: var(--font-size-kpi);
 }
 
 .meter {
   width: 100%;
-  height: var(--spacing-4);
+  height: var(--spacing-2);
 }
 
 .fact {

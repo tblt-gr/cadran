@@ -67,6 +67,20 @@
   flex-direction: column;
   gap: var(--spacing-3);
 }
+.closedCard h3,
+.closedCard .value strong,
+.closedCard .progressAmount strong,
+.closedCard .statusFacts dd,
+.closedCard .progressFacts dd {
+  color: var(--text-secondary);
+}
+.failedCard {
+  border-color: var(--negative-soft);
+  background: linear-gradient(var(--negative-soft), var(--negative-soft)), var(--bg-surface-1);
+}
+.failedCard h3 {
+  color: var(--negative);
+}
 .metric {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
@@ -105,7 +119,7 @@
 }
 .value strong {
   color: var(--text-primary);
-  font-size: var(--font-size-metric);
+  font-size: var(--font-size-kpi);
   font-weight: var(--font-weight-strong);
   line-height: var(--line-height-tight);
   letter-spacing: var(--letter-spacing-kpi);
@@ -144,7 +158,7 @@
 }
 .progressAmount strong {
   color: var(--text-primary);
-  font-size: var(--font-size-metric);
+  font-size: var(--font-size-kpi);
   font-weight: var(--font-weight-strong);
   letter-spacing: var(--letter-spacing-kpi);
 }

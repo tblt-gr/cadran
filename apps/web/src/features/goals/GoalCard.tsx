@@ -11,6 +11,8 @@ import { GoalStatusBadge } from './GoalStatusBadge';
 import { formatGoalMonth } from './goalMonth';
 import styles from './GoalsPage.module.css';
 
+const FAILED_STATUSES: readonly string[] = ['BEHIND', 'EXCEEDED', 'OVER_PACE', 'MISSED', 'OVER'];
+
 function isExactZero(value: string | null): boolean {
   return value !== null && /^-?0(?:\.0+)?$/.test(value);
 }
@@ -38,8 +40,13 @@ export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) 
       : null;
   const closed = goal.state === 'CLOSED';
   const status = goal.status;
+  // A closed goal fades back; one that closed without meeting its target keeps a discreet red edge.
+  const failed = closed && Boolean(status) && FAILED_STATUSES.includes(status!.status);
   return (
-    <article className={`card ${styles.goalCard}`}>
+    <article
+      className={`card ${styles.goalCard} ${closed ? styles.closedCard : ''} ${failed ? styles.failedCard : ''}`}
+      data-failed={failed || undefined}
+    >
       <div className={styles.cardHeading}>
         <div className={styles.goalIdentity}>
           <h3

@@ -1,0 +1,30 @@
+.trigger {
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  top: calc(var(--spacing-1) * -1);
+  right: calc(var(--spacing-1) * -1);
+  min-width: var(--spacing-4);
+  padding: var(--spacing-none) var(--spacing-1);
+  border-radius: var(--radius-full);
+  color: var(--text-on-primary);
+  background: var(--gold-300);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--spacing-4);
+  text-align: center;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  gap: var(--spacing-2);
+}
+
+.field input {
+  accent-color: var(--gold-300);
+}
