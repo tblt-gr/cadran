@@ -75,7 +75,7 @@ final class ReadEmergencyFundCoverageTest extends TestCase
     public function testReferenceSixAParentCategoryIncludesItsDescendantsWithoutCountingThemTwice(): void
     {
         $policy = EmergencyFundPolicy::default(WorkspaceFixture::own())->revise(EssentialMode::CATEGORIES, [self::PARENT, self::CHILD], ReferenceMode::PREVIOUS_YEAR, null, DecimalValue::fromString('6'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID);
-        $cells = ['category:'.self::PARENT => '100.00', 'category:'.self::CHILD => '50.00', 'category:'.self::OTHER => '999.00'];
+        $cells = ['ownCategory:'.self::PARENT => '100.00', 'ownCategory:'.self::CHILD => '50.00', 'ownCategory:'.self::OTHER => '999.00'];
         $months = self::months(2025, 1, 12, $cells, [self::PARENT, self::CHILD, self::OTHER]);
 
         $view = $this->reader($policy, $months, new FixedLiquidAccounts([self::account('900.00')]))(null);

@@ -9,9 +9,14 @@ use App\Module\Accounts\Application\NetWorthView;
 use App\Module\Reporting\Application\MetricPolicyReference;
 use App\Module\Reporting\Application\MonthlyMetricView;
 use App\Module\Reporting\Application\MonthlyProjectionView;
+use App\Module\Reporting\Application\MonthlyRecapCategoryView;
 
 final class MonthlyProjectionFixture
 {
+    /**
+     * @param list<MonthlyRecapCategoryView>      $categoryMetrics
+     * @param list<MonthlyRecapCategoryView>|null $categoryRollups
+     */
     public static function view(string $month, string $cashIncome = '2000', int $policyVersion = 1, array $categoryMetrics = [], ?array $categoryRollups = null): MonthlyProjectionView
     {
         $income = new MonthlyMetricView($cashIncome, 'EUR', null);
