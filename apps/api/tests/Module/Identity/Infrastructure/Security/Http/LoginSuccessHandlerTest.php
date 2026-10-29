@@ -5,22 +5,22 @@ declare(strict_types=1);
 namespace App\Tests\Module\Identity\Infrastructure\Security\Http;
 
 use App\Module\Identity\Infrastructure\Security\Http\LoginSuccessHandler;
+use App\Module\Identity\Infrastructure\Security\Http\RememberedSessionCookie;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
 final class LoginSuccessHandlerTest extends TestCase
 {
-    public function testARememberedLoginRenewsTheSessionWithAFourteenDayCookie(): void
+    public function testARememberedLoginFlagsTheRequestSoTheCookieGetsALifetime(): void
     {
-        $session = $this->createMock(SessionInterface::class);
-        $session->expects(self::once())->method('migrate')->with(true, 1209600);
+        $request = $this->request('{"remember":true}');
 
-        $response = (new LoginSuccessHandler())->onAuthenticationSuccess($this->request('{"remember":true}', $session), $this->token());
+        $response = (new LoginSuccessHandler())->onAuthenticationSuccess($request, $this->token());
 
         self::assertSame(204, $response->getStatusCode());
+        self::assertTrue($request->attributes->get(RememberedSessionCookie::REQUEST_ATTRIBUTE));
     }
 
     /**
@@ -37,20 +37,17 @@ final class LoginSuccessHandlerTest extends TestCase
     #[DataProvider('bodiesThatDoNotOptIn')]
     public function testAnyOtherLoginKeepsTheBrowserSessionCookie(string $body): void
     {
-        $session = $this->createMock(SessionInterface::class);
-        $session->expects(self::never())->method('migrate');
+        $request = $this->request($body);
 
-        $response = (new LoginSuccessHandler())->onAuthenticationSuccess($this->request($body, $session), $this->token());
+        $response = (new LoginSuccessHandler())->onAuthenticationSuccess($request, $this->token());
 
         self::assertSame(204, $response->getStatusCode());
+        self::assertFalse($request->attributes->has(RememberedSessionCookie::REQUEST_ATTRIBUTE));
     }
 
-    private function request(string $body, SessionInterface $session): Request
+    private function request(string $body): Request
     {
-        $request = Request::create('/api/v1/session', 'POST', content: $body);
-        $request->setSession($session);
-
-        return $request;
+        return Request::create('/api/v1/session', 'POST', content: $body);
     }
 
     private function token(): TokenInterface
