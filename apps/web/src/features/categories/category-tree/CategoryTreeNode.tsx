@@ -3,6 +3,7 @@ import type { CategoryDialogOperation } from '@/features/categories/category-lif
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
+import { sortAxes } from '@/features/categories/category-axes';
 import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
 import { CategoryRedirection } from './category-redirection/CategoryRedirection';
 import type { TreeNode } from '@/lib/tree/buildTree';
@@ -28,7 +29,9 @@ export function CategoryTreeNode({
   const childrenId = useId();
   const { item: category, children } = node;
   const archived = category.archivedAt !== null;
-  const axes = category.defaultAnalyticAxes.map((axis) => t(`categories.axes.${axis}`)).join(', ');
+  const axes = sortAxes(category.defaultAnalyticAxes)
+    .map((axis) => t(`categories.axes.${axis}`))
+    .join(', ');
 
   return (
     <li className={styles.node}>

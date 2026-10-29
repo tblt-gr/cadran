@@ -6,6 +6,7 @@ import type {
 } from '@cadran/api-client';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { sortAxes } from '@/features/categories/category-axes';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
 import { CategoryColorPicker } from '@/features/categories/category-color-picker/CategoryColorPicker';
 import { CategoryIconPicker } from '@/features/categories/category-icon-picker/CategoryIconPicker';
@@ -55,7 +56,9 @@ export function CategoryForm({
 
   function toggleAxis(axis: AnalyticAxis) {
     setAxes((current) =>
-      current.includes(axis) ? current.filter((value) => value !== axis) : [...current, axis],
+      sortAxes(
+        current.includes(axis) ? current.filter((value) => value !== axis) : [...current, axis],
+      ),
     );
   }
 
