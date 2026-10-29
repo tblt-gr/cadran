@@ -40,7 +40,7 @@ final class EmergencyFundCalculator
             AggregateReason::EMPTY_POPULATION => 'NO_REFERENCE_MONTH',
             default => $aggregate->averageReason->value,
         };
-        $requiredAsset = $fixed?->assetCode ?? $aggregate->asset?->toString();
+        $requiredAsset = $fixed->assetCode ?? $aggregate->asset?->toString();
         $comparable = null === $liquidAsset || null === $requiredAsset || $requiredAsset === $liquidAsset;
         $required = null !== $fixed
             ? $fixed->amount
