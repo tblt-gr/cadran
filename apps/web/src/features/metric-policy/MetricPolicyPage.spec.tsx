@@ -128,9 +128,8 @@ describe('MetricPolicyPage', () => {
 
     expect(await screen.findByText('Aucune version personnalisée pour le moment.')).toBeTruthy();
     const row = screen.getByRole('row', { name: /Définition de trésorerie/ });
-    expect(
-      within(row).getByRole('button', { name: 'Activer la version 1' }).hasAttribute('disabled'),
-    ).toBe(true);
+    expect(within(row).getByText('Active')).toBeTruthy();
+    expect(within(row).queryByRole('button', { name: 'Activer la version 1' })).toBeNull();
   });
 
   it('offers a retry on error and no retry when unauthorized', async () => {

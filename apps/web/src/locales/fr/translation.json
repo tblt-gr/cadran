@@ -3429,6 +3429,7 @@
       "createdAt": "Créée le",
       "action": "Action",
       "builtIn": "Intégrée",
+      "active": "Active",
       "activate": "Activer la version {{version}}",
       "activateShort": "Activer"
     },
