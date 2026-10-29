@@ -14,7 +14,10 @@ use App\Module\Accounts\Application\NetWorthContributionView;
 final readonly class MonthFigures
 {
     /** Bumped whenever the payload layout changes; a snapshot of another version is recaptured. */
-    public const int SCHEMA_VERSION = 1;
+    public const int SCHEMA_VERSION = 2;
+
+    /** Prefix of the cells holding a category's own movements, without its descendants. */
+    public const string OWN_CATEGORY_PREFIX = 'ownCategory:';
 
     /** Column ids read straight from a KPI of the projection. */
     public const array KPI_IDS = [
@@ -52,8 +55,14 @@ final readonly class MonthFigures
         foreach ($projection->expensesByAxis as $axis => $metric) {
             $cells['axis:'.$axis] = $metric;
         }
-        foreach ($projection->categoryMetrics as $category) {
+        // A category column covers the category and its descendants, so a parent never reads empty.
+        // The own-movement cell stays apart: the top categories chart lists parents and children side
+        // by side and must not count a movement twice.
+        foreach ($projection->recapCategories() as $category) {
             $cells['category:'.$category->id] = $category->metric;
+        }
+        foreach ($projection->categoryMetrics as $category) {
+            $cells[self::OWN_CATEGORY_PREFIX.$category->id] = $category->metric;
         }
         foreach ($projection->accounts as $account) {
             $end = $account->endValue;

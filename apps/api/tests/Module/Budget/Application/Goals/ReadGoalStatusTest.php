@@ -375,7 +375,7 @@ final class ReadGoalStatusTest extends TestCase
     {
         // Reference 2500 x 0.10 = 250 target; 300.00 spent: gap 50, over the ceiling, the archive only warns.
         $months = self::referenceIncomes('2500.00');
-        $months[] = self::monthWith(2026, 9, MonthState::PROVISIONAL, ['budgetExpenses' => '300.00', 'category:'.self::CATEGORY_ID => '300.00'], [self::CATEGORY_ID]);
+        $months[] = self::monthWith(2026, 9, MonthState::PROVISIONAL, ['budgetExpenses' => '300.00', 'ownCategory:'.self::CATEGORY_ID => '300.00'], [self::CATEGORY_ID]);
         $categories = new InMemoryCategoryRepository();
         $categories->add(self::category(self::CATEGORY_ID, null, WorkspaceFixture::own(), new \DateTimeImmutable('2026-06-01')));
         $goal = self::goal(GoalKind::ROLLING_RATIO, GoalMetric::CATEGORY_SPENDING, GoalScopeType::CATEGORY, self::CATEGORY_ID);
@@ -403,8 +403,8 @@ final class ReadGoalStatusTest extends TestCase
         $categories->add(self::category($foreignChild, self::CATEGORY_ID, WorkspaceFixture::other()));
         $ids = [self::CATEGORY_ID, $child, $sibling, $foreignChild];
         $months = [
-            self::monthWith(2026, 1, MonthState::COMPLETE, ['budgetExpenses' => '1500.00', 'category:'.self::CATEGORY_ID => '40.10', 'category:'.$child => '9.905000000000000000000001', 'category:'.$sibling => '999.00', 'category:'.$foreignChild => '450.00'], $ids),
-            self::monthWith(2026, 2, MonthState::COMPLETE, ['budgetExpenses' => '10.00', 'category:'.self::CATEGORY_ID => '10.00', 'category:'.$child => null], $ids),
+            self::monthWith(2026, 1, MonthState::COMPLETE, ['budgetExpenses' => '1500.00', 'ownCategory:'.self::CATEGORY_ID => '40.10', 'ownCategory:'.$child => '9.905000000000000000000001', 'ownCategory:'.$sibling => '999.00', 'ownCategory:'.$foreignChild => '450.00'], $ids),
+            self::monthWith(2026, 2, MonthState::COMPLETE, ['budgetExpenses' => '10.00', 'ownCategory:'.self::CATEGORY_ID => '10.00', 'ownCategory:'.$child => null], $ids),
         ];
         $goal = self::goal(GoalKind::ANNUAL, GoalMetric::CATEGORY_SPENDING, GoalScopeType::CATEGORY, self::CATEGORY_ID);
 

@@ -13,6 +13,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Reporting\Application\AnnualColumnSeries;
 use App\Module\Reporting\Application\AnnualMonth;
+use App\Module\Reporting\Application\MonthFigures;
 use App\Module\Reporting\Domain\Aggregation\MonthValue;
 
 /** Reads the essential expenses of each reference month out of the report figures, as the policy defines them. */
@@ -85,7 +86,7 @@ final class EssentialExpenseMonths
             if (!isset($included[$categoryId])) {
                 continue;
             }
-            $cell = $figures->cells['category:'.$categoryId] ?? null;
+            $cell = $figures->cells[MonthFigures::OWN_CATEGORY_PREFIX.$categoryId] ?? null;
             if (null === $cell) {
                 return new MonthValue($month->month, $month->state, null, null, 'MISSING_MONTH_VALUE', $figures->policyVersion);
             }

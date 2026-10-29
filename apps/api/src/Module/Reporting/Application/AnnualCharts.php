@@ -37,7 +37,7 @@ final class AnnualCharts
                 continue;
             }
             foreach ($figures->budgetExpenseCategoryIds as $id) {
-                $cell = $figures->cells['category:'.$id] ?? null;
+                $cell = $figures->cells[MonthFigures::OWN_CATEGORY_PREFIX.$id] ?? null;
                 if (null === $cell?->value) {
                     // No cell, or no movement, means nothing was spent; any other reason is a gap.
                     if (null === $cell || self::NO_MOVEMENTS === $cell->reason) {

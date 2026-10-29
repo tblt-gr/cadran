@@ -23,6 +23,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Application\AnnualMonth;
+use App\Module\Reporting\Application\MonthFigures;
 use App\Module\Reporting\Application\MonthlyMetricView;
 use App\Module\Reporting\Domain\Aggregation\AggregateReason;
 use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
@@ -423,7 +424,7 @@ final readonly class ReadGoalStatus
                 if (!isset($included[$categoryId])) {
                     continue;
                 }
-                $category = $month->figures?->cells['category:'.$categoryId] ?? null;
+                $category = $month->figures?->cells[MonthFigures::OWN_CATEGORY_PREFIX.$categoryId] ?? null;
                 if (null === $category) {
                     return ['value' => null, 'reason' => 'MISSING_MONTH_VALUE'];
                 }

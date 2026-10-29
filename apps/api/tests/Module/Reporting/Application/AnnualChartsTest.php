@@ -34,8 +34,8 @@ final class AnnualChartsTest extends TestCase
         $february = [];
         foreach ($ids as $index => $id) {
             $labels[$id] = 'Categorie '.($index + 1);
-            $january['category:'.$id] = new MonthlyMetricView('c8' === $id ? '1.05' : '100', 'EUR', null);
-            $february['category:'.$id] = new MonthlyMetricView('c8' === $id ? '2.1' : (('c7' === $id) ? '10' : '50'), 'EUR', null);
+            $january['ownCategory:'.$id] = new MonthlyMetricView('c8' === $id ? '1.05' : '100', 'EUR', null);
+            $february['ownCategory:'.$id] = new MonthlyMetricView('c8' === $id ? '2.1' : (('c7' === $id) ? '10' : '50'), 'EUR', null);
         }
         $months = [$this->month(1, $january, $ids), $this->month(2, $february, $ids)];
         $total = DecimalValue::fromString('1000.15');
@@ -72,7 +72,7 @@ final class AnnualChartsTest extends TestCase
 
     public function testACategoryWithoutMovementSpentNothingButAnotherGapIsNotZero(): void
     {
-        $quiet = [$this->month(1, ['category:c1' => new MonthlyMetricView(null, null, 'NO_MOVEMENTS'), 'category:c2' => new MonthlyMetricView('40', 'EUR', null)], ['c1', 'c2'])];
+        $quiet = [$this->month(1, ['ownCategory:c1' => new MonthlyMetricView(null, null, 'NO_MOVEMENTS'), 'ownCategory:c2' => new MonthlyMetricView('40', 'EUR', null)], ['c1', 'c2'])];
 
         $chart = AnnualCharts::topExpenseCategories($quiet, new AnnualCatalogue(['c1' => 'A', 'c2' => 'B'], [], []), $this->aggregate(DecimalValue::fromString('40'), null));
 
@@ -84,7 +84,7 @@ final class AnnualChartsTest extends TestCase
 
     public function testAnExpenseCategoryWithNoCellAtAllCountsAsNoMovement(): void
     {
-        $months = [$this->month(1, ['category:c2' => new MonthlyMetricView('40', 'EUR', null)], ['c1', 'c2'])];
+        $months = [$this->month(1, ['ownCategory:c2' => new MonthlyMetricView('40', 'EUR', null)], ['c1', 'c2'])];
 
         $chart = AnnualCharts::topExpenseCategories($months, new AnnualCatalogue(['c1' => 'Archivée', 'c2' => 'B'], [], []), $this->aggregate(DecimalValue::fromString('40'), null));
 
@@ -120,9 +120,9 @@ final class AnnualChartsTest extends TestCase
             ['c1' => '#112233', 'c2' => '#445566', 'c3' => null],
         );
         $cells = [
-            'category:c1' => new MonthlyMetricView('30', 'EUR', null),
-            'category:c2' => new MonthlyMetricView('20', 'EUR', null),
-            'category:c3' => new MonthlyMetricView('10', 'EUR', null),
+            'ownCategory:c1' => new MonthlyMetricView('30', 'EUR', null),
+            'ownCategory:c2' => new MonthlyMetricView('20', 'EUR', null),
+            'ownCategory:c3' => new MonthlyMetricView('10', 'EUR', null),
         ];
         $chart = AnnualCharts::topExpenseCategories([$this->month(1, $cells, ['c1', 'c2', 'c3'])], $catalogue, $this->aggregate(DecimalValue::fromString('60'), null));
 
@@ -137,7 +137,7 @@ final class AnnualChartsTest extends TestCase
         $cells = [];
         foreach ($ids as $index => $id) {
             $colors[$id] = 'c8' === $id ? null : sprintf('#00000%d', $index);
-            $cells['category:'.$id] = new MonthlyMetricView((string) (80 - $index * 10), 'EUR', null);
+            $cells['ownCategory:'.$id] = new MonthlyMetricView((string) (80 - $index * 10), 'EUR', null);
         }
         $catalogue = new AnnualCatalogue(array_combine($ids, $ids), [], [], [], $colors);
 
@@ -288,7 +288,7 @@ final class AnnualChartsTest extends TestCase
 
     public function testAMissingCategoryFigureMakesTheChartNonCalculableNotZero(): void
     {
-        $months = [$this->month(1, ['category:c1' => new MonthlyMetricView(null, null, 'UNKNOWN_METRIC_POLICY')], ['c1'])];
+        $months = [$this->month(1, ['ownCategory:c1' => new MonthlyMetricView(null, null, 'UNKNOWN_METRIC_POLICY')], ['c1'])];
 
         $chart = AnnualCharts::topExpenseCategories($months, new AnnualCatalogue(['c1' => 'Loyer'], [], []), $this->aggregate(DecimalValue::fromString('10'), null));
 
