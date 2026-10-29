@@ -1,5 +1,6 @@
 import type { AnalyticAxes, CategoryType } from '@cadran/api-client';
 import { useId } from 'react';
+import { useCategoryDefaultAxes } from '@/features/categories/useCategoryDefaultAxes';
 import { useTranslation } from 'react-i18next';
 import { SignedAmountHint } from '@/components/ui/signed-amount-hint/SignedAmountHint';
 import type { AmountDirection } from '@/lib/signedAmount';
@@ -59,6 +60,11 @@ export function SplitRow({
 }: SplitRowProps) {
   const { t } = useTranslation();
   const hintId = useId();
+  const defaultAxes = useCategoryDefaultAxes(
+    values.categoryId,
+    values.categoryLabel ?? null,
+    values.defaultAxes ?? null,
+  );
 
   return (
     <div className={styles.row}>
@@ -136,7 +142,7 @@ export function SplitRow({
 
       <SplitAxes
         axes={values.analyticAxes}
-        defaultAxes={values.defaultAxes ?? null}
+        defaultAxes={defaultAxes}
         index={index}
         onChange={(analyticAxes) => onChange({ ...values, analyticAxes })}
       />
