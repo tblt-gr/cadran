@@ -188,10 +188,11 @@ if [ -n "${E2E_OWNER_EMAIL:-}" ] && [ -n "${E2E_OWNER_PASSWORD:-}" ]; then
             for flag in '; secure' '; httponly' '; samesite=lax'; do
                 if printf '%s' "$session_line" | grep -qi "$flag"; then pass "cadran_session cookie ${flag#; }"; else fail "cadran_session cookie ${flag#; }"; fi
             done
-            if printf '%s' "$session_line" | grep -Eqi '; (expires|max-age)='; then
-                fail "cadran_session cookie must be a browser-session cookie (no Expires or Max-Age)"
+            # Persistent on purpose (ADR 0015): 14 days, same as the server-side idle ceiling.
+            if printf '%s' "$session_line" | grep -Eqi '; max-age=1209600'; then
+                pass "cadran_session cookie lives 14 days"
             else
-                pass "cadran_session cookie has no Expires or Max-Age"
+                fail "cadran_session cookie must carry Max-Age=1209600"
             fi
         fi
     fi
