@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Module\Reporting\Application\MonthFigures;
 use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
@@ -189,7 +190,7 @@ final class AnnualReportControllerTest extends WebTestCase
         $row = self::rows($this->annual($this->year))[4];
 
         self::assertDecimal('5000', self::cell($row, 'cashIncome'));
-        self::assertSame(1, $this->connection->fetchOne('SELECT schema_version FROM reporting_month_snapshots'));
+        self::assertSame(MonthFigures::SCHEMA_VERSION, $this->connection->fetchOne('SELECT schema_version FROM reporting_month_snapshots'));
     }
 
     public function testAPreviousYearUnderAnotherPolicyGivesAPolicyMismatchAverage(): void

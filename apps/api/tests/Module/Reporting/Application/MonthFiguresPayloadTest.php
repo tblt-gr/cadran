@@ -7,6 +7,8 @@ namespace App\Tests\Module\Reporting\Application;
 use App\Module\Reporting\Application\AccountWeight;
 use App\Module\Reporting\Application\MonthFigures;
 use App\Module\Reporting\Application\MonthlyMetricView;
+use App\Module\Reporting\Application\MonthlyRecapCategoryView;
+use App\Tests\Module\Reporting\Application\Double\MonthlyProjectionFixture;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -26,6 +28,17 @@ final class MonthFiguresPayloadTest extends TestCase
         $restored = MonthFigures::fromPayload($decoded);
 
         self::assertEquals($weights, $restored->accountWeights);
+    }
+
+    public function testACategoryColumnCoversItsDescendantsWhileTheOwnCellStaysApart(): void
+    {
+        $own = new MonthlyRecapCategoryView('parent', 'Alimentation', 'EXPENSE', new MonthlyMetricView(null, null, 'NO_MOVEMENTS'));
+        $rollup = new MonthlyRecapCategoryView('parent', 'Alimentation', 'EXPENSE', new MonthlyMetricView('120', 'EUR', null));
+
+        $figures = MonthFigures::fromProjection(MonthlyProjectionFixture::view('2025-03', categoryMetrics: [$own], categoryRollups: [$rollup]));
+
+        self::assertSame('120', $figures->cells['category:parent']->value);
+        self::assertNull($figures->cells[MonthFigures::OWN_CATEGORY_PREFIX.'parent']->value);
     }
 
     public function testAPayloadWrittenBeforeTheWeightsExistedReadsAsLegacy(): void
