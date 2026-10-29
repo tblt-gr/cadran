@@ -66,7 +66,9 @@ The `commit-msg` hook enforces this locally, and CI validates every pull request
 ## Pull requests
 
 - Target `main` and link one primary issue with `Closes #123`.
-- Copy the primary issue's milestone and labels onto the pull request when creating it.
+- Copy the primary issue's milestone and labels onto the pull request when creating it. A pull
+  request without an issue still gets the open milestone, a type label (`enhancement`, `bug`,
+  `documentation`, ...) and the matching `area:*` labels.
 - Use a Conventional Commit title.
 - Write the title, description, review comments, and testing instructions in English.
 - Complete the pull request template and provide reproducible verification steps.
