@@ -2,12 +2,14 @@ import type { EmergencyFundCoverage } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
+import { Icon } from '@/components/ui/icon/Icon';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { compareDecimals, negateDecimal } from '@/lib/decimal';
-import { formatFigure } from './formatFigure';
+import { formatCeiledFigure, formatFigure } from './formatFigure';
 import { formatMonths } from './formatMonths';
 import { goalErrorKind } from '@/features/goals/goalError';
+import { CoverageGauge } from './CoverageGauge';
 import { EmergencyFundExplainModal } from './EmergencyFundExplainModal';
 import { EmergencyFundCardSkeleton } from './EmergencyFundCardSkeleton';
 import { EmergencyFundPolicyModal } from './EmergencyFundPolicyModal';
@@ -16,7 +18,13 @@ import { useEmergencyFundCoverage } from './useEmergencyFund';
 
 type Dialog = 'explain' | 'policy' | null;
 
-function Gap({ coverage }: { coverage: EmergencyFundCoverage }) {
+function Gap({
+  coverage,
+  assetCode,
+}: {
+  coverage: EmergencyFundCoverage;
+  assetCode: string | null;
+}) {
   const { t, i18n } = useTranslation();
   if (coverage.gap === null) return <EmptyValue label={t('goals.noData')} />;
   const order = compareDecimals(coverage.gap, '0');
@@ -25,45 +33,15 @@ function Gap({ coverage }: { coverage: EmergencyFundCoverage }) {
   return order < 0 ? (
     <>
       {t('goals.emergencyFund.gapShortfall', {
-        amount: formatFigure(
-          negateDecimal(coverage.gap),
-          coverage.reference.assetCode,
-          i18n.language,
-        ),
+        amount: formatFigure(negateDecimal(coverage.gap), assetCode, i18n.language),
       })}
     </>
   ) : (
     <>
       {t('goals.emergencyFund.gapSurplus', {
-        amount: formatFigure(coverage.gap, coverage.reference.assetCode, i18n.language),
+        amount: formatFigure(coverage.gap, assetCode, i18n.language),
       })}
     </>
-  );
-}
-
-/** Covered months against the target, as a meter with a text label; hidden when not calculable. */
-function CoverageMeter({ coverage }: { coverage: EmergencyFundCoverage }) {
-  const { t, i18n } = useTranslation();
-  const display = coverage.coveredMonthsDisplay;
-  if (display === null || compareDecimals(coverage.targetMonths, '0') <= 0) return null;
-  const capped =
-    compareDecimals(display, coverage.targetMonths) > 0 ? coverage.targetMonths : display;
-  return (
-    <div className={styles.meter}>
-      <label htmlFor="emergency-fund-meter">
-        {t('goals.emergencyFund.meterLabel', {
-          value: formatMonths(display, i18n.language),
-          target: formatMonths(coverage.targetMonths, i18n.language),
-        })}
-      </label>
-      {/* Geometry only: the exact figures are displayed as text from the API strings. */}
-      <meter
-        id="emergency-fund-meter"
-        max={Number(coverage.targetMonths)}
-        min={0}
-        value={Number(capped)}
-      />
-    </div>
   );
 }
 
@@ -123,21 +101,45 @@ export function EmergencyFundCard() {
   const display = coverage.coveredMonthsDisplay;
   const notCalculable = coverage.coveredMonths === null || display === null;
 
+  // A fixed amount names its own asset; the other targets are in the expenses' (or else the fund's).
+  const requiredAsset =
+    coverage.target.amount?.assetCode ?? coverage.reference.assetCode ?? assetCode;
+  const requiredLabel =
+    coverage.requiredAmount === null
+      ? null
+      : formatCeiledFigure(coverage.requiredAmount, requiredAsset, i18n.language);
+  const monthsTarget = coverage.target.mode === 'MONTHS';
+  // A months target is not calculable without its covered months; the others only without a gap.
+  const unresolved = monthsTarget ? notCalculable : coverage.gap === null;
+  const liquidLabel =
+    coverage.liquidAssets.value === null || assetCode === null
+      ? null
+      : formatFigure(coverage.liquidAssets.value, assetCode, i18n.language);
+
   return (
     <article aria-labelledby="emergency-fund-title" className={`card ${styles.card}`}>
       <div className={styles.heading}>
-        <div>
-          <p className={styles.eyebrow}>{t('goals.emergencyFund.eyebrow')}</p>
-          <h3 id="emergency-fund-title">{t('goals.emergencyFund.title')}</h3>
-        </div>
+        <h3 id="emergency-fund-title">{t('goals.emergencyFund.title')}</h3>
         <div className={styles.actions}>
           {empty ? null : (
-            <button className="secondary-action" onClick={() => setDialog('explain')} type="button">
-              {t('goals.emergencyFund.explain')}
+            <button
+              aria-label={t('goals.emergencyFund.explain')}
+              className="icon-ghost"
+              onClick={() => setDialog('explain')}
+              title={t('goals.emergencyFund.explain')}
+              type="button"
+            >
+              <Icon name="info" size={18} />
             </button>
           )}
-          <button className="secondary-action" onClick={() => setDialog('policy')} type="button">
-            {t('goals.emergencyFund.editPolicy')}
+          <button
+            aria-label={t('goals.emergencyFund.editPolicy')}
+            className="icon-ghost"
+            onClick={() => setDialog('policy')}
+            title={t('goals.emergencyFund.editPolicy')}
+            type="button"
+          >
+            <Icon name="settings" size={18} />
           </button>
         </div>
       </div>
@@ -154,28 +156,50 @@ export function EmergencyFundCard() {
         </div>
       ) : (
         <>
-          <p className={styles.covered}>
-            {display === null || notCalculable ? (
-              <EmptyValue label={t('goals.emergencyFund.notCalculable')} />
-            ) : (
+          <div className={styles.position}>
+            <p className={styles.amounts}>
+              <span className="sr-only">{t('goals.emergencyFund.positionLabel')}</span>
               <strong className="money">
-                {t('goals.emergencyFund.months', {
-                  value: formatMonths(display, i18n.language),
-                })}
+                {liquidLabel === null ? <EmptyValue label={t('goals.noData')} /> : liquidLabel}
               </strong>
-            )}
-            <span>
-              {t('goals.emergencyFund.target', {
-                value: formatMonths(coverage.targetMonths, i18n.language),
-              })}
-            </span>
-          </p>
+              <span aria-hidden="true" className={styles.separator}>
+                /
+              </span>
+              <span className={`money ${styles.required}`}>
+                {requiredLabel === null ? <EmptyValue label={t('goals.noData')} /> : requiredLabel}
+              </span>
+            </p>
+            <p className={styles.gap}>
+              <Gap assetCode={requiredAsset} coverage={coverage} />
+            </p>
+          </div>
+          <CoverageGauge coverage={coverage} />
+          {display === null && !monthsTarget ? null : (
+            <p className={styles.coverage}>
+              {display === null || notCalculable ? (
+                <EmptyValue label={t('goals.emergencyFund.notCalculable')} />
+              ) : (
+                <strong className="money">
+                  {t('goals.emergencyFund.months', {
+                    value: formatMonths(display, i18n.language),
+                  })}
+                </strong>
+              )}
+              <span>
+                {coverage.target.impliedMonths === null
+                  ? t('goals.emergencyFund.coverageOnly')
+                  : t('goals.emergencyFund.coverageOf', {
+                      target: formatMonths(coverage.target.impliedMonths, i18n.language),
+                    })}
+              </span>
+            </p>
+          )}
           {stale ? (
             <StatusBadge icon="alert" tone="warning">
               {t('goals.emergencyFund.stale')}
             </StatusBadge>
           ) : null}
-          {notCalculable && coverage.reason ? (
+          {unresolved && coverage.reason ? (
             <p className={styles.reason} role="note">
               {t(`goals.emergencyFund.reasons.${coverage.reason}`, {
                 defaultValue: t('goals.emergencyFund.reasons.UNKNOWN'),
@@ -183,35 +207,6 @@ export function EmergencyFundCard() {
               {missing ? ` ${missingValuationLabels(coverage)}` : ''}
             </p>
           ) : null}
-          <CoverageMeter coverage={coverage} />
-          <dl className={styles.facts}>
-            <div>
-              <dt>{t('goals.emergencyFund.liquid')}</dt>
-              <dd className="money">
-                {coverage.liquidAssets.value === null || assetCode === null ? (
-                  <EmptyValue label={t('goals.noData')} />
-                ) : (
-                  formatFigure(coverage.liquidAssets.value, assetCode, i18n.language)
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>{t('goals.emergencyFund.required')}</dt>
-              <dd className="money">
-                {coverage.requiredAmount === null ? (
-                  <EmptyValue label={t('goals.noData')} />
-                ) : (
-                  formatFigure(coverage.requiredAmount, coverage.reference.assetCode, i18n.language)
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>{t('goals.emergencyFund.gap')}</dt>
-              <dd>
-                <Gap coverage={coverage} />
-              </dd>
-            </div>
-          </dl>
         </>
       )}
       {dialogs}

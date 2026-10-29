@@ -17,6 +17,10 @@ final readonly class EmergencyFundPolicyView
         public ?int $trailingMonths,
         public string $targetMonths,
         public int $version,
+        public string $targetMode = 'MONTHS',
+        public ?string $targetAmount = null,
+        public ?string $targetAssetCode = null,
+        public ?string $targetRatio = null,
     ) {
     }
 
@@ -38,6 +42,6 @@ final readonly class EmergencyFundPolicyView
             }
         }
 
-        return new self($policy->essentialMode->value, $listed, $policy->referenceMode->value, $policy->trailingMonths, $policy->targetMonths->toString(), $policy->version);
+        return new self($policy->essentialMode->value, $listed, $policy->referenceMode->value, $policy->trailingMonths, $policy->targetMonths->toString(), $policy->version, $policy->targetMode->value, $policy->targetAmount?->toString(), $policy->targetAssetCode?->toString(), $policy->targetRatio?->toString());
     }
 }

@@ -21,8 +21,7 @@ export function useGoalVersionValue(assetCode: string) {
       return t('goals.history.everyMonthAmount', {
         amount: formatAmount(value[0]!, assetCode, i18n.language),
       });
-    if (Array.isArray(value))
-      return value.map((part) => formatAmount(part, assetCode, i18n.language)).join(', ');
+    if (Array.isArray(value)) return t('goals.history.customSchedule');
     if (value === 'LINEAR') return t('goals.schedule.modeLinear');
     if (value === 'CUSTOM') return t('goals.schedule.modeCustom');
     if (field === 'ratio') return formatRatioPercentage(value, i18n.language);

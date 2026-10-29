@@ -7,6 +7,7 @@ namespace App\Tests\Module\Budget\Domain\EmergencyFund;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Domain\EmergencyFund\EmergencyFundCalculator;
 use App\Module\Budget\Domain\EmergencyFund\EmergencyFundCoverage;
+use App\Module\Budget\Domain\EmergencyFund\FixedRequirement;
 use App\Module\Budget\Domain\EmergencyFund\LiquidAccount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -194,6 +195,45 @@ final class EmergencyFundCalculatorTest extends TestCase
 
         self::assertDecimal('0', $coverage->requiredAmount);
         self::assertDecimal('100', $coverage->gap);
+    }
+
+    public function testAFixedAmountReplacesMonthsTimesAverageButStillReportsTheCoveredMonths(): void
+    {
+        $coverage = EmergencyFundCalculator::compute([self::account('a', '10260.00')], self::year('2100.00'), DecimalValue::fromString('6'), 12, new FixedRequirement('15000.00', 'EUR', null));
+
+        self::assertDecimal('15000', $coverage->requiredAmount);
+        self::assertDecimal('-4740', $coverage->gap);
+        self::assertSame('4.9', $coverage->coveredMonthsDisplay);
+        self::assertNull($coverage->reason);
+        self::assertSame('COMPLETE', $coverage->quality);
+    }
+
+    public function testAFixedAmountNeedsNoExpenseAverageToHaveAGap(): void
+    {
+        $coverage = EmergencyFundCalculator::compute([self::account('a', '10000.00')], [], DecimalValue::fromString('6'), 12, new FixedRequirement('8000.00', 'EUR', null));
+
+        self::assertDecimal('2000', $coverage->gap);
+        self::assertNull($coverage->coveredMonths);
+        self::assertNull($coverage->reason);
+        self::assertSame('COMPLETE', $coverage->quality);
+    }
+
+    public function testAnUnknownFixedRequirementIsNullWithItsReasonNeverZero(): void
+    {
+        $coverage = EmergencyFundCalculator::compute([self::account('a', '10000.00')], self::year('2100.00'), DecimalValue::fromString('6'), 12, new FixedRequirement(null, null, 'NO_REFERENCE_INCOME'));
+
+        self::assertNull($coverage->requiredAmount);
+        self::assertNull($coverage->gap);
+        self::assertSame('NO_REFERENCE_INCOME', $coverage->reason);
+        self::assertSame('NOT_CALCULABLE', $coverage->quality);
+    }
+
+    public function testAFixedAmountInAnotherAssetThanTheLiquidAssetsHasNoGap(): void
+    {
+        $coverage = EmergencyFundCalculator::compute([self::account('a', '10000.00')], self::year('2100.00'), DecimalValue::fromString('6'), 12, new FixedRequirement('8000.00', 'USD', null));
+
+        self::assertNull($coverage->gap);
+        self::assertSame('MIXED_ASSETS', $coverage->reason);
     }
 
     public function testVeryLargeDecimalsStayExactBeyondTheStorageWidth(): void

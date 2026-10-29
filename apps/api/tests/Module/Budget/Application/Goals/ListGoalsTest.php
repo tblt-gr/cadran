@@ -54,6 +54,7 @@ final class ListGoalsTest extends TestCase
     private const string SAVINGS_ID = '00000000-0000-7000-8000-000000000101';
     private const string SPENDING_ID = '00000000-0000-7000-8000-000000000111';
     private const string ROLLING_ID = '00000000-0000-7000-8000-000000000121';
+    private const string LATE_ROLLING_ID = '00000000-0000-7000-8000-000000000122';
     private const string CATEGORY_ID = '00000000-0000-7000-8000-000000000201';
     private const string ACCOUNT_A_GOAL_ID = '00000000-0000-7000-8000-000000000131';
     private const string ACCOUNT_B_GOAL_ID = '00000000-0000-7000-8000-000000000141';
@@ -132,6 +133,21 @@ final class ListGoalsTest extends TestCase
         }
     }
 
+    public function testAGoalStartingAfterTheChosenMonthListsAsNotStartedInsteadOfFailing(): void
+    {
+        // The rolling goal only takes effect in 2026-08: June has no version of it yet.
+        $items = $this->list(new CountingGoalMonthSource(self::months()), $this->createStub(CategoryRepository::class), [
+            self::goal(self::LATE_ROLLING_ID, GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
+        ])(2026, 'active', '2026-06')->items;
+
+        self::assertCount(1, $items);
+        $status = $items[0]->status ?? self::fail('A listed goal carries its status.');
+        self::assertSame('2026-06', $status->month);
+        self::assertSame('NOT_CALCULABLE', $status->status);
+        self::assertSame('GOAL_NOT_STARTED', $status->reason);
+        self::assertSame('2026-08', $items[0]->currentVersion->effectiveFrom);
+    }
+
     public function testAFutureYearListsGoalsAsNotCalculableAtItsJanuaryInsteadOfTodayMonth(): void
     {
         // Today is 2026-09. The rolling goal (0.20 from 2026-01) is still in effect in 2027, but
@@ -204,6 +220,9 @@ final class ListGoalsTest extends TestCase
     private static function version(string $goalId): GoalVersion
     {
         $created = new \DateTimeImmutable('2026-01-01');
+        if (self::LATE_ROLLING_ID === $goalId) {
+            return GoalVersion::rolling($goalId, WorkspaceFixture::own(), $goalId, 1, '2026-08', DecimalValue::fromString('0.20'), $created, WorkspaceFixture::OWNER_ID);
+        }
         if (self::ROLLING_ID === $goalId) {
             return GoalVersion::rolling($goalId, WorkspaceFixture::own(), $goalId, 1, '2026-01', DecimalValue::fromString('0.20'), $created, WorkspaceFixture::OWNER_ID);
         }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import referenceCases from '@fixtures/decimal-reference-cases.json';
 import {
   addDecimals,
+  ceilDecimal,
   compareDecimals,
   compareUnsignedDecimals,
   decimalRatio,
@@ -218,6 +219,19 @@ describe('formatPercentDecimal', () => {
     expect(formatPercentDecimal('13.3333333333333333333333', 'fr-FR')).toBe('13,33');
     expect(formatPercentDecimal('0.995', 'fr-FR')).toBe('1,00');
     expect(formatPercentDecimal('-0.001', 'fr-FR')).toBe('0,00');
+  });
+});
+
+describe('ceilDecimal', () => {
+  it.each([
+    ['1056.88', '1057'],
+    ['1056.00', '1056'],
+    ['1056', '1056'],
+    ['0.000001', '1'],
+    ['-1056.88', '-1056'],
+    ['-0.5', '0'],
+  ])('rounds %s up to %s', (value, expected) => {
+    expect(ceilDecimal(value)).toBe(expected);
   });
 });
 

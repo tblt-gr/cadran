@@ -21,6 +21,8 @@ use Symfony\Component\Routing\Attribute\Route;
 final readonly class EmergencyFundController
 {
     private const array POLICY_FIELDS = ['essentialMode', 'essentialCategoryIds', 'referenceMode', 'trailingMonths', 'targetMonths', 'version'];
+    /** A months target needs none of these: a body that omits them keeps the months mode. */
+    private const array TARGET_FIELDS = ['targetMode', 'targetAmount', 'targetRatio'];
 
     public function __construct(private BudgetHttpEnvelope $envelope)
     {
@@ -76,7 +78,7 @@ final readonly class EmergencyFundController
     {
         $malformed = new EmergencyFundInputError('invalid_emergency_fund_policy', 'The policy body is malformed.');
         foreach (array_keys($body) as $key) {
-            if (!in_array($key, self::POLICY_FIELDS, true)) {
+            if (!in_array($key, [...self::POLICY_FIELDS, ...self::TARGET_FIELDS], true)) {
                 throw $malformed;
             }
         }
@@ -98,7 +100,14 @@ final readonly class EmergencyFundController
             throw $malformed;
         }
 
-        return new EmergencyFundPolicyInput($body['essentialMode'], $categoryIds, $body['referenceMode'], $trailing, $body['targetMonths'], $body['version']);
+        $mode = $body['targetMode'] ?? 'MONTHS';
+        $amount = $body['targetAmount'] ?? null;
+        $ratio = $body['targetRatio'] ?? null;
+        if (!is_string($mode) || (null !== $ratio && !is_string($ratio)) || (null !== $amount && (!is_array($amount) || !is_string($amount['value'] ?? null) || !is_string($amount['assetCode'] ?? null) || 2 !== count($amount)))) {
+            throw $malformed;
+        }
+
+        return new EmergencyFundPolicyInput($body['essentialMode'], $categoryIds, $body['referenceMode'], $trailing, $body['targetMonths'], $body['version'], $mode, null === $amount ? null : $amount['value'], null === $amount ? null : $amount['assetCode'], $ratio);
     }
 
     /** @return array<string, mixed> */
@@ -111,6 +120,9 @@ final readonly class EmergencyFundController
             'trailingMonths' => $view->trailingMonths,
             'targetMonths' => $view->targetMonths,
             'version' => $view->version,
+            'targetMode' => $view->targetMode,
+            'targetAmount' => null === $view->targetAmount ? null : ['value' => $view->targetAmount, 'assetCode' => $view->targetAssetCode],
+            'targetRatio' => $view->targetRatio,
         ];
     }
 
@@ -137,6 +149,13 @@ final readonly class EmergencyFundController
                 'months' => $view->months,
             ],
             'targetMonths' => $view->targetMonths,
+            'target' => [
+                'mode' => $view->targetMode,
+                'amount' => null === $view->targetAmount ? null : ['value' => $view->targetAmount, 'assetCode' => $view->targetAssetCode],
+                'ratio' => $view->targetRatio,
+                'impliedMonths' => $view->impliedTargetMonths,
+                'incomeAverage' => $view->incomeAverage,
+            ],
             'requiredAmount' => $view->requiredAmount,
             'gap' => $view->gap,
             'coveredMonths' => $view->coveredMonths,

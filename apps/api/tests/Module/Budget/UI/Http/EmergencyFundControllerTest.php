@@ -81,7 +81,7 @@ final class EmergencyFundControllerTest extends WebTestCase
         $this->client->request('GET', self::POLICY);
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['essentialMode' => 'AXIS', 'essentialCategories' => [], 'referenceMode' => 'PREVIOUS_YEAR', 'trailingMonths' => null, 'targetMonths' => '6', 'version' => 0], $this->decode());
+        self::assertSame(['essentialMode' => 'AXIS', 'essentialCategories' => [], 'referenceMode' => 'PREVIOUS_YEAR', 'trailingMonths' => null, 'targetMonths' => '6', 'version' => 0, 'targetMode' => 'MONTHS', 'targetAmount' => null, 'targetRatio' => null], $this->decode());
     }
 
     public function testAPolicyIsInsertedAtVersionZeroThenRevisedAndAuditedByFieldNameOnly(): void
@@ -108,6 +108,30 @@ final class EmergencyFundControllerTest extends WebTestCase
         self::assertStringNotContainsString('4.5', $trail);
         self::assertStringNotContainsString('Essentials', $trail);
         self::assertStringNotContainsString(self::OWN_CATEGORY, $trail);
+    }
+
+    public function testTheTargetCanBeAFixedAmountOrAnIncomeRatioAndIncoherentOnesAreRefused(): void
+    {
+        $base = $this->axisPolicy('6', 0);
+        $this->requestJson('PUT', self::POLICY, [...$base, 'targetMode' => 'AMOUNT', 'targetAmount' => ['value' => '15000', 'assetCode' => 'EUR'], 'targetRatio' => null]);
+        self::assertResponseIsSuccessful();
+        $saved = $this->decode();
+        self::assertSame(['AMOUNT', ['value' => '15000', 'assetCode' => 'EUR'], null], [$saved['targetMode'], $saved['targetAmount'], $saved['targetRatio']]);
+
+        $this->requestJson('PUT', self::POLICY, [...$base, 'version' => 1, 'targetMode' => 'INCOME_RATIO', 'targetAmount' => null, 'targetRatio' => '0.5']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['INCOME_RATIO', null, '0.5'], [$this->decode()['targetMode'], $this->decode()['targetAmount'], $this->decode()['targetRatio']]);
+
+        foreach ([
+            [['targetMode' => 'INCOME_RATIO', 'targetAmount' => null, 'targetRatio' => '1.5'], 'invalid_target_ratio'],
+            [['targetMode' => 'AMOUNT', 'targetAmount' => ['value' => '0', 'assetCode' => 'EUR'], 'targetRatio' => null], 'invalid_target_amount'],
+            [['targetMode' => 'AMOUNT', 'targetAmount' => ['value' => '10', 'assetCode' => 'eur'], 'targetRatio' => null], 'invalid_target_amount'],
+            [['targetMode' => 'SOMETHING', 'targetAmount' => null, 'targetRatio' => null], 'invalid_emergency_fund_policy'],
+        ] as [$target, $code]) {
+            $this->requestJson('PUT', self::POLICY, [...$base, 'version' => 2, ...$target]);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame($code, $this->decode()['code']);
+        }
     }
 
     public function testMutationsRequireCsrfAndAStaleVersionConflicts(): void

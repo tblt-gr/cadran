@@ -14,21 +14,26 @@ function GoalCardSkeleton() {
         </div>
         <SkeletonBlock className={skeletonStyles.menu} />
       </div>
-      <div className={styles.value}>
-        <span className={styles.direction}>
+      <div className={styles.position}>
+        <p className={styles.amounts}>
+          <strong className="money">
+            <SkeletonBlock className={skeletonStyles.amount} />
+          </strong>
+        </p>
+        <p className={styles.gap}>
           <SkeletonBlock className={skeletonStyles.direction} />
-        </span>
-        <strong className="money">
-          <SkeletonBlock className={skeletonStyles.amount} />
-        </strong>
+        </p>
       </div>
+      <SkeletonBlock className={skeletonStyles.progress} />
+      <p className={styles.caption}>
+        <SkeletonBlock className={skeletonStyles.direction} />
+      </p>
       <div className={styles.statusHeading}>
         <p className={styles.statusMonth}>
           <SkeletonBlock className={skeletonStyles.direction} />
         </p>
         <SkeletonBlock className={skeletonStyles.badge} />
       </div>
-      <SkeletonBlock className={skeletonStyles.progress} />
     </article>
   );
 }

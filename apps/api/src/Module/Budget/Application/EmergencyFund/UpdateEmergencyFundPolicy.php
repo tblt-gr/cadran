@@ -12,12 +12,14 @@ use App\Module\Budget\Domain\EmergencyFund\EmergencyFundPolicyRepository;
 use App\Module\Budget\Domain\EmergencyFund\EssentialMode;
 use App\Module\Budget\Domain\EmergencyFund\InvalidEmergencyFundPolicy;
 use App\Module\Budget\Domain\EmergencyFund\ReferenceMode;
+use App\Module\Budget\Domain\EmergencyFund\TargetMode;
 use App\Module\Categories\Application\BudgetCategoryFact;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
@@ -56,8 +58,16 @@ final readonly class UpdateEmergencyFundPolicy
         } catch (MalformedDecimal|PrecisionExceeded) {
             throw new EmergencyFundInputError('invalid_target_months', 'A target is 0 to 60 months with at most one decimal.');
         }
+        $targetMode = TargetMode::tryFrom($input->targetMode) ?? throw new EmergencyFundInputError('invalid_emergency_fund_policy', 'The target mode is MONTHS, AMOUNT or INCOME_RATIO.');
+        $amount = self::decimal($input->targetAmount, 'invalid_target_amount', 'A fixed target is a positive amount in one asset.');
+        $ratio = self::decimal($input->targetRatio, 'invalid_target_ratio', 'An income target is a ratio above 0 and at most 1, with at most six decimals.');
+        try {
+            $asset = null === $input->targetAssetCode ? null : AssetCode::fromString($input->targetAssetCode);
+        } catch (\InvalidArgumentException) {
+            throw new EmergencyFundInputError('invalid_target_amount', 'A fixed target is a positive amount in one asset.');
+        }
         $now = $this->calendar->now();
-        $revise = static fn (EmergencyFundPolicy $policy): EmergencyFundPolicy => $policy->revise($essentialMode, $input->essentialCategoryIds, $referenceMode, $input->trailingMonths, $target, $now, $context->actorId);
+        $revise = static fn (EmergencyFundPolicy $policy): EmergencyFundPolicy => $policy->revise($essentialMode, $input->essentialCategoryIds, $referenceMode, $input->trailingMonths, $target, $now, $context->actorId, $targetMode, $amount, $asset, $ratio);
         try {
             $revise(EmergencyFundPolicy::default($workspace));
         } catch (InvalidEmergencyFundPolicy $exception) {
@@ -90,6 +100,18 @@ final readonly class UpdateEmergencyFundPolicy
 
             return EmergencyFundPolicyView::of($revised, $categories);
         });
+    }
+
+    private static function decimal(?string $raw, string $code, string $message): ?DecimalValue
+    {
+        if (null === $raw) {
+            return null;
+        }
+        try {
+            return DecimalValue::fromString($raw);
+        } catch (MalformedDecimal|PrecisionExceeded) {
+            throw new EmergencyFundInputError($code, $message);
+        }
     }
 
     /**

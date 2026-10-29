@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Module\Budget\Domain\EmergencyFund;
 
 use App\Module\Accounts\Domain\CalendarMonth;
+use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
  * The single emergency-fund policy of a workspace: which expenses are essential, over which
- * reference months they are averaged, and how many months of them the owner wants covered.
+ * reference months they are averaged, and what the fund must hold: a number of months of them (the
+ * default), a fixed amount, or a share of the annual income.
  * Eligible accounts are not part of it: the account flag is their only source.
  */
 final readonly class EmergencyFundPolicy
@@ -21,6 +23,8 @@ final readonly class EmergencyFundPolicy
     public const int MAX_TRAILING_MONTHS = 24;
     public const string MAX_TARGET_MONTHS = '60';
     public const int TARGET_SCALE = 1;
+    public const string MAX_TARGET_RATIO = '1';
+    public const int RATIO_SCALE = 6;
     public const int UNSAVED_VERSION = 0;
     private const string DEFAULT_TARGET_MONTHS = '6';
 
@@ -35,6 +39,10 @@ final readonly class EmergencyFundPolicy
         public int $version,
         public ?\DateTimeImmutable $updatedAt = null,
         public ?string $updatedBy = null,
+        public TargetMode $targetMode = TargetMode::MONTHS,
+        public ?DecimalValue $targetAmount = null,
+        public ?AssetCode $targetAssetCode = null,
+        public ?DecimalValue $targetRatio = null,
     ) {
         if (EssentialMode::AXIS === $essentialMode && [] !== $essentialCategoryIds) {
             throw new InvalidEmergencyFundPolicy('invalid_emergency_fund_policy', 'The essential axis takes no category.');
@@ -57,6 +65,15 @@ final readonly class EmergencyFundPolicy
         if ($targetMonths->isNegative() || $targetMonths->scale() > self::TARGET_SCALE || $targetMonths->compareTo(DecimalValue::fromString(self::MAX_TARGET_MONTHS)) > 0) {
             throw new InvalidEmergencyFundPolicy('invalid_target_months', 'A target is 0 to 60 months with at most one decimal.');
         }
+        if (TargetMode::AMOUNT === $targetMode && (null === $targetAmount || null === $targetAssetCode || !self::positive($targetAmount) || null !== $targetRatio)) {
+            throw new InvalidEmergencyFundPolicy('invalid_target_amount', 'A fixed target is a positive amount in one asset.');
+        }
+        if (TargetMode::INCOME_RATIO === $targetMode && (null === $targetRatio || !self::positive($targetRatio) || $targetRatio->scale() > self::RATIO_SCALE || $targetRatio->compareTo(DecimalValue::fromString(self::MAX_TARGET_RATIO)) > 0 || null !== $targetAmount || null !== $targetAssetCode)) {
+            throw new InvalidEmergencyFundPolicy('invalid_target_ratio', 'An income target is a ratio above 0 and at most 1, with at most six decimals.');
+        }
+        if (TargetMode::MONTHS === $targetMode && (null !== $targetAmount || null !== $targetAssetCode || null !== $targetRatio)) {
+            throw new InvalidEmergencyFundPolicy('invalid_emergency_fund_policy', 'A months target carries no amount or ratio.');
+        }
         if ($version < self::UNSAVED_VERSION) {
             throw new \InvalidArgumentException('A policy version is never negative.');
         }
@@ -76,8 +93,12 @@ final readonly class EmergencyFundPolicy
         DecimalValue $targetMonths,
         \DateTimeImmutable $updatedAt,
         string $updatedBy,
+        TargetMode $targetMode = TargetMode::MONTHS,
+        ?DecimalValue $targetAmount = null,
+        ?AssetCode $targetAssetCode = null,
+        ?DecimalValue $targetRatio = null,
     ): self {
-        return new self($this->workspace, $essentialMode, $essentialCategoryIds, $referenceMode, $trailingMonths, $targetMonths, $this->version + 1, $updatedAt, $updatedBy);
+        return new self($this->workspace, $essentialMode, $essentialCategoryIds, $referenceMode, $trailingMonths, $targetMonths, $this->version + 1, $updatedAt, $updatedBy, $targetMode, $targetAmount, $targetAssetCode, $targetRatio);
     }
 
     /**
@@ -99,6 +120,9 @@ final readonly class EmergencyFundPolicy
             'referenceMode' => $this->referenceMode !== $other->referenceMode,
             'trailingMonths' => $this->trailingMonths !== $other->trailingMonths,
             'targetMonths' => 0 !== $this->targetMonths->compareTo($other->targetMonths),
+            'targetMode' => $this->targetMode !== $other->targetMode,
+            'targetAmount' => self::differs($this->targetAmount, $other->targetAmount) || $this->targetAssetCode?->toString() !== $other->targetAssetCode?->toString(),
+            'targetRatio' => self::differs($this->targetRatio, $other->targetRatio),
         ]));
     }
 
@@ -115,5 +139,15 @@ final readonly class EmergencyFundPolicy
             CalendarMonth::containing($asOfMonth->firstDay()->modify('-1 month')),
             $count,
         );
+    }
+
+    private static function positive(DecimalValue $value): bool
+    {
+        return $value->compareTo(DecimalValue::fromString('0')) > 0;
+    }
+
+    private static function differs(?DecimalValue $a, ?DecimalValue $b): bool
+    {
+        return null === $a || null === $b ? $a !== $b : 0 !== $a->compareTo($b);
     }
 }

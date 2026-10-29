@@ -11,11 +11,7 @@ export function EmergencyFundPolicyModal({ close }: { close: () => void }) {
   const policy = useEmergencyFundPolicy(true);
   const save = useUpdateEmergencyFundPolicy();
   return (
-    <Modal
-      close={close}
-      eyebrow={t('goals.emergencyFund.eyebrow')}
-      title={t('goals.emergencyFund.policyTitle')}
-    >
+    <Modal close={close} title={t('goals.emergencyFund.policyTitle')}>
       {policy.isPending ? (
         <p aria-busy="true" className={styles.hint} role="status">
           {t('goals.emergencyFund.loading')}

@@ -203,148 +203,164 @@ export function GoalForm({
           ) : null}
         </p>
       ) : null}
-      <label>
-        <span>{t('goals.label')}</span>
-        <input
-          aria-describedby={flag(labelValid) ? validationId : undefined}
-          aria-invalid={flag(labelValid)}
-          data-autofocus
-          maxLength={80}
-          onChange={(e) => setLabel(e.target.value)}
-          value={label}
-        />
-      </label>
-      <fieldset className={styles.radios} disabled={Boolean(goal)}>
-        <legend>{t('goals.kind')}</legend>
-        {(['ANNUAL', 'ROLLING_RATIO'] as GoalKind[]).map((choice) => (
-          <label key={choice}>
-            <input
-              checked={kind === choice}
-              name="kind"
-              onChange={() => changeKind(choice)}
-              type="radio"
-            />
-            <span>{t(`goals.kinds.${choice}`)}</span>
-          </label>
-        ))}
-      </fieldset>
-      <label>
-        <span>{t('goals.metric')}</span>
-        <select
-          disabled={Boolean(goal)}
-          onChange={(e) => {
-            setMetric(e.target.value as GoalMetric);
-            setScope('');
-          }}
-          value={metric}
-        >
-          {(kind === 'ANNUAL' ? annualMetrics : rollingMetrics).map((choice) => (
-            <option key={choice} value={choice}>
-              {t(`goals.metrics.${choice}`)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <GoalScopeField
-        goal={goal}
-        scope={scope}
-        scopeType={scopeType}
-        scopeValid={scopeValid}
-        setScope={setScope}
-        showErrors={showErrors}
-      />
-      {goal && !futureGoal ? (
-        <>
+      <div className={styles.group}>
+        <div className={styles.row}>
           <label>
-            <span>{t('goals.effectiveFrom')}</span>
+            <span>{t('goals.label')}</span>
             <input
-              aria-describedby={flag(effectiveMonthValid) ? validationId : undefined}
-              aria-invalid={flag(effectiveMonthValid)}
-              max={latestEffectiveMonth}
-              min={minEffectiveMonth}
-              onChange={(e) => setEffectiveFrom(e.target.value)}
-              type="month"
-              value={effectiveFrom}
+              aria-describedby={flag(labelValid) ? validationId : undefined}
+              aria-invalid={flag(labelValid)}
+              data-autofocus
+              maxLength={80}
+              onChange={(e) => setLabel(e.target.value)}
+              value={label}
             />
           </label>
-          {retroactive ? (
+          <fieldset className={styles.radios} disabled={Boolean(goal)}>
+            <legend>{t('goals.kind')}</legend>
+            {(['ANNUAL', 'ROLLING_RATIO'] as GoalKind[]).map((choice) => (
+              <label key={choice}>
+                <input
+                  checked={kind === choice}
+                  name="kind"
+                  onChange={() => changeKind(choice)}
+                  type="radio"
+                />
+                <span>{t(`goals.kinds.${choice}`)}</span>
+              </label>
+            ))}
+          </fieldset>
+        </div>
+      </div>
+      <div className={styles.group}>
+        <div className={styles.row}>
+          <label>
+            <span>{t('goals.metric')}</span>
+            <select
+              disabled={Boolean(goal)}
+              onChange={(e) => {
+                setMetric(e.target.value as GoalMetric);
+                setScope('');
+              }}
+              value={metric}
+            >
+              {(kind === 'ANNUAL' ? annualMetrics : rollingMetrics).map((choice) => (
+                <option key={choice} value={choice}>
+                  {t(`goals.metrics.${choice}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          {kind === 'ANNUAL' ? (
             <label>
-              <span>{t('goals.correctionReason')}</span>
-              <textarea
-                aria-describedby={flag(reasonValid) ? validationId : undefined}
-                aria-invalid={flag(reasonValid)}
-                maxLength={200}
-                minLength={3}
-                onChange={(e) => setReason(e.target.value)}
-                value={reason}
+              <span>{t('goals.year')}</span>
+              <input
+                aria-describedby={flag(yearValid) ? validationId : undefined}
+                aria-invalid={flag(yearValid)}
+                disabled={Boolean(goal)}
+                inputMode="numeric"
+                onChange={(e) => setYear(e.target.value)}
+                value={year}
               />
-              <small>{t('goals.correctionReasonHint')}</small>
+            </label>
+          ) : (
+            <label>
+              <span>{t('goals.startMonth')}</span>
+              <input
+                aria-describedby={flag(periodValid) ? validationId : undefined}
+                aria-invalid={flag(periodValid)}
+                disabled={Boolean(goal)}
+                onChange={(e) => setStartMonth(e.target.value)}
+                type="month"
+                value={startMonth}
+              />
+            </label>
+          )}
+        </div>
+        <GoalScopeField
+          goal={goal}
+          scope={scope}
+          scopeType={scopeType}
+          scopeValid={scopeValid}
+          setScope={setScope}
+          showErrors={showErrors}
+        />
+      </div>
+      <div className={styles.group}>
+        <div className={styles.row}>
+          {!futureGoal ? (
+            <label>
+              <span>{t(kind === 'ANNUAL' ? 'goals.targetAmount' : 'goals.ratio')}</span>
+              {kind === 'ANNUAL' ? (
+                <AmountInput
+                  aria-label={t('goals.targetAmount')}
+                  aria-describedby={flag(decimalValid) ? targetErrorId : undefined}
+                  invalid={Boolean(flag(decimalValid))}
+                  onChange={setValue}
+                  value={value}
+                />
+              ) : (
+                <input
+                  aria-label={t('goals.ratio')}
+                  aria-describedby={flag(decimalValid) ? targetErrorId : undefined}
+                  aria-invalid={flag(decimalValid)}
+                  inputMode="decimal"
+                  onChange={(e) => setValue(e.target.value)}
+                  value={value}
+                />
+              )}
+              {kind === 'ROLLING_RATIO' ? <small>{t('goals.ratioHint')}</small> : null}
             </label>
           ) : null}
-        </>
-      ) : null}
-      {kind === 'ANNUAL' ? (
-        <label>
-          <span>{t('goals.year')}</span>
-          <input
-            aria-describedby={flag(yearValid) ? validationId : undefined}
-            aria-invalid={flag(yearValid)}
-            disabled={Boolean(goal)}
-            inputMode="numeric"
-            onChange={(e) => setYear(e.target.value)}
-            value={year}
-          />
-        </label>
-      ) : (
-        <label>
-          <span>{t('goals.startMonth')}</span>
-          <input
-            aria-describedby={flag(periodValid) ? validationId : undefined}
-            aria-invalid={flag(periodValid)}
-            disabled={Boolean(goal)}
-            onChange={(e) => setStartMonth(e.target.value)}
-            type="month"
-            value={startMonth}
-          />
-        </label>
-      )}
-      {!futureGoal ? (
-        <label>
-          <span>{t(kind === 'ANNUAL' ? 'goals.targetAmount' : 'goals.ratio')}</span>
-          {kind === 'ANNUAL' ? (
-            <AmountInput
-              aria-label={t('goals.targetAmount')}
-              aria-describedby={flag(decimalValid) ? targetErrorId : undefined}
-              invalid={Boolean(flag(decimalValid))}
-              onChange={setValue}
-              value={value}
-            />
-          ) : (
-            <input
-              aria-label={t('goals.ratio')}
-              aria-describedby={flag(decimalValid) ? targetErrorId : undefined}
-              aria-invalid={flag(decimalValid)}
-              inputMode="decimal"
-              onChange={(e) => setValue(e.target.value)}
-              value={value}
-            />
-          )}
-          {kind === 'ROLLING_RATIO' ? <small>{t('goals.ratioHint')}</small> : null}
-        </label>
-      ) : null}
-      {!futureGoal && flag(decimalValid) ? (
-        <p className={styles.alert} id={targetErrorId} role="alert">
-          {t(kind === 'ANNUAL' ? 'goals.validation.targetAmount' : 'goals.validation.ratio')}
-        </p>
-      ) : null}
+          {goal && !futureGoal ? (
+            <label>
+              <span>{t('goals.effectiveFrom')}</span>
+              <input
+                aria-describedby={flag(effectiveMonthValid) ? validationId : undefined}
+                aria-invalid={flag(effectiveMonthValid)}
+                max={latestEffectiveMonth}
+                min={minEffectiveMonth}
+                onChange={(e) => setEffectiveFrom(e.target.value)}
+                type="month"
+                value={effectiveFrom}
+              />
+            </label>
+          ) : null}
+        </div>
+        {goal && !futureGoal ? (
+          <>
+            {retroactive ? (
+              <label>
+                <span>{t('goals.correctionReason')}</span>
+                <textarea
+                  aria-describedby={flag(reasonValid) ? validationId : undefined}
+                  aria-invalid={flag(reasonValid)}
+                  maxLength={200}
+                  minLength={3}
+                  onChange={(e) => setReason(e.target.value)}
+                  value={reason}
+                />
+                <small>{t('goals.correctionReasonHint')}</small>
+              </label>
+            ) : null}
+          </>
+        ) : null}
+        {!futureGoal && flag(decimalValid) ? (
+          <p className={styles.alert} id={targetErrorId} role="alert">
+            {t(kind === 'ANNUAL' ? 'goals.validation.targetAmount' : 'goals.validation.ratio')}
+          </p>
+        ) : null}
+      </div>
       {kind === 'ANNUAL' && !futureGoal ? (
-        <GoalScheduleEditor
-          assetCode={goal ? goal.assetCode : baseCurrency}
-          disabled={pending}
-          onChange={setSchedule}
-          targetAmount={value}
-          value={schedule}
-        />
+        <div className={styles.group}>
+          <GoalScheduleEditor
+            assetCode={goal ? goal.assetCode : baseCurrency}
+            disabled={pending}
+            onChange={setSchedule}
+            targetAmount={value}
+            value={schedule}
+          />
+        </div>
       ) : null}
       {invalid ? (
         <p className={styles.alert} id={validationId} role="alert">

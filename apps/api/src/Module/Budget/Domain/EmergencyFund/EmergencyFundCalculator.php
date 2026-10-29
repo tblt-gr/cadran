@@ -15,6 +15,7 @@ use App\Module\Reporting\Domain\Aggregation\ReportAggregator;
 /**
  * covered months  = eligible liquid assets / average monthly essential expenses
  * required amount = target months x average monthly essential expenses
+ *                   (or the fixed amount, or ratio x 12 x average monthly income, when the policy sets it)
  * gap             = liquid assets - required amount.
  *
  * The average is the report aggregator's, running month excluded, so the ratio can never disagree
@@ -29,7 +30,7 @@ final class EmergencyFundCalculator
      * @param list<LiquidAccount> $accounts the eligible accounts at the as-of date
      * @param list<MonthValue>    $months   essential expenses of every reference month
      */
-    public static function compute(array $accounts, array $months, DecimalValue $targetMonths, int $expectedMonths): EmergencyFundCoverage
+    public static function compute(array $accounts, array $months, DecimalValue $targetMonths, int $expectedMonths, ?FixedRequirement $fixed = null): EmergencyFundCoverage
     {
         [$liquid, $liquidAsset, $liquidReason] = self::liquid($accounts);
         $aggregate = ReportAggregator::flow($months, IncompleteMonths::EXCLUDE);
@@ -39,8 +40,11 @@ final class EmergencyFundCalculator
             AggregateReason::EMPTY_POPULATION => 'NO_REFERENCE_MONTH',
             default => $aggregate->averageReason->value,
         };
-        $comparable = null === $liquidAsset || null === $aggregate->asset || $aggregate->asset->toString() === $liquidAsset;
-        $required = null === $average ? null : ExactDecimal::multiplyCanonicalForResponse($average->toString(), $targetMonths);
+        $requiredAsset = $fixed->assetCode ?? $aggregate->asset?->toString();
+        $comparable = null === $liquidAsset || null === $requiredAsset || $requiredAsset === $liquidAsset;
+        $required = null !== $fixed
+            ? $fixed->amount
+            : (null === $average ? null : ExactDecimal::multiplyCanonicalForResponse($average->toString(), $targetMonths));
         $gap = null === $liquid || null === $required || !$comparable ? null : ExactDecimal::subtractForResponse($liquid, $required);
 
         $coverageReason = $liquidReason
@@ -76,8 +80,12 @@ final class EmergencyFundCalculator
             $gap,
             $covered,
             $display,
-            $coverageReason ?? ($stale ? 'STALE_VALUATION' : null),
+            // A fixed target needs no expense average: only what stops the gap is a reason.
+            null !== $fixed
+                ? ($liquidReason ?? ($comparable ? null : AggregateReason::MIXED_ASSETS->value) ?? $fixed->reason ?? ($stale ? 'STALE_VALUATION' : null))
+                : ($coverageReason ?? ($stale ? 'STALE_VALUATION' : null)),
             match (true) {
+                null !== $fixed => null === $gap ? 'NOT_CALCULABLE' : ($stale ? 'PARTIAL' : 'COMPLETE'),
                 null === $covered => 'NOT_CALCULABLE',
                 $stale || $usedMonths < $expectedMonths || AggregateQuality::COMPLETE !== $aggregate->quality => 'PARTIAL',
                 default => 'COMPLETE',

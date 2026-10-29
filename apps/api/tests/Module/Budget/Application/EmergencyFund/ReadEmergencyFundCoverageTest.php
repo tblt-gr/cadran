@@ -16,6 +16,7 @@ use App\Module\Budget\Domain\EmergencyFund\EmergencyFundPolicyRepository;
 use App\Module\Budget\Domain\EmergencyFund\EssentialMode;
 use App\Module\Budget\Domain\EmergencyFund\LiquidAccount;
 use App\Module\Budget\Domain\EmergencyFund\ReferenceMode;
+use App\Module\Budget\Domain\EmergencyFund\TargetMode;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Categories\Domain\Category;
 use App\Module\Categories\Domain\CategoryType;
@@ -82,6 +83,48 @@ final class ReadEmergencyFundCoverageTest extends TestCase
 
         self::assertSame(0, DecimalValue::fromString('150')->compareTo(DecimalValue::fromString((string) $view->average)));
         self::assertSame('6.0', $view->coveredMonthsDisplay);
+    }
+
+    public function testAnIncomeRatioTargetsAShareOfTwelveTimesTheAverageMonthlyIncome(): void
+    {
+        $policy = EmergencyFundPolicy::default(WorkspaceFixture::own())->revise(EssentialMode::AXIS, [], ReferenceMode::PREVIOUS_YEAR, null, DecimalValue::fromString('6'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID, TargetMode::INCOME_RATIO, null, null, DecimalValue::fromString('0.5'));
+        // Essentials of 2025 are 2100 a month; the twelve months before September 2026 earn 3000 a month.
+        $months = [
+            ...self::months(2025, 1, 12, ['axis:ESSENTIAL' => '2100.00', 'cashIncome' => '3000.00']),
+            ...self::months(2026, 1, 8, ['cashIncome' => '3000.00']),
+        ];
+
+        $view = $this->reader($policy, $months, new FixedLiquidAccounts([self::account('10000.00')]))(null);
+
+        // 0.5 x 12 x 3000 = 18000 required; 10000 - 18000 = -8000; 18000 / 2100 = 8.6 months.
+        self::assertSame(0, DecimalValue::fromString('18000')->compareTo(DecimalValue::fromString((string) $view->requiredAmount)));
+        self::assertSame(0, DecimalValue::fromString('-8000')->compareTo(DecimalValue::fromString((string) $view->gap)));
+        self::assertSame('INCOME_RATIO', $view->targetMode);
+        self::assertSame('8.6', $view->impliedTargetMonths);
+        self::assertSame(0, DecimalValue::fromString('3000')->compareTo(DecimalValue::fromString((string) $view->incomeAverage)));
+    }
+
+    public function testAnIncomeRatioWithoutAnyCompleteIncomeMonthIsNotCalculable(): void
+    {
+        $policy = EmergencyFundPolicy::default(WorkspaceFixture::own())->revise(EssentialMode::AXIS, [], ReferenceMode::PREVIOUS_YEAR, null, DecimalValue::fromString('6'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID, TargetMode::INCOME_RATIO, null, null, DecimalValue::fromString('0.5'));
+
+        $view = $this->reader($policy, self::months(2025, 1, 12, ['axis:ESSENTIAL' => '2100.00']), new FixedLiquidAccounts([self::account('10000.00')]))(null);
+
+        self::assertNull($view->requiredAmount);
+        self::assertNull($view->gap);
+        self::assertSame('NO_REFERENCE_INCOME', $view->reason);
+        self::assertNull($view->incomeAverage);
+    }
+
+    public function testAFixedAmountIsTheRequiredAmountWhateverTheExpenses(): void
+    {
+        $policy = EmergencyFundPolicy::default(WorkspaceFixture::own())->revise(EssentialMode::AXIS, [], ReferenceMode::PREVIOUS_YEAR, null, DecimalValue::fromString('6'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID, TargetMode::AMOUNT, DecimalValue::fromString('15000'), AssetCode::fromString('EUR'));
+
+        $view = $this->reader($policy, self::months(2025, 1, 12, ['axis:ESSENTIAL' => '2100.00']), new FixedLiquidAccounts([self::account('10000.00')]))(null);
+
+        self::assertSame(0, DecimalValue::fromString('15000')->compareTo(DecimalValue::fromString((string) $view->requiredAmount)));
+        self::assertSame(0, DecimalValue::fromString('-5000')->compareTo(DecimalValue::fromString((string) $view->gap)));
+        self::assertSame('7.1', $view->impliedTargetMonths);
     }
 
     public function testATrailingReferenceNeverContainsTheAsOfMonth(): void

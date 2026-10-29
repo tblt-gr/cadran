@@ -33,6 +33,15 @@ describe('EmergencyFundExplainModal', () => {
     expect(screen.getAllByText(/2\s100,00\s€/).length).toBeGreaterThan(0);
   });
 
+  it('rounds the reference average up to the whole unit', () => {
+    const coverage = {
+      ...coverageShortfall,
+      reference: { ...coverageShortfall.reference, average: '1056.88' },
+    };
+    render(<EmergencyFundExplainModal close={() => {}} coverage={coverage} />);
+    expect(screen.getByText(/moyenne 1\s057\s€/)).toBeTruthy();
+  });
+
   it('labels each reference month as used or excluded with its reason and links it to the budget', () => {
     const coverage = {
       ...coverageShortfall,
@@ -57,5 +66,20 @@ describe('EmergencyFundExplainModal', () => {
     expect(screen.getByRole('link', { name: /juillet 2025/i }).getAttribute('href')).toBe(
       '/budget/2025/07',
     );
+  });
+
+  it('explains an income target with its share and the average income it reads', () => {
+    const coverage = {
+      ...coverageShortfall,
+      target: {
+        mode: 'INCOME_RATIO' as const,
+        amount: null,
+        ratio: '0.5',
+        impliedMonths: '8.6',
+        incomeAverage: '3000.00',
+      },
+    };
+    render(<EmergencyFundExplainModal close={() => {}} coverage={coverage} />);
+    expect(screen.getByText(/50,00 % du revenu annuel.*moyen \(3\s000,00\s€\)/)).toBeTruthy();
   });
 });

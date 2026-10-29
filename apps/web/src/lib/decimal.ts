@@ -126,6 +126,20 @@ export function roundDecimal(value: string, digits: number): string {
 }
 
 /**
+ * Rounds a canonical decimal up to the next whole unit on its digits alone ("1056.88" gives
+ * "1057", "-1.5" gives "-1"); a whole value is returned without its fraction.
+ */
+export function ceilDecimal(value: string): string {
+  const [whole, fraction = ''] = value.split('.');
+  const kept = BigInt(whole);
+  const negative = value.startsWith('-');
+  const up = !negative && /[1-9]/.test(fraction) ? 1n : 0n;
+  const rounded = kept + up;
+
+  return negative && rounded === 0n ? '0' : rounded.toString();
+}
+
+/**
  * Renders an ISO 8601 calendar day. The day is read at midday UTC so a viewer's
  * timezone can never shift it to the day before.
  */

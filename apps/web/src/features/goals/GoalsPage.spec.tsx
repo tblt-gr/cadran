@@ -59,6 +59,10 @@ function activateWithKeyboard(element: HTMLElement) {
   fireEvent.click(element);
   fireEvent.keyUp(element, { key: 'Enter' });
 }
+function openFilters() {
+  const trigger = screen.queryByRole('button', { name: 'Filtres d’état des objectifs' });
+  if (trigger) fireEvent.click(trigger);
+}
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -232,7 +236,7 @@ describe('GoalsPage', () => {
     expect(screen.getByTitle('Une valeur mensuelle est manquante')).toBeTruthy();
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
   });
-  it('switches to closed goals and opens the close confirmation from the accessible action menu', async () => {
+  it('opens the close confirmation from the accessible action menu', async () => {
     mockSession();
     api.listGoals.mockImplementation(({ query }) =>
       ok({ items: query.state === 'closed' ? [] : [goal] }),
@@ -242,10 +246,31 @@ describe('GoalsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Actions de l’objectif « Épargne »' }));
     fireEvent.click(screen.getByRole('button', { name: 'Clôturer l’objectif « Épargne »' }));
     expect(screen.getByRole('dialog', { name: 'Clôturer l’objectif' })).toBeTruthy();
-    fireEvent.click(screen.getByLabelText('Clôturés'));
-    expect(
-      await screen.findByRole('heading', { name: 'Aucun objectif clôturé pour cette année' }),
-    ).toBeTruthy();
+  });
+  it('lists closed goals after the active ones once the header filter asks for them', async () => {
+    mockSession();
+    api.listGoals.mockImplementation(({ query }) =>
+      ok({
+        items:
+          query.state === 'closed'
+            ? [{ ...goal, id: 'closed-1', label: 'Voyage', state: 'CLOSED' as const }]
+            : [goal],
+      }),
+    );
+    renderPage();
+    expect(await screen.findByText('Épargne')).toBeTruthy();
+    expect(screen.queryByText('Voyage')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres d’état des objectifs' }));
+    fireEvent.click(screen.getByLabelText('Afficher les objectifs clôturés'));
+    expect(await screen.findByText('Voyage')).toBeTruthy();
+  });
+  it('shows neither a title nor an empty message when a year has no goal', async () => {
+    mockSession();
+    api.listGoals.mockReturnValue(ok({ items: [] }));
+    renderPage();
+    await waitFor(() => expect(screen.queryByTestId('goals-skeleton')).toBeNull());
+    expect(screen.queryByText(/Aucun objectif/)).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Liste des objectifs' })).toBeNull();
   });
   it('marks a closed goal and keeps its history action available', async () => {
     mockSession();
@@ -462,42 +487,6 @@ describe('GoalsPage', () => {
       ),
     );
   });
-  it('renders the loaded annual schedule table in the edit modal', async () => {
-    mockSession();
-    const schedule = {
-      mode: 'LINEAR' as const,
-      parts: [{ month: '2026-01', amount: '166.67', cumulative: '166.67' }],
-    };
-    api.listGoals.mockReturnValue(ok({ items: [goal] }));
-    api.readGoal.mockReturnValue(
-      ok({ ...goal, currentVersion: { ...goal.currentVersion, schedule }, versions: [] }),
-    );
-    renderPage();
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
-    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
-
-    expect(await screen.findByRole('table')).toBeTruthy();
-    expect(screen.getByRole('rowheader', { name: 'janvier 2026' })).toBeTruthy();
-  });
-
-  it('renders a loaded annual goal without a schedule as not calculable in the edit modal', async () => {
-    mockSession();
-    api.listGoals.mockReturnValue(ok({ items: [goal] }));
-    api.readGoal.mockReturnValue(
-      ok({ ...goal, currentVersion: { ...goal.currentVersion, schedule: null }, versions: [] }),
-    );
-    renderPage();
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Actions de l’objectif « Épargne »' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
-    await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
-
-    expect(await screen.findByText('Aucun calendrier mensuel pour cet objectif.')).toBeTruthy();
-  });
   it('shows an error inside the detail modal, not a page-wide failure, when the status call fails', async () => {
     mockSession();
     const status = {
@@ -550,6 +539,7 @@ describe('GoalsPage', () => {
     renderPage();
     expect(await screen.findByText('Épargne')).toBeTruthy();
 
+    openFilters();
     fireEvent.change(screen.getByLabelText('Année'), { target: { value: '2025' } });
     fireEvent.change(screen.getByLabelText('Mois'), { target: { value: '2025-06' } });
 
@@ -595,6 +585,7 @@ describe('GoalsPage', () => {
     renderPage();
     expect(await screen.findByRole('button', { name: 'Voir le détail mensuel' })).toBeTruthy();
 
+    openFilters();
     fireEvent.change(screen.getByLabelText('Année'), { target: { value: '2027' } });
 
     expect(await screen.findByText('Épargne 2027')).toBeTruthy();
@@ -628,6 +619,7 @@ describe('GoalsPage', () => {
     renderPage();
     expect(await screen.findByText('Épargne')).toBeTruthy();
 
+    openFilters();
     fireEvent.change(screen.getByLabelText('Année'), { target: { value: '2027' } });
 
     await waitFor(() =>
@@ -671,6 +663,7 @@ describe('GoalsPage', () => {
     mockListRejectingInvalidMonths();
     renderPage();
     expect(await screen.findByText('Épargne')).toBeTruthy();
+    openFilters();
     const monthInput = screen.getByLabelText('Mois') as HTMLInputElement;
 
     fireEvent.change(monthInput, { target: { value: '' } });
@@ -689,6 +682,7 @@ describe('GoalsPage', () => {
     mockListRejectingInvalidMonths();
     renderPage();
     expect(await screen.findByText('Épargne')).toBeTruthy();
+    openFilters();
     const monthInput = screen.getByLabelText('Mois') as HTMLInputElement;
     const otherYear = String(Number.parseInt(monthInput.value.slice(0, 4), 10) - 2);
 
@@ -708,6 +702,7 @@ describe('GoalsPage', () => {
     mockListRejectingInvalidMonths();
     renderPage();
     expect(await screen.findByText('Épargne')).toBeTruthy();
+    openFilters();
     const monthInput = screen.getByLabelText('Mois') as HTMLInputElement;
     if (monthInput.value.endsWith('-12')) return;
     const later = `${monthInput.value.slice(0, 4)}-12`;

@@ -60,10 +60,9 @@ describe('GoalCard', () => {
     );
 
     expect(screen.getByText('Non calculable')).toBeTruthy();
-    const heading = screen.getByText('Situation pour septembre 2026').parentElement;
-    expect(heading?.nextElementSibling?.textContent).toBe(
-      'Les politiques d’indicateurs diffèrent selon les mois',
-    );
+    expect(
+      screen.getAllByText('Les politiques d’indicateurs diffèrent selon les mois').length,
+    ).toBeGreaterThan(0);
   });
 
   it('never shows a bare zero or dash for a null value without its reason', () => {
@@ -81,20 +80,7 @@ describe('GoalCard', () => {
     expect(reasons.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('shows the month the status refers to, even when it is not the viewed calendar month', () => {
-    render(
-      <GoalCard
-        goal={{ ...baseGoal, status: { ...notCalculableRollingStatus, month: '2027-01' } }}
-        onClose={noop}
-        onDetail={noop}
-        onEdit={noop}
-      />,
-    );
-
-    expect(screen.getByText('Situation pour janvier 2027')).toBeTruthy();
-  });
-
-  it('explains a future-month status with its own reason next to the evaluated month', () => {
+  it('explains a future-month status with its own reason', () => {
     render(
       <GoalCard
         goal={{
@@ -107,7 +93,6 @@ describe('GoalCard', () => {
       />,
     );
 
-    expect(screen.getByText('Situation pour janvier 2027')).toBeTruthy();
     expect(screen.getAllByText('Ce mois n’a pas encore commencé').length).toBeGreaterThanOrEqual(1);
   });
 
@@ -125,8 +110,9 @@ describe('GoalCard', () => {
       <GoalCard goal={{ ...baseGoal, status }} onClose={noop} onDetail={noop} onEdit={noop} />,
     );
 
-    expect(screen.getByText('Cible')).toBeTruthy();
-    expect(screen.queryByText('Objectif à cette date')).toBeNull();
+    expect(screen.getByText(/Il manque 250,00\s€/)).toBeTruthy();
+    expect(screen.getByText('Ratio visé : 30,00 %')).toBeTruthy();
+    expect(screen.queryByText(/Objectif à cette date/)).toBeNull();
   });
 
   it('labels a rolling ceiling goal\'s second amount "Limite" rather than a cumulative expected amount', () => {
@@ -149,8 +135,8 @@ describe('GoalCard', () => {
       />,
     );
 
-    expect(screen.getByText('Limite')).toBeTruthy();
-    expect(screen.queryByText('Objectif à cette date')).toBeNull();
+    expect(screen.getByText(/Marge de 250,00\s€ avant le plafond/)).toBeTruthy();
+    expect(screen.queryByText(/Objectif à cette date/)).toBeNull();
   });
 
   it('labels the annual remaining row "Reste à atteindre" when excess is not calculable', () => {
@@ -190,8 +176,10 @@ describe('GoalCard', () => {
       <GoalCard goal={{ ...annualGoal, status }} onClose={noop} onDetail={noop} onEdit={noop} />,
     );
 
-    expect(screen.getByText('Reste à atteindre')).toBeTruthy();
-    expect(screen.queryByText('Au-delà de l’objectif')).toBeNull();
+    expect(
+      screen.getAllByTitle('Les politiques d’indicateurs diffèrent selon les mois').length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/d’excédent/)).toBeNull();
   });
 
   it('offers the monthly detail of an annual goal only when a detail handler is provided', () => {
@@ -228,16 +216,15 @@ describe('GoalCard', () => {
       },
       status,
     };
-    const { container, rerender } = render(
+    const { rerender } = render(
       <GoalCard goal={annual} onClose={noop} onDetail={noop} onEdit={noop} />,
     );
     expect(screen.getByRole('button', { name: 'Voir le détail mensuel' })).toBeTruthy();
     expect(screen.getByText('En avance')).toBeTruthy();
-    expect(
-      Array.from(container.querySelectorAll('strong.money')).filter((node) =>
-        node.textContent?.replace(/\s/g, '').startsWith('12000,00'),
-      ),
-    ).toHaveLength(1);
+    expect(screen.getAllByText(/12\s000,00/)).toHaveLength(1);
+    expect(screen.getByText(/Il manque 3\s000,00\s€/)).toBeTruthy();
+    expect(screen.getByText(/Objectif attendu à cette date : 9\s000,00\s€/)).toBeTruthy();
+    expect(screen.getByTestId('gauge-marker').getAttribute('style')).toContain('left: 75%');
 
     rerender(<GoalCard goal={annual} onClose={noop} onEdit={noop} />);
     expect(screen.queryByRole('button', { name: 'Voir le détail mensuel' })).toBeNull();
@@ -270,5 +257,29 @@ describe('GoalCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Actions de l’objectif « Épargne »' }));
     fireEvent.click(screen.getByRole('button', { name: 'Historique de l’objectif « Épargne »' }));
     expect(onHistory).toHaveBeenCalledOnce();
+  });
+
+  it('flags a closed goal that missed its target and leaves an open or met one unflagged', () => {
+    const missed = { ...notCalculableRollingStatus, status: 'MISSED' as const };
+    const { container, rerender } = render(
+      <GoalCard
+        goal={{ ...baseGoal, state: 'CLOSED', status: missed }}
+        onClose={noop}
+        onEdit={noop}
+      />,
+    );
+    expect(container.querySelector('[data-failed="true"]')).not.toBeNull();
+
+    rerender(<GoalCard goal={{ ...baseGoal, status: missed }} onClose={noop} onEdit={noop} />);
+    expect(container.querySelector('[data-failed]')).toBeNull();
+
+    rerender(
+      <GoalCard
+        goal={{ ...baseGoal, state: 'CLOSED', status: { ...missed, status: 'MET' } }}
+        onClose={noop}
+        onEdit={noop}
+      />,
+    );
+    expect(container.querySelector('[data-failed]')).toBeNull();
   });
 });

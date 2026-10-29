@@ -14,6 +14,10 @@ final readonly class EmergencyFundPolicyInput
         public ?int $trailingMonths,
         public string $targetMonths,
         public int $expectedVersion,
+        public string $targetMode = 'MONTHS',
+        public ?string $targetAmount = null,
+        public ?string $targetAssetCode = null,
+        public ?string $targetRatio = null,
     ) {
     }
 }

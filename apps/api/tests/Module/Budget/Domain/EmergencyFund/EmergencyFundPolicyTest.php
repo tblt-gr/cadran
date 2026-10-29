@@ -9,6 +9,8 @@ use App\Module\Budget\Domain\EmergencyFund\EmergencyFundPolicy;
 use App\Module\Budget\Domain\EmergencyFund\EssentialMode;
 use App\Module\Budget\Domain\EmergencyFund\InvalidEmergencyFundPolicy;
 use App\Module\Budget\Domain\EmergencyFund\ReferenceMode;
+use App\Module\Budget\Domain\EmergencyFund\TargetMode;
+use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -29,6 +31,41 @@ final class EmergencyFundPolicyTest extends TestCase
         self::assertSame('6', $policy->targetMonths->toString());
         self::assertSame(0, $policy->version);
         self::assertSame(31, EmergencyFundPolicy::STALE_VALUATION_DAYS);
+    }
+
+    public function testAFixedAmountAndAnIncomeRatioAreTwoMoreWaysToSetTheTarget(): void
+    {
+        $default = EmergencyFundPolicy::default(self::workspace());
+        $now = new \DateTimeImmutable('2026-09-29T10:00:00+00:00');
+        $amount = $default->revise(EssentialMode::AXIS, [], ReferenceMode::PREVIOUS_YEAR, null, DecimalValue::fromString('6'), $now, self::ACTOR, TargetMode::AMOUNT, DecimalValue::fromString('15000'), AssetCode::fromString('EUR'));
+        $ratio = $default->revise(EssentialMode::AXIS, [], ReferenceMode::PREVIOUS_YEAR, null, DecimalValue::fromString('6'), $now, self::ACTOR, TargetMode::INCOME_RATIO, null, null, DecimalValue::fromString('0.5'));
+
+        self::assertSame(TargetMode::MONTHS, $default->targetMode);
+        self::assertSame(['targetMode', 'targetAmount'], $default->changedFields($amount));
+        self::assertSame(['targetMode', 'targetRatio'], $default->changedFields($ratio));
+    }
+
+    /** @return iterable<string, array{TargetMode, ?string, ?string, ?string, string}> */
+    public static function invalidTargets(): iterable
+    {
+        yield 'amount without asset' => [TargetMode::AMOUNT, '100', null, null, 'invalid_target_amount'];
+        yield 'zero amount' => [TargetMode::AMOUNT, '0', 'EUR', null, 'invalid_target_amount'];
+        yield 'amount with a ratio' => [TargetMode::AMOUNT, '100', 'EUR', '0.5', 'invalid_target_amount'];
+        yield 'ratio missing' => [TargetMode::INCOME_RATIO, null, null, null, 'invalid_target_ratio'];
+        yield 'ratio above one' => [TargetMode::INCOME_RATIO, null, null, '1.1', 'invalid_target_ratio'];
+        yield 'ratio with seven decimals' => [TargetMode::INCOME_RATIO, null, null, '0.1234567', 'invalid_target_ratio'];
+        yield 'months with an amount' => [TargetMode::MONTHS, '100', 'EUR', null, 'invalid_emergency_fund_policy'];
+    }
+
+    #[DataProvider('invalidTargets')]
+    public function testAnIncoherentTargetIsRefused(TargetMode $mode, ?string $amount, ?string $asset, ?string $ratio, string $code): void
+    {
+        try {
+            EmergencyFundPolicy::default(self::workspace())->revise(EssentialMode::AXIS, [], ReferenceMode::PREVIOUS_YEAR, null, DecimalValue::fromString('6'), new \DateTimeImmutable('2026-09-29T10:00:00+00:00'), self::ACTOR, $mode, null === $amount ? null : DecimalValue::fromString($amount), null === $asset ? null : AssetCode::fromString($asset), null === $ratio ? null : DecimalValue::fromString($ratio));
+            self::fail('The target should have been refused.');
+        } catch (InvalidEmergencyFundPolicy $exception) {
+            self::assertSame($code, $exception->errorCode);
+        }
     }
 
     public function testThePreviousYearReferenceIsTheCalendarYearBeforeTheAsOfDate(): void

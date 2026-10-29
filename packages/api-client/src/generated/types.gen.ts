@@ -731,6 +731,16 @@ export type EmergencyFundEssentialMode = 'AXIS' | 'CATEGORIES';
 export type EmergencyFundReferenceMode = 'PREVIOUS_YEAR' | 'TRAILING_MONTHS';
 
 /**
+ * How the required amount is set: MONTHS of essential expenses (targetMonths), a fixed AMOUNT (targetAmount), or an INCOME_RATIO of the annual income (targetRatio).
+ */
+export type EmergencyFundTargetMode = 'MONTHS' | 'AMOUNT' | 'INCOME_RATIO';
+
+/**
+ * Share of twelve times the average monthly income, above 0 and at most 1, with at most six decimals (0.5 is 50 %).
+ */
+export type EmergencyFundTargetRatio = string;
+
+/**
  * Months of essential expenses to cover, 0 to 60 with at most one decimal.
  */
 export type EmergencyFundTargetMonths = string;
@@ -749,6 +759,15 @@ export type EmergencyFundPolicy = {
     trailingMonths: number | null;
     targetMonths: EmergencyFundTargetMonths;
     version: number;
+    targetMode: EmergencyFundTargetMode;
+    /**
+     * Set with AMOUNT only.
+     */
+    targetAmount: GoalAmountInput | null;
+    /**
+     * Set with INCOME_RATIO only.
+     */
+    targetRatio: EmergencyFundTargetRatio | null;
 };
 
 export type UpdateEmergencyFundPolicyRequest = {
@@ -764,6 +783,18 @@ export type UpdateEmergencyFundPolicyRequest = {
     trailingMonths: number | null;
     targetMonths: EmergencyFundTargetMonths;
     version: number;
+    /**
+     * Omitted keeps MONTHS.
+     */
+    targetMode?: EmergencyFundTargetMode;
+    /**
+     * Required with AMOUNT, null otherwise.
+     */
+    targetAmount?: GoalAmountInput | null;
+    /**
+     * Required with INCOME_RATIO, null otherwise.
+     */
+    targetRatio?: EmergencyFundTargetRatio | null;
 };
 
 export type EmergencyFundCoverage = {
@@ -811,8 +842,21 @@ export type EmergencyFundCoverage = {
         }>;
     };
     targetMonths: EmergencyFundTargetMonths;
+    target: {
+        mode: EmergencyFundTargetMode;
+        amount: GoalAmountInput | null;
+        ratio: EmergencyFundTargetRatio | null;
+        /**
+         * Months of essential expenses the required amount stands for, one decimal; null when the average is unknown.
+         */
+        impliedMonths: string | null;
+        /**
+         * Average monthly cash income over the twelve complete months before the as-of month, used by INCOME_RATIO.
+         */
+        incomeAverage: string | null;
+    };
     /**
-     * Target months x average, in reference.assetCode; known whenever the average is.
+     * Target months x average, the fixed amount, or ratio x 12 x average monthly income, according to target.mode. Known whenever its inputs are.
      */
     requiredAmount: string | null;
     /**
@@ -825,7 +869,7 @@ export type EmergencyFundCoverage = {
      */
     coveredMonthsDisplay: string | null;
     /**
-     * Why covered months is null (NO_ELIGIBLE_ACCOUNT, MISSING_VALUATION, MIXED_ASSETS, NO_REFERENCE_MONTH, MISSING_MONTH_VALUE, MIXED_METRIC_POLICIES, ZERO_ESSENTIAL_EXPENSES, NEGATIVE_ESSENTIAL_EXPENSES), or STALE_VALUATION when it is computed from a stale valuation.
+     * Why covered months is null (NO_ELIGIBLE_ACCOUNT, MISSING_VALUATION, MIXED_ASSETS, NO_REFERENCE_MONTH, MISSING_MONTH_VALUE, MIXED_METRIC_POLICIES, ZERO_ESSENTIAL_EXPENSES, NEGATIVE_ESSENTIAL_EXPENSES, or NO_REFERENCE_INCOME for an income target), or STALE_VALUATION when it is computed from a stale valuation.
      */
     reason: string | null;
     quality: 'COMPLETE' | 'PARTIAL' | 'NOT_CALCULABLE';

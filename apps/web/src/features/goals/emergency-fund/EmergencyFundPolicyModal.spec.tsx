@@ -59,7 +59,50 @@ describe('EmergencyFundPolicyModal', () => {
       trailingMonths: null,
       targetMonths: '4.5',
       version: 0,
+      targetMode: 'MONTHS',
+      targetAmount: null,
+      targetRatio: null,
     });
+  });
+
+  it('saves a fixed amount in the workspace currency', async () => {
+    const close = renderModal();
+    await screen.findByLabelText(/objectif en mois/i);
+    fireEvent.click(screen.getByRole('radio', { name: 'Montant fixe' }));
+    expect(screen.queryByLabelText(/objectif en mois/i)).toBeNull();
+    fireEvent.change(screen.getByLabelText('Montant visé'), { target: { value: '15000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(close).toHaveBeenCalled());
+    expect(api.updateEmergencyFundPolicy.mock.calls[0][0].body).toMatchObject({
+      targetMode: 'AMOUNT',
+      targetAmount: { value: '15000', assetCode: 'EUR' },
+      targetRatio: null,
+    });
+  });
+
+  it('saves a share of the annual income as an exact ratio', async () => {
+    const close = renderModal();
+    await screen.findByLabelText(/objectif en mois/i);
+    fireEvent.click(screen.getByRole('radio', { name: 'Part du revenu annuel' }));
+    fireEvent.change(screen.getByLabelText(/Part du revenu annuel \(en %\)/), {
+      target: { value: '50' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(close).toHaveBeenCalled());
+    expect(api.updateEmergencyFundPolicy.mock.calls[0][0].body).toMatchObject({
+      targetMode: 'INCOME_RATIO',
+      targetAmount: null,
+      targetRatio: '0.50',
+    });
+  });
+
+  it('refuses an empty fixed amount without calling the API', async () => {
+    renderModal();
+    await screen.findByLabelText(/objectif en mois/i);
+    fireEvent.click(screen.getByRole('radio', { name: 'Montant fixe' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(await screen.findByText(/montant strictement positif/)).toBeTruthy();
+    expect(api.updateEmergencyFundPolicy).not.toHaveBeenCalled();
   });
 
   it('refuses an out-of-range target without calling the API', async () => {
