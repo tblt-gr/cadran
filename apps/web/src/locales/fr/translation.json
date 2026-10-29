@@ -1436,7 +1436,8 @@
       "jurisdiction": "Juridiction",
       "ceilingBasis": "Base du plafond",
       "group": "Groupe patrimonial",
-      "status": "Statut"
+      "status": "Statut",
+      "accountKind": "Type de compte"
     },
     "jurisdictions": {
       "none": "Aucune"
@@ -1535,7 +1536,8 @@
       "closedPeriod": "Du {{from}} au {{to}}",
       "unavailable": "— Non disponible au {{date}} : aucune valeur sourcée pour cette date.",
       "unknownValue": "— Valeur non renseignée",
-      "none": "Aucune règle sourcée au {{date}} pour ce produit."
+      "none": "Aucune règle sourcée au {{date}} pour ce produit.",
+      "disclosure": "Règles et sources"
     },
     "ruleTexts": {
       "NO_REGULATORY_CONTRIBUTION_CEILING": "Aucun plafond réglementaire de versement"
@@ -1553,6 +1555,9 @@
       "previous": "Précédent",
       "next": "Suivant",
       "position": "Page {{page}} sur {{total}}"
+    },
+    "details": {
+      "open": "Détails de {{product}}"
     }
   },
   "portfolio": {

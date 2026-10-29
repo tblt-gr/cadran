@@ -2,6 +2,7 @@ import type { EmergencyFundCoverage } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { Icon } from '@/components/ui/icon/Icon';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -122,15 +123,10 @@ export function EmergencyFundCard() {
         <h3 id="emergency-fund-title">{t('goals.emergencyFund.title')}</h3>
         <div className={styles.actions}>
           {empty ? null : (
-            <button
-              aria-label={t('goals.emergencyFund.explain')}
-              className="icon-ghost"
+            <InfoButton
+              label={t('goals.emergencyFund.explain')}
               onClick={() => setDialog('explain')}
-              title={t('goals.emergencyFund.explain')}
-              type="button"
-            >
-              <Icon name="info" size={18} />
-            </button>
+            />
           )}
           <button
             aria-label={t('goals.emergencyFund.editPolicy')}

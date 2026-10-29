@@ -1,8 +1,15 @@
-.button {
+/* Bare glyph: no fill, no outline. The element selector outweighs the shared .icon-button box. */
+button.button {
   flex: none;
   width: var(--icon-size-sm);
   min-height: var(--icon-size-sm);
   height: var(--icon-size-sm);
-  color: var(--text-primary);
+  border: none;
+  color: var(--text-secondary);
+  background: var(--color-transparent);
   vertical-align: middle;
+}
+
+button.button:hover:not(:disabled) {
+  color: var(--text-primary);
 }

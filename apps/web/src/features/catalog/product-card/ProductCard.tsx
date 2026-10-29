@@ -1,10 +1,12 @@
 import type { Product } from '@cadran/api-client';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { ProductCapabilityList } from '@/features/catalog/product-capability-list/ProductCapabilityList';
+import { ProductDetailsModal } from '@/features/catalog/product-details-modal/ProductDetailsModal';
 import { ProductFigures } from '@/features/catalog/product-figures/ProductFigures';
 import { ProductRuleList } from '@/features/catalog/product-rule-list/ProductRuleList';
-import { formatCalendarDay } from '@/lib/decimal';
 import styles from './ProductCard.module.css';
 
 interface ProductCardProps {
@@ -20,26 +22,30 @@ interface ProductCardProps {
  * assets earn, and this card must not let that read as a promise.
  */
 export function ProductCard({ product }: ProductCardProps) {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
   const guaranteedYieldUnavailable =
     product.yieldGuaranteed && product.unavailableRuleKinds.includes('ANNUAL_RATE');
-  const jurisdiction = formatJurisdiction(product.jurisdiction, i18n.language);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const detailsButton = useRef<HTMLButtonElement>(null);
+  const ruleCount = product.rules.length + product.unavailableRuleKinds.length;
   const archivedDay = product.archivedAt?.slice(0, 10) ?? null;
 
   return (
     <article aria-labelledby={`product-${product.code}`} className={`card ${styles.card}`}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.title}>
           <h2 id={`product-${product.code}`}>{product.displayName}</h2>
-          <p className={styles.code}>{product.code}</p>
+          <InfoButton
+            label={t('catalog.details.open', { product: product.displayName })}
+            onClick={() => setDetailsOpen(true)}
+            ref={detailsButton}
+          />
         </div>
         <div className={styles.badges}>
           {archivedDay !== null ? (
             <StatusBadge tone="warning">{t('catalog.status.archived')}</StatusBadge>
           ) : null}
-          <StatusBadge icon="accounts" tone="info">
-            {t(`catalog.accountKinds.${product.accountKind}`)}
-          </StatusBadge>
           <StatusBadge
             icon={product.yieldGuaranteed ? 'goals' : 'investments'}
             tone={
@@ -53,64 +59,22 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <ProductFigures product={product} />
 
-      <dl className={styles.classification}>
-        <div>
-          <dt>{t('catalog.fields.jurisdiction')}</dt>
-          <dd>{jurisdiction ?? t('catalog.jurisdictions.none')}</dd>
-        </div>
-        <div>
-          <dt>{t('catalog.fields.wrapper')}</dt>
-          <dd>{t(`catalog.wrapperKinds.${product.wrapperKind}`)}</dd>
-        </div>
-        <div>
-          <dt>{t('catalog.fields.yield')}</dt>
-          <dd>{t(`catalog.yieldKinds.${product.yieldKind}`)}</dd>
-        </div>
-        <div>
-          <dt>{t('catalog.fields.ceilingBasis')}</dt>
-          <dd>{t(`catalog.ceilingBases.${product.ceilingBasis}`)}</dd>
-        </div>
-        <div>
-          <dt>{t('catalog.fields.group')}</dt>
-          <dd>
-            {product.defaultGroupCode === null
-              ? t('catalog.groups.none')
-              : t(`catalog.groups.${product.defaultGroupCode}`, {
-                  defaultValue: product.defaultGroupCode,
-                })}
-          </dd>
-        </div>
-        <div>
-          <dt>{t('catalog.fields.catalogVersion')}</dt>
-          <dd>{product.catalogVersion}</dd>
-        </div>
-        {archivedDay !== null ? (
-          <div>
-            <dt>{t('catalog.fields.status')}</dt>
-            <dd>
-              {t('catalog.status.archivedOn', {
-                date: formatCalendarDay(archivedDay, i18n.language),
-              })}
-            </dd>
-          </div>
-        ) : null}
-      </dl>
+      <Disclosure
+        meta={ruleCount}
+        onToggle={setRulesOpen}
+        open={rulesOpen}
+        title={t('catalog.rules.disclosure')}
+      >
+        <ProductRuleList product={product} />
+      </Disclosure>
 
-      <ProductCapabilityList capabilities={product.capabilities} productCode={product.code} />
-
-      <ProductRuleList product={product} />
+      {detailsOpen ? (
+        <ProductDetailsModal
+          close={() => setDetailsOpen(false)}
+          product={product}
+          returnFocus={detailsButton}
+        />
+      ) : null}
     </article>
   );
-}
-
-function formatJurisdiction(code: string | null, locale: string): string | null {
-  if (code === null) {
-    return null;
-  }
-
-  try {
-    return new Intl.DisplayNames(locale, { type: 'region' }).of(code) ?? code;
-  } catch {
-    return code;
-  }
 }

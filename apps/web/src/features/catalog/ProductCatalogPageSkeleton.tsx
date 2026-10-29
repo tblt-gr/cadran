@@ -1,27 +1,20 @@
 import { useTranslation } from 'react-i18next';
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { SkeletonBlock, SkeletonStatus, SkeletonTitle } from '@/components/ui/skeleton/Skeleton';
 import { formatCalendarDay } from '@/lib/decimal';
 import cardStyles from './product-card/ProductCard.module.css';
 import styles from './ProductCatalogPage.module.css';
 import skeletonStyles from './ProductCatalogPageSkeleton.module.css';
 
-const CLASSIFICATION_FIELDS = [
-  'catalog.fields.jurisdiction',
-  'catalog.fields.wrapper',
-  'catalog.fields.yield',
-  'catalog.fields.ceilingBasis',
-  'catalog.fields.group',
-  'catalog.fields.catalogVersion',
-] as const;
-
 function ProductCardSkeleton() {
   const { t } = useTranslation();
   return (
     <article aria-hidden="true" className={`card ${cardStyles.card}`}>
       <header className={cardStyles.header}>
-        <div>
+        <div className={cardStyles.title}>
           <SkeletonTitle />
-          <SkeletonBlock className={skeletonStyles.code} />
+          <InfoButton disabled label={t('catalog.details.open', { product: '' })} />
         </div>
         <div className={cardStyles.badges}>
           <SkeletonBlock className={skeletonStyles.badge} />
@@ -29,17 +22,14 @@ function ProductCardSkeleton() {
         </div>
       </header>
       <SkeletonBlock className={skeletonStyles.figures} />
-      <dl className={cardStyles.classification}>
-        {CLASSIFICATION_FIELDS.map((field) => (
-          <div key={field}>
-            <dt>{t(field)}</dt>
-            <dd>
-              <SkeletonBlock className={skeletonStyles.field} />
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <SkeletonBlock className={skeletonStyles.rules} />
+      <Disclosure
+        disabled
+        onToggle={() => undefined}
+        open={false}
+        title={t('catalog.rules.disclosure')}
+      >
+        {null}
+      </Disclosure>
     </article>
   );
 }
