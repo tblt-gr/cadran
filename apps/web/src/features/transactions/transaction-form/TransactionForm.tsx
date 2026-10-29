@@ -5,6 +5,7 @@ import type {
   UpdateTransactionRequest,
 } from '@cadran/api-client';
 import { useId, useState } from 'react';
+import { useCategoryDefaultAxes } from '@/features/categories/useCategoryDefaultAxes';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
@@ -89,6 +90,11 @@ export function TransactionForm({
   const [showErrors, setShowErrors] = useState(false);
   const [accountChosen, setAccountChosen] = useState(false);
   // A split transaction is edited in the advanced section, so it opens there.
+  const categoryDefaultAxes = useCategoryDefaultAxes(
+    values.categoryId,
+    (savedCategory(transaction) ?? defaults?.category ?? null)?.label ?? null,
+    values.categoryDefaultAxes,
+  );
   const [advancedOpen, setAdvancedOpen] = useState(() => values.splitMode);
   const resolved =
     !transaction && !accountChosen
@@ -344,7 +350,7 @@ export function TransactionForm({
           <SplitAxes
             axes={values.analyticAxes}
             compact={false}
-            defaultAxes={values.categoryDefaultAxes}
+            defaultAxes={categoryDefaultAxes}
             legend={t('transactions.form.axesLegend')}
             onChange={(analyticAxes) => set('analyticAxes', analyticAxes)}
           />

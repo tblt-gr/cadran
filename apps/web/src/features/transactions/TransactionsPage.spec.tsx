@@ -1161,6 +1161,58 @@ describe('TransactionsPage', () => {
     ).toBeTruthy();
   });
 
+  it('restores the category axes of a saved transaction when its override is reset', async () => {
+    const courses = {
+      ...expenseCategory,
+      defaultAnalyticAxes: ['ESSENTIAL', 'FIXED'],
+    } as Category;
+    const overridden = {
+      ...transaction,
+      splits: [
+        {
+          id: '00000000-0000-7000-8000-0000000000e1',
+          categoryId: courses.id,
+          categoryLabel: 'Courses',
+          categoryIcon: null,
+          categoryColor: null,
+          amount: transaction.amount,
+          analyticAxes: ['PERSONAL'],
+          note: null,
+          categorizationOrigin: 'MANUAL',
+          categorizationRuleId: null,
+        },
+      ],
+    } satisfies Transaction;
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [overridden], nextCursor: null }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [courses], page: 1, pageSize: 50, total: 1 }),
+    );
+    renderPage();
+
+    await screen.findByText('CB CARREFOUR 1234');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Modifier la transaction' });
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Revenir aux axes de la catégorie' }),
+    );
+
+    const group = within(dialog).getByRole('group', { name: 'Axes analytiques de la transaction' });
+    await waitFor(() =>
+      expect((within(group).getByLabelText('Essentiel') as HTMLInputElement).checked).toBe(true),
+    );
+    expect((within(group).getByLabelText('Fixe') as HTMLInputElement).checked).toBe(true);
+    expect((within(group).getByLabelText('Personnel') as HTMLInputElement).checked).toBe(false);
+  });
+
   it('edits a manual label and explains the fields that stay locked', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
