@@ -1,88 +1,59 @@
-.tableWrap {
-  overflow-x: auto;
-}
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-body);
-}
-.table th,
-.table td {
-  padding: var(--spacing-2);
-  border-bottom: var(--border-line-subtle);
-  text-align: left;
-  vertical-align: top;
-}
-.table td {
-  min-width: 9rem;
-}
-.compare {
+.versions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-2);
+  list-style: none;
+}
+.version {
   padding: var(--spacing-3);
   border: var(--border-line-subtle);
   border-radius: var(--radius-control);
+  background: var(--bg-surface-2);
+}
+.skeletonVersion {
+  width: 100%;
+  height: var(--spacing-6);
+}
+.empty {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+}
+.details {
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-3);
-}
-.compare label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-1);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-.compare p {
-  flex-basis: 100%;
-  margin: var(--spacing-none);
-  color: var(--text-secondary);
   font-size: var(--font-size-body);
 }
-.diff {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-}
-.diff h3,
-.diff p {
+.recorded {
   margin: var(--spacing-none);
+  color: var(--text-secondary);
 }
-.retroactive {
-  color: var(--gold-300);
-  font-weight: var(--font-weight-strong);
-}
-@media (max-width: 42rem) {
-  .compare {
-    flex-direction: column;
-  }
-  .compare label,
-  .compare select {
-    width: 100%;
-  }
-}
-.history {
+.changes {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-8);
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-2);
+  list-style: none;
 }
-.help {
-  display: inline;
-  margin-left: var(--spacing-2);
+.changes li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-1) var(--spacing-3);
 }
-.help .infoButton {
+.changes li > span:first-child {
+  color: var(--text-secondary);
+}
+.values {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
   color: var(--text-primary);
-}
-.helpText {
-  display: block;
-  margin-top: var(--spacing-2);
-  color: var(--text-secondary);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-normal);
-}
-.helpText[hidden] {
-  display: none;
-}
-.table caption {
-  text-align: left;
-  padding-bottom: var(--spacing-3);
+  font-weight: var(--font-weight-strong);
+  gap: var(--spacing-2);
 }

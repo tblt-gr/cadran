@@ -8,8 +8,14 @@
 .explain h3 {
   margin: var(--spacing-none);
 }
+.explain h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+}
 .heading {
   display: flex;
+  margin-bottom: var(--spacing-2);
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -19,10 +25,9 @@
   display: flex;
   gap: var(--spacing-1);
 }
-.card h3,
-.explain h3 {
+.card h3 {
   color: var(--text-primary);
-  font-size: var(--font-size-card-title);
+  font-size: var(--font-size-brand);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-card);
 }

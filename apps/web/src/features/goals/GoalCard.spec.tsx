@@ -60,10 +60,9 @@ describe('GoalCard', () => {
     );
 
     expect(screen.getByText('Non calculable')).toBeTruthy();
-    const heading = screen.getByText('Situation pour septembre 2026').parentElement;
-    expect(heading?.nextElementSibling?.textContent).toBe(
-      'Les politiques d’indicateurs diffèrent selon les mois',
-    );
+    expect(
+      screen.getAllByText('Les politiques d’indicateurs diffèrent selon les mois').length,
+    ).toBeGreaterThan(0);
   });
 
   it('never shows a bare zero or dash for a null value without its reason', () => {
@@ -81,20 +80,7 @@ describe('GoalCard', () => {
     expect(reasons.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('shows the month the status refers to, even when it is not the viewed calendar month', () => {
-    render(
-      <GoalCard
-        goal={{ ...baseGoal, status: { ...notCalculableRollingStatus, month: '2027-01' } }}
-        onClose={noop}
-        onDetail={noop}
-        onEdit={noop}
-      />,
-    );
-
-    expect(screen.getByText('Situation pour janvier 2027')).toBeTruthy();
-  });
-
-  it('explains a future-month status with its own reason next to the evaluated month', () => {
+  it('explains a future-month status with its own reason', () => {
     render(
       <GoalCard
         goal={{
@@ -107,7 +93,6 @@ describe('GoalCard', () => {
       />,
     );
 
-    expect(screen.getByText('Situation pour janvier 2027')).toBeTruthy();
     expect(screen.getAllByText('Ce mois n’a pas encore commencé').length).toBeGreaterThanOrEqual(1);
   });
 
@@ -238,7 +223,7 @@ describe('GoalCard', () => {
     expect(screen.getByText('En avance')).toBeTruthy();
     expect(screen.getAllByText(/12\s000,00/)).toHaveLength(1);
     expect(screen.getByText(/Il manque 3\s000,00\s€/)).toBeTruthy();
-    expect(screen.getByText(/Objectif à cette date : 9\s000,00\s€/)).toBeTruthy();
+    expect(screen.getByText(/Objectif attendu à cette date : 9\s000,00\s€/)).toBeTruthy();
     expect(screen.getByTestId('gauge-marker').getAttribute('style')).toContain('left: 75%');
 
     rerender(<GoalCard goal={annual} onClose={noop} onEdit={noop} />);

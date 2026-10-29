@@ -77,6 +77,7 @@
 }
 .cardHeading {
   display: grid;
+  margin-bottom: var(--spacing-2);
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: flex-start;
   gap: var(--spacing-3);
@@ -94,7 +95,7 @@
 .goalCard h3 {
   margin: var(--spacing-none);
   color: var(--text-primary);
-  font-size: var(--font-size-card-title);
+  font-size: var(--font-size-brand);
   font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }
@@ -134,20 +135,6 @@
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
 }
-.statusHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  padding-top: var(--spacing-3);
-  border-top: var(--border-line-subtle);
-  gap: var(--spacing-2);
-}
-.statusMonth {
-  margin: var(--spacing-none);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
 .statusReason {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
@@ -166,6 +153,17 @@
   border-bottom: var(--border-line-subtle);
   text-align: right;
   white-space: nowrap;
+}
+.statusTable td {
+  color: var(--text-secondary);
+}
+.statusTable a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.statusTable a:hover,
+.statusTable a:focus-visible {
+  text-decoration: underline;
 }
 .statusTable th:first-child {
   text-align: left;
@@ -191,7 +189,8 @@
   flex-direction: column;
   gap: var(--spacing-4);
 }
-.form > label {
+.form > label,
+.row > label {
   display: flex;
   align-items: flex-start;
   flex-direction: column;
@@ -201,10 +200,17 @@
   font-weight: var(--font-weight-semibold);
 }
 .form > label input:not([type='radio']),
-.form > label select {
+.form > label select,
+.row > label input:not([type='radio']),
+.row > label select {
   width: auto;
   max-width: 100%;
   font-weight: var(--font-weight-normal);
+}
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
 }
 .form > label textarea {
   width: 100%;
@@ -254,6 +260,9 @@
   background: var(--bg-surface-2);
 }
 @media (max-width: 42rem) {
+  .row {
+    grid-template-columns: 1fr;
+  }
   .formActions button {
     width: 100%;
   }

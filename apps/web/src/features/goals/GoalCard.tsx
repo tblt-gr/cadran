@@ -9,7 +9,6 @@ import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { GoalPosition } from './GoalPosition';
 import { GoalStatusBadge, NEGATIVE_GOAL_STATUSES } from './GoalStatusBadge';
-import { formatGoalMonth } from './goalMonth';
 import styles from './GoalsPage.module.css';
 
 interface Props {
@@ -63,6 +62,7 @@ export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) 
           </p>
         </div>
         <div className={styles.cardActions}>
+          {status ? <GoalStatusBadge status={status} /> : null}
           {status?.provisional ? (
             <StatusBadge icon="info" tone="warning">
               {t('goals.provisional')}
@@ -129,12 +129,6 @@ export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) 
       {status ? (
         <>
           <GoalPosition assetCode={goal.assetCode} status={status} />
-          <div className={styles.statusHeading}>
-            <p className={styles.statusMonth}>
-              {t('goals.statusMonth', { month: formatGoalMonth(status.month, i18n.language) })}
-            </p>
-            <GoalStatusBadge status={status} />
-          </div>
           {status.reason !== null ? (
             <p className={styles.statusReason}>{t(`goals.reasons.${status.reason}`)}</p>
           ) : null}
