@@ -98,14 +98,9 @@ export function GoalsPage() {
   });
   const activeGoals = useQuery(listGoalsOfState('active'));
   const closedGoals = useQuery({ ...listGoalsOfState('closed'), enabled: includeClosed });
-  const failedQuery = activeGoals.isError
-    ? activeGoals
-    : includeClosed && closedGoals.isError
-      ? closedGoals
-      : null;
-  const listPending =
-    (activeGoals.isPending && activeGoals.data === undefined) ||
-    (includeClosed && closedGoals.isPending && closedGoals.data === undefined);
+  // Only the active list gates the page: closed goals load behind it and fail on their own.
+  const failedQuery = activeGoals.isError ? activeGoals : null;
+  const listPending = activeGoals.isPending && activeGoals.data === undefined;
   const detail = useQuery({
     enabled: editor !== null && editor !== 'create',
     queryKey: ['goal', editor && editor !== 'create' ? editor.id : ''],
@@ -232,6 +227,7 @@ export function GoalsPage() {
       await refresh();
     },
   });
+  const closedFailed = includeClosed && closedGoals.isError;
   const errorKind = goalErrorKind(failedQuery?.error, failedQuery !== null);
   // Active goals come first; the closed ones follow, greyed, only when asked for.
   const items = [
@@ -298,7 +294,7 @@ export function GoalsPage() {
             </button>
           ) : null}
         </section>
-      ) : items.length === 0 ? null : (
+      ) : items.length === 0 && !closedFailed ? null : (
         <section className={styles.list} aria-label={t('goals.list')}>
           <div className={styles.grid}>
             {items.map((goal) => (
@@ -318,6 +314,11 @@ export function GoalsPage() {
               />
             ))}
           </div>
+          {closedFailed ? (
+            <p className={styles.notice} role="alert">
+              {t('goals.closedError')}
+            </p>
+          ) : null}
         </section>
       )}
       {editor ? (

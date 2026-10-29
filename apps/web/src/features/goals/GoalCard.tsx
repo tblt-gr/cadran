@@ -7,11 +7,9 @@ import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { GoalProgressBar } from './GoalProgressBar';
-import { GoalStatusBadge } from './GoalStatusBadge';
+import { GoalStatusBadge, NEGATIVE_GOAL_STATUSES } from './GoalStatusBadge';
 import { formatGoalMonth } from './goalMonth';
 import styles from './GoalsPage.module.css';
-
-const FAILED_STATUSES: readonly string[] = ['BEHIND', 'EXCEEDED', 'OVER_PACE', 'MISSED', 'OVER'];
 
 function isExactZero(value: string | null): boolean {
   return value !== null && /^-?0(?:\.0+)?$/.test(value);
@@ -41,7 +39,11 @@ export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) 
   const closed = goal.state === 'CLOSED';
   const status = goal.status;
   // A closed goal fades back; one that closed without meeting its target keeps a discreet red edge.
-  const failed = closed && Boolean(status) && FAILED_STATUSES.includes(status!.status);
+  const failed =
+    closed &&
+    status != null &&
+    status.status !== 'NOT_CALCULABLE' &&
+    NEGATIVE_GOAL_STATUSES.includes(status.status);
   return (
     <article
       className={`card ${styles.goalCard} ${closed ? styles.closedCard : ''} ${failed ? styles.failedCard : ''}`}

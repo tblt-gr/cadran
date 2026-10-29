@@ -3054,7 +3054,8 @@
     "filtersOpen": "Filtres d’état des objectifs",
     "filtersTitle": "Filtres",
     "filtersActive": "1 filtre actif",
-    "includeClosed": "Afficher les objectifs clôturés"
+    "includeClosed": "Afficher les objectifs clôturés",
+    "closedError": "Impossible de charger les objectifs clôturés"
   },
   "budget": {
     "year": {
