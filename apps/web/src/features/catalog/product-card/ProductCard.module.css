@@ -18,11 +18,10 @@
   font-size: var(--font-size-card-title);
 }
 
-.code {
-  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
-  color: var(--text-muted);
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-xs);
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
 }
 
 .badges {
@@ -30,28 +29,6 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--spacing-2);
-}
-
-.classification {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: var(--spacing-none);
-  padding-top: var(--spacing-4);
-  border-top: var(--border-line-subtle);
-  gap: var(--spacing-4);
-}
-
-.classification dt {
-  color: var(--text-muted);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-}
-
-.classification dd {
-  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-context);
 }
 
 @media (max-width: 42rem) {
@@ -65,10 +42,5 @@
 
   .badges {
     justify-content: flex-start;
-  }
-
-  .classification {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--spacing-4);
   }
 }

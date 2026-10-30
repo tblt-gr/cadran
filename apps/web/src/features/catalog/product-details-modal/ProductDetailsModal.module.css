@@ -1,0 +1,26 @@
+.classification {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: var(--spacing-none);
+  padding-bottom: var(--spacing-4);
+  gap: var(--spacing-4);
+}
+
+.classification dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.classification dd {
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-context);
+}
+
+@media (max-width: 42rem) {
+  .classification {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

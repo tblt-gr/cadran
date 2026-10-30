@@ -2,7 +2,7 @@ import type { GoalSummary } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { Icon } from '@/components/ui/icon/Icon';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatAmount } from '@/lib/decimal';
@@ -74,15 +74,7 @@ export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) 
             </StatusBadge>
           ) : null}
           {detailable ? (
-            <button
-              aria-label={t('goals.details')}
-              className="icon-ghost"
-              onClick={() => onDetail(goal)}
-              title={t('goals.details')}
-              type="button"
-            >
-              <Icon name="info" size={18} />
-            </button>
+            <InfoButton label={t('goals.details')} onClick={() => onDetail(goal)} />
           ) : null}
           {!closed || onHistory ? (
             <ActionMenu

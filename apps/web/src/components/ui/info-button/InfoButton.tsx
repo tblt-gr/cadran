@@ -1,9 +1,9 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ComponentPropsWithRef } from 'react';
 import { Icon } from '@/components/ui/icon/Icon';
 import styles from './InfoButton.module.css';
 
 interface InfoButtonProps extends Omit<
-  ButtonHTMLAttributes<HTMLButtonElement>,
+  ComponentPropsWithRef<'button'>,
   'aria-label' | 'children' | 'title' | 'type'
 > {
   /** Accessible name and tooltip, for instance "Expliquer : Revenus". */

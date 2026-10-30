@@ -1,8 +1,25 @@
-.button {
+/* Bare glyph: no fill, no outline. The element selector outweighs the shared .icon-button box. */
+button.button {
   flex: none;
   width: var(--icon-size-sm);
   min-height: var(--icon-size-sm);
   height: var(--icon-size-sm);
-  color: var(--text-primary);
+  border: none;
+  color: var(--text-secondary);
+  background: var(--color-transparent);
   vertical-align: middle;
+}
+
+button.button:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+/* Declared after the base box so the coarse-pointer minimum of .icon-button is not overridden. */
+@media (pointer: coarse) {
+  button.button {
+    width: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
 }

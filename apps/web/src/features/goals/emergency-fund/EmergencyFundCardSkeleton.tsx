@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import styles from './EmergencyFund.module.css';
@@ -17,14 +18,7 @@ export function EmergencyFundCardSkeleton({ status }: { status: string }) {
       <div className={styles.heading}>
         <h3>{t('goals.emergencyFund.title')}</h3>
         <div className={styles.actions}>
-          <button
-            aria-label={t('goals.emergencyFund.explain')}
-            className="icon-ghost"
-            disabled
-            type="button"
-          >
-            <Icon name="info" size={18} />
-          </button>
+          <InfoButton disabled label={t('goals.emergencyFund.explain')} />
           <button
             aria-label={t('goals.emergencyFund.editPolicy')}
             className="icon-ghost"

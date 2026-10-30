@@ -1,5 +1,5 @@
 import type { Product, ProductRule } from '@cadran/api-client';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import '@/i18n';
 import { ProductCard } from './ProductCard';
@@ -62,6 +62,10 @@ function withoutNarrowSpaces(value: string) {
   return value.replace(/\s/g, ' ');
 }
 
+function openDetails(name: string) {
+  fireEvent.click(screen.getByRole('button', { name: `Détails de ${name}` }));
+}
+
 function figure(name: string) {
   const region = screen.getByRole('region', { name: /Valeurs au/ });
 
@@ -110,6 +114,7 @@ describe('ProductCard', () => {
 
   it('states jurisdiction, ceiling basis and default group from the catalogue payload', () => {
     render(<ProductCard product={product} />);
+    openDetails('Livret jeune');
 
     expect(screen.getByText('Juridiction').nextElementSibling?.textContent).toBe('France');
     expect(screen.getByText('Base du plafond').nextElementSibling?.textContent).toContain(
@@ -124,6 +129,7 @@ describe('ProductCard', () => {
     render(<ProductCard product={{ ...product, archivedAt: '2026-03-15T00:00:00Z' }} />);
 
     expect(screen.getByText('Retiré du catalogue')).toBeTruthy();
+    openDetails('Livret jeune');
     expect(screen.getByText('Statut').nextElementSibling?.textContent).toContain('15 mars 2026');
   });
 
@@ -147,8 +153,18 @@ describe('ProductCard', () => {
     expect(screen.queryByText('Rendement garanti')).toBeNull();
   });
 
+  it('keeps classification out of the card until the details are opened', () => {
+    render(<ProductCard product={product} />);
+
+    expect(screen.queryByText('Juridiction')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    openDetails('Livret jeune');
+    expect(screen.getByRole('dialog', { name: 'Livret jeune' })).toBeTruthy();
+  });
+
   it('names every explicit capability in a semantic list', () => {
     render(<ProductCard product={product} />);
+    openDetails('Livret jeune');
 
     expect(screen.getByRole('heading', { name: 'Fonctions prises en charge' })).toBeTruthy();
     const items = screen.getAllByRole('listitem');
