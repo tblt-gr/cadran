@@ -13,3 +13,13 @@ button.button {
 button.button:hover:not(:disabled) {
   color: var(--text-primary);
 }
+
+/* Declared after the base box so the coarse-pointer minimum of .icon-button is not overridden. */
+@media (pointer: coarse) {
+  button.button {
+    width: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+}
