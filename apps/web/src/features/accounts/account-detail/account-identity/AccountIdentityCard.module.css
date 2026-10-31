@@ -1,29 +1,29 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-6);
-  padding: var(--spacing-6);
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
 }
 
 .top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-6);
+  gap: var(--spacing-4);
 }
 
 .identity {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--spacing-2);
+  gap: var(--spacing-0-5);
   min-width: 0;
 }
 
 .nameRow {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
 }
 
 .identity h3 {
@@ -41,28 +41,34 @@
   font-size: var(--font-size-xs);
 }
 
+.meta span {
+  color: inherit;
+  font-size: inherit;
+}
+
 .balancePanel {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  gap: var(--spacing-4);
+  text-align: right;
+}
+
+.balanceStat {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  flex-shrink: 0;
-  gap: var(--spacing-1);
-  text-align: right;
+  gap: var(--spacing-0-5);
 }
 
 .balanceLabel {
   color: var(--text-secondary);
-  font-size: var(--font-size-label);
+  font-size: var(--font-size-xs);
 }
 
 .rateStat {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--spacing-1);
-  margin-top: var(--spacing-3);
-  padding-top: var(--spacing-3);
-  border-top: var(--border-line-subtle);
+  padding-left: var(--spacing-4);
+  border-left: var(--border-line-subtle);
 }
 
 .list {
@@ -78,21 +84,22 @@
   margin: var(--spacing-none);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1);
+  gap: var(--spacing-0-5);
 }
 
 @media (max-width: 42rem) {
   .top {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .balancePanel {
-    align-items: flex-start;
+    justify-content: space-between;
     width: 100%;
     text-align: left;
   }
 
-  .rateStat {
+  .balanceStat {
     align-items: flex-start;
   }
 }

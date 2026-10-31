@@ -1,18 +1,18 @@
 .section {
   display: grid;
-  padding-top: var(--spacing-6);
+  padding-top: var(--spacing-4);
   border-top: var(--border-line-subtle);
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
 }
 .standalone {
   display: grid;
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
 }
 .heading {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-1) var(--spacing-3);
+  gap: var(--spacing-0-5) var(--spacing-3);
 }
 .heading h3 {
   margin: var(--spacing-none);
@@ -20,17 +20,13 @@
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
 }
-.period {
-  color: var(--text-muted);
-  font-size: var(--font-size-label);
-}
 .heading button {
   margin-left: var(--spacing-auto);
 }
 .figures {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-6) var(--spacing-4);
+  gap: var(--spacing-4);
 }
 .error {
   margin: var(--spacing-none);
@@ -69,7 +65,7 @@
 }
 @media (min-width: 1024px) {
   .figures {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
   .figures > * + * {
     padding-left: var(--spacing-4);

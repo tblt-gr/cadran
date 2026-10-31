@@ -2,7 +2,6 @@ import type { PortfolioPerformance } from '@cadran/api-client';
 import { useState } from 'react';
 import { Icon } from '@/components/ui/icon/Icon';
 import { usePersistedSelection } from '@/hooks/use-persisted-selection';
-import { formatCalendarNumericDay } from '@/lib/decimal';
 import { PerformanceExplanationModal } from '@/features/portfolio/performance/performance-explanation-modal/PerformanceExplanationModal';
 import {
   figureKeys,
@@ -79,10 +78,6 @@ export function SinceOpeningFigures({
   const performance = inception.data ?? null;
   const sourceFor = (key: FigureKey): PortfolioPerformance | null =>
     (key === 'timeWeighted' ? yearReturn.data : performance) ?? null;
-  const period =
-    performance?.gain.from && performance.gain.to
-      ? `Du ${formatCalendarNumericDay(performance.gain.from)} au ${formatCalendarNumericDay(performance.gain.to)}`
-      : null;
   const explained = explaining ? sourceFor(explaining) : null;
 
   return (
@@ -92,7 +87,6 @@ export function SinceOpeningFigures({
     >
       <div className={styles.heading}>
         <h3 id="since-opening-title">Depuis le premier relevé</h3>
-        {period ? <span className={styles.period}>{period}</span> : null}
         <button
           aria-label="Choisir les indicateurs depuis le premier relevé"
           className="icon-ghost"

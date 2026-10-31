@@ -619,7 +619,6 @@
       }
     },
     "balances": {
-      "eyebrow": "Solde observé",
       "title": "Enregistrer un solde de « {{label}} »",
       "editing": "Correction du relevé du {{date}}. La date reste fixée : pour une autre date, enregistrez un nouveau relevé.",
       "cancelEditing": "Annuler la correction",
@@ -844,6 +843,8 @@
         "group": "Groupe patrimonial",
         "groupLoading": "Chargement du groupe…",
         "noGroup": "Aucun groupe",
+        "contributions": "Versements cumulés",
+        "contributionsExceeded": "Plafond dépassé",
         "groupUnavailable": "Le groupe rattaché à ce compte n’a pas pu être lu.",
         "lifecycle": "Cycle de vie",
         "openedOn": "Ouvert le {{date}}",
@@ -891,7 +892,6 @@
       "table": "Soldes du compte par date",
       "showTable": "Voir le tableau",
       "held": "Dernier solde connu",
-      "description": "Chaque point est le dernier relevé actif à cette date, plus les mouvements comptabilisés après ce relevé.",
       "error": "L’historique du solde est indisponible.",
       "empty": "Aucun solde enregistré sur cette période.",
       "reasons": {

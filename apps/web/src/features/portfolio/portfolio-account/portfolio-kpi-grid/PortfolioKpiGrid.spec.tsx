@@ -39,23 +39,16 @@ describe('PortfolioKpiGrid', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Valeur totale' }));
     expect(explain).toHaveBeenCalledWith('TOTAL_VALUE');
   });
-  it('leads with the total value and states an incomplete year once, under that total', () => {
+  it('leads with the total value and shows no period caption', () => {
     render(<PortfolioKpiGrid summary={summaryFixture()} asOf="2026-03-10" onExplain={vi.fn()} />);
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
     expect(headings[0]).toBe('Valeur totale');
     expect(headings).toContain('Versements nets 2026');
     expect(headings).toContain('Frais et taxes 2026');
-    expect(screen.getAllByText('Du 01/01/2026 au 10/03/2026')).toHaveLength(1);
+    expect(screen.queryByText(/Du /)).toBeNull();
     expect(screen.queryByText(/Valorisation du/)).toBeNull();
     expect(screen.queryByText(/Calculées au/)).toBeNull();
     expect(screen.queryByText(/prix de revient/)).toBeNull();
-  });
-  it('omits the period when the figures already cover a full calendar year', () => {
-    const summary = summaryFixture();
-    summary.netDeposits = { ...summary.netDeposits, from: '2025-01-01', to: '2025-12-31' };
-    render(<PortfolioKpiGrid summary={summary} asOf="2025-12-31" onExplain={vi.fn()} />);
-    expect(screen.queryByText(/Du /)).toBeNull();
-    expect(screen.getByRole('heading', { name: 'Versements nets 2025' })).toBeTruthy();
   });
   it('opens the points to review from the Rapprochement pill and drops it once reconciled', () => {
     const summary = summaryFixture();

@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { PortfolioOverviewSummary } from '@cadran/api-client';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { formatCalendarNumericDay } from '@/lib/decimal';
 import {
   kpiLabels,
   reasonLabels,
@@ -13,16 +12,6 @@ import { ReconciliationReview } from './reconciliation-review/ReconciliationRevi
 import styles from './PortfolioKpiGrid.module.css';
 
 const secondary: KpiCode[] = ['CASH', 'NET_DEPOSITS', 'COSTS'];
-
-/**
- * A full calendar year is already named on the year figures. A year in progress, or a past year
- * that does not run from 1 January to 31 December, keeps that window once, under the total.
- */
-function periodCaption(from: string, to: string): string | undefined {
-  const sameYear = from.slice(0, 4) === to.slice(0, 4);
-  if (sameYear && from.endsWith('-01-01') && to.endsWith('-12-31')) return undefined;
-  return `Du ${formatCalendarNumericDay(from)} au ${formatCalendarNumericDay(to)}`;
-}
 
 /**
  * The portfolio summary read in one place: the total value leads, the unrealized gain sits
@@ -64,9 +53,6 @@ export function PortfolioKpiGrid({
         RECONCILIATION: null,
       }
     : null;
-  const period = summary
-    ? periodCaption(summary.netDeposits.from, summary.netDeposits.to)
-    : undefined;
   const figure = (code: KpiCode, size: 'display' | 'lead' | 'compact') => {
     const label =
       code === 'NET_DEPOSITS' || code === 'COSTS' ? `${kpiLabels[code]} ${year}` : kpiLabels[code];
@@ -76,7 +62,6 @@ export function PortfolioKpiGrid({
         explainLabel={`Expliquer : ${kpiLabels[code]}`}
         key={code}
         label={label}
-        note={code === 'TOTAL_VALUE' ? period : undefined}
         onExplain={summary ? () => onExplain(code) : null}
         reason={reason ? (reasonLabels[reason] ?? reason) : undefined}
         size={size}
@@ -92,21 +77,21 @@ export function PortfolioKpiGrid({
       className={`${embedded ? '' : 'card'} ${styles.summary}`}
       data-testid={!summary ? 'portfolio-kpi-skeleton' : undefined}
     >
-      <div className={styles.lead}>
-        <div className={styles.total}>
-          {figure('TOTAL_VALUE', 'display')}
-          {qualifiers ? <div className={styles.qualifiers}>{qualifiers}</div> : null}
-        </div>
-        <div className={needsReview ? `${styles.side} ${styles.sideTop}` : styles.side}>
+      <div className={styles.strip}>
+        {figure('TOTAL_VALUE', 'display')}
+        {figure('UNREALIZED_GAIN', 'lead')}
+        {secondary.map((code) => figure(code, 'compact'))}
+      </div>
+      {qualifiers || (needsReview && summary) ? (
+        <div className={styles.qualifiers}>
+          {qualifiers}
           {needsReview && summary ? (
             <button className={styles.pill} onClick={() => setReviewing(true)} type="button">
               <StatusBadge tone="warning">{kpiValueText(summary, 'RECONCILIATION')}</StatusBadge>
             </button>
           ) : null}
-          {figure('UNREALIZED_GAIN', 'lead')}
         </div>
-      </div>
-      <div className={styles.strip}>{secondary.map((code) => figure(code, 'compact'))}</div>
+      ) : null}
       {children}
       {reviewing && summary ? (
         <ReconciliationReview

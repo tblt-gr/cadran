@@ -56,14 +56,14 @@ afterEach(() => {
 });
 
 describe('SinceOpeningFigures', () => {
-  it('reads the INCEPTION scope, shows the gain and personal return by default with their period', async () => {
+  it('reads the INCEPTION scope, shows the gain and personal return by default', async () => {
     renderFigures();
     const section = await loaded();
     expect(api.readPortfolioPerformance).toHaveBeenCalledWith(
       expect.objectContaining({ query: { scope: 'INCEPTION' } }),
     );
     expect(labels()).toEqual(['Gain total', 'Rendement personnel (MWR)']);
-    expect(within(section).getByText('Du 01/01/2026 au 10/03/2026')).toBeTruthy();
+    expect(within(section).queryByText(/Du /)).toBeNull();
     expect(within(section).getByText('Réalisé et latent, revenus et frais compris')).toBeTruthy();
     fireEvent.click(within(section).getByRole('button', { name: 'Expliquer : Gain total' }));
     expect(await screen.findByRole('dialog', { name: 'Gain total' })).toBeTruthy();

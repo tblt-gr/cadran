@@ -93,7 +93,7 @@ function SecuritiesOverview({
             setExplaining(code);
           }}
         >
-          <SinceOpeningFigures accountId={accountId} asOf={asOf} frozen={frozen} />
+          <SinceOpeningFigures accountId={accountId} asOf={asOf} frozen={frozen} omit={['gain']} />
         </PortfolioKpiGrid>
       )}
       {history}

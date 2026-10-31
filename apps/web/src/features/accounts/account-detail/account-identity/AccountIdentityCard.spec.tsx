@@ -100,7 +100,7 @@ describe('AccountIdentityCard', () => {
     renderCard(account);
 
     expect(screen.getByRole('heading', { name: 'Livret A Banque X' })).toBeTruthy();
-    expect(screen.getByText('Livret ou épargne • Aucun groupe')).toBeTruthy();
+    expect(screen.getByText('Aucun groupe')).toBeTruthy();
     expect(screen.getByText('••4821')).toBeTruthy();
     expect(screen.queryByText('Banque X')).toBeNull();
     expect(screen.queryByText('Identité')).toBeNull();
@@ -111,6 +111,7 @@ describe('AccountIdentityCard', () => {
     api.readAccountRules.mockImplementation(() =>
       success({
         assetCode: 'EUR',
+        ceilings: [],
         rates: [
           {
             kind: 'ANNUAL_RATE',
@@ -155,7 +156,7 @@ describe('AccountIdentityCard', () => {
     );
     renderCard({ ...account, primaryGroupId: '00000000-0000-7000-8000-0000000000c1' });
 
-    expect(await screen.findByText('Livret ou épargne • Épargne')).toBeTruthy();
+    expect(await screen.findByText('Épargne')).toBeTruthy();
   });
 
   it('shows the group as unavailable, not as no group, when the group read fails', async () => {
@@ -163,11 +164,9 @@ describe('AccountIdentityCard', () => {
     renderCard({ ...account, primaryGroupId: '00000000-0000-7000-8000-0000000000c1' });
 
     expect(
-      await screen.findByText(
-        'Livret ou épargne • Le groupe rattaché à ce compte n’a pas pu être lu.',
-      ),
+      await screen.findByText('Le groupe rattaché à ce compte n’a pas pu être lu.'),
     ).toBeTruthy();
-    expect(screen.queryByText('Livret ou épargne • Aucun groupe')).toBeNull();
+    expect(screen.queryByText('Aucun groupe')).toBeNull();
   });
 
   it('shows the group as unavailable, not as no group, when it is not on the fetched page', async () => {
@@ -177,11 +176,9 @@ describe('AccountIdentityCard', () => {
     renderCard({ ...account, primaryGroupId: '00000000-0000-7000-8000-0000000000c1' });
 
     expect(
-      await screen.findByText(
-        'Livret ou épargne • Le groupe rattaché à ce compte n’a pas pu être lu.',
-      ),
+      await screen.findByText('Le groupe rattaché à ce compte n’a pas pu être lu.'),
     ).toBeTruthy();
-    expect(screen.queryByText('Livret ou épargne • Aucun groupe')).toBeNull();
+    expect(screen.queryByText('Aucun groupe')).toBeNull();
   });
 
   it('stays linkable and readable for an archived account', () => {
@@ -193,5 +190,50 @@ describe('AccountIdentityCard', () => {
     });
 
     expect(screen.getByText('Archivé')).toBeTruthy();
+  });
+
+  it('shows the cumulative contributions against the plan ceiling, never the balance', async () => {
+    const rules = {
+      accountId: account.id,
+      assetCode: 'EUR',
+      productCode: 'FR_PEA',
+      productModelId: null,
+      origin: 'SYSTEM_CATALOG',
+      asOf: '2026-09-10',
+      ceilings: [
+        {
+          kind: 'CONTRIBUTION_CEILING',
+          basis: 'CONTRIBUTIONS',
+          countsCreditedInterest: false,
+          spansSeveralAccounts: false,
+          effectiveLayer: 'CATALOG',
+          catalog: { amount: { assetCode: 'EUR', value: '150000' } },
+          inherited: null,
+          override: null,
+          check: {
+            status: 'WITHIN',
+            warning: false,
+            measured: { assetCode: 'EUR', value: '6200' },
+            excess: null,
+            unsettledReason: null,
+          },
+        },
+      ],
+      rates: [],
+      terms: [],
+      unavailableRuleKinds: [],
+    };
+    api.readAccountRules.mockImplementation(() => success(rules));
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <AccountIdentityCard account={account} portfolio />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText('Versements cumulés')).toBeTruthy();
+    const figure = screen.getByText('Versements cumulés').parentElement;
+    expect(figure?.textContent?.replace(/\s/g, ' ')).toContain('6 200,00 € / 150 000,00 €');
+    expect(screen.queryByText('Plafond dépassé')).toBeNull();
   });
 });

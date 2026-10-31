@@ -15,9 +15,6 @@ export function AccountIdentityCardSkeleton({ portfolio = false }: { portfolio?:
           <div className={styles.nameRow}>
             <SkeletonBlock className={skeletonStyles.name} />
           </div>
-          <span>
-            <SkeletonBlock className={skeletonStyles.line} />
-          </span>
           <span className={styles.meta}>
             <SkeletonBlock className={skeletonStyles.line} />
             <GroupMarker color={null} pending />
@@ -26,8 +23,10 @@ export function AccountIdentityCardSkeleton({ portfolio = false }: { portfolio?:
         </div>
         {!portfolio ? (
           <div className={styles.balancePanel}>
-            <span className={styles.balanceLabel}>{t('accounts.fields.balance')}</span>
-            <AccountValuationCell size="lg" valuation={null} />
+            <div className={styles.balanceStat}>
+              <span className={styles.balanceLabel}>{t('accounts.fields.balance')}</span>
+              <AccountValuationCell size="lg" valuation={null} />
+            </div>
           </div>
         ) : null}
       </div>

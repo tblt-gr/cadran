@@ -24,7 +24,7 @@
 .figure {
   color: var(--text-primary);
   font-family: var(--font-family-sans);
-  font-size: var(--font-size-metric);
+  font-size: var(--font-size-brand);
   font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
   line-height: var(--line-height-tight);

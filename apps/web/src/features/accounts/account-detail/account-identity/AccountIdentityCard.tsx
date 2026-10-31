@@ -6,6 +6,7 @@ import { useProductOptions } from '@/features/accounts/account-wizard/useProduct
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
 import { RateBrackets } from '@/features/accounts/account-rules/rate-brackets/RateBrackets';
 import { useAccountRules } from '@/features/accounts/account-rules/useAccountRules';
+import { ContributionCeilingFigure } from './contribution-ceiling/ContributionCeilingFigure';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
 import { depositCeilingOf } from '@/lib/depositCeiling';
 import { formatCalendarDay } from '@/lib/decimal';
@@ -59,6 +60,11 @@ export function AccountIdentityCard({ account, portfolio = false }: AccountIdent
           OVERRIDE: headlineRate.override,
         }[headlineRate.effectiveLayer === 'CATALOG' ? 'catalog' : headlineRate.effectiveLayer];
 
+  const contributionShown =
+    rulesData?.ceilings.some(
+      (rule) => rule.basis === 'CONTRIBUTIONS' && rule.check.measured !== null,
+    ) ?? false;
+
   // An absent primary group and one this hook could not resolve must read
   // differently: the first is a fact about the account, the second is a read
   // failure (an errored request, or a group beyond this hook's page size)
@@ -78,30 +84,39 @@ export function AccountIdentityCard({ account, portfolio = false }: AccountIdent
         <div className={styles.identity}>
           <div className={styles.nameRow}>
             <h3>{account.label}</h3>
+            {account.maskedIdentifier ? (
+              <span className={styles.meta}>{`••${account.maskedIdentifier}`}</span>
+            ) : null}
             {account.status === 'ACTIVE' ? null : (
               <StatusBadge tone={STATUS_TONE[account.status]}>
                 {t(`accounts.statuses.${account.status}`)}
               </StatusBadge>
             )}
           </div>
-          {account.maskedIdentifier ? <span>{`••${account.maskedIdentifier}`}</span> : null}
           <span className={styles.meta}>
-            {t(`accounts.kinds.${account.kind}`)} • <GroupMarker color={group.color} />
+            <GroupMarker color={group.color} />
             {groupLabel}
           </span>
         </div>
 
-        {!portfolio ? (
+        {!portfolio || contributionShown ? (
           <div className={styles.balancePanel}>
-            <span className={styles.balanceLabel}>{t('accounts.fields.balance')}</span>
-            <AccountValuationCell
-              ceiling={ceiling}
-              size="lg"
-              startingBalanceHint={account.valuationMode === 'TRANSACTIONS'}
-              valuation={account.valuation}
-            />
-            {headlineRate && headlineRateLayer && rulesData ? (
-              <div className={styles.rateStat}>
+            {!portfolio ? (
+              <div className={styles.balanceStat}>
+                <span className={styles.balanceLabel}>{t('accounts.fields.balance')}</span>
+                <AccountValuationCell
+                  ceiling={ceiling}
+                  size="lg"
+                  startingBalanceHint={account.valuationMode === 'TRANSACTIONS'}
+                  valuation={account.valuation}
+                />
+              </div>
+            ) : null}
+            {rulesData && contributionShown ? (
+              <ContributionCeilingFigure rules={rulesData} />
+            ) : null}
+            {!portfolio && headlineRate && headlineRateLayer && rulesData ? (
+              <div className={`${styles.balanceStat} ${styles.rateStat}`}>
                 <span className={styles.balanceLabel}>
                   {t(`catalog.rules.kinds.${headlineRate.kind}`)}
                 </span>

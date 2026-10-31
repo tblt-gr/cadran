@@ -1,5 +1,5 @@
 .overview {
   display: grid;
   min-width: 0;
-  gap: var(--spacing-6);
+  gap: var(--spacing-4);
 }
