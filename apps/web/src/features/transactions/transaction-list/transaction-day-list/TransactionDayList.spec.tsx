@@ -108,7 +108,7 @@ describe('TransactionDayList', () => {
     expect(container.querySelectorAll('[data-skeleton]').length).toBeGreaterThan(0);
   });
 
-  it('keeps the transfer hint on a linked transfer leg', () => {
+  it('marks a linked transfer leg without a category prompt', () => {
     render(
       <TransactionDayList
         accounts={accounts}
@@ -122,8 +122,9 @@ describe('TransactionDayList', () => {
 
     expect(screen.getAllByText('Virement', { selector: 'small' })).toHaveLength(1);
     expect(
-      screen.getAllByText('Utilisez le virement pour modifier ou annuler ce mouvement.'),
-    ).toHaveLength(1);
+      screen.queryByText('Utilisez le virement pour modifier ou annuler ce mouvement.'),
+    ).toBeNull();
+    expect(screen.getAllByText('À catégoriser')).toHaveLength(1);
   });
 
   it('keeps a voided movement visible and flagged', () => {
