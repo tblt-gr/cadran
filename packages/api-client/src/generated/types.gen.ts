@@ -139,6 +139,10 @@ export type PortfolioOverviewSummary = {
         value: string | null;
         securitiesValue: string | null;
         costBasis: string | null;
+        /**
+         * Gain over cost as an exact ratio (0.097561 is 9.7561 %); null when the gain or the cost is unknown, or the cost is zero.
+         */
+        performance: string | null;
         reason: null | 'NO_VALUATION' | 'PARTIAL_VALUATION' | 'UNKNOWN_LOT_COST';
     };
     netDeposits: {

@@ -8819,11 +8819,17 @@ components:
             - value
             - securitiesValue
             - costBasis
+            - performance
             - reason
           properties:
             value: *id004
             securitiesValue: *id004
             costBasis: *id004
+            performance:
+              description: Gain over cost as an exact ratio (0.097561 is 9.7561 %); null when the gain or the cost is unknown, or the cost is zero.
+              type:
+                - string
+                - 'null'
             reason:
               type:
                 - string

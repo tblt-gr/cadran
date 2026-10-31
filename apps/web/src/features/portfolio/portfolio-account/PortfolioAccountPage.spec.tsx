@@ -367,6 +367,7 @@ describe('PortfolioAccountPage', () => {
       value: null,
       securitiesValue: null,
       costBasis: null,
+      performance: null,
       reason: 'PARTIAL_VALUATION',
     };
     api.readPortfolioSummary.mockImplementation(() => ok(summary));

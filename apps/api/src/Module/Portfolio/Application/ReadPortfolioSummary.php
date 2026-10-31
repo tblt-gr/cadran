@@ -71,7 +71,7 @@ final readonly class ReadPortfolioSummary
             'newerPartialValuation' => $partialMetadata,
             'totalValue' => $view?->valuation->totalValue?->toString(),
             'cash' => $cash->toString(),
-            'unrealizedGain' => $gain,
+            'unrealizedGain' => [...$gain, 'performance' => PortfolioUnrealizedGain::performance($gain['value'], $gain['costBasis'])],
             'netDeposits' => ['value' => ExactDecimal::subtract($totals->deposits, $totals->withdrawals)->toString(),
                 'deposits' => $totals->deposits->toString(), 'withdrawals' => $totals->withdrawals->toString(), 'from' => $from, 'to' => $to],
             'costs' => ['fees' => $totals->fees->toString(), 'taxes' => $totals->taxes->toString(),

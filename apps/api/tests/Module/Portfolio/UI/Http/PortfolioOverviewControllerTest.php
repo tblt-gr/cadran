@@ -75,6 +75,7 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         $summary = $this->overview('summary', '2026-03-31');
         self::assertSame('121.421', self::map($summary['unrealizedGain'])['value']);
         self::assertSame('2350.00', self::map($summary['unrealizedGain'])['costBasis']);
+        self::assertSame('0.051669', self::map($summary['unrealizedGain'])['performance']);
         self::assertSame('3783.601', $summary['totalValue']);
         self::assertSame('1312.18', $summary['cash']);
         self::assertSame('3662.18', self::map($summary['netDeposits'])['value']);
