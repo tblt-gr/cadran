@@ -53,3 +53,14 @@ it.each([360, 1280])(
     window.innerWidth = previousWidth;
   },
 );
+
+it('opens an account valued by its portfolio straight on the portfolio page', () => {
+  const account = buildAccount('00000000-0000-7000-8000-0000000000d2', 'PEA', {
+    kind: 'PORTFOLIO',
+    valuationMode: 'PORTFOLIO',
+  });
+  render(<AccountNameCell account={account} />);
+  expect(screen.getByRole('link', { name: 'PEA' }).getAttribute('href')).toBe(
+    `/portfolios/${account.id}`,
+  );
+});

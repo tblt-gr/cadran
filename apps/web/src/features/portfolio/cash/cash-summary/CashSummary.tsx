@@ -1,10 +1,10 @@
 import type { DecimalAmount, PortfolioCash } from '@cadran/api-client';
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { formatAmount } from '@/lib/decimal';
+import { formatAmount, isZeroDecimal } from '@/lib/decimal';
 import styles from './CashSummary.module.css';
 
 const rows: { key: string; label: string; pick: (cash: PortfolioCash) => DecimalAmount }[] = [
@@ -23,8 +23,22 @@ const rows: { key: string; label: string; pick: (cash: PortfolioCash) => Decimal
   { key: 'closing', label: 'Solde de clôture', pick: (cash) => cash.closingBalance },
 ];
 
-/** Current balance and the period figures; `null` renders the faithful loading layout. */
-export function CashSummary({ cash }: { cash: PortfolioCash | null }) {
+/** The balances that frame the period, always listed even when zero. */
+const frame = new Set(['opening', 'closing']);
+
+/**
+ * Current balance and the period figures. Only the flows that moved during the period are
+ * listed between the opening and closing balances; `null` renders the loading layout with the
+ * framing balances.
+ */
+export function CashSummary({
+  cash,
+  checks,
+}: {
+  cash: PortfolioCash | null;
+  /** The cash checks pill, beside the title. */
+  checks?: ReactNode;
+}) {
   const { i18n } = useTranslation();
   const [explaining, setExplaining] = useState(false);
   const titleId = useId();
@@ -35,7 +49,10 @@ export function CashSummary({ cash }: { cash: PortfolioCash | null }) {
 
   return (
     <section aria-labelledby={titleId} className={`card ${styles.panel}`}>
-      <h3 id={titleId}>Solde espèces</h3>
+      <div className={styles.titleRow}>
+        <h3 id={titleId}>Solde espèces</h3>
+        {checks}
+      </div>
       <div className={styles.balance}>
         {cash ? money(cash.currentBalance) : <SkeletonBlock className={styles.balanceSkeleton} />}
       </div>
@@ -56,14 +73,24 @@ export function CashSummary({ cash }: { cash: PortfolioCash | null }) {
           le type d’opération qui les porte.
         </p>
         <dl className={styles.figures}>
-          {rows.map((row) => (
-            <div key={row.key}>
-              <dt>{row.label}</dt>
-              <dd>
-                {cash ? money(row.pick(cash)) : <SkeletonBlock className={styles.valueSkeleton} />}
-              </dd>
-            </div>
-          ))}
+          {rows
+            .filter((row) =>
+              cash
+                ? frame.has(row.key) || !isZeroDecimal(row.pick(cash).value)
+                : frame.has(row.key),
+            )
+            .map((row) => (
+              <div key={row.key}>
+                <dt>{row.label}</dt>
+                <dd>
+                  {cash ? (
+                    money(row.pick(cash))
+                  ) : (
+                    <SkeletonBlock className={styles.valueSkeleton} />
+                  )}
+                </dd>
+              </div>
+            ))}
         </dl>
       </div>
     </section>

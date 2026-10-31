@@ -119,7 +119,7 @@ export type PortfolioOverviewList = {
 };
 
 /**
- * Latest active COMPLETE valuation on or before asOf, falling back to the latest PARTIAL only when no complete exists. A newer partial stays explicit and contributes reconciliation warnings and sources. Unrealized gain uses frozen average cost, COMPLETE only. Cash is derived at asOf; deposits and costs are year-to-date. Reconciliation excludes UNLINKED_EXTERNAL_FLOW and ROUNDING_RESIDUALS. Sources are limited to 50 per KPI.
+ * Latest active COMPLETE valuation on or before asOf, falling back to the latest PARTIAL only when no complete exists. A newer partial stays explicit and contributes reconciliation warnings and sources. Unrealized gain uses frozen average cost, COMPLETE only. Cash is the one frozen with the selected valuation (observed when the statement gave it, otherwise derived on its date), so it shares the total value date; without valuation it is derived at asOf. Deposits and costs are year-to-date. Reconciliation excludes UNLINKED_EXTERNAL_FLOW and ROUNDING_RESIDUALS. Sources are limited to 50 per KPI.
  */
 export type PortfolioOverviewSummary = {
     /**
@@ -180,7 +180,7 @@ export type PortfolioAllocationItem = {
 };
 
 /**
- * Frozen position values of the selected latest COMPLETE valuation grouped with CASH and UNSPECIFIED; a newer partial observation is reported separately. Shares are exact scale-24 HALF_UP decimals. At most eight chart slices, smaller buckets merged as OTHERS; table retains every bucket. TOTAL has two unpriced-share lines and NOT_DETAILED.
+ * Frozen position values of the selected latest COMPLETE valuation grouped with CASH and UNSPECIFIED; a newer partial observation is reported separately. Shares are exact scale-24 HALF_UP decimals of total. At most eight chart slices, smaller buckets merged as OTHERS; table retains every bucket. A TOTAL valuation keeps reason NOT_DETAILED and is split at cost (basis COST, total = costs + cash) when every frozen line has a known cost, otherwise it has two unpriced-share lines.
  */
 export type PortfolioOverviewAllocation = {
     /**
@@ -195,6 +195,10 @@ export type PortfolioOverviewAllocation = {
     items: Array<PortfolioAllocationItem>;
     slices: Array<PortfolioAllocationItem>;
     reason: null | 'NO_VALUATION' | 'PARTIAL_VALUATION' | 'NOT_DETAILED' | 'NON_POSITIVE_TOTAL';
+    /**
+     * What the grouped values measure. MARKET splits the frozen market values; COST splits the frozen acquisition costs of a TOTAL valuation, whose lines have no market value; null when no split is available.
+     */
+    basis: null | 'MARKET' | 'COST';
 };
 
 export type PortfolioOverviewProblem = Problem & {

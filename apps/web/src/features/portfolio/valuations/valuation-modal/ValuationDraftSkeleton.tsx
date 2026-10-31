@@ -1,4 +1,4 @@
-import { SkeletonBlock, SkeletonField, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { SkeletonField, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import styles from './ValuationForm.module.css';
 
 /**
@@ -9,9 +9,6 @@ export function ValuationDraftSkeleton() {
   return (
     <div aria-busy="true" className={styles.form} data-testid="valuation-draft-skeleton">
       <SkeletonStatus>Chargement du brouillon de valorisation…</SkeletonStatus>
-      <p className={styles.notice}>
-        Espèces calculées : <SkeletonBlock className={styles.skeletonInline} />
-      </p>
       <fieldset className={styles.segmented} disabled>
         <legend>Mode de saisie</legend>
         <label className={styles.segment}>
@@ -25,7 +22,7 @@ export function ValuationDraftSkeleton() {
       </fieldset>
       <div className={styles.fields}>
         <SkeletonField label="Valeur totale du compte" />
-        <SkeletonField label="Espèces constatées" />
+        <SkeletonField label="Espèces du relevé" />
       </div>
       <SkeletonField label="Note" />
       <div className={styles.actions}>

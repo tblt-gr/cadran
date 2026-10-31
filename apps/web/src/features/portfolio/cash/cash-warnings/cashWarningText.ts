@@ -32,7 +32,7 @@ export function warningSentence(warning: PortfolioCashWarning, locale: string): 
     case 'UNLINKED_EXTERNAL_FLOW':
       return `${n} ${plural(n, 'versement ou retrait sans virement lié', 'versements ou retraits sans virement lié')} (un historique antérieur au suivi est légitime)`;
     case 'LINKED_TRANSFER_CHANGED':
-      return `${n} ${plural(n, 'opération liée à un virement annulé ou modifié', 'opérations liées à un virement annulé ou modifié')}`;
+      return `${n} ${plural(n, 'opération ne correspond plus à son virement lié', 'opérations ne correspondent plus à leur virement lié')} (date, montant ou sens différent, ou virement annulé)`;
     case 'NON_TRANSFER_TRANSACTION':
       return `${n} ${plural(n, 'transaction de revenu, dépense, remboursement ou frais enregistrée', 'transactions de revenu, dépense, remboursement ou frais enregistrées')} sur ce compte avant le suivi par portefeuille`;
     case 'ROUNDING_RESIDUALS': {

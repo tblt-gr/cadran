@@ -182,3 +182,30 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* A row or inline action that reads as a link: no fill, no border, underlined on hover. */
+.text-action {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  color: var(--text-primary);
+  background: none;
+  font-size: inherit;
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  text-underline-offset: var(--spacing-1);
+  cursor: pointer;
+  gap: var(--spacing-1);
+}
+
+.text-action:hover:not(:disabled),
+.text-action:focus-visible {
+  text-decoration: underline;
+}
+
+.text-action:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}

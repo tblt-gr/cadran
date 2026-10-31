@@ -37,6 +37,11 @@ function renderTab() {
   );
 }
 
+/** The checks sit behind the pill beside the balance. */
+async function openChecks(name: string | RegExp = /^À vérifier/) {
+  fireEvent.click(await screen.findByRole('button', { name }));
+}
+
 async function loaded() {
   await waitFor(() => expect(screen.queryByTestId('cash-skeleton')).toBeNull());
 }
@@ -91,11 +96,11 @@ describe('CashTab', () => {
     expect(rows[3]?.textContent).toContain('+');
   });
 
-  it('renders no warnings card while loading nor on a clean ledger', async () => {
+  it('shows no checks pill while loading nor on a clean ledger', async () => {
     renderTab();
-    expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /À vérifier/ })).toBeNull();
     await loaded();
-    expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /À vérifier/ })).toBeNull();
     expect(screen.queryByText(/Aucune anomalie/)).toBeNull();
   });
 
@@ -131,16 +136,16 @@ describe('CashTab', () => {
     );
     renderTab();
 
-    expect(
-      await screen.findByText('2 virements entrants ne sont liés à aucun versement'),
-    ).toBeTruthy();
+    await openChecks();
+    expect(screen.getByRole('dialog', { name: 'Contrôle des espèces' })).toBeTruthy();
+    expect(screen.getByText('2 virements entrants ne sont liés à aucun versement')).toBeTruthy();
     expect(screen.getByText(/Solde négatif à partir du 04\/02\/2026/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Achat du 06/01/2026' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Opération 2' })).toBeTruthy();
     const links = screen.getAllByRole('link').map((link) => link.getAttribute('href'));
     expect(links).toContain(`/portfolios/${accountId}?tab=operations&operation=op-9`);
     expect(links).toContain(`/portfolios/${accountId}?tab=operations&operation=op-2`);
-    expect(links).toContain(`/accounts/${accountId}?month=2026-03`);
+    expect(links).toContain(`/portfolios/${accountId}?tab=account&month=2026-03`);
   });
 
   it('shows the empty period', async () => {
@@ -177,14 +182,16 @@ describe('CashTab', () => {
     expect(screen.getByRole('table', { name: 'Mouvements d’espèces' })).toBeTruthy();
   });
 
-  it('keeps the multi-currency note under the toolbar', async () => {
+  it('lists only the flows that moved between the opening and closing balances', async () => {
     renderTab();
-    expect(
-      screen.getByText(
-        'Les montants sont saisis dans la devise du compte ; le multi-devises n’est pas pris en charge.',
-      ),
-    ).toBeTruthy();
     await loaded();
+    const terms = screen.getAllByRole('term').map((term) => term.textContent);
+    expect(terms[0]).toBe('Solde d’ouverture');
+    expect(terms.at(-1)).toBe('Solde de clôture');
+    expect(terms).toContain('Dividendes (brut)');
+    expect(terms).not.toContain('Intérêts (brut)');
+    expect(terms).not.toContain('Soulte reçue');
+    expect(screen.queryByText(/multi-devises/)).toBeNull();
   });
 
   it('drops information rows entirely when no warning-level item exists', async () => {
@@ -206,7 +213,7 @@ describe('CashTab', () => {
     renderTab();
     await loaded();
 
-    expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /À vérifier/ })).toBeNull();
     expect(screen.queryByText(/Informations \(/)).toBeNull();
     expect(screen.queryByText(/sans virement lié/)).toBeNull();
   });
@@ -243,7 +250,8 @@ describe('CashTab', () => {
     );
     renderTab();
 
-    const summary = await screen.findByText('Informations (2)');
+    await openChecks('À vérifier (1)');
+    const summary = screen.getByText('Informations (2)');
     const details = summary.closest('details') as HTMLDetailsElement;
     expect(details.open).toBe(false);
     fireEvent.click(summary);
@@ -270,7 +278,8 @@ describe('CashTab', () => {
     );
     renderTab();
 
-    const row = await screen.findByText('1 virement entrant n’est lié à aucun versement');
+    await openChecks('À vérifier (1)');
+    const row = screen.getByText('1 virement entrant n’est lié à aucun versement');
     expect(row.closest('details')).toBeNull();
     expect(screen.queryByText(/Informations \(/)).toBeNull();
   });
@@ -304,6 +313,9 @@ describe('CashTab', () => {
 
 it('explains support purchases and sales in the cash identity', async () => {
   render(<CashSummary cash={null} />);
-  expect(screen.getByText('Supports achetés')).toBeTruthy();
-  expect(screen.getByText('Supports vendus')).toBeTruthy();
+  expect(screen.getByText(/supports achetés \+ supports vendus/)).toBeTruthy();
+  expect(screen.getAllByRole('term').map((term) => term.textContent)).toEqual([
+    'Solde d’ouverture',
+    'Solde de clôture',
+  ]);
 });

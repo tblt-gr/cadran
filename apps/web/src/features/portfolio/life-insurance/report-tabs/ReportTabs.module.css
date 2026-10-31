@@ -8,3 +8,13 @@
 .tab > * {
   min-width: 0;
 }
+
+.ledger {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.ledger > summary {
+  color: var(--text-secondary);
+  cursor: pointer;
+}

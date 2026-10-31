@@ -3,8 +3,8 @@ export type ChartPeriod = 'ALL' | 'LAST_12_MONTHS' | 'LAST_24_MONTHS' | 'YTD';
 
 export const CHART_PERIOD_ORDER: readonly ChartPeriod[] = [
   'ALL',
-  'LAST_12_MONTHS',
   'LAST_24_MONTHS',
+  'LAST_12_MONTHS',
   'YTD',
 ];
 

@@ -11,10 +11,27 @@
 }
 .table th,
 .table td {
-  padding: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-4);
   border-bottom: var(--border-line-subtle);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
+}
+.table thead th {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+.table tbody th {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
+}
+.table td {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.table tbody tr:last-child > * {
+  border-bottom: var(--border-none);
 }
 .number {
   text-align: right;
@@ -29,7 +46,8 @@
   display: block;
 }
 .instrument small {
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-normal);
 }
 .unknown {

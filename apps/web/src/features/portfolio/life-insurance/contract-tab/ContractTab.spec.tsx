@@ -66,8 +66,8 @@ describe('ContractTab', () => {
     );
     mount();
     expect(await screen.findByText(/Contrat soldé le 10\/06\/2026/)).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Voir le compte' }).getAttribute('href')).toBe(
-      '/accounts/account-1',
+    expect(screen.getByRole('link', { name: 'liste des comptes' }).getAttribute('href')).toBe(
+      '/accounts',
     );
   });
   it('creates through the shared modal from the empty state', async () => {

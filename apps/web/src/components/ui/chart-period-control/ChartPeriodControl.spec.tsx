@@ -21,8 +21,8 @@ describe('ChartPeriodControl', () => {
     );
     expect(labels(screen.getByRole('group', { name: 'Période A' }))).toEqual([
       'Tout',
-      '12 mois',
       '24 mois',
+      '12 mois',
       'Depuis janvier',
     ]);
     cleanup();

@@ -1,9 +1,3 @@
-.quality {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--spacing-2);
-}
 .line {
   display: flex;
   flex-wrap: wrap;

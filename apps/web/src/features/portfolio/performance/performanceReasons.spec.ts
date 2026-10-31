@@ -42,7 +42,7 @@ describe('describeReason', () => {
 
   it('reuses the valuation flag sentence for a warning', () => {
     expect(describeReason({ code: 'CASH_DIFFERENCE', dates: [] }, context).sentence).toBe(
-      'Les espèces constatées diffèrent des espèces calculées.',
+      'Les espèces du relevé diffèrent des espèces calculées.',
     );
   });
 

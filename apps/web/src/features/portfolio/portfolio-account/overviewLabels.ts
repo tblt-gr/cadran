@@ -11,7 +11,7 @@ export const kpiLabels = {
 export type KpiCode = keyof typeof kpiLabels;
 export const warningLabels: Record<string, string> = {
   ...flagSentence,
-  LINKED_TRANSFER_CHANGED: 'Un virement lié a été annulé ou modifié.',
+  LINKED_TRANSFER_CHANGED: 'Versement différent de son virement lié',
   NON_TRANSFER_TRANSACTION:
     'Une transaction a été enregistrée sur ce compte avant le suivi par portefeuille.',
   UNLINKED_TRANSFER_IN: 'Virement bancaire entrant non lié',
@@ -36,6 +36,7 @@ export const reasonLabels: Record<string, string> = {
   COMPLETE: 'Complète',
   PARTIAL: 'Partielle',
   DERIVED: 'Calculée',
+  OBSERVED: 'Relevé',
   RECONCILED: 'Rapproché',
   NEEDS_REVIEW: 'À vérifier',
   NO_DATA: 'Aucune donnée',

@@ -21,9 +21,7 @@ describe('AllocationCard', () => {
     );
     expect(screen.queryByText('03/10/2026', { selector: 'time' })).toBeNull();
     expect(
-      screen.getByText(
-        'Valorisation du 03/10/2026 partielle : dernières valeurs complètes du 30/09/2026 affichées.',
-      ),
+      screen.getByText('Valorisation du 03/10/2026 partielle : valeurs du 30/09/2026 affichées.'),
     ).toBeTruthy();
   });
 
@@ -99,7 +97,7 @@ describe('AllocationCard', () => {
     (reason) => {
       render(
         <AllocationCard
-          allocation={{ ...allocationFixture(), reason }}
+          allocation={{ ...allocationFixture(), reason, basis: null, slices: [] }}
           by="INSTRUMENT"
           onByChange={vi.fn()}
         />,
@@ -108,4 +106,30 @@ describe('AllocationCard', () => {
       expect(screen.queryByRole('img', { name: 'Répartition du portefeuille' })).toBeNull();
     },
   );
+  it('names classes and regions as on the instruments, keeping currency codes', () => {
+    const allocation = {
+      ...allocationFixture(),
+      by: 'REGION' as const,
+      items: [
+        { key: 'WORLD', label: 'WORLD', value: '75', share: '0.75' },
+        { key: 'CASH', label: 'Espèces', value: '25', share: '0.25' },
+      ],
+    };
+    render(<AllocationCard allocation={allocation} by="REGION" onByChange={vi.fn()} />);
+    expect(screen.getByRole('rowheader', { name: 'Monde' })).toBeTruthy();
+    expect(screen.getByRole('rowheader', { name: 'Espèces' })).toBeTruthy();
+  });
+  it('splits a total-only valuation at cost and says so', () => {
+    render(
+      <AllocationCard
+        allocation={{ ...allocationFixture(), reason: 'NOT_DETAILED', basis: 'COST' }}
+        by="REGION"
+        onByChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('· au prix de revient')).toBeTruthy();
+    expect(screen.getByText(/la répartition suit le prix de revient/)).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'Légende de la répartition' })).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
 });

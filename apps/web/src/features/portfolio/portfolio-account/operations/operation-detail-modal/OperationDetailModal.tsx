@@ -7,6 +7,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Modal } from '@/components/ui/modal/Modal';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { portfolioAccountHref } from '@/features/portfolio/portfolioAccountHref';
 import { formatCalendarNumericDay, formatDecimal } from '@/lib/decimal';
 import { CashAmount } from '@/features/portfolio/portfolio-account/operations/cash-amount/CashAmount';
 import {
@@ -43,6 +44,7 @@ export function OperationDetailModal({
   const replaced = useOperation(operation.correctedByOperationId);
   const replaces = useOperation(operation.correctsOperationId);
   const has = (field: FieldKey) => hasField(operation.type, field);
+  const transferHref = portfolioAccountHref(operation.accountId, operation.tradeDate.slice(0, 7));
   const decimal = (value: string | null) => (value === null ? null : formatDecimal(value, locale));
   const amount = (value: { value: string; assetCode: string } | null) =>
     value === null ? null : `${formatDecimal(value.value, locale)} ${value.assetCode}`;
@@ -125,15 +127,7 @@ export function OperationDetailModal({
         <Row label="Note">{operation.note}</Row>
         {operation.linkedTransactionId ? (
           <Row label="Virement lié">
-            <a
-              href={`/accounts/${operation.accountId}?month=${operation.tradeDate.slice(0, 7)}`}
-              onClick={(event) =>
-                handleClientNavigation(
-                  event,
-                  `/accounts/${operation.accountId}?month=${operation.tradeDate.slice(0, 7)}`,
-                )
-              }
-            >
+            <a href={transferHref} onClick={(event) => handleClientNavigation(event, transferHref)}>
               Virement lié du {formatCalendarNumericDay(operation.tradeDate)}
             </a>
           </Row>

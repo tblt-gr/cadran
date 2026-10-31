@@ -51,6 +51,35 @@
 .body {
   overflow: auto;
   padding: var(--spacing-6);
+  font-size: var(--font-size-body);
+}
+
+/* The reading order inside every modal, under its title: section headings at card-title size,
+   tables as on the pages (small muted column headers, the row label at body size, its values one
+   step smaller in the secondary tone). :where() leaves every form or table free to refine it. */
+.body :where(h3) {
+  font-size: var(--font-size-card-title);
+}
+
+.body :where(h4) {
+  font-size: var(--font-size-label);
+}
+
+.body :where(thead th) {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.body :where(tbody th) {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
+}
+
+.body :where(tbody td) {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
 }
 
 @media (max-width: 42rem) {

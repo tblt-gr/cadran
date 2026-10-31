@@ -37,14 +37,30 @@ export function PositionLotsModal({ accountId, asOf, position, onClose }: Props)
     retry: false,
   });
 
+  const cost = (amount: PortfolioPosition['fifoCostBasis']) =>
+    amount ? (
+      formatAmount(amount.value, amount.assetCode, 'fr-FR')
+    ) : (
+      <EmptyValue label="Coût inconnu" />
+    );
+
   return (
     <Modal close={onClose} title={`Lots : ${position.instrument.name}`}>
       <div className={styles.content}>
-        <p className={styles.note}>
-          Les lots sont consommés dans l’ordre d’acquisition (FIFO) pour la traçabilité. Le prix de
-          revient moyen est une présentation distincte ; aucun de ces chiffres n’est un calcul
-          fiscal.
-        </p>
+        <dl className={styles.figures}>
+          <div>
+            <dt>Quantité détenue</dt>
+            <dd>{formatDecimal(position.quantity, 'fr-FR')}</dd>
+          </div>
+          <div>
+            <dt>Coût restant (FIFO)</dt>
+            <dd>{cost(position.fifoCostBasis)}</dd>
+          </div>
+          <div>
+            <dt>Prix de revient moyen</dt>
+            <dd>{cost(position.averageCostBasis)}</dd>
+          </div>
+        </dl>
         {lots.isPending ? (
           <PositionLotsModalSkeleton />
         ) : lots.isError ? (
@@ -57,6 +73,9 @@ export function PositionLotsModal({ accountId, asOf, position, onClose }: Props)
         ) : (
           <PositionLotsTables accountId={accountId} lots={lots.data} />
         )}
+        <p className={styles.note}>
+          Lots consommés dans l’ordre d’acquisition (FIFO). Ce n’est pas un calcul fiscal.
+        </p>
       </div>
     </Modal>
   );
@@ -121,15 +140,7 @@ function PositionLotsTables({
           </tbody>
         </table>
       </div>
-      <p className={styles.fifoTotal}>
-        Coût FIFO restant :{' '}
-        {lots.fifoCostBasis ? (
-          formatAmount(lots.fifoCostBasis.value, lots.fifoCostBasis.assetCode, 'fr-FR')
-        ) : (
-          <EmptyValue label="Coût inconnu" />
-        )}
-      </p>
-      <h3>Mouvements</h3>
+      <h3>Historique</h3>
       <div className={styles.scroll}>
         <table aria-label="Mouvements des lots" className={styles.table}>
           <thead>

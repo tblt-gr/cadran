@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { GroupMarker } from '@/features/accounts/group-marker/GroupMarker';
+import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './AccountNameCell.module.css';
 
@@ -24,14 +25,19 @@ export function AccountNameCell({ account, groupColor = null }: AccountNameCellP
       ? t(`accounts.statuses.${account.status}`)
       : null;
 
+  // An investment account's page is its portfolio: no detour through the account page.
+  const href = !account
+    ? undefined
+    : valuedByPortfolio(account)
+      ? `/portfolios/${account.id}`
+      : `/accounts/${account.id}`;
+
   return (
     <div className={styles.labelCell}>
       <a
         className={styles.accountLink}
-        href={account ? `/accounts/${account.id}` : undefined}
-        onClick={
-          account ? (event) => handleClientNavigation(event, `/accounts/${account.id}`) : undefined
-        }
+        href={href}
+        onClick={href ? (event) => handleClientNavigation(event, href) : undefined}
       >
         {account ? account.label : <SkeletonBlock className={styles.nameSkeleton} />}
       </a>

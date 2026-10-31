@@ -57,8 +57,27 @@ button {
   color: inherit;
 }
 
+/* Links read as text until pointed at: the underline comes on hover and focus. A link set inside
+   a sentence keeps a faint underline, since nothing else would tell it from the words around it
+   (WCAG 1.4.1). */
 a {
   color: inherit;
+  text-decoration: none;
+  text-underline-offset: var(--spacing-1);
+}
+
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
+}
+
+:where(p, figcaption) > a:not([class]) {
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+}
+
+:where(p, figcaption) > a:not([class]):hover {
+  text-decoration-color: currentColor;
 }
 
 ::selection {

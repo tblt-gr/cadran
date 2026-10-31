@@ -13,6 +13,7 @@ import { historyFixture } from './value-history-card/valueHistoryFixtures';
 import { PortfolioAccountPage } from './PortfolioAccountPage';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
+import { formatCalendarNumericDay } from '@/lib/decimal';
 
 const api = vi.hoisted(() => ({
   correctPortfolioOperation: vi.fn(),
@@ -35,6 +36,11 @@ const api = vi.hoisted(() => ({
   readPortfolioValuationDraft: vi.fn(),
   previewPortfolioOperation: vi.fn(),
   readAccount: vi.fn(),
+  readAccountRules: vi.fn(),
+  listAccounts: vi.fn(),
+  listAccountRuleOverrides: vi.fn(),
+  listProductModels: vi.fn(),
+  listTransactions: vi.fn(),
   readPortfolioOperation: vi.fn(),
   recordPortfolioOperation: vi.fn(),
   voidPortfolioOperation: vi.fn(),
@@ -53,7 +59,30 @@ const account = {
   valuationMode: 'PORTFOLIO',
   status: 'ACTIVE',
   institution: 'Courtier Démo',
+  maskedIdentifier: null,
   productCode: null,
+  productModelId: null,
+  primaryGroupId: null,
+  openedOn: '2024-01-15',
+  closedOn: null,
+  archivedAt: null,
+  valuation: {
+    accountId,
+    requestedOn: '2026-03-10',
+    asOf: null,
+    amount: null,
+    display: null,
+    belowDisplayStep: false,
+    basis: null,
+    derivation: null,
+    reason: null,
+    source: null,
+    ageDays: null,
+    quality: 'MISSING',
+    reconciliationStatus: null,
+    snapshotId: null,
+    version: null,
+  },
 } as Account;
 
 function ok<T>(data: T, status = 200) {
@@ -116,9 +145,12 @@ describe('portfolio shell breadcrumb', () => {
     );
     renderPage('Europe/Paris', true);
     const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
-    const parent = await within(nav).findByRole('link', { name: account.label });
-    expect(parent.getAttribute('href')).toBe(`/accounts/${accountId}`);
-    expect(within(nav).getByText('Portefeuille').getAttribute('aria-current')).toBe('page');
+    const current = await within(nav).findByText(account.label);
+    expect(current.getAttribute('aria-current')).toBe('page');
+    expect(within(nav).getByRole('link', { name: 'Investissements' }).getAttribute('href')).toBe(
+      '/portfolios',
+    );
+    expect(screen.getByRole('heading', { level: 1, name: account.label })).toBeTruthy();
     expect(api.readAccount).toHaveBeenCalledTimes(1);
     expect(window.location.search).toBe('?tab=operations&asOf=2026-03-10&operationId=op-1');
     expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
@@ -135,10 +167,10 @@ describe('portfolio shell breadcrumb', () => {
     async (status) => {
       const { queryClient } = renderPage('Europe/Paris', true);
       const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
-      await within(nav).findByRole('link', { name: account.label });
+      await within(nav).findByText(account.label);
       api.readAccount.mockImplementation(() => problem(status, {}));
       void queryClient.invalidateQueries({ queryKey: ['account', accountId] });
-      await within(nav).findByRole('link', { name: 'Compte' });
+      await within(nav).findByText('Compte');
       expect(within(nav).queryByText(account.label)).toBeNull();
       expect(screen.getByRole('alert')).toBeTruthy();
     },
@@ -147,13 +179,10 @@ describe('portfolio shell breadcrumb', () => {
   it('renders the real static hierarchy under FrozenQueries without fetching', () => {
     renderPage('Europe/Paris', true, true);
     const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
-    expect(within(nav).getByRole('link', { name: 'Comptes' }).getAttribute('href')).toBe(
-      '/accounts',
+    expect(within(nav).getByRole('link', { name: 'Investissements' }).getAttribute('href')).toBe(
+      '/portfolios',
     );
-    expect(
-      within(nav).getByRole('link', { name: 'Chargement du compte' }).getAttribute('aria-busy'),
-    ).toBe('true');
-    expect(within(nav).getByText('Portefeuille')).toBeTruthy();
+    expect(within(nav).getByText('Chargement du compte').getAttribute('aria-busy')).toBe('true');
     expect(screen.getAllByRole('status')).toHaveLength(1);
     expect(api.readAccount).not.toHaveBeenCalled();
     expect(api.readPortfolioSummary).not.toHaveBeenCalled();
@@ -162,6 +191,15 @@ describe('portfolio shell breadcrumb', () => {
 
 beforeEach(() => {
   window.history.replaceState({}, '', `/portfolios/${accountId}?tab=operations`);
+  api.listTransactions.mockImplementation(() =>
+    ok({ items: [], nextCursor: null, hasMore: false, pageSize: 50 }),
+  );
+  api.listAccounts.mockImplementation(() =>
+    ok({ items: [account], page: 1, pageSize: 100, total: 1 }),
+  );
+  api.listAccountRuleOverrides.mockImplementation(() => ok({ overrides: [] }));
+  api.listProductModels.mockImplementation(() => ok({ items: [] }));
+  api.readAccountRules.mockImplementation(() => problem(404, { code: 'not_found' }));
   api.readPortfolioSummary.mockImplementation(() => ok(summaryFixture()));
   api.readLifeInsuranceSummary.mockImplementation(() => ok(insuranceSummaryFixture()));
   api.readPortfolioAllocation.mockImplementation(() => ok(allocationFixture()));
@@ -307,15 +345,15 @@ describe('PortfolioAccountPage', () => {
     renderPage();
     expect(
       await screen.findByText(
-        'Valorisation du 03/10/2026 partielle : dernières valeurs complètes du 30/09/2026 affichées.',
+        'Valorisation du 03/10/2026 partielle : valeurs du 30/09/2026 affichées.',
       ),
     ).toBeTruthy();
     expect(screen.getByText(/Gain \+121,42/)).toBeTruthy();
     expect(screen.getByText('au 30/09/2026, au prix de revient moyen')).toBeTruthy();
     expect(screen.getByText('À vérifier (1)')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Valeur totale' }));
-    expect(screen.getByText('Du 2026-09-30 au 2026-09-30')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Valorisation du 2026-09-30' })).toBeTruthy();
+    expect(screen.getByText('Du 30/09/2026 au 30/09/2026')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Valorisation du 30/09/2026' })).toBeTruthy();
   });
   it('retains explicit non-calculable states when only a partial valuation exists', async () => {
     const summary = summaryFixture();
@@ -329,16 +367,22 @@ describe('PortfolioAccountPage', () => {
     };
     api.readPortfolioSummary.mockImplementation(() => ok(summary));
     api.readPortfolioAllocation.mockImplementation(() =>
-      ok({ ...allocationFixture(), valuation: summary.valuation, reason: 'PARTIAL_VALUATION' }),
+      ok({
+        ...allocationFixture(),
+        valuation: summary.valuation,
+        reason: 'PARTIAL_VALUATION',
+        basis: null,
+        slices: [],
+      }),
     );
     renderPage();
     expect(await screen.findByText('Non valorisé')).toBeTruthy();
-    expect(screen.queryByText(/dernières valeurs complètes/)).toBeNull();
+    expect(screen.queryByText(/partielle : valeurs du/)).toBeNull();
   });
   it('shows no newer-partial warning when the server reports none for a past date', async () => {
     renderPage();
     await screen.findByText(/Gain/);
-    expect(screen.queryByText(/dernières valeurs complètes/)).toBeNull();
+    expect(screen.queryByText(/partielle : valeurs du/)).toBeNull();
   });
 
   it('shows one reminder per due month and opens the valuation modal from it', async () => {
@@ -364,7 +408,7 @@ describe('PortfolioAccountPage', () => {
     fireEvent.click(screen.getAllByRole('link', { name: 'Saisir la valorisation' })[0]!);
     const dialog = await screen.findByRole('dialog');
     await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
-    await within(dialog).findByText(/Espèces calculées/);
+    await within(dialog).findByText(/retenir les espèces calculées/);
     expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-02-28');
   });
 
@@ -381,8 +425,6 @@ describe('PortfolioAccountPage', () => {
       expect(api.readPortfolioSummary.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28'),
     );
     expect(api.listPortfolioPositions.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28');
-    fireEvent.click(screen.getByRole('link', { name: 'Répartition' }));
-    await screen.findByRole('heading', { name: 'Répartition' });
     await waitFor(() =>
       expect(api.readPortfolioAllocation.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28'),
     );
@@ -393,7 +435,7 @@ describe('PortfolioAccountPage', () => {
     await screen.findByRole('table', { name: 'Mouvements d’espèces' });
     expect(api.readPortfolioCash.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
     fireEvent.click(screen.getByRole('link', { name: 'Valorisations' }));
-    await screen.findByText(/Aucune valorisation\. Enregistrez/);
+    await screen.findByText(/Saisissez la valeur du compte/);
     expect(api.listPortfolioValuations.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
     expect(new URLSearchParams(window.location.search).get('asOf')).toBe('2026-02-28');
   });
@@ -414,7 +456,11 @@ describe('PortfolioAccountPage', () => {
     const info = screen.getByRole('button', { name: 'Expliquer : Espèces' });
     info.focus();
     fireEvent.click(info);
-    fireEvent.click(screen.getByRole('button', { name: `Opération du ${deposit.tradeDate}` }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Opération du ${formatCalendarNumericDay(deposit.tradeDate)}`,
+      }),
+    );
     expect(await screen.findByRole('dialog', { name: /Opération : Versement/ })).toBeTruthy();
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -437,7 +483,7 @@ describe('PortfolioAccountPage', () => {
     const info = screen.getByRole('button', { name: 'Expliquer : Valeur totale' });
     info.focus();
     fireEvent.click(info);
-    fireEvent.click(screen.getByRole('button', { name: 'Valorisation du 2026-03-10' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Valorisation du 10/03/2026' }));
     expect(await screen.findByRole('dialog', { name: 'Valorisation du 10/03/2026' })).toBeTruthy();
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
     expect(api.readPortfolioValuation.mock.calls.at(-1)![0].path.id).toBe('valuation-1');
@@ -466,37 +512,39 @@ describe('PortfolioAccountPage', () => {
     expect(screen.getByRole('link', { name: 'Valorisations' }).getAttribute('aria-current')).toBe(
       'page',
     );
-    expect(
-      screen.getByRole('button', { name: 'Enregistrer une valorisation' }).matches(':disabled'),
-    ).toBe(true);
+    expect(screen.getByRole('button', { name: 'Nouvelle valorisation' }).matches(':disabled')).toBe(
+      true,
+    );
     expect(screen.getByRole('columnheader', { name: 'Complétude' })).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 
-  it('orders the tabs and opens Performance by default', async () => {
+  it('orders the tabs and opens Positions, with the allocation below, by default', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}`);
     renderPage();
 
-    await screen.findByRole('link', { name: 'Répartition' });
+    await screen.findByText('Aucune position à cette date');
     const nav = screen.getByRole('navigation', { name: 'Sections du portefeuille' });
     expect(
       within(nav)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual([
-      'Performance',
-      'Espèces',
-      'Positions',
-      'Opérations',
-      'Valorisations',
-      'Répartition',
-    ]);
-    expect(
-      within(nav).getByRole('link', { name: 'Performance' }).getAttribute('aria-current'),
-    ).toBe('page');
+    ).toEqual(['Positions', 'Opérations', 'Valorisations', 'Espèces', 'Performance', 'Compte']);
+    expect(within(nav).getByRole('link', { name: 'Positions' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+    expect(await screen.findByRole('heading', { name: 'Répartition' })).toBeTruthy();
   });
 
-  it('shows the allocation in its own tab and retries when it fails', async () => {
+  it('disables both entry actions on an account that is not active', async () => {
+    api.readAccount.mockImplementation(() => ok({ ...account, status: 'CLOSED' }));
+    renderPage();
+    await screen.findByText(/Gain/);
+    for (const name of ['Nouvelle valorisation', 'Nouvelle opération'])
+      expect(screen.getByRole('button', { name }).matches(':disabled')).toBe(true);
+  });
+
+  it('answers a former allocation link with Positions and retries a failed allocation', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=allocation`);
     api.readPortfolioAllocation.mockImplementationOnce(() => problem(500, {}));
     renderPage();
@@ -504,9 +552,35 @@ describe('PortfolioAccountPage', () => {
     expect(await screen.findByText('La répartition est indisponible')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
     expect(await screen.findByRole('heading', { name: 'Répartition' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Répartition' }).getAttribute('aria-current')).toBe(
+    expect(screen.getByRole('link', { name: 'Positions' }).getAttribute('aria-current')).toBe(
       'page',
     );
+  });
+
+  it('opens a new valuation from the header on the Valorisations tab', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
+    api.readPortfolioSummary.mockImplementation(() =>
+      ok({ ...summaryFixture(), dueMonths: ['2026-02'] }),
+    );
+    api.listPortfolioValuations.mockImplementation(() =>
+      ok({ items: [], page: 1, pageSize: 24, total: 0 }),
+    );
+    renderPage();
+    await screen.findByText('Valorisation de fin février à saisir');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Nouvelle valorisation' }).matches(':disabled'),
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle valorisation' }));
+
+    expect(new URLSearchParams(window.location.search).get('tab')).toBe('valuations');
+    const dialog = await screen.findByRole('dialog', { name: 'Nouvelle valorisation' });
+    expect((within(dialog).getByLabelText('Date de valorisation') as HTMLInputElement).value).toBe(
+      '2026-02-28',
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('opens the Valorisations tab from ?tab=valuations', async () => {
@@ -516,7 +590,7 @@ describe('PortfolioAccountPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByText(/Aucune valorisation\. Enregistrez/)).toBeTruthy();
+    expect(await screen.findByText(/Saisissez la valeur du compte/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Valorisations' }).getAttribute('aria-current')).toBe(
       'page',
     );
@@ -647,6 +721,47 @@ describe('PortfolioAccountPage', () => {
     ).toContain('tab=contract');
     fireEvent.click(screen.getByRole('link', { name: 'Contrat' }));
     expect(await screen.findByRole('button', { name: 'Renseigner le contrat' })).toBeTruthy();
+  });
+
+  it('holds the account itself in its last tab: identity, bank movements and a transfer to it', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account&month=2026-03`);
+    renderPage();
+    const tab = await screen.findByRole('link', { name: 'Compte' });
+    expect(tab.getAttribute('aria-current')).toBe('page');
+    expect(await screen.findByRole('heading', { level: 3, name: account.label })).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 3, name: 'Mouvements' })).toBeTruthy();
+    await waitFor(() =>
+      expect(api.listTransactions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ accountId: [accountId], from: '2026-03-01' }),
+        }),
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveau virement' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
+    expect(
+      (within(dialog).getByLabelText('Compte de destination') as HTMLSelectElement).value,
+    ).toBe(accountId);
+  });
+
+  it('reads a former contract link of a securities account as its account tab', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=contract`);
+    renderPage();
+    const tab = await screen.findByRole('link', { name: 'Compte' });
+    expect(tab.getAttribute('aria-current')).toBe('page');
+    expect(screen.queryByRole('link', { name: 'Contrat' })).toBeNull();
+  });
+
+  it('continues the summary with the since-opening returns, not the performance tab', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
+    renderPage();
+    const summary = await screen.findByRole('region', { name: 'Indicateurs du portefeuille' });
+    expect(within(summary).getByRole('region', { name: 'Depuis l’ouverture' })).toBeTruthy();
+    await waitFor(() =>
+      expect(api.readPortfolioPerformance).toHaveBeenCalledWith(
+        expect.objectContaining({ query: { scope: 'INCEPTION' } }),
+      ),
+    );
   });
 
   it('shows an empty state with a create action', async () => {
@@ -834,7 +949,7 @@ it('composes insurance figures, history and performance instead of securities KP
   await waitFor(() => expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull());
   expect(await screen.findByRole('heading', { name: 'Valeur du contrat' })).toBeTruthy();
   expect(await screen.findByRole('heading', { name: 'Suivi fiscal (informatif)' })).toBeTruthy();
-  expect(screen.getByRole('heading', { name: "Depuis l'ouverture" })).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: "Depuis l'ouverture" })).toBeNull();
   expect(screen.queryByRole('region', { name: 'Indicateurs du portefeuille' })).toBeNull();
   expect(api.readPortfolioValuationHistory).toHaveBeenCalled();
   expect(api.readLifeInsuranceSummary).toHaveBeenCalledWith(
@@ -913,7 +1028,7 @@ it.each(['quality', 'cumulative'] as const)(
     await waitFor(() => expect(info.matches(':disabled')).toBe(false));
     info.focus();
     fireEvent.click(info);
-    await screen.findByRole('dialog', { name: 'Expliquer : Versements cumulés' });
+    await screen.findByRole('dialog', { name: 'Versements cumulés' });
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() => expect(document.activeElement).toBe(info));
     const section = screen
@@ -958,65 +1073,47 @@ it.each(['quality', 'cumulative'] as const)(
   },
 );
 
-it.each([
-  'performance',
-  'operations',
-  'allocation',
-  'positions',
-  'valuations',
-  'contract',
-] as const)('renders insurance details only in their corresponding %s tab', async (tab) => {
-  api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
-  api.readLifeInsuranceContract.mockImplementation(() =>
-    ok({
-      contract: insuranceSummaryFixture().contract,
-      feeTerms: [],
-      euroFundRates: [],
-      euroFunds: [],
-    }),
-  );
-  api.listPortfolioValuations.mockImplementation(() =>
-    ok({ items: [], page: 1, pageSize: 24, total: 0 }),
-  );
-  window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
-  renderPage();
-  await screen.findByText(/9\s293,00/);
-  const expected = {
-    allocation: 'Répartition',
-    positions: 'Supports du contrat',
-    valuations: 'Qualité des données',
-    contract: 'Montants cumulés enregistrés',
-  };
-  const nav = screen.getByRole('navigation', { name: 'Sections du portefeuille' });
-  for (const [destination, heading] of Object.entries(expected)) {
-    if (tab === destination) {
-      const title = await screen.findByRole('heading', { name: heading });
-      expect(nav.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    } else expect(screen.queryByRole('heading', { name: heading })).toBeNull();
-  }
-  if (tab === 'allocation') {
-    for (const [label, by] of [
-      ['Classe d’actifs', 'ASSET_CLASS'],
-      ['Devise', 'CURRENCY'],
-      ['Instrument', 'INSTRUMENT'],
-    ]) {
-      fireEvent.click(screen.getByRole('button', { name: label }));
-      await waitFor(() =>
-        expect(api.readPortfolioAllocation).toHaveBeenCalledWith(
-          expect.objectContaining({ query: { asOf: '2026-03-10', by } }),
-        ),
-      );
+it.each(['performance', 'operations', 'positions', 'valuations', 'contract'] as const)(
+  'renders insurance details only in their corresponding %s tab',
+  async (tab) => {
+    api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
+    api.readLifeInsuranceContract.mockImplementation(() =>
+      ok({
+        contract: insuranceSummaryFixture().contract,
+        feeTerms: [],
+        euroFundRates: [],
+        euroFunds: [],
+      }),
+    );
+    api.listPortfolioValuations.mockImplementation(() =>
+      ok({ items: [], page: 1, pageSize: 24, total: 0 }),
+    );
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
+    renderPage();
+    await screen.findByText(/9\s293,00/);
+    const expected = {
+      positions: 'Supports du contrat',
+      valuations: 'Qualité des données',
+      contract: 'Montants cumulés enregistrés',
+    };
+    const nav = screen.getByRole('navigation', { name: 'Sections du portefeuille' });
+    for (const [destination, heading] of Object.entries(expected)) {
+      if (tab === destination) {
+        const title = await screen.findByRole('heading', { name: heading });
+        expect(nav.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      } else expect(screen.queryByRole('heading', { name: heading })).toBeNull();
     }
-  }
-  if (tab === 'positions')
-    expect(screen.getByLabelText('Afficher les positions soldées')).toBeTruthy();
-  if (tab === 'valuations')
-    expect(screen.getByRole('button', { name: 'Enregistrer une valorisation' })).toBeTruthy();
-  if (tab === 'contract')
-    expect(screen.getByRole('heading', { name: 'Suivi fiscal (informatif)' })).toBeTruthy();
-});
+    if (tab === 'positions') {
+      expect(screen.getByRole('heading', { name: 'Répartition' })).toBeTruthy();
+      expect(screen.getByText('Quantités et lots issus des opérations')).toBeTruthy();
+      expect(screen.getByLabelText('Afficher les positions soldées')).toBeTruthy();
+    }
+    if (tab === 'contract')
+      expect(screen.getByRole('heading', { name: 'Suivi fiscal (informatif)' })).toBeTruthy();
+  },
+);
 
-it.each(['allocation', 'positions', 'valuations'] as const)(
+it.each(['positions', 'valuations'] as const)(
   'keeps the securities %s tab free of insurance reports',
   async (tab) => {
     api.listPortfolioValuations.mockImplementation(() =>
@@ -1025,14 +1122,12 @@ it.each(['allocation', 'positions', 'valuations'] as const)(
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
     renderPage();
     await screen.findByRole('region', { name: 'Indicateurs du portefeuille' });
-    if (tab === 'allocation')
-      expect(await screen.findByRole('button', { name: 'Classe d’actifs' })).toBeTruthy();
-    if (tab === 'positions')
+    if (tab === 'positions') {
       expect(await screen.findByLabelText('Afficher les positions soldées')).toBeTruthy();
+      expect(await screen.findByRole('button', { name: 'Classe d’actifs' })).toBeTruthy();
+    }
     if (tab === 'valuations')
-      expect(
-        await screen.findByRole('button', { name: 'Enregistrer une valorisation' }),
-      ).toBeTruthy();
+      expect(await screen.findByText(/Saisissez la valeur du compte/)).toBeTruthy();
     expect(api.readLifeInsuranceSummary).not.toHaveBeenCalled();
     expect(screen.queryByRole('heading', { name: 'Supports du contrat' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Qualité des données' })).toBeNull();

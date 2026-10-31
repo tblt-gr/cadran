@@ -65,6 +65,7 @@ export function allocationFixture(): PortfolioOverviewAllocation {
     valuation: summaryFixture().valuation,
     total: '100',
     reason: null,
+    basis: 'MARKET',
     items: [
       { key: 'UNSPECIFIED', label: 'Non renseignée', value: '75', share: '0.75' },
       { key: 'CASH', label: 'Espèces', value: '25', share: '0.25' },

@@ -3,18 +3,26 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './PortfolioTabs.module.css';
 
 export type PortfolioTab =
-  'performance' | 'cash' | 'positions' | 'operations' | 'valuations' | 'allocation' | 'contract';
+  'positions' | 'operations' | 'valuations' | 'cash' | 'performance' | 'account' | 'contract';
 
+/** Ordered by how often they are used: what is held, what happened, then the derived readings. */
 const tabs: { id: PortfolioTab; label: string }[] = [
-  { id: 'performance', label: 'Performance' },
-  { id: 'cash', label: 'Espèces' },
   { id: 'positions', label: 'Positions' },
   { id: 'operations', label: 'Opérations' },
   { id: 'valuations', label: 'Valorisations' },
-  { id: 'allocation', label: 'Répartition' },
+  { id: 'cash', label: 'Espèces' },
+  { id: 'performance', label: 'Performance' },
 ];
 
-/** Tab list synced to `?tab=`; later tickets add their own tabs to this list. */
+const insuranceLabels: Partial<Record<PortfolioTab, string>> = {
+  positions: 'Supports',
+  cash: 'Liquidités',
+};
+
+/**
+ * Tab list synced to `?tab=`, ending with the account itself: its bank movements and rules, under
+ * Contrat for a life insurance, which also renames two tabs.
+ */
 export function PortfolioTabs({
   accountId,
   active,
@@ -29,14 +37,10 @@ export function PortfolioTabs({
   const accountTabs =
     kind === 'INSURANCE_CONTRACT'
       ? [
-          ...tabs.map((tab) => ({
-            ...tab,
-            label:
-              tab.id === 'positions' ? 'Supports' : tab.id === 'cash' ? 'Liquidités' : tab.label,
-          })),
+          ...tabs.map((tab) => ({ ...tab, label: insuranceLabels[tab.id] ?? tab.label })),
           { id: 'contract' as const, label: 'Contrat' },
         ]
-      : tabs;
+      : [...tabs, { id: 'account' as const, label: 'Compte' }];
   return (
     <nav aria-label="Sections du portefeuille" className={styles.tabs}>
       {accountTabs.map((tab) => {

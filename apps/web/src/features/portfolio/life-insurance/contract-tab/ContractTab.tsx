@@ -57,13 +57,11 @@ export function ContractTab({
       {data.contract?.status === 'CLOSED' && data.contract.closedOn ? (
         <p role="status">
           Contrat soldé le {formatCalendarNumericDay(data.contract.closedOn)}. Vous pouvez clôturer
-          le compte.{' '}
-          <a
-            href={`/accounts/${accountId}`}
-            onClick={(event) => handleClientNavigation(event, `/accounts/${accountId}`)}
-          >
-            Voir le compte
+          le compte depuis la{' '}
+          <a href="/accounts" onClick={(event) => handleClientNavigation(event, '/accounts')}>
+            liste des comptes
           </a>
+          .
         </p>
       ) : null}
       {data.contract ? (

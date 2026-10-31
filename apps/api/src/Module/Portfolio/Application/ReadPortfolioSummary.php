@@ -31,7 +31,11 @@ final readonly class ReadPortfolioSummary
         $from = $asOf->setDate((int) $asOf->format('Y'), 1, 1)->format('Y-m-d');
         $to = $asOf->format('Y-m-d');
         $range = array_values(array_filter($operations, static fn (PortfolioOperation $operation): bool => $operation->details->tradeDate->format('Y-m-d') >= $from));
-        $cash = CashLedger::replay([], $operations)->closingBalance;
+        // The cash shown beside the total value is the one frozen with the same valuation, so
+        // total = securities + cash holds on one date. The ledger at asOf lives in the cash tab.
+        $retained = $view?->valuation;
+        $cash = $retained->cash ?? CashLedger::replay([], $operations)->closingBalance;
+        $cashQuality = null === $retained ? 'DERIVED' : $retained->cashSource->value;
         $totals = CashLedger::replay([], $range)->totals;
         $valuation = PortfolioOverviewQuery::valuation($view, $asOf);
         $partialMetadata = PortfolioOverviewQuery::valuation($newerPartial, $asOf);
@@ -76,7 +80,9 @@ final readonly class ReadPortfolioSummary
             'explanations' => [
                 'TOTAL_VALUE' => PortfolioExplanation::of($periodOn, $periodOn, $valuationQuality, $valuationReason, $valuationSources),
                 'UNREALIZED_GAIN' => PortfolioExplanation::of($periodOn, $periodOn, $gain['reason'] ?? $valuationQuality, $gain['reason'] ?? $valuationReason, [...$valuationSources, ...$frozenSources]),
-                'CASH' => PortfolioExplanation::of($accountView->openedOn, $to, 'DERIVED', null, $allSources),
+                'CASH' => null === $retained
+                    ? PortfolioExplanation::of($accountView->openedOn, $to, $cashQuality, null, $allSources)
+                    : PortfolioExplanation::of($accountView->openedOn, $periodOn, $cashQuality, null, [...$valuationSources, ...$frozenSources]),
                 'NET_DEPOSITS' => PortfolioExplanation::of($from, $to, 'DERIVED', null, PortfolioExplanation::operations($deposits)),
                 'COSTS' => PortfolioExplanation::of($from, $to, 'DERIVED', null, PortfolioExplanation::operations($costs)),
                 'RECONCILIATION' => PortfolioExplanation::of($accountView->openedOn, $to, $status, null, [...$valuationSources, ...$partialSources, ...$allSources]),

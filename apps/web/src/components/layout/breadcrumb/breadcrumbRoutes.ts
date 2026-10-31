@@ -68,8 +68,9 @@ export function breadcrumbItems(
         href: `/accounts/${accountRoute[2]}`,
         pending: account?.pending !== false,
       };
-      trail = [accounts, accountItem];
-      if (accountRoute[1] === 'portfolios') trail.push(item('routes.portfolioAccount'));
+      // A portfolio is reached from Investissements, so it hangs there rather than under Comptes.
+      trail =
+        accountRoute[1] === 'portfolios' ? [investments, accountItem] : [accounts, accountItem];
     } else if (/^\/budget\/plans\/[^/]+$/.test(path)) {
       trail = [budget, plans, item('routes.budgetPlan')];
     } else if (/^\/budget\/\d{4}\/\d{2}$/.test(path)) {

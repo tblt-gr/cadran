@@ -14,31 +14,39 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
 const ok = <T,>(data: T) =>
   Promise.resolve({ data, response: new Response('{}', { status: 200 }) });
 
-function renderFigures(frozen = false) {
+function renderFigures(frozen = false, omit: ('gain' | 'moneyWeighted')[] = []) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <SinceOpeningFigures accountId="account-1" asOf="2026-03-10" frozen={frozen} />
+      <SinceOpeningFigures accountId="account-1" asOf="2026-03-10" frozen={frozen} omit={omit} />
     </QueryClientProvider>,
   );
 }
+
+const title = 'Depuis l’ouverture';
+const region = () => screen.getByRole('region', { name: title });
+const labels = () =>
+  within(region())
+    .queryAllByRole('heading', { level: 3 })
+    .map((heading) => heading.textContent)
+    .filter((text) => text !== title);
 
 const refused = (status: number, body: object) =>
   Promise.resolve({ error: body, response: new Response('{}', { status }) });
 
 async function loaded() {
-  const section = screen.getByRole('region', { name: "Depuis l'ouverture" });
   await waitFor(() =>
     expect(
-      within(section)
-        .getByRole('button', { name: /Gain total/ })
+      within(region())
+        .getByRole('button', { name: 'Expliquer : Gain total' })
         .hasAttribute('disabled'),
     ).toBe(false),
   );
-  return section;
+  return region();
 }
 
 beforeEach(() => {
+  window.localStorage.clear();
   window.history.replaceState({}, '', '/portfolios/account-1?tab=performance&year=2025');
   api.readPortfolioPerformance.mockImplementation(() => ok(performanceFixture()));
 });
@@ -48,64 +56,74 @@ afterEach(() => {
 });
 
 describe('SinceOpeningFigures', () => {
-  it('reads the INCEPTION scope and opens the explanation of a figure', async () => {
+  it('reads the INCEPTION scope, shows the gain and personal return by default with their period', async () => {
     renderFigures();
-    const section = screen.getByRole('region', { name: "Depuis l'ouverture" });
-    await waitFor(() =>
-      expect(
-        within(section)
-          .getByRole('button', { name: /Gain total/ })
-          .hasAttribute('disabled'),
-      ).toBe(false),
-    );
+    const section = await loaded();
     expect(api.readPortfolioPerformance).toHaveBeenCalledWith(
       expect.objectContaining({ query: { scope: 'INCEPTION' } }),
     );
-    fireEvent.click(within(section).getByRole('button', { name: /Gain total/ }));
-    expect(await screen.findByRole('dialog', { name: 'Expliquer : Gain total' })).toBeTruthy();
+    expect(labels()).toEqual(['Gain total', 'Rendement personnel (MWR)']);
+    expect(within(section).getByText('Du 01/01/2026 au 10/03/2026')).toBeTruthy();
+    expect(within(section).getByText('Réalisé et latent, revenus et frais compris')).toBeTruthy();
+    fireEvent.click(within(section).getByRole('button', { name: 'Expliquer : Gain total' }));
+    expect(await screen.findByRole('dialog', { name: 'Gain total' })).toBeTruthy();
+  });
+
+  it('lets the reader choose the figures and remembers the choice', async () => {
+    renderFigures();
+    await loaded();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choisir les indicateurs depuis l’ouverture' }),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Indicateurs depuis l’ouverture' });
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Rendement des placements/ }));
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Gain total/ }));
+    expect(labels()).toEqual(['Rendement des placements (TWR)', 'Rendement personnel (MWR)']);
+    cleanup();
+    renderFigures();
+    await waitFor(() =>
+      expect(labels()).toEqual(['Rendement des placements (TWR)', 'Rendement personnel (MWR)']),
+    );
+  });
+
+  it('never offers a figure the page already shows', async () => {
+    renderFigures(false, ['gain']);
+    await waitFor(() => expect(labels()).toEqual(['Rendement personnel (MWR)']));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choisir les indicateurs depuis l’ouverture' }),
+    );
+    expect(screen.queryByRole('checkbox', { name: /Gain total/ })).toBeNull();
   });
 
   it('keeps the title and sends no request while frozen', () => {
     renderFigures(true);
-    expect(screen.getByRole('heading', { name: "Depuis l'ouverture" })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: title })).toBeTruthy();
     expect(api.readPortfolioPerformance).not.toHaveBeenCalled();
   });
 
-  it('keeps the title and value skeletons while the INCEPTION query is pending', () => {
+  it('keeps the labels and value blocks while the INCEPTION query is pending', () => {
     api.readPortfolioPerformance.mockImplementation(() => new Promise(() => undefined));
     renderFigures();
-    const section = screen.getByRole('region', { name: "Depuis l'ouverture" });
-    expect(screen.getByRole('heading', { name: "Depuis l'ouverture" })).toBeTruthy();
-    expect(within(section).queryByRole('alert')).toBeNull();
+    expect(labels()).toEqual(['Gain total', 'Rendement personnel (MWR)']);
+    expect(within(region()).queryByRole('alert')).toBeNull();
     expect(
-      within(section).getAllByTestId('performance-value')[0]?.querySelector('[aria-hidden="true"]'),
-    ).toBeTruthy();
-    expect(
-      within(section)
-        .getByRole('button', { name: /Gain total/ })
+      within(region())
+        .getByRole('button', { name: 'Expliquer : Gain total' })
         .hasAttribute('disabled'),
     ).toBe(true);
   });
 
-  it('shows an error with Réessayer when INCEPTION fails, not value skeletons', async () => {
+  it('shows an error with Réessayer when INCEPTION fails', async () => {
     api.readPortfolioPerformance.mockImplementationOnce(() => refused(500, {}));
     renderFigures();
-    const section = screen.getByRole('region', { name: "Depuis l'ouverture" });
-    expect(await screen.findByRole('heading', { name: "Depuis l'ouverture" })).toBeTruthy();
-    const alert = await within(section).findByRole('alert');
-    expect(alert.textContent).toContain('La performance est indisponible');
-    expect(within(section).queryAllByTestId('performance-value')).toHaveLength(0);
+    const alert = await within(region()).findByRole('alert');
+    expect(alert.textContent).toContain('La performance depuis l’ouverture est indisponible');
+    expect(labels()).toEqual([]);
     fireEvent.click(within(alert).getByRole('button', { name: 'Réessayer' }));
-    await waitFor(() =>
-      expect(
-        within(section)
-          .getByRole('button', { name: /Gain total/ })
-          .hasAttribute('disabled'),
-      ).toBe(false),
-    );
+    await loaded();
   });
 
-  it('keeps a successful null figure as non-calculable, not an error', async () => {
+  it('keeps a successful null figure as non-calculable with its reason, not an error', async () => {
     const fixture = performanceFixture();
     fixture.gain = {
       ...fixture.gain,
@@ -117,16 +135,17 @@ describe('SinceOpeningFigures', () => {
     renderFigures();
     const section = await loaded();
     expect(within(section).queryByRole('alert')).toBeNull();
-    expect(within(section).getByText('Non calculable', { selector: '.sr-only' })).toBeTruthy();
+    expect(within(section).getByText('Non calculable')).toBeTruthy();
+    expect(within(section).queryByText('Réalisé et latent, revenus et frais compris')).toBeNull();
   });
 
   it('opens a source in the operation or valuation detail and keeps year', async () => {
     renderFigures();
     await loaded();
-    fireEvent.click(screen.getByRole('button', { name: /Gain total/ }));
-    expect(await screen.findByRole('dialog', { name: 'Expliquer : Gain total' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Gain total' }));
+    expect(await screen.findByRole('dialog', { name: 'Gain total' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Valorisation du 31/12/2025' }));
-    expect(screen.queryByRole('dialog', { name: 'Expliquer : Gain total' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Gain total' })).toBeNull();
     const params = new URLSearchParams(window.location.search);
     expect(params.get('asOf')).toBe('2026-03-10');
     expect(params.get('tab')).toBe('valuations');

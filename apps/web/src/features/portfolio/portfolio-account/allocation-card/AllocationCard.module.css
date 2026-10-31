@@ -24,6 +24,10 @@
   font-size: var(--font-size-label);
   gap: var(--spacing-1);
 }
+.note {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
 .dateSkeleton {
   height: var(--font-size-body);
   width: 8rem;
@@ -49,6 +53,20 @@
   border-bottom: var(--border-width-thin) solid var(--border-subtle);
   text-align: right;
   white-space: nowrap;
+}
+.tableScroll thead th {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+.tableScroll tbody th {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
+}
+.tableScroll td {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
 }
 .tableScroll th:first-child {
   text-align: left;

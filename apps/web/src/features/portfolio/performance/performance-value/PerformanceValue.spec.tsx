@@ -2,13 +2,16 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { performanceFixture } from '@/features/portfolio/performance/performanceFixtures';
-import { PerformanceValue } from './PerformanceValue';
+import { PerformanceValue, signed } from './PerformanceValue';
 
 afterEach(cleanup);
 
 const accountContext = { accountId: 'account-1', assetCode: 'EUR', residual: null };
 
 describe('PerformanceValue', () => {
+  it('keeps the zero amount placeholder neutral', () => {
+    expect(signed('-')).toEqual({ text: '-', tone: '' });
+  });
   it('shows a rate with an explicit sign and its quality badge', () => {
     const fixture = performanceFixture();
     render(

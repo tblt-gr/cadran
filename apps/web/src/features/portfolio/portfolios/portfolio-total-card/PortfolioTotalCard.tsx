@@ -15,13 +15,6 @@ function unvaluedNote(count: number): string | null {
   return count === 1 ? '1 compte non valorisé' : `${count} comptes non valorisés`;
 }
 
-function partialNote(count: number): string | null {
-  if (count === 0) return null;
-  return count === 1
-    ? '1 compte avec une valorisation partielle plus récente'
-    : `${count} comptes avec une valorisation partielle plus récente`;
-}
-
 function Figure({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className={styles.figure}>
@@ -78,9 +71,6 @@ export function PortfolioTotalCard({ total }: { total: Total | null }) {
             <p className={styles.note}>
               Valorisations au {formatCalendarDay(total.oldestValuedOn, 'fr')}
             </p>
-          )}
-          {partialNote(total.partialNewerAccounts) === null ? null : (
-            <p className={styles.note}>{partialNote(total.partialNewerAccounts)}</p>
           )}
           {note === null ? null : <p className={styles.note}>{note}</p>}
         </>

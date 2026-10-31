@@ -1,11 +1,6 @@
 .notice {
-  display: grid;
-  justify-items: start;
-  gap: var(--spacing-2);
-  min-width: 0;
-}
-.notice p {
   margin: var(--spacing-none);
   color: var(--warning);
+  font-size: var(--font-size-label);
   overflow-wrap: anywhere;
 }

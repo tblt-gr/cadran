@@ -5,29 +5,6 @@ import { PortfolioKpiGrid } from './PortfolioKpiGrid';
 import { summaryFixture } from '@/features/portfolio/portfolio-account/overviewFixtures';
 afterEach(cleanup);
 describe('PortfolioKpiGrid', () => {
-  it.each([
-    ['STALE_PRICES', 'Au moins un prix date de plus de 5 jours avant la valorisation.'],
-    ['CASH_DIFFERENCE', 'Les espèces constatées diffèrent des espèces calculées.'],
-    [
-      'OBSERVED_TOTAL_DIFFERENCE',
-      'Le total du relevé s’écarte du total calculé au-delà de la tolérance.',
-    ],
-    ['POSITIONS_CHANGED', 'Des opérations ont été enregistrées ou annulées depuis'],
-    ['NEGATIVE_SECURITIES_VALUE', 'Le total est inférieur aux espèces'],
-    ['LINKED_TRANSFER_CHANGED', 'Un virement lié a été annulé ou modifié'],
-    [
-      'NON_TRANSFER_TRANSACTION',
-      'Une transaction a été enregistrée sur ce compte avant le suivi par portefeuille',
-    ],
-  ])('explains the known warning %s in French', (code, sentence) => {
-    const summary = summaryFixture();
-    summary.reconciliation = { status: 'NEEDS_REVIEW', warnings: [{ code, count: 2 }] };
-    render(<PortfolioKpiGrid summary={summary} asOf="2026-03-10" onExplain={vi.fn()} />);
-    expect(screen.getByRole('listitem').textContent).toContain(sentence);
-    expect(screen.getByRole('listitem').textContent).not.toContain(code);
-    expect(screen.getByRole('listitem').textContent).toContain('2');
-  });
-
   it('explains unknown gains and displays a loss with words and sign', () => {
     const summary = summaryFixture();
     summary.totalValue = null;
@@ -70,6 +47,46 @@ describe('PortfolioKpiGrid', () => {
     expect(headings).toContain('Frais et taxes 2026');
     expect(screen.getAllByText('Du 01/01/2026 au 10/03/2026')).toHaveLength(2);
     expect(screen.queryByText('au 2026-03-10')).toBeNull();
+  });
+  it('dates the cash with the valuation and says whether the statement gave it', () => {
+    const summary = summaryFixture();
+    summary.explanations.CASH = {
+      ...summary.explanations.CASH,
+      quality: 'OBSERVED',
+      period: { from: '2026-01-01', to: '2026-03-10' },
+    };
+    const view = render(
+      <PortfolioKpiGrid summary={summary} asOf="2026-04-15" onExplain={vi.fn()} />,
+    );
+    expect(screen.getByText('Relevé du 10/03/2026')).toBeTruthy();
+    summary.explanations.CASH = { ...summary.explanations.CASH, quality: 'DERIVED' };
+    view.rerender(<PortfolioKpiGrid summary={summary} asOf="2026-04-15" onExplain={vi.fn()} />);
+    expect(screen.getByText('Calculées au 10/03/2026')).toBeTruthy();
+  });
+  it('opens the points to review from the Rapprochement pill and drops it once reconciled', () => {
+    const summary = summaryFixture();
+    summary.reconciliation = {
+      status: 'NEEDS_REVIEW',
+      warnings: [
+        { code: 'NEGATIVE_CASH', count: 30 },
+        { code: 'PARTIAL_VALUATION', count: 1 },
+      ],
+    };
+    const view = render(
+      <PortfolioKpiGrid summary={summary} asOf="2026-03-10" onExplain={vi.fn()} />,
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'À vérifier (2)' }));
+    const dialog = screen.getByRole('dialog', { name: '2 points à vérifier' });
+    expect(
+      Array.from(dialog.querySelectorAll('li strong')).map((item) => item.textContent),
+    ).toEqual(['Espèces négatives (30 opérations)', 'Valorisation partielle']);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    view.rerender(
+      <PortfolioKpiGrid summary={summaryFixture()} asOf="2026-03-10" onExplain={vi.fn()} />,
+    );
+    expect(screen.queryByRole('button', { name: /À vérifier/ })).toBeNull();
+    expect(screen.getByText('Rapproché')).toBeTruthy();
   });
   it('shows valuation qualifiers under the total value', () => {
     render(

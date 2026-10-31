@@ -55,15 +55,16 @@ afterEach(() => {
 });
 
 describe('PerformanceTab', () => {
-  it('shows the real chrome while loading then the summary, curve and month table', async () => {
+  it('shows the real chrome while loading then the year figures and months only', async () => {
     renderTab();
     expect(screen.getByTestId('performance-skeleton')).toBeTruthy();
     expect(screen.getByRole('heading', { name: '2026' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Année précédente' }).hasAttribute('disabled')).toBe(
       true,
     );
-    expect(screen.getByRole('heading', { name: 'Évolution de la valeur 2026' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Rendement chaîné (base 100)' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Depuis l’ouverture' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Évolution de la valeur 2026' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Rendement chaîné (base 100)' })).toBeNull();
     expect(screen.getByRole('columnheader', { name: 'Valeur début' })).toBeTruthy();
 
     await loaded();
@@ -71,7 +72,10 @@ describe('PerformanceTab', () => {
       expect.objectContaining({ path: { accountId }, query: { year: '2026' } }),
     );
     expect(screen.getByRole('heading', { name: 'Année 2026' })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: "Depuis l'ouverture" })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Depuis l’ouverture' })).toBeNull();
+    expect(api.readPortfolioPerformance).not.toHaveBeenCalledWith(
+      expect.objectContaining({ query: { scope: 'INCEPTION' } }),
+    );
     expect(screen.getByRole('table', { name: 'Performance par mois' })).toBeTruthy();
   });
 
@@ -145,7 +149,7 @@ describe('PerformanceTab', () => {
         expect.objectContaining({ query: { scope: 'MONTH', period: '2026-01' } }),
       ),
     );
-    expect(await screen.findByRole('dialog', { name: 'Expliquer : Gain total' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Gain total' })).toBeTruthy();
   });
 
   it('opens the summary explanation with the year response already loaded', async () => {
@@ -160,7 +164,7 @@ describe('PerformanceTab', () => {
       ).toBe(false),
     );
     fireEvent.click(within(summary).getByRole('button', { name: /Gain total/ }));
-    expect(await screen.findByRole('dialog', { name: 'Expliquer : Gain total' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Gain total' })).toBeTruthy();
     expect(api.readPortfolioPerformance).not.toHaveBeenCalledWith(
       expect.objectContaining({ query: { scope: 'MONTH', period: expect.any(String) } }),
     );
@@ -247,9 +251,9 @@ describe('PerformanceTab', () => {
       ).toBe(false),
     );
     fireEvent.click(within(summary).getByRole('button', { name: /Gain total/ }));
-    expect(await screen.findByRole('dialog', { name: 'Expliquer : Gain total' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Gain total' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Opération du 01/02/2026' }));
-    expect(screen.queryByRole('dialog', { name: 'Expliquer : Gain total' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Gain total' })).toBeNull();
     const params = new URLSearchParams(window.location.search);
     expect(params.get('asOf')).toBe('2026-03-10');
     expect(params.get('tab')).toBe('operations');
@@ -263,9 +267,9 @@ describe('PerformanceTab', () => {
     await loaded();
     const row = screen.getByRole('row', { name: /^janvier/ });
     fireEvent.click(within(row).getByRole('button', { name: /Gain total/ }));
-    expect(await screen.findByRole('dialog', { name: 'Expliquer : Gain total' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Gain total' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Valorisation du 31/12/2025' }));
-    expect(screen.queryByRole('dialog', { name: 'Expliquer : Gain total' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Gain total' })).toBeNull();
     const params = new URLSearchParams(window.location.search);
     expect(params.get('asOf')).toBe('2026-03-10');
     expect(params.get('tab')).toBe('valuations');

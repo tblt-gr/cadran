@@ -8,6 +8,7 @@ import { OperationTypeSelect } from '@/features/portfolio/portfolio-account/oper
 import { LinkedTransferField } from './LinkedTransferField';
 import { OperationDecimalField } from './OperationDecimalField';
 import { OperationField } from './OperationField';
+import { OperationExtraFields } from './operation-extra-fields/OperationExtraFields';
 import { OperationInstrumentField } from './operation-instrument-field/OperationInstrumentField';
 import { OperationPreviewLine } from './OperationPreviewLine';
 import { OperationRatioFields } from './operation-ratio-fields/OperationRatioFields';
@@ -131,13 +132,22 @@ export function OperationForm({
             value={values.tradeDate}
           />
         </OperationField>
-        <OperationField error={errors.settlementDate} label="Date de règlement">
-          <input
-            onChange={(event) => set('settlementDate', event.target.value)}
-            type="date"
-            value={values.settlementDate}
+        {has('linkedTransaction') ? (
+          <LinkedTransferField
+            accountId={account.id}
+            direction={type === 'DEPOSIT' || type === 'PREMIUM' ? 'IN' : 'OUT'}
+            error={errors.linkedTransaction}
+            onChange={(candidate, id) => {
+              set('linkedTransactionId', id);
+              if (candidate) {
+                set('tradeDate', candidate.bookedOn);
+                if (type === 'DEPOSIT' || type === 'PREMIUM' || type === 'WITHDRAWAL')
+                  set('grossAmount', candidate.amount.value);
+              }
+            }}
+            value={values.linkedTransactionId}
           />
-        </OperationField>
+        ) : null}
         {!insuranceIncome && has('instrument') ? (
           <OperationInstrumentField
             currencyCode={account.assetCode}
@@ -210,36 +220,6 @@ export function OperationForm({
             value={values.costAllocationRatio}
           />
         ) : null}
-        {has('linkedTransaction') ? (
-          <LinkedTransferField
-            accountId={account.id}
-            direction={type === 'DEPOSIT' || type === 'PREMIUM' ? 'IN' : 'OUT'}
-            error={errors.linkedTransaction}
-            onChange={(candidate, id) => {
-              set('linkedTransactionId', id);
-              if (candidate) {
-                set('tradeDate', candidate.bookedOn);
-                if (type === 'DEPOSIT' || type === 'PREMIUM' || type === 'WITHDRAWAL')
-                  set('grossAmount', candidate.amount.value);
-              }
-            }}
-            value={values.linkedTransactionId}
-          />
-        ) : null}
-        <OperationField error={errors.reference} label="Référence">
-          <input
-            maxLength={64}
-            onChange={(event) => set('reference', event.target.value)}
-            value={values.reference}
-          />
-        </OperationField>
-        <OperationField error={errors.note} label="Note">
-          <input
-            maxLength={200}
-            onChange={(event) => set('note', event.target.value)}
-            value={values.note}
-          />
-        </OperationField>
         {operation ? (
           <OperationField error={errors.reason} label="Motif (facultatif)" wide>
             <input
@@ -250,6 +230,7 @@ export function OperationForm({
           </OperationField>
         ) : null}
       </div>
+      <OperationExtraFields errors={errors} onChange={set} values={values} />
       <OperationPreviewLine
         type={type}
         pending={preview.isFetching}

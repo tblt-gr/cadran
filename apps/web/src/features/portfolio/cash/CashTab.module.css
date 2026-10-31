@@ -18,11 +18,6 @@
   flex-wrap: wrap;
   gap: var(--spacing-2);
 }
-.note {
-  margin: var(--spacing-none);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
 @media (max-width: 480px) {
   .toolbar {
     align-items: start;

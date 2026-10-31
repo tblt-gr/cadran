@@ -1,40 +1,42 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { PortfolioOverviewSummary } from '@cadran/api-client';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
+import { formatCalendarNumericDay } from '@/lib/decimal';
 import {
   kpiLabels,
   reasonLabels,
-  warningLabels,
   type KpiCode,
 } from '@/features/portfolio/portfolio-account/overviewLabels';
 import { KpiFigure } from './KpiFigure';
+import { kpiValueText } from './kpiValueText';
+import { ReconciliationReview } from './reconciliation-review/ReconciliationReview';
 import styles from './PortfolioKpiGrid.module.css';
 
 const secondary: KpiCode[] = ['CASH', 'NET_DEPOSITS', 'COSTS', 'RECONCILIATION'];
 
 /**
  * The portfolio summary read in one place: the total value leads, the unrealized gain sits
- * beside it, the other indicators follow on one strip. The Au date is the page's own control,
- * so a note only appears when an indicator is dated otherwise (valuation day, year to date).
+ * beside it, the other indicators follow on one strip; the Rapprochement pill opens the points to
+ * review.
+ * The Au date is the page's own control, so a note only appears when an indicator is dated
+ * otherwise (valuation day, year to date).
  */
 export function PortfolioKpiGrid({
   summary,
   asOf,
   onExplain,
   qualifiers,
-  footer,
+  children,
 }: {
   summary: PortfolioOverviewSummary | null;
   asOf: string;
   onExplain: (code: KpiCode) => void;
   /** Valuation notices shown under the total value they qualify. */
   qualifiers?: ReactNode;
-  /** A section closing the panel, such as the since-opening performance. */
-  footer?: ReactNode;
+  /** More figures continuing the strip: the since-opening returns. */
+  children?: ReactNode;
 }) {
-  const money = (value: string | null) =>
-    value === null ? 'Non calculable' : formatAmount(value, summary!.account.assetCode, 'fr');
+  const [reviewing, setReviewing] = useState(false);
   const year = asOf.slice(0, 4);
   const yearToDate = `Du ${formatCalendarNumericDay(`${year}-01-01`)} au ${formatCalendarNumericDay(asOf)}`;
   const valuedOn = summary?.valuation ? formatCalendarNumericDay(summary.valuation.valuedOn) : null;
@@ -45,27 +47,30 @@ export function PortfolioKpiGrid({
   };
   const values: Record<KpiCode, ReactNode> | null = summary
     ? {
-        TOTAL_VALUE: summary.totalValue === null ? 'Non valorisé' : money(summary.totalValue),
-        UNREALIZED_GAIN:
-          gain == null
-            ? 'Non calculable'
-            : `${gain.startsWith('-') ? 'Perte −' : 'Gain +'}${money(gain.replace(/^-/, ''))}`,
-        CASH: money(summary.cash),
-        NET_DEPOSITS: money(summary.netDeposits.value),
-        COSTS: money(summary.costs.total),
-        RECONCILIATION: (
-          <StatusBadge
-            tone={summary.reconciliation.status === 'RECONCILED' ? 'positive' : 'warning'}
-          >
-            {summary.reconciliation.status === 'RECONCILED'
-              ? 'Rapproché'
-              : `À vérifier (${summary.reconciliation.warnings.length})`}
-          </StatusBadge>
-        ),
+        TOTAL_VALUE: kpiValueText(summary, 'TOTAL_VALUE'),
+        UNREALIZED_GAIN: kpiValueText(summary, 'UNREALIZED_GAIN'),
+        CASH: kpiValueText(summary, 'CASH'),
+        NET_DEPOSITS: kpiValueText(summary, 'NET_DEPOSITS'),
+        COSTS: kpiValueText(summary, 'COSTS'),
+        RECONCILIATION:
+          summary.reconciliation.status === 'RECONCILED' ? (
+            <StatusBadge tone="positive">{kpiValueText(summary, 'RECONCILIATION')}</StatusBadge>
+          ) : (
+            <button className={styles.pill} onClick={() => setReviewing(true)} type="button">
+              <StatusBadge tone="warning">{kpiValueText(summary, 'RECONCILIATION')}</StatusBadge>
+            </button>
+          ),
       }
     : null;
+  const cash = summary?.explanations.CASH;
+  const cashOn = cash && valuedOn ? formatCalendarNumericDay(cash.period.to) : null;
   const notes: Partial<Record<KpiCode, string>> = {
     TOTAL_VALUE: valuedOn ? `Valorisation du ${valuedOn}` : undefined,
+    CASH: cashOn
+      ? cash?.quality === 'OBSERVED'
+        ? `Relevé du ${cashOn}`
+        : `Calculées au ${cashOn}`
+      : undefined,
     UNREALIZED_GAIN: valuedOn
       ? `au ${valuedOn}, au prix de revient moyen`
       : 'au prix de revient moyen',
@@ -90,8 +95,6 @@ export function PortfolioKpiGrid({
       />
     );
   };
-  const warnings = summary?.reconciliation.warnings ?? [];
-
   return (
     <section
       aria-label="Indicateurs du portefeuille"
@@ -107,20 +110,15 @@ export function PortfolioKpiGrid({
         {figure('UNREALIZED_GAIN', 'lead')}
       </div>
       <div className={styles.strip}>{secondary.map((code) => figure(code, 'compact'))}</div>
-      {warnings.length ? (
-        <div className={styles.review}>
-          <p>Points à vérifier</p>
-          <ul>
-            {warnings.map((warning) => (
-              <li key={warning.code}>
-                {(warningLabels[warning.code] ?? warning.code).replace(/\.$/, '')}. Signalements :{' '}
-                {warning.count}.
-              </li>
-            ))}
-          </ul>
-        </div>
+      {children}
+      {reviewing && summary ? (
+        <ReconciliationReview
+          accountId={summary.account.id}
+          asOf={asOf}
+          onClose={() => setReviewing(false)}
+          warnings={summary.reconciliation.warnings}
+        />
       ) : null}
-      {footer}
     </section>
   );
 }

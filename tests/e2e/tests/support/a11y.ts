@@ -72,9 +72,11 @@ export const routeCases = [
   '/settings/metric-policy',
   '/catalog',
   '/product-models',
-  ...['performance', 'cash', 'positions', 'operations', 'valuations', 'allocation'].flatMap(
-    (tab) => [`portfolio:${tab}`, `insurance:${tab}`],
-  ),
+  ...['positions', 'operations', 'valuations', 'cash', 'performance'].flatMap((tab) => [
+    `portfolio:${tab}`,
+    `insurance:${tab}`,
+  ]),
+  'portfolio:account',
   'insurance:contract',
 ];
 

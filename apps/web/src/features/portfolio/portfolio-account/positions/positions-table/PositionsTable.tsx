@@ -58,7 +58,7 @@ export function PositionsTable({ items, onLots, onReorder }: Props) {
                   </td>
                   <td className={styles.number}>{item.openLotCount}</td>
                   <td>
-                    <button className="secondary-action" onClick={() => onLots(item)} type="button">
+                    <button className="text-action" onClick={() => onLots(item)} type="button">
                       Voir les lots
                     </button>
                   </td>

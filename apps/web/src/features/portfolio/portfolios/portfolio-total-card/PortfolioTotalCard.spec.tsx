@@ -73,14 +73,14 @@ describe('PortfolioTotalCard', () => {
     expect(screen.getByText('1 compte non valorisé')).toBeTruthy();
   });
 
-  it('shows the oldest valuation date and the newer partial accounts', () => {
+  it('shows the oldest valuation date and leaves newer partial accounts to their page', () => {
     render(
       <PortfolioTotalCard
         total={totalFixture({ oldestValuedOn: '2026-08-31', partialNewerAccounts: 2 })}
       />,
     );
     expect(screen.getByText('Valorisations au 31 août 2026')).toBeTruthy();
-    expect(screen.getByText('2 comptes avec une valorisation partielle plus récente')).toBeTruthy();
+    expect(screen.queryByText(/partielle/)).toBeNull();
   });
 
   it('hides the quality line without valuation date', () => {

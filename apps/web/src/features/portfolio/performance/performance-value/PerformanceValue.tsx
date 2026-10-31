@@ -24,6 +24,7 @@ export type PerformanceFigure =
 
 /** Server text with an explicit sign; the sign is never left to the colour alone. */
 export function signed(text: string): { text: string; tone: string } {
+  if (text === '-') return { text, tone: '' };
   if (text.startsWith('-')) return { text, tone: styles.negative };
   if (/^0(?:[,.]0+)?(?![\d,.])/.test(text)) return { text, tone: '' };
   return { text: `+${text}`, tone: styles.positive };
@@ -57,7 +58,13 @@ function MoneyWeighted({ figure }: { figure: PortfolioMoneyWeightedFigure }) {
   );
 }
 
-function Figure({ figure, assetCode }: { figure: PerformanceFigure; assetCode: string }) {
+export function FigureValue({
+  figure,
+  assetCode,
+}: {
+  figure: PerformanceFigure;
+  assetCode: string;
+}) {
   if ('annualizedRate' in figure) return <MoneyWeighted figure={figure} />;
   if (figure.value === null) return null;
   if ('decomposition' in figure) {
@@ -105,7 +112,7 @@ export function PerformanceValue({
             reason={reason ? describeReason(reason, context).sentence : null}
           />
         ) : (
-          <Figure assetCode={context.assetCode} figure={figure} />
+          <FigureValue assetCode={context.assetCode} figure={figure} />
         )}
       </div>
       {figure ? <QualityBadge quality={figure.quality} /> : null}

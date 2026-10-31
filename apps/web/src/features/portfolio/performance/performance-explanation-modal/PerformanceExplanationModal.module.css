@@ -73,3 +73,10 @@
 .fact {
   display: contents;
 }
+
+.entries {
+  display: grid;
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-3);
+}

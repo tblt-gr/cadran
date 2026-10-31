@@ -8,10 +8,14 @@ import { OperationsState } from '@/features/portfolio/portfolio-account/operatio
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { SinceOpeningFigures } from '@/features/portfolio/performance/since-opening-figures/SinceOpeningFigures';
 import { PortfolioKpiGrid } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/PortfolioKpiGrid';
+import { kpiValueText } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/kpiValueText';
 import { PortfolioKpiExplanationModal } from '@/features/portfolio/portfolio-account/kpi-explanation-modal/PortfolioKpiExplanationModal';
 import type { KpiCode } from '@/features/portfolio/portfolio-account/overviewLabels';
 
-/** Summary first, then the value history. The allocation lives in its own tab. */
+/**
+ * Summary first, with the since-opening returns the reader chose, then the value history. The
+ * allocation lives with the positions and the year by year returns with the performance.
+ */
 function SecuritiesOverview({
   accountId,
   asOf,
@@ -77,7 +81,6 @@ function SecuritiesOverview({
       ) : (
         <PortfolioKpiGrid
           asOf={asOf}
-          footer={<SinceOpeningFigures accountId={accountId} asOf={asOf} frozen={frozen} />}
           qualifiers={qualifiers}
           summary={summary.data ?? null}
           onExplain={(code) => {
@@ -86,12 +89,15 @@ function SecuritiesOverview({
                 document.activeElement instanceof HTMLElement ? document.activeElement : null;
             setExplaining(code);
           }}
-        />
+        >
+          <SinceOpeningFigures accountId={accountId} asOf={asOf} frozen={frozen} />
+        </PortfolioKpiGrid>
       )}
       {history}
       {explaining && summary.data ? (
         <PortfolioKpiExplanationModal
           code={explaining}
+          value={kpiValueText(summary.data, explaining)}
           explanation={summary.data.explanations[explaining]}
           onClose={() => setExplaining(null)}
           onSource={(source) => {
@@ -116,14 +122,14 @@ export function PortfolioOverview(
           frozen={props.frozen}
           sourceReturnFocus={props.sourceReturnFocus}
         />
+        <SinceOpeningFigures
+          accountId={props.accountId}
+          asOf={props.asOf}
+          frozen={props.frozen}
+          omit={['gain']}
+          standalone
+        />
         {props.history}
-        <section className="card">
-          <SinceOpeningFigures
-            accountId={props.accountId}
-            asOf={props.asOf}
-            frozen={props.frozen}
-          />
-        </section>
       </>
     );
   return <SecuritiesOverview {...props} />;

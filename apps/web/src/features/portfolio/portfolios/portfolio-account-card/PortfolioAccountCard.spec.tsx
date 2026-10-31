@@ -87,10 +87,10 @@ describe('PortfolioAccountCard', () => {
     expect(screen.getAllByText('Coût d’acquisition inconnu').length).toBeGreaterThan(0);
   });
 
-  it('shows the valuation date and a complete quality badge', () => {
+  it('shows only the valuation date when nothing needs attention', () => {
     renderCard(accountCardFixture());
     expect(screen.getByText('au 30/09/2026')).toBeTruthy();
-    expect(screen.getByText('Valorisation complète')).toBeTruthy();
+    expect(screen.queryByText('Valorisation complète')).toBeNull();
     expect(screen.queryByText('Fin de mois à saisir')).toBeNull();
   });
 
@@ -114,7 +114,7 @@ describe('PortfolioAccountCard', () => {
     expect(screen.getByText('Valorisation ancienne (45 jours)')).toBeTruthy();
   });
 
-  it('shows the fallback notice when a newer partial valuation exists', () => {
+  it('leaves a newer partial valuation to the account page', () => {
     const base = accountCardFixture();
     renderCard(
       accountCardFixture({
@@ -126,7 +126,19 @@ describe('PortfolioAccountCard', () => {
         },
       }),
     );
-    expect(screen.getByText('Valorisation partielle plus récente')).toBeTruthy();
+    expect(screen.queryByText(/partielle/)).toBeNull();
+  });
+
+  it('shows a single reminder, the partial valuation before a due month end', () => {
+    const base = accountCardFixture();
+    renderCard(
+      accountCardFixture({
+        dueMonths: ['2026-09'],
+        latestValuation: { ...base.latestValuation!, completeness: 'PARTIAL' },
+      }),
+    );
+    expect(screen.getByText('Valorisation partielle')).toBeTruthy();
+    expect(screen.queryByText('Fin de mois à saisir')).toBeNull();
   });
 
   it('shows the month-end badge when months are due', () => {

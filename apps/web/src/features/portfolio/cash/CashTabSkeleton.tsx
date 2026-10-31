@@ -20,10 +20,6 @@ export function CashTabSkeleton({ asOf }: { asOf?: string }) {
         today={today}
         onChange={() => undefined}
       />
-      <p className={styles.note}>
-        Les montants sont saisis dans la devise du compte ; le multi-devises n’est pas pris en
-        charge.
-      </p>
       <div aria-busy="true" className={styles.tab} data-testid="cash-skeleton">
         <CashSummary cash={null} />
         <CashMovementsTable cash={null} />

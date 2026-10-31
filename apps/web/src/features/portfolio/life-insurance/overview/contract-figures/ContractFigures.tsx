@@ -100,6 +100,11 @@ export function ContractFigures({
         ) : (
           <ContractFigureExplanation
             figure={explaining}
+            value={
+              explaining === 'value' && !summary.valuation
+                ? '-'
+                : money(values![explaining], summary.assetCode)
+            }
             summary={summary}
             accountId={accountId}
             onClose={() => setExplaining(null)}

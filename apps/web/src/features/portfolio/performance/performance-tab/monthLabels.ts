@@ -13,11 +13,6 @@ export function monthName(month: string): string {
   );
 }
 
-/** `2026-03` as `mars 2026`. */
-export function monthAndYear(month: string): string {
-  return `${monthName(month)} ${month.slice(0, 4)}`;
-}
-
 /** The exact anchors of a month, for instance `Du 28/02 au 31/03`. */
 export function anchorsTitle(from: string | null, to: string | null): string | undefined {
   return from && to ? `Du ${dayAndMonth(from)} au ${dayAndMonth(to)}` : undefined;

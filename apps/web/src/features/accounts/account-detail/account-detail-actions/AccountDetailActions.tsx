@@ -1,18 +1,13 @@
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
-import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import styles from './AccountDetailActions.module.css';
 
-function navigateTo(href: string) {
-  window.history.pushState({}, '', href);
-  window.dispatchEvent(new PopStateEvent('popstate'));
-}
-
 /**
- * Account-level actions, rendered in the shell header: one primary action,
- * frequent actions as icon buttons and portfolio shortcuts in an overflow menu.
+ * Account-level actions, rendered in the shell header: one primary action and
+ * frequent actions as icon buttons. A portfolio account never shows them: its
+ * page is the portfolio page.
  */
 export function AccountDetailActions({
   account,
@@ -30,9 +25,6 @@ export function AccountDetailActions({
   onReconcile: () => void;
 }) {
   const { t } = useTranslation();
-  const valuedByPortfolio =
-    (account.kind === 'PORTFOLIO' || account.kind === 'INSURANCE_CONTRACT') &&
-    account.valuationMode === 'PORTFOLIO';
 
   return (
     <HeaderActions>
@@ -56,56 +48,25 @@ export function AccountDetailActions({
       >
         <Icon name="transfer" />
       </button>
-      {valuedByPortfolio ? (
-        <ActionMenu
-          items={[
-            {
-              icon: 'investments',
-              id: 'open-portfolio',
-              label: t('accounts.detail.actions.openPortfolio'),
-              onSelect: () => navigateTo(`/portfolios/${account.id}`),
-              text: t('accounts.detail.actions.openPortfolio'),
-            },
-            {
-              icon: 'chart-line',
-              id: 'value-portfolio',
-              label: t('accounts.detail.actions.valuePortfolio'),
-              onSelect: () => navigateTo(`/portfolios/${account.id}?tab=valuations`),
-              text: t('accounts.detail.actions.valuePortfolio'),
-            },
-            {
-              icon: 'sliders',
-              id: 'rules',
-              label: t('accounts.detail.actions.rules'),
-              onSelect: onOpenRules,
-              text: t('accounts.detail.actions.rules'),
-            },
-          ]}
-          label={t('accounts.detail.actions.more')}
-        />
-      ) : (
-        <>
-          <button
-            aria-label={t('accounts.detail.actions.rules')}
-            className="icon-button"
-            onClick={onOpenRules}
-            title={t('accounts.detail.actions.rules')}
-            type="button"
-          >
-            <Icon name="sliders" />
-          </button>
-          <button
-            aria-label={t('accounts.detail.actions.reconcile')}
-            className="icon-button"
-            disabled={account.valuation.snapshotId === null}
-            onClick={onReconcile}
-            title={t('accounts.detail.actions.reconcile')}
-            type="button"
-          >
-            <Icon name="check-circle" />
-          </button>
-        </>
-      )}
+      <button
+        aria-label={t('accounts.detail.actions.rules')}
+        className="icon-button"
+        onClick={onOpenRules}
+        title={t('accounts.detail.actions.rules')}
+        type="button"
+      >
+        <Icon name="sliders" />
+      </button>
+      <button
+        aria-label={t('accounts.detail.actions.reconcile')}
+        className="icon-button"
+        disabled={account.valuation.snapshotId === null}
+        onClick={onReconcile}
+        title={t('accounts.detail.actions.reconcile')}
+        type="button"
+      >
+        <Icon name="check-circle" />
+      </button>
     </HeaderActions>
   );
 }

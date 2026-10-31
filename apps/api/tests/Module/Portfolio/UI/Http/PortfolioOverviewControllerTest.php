@@ -117,9 +117,27 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         $sum = \App\Module\Foundation\Domain\ExactDecimal::addForResponse(self::string(self::map($items[0])['share']), self::string(self::map($items[1])['share']));
         self::assertSame(0, \App\Module\Foundation\Domain\ExactDecimal::compareForResponse($sum, '1'));
         self::assertCount(3, self::items($this->overview('allocation', '2026-03-31')));
+        self::assertSame('MARKET', $allocation['basis']);
         $this->recordTotal('2026-04-30', '4000.00');
-        $total = $this->overview('allocation', '2026-04-30');
+        $total = $this->overview('allocation', '2026-04-30', '&by=ASSET_CLASS');
         self::assertSame('NOT_DETAILED', $total['reason']);
+        self::assertSame('COST', $total['basis'], 'a total-only statement is split at the exact cost of its lines');
+        self::assertSame('3662.18', $total['total'], 'costs 2312.00 + 156.90 plus cash 1193.28');
+        $items = self::items($total);
+        self::assertSame(['UNSPECIFIED', 'CASH'], array_map(static fn ($item): mixed => self::map($item)['key'], $items));
+        self::assertSame('2468.90', self::map($items[0])['value']);
+        self::assertSame('1193.28', self::map($items[1])['value']);
+        self::assertIsList($total['slices']);
+        self::assertCount(2, $total['slices']);
+    }
+
+    public function testATotalValuationWithAnUnknownCostHasNoSplit(): void
+    {
+        $this->record(['type' => 'SECURITY_TRANSFER_IN', 'tradeDate' => '2026-03-01', 'instrumentId' => self::ETF, 'quantity' => '1']);
+        $this->recordTotal('2026-03-31', '250.00');
+        $total = $this->overview('allocation', '2026-03-31');
+        self::assertSame('NOT_DETAILED', $total['reason']);
+        self::assertNull($total['basis']);
         self::assertSame([], $total['slices']);
         self::assertNull(self::map(self::items($total)[0])['share']);
     }
@@ -265,6 +283,25 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         }
     }
 
+    public function testSummaryCashIsTheStatementCashOfTheRetainedValuation(): void
+    {
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-03-01', 'grossAmount' => $this->eur('3000.00')]);
+        $this->recordTotal('2026-03-31', '3150.00', ['observedCash' => $this->eur('120.50')]);
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-04-10', 'grossAmount' => $this->eur('200.00')]);
+
+        $summary = $this->overview('summary', '2026-04-15');
+        self::assertSame('3150.00', $summary['totalValue']);
+        self::assertSame('120.50', $summary['cash'], 'the statement cash, not the ledger at asOf');
+        $explanation = self::map(self::map($summary['explanations'])['CASH']);
+        self::assertSame('OBSERVED', $explanation['quality']);
+        self::assertSame('2026-03-31', self::map($explanation['period'])['to']);
+
+        $this->recordTotal('2026-04-30', '3400.00');
+        $derived = $this->overview('summary', '2026-04-30');
+        self::assertSame('3200.00', $derived['cash'], 'without statement cash, the ledger on the valuation date');
+        self::assertSame('DERIVED', self::map(self::map($derived['explanations'])['CASH'])['quality']);
+    }
+
     public function testLargeSignedAllocationIsAnExactSuccessfulRead(): void
     {
         $this->record(['type' => 'SECURITY_TRANSFER_IN', 'tradeDate' => '2026-03-01', 'instrumentId' => self::ETF, 'quantity' => '1', 'costBasis' => $this->eur('0')]);
@@ -291,7 +328,7 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         $summary = $this->overview('summary', '2026-10-03');
         self::assertSame('3121.421', $summary['totalValue']);
         self::assertSame('121.421', self::map($summary['unrealizedGain'])['value']);
-        self::assertSame('435.00', $summary['cash'], 'cash stays current while valuation figures stay frozen');
+        self::assertSame('650.00', $summary['cash'], 'cash shares the date of the retained complete valuation');
         self::assertSame($complete['id'], self::map($summary['valuation'])['id']);
         self::assertSame(3, self::map($summary['valuation'])['ageDays']);
         self::assertSame($partial['id'], self::map($summary['newerPartialValuation'])['id']);

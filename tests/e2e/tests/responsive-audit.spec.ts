@@ -50,6 +50,7 @@ function routes(): string[] {
     '/portfolios/instruments',
     `/portfolios/${ids.portfolioId}`,
     `/portfolios/${ids.portfolioId}?tab=valuations`,
+    `/portfolios/${ids.portfolioId}?tab=account`,
     '/parameters/profile',
     '/parameters/metric-policy',
   ];
@@ -111,6 +112,7 @@ const PATTERNS = [
   '/portfolios/instruments',
   '/portfolios/:portfolio',
   '/portfolios/:portfolio?tab=valuations',
+  '/portfolios/:portfolio?tab=account',
   '/parameters/profile',
   '/parameters/metric-policy',
 ];
@@ -243,9 +245,7 @@ const MODALS: ModalCase[] = [
     open: async (page, ids) => {
       await page.goto(`/portfolios/${ids.portfolioId}`);
       await settled(page);
-      await page.getByRole('link', { name: 'Valorisations' }).click();
-      await settled(page);
-      await page.getByRole('button', { name: 'Enregistrer une valorisation' }).click();
+      await page.getByRole('button', { name: 'Nouvelle valorisation' }).click();
       return 'Continuer';
     },
   },

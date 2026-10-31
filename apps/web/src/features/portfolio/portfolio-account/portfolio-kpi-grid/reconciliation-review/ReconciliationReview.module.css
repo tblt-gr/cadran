@@ -1,0 +1,26 @@
+.review {
+  display: grid;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+  gap: var(--spacing-4);
+}
+.review li {
+  display: grid;
+  padding-left: var(--spacing-3);
+  border-left: var(--border-width-focus) solid var(--warning);
+  gap: var(--spacing-1);
+}
+.review strong {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+.review p {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-body);
+}
+.review a {
+  font-size: var(--font-size-label);
+}

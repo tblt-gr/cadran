@@ -8,8 +8,6 @@ import { OperationsState } from '@/features/portfolio/portfolio-account/operatio
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import type { ExplainTarget } from './explainTarget';
 import { MonthExplanation } from './MonthExplanation';
-import { PerformanceIndexChart } from './performance-index-chart/PerformanceIndexChart';
-import { PerformanceValueChart } from './performance-value-chart/PerformanceValueChart';
 import { PerformanceMonthCards } from './performance-month-cards/PerformanceMonthCards';
 import { PerformanceMonthTable } from './performance-month-table/PerformanceMonthTable';
 import { PerformanceSummary } from './performance-summary/PerformanceSummary';
@@ -19,7 +17,10 @@ import { useAnnualPerformance } from './useAnnualPerformance';
 import { YearNavigator } from './year-navigator/YearNavigator';
 import styles from './PerformanceTab.module.css';
 
-/** The Performance tab: year navigator, year and since-opening figures, chained curve and month table. */
+/**
+ * The Performance tab, one year at a time: the year's figures, then each month. The since-opening
+ * returns sit in the page summary and the value curve in the page's value history.
+ */
 export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: string }) {
   const [year, setYear] = useState(() => performanceYear(asOf));
   const [explaining, setExplaining] = useState<ExplainTarget | null>(null);
@@ -94,7 +95,6 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
         year={year}
         yearPerformance={yearPerformance.data ?? null}
       />
-      <PerformanceValueChart annual={data} year={year} />
       {withoutValuation ? (
         <p className={`card ${styles.notice}`}>Aucune valorisation pour cette année</p>
       ) : null}
@@ -105,7 +105,6 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
           <PerformanceMonthTable annual={data} onExplain={setExplaining} />
         </section>
       )}
-      <PerformanceIndexChart annual={data} />
       {explaining?.kind === 'month' ? (
         <MonthExplanation
           accountId={accountId}

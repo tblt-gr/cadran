@@ -1,67 +1,60 @@
 import type { PortfolioKpiExplanation, PortfolioOverviewSource } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { ExplanationFigure } from '@/features/portfolio/explanation/ExplanationFigure';
+import { ExplanationSources } from '@/features/portfolio/explanation/ExplanationSources';
+import explanation from '@/features/portfolio/explanation/Explanation.module.css';
 import {
   kpiLabels,
   reasonLabels,
   type KpiCode,
 } from '@/features/portfolio/portfolio-account/overviewLabels';
-import styles from './PortfolioKpiExplanationModal.module.css';
+import { formatCalendarNumericDay } from '@/lib/decimal';
+
+/** One summary indicator: its value first, how it is computed, what weakens it, then its sources. */
 export function PortfolioKpiExplanationModal({
   code,
-  explanation,
+  value,
+  explanation: data,
   onClose,
   onSource,
 }: {
   code: KpiCode;
+  /** The value as the summary shows it. */
+  value: string;
   explanation: PortfolioKpiExplanation;
   onClose: () => void;
   onSource: (source: PortfolioOverviewSource) => void;
 }) {
   const { t } = useTranslation();
+  const day = formatCalendarNumericDay;
   return (
-    <Modal close={onClose} title={`Expliquer : ${kpiLabels[code]}`}>
-      <div className={styles.content}>
-        <section>
-          <h3>Formule</h3>
+    <Modal close={onClose} title={kpiLabels[code]}>
+      <div className={explanation.content}>
+        <ExplanationFigure
+          meta={
+            <>
+              <span>{`Du ${day(data.period.from)} au ${day(data.period.to)}`}</span>
+              <span aria-hidden="true">·</span>
+              <span>{reasonLabels[data.quality] ?? data.quality}</span>
+            </>
+          }
+          value={value}
+        />
+        <section className={explanation.block}>
+          <h3>Calcul</h3>
           <p>{t(`portfolio.kpi.${code}.formula`)}</p>
         </section>
-        <section>
-          <h3>Période</h3>
-          <p>
-            Du {explanation.period.from} au {explanation.period.to}
-          </p>
-        </section>
-        <section>
-          <h3>Qualité</h3>
-          <p>{reasonLabels[explanation.quality] ?? explanation.quality}</p>
-          {explanation.reason ? (
-            <p>{reasonLabels[explanation.reason] ?? explanation.reason}</p>
-          ) : null}
-        </section>
-        <section>
-          <h3>Sources</h3>
-          {explanation.sources.length ? (
-            <ul>
-              {explanation.sources.map((source) => (
-                <li key={`${source.kind}-${source.id}`}>
-                  <button
-                    className="secondary-action"
-                    type="button"
-                    onClick={() => onSource(source)}
-                  >
-                    {source.kind === 'OPERATION' ? 'Opération' : 'Valorisation'} du {source.date}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Aucune source à cette date.</p>
-          )}
-          {explanation.truncatedSourceCount > 0 ? (
-            <p>et {explanation.truncatedSourceCount} autres</p>
-          ) : null}
-        </section>
+        {data.reason ? (
+          <ul className={explanation.warnings}>
+            <li>{reasonLabels[data.reason] ?? data.reason}</li>
+          </ul>
+        ) : null}
+        <ExplanationSources
+          more={data.truncatedSourceCount}
+          onSource={onSource}
+          sources={data.sources}
+        />
       </div>
     </Modal>
   );
