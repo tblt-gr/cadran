@@ -52,16 +52,13 @@ export function TransactionDayRow({ accounts, selection, transaction }: Transact
       <div className={styles.primary}>
         <TransactionInspectButton transaction={transaction} />
         {transaction?.transferId != null ? (
-          <>
-            <small>
-              {t(
-                transaction.nature === 'FEE'
-                  ? 'transactions.list.transferFeeMarker'
-                  : 'transactions.list.transferMarker',
-              )}
-            </small>
-            <small>{t('transactions.list.transferLocked')}</small>
-          </>
+          <small>
+            {t(
+              transaction.nature === 'FEE'
+                ? 'transactions.list.transferFeeMarker'
+                : 'transactions.list.transferMarker',
+            )}
+          </small>
         ) : null}
         {transaction ? <RefundBadge transaction={transaction} /> : null}
       </div>
@@ -69,9 +66,16 @@ export function TransactionDayRow({ accounts, selection, transaction }: Transact
         {transaction ? <TransactionAmount amount={transaction.amount} /> : <SkeletonBlock />}
       </span>
       <div className={styles.meta}>
-        <span className={styles.category}>
-          {transaction ? <TransactionCategories splits={transaction.splits} /> : <SkeletonBlock />}
-        </span>
+        {/* A transfer is neutral: its category cell exists only when one was set. */}
+        {transaction?.transferId != null && transaction.splits.length === 0 ? null : (
+          <span className={styles.category}>
+            {transaction ? (
+              <TransactionCategories splits={transaction.splits} />
+            ) : (
+              <SkeletonBlock />
+            )}
+          </span>
+        )}
         {accounts ? (
           <span className={styles.account}>
             {transaction ? (

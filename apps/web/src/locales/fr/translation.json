@@ -2164,7 +2164,6 @@
       "moreSplits_other": "+ {{count}} autres catégories",
       "transferMarker": "Virement",
       "transferFeeMarker": "Frais de virement",
-      "transferLocked": "Utilisez le virement pour modifier ou annuler ce mouvement.",
       "refundOf": "Remboursement de « {{label}} »",
       "refundedAmount": "Remboursé : {{amount}}"
     },
