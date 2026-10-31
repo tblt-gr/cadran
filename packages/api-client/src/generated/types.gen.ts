@@ -248,6 +248,10 @@ export type PortfolioGainDecomposition = {
      */
     capitalizedCosts: string | null;
     residual: PortfolioPerformanceAmount;
+    /**
+     * Every fee paid in the period, purchase fees included (which `fees` leaves out because they are capitalized), negative like `fees`. Informative, never added to the components.
+     */
+    feesPaid: PortfolioPerformanceAmount;
 };
 
 /**
@@ -506,6 +510,10 @@ export type PortfolioAnnualPeriodLine = {
     unrealizedChange: PortfolioPerformanceAmount;
     income: PortfolioPerformanceAmount;
     fees: PortfolioPerformanceAmount;
+    /**
+     * Every fee paid in the period, purchases included; `fees` leaves out the ones capitalized into a purchase.
+     */
+    feesPaid: PortfolioPerformanceAmount;
     taxes: PortfolioPerformanceAmount;
     gainQuality: PortfolioAnnualQuality;
     gainReasons: Array<PortfolioPerformanceReason>;

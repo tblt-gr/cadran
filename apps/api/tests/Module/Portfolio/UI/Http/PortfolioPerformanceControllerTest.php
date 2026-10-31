@@ -199,7 +199,7 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         self::assertSame(['10000.00', '11050.00', '800.00'], [$gain['startValue'], $gain['endValue'], $gain['netFlows']]);
         $decomposition = self::map($gain['decomposition']);
         self::assertSame(
-            ['COMPLETE', null, '70.00', '167.00', '30.00', '-8.00', '-9.00', '0.00', '2.00', '0.00'],
+            ['COMPLETE', null, '70.00', '167.00', '30.00', '-8.00', '-9.00', '0.00', '2.00', '0.00', '-10.00'],
             array_values($decomposition),
         );
         $sources = self::items2($gain['sources']);

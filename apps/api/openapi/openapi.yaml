@@ -9144,6 +9144,7 @@ components:
         - corporateActionCash
         - capitalizedCosts
         - residual
+        - feesPaid
       properties:
         status:
           type: string
@@ -9173,6 +9174,9 @@ components:
             - 'null'
           pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
         residual:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        feesPaid:
+          description: Every fee paid in the period, purchase fees included (which `fees` leaves out because they are capitalized), negative like `fees`. Informative, never added to the components.
           $ref: '#/components/schemas/PortfolioPerformanceAmount'
     PortfolioAnchorFreshness:
       type: object
@@ -9895,6 +9899,7 @@ components:
         - unrealizedChange
         - income
         - fees
+        - feesPaid
         - taxes
         - gainQuality
         - gainReasons
@@ -9931,6 +9936,9 @@ components:
         income:
           $ref: '#/components/schemas/PortfolioPerformanceAmount'
         fees:
+          $ref: '#/components/schemas/PortfolioPerformanceAmount'
+        feesPaid:
+          description: Every fee paid in the period, purchases included; `fees` leaves out the ones capitalized into a purchase.
           $ref: '#/components/schemas/PortfolioPerformanceAmount'
         taxes:
           $ref: '#/components/schemas/PortfolioPerformanceAmount'

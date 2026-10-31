@@ -113,7 +113,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
         self::assertSame(['BEFORE_OPENING', 'CALCULATED', 'CALCULATED', 'CALCULATED', 'FUTURE'], [$months[0]['status'], $months[1]['status'], $months[2]['status'], $months[3]['status'], $months[4]['status']]);
         $calculated = array_slice($months, 1, 3);
         self::assertSame(['10798.00', '200.00'], [$year['deposits'], $year['withdrawals']]);
-        foreach (['gain', 'deposits', 'withdrawals', 'netFlows', 'realized', 'unrealizedChange', 'income', 'fees', 'taxes'] as $component) {
+        foreach (['gain', 'deposits', 'withdrawals', 'netFlows', 'realized', 'unrealizedChange', 'income', 'fees', 'feesPaid', 'taxes'] as $component) {
             self::assertNotNull($year[$component], $component);
             self::assertSame($year[$component], $this->sum(array_map(static fn (array $month): string => self::text($month[$component]), $calculated)), 'sum of '.$component);
         }
@@ -290,7 +290,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
             'startValue' => $gain['startValue'], 'endValue' => $gain['endValue'], 'netFlows' => $gain['netFlows'],
             'gain' => $gain['value'],
             'realized' => $decomposition['realized'], 'unrealizedChange' => $decomposition['unrealizedChange'],
-            'income' => $decomposition['income'], 'fees' => $decomposition['fees'], 'taxes' => $decomposition['taxes'],
+            'income' => $decomposition['income'], 'fees' => $decomposition['fees'], 'feesPaid' => $decomposition['feesPaid'], 'taxes' => $decomposition['taxes'],
             'gainQuality' => $gain['quality'], 'gainReasons' => $gain['reasons'],
             'modifiedDietz' => $this->rate(self::map($single['modifiedDietz'])),
             'timeWeighted' => $this->rate(self::map($single['timeWeighted'])),

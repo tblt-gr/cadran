@@ -18,6 +18,8 @@ final readonly class GainDecomposition
         public ?string $corporateActionCash = null,
         public ?string $capitalizedCosts = null,
         public ?string $residual = null,
+        /** Every fee paid in the period, purchases included, negative like `fees`; informative, never added to the components. */
+        public ?string $feesPaid = null,
     ) {
     }
 

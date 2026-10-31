@@ -12,6 +12,7 @@ describe('PortfolioKpiGrid', () => {
       value: null,
       securitiesValue: null,
       costBasis: null,
+      performance: null,
       reason: 'UNKNOWN_LOT_COST',
     };
     summary.explanations.UNREALIZED_GAIN.reason = 'UNKNOWN_LOT_COST';
@@ -21,8 +22,9 @@ describe('PortfolioKpiGrid', () => {
     expect(screen.getByText('Non valorisé')).toBeTruthy();
     expect(screen.getAllByText('Prix de revient inconnu').length).toBeGreaterThan(0);
     summary.unrealizedGain.value = '-12.345';
+    summary.unrealizedGain.performance = '-0.0525';
     view.rerender(<PortfolioKpiGrid summary={summary} asOf="2026-03-10" onExplain={vi.fn()} />);
-    expect(screen.getByText(/Perte −12,35/)).toBeTruthy();
+    expect(screen.getByText(/Perte −12,35.*\(−5,25 %\)/)).toBeTruthy();
   });
 
   it('keeps known labels and disabled explanation controls while loading', () => {
@@ -35,7 +37,7 @@ describe('PortfolioKpiGrid', () => {
   it('renders exact server totals and exposes explanation and uncertainty', () => {
     const explain = vi.fn();
     render(<PortfolioKpiGrid summary={summaryFixture()} asOf="2026-03-10" onExplain={explain} />);
-    expect(screen.getByText(/Gain/)).toBeTruthy();
+    expect(screen.getByText(/Gain \+121,42.*\(\+5,17 %\)/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Valeur totale' }));
     expect(explain).toHaveBeenCalledWith('TOTAL_VALUE');
   });
@@ -43,8 +45,7 @@ describe('PortfolioKpiGrid', () => {
     render(<PortfolioKpiGrid summary={summaryFixture()} asOf="2026-03-10" onExplain={vi.fn()} />);
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
     expect(headings[0]).toBe('Valeur totale');
-    expect(headings).toContain('Versements nets 2026');
-    expect(headings).toContain('Frais et taxes 2026');
+    expect(headings).toEqual(['Valeur totale', 'Plus-value latente', 'Espèces']);
     expect(screen.queryByText(/Du /)).toBeNull();
     expect(screen.queryByText(/Valorisation du/)).toBeNull();
     expect(screen.queryByText(/Calculées au/)).toBeNull();

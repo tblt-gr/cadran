@@ -11,7 +11,7 @@ import { kpiValueText } from './kpiValueText';
 import { ReconciliationReview } from './reconciliation-review/ReconciliationReview';
 import styles from './PortfolioKpiGrid.module.css';
 
-const secondary: KpiCode[] = ['CASH', 'NET_DEPOSITS', 'COSTS'];
+const secondary: KpiCode[] = ['CASH'];
 
 /**
  * The portfolio summary read in one place: the total value leads, the unrealized gain sits
@@ -24,7 +24,6 @@ export function PortfolioKpiGrid({
   asOf,
   onExplain,
   qualifiers,
-  children,
 }: {
   summary: PortfolioOverviewSummary | null;
   embedded?: boolean;
@@ -32,8 +31,6 @@ export function PortfolioKpiGrid({
   onExplain: (code: KpiCode) => void;
   /** Valuation notices shown under the total value they qualify. */
   qualifiers?: ReactNode;
-  /** More figures continuing the strip: the since-opening returns. */
-  children?: ReactNode;
 }) {
   const [reviewing, setReviewing] = useState(false);
   const needsReview = summary?.reconciliation.status === 'NEEDS_REVIEW';
@@ -92,7 +89,6 @@ export function PortfolioKpiGrid({
           ) : null}
         </div>
       ) : null}
-      {children}
       {reviewing && summary ? (
         <ReconciliationReview
           accountId={summary.account.id}

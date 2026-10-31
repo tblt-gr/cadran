@@ -70,7 +70,7 @@ function moneyWeighted(figure: PortfolioAnnualMoneyWeighted, context: LineContex
   );
 }
 
-/** The thirteen figure columns after the month label, shared by the table and the cards. */
+/** The fourteen figure columns after the month label, shared by the table and the cards. */
 export const lineColumns: LineColumn[] = [
   {
     id: 'startValue',
@@ -93,6 +93,7 @@ export const lineColumns: LineColumn[] = [
   },
   { id: 'income', label: 'Revenus', render: amount((l) => l.income, { withSign: true }) },
   { id: 'fees', label: 'Frais', render: amount((l) => l.fees, { withSign: true }) },
+  { id: 'feesPaid', label: 'Frais payés', render: amount((l) => l.feesPaid, { withSign: true }) },
   { id: 'taxes', label: 'Taxes', render: amount((l) => l.taxes, { withSign: true }) },
   {
     id: 'modifiedDietz',

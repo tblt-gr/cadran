@@ -6,14 +6,13 @@ import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { usePortfolioSummary } from '@/features/portfolio/usePortfolioOverview';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
-import { SinceOpeningFigures } from '@/features/portfolio/performance/since-opening-figures/SinceOpeningFigures';
 import { PortfolioKpiGrid } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/PortfolioKpiGrid';
 import { kpiValueText } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/kpiValueText';
 import { PortfolioKpiExplanationModal } from '@/features/portfolio/portfolio-account/kpi-explanation-modal/PortfolioKpiExplanationModal';
 import type { KpiCode } from '@/features/portfolio/portfolio-account/overviewLabels';
 
 /**
- * Summary first, with the since-opening returns the reader chose, then the value history. The
+ * Summary first, then the value history. The
  * allocation lives with the positions and the year by year returns with the performance.
  */
 function SecuritiesOverview({
@@ -92,9 +91,7 @@ function SecuritiesOverview({
                 document.activeElement instanceof HTMLElement ? document.activeElement : null;
             setExplaining(code);
           }}
-        >
-          <SinceOpeningFigures accountId={accountId} asOf={asOf} frozen={frozen} omit={['gain']} />
-        </PortfolioKpiGrid>
+        />
       )}
       {history}
       {explaining && summary.data ? (
@@ -125,13 +122,6 @@ export function PortfolioOverview(
           frozen={props.frozen}
           embedded={props.embedded}
           sourceReturnFocus={props.sourceReturnFocus}
-        />
-        <SinceOpeningFigures
-          accountId={props.accountId}
-          asOf={props.asOf}
-          frozen={props.frozen}
-          omit={['gain']}
-          standalone={!props.embedded}
         />
         {props.history}
       </>

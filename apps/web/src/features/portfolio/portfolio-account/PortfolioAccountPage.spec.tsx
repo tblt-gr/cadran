@@ -763,16 +763,16 @@ describe('PortfolioAccountPage', () => {
     expect(screen.queryByRole('link', { name: 'Contrat' })).toBeNull();
   });
 
-  it('continues the account summary with the since-opening returns', async () => {
+  it('keeps the account summary to the value, the unrealized gain and the cash', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     renderPage();
     const summary = await screen.findByRole('region', { name: 'Indicateurs du portefeuille' });
-    expect(within(summary).getByRole('region', { name: 'Depuis le premier relevé' })).toBeTruthy();
-    await waitFor(() =>
-      expect(api.readPortfolioPerformance).toHaveBeenCalledWith(
-        expect.objectContaining({ query: { scope: 'INCEPTION' } }),
-      ),
-    );
+    expect(
+      within(summary)
+        .getAllByRole('heading', { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual(['Valeur totale', 'Plus-value latente', 'Espèces']);
+    expect(within(summary).queryByRole('region', { name: 'Depuis le premier relevé' })).toBeNull();
   });
 
   it('shows an empty state with a create action', async () => {

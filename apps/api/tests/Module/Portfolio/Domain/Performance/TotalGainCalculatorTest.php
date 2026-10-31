@@ -43,6 +43,7 @@ final class TotalGainCalculatorTest extends TestCase
         self::assertSame('167.00', $decomposition->unrealizedChange);
         self::assertSame('30.00', $decomposition->income);
         self::assertSame('-8.00', $decomposition->fees);
+        self::assertSame('-10.00', $decomposition->feesPaid, 'the purchase fee, capitalized out of fees, is paid all the same');
         self::assertSame('-9.00', $decomposition->taxes);
         self::assertSame('0.00', $decomposition->corporateActionCash);
         self::assertSame('2.00', $decomposition->capitalizedCosts);

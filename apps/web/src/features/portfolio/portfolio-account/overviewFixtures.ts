@@ -35,6 +35,7 @@ export function summaryFixture(): PortfolioOverviewSummary {
       value: '121.421',
       securitiesValue: '2471.421',
       costBasis: '2350',
+      performance: '0.051668',
       reason: null,
     },
     netDeposits: {
