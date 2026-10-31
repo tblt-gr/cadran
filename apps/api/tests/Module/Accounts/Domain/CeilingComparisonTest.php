@@ -49,7 +49,7 @@ final class CeilingComparisonTest extends TestCase
         self::assertNull($check->measured);
     }
 
-    public function testAContributionCeilingCannotBeSettledFromABalance(): void
+    public function testAContributionCeilingIsUnsettledUntilContributionsAreKnown(): void
     {
         $entry = new CatalogEntry(CatalogFixture::taxWrapperProduct(), new RuleSchedule([
             CatalogFixture::contributionCeiling('150000.00', '2014-01-01'),
@@ -60,10 +60,25 @@ final class CeilingComparisonTest extends TestCase
             \App\Module\Accounts\Domain\AccountRuleOverrides::none(),
         );
 
-        $check = $rules->ceilings[0]->effective()->compare(self::euros('180000'));
+        $check = $rules->ceilings[0]->effective()->compare(null);
 
         self::assertSame(CeilingCheckStatus::UNSETTLED, $check->status);
         self::assertSame(CeilingUnsettledReason::CONTRIBUTIONS_NOT_TRACKED, $check->unsettledReason);
+    }
+
+    public function testAContributionCeilingIsComparedToWhatWasPaidIn(): void
+    {
+        $entry = new CatalogEntry(CatalogFixture::taxWrapperProduct(), new RuleSchedule([
+            CatalogFixture::contributionCeiling('150000.00', '2014-01-01'),
+        ]));
+        $rules = \App\Module\Accounts\Domain\AccountRules::fromProduct(
+            AccountFixture::account(productCode: 'FR_PEA', kind: \App\Module\Catalog\Domain\AccountKind::PORTFOLIO),
+            $entry->effectiveOn(CatalogFixture::day('2026-09-02'), CatalogFixture::day('2026-09-03')),
+            \App\Module\Accounts\Domain\AccountRuleOverrides::none(),
+        );
+
+        self::assertSame(CeilingCheckStatus::WITHIN, $rules->ceilings[0]->effective()->compare(self::euros('6200'))->status);
+        self::assertSame(CeilingCheckStatus::EXCEEDED, $rules->ceilings[0]->effective()->compare(self::euros('180000'))->status);
     }
 
     public function testACombinedCeilingCannotBeSettledFromOneAccount(): void

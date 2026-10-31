@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountValuation;
+use App\Module\Foundation\Domain\AssetAmount;
 
 /**
  * Figures that sit beside resolved rules: the latest valuation used to
@@ -19,6 +20,7 @@ final readonly class AccountRulePresentation
     public function __construct(
         public ?AccountValuation $valuation,
         public array $authorNames,
+        public ?AssetAmount $contributions = null,
     ) {
     }
 }

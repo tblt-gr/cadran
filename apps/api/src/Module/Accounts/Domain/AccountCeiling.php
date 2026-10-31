@@ -100,7 +100,7 @@ final readonly class AccountCeiling
             );
         }
 
-        if (CeilingBasis::CONTRIBUTIONS === $this->basis) {
+        if (CeilingBasis::CONTRIBUTIONS === $this->basis && null === $measured) {
             return new CeilingComparison(
                 CeilingCheckStatus::UNSETTLED,
                 null,

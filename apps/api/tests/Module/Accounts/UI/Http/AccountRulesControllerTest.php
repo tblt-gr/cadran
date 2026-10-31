@@ -280,6 +280,52 @@ final class AccountRulesControllerTest extends WebTestCase
         self::assertSame([], $rules['unavailableRuleKinds']);
     }
 
+    /**
+     * A plan is capped on what was paid in: deposits add up, withdrawals do not give the room
+     * back, and an account whose contributions nobody tracks stays unsettled instead of zero.
+     */
+    public function testAPlanContributionCeilingIsMeasuredOnCumulativeDeposits(): void
+    {
+        $this->signIn();
+        $this->insertAccount(self::PEA, WorkspaceFixture::OWN_WORKSPACE, 'PEA', 'FR_PEA', kind: 'PORTFOLIO');
+
+        $untracked = $this->contributionCheck($this->readRules(self::PEA, '2026-09-02'));
+        self::assertSame(['UNSETTLED', null], [$untracked['status'], $untracked['measured']]);
+
+        $this->connection->update('account_financial_accounts', ['valuation_mode' => 'PORTFOLIO'], ['id' => self::PEA]);
+        foreach ([[1, 'DEPOSIT', 4000], [2, 'DEPOSIT', 2200], [3, 'WITHDRAWAL', 1000]] as [$n, $type, $amount]) {
+            $this->connection->executeStatement(
+                "INSERT INTO portfolio_operations (id, workspace_id, account_id, operation_type, trade_date, sequence, asset_code,
+                    gross_amount_value, gross_amount_scale, fees_value, fees_scale, taxes_value, taxes_scale, cash_amount_value, cash_amount_scale,
+                    state, created_at, created_by, version)
+                VALUES (?::uuid, ?::uuid, ?::uuid, ?, '2026-03-10'::date, ?, 'EUR', ?, 0, 0, 0, 0, 0, ?, 0, 'ACTIVE', now(), ?::uuid, 1)",
+                ['00000000-0000-7000-8000-0000000001a'.$n, WorkspaceFixture::OWN_WORKSPACE, self::PEA, $type, $n, $amount, 'DEPOSIT' === $type ? $amount : -$amount, WorkspaceFixture::OWNER_ID],
+            );
+        }
+
+        $tracked = $this->contributionCheck($this->readRules(self::PEA, '2026-09-02'));
+        self::assertSame('WITHIN', $tracked['status']);
+        self::assertIsArray($tracked['measured']);
+        self::assertSame('6200', $tracked['measured']['value']);
+    }
+
+    /**
+     * @param array<string, mixed> $rules
+     *
+     * @return array<string, mixed>
+     */
+    private function contributionCheck(array $rules): array
+    {
+        $ceilings = $rules['ceilings'];
+        self::assertIsList($ceilings);
+        $own = array_values(array_filter($ceilings, static fn (mixed $c): bool => is_array($c) && 'CONTRIBUTION_CEILING' === $c['kind']))[0] ?? null;
+        self::assertIsArray($own);
+        $check = $own['check'];
+        self::assertIsArray($check);
+
+        return $this->fields($check);
+    }
+
     public function testAnAccountDescribedByHandInheritsNoRuleAndReportsNoGap(): void
     {
         $this->signIn();

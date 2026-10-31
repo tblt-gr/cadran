@@ -229,7 +229,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
         $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2024-07-01', 'grossAmount' => $this->eur('1000.00')]);
         $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-02-01', 'grossAmount' => $this->eur('100.00')]);
 
-        self::assertSame([2024, 2026], $this->annual(2026)['availableYears']['years']);
+        self::assertSame([2024, 2026], self::map($this->annual(2026)['availableYears'])['years']);
     }
 
     public function testAnAccountOverTheOperationBoundIsRefused(): void
