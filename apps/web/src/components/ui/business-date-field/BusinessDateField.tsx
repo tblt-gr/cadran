@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './BusinessDateField.module.css';
 
 interface BusinessDateFieldProps {
+  compact?: boolean;
   /** Overrides the default business-date hint; `null` hides it. */
   hint?: string | null;
   /** Overrides the default business-date label. */
@@ -21,6 +22,7 @@ interface BusinessDateFieldProps {
  * page happens to be opened.
  */
 export function BusinessDateField({
+  compact = false,
   hint,
   label,
   onChange,
@@ -33,7 +35,7 @@ export function BusinessDateField({
   const hintId = useId();
 
   return (
-    <div className={styles.field} data-visual-mask>
+    <div className={`${styles.field} ${compact ? styles.compact : ''}`} data-visual-mask>
       <label htmlFor={fieldId}>{label ?? t('catalog.asOf.label')}</label>
       <div className={styles.controls}>
         <input
@@ -45,14 +47,16 @@ export function BusinessDateField({
           type="date"
           value={value}
         />
-        <button
-          className="secondary-action"
-          disabled={value === today}
-          onClick={() => onChange(today)}
-          type="button"
-        >
-          {resetLabel ?? t('catalog.asOf.today')}
-        </button>
+        {compact ? null : (
+          <button
+            className="secondary-action"
+            disabled={value === today}
+            onClick={() => onChange(today)}
+            type="button"
+          >
+            {resetLabel ?? t('catalog.asOf.today')}
+          </button>
+        )}
       </div>
       {hint === null ? null : <p id={hintId}>{hint ?? t('catalog.asOf.hint')}</p>}
     </div>

@@ -75,7 +75,8 @@ export function PortfolioAccountTabContent({
   }
   if (active === 'cash')
     return <CashTab accountId={account.id} asOf={asOf} onAsOfChange={onAsOfChange} />;
-  if (active === 'performance') return <PerformanceTab accountId={account.id} asOf={asOf} />;
+  if (active === 'performance')
+    return <PerformanceTab key={account.id} accountId={account.id} asOf={asOf} />;
   return (
     <OperationsTab
       account={account}

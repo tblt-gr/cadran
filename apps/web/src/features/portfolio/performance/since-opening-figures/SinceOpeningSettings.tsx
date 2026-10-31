@@ -19,7 +19,7 @@ export function SinceOpeningSettings({
   onClose: () => void;
 }) {
   return (
-    <Modal close={onClose} title="Indicateurs depuis l’ouverture">
+    <Modal close={onClose} title="Indicateurs depuis le premier relevé">
       <fieldset className={styles.choices}>
         <legend>Afficher sous les indicateurs du compte</legend>
         {offered.map((key) => (

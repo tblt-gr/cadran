@@ -42,7 +42,7 @@
 .card dd {
   margin: var(--spacing-none);
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: left;
 }
 @media (min-width: 640px) {
   .list {

@@ -1,3 +1,10 @@
+import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
+import { AccountOperationFilters } from '@/features/accounts/account-detail/account-operation-filters/AccountOperationFilters';
+import {
+  emptyMovementFilters,
+  monthBounds,
+  type AccountMovementFilters,
+} from '@/features/accounts/account-detail/account-movements/accountMovementFilters';
 import { listAccounts, type Account, type CreateTransactionRequest } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -34,8 +41,10 @@ export function AccountLedger({
   onSaved,
   refreshError,
   transferDefaults,
+  showMovements = true,
 }: {
   account: Account;
+  showMovements?: boolean;
   creatable: boolean;
   editor: LedgerEditor;
   onEditorChange: (editor: LedgerEditor) => void;
@@ -45,6 +54,10 @@ export function AccountLedger({
 }) {
   const { i18n } = useTranslation();
   const [month, setMonth] = useState(initialMonthFromLocation);
+  const [filters, setFilters] = useState<AccountMovementFilters>(() => ({
+    ...emptyMovementFilters,
+    ...monthBounds(initialMonthFromLocation()),
+  }));
   const {
     bulkQuery,
     displayedPage,
@@ -55,14 +68,14 @@ export function AccountLedger({
     staleCursorError,
     transactions,
     unauthorized,
-  } = useAccountMovements(account.id, month);
+  } = useAccountMovements(account.id, month, filters);
   const [bulkMode, setBulkMode] = useState(false);
   const bulk = useBulkSelection({
     hasMore: !staleCursorError && Boolean(displayedPage?.nextCursor),
     items,
     query: bulkQuery,
     reloadAfterWrite,
-    resetKey: `${account.id}:${month ?? ''}:${bulkMode}`,
+    resetKey: JSON.stringify([account.id, filters, bulkMode]),
   });
 
   const activeAccounts = useQuery({
@@ -130,30 +143,53 @@ export function AccountLedger({
         />
       ) : null}
 
-      <TransactionWorkflow
-        accounts={transferAccounts}
-        transactions={items}
-        reloadAfterWrite={reloadAfterWrite}
-      >
-        <AccountMovementsSection
-          bulk={bulk}
-          bulkMode={bulkMode}
-          onBulkModeChange={setBulkMode}
-          canCreate={creatable}
-          displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
-          items={items}
-          language={i18n.language}
-          loadingMore={transactions.isFetching && !transactions.isPending}
-          month={month}
-          onClearMonth={() => setMonth(null)}
-          onCreate={() => onEditorChange('transaction')}
-          onLoadMore={loadMore}
-          onReloadFromFirstPage={reloadFromFirstPage}
-          staleCursorError={staleCursorError}
-          transactions={transactions}
-          unauthorized={unauthorized}
+      {showMovements ? (
+        <AccountOperationFilters
+          actions={
+            <BulkSelectionToolbar
+              active={bulkMode}
+              bulk={transactions.isPending ? null : bulk}
+              inline
+              onToggleActive={() => setBulkMode(!bulkMode)}
+            />
+          }
+          value={filters}
+          onChange={(next) => {
+            setMonth(null);
+            setFilters(next);
+          }}
         />
-      </TransactionWorkflow>
+      ) : null}
+      {showMovements ? (
+        <TransactionWorkflow
+          accounts={transferAccounts}
+          transactions={items}
+          reloadAfterWrite={reloadAfterWrite}
+        >
+          <AccountMovementsSection
+            showBulkToolbar={false}
+            bulk={bulk}
+            bulkMode={bulkMode}
+            onBulkModeChange={setBulkMode}
+            canCreate={creatable}
+            displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
+            items={items}
+            language={i18n.language}
+            loadingMore={transactions.isFetching && !transactions.isPending}
+            month={month}
+            onClearMonth={() => {
+              setMonth(null);
+              setFilters(emptyMovementFilters);
+            }}
+            onCreate={() => onEditorChange('transaction')}
+            onLoadMore={loadMore}
+            onReloadFromFirstPage={reloadFromFirstPage}
+            staleCursorError={staleCursorError}
+            transactions={transactions}
+            unauthorized={unauthorized}
+          />
+        </TransactionWorkflow>
+      ) : null}
     </>
   );
 }

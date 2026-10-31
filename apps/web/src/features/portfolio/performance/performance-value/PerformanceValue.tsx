@@ -10,10 +10,9 @@ import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import {
-  describeReason,
+  summarizeReason,
   type ReasonContext,
 } from '@/features/portfolio/performance/performanceReasons';
-import { QualityBadge } from '@/features/portfolio/performance/quality-badge/QualityBadge';
 import styles from './PerformanceValue.module.css';
 
 export type PerformanceFigure =
@@ -25,6 +24,7 @@ export type PerformanceFigure =
 /** Server text with an explicit sign; the sign is never left to the colour alone. */
 export function signed(text: string): { text: string; tone: string } {
   if (text === '-') return { text, tone: '' };
+  if (/^-0(?:[,.]0+)?(?![\d,.])/.test(text)) return { text: text.slice(1), tone: '' };
   if (text.startsWith('-')) return { text, tone: styles.negative };
   if (/^0(?:[,.]0+)?(?![\d,.])/.test(text)) return { text, tone: '' };
   return { text: `+${text}`, tone: styles.positive };
@@ -75,8 +75,8 @@ export function FigureValue({
 }
 
 /**
- * One performance figure: the server value with its sign, the quality the server gave it and
- * the button that explains it. A missing figure is a greyed dash that still says why.
+ * One performance figure: the server value with its sign and the button that explains it.
+ * Quality stays in that explanation. A missing figure is a greyed dash that still says why.
  */
 export function PerformanceValue({
   figure,
@@ -109,13 +109,12 @@ export function PerformanceValue({
         ) : figure.value === null ? (
           <EmptyValue
             label={emptyLabel}
-            reason={reason ? describeReason(reason, context).sentence : null}
+            reason={reason ? summarizeReason(reason, context) : null}
           />
         ) : (
           <FigureValue assetCode={context.assetCode} figure={figure} />
         )}
       </div>
-      {figure ? <QualityBadge quality={figure.quality} /> : null}
     </article>
   );
 }

@@ -29,6 +29,7 @@ export function AccountValuationCell({
 }: AccountValuationCellProps) {
   const { i18n, t } = useTranslation();
   const cellClassName = size === 'lg' ? `${styles.cell} ${styles.large}` : styles.cell;
+  const showProvenance = size !== 'lg';
 
   if (valuation === null) {
     return (
@@ -47,9 +48,11 @@ export function AccountValuationCell({
         ) : (
           <MoneyValue value={null} skeletonClassName={styles.skeletonFigure} />
         )}
-        <small>
-          <SkeletonBlock className={styles.skeletonProvenance} />
-        </small>
+        {showProvenance ? (
+          <small>
+            <SkeletonBlock className={styles.skeletonProvenance} />
+          </small>
+        ) : null}
       </div>
     );
   }
@@ -124,28 +127,30 @@ export function AccountValuationCell({
           )}
         </div>
       )}
-      <small>
-        {t(`accounts.balances.qualities.${valuation.quality}`)}
-        {valuation.asOf && !derivation
-          ? ` · ${t('accounts.balances.asOf', {
-              date: formatCalendarDay(valuation.asOf, i18n.language),
-            })}`
-          : null}
-        {derivation
-          ? ` · ${t('accounts.balances.derivation', {
-              date: formatCalendarDay(derivation.anchorAsOf, i18n.language),
-              count: derivation.movementCount,
-            })}`
-          : valuation.source
-            ? ` · ${t(`accounts.balances.sources.${valuation.source}`)}`
+      {showProvenance ? (
+        <small>
+          {t(`accounts.balances.qualities.${valuation.quality}`)}
+          {valuation.asOf && !derivation
+            ? ` · ${t('accounts.balances.asOf', {
+                date: formatCalendarDay(valuation.asOf, i18n.language),
+              })}`
             : null}
-        {derivation && derivation.pendingCount > 0
-          ? ` · ${t('accounts.balances.pending', { count: derivation.pendingCount })}`
-          : null}
-        {valuation.quality === 'STALE' && valuation.ageDays !== null
-          ? ` · ${t('accounts.balances.age', { count: valuation.ageDays })}`
-          : null}
-      </small>
+          {derivation
+            ? ` · ${t('accounts.balances.derivation', {
+                date: formatCalendarDay(derivation.anchorAsOf, i18n.language),
+                count: derivation.movementCount,
+              })}`
+            : valuation.source
+              ? ` · ${t(`accounts.balances.sources.${valuation.source}`)}`
+              : null}
+          {derivation && derivation.pendingCount > 0
+            ? ` · ${t('accounts.balances.pending', { count: derivation.pendingCount })}`
+            : null}
+          {valuation.quality === 'STALE' && valuation.ageDays !== null
+            ? ` · ${t('accounts.balances.age', { count: valuation.ageDays })}`
+            : null}
+        </small>
+      ) : null}
     </div>
   );
 }

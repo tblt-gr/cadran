@@ -50,6 +50,7 @@
 }
 
 .list button {
+  min-height: var(--control-height);
   display: flex;
   width: 100%;
   align-items: center;

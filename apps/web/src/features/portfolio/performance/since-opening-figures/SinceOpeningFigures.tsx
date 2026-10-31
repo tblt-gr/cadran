@@ -10,7 +10,7 @@ import {
   type FigureKey,
 } from '@/features/portfolio/performance/performanceFigures';
 import { openPerformanceSource } from '@/features/portfolio/performance/openPerformanceSource';
-import { describeReason } from '@/features/portfolio/performance/performanceReasons';
+import { summarizeReason } from '@/features/portfolio/performance/performanceReasons';
 import { FigureValue } from '@/features/portfolio/performance/performance-value/PerformanceValue';
 import { usePortfolioPerformance } from '@/features/portfolio/performance/usePortfolioPerformance';
 import { KpiFigure } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/KpiFigure';
@@ -31,17 +31,18 @@ function figureNote(key: FigureKey, performance: PortfolioPerformance): string {
   const figure = performance[key];
   const reason = figure.reasons[0];
   if (figure.value === null && reason)
-    return describeReason(reason, {
+    return summarizeReason(reason, {
       accountId: performance.accountId,
       assetCode: performance.assetCode,
       residual: performance.gain.decomposition.residual,
-    }).sentence;
+    });
   return notes[key];
 }
 
 /**
  * The since-opening gain and returns, under the summary figures: the reader chooses which ones
- * show (kept in this browser), each opens its explanation.
+ * show (kept in this browser), each opens its explanation. Time-weighted return is the same year
+ * figure as the performance tab, so the two screens cannot disagree.
  */
 export function SinceOpeningFigures({
   accountId,
@@ -67,12 +68,22 @@ export function SinceOpeningFigures({
     defaultFigures,
   );
   const shown = selected.filter((key) => offered.includes(key));
+  const year = asOf.slice(0, 4);
   const inception = usePortfolioPerformance(accountId, 'INCEPTION', undefined, !frozen);
+  const yearReturn = usePortfolioPerformance(
+    accountId,
+    'YEAR',
+    year,
+    !frozen && shown.includes('timeWeighted'),
+  );
   const performance = inception.data ?? null;
+  const sourceFor = (key: FigureKey): PortfolioPerformance | null =>
+    (key === 'timeWeighted' ? yearReturn.data : performance) ?? null;
   const period =
     performance?.gain.from && performance.gain.to
       ? `Du ${formatCalendarNumericDay(performance.gain.from)} au ${formatCalendarNumericDay(performance.gain.to)}`
       : null;
+  const explained = explaining ? sourceFor(explaining) : null;
 
   return (
     <section
@@ -80,10 +91,10 @@ export function SinceOpeningFigures({
       className={standalone ? `card ${styles.standalone}` : styles.section}
     >
       <div className={styles.heading}>
-        <h3 id="since-opening-title">Depuis l’ouverture</h3>
+        <h3 id="since-opening-title">Depuis le premier relevé</h3>
         {period ? <span className={styles.period}>{period}</span> : null}
         <button
-          aria-label="Choisir les indicateurs depuis l’ouverture"
+          aria-label="Choisir les indicateurs depuis le premier relevé"
           className="icon-ghost"
           disabled={frozen}
           onClick={() => setChoosing(true)}
@@ -95,31 +106,36 @@ export function SinceOpeningFigures({
       </div>
       {inception.isError ? (
         <p className={styles.error} role="alert">
-          La performance depuis l’ouverture est indisponible.{' '}
+          La performance depuis le premier relevé est indisponible.{' '}
           <button className="text-action" onClick={() => void inception.refetch()} type="button">
             Réessayer
           </button>
         </p>
       ) : shown.length > 0 ? (
         <div className={styles.figures}>
-          {shown.map((key) => (
-            <KpiFigure
-              explainLabel={`Expliquer : ${figureLabels[key]}`}
-              key={key}
-              label={figureLabels[key]}
-              note={performance ? figureNote(key, performance) : undefined}
-              onExplain={performance ? () => setExplaining(key) : null}
-              reason={performance?.[key].quality === 'DEGRADED' ? 'Données à vérifier' : undefined}
-              size="compact"
-              value={
-                !performance ? null : performance[key].value === null ? (
-                  'Non calculable'
-                ) : (
-                  <FigureValue assetCode={performance.assetCode} figure={performance[key]} />
-                )
-              }
-            />
-          ))}
+          {shown.map((key) => {
+            const source = sourceFor(key);
+            const label =
+              key === 'timeWeighted' ? `${figureLabels[key]} ${year}` : figureLabels[key];
+            return (
+              <KpiFigure
+                explainLabel={`Expliquer : ${label}`}
+                key={key}
+                label={label}
+                note={source ? figureNote(key, source) : undefined}
+                onExplain={source ? () => setExplaining(key) : null}
+                reason={source?.[key].quality === 'DEGRADED' ? 'Données à vérifier' : undefined}
+                size="compact"
+                value={
+                  !source ? null : source[key].value === null ? (
+                    'Non calculable'
+                  ) : (
+                    <FigureValue assetCode={source.assetCode} figure={source[key]} />
+                  )
+                }
+              />
+            );
+          })}
         </div>
       ) : null}
       {choosing ? (
@@ -130,7 +146,7 @@ export function SinceOpeningFigures({
           value={shown}
         />
       ) : null}
-      {explaining && performance ? (
+      {explaining && explained ? (
         <PerformanceExplanationModal
           figure={explaining}
           onClose={() => setExplaining(null)}
@@ -138,7 +154,7 @@ export function SinceOpeningFigures({
             setExplaining(null);
             openPerformanceSource(accountId, asOf, source);
           }}
-          performance={performance}
+          performance={explained}
         />
       ) : null}
     </section>

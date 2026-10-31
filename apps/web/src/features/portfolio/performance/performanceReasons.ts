@@ -93,3 +93,29 @@ export function describeReason(
       : null,
   };
 }
+
+export const listedDateLimit = 3;
+
+/** Dates of a reason, in the same order and format as its full sentence. */
+export function formatReasonDates(dates: string[]): string {
+  return list(dates);
+}
+
+/** Overview copy stays short; exact dates remain in the figure's explanation. */
+export function summarizeReason(
+  reason: PortfolioPerformanceReason,
+  context: ReasonContext,
+): string {
+  switch (reason.code) {
+    case 'MISSING_FLOW_VALUATION':
+      return 'Relevés manquants aux dates de versement ou retrait.';
+    case 'STALE_FLOW_VALUATION':
+      return 'Prix anciens aux dates de versement ou retrait.';
+    case 'MONTH_NOT_CALCULABLE':
+      return 'Des relevés mensuels manquent pour ce calcul.';
+    case 'NON_POSITIVE_GROWTH_FACTOR':
+      return 'Un rendement mensuel inférieur ou égal à -100 % empêche le chaînage.';
+    default:
+      return describeReason(reason, context).sentence;
+  }
+}

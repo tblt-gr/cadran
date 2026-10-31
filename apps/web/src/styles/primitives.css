@@ -209,3 +209,10 @@
   color: var(--text-muted);
   cursor: not-allowed;
 }
+
+/* One alignment for every table, including tables inside dialogs and chart alternatives. */
+table th,
+table td,
+table caption {
+  text-align: left;
+}

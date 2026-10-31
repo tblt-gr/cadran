@@ -135,6 +135,27 @@ describe('PerformanceExplanationModal', () => {
     expect(within(quality).getAllByText('Non calculable').length).toBeGreaterThan(0);
   });
 
+  it('folds a long date list behind the short reason', () => {
+    const performance = performanceFixture();
+    performance.timeWeighted.value = null;
+    performance.timeWeighted.quality = 'NOT_CALCULABLE';
+    performance.timeWeighted.reasons = [
+      {
+        code: 'MISSING_FLOW_VALUATION',
+        dates: ['2023-12-01', '2023-12-28', '2024-02-01', '2024-03-01'],
+      },
+    ];
+    open('timeWeighted', performance);
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByText('Relevés manquants aux dates de versement ou retrait.'),
+    ).toBeTruthy();
+    const dates = within(dialog).getByText(/01\/12\/2023, 28\/12\/2023/);
+    expect(dates.closest('details')?.hasAttribute('open')).toBe(false);
+    fireEvent.click(within(dialog).getByText('Voir les 4 dates'));
+    expect(dates.closest('details')?.hasAttribute('open')).toBe(true);
+  });
+
   it('closes before following an action link', () => {
     const performance = performanceFixture();
     performance.gain.reasons = [{ code: 'NO_END_VALUATION', dates: [] }];

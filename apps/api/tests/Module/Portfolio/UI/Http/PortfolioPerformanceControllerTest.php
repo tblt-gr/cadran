@@ -371,6 +371,65 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         self::assertSame('10.00', self::map($performance['gain'])['value']);
     }
 
+    public function testInceptionStartsAtTheFirstCompleteValuationRatherThanEarlierFlows(): void
+    {
+        $this->seedReferenceMonth();
+        $this->recordTotal('2026-03-10', '11100.00');
+        $this->recordTotal('2026-03-25', '10950.00');
+
+        $body = $this->performance('INCEPTION', null);
+        self::assertSame('2026-02-28', self::map($body['start'])['date']);
+        self::assertSame('250.00', self::map($body['gain'])['value']);
+        self::assertSame('0.023815', self::map($body['timeWeighted'])['value']);
+        self::assertSame('0.023499', self::map($body['modifiedDietz'])['value']);
+        self::assertSame('2026-02-28', self::map($body['moneyWeighted'])['from']);
+    }
+
+    public function testOneCompleteObservationDoesNotInventAZeroReturn(): void
+    {
+        $this->recordTotal('2026-03-31', '100.00');
+        $body = $this->performance('INCEPTION', null);
+        self::assertNull(self::map($body['gain'])['value']);
+        self::assertNull(self::map($body['timeWeighted'])['value']);
+        self::assertSame('NO_END_VALUATION', self::map(self::items2(self::map($body['gain'])['reasons'])[0])['code']);
+    }
+
+    public function testTheAnchorMonthDoesNotConsumeOneOfTheSixHundredReturnPeriods(): void
+    {
+        $this->connection->executeStatement("UPDATE account_financial_accounts SET opened_on = '1976-02-01' WHERE id = ?", [self::ACCOUNT]);
+        $this->recordTotal('1976-02-29', '100.00');
+        $this->recordTotal('2026-02-28', '110.00');
+        $dietz = self::map($this->performance('INCEPTION', null)['modifiedDietz']);
+        self::assertSame('MONTH_NOT_CALCULABLE', self::map(self::items2($dietz['reasons'])[0])['code']);
+        self::assertCount(600, self::items2($dietz['months']));
+    }
+
+    public function testInceptionDoesNotUseAnEarlierPartialObservation(): void
+    {
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-02-05', 'grossAmount' => $this->eur('1000.00')]);
+        $this->record(['type' => 'BUY', 'tradeDate' => '2026-02-06', 'instrumentId' => self::ETF, 'quantity' => '1', 'unitPrice' => '100.00', 'grossAmount' => $this->eur('100.00')]);
+        $this->recordPositions('2026-02-28', [['instrumentId' => self::ETF, 'price' => null, 'priceDate' => null]]);
+        $this->recordTotal('2026-03-31', '1010.00');
+        $this->recordTotal('2026-04-30', '1020.00');
+
+        $body = $this->performance('INCEPTION', null);
+        self::assertSame('2026-03-31', self::map($body['start'])['date']);
+        self::assertSame('10.00', self::map($body['gain'])['value']);
+    }
+
+    public function testInceptionIncludesTheInitialObservedPartialMonthWithoutInventingAnOpeningValue(): void
+    {
+        $this->recordTotal('2026-02-15', '100.00');
+        $this->recordTotal('2026-02-28', '110.00');
+        $this->recordTotal('2026-03-31', '121.00');
+
+        $body = $this->performance('INCEPTION', null);
+        self::assertSame('2026-02-15', self::map($body['start'])['date']);
+        self::assertSame('21.00', self::map($body['gain'])['value']);
+        self::assertSame('0.210000', self::map($body['modifiedDietz'])['value']);
+        self::assertSame('0.210000', self::map($body['timeWeighted'])['value']);
+    }
+
     public function testAYearAndTheWholeLifeUseTheirOwnBounds(): void
     {
         $this->seedReferenceMonth();
@@ -384,7 +443,7 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
 
         $life = $this->performance('INCEPTION', null);
         self::assertNull($life['period']);
-        self::assertSame('2026-01-31', self::map($life['start'])['date'], 'the day before the first operation');
+        self::assertSame('2026-02-28', self::map($life['start'])['date'], 'the first complete observation');
         self::assertSame('2026-04-30', self::map($life['end'])['date']);
     }
 
@@ -417,15 +476,15 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         self::assertNull($dietz['averageCapital']);
     }
 
-    public function testTheWholeLifeChainsFromTheOpeningMonth(): void
+    public function testTheObservedHistoryChainsOnlyAfterItsFirstObservation(): void
     {
         $this->seedReferenceMonth();
         $this->recordTotal('2026-04-30', '11100.00');
 
         $dietz = self::map($this->performance('INCEPTION', null)['modifiedDietz']);
 
-        self::assertSame('0.050112', $dietz['value']);
-        self::assertCount(3, self::items2($dietz['months']));
+        self::assertSame('0.028130', $dietz['value']);
+        self::assertCount(2, self::items2($dietz['months']));
     }
 
     public function testYearAndInceptionStayNullWhenAChainedMonthLosesMoreThanTheCapital(): void
@@ -530,6 +589,7 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
     {
         $this->connection->executeStatement("UPDATE account_financial_accounts SET opened_on = '1970-01-01' WHERE id = ?", [self::ACCOUNT]);
         $this->seedOperations(1, '1970-01-01');
+        $this->recordTotal('1970-01-31', '1.00');
         $this->recordTotal('2026-03-31', '1.00');
 
         $dietz = self::map($this->performance('INCEPTION', null)['modifiedDietz']);
@@ -555,7 +615,7 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         $dietz = self::map($this->performance('INCEPTION', null)['modifiedDietz']);
 
         self::assertSame('0.000000', $dietz['value']);
-        self::assertCount($months, self::items2($dietz['months']));
+        self::assertCount($months - 1, self::items2($dietz['months']));
         $queries = array_merge(...array_values($holder->getData()));
         $operationReads = count(array_filter($queries, static fn (array $query): bool => is_string($query['sql']) && str_contains($query['sql'], 'FROM portfolio_operations')));
         self::assertLessThanOrEqual(5, $operationReads, 'the history is read once, not once per month');

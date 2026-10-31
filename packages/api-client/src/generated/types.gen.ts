@@ -543,6 +543,10 @@ export type PortfolioAnnualPerformance = {
     availableYears: {
         from: number;
         to: number;
+        /**
+         * Years that contain at least one active operation, oldest first. A history with none keeps the current year.
+         */
+        years: Array<number>;
     };
     months: [
         PortfolioAnnualMonthLine,
@@ -14455,6 +14459,9 @@ export type ReadPortfolioPerformanceData = {
         accountId: string;
     };
     query: {
+        /**
+         * INCEPTION covers the observed history from the earliest active complete valuation, excluding earlier flows.
+         */
         scope: 'MONTH' | 'YEAR' | 'INCEPTION';
         /**
          * YYYY-MM for MONTH, YYYY for YEAR, absent for INCEPTION. A period after the current month or year, or before the month of the account opening, is refused.

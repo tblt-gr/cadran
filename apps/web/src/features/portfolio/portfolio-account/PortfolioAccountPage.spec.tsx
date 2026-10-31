@@ -270,10 +270,10 @@ describe('PortfolioAccountPage', () => {
       expect(screen.queryByRole('dialog')).toBeNull();
     },
   );
-  it.each(['operation', 'valuation'] as const)(
+  it.each(['valuation'] as const)(
     'clears stale %s selectors when changing Au and keeps browser back coherent',
     async (kind) => {
-      const tab = kind === 'operation' ? 'operations' : 'valuations';
+      const tab = 'valuations';
       window.history.replaceState(
         {},
         '',
@@ -288,9 +288,11 @@ describe('PortfolioAccountPage', () => {
       );
       const view = renderPage();
       await screen.findByRole('dialog', {
-        name: kind === 'operation' ? /Opération : Versement/ : 'Valorisation du 10/03/2026',
+        name: 'Valorisation du 10/03/2026',
       });
-      fireEvent.change(screen.getAllByLabelText('Au')[0]!, { target: { value: '2026-03-09' } });
+      fireEvent.change(screen.getAllByLabelText('Situation au')[0]!, {
+        target: { value: '2026-03-09' },
+      });
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       const params = new URLSearchParams(window.location.search);
       expect(params.has('operation')).toBe(false);
@@ -313,7 +315,8 @@ describe('PortfolioAccountPage', () => {
   );
 
   it('keeps dated complete values while explicitly warning about a newer partial valuation', async () => {
-    window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-10-03&tab=operations`);
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
+    window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-10-03&tab=account`);
     const summary = summaryFixture();
     summary.asOf = '2026-10-03';
     summary.valuation = { ...summary.valuation!, valuedOn: '2026-09-30' };
@@ -349,13 +352,14 @@ describe('PortfolioAccountPage', () => {
       ),
     ).toBeTruthy();
     expect(screen.getByText(/Gain \+121,42/)).toBeTruthy();
-    expect(screen.getByText('au 30/09/2026, au prix de revient moyen')).toBeTruthy();
+    expect(screen.queryByText('au 30/09/2026, au prix de revient moyen')).toBeNull();
     expect(screen.getByText('À vérifier (1)')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Valeur totale' }));
     expect(screen.getByText('Du 30/09/2026 au 30/09/2026')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Valorisation du 30/09/2026' })).toBeTruthy();
   });
   it('retains explicit non-calculable states when only a partial valuation exists', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     const summary = summaryFixture();
     summary.valuation = { ...summary.valuation!, completeness: 'PARTIAL', totalValue: null };
     summary.totalValue = null;
@@ -380,12 +384,14 @@ describe('PortfolioAccountPage', () => {
     expect(screen.queryByText(/partielle : valeurs du/)).toBeNull();
   });
   it('shows no newer-partial warning when the server reports none for a past date', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     renderPage();
     await screen.findByText(/Gain/);
     expect(screen.queryByText(/partielle : valeurs du/)).toBeNull();
   });
 
   it('shows one reminder per due month and opens the valuation modal from it', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     api.readPortfolioSummary.mockImplementation(() =>
       ok({ ...summaryFixture(), dueMonths: ['2026-02', '2026-03'] }),
     );
@@ -420,26 +426,22 @@ describe('PortfolioAccountPage', () => {
     );
     renderPage();
     await screen.findByText('Aucune position à cette date');
-    fireEvent.change(screen.getByLabelText('Au'), { target: { value: '2026-02-28' } });
-    await waitFor(() =>
-      expect(api.readPortfolioSummary.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28'),
-    );
+    fireEvent.change(screen.getByLabelText('Situation au'), { target: { value: '2026-02-28' } });
+
     expect(api.listPortfolioPositions.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28');
     await waitFor(() =>
       expect(api.readPortfolioAllocation.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28'),
     );
     fireEvent.click(screen.getByRole('link', { name: 'Opérations' }));
     await loadedOperationsTable();
-    expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
-    fireEvent.click(screen.getByRole('link', { name: 'Espèces' }));
-    await screen.findByRole('table', { name: 'Mouvements d’espèces' });
-    expect(api.readPortfolioCash.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
+    expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.to).toBeUndefined();
     fireEvent.click(screen.getByRole('link', { name: 'Valorisations' }));
     await screen.findByText(/Saisissez la valeur du compte/);
     expect(api.listPortfolioValuations.mock.calls.at(-1)![0].query.to).toBe('2026-02-28');
     expect(new URLSearchParams(window.location.search).get('asOf')).toBe('2026-02-28');
   });
   it('opens an operation source from its explanation and restores keyboard focus', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     const summary = summaryFixture();
     summary.explanations.CASH = {
       ...summary.explanations.CASH,
@@ -464,10 +466,20 @@ describe('PortfolioAccountPage', () => {
     expect(await screen.findByRole('dialog', { name: /Opération : Versement/ })).toBeTruthy();
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
     fireEvent.keyDown(document, { key: 'Escape' });
-    await waitFor(() => expect(document.activeElement).toBe(info));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('link', {
+          name:
+            new URLSearchParams(window.location.search).get('tab') === 'operations'
+              ? 'Opérations'
+              : 'Valorisations',
+        }),
+      ),
+    );
   });
 
   it('opens the exact valuation source from a KPI explanation with one dialog', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     api.listPortfolioValuations.mockImplementation(() =>
       ok({ items: [], page: 1, pageSize: 24, total: 0 }),
     );
@@ -488,18 +500,27 @@ describe('PortfolioAccountPage', () => {
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
     expect(api.readPortfolioValuation.mock.calls.at(-1)![0].path.id).toBe('valuation-1');
     fireEvent.keyDown(document, { key: 'Escape' });
-    await waitFor(() => expect(document.activeElement).toBe(info));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('link', {
+          name:
+            new URLSearchParams(window.location.search).get('tab') === 'operations'
+              ? 'Opérations'
+              : 'Valorisations',
+        }),
+      ),
+    );
   });
 
-  it('shows the Espèces layout, real chrome included, while the account loads', async () => {
+  it('redirects the former cash tab to the operations loading layout', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=cash`);
     api.readAccount.mockImplementation(() => new Promise(() => undefined));
     renderPage();
 
-    expect(screen.getByRole('link', { name: 'Espèces' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('heading', { name: 'Solde espèces' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Valeur totale' })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Effet espèces' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Opérations' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+    expect(screen.queryByRole('link', { name: 'Espèces' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Contrôles d’espèces' })).toBeNull();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
@@ -519,24 +540,25 @@ describe('PortfolioAccountPage', () => {
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 
-  it('orders the tabs and opens Positions, with the allocation below, by default', async () => {
+  it('orders the tabs and opens Compte by default', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}`);
     renderPage();
 
-    await screen.findByText('Aucune position à cette date');
+    await screen.findByRole('heading', { level: 3, name: account.label });
     const nav = screen.getByRole('navigation', { name: 'Sections du portefeuille' });
     expect(
       within(nav)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Positions', 'Opérations', 'Valorisations', 'Espèces', 'Performance', 'Compte']);
-    expect(within(nav).getByRole('link', { name: 'Positions' }).getAttribute('aria-current')).toBe(
+    ).toEqual(['Compte', 'Opérations', 'Valorisations', 'Positions', 'Performance']);
+    expect(within(nav).getByRole('link', { name: 'Compte' }).getAttribute('aria-current')).toBe(
       'page',
     );
-    expect(await screen.findByRole('heading', { name: 'Répartition' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Mouvements' })).toBeNull();
   });
 
   it('disables both entry actions on an account that is not active', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     api.readAccount.mockImplementation(() => ok({ ...account, status: 'CLOSED' }));
     renderPage();
     await screen.findByText(/Gain/);
@@ -566,7 +588,7 @@ describe('PortfolioAccountPage', () => {
       ok({ items: [], page: 1, pageSize: 24, total: 0 }),
     );
     renderPage();
-    await screen.findByText('Valorisation de fin février à saisir');
+    await screen.findByText('Aucune position à cette date');
     await waitFor(() =>
       expect(
         screen.getByRole('button', { name: 'Nouvelle valorisation' }).matches(':disabled'),
@@ -596,13 +618,15 @@ describe('PortfolioAccountPage', () => {
     );
   });
 
-  it('opens the Espèces tab from ?tab=cash', async () => {
+  it('opens operations from a former cash link', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=cash`);
     api.readPortfolioCash.mockImplementation(() => ok(cashFixture()));
     renderPage();
 
-    expect(await screen.findByRole('table', { name: 'Mouvements d’espèces' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Espèces' }).getAttribute('aria-current')).toBe('page');
+    await loadedOperationsTable();
+    expect(screen.getByRole('link', { name: 'Opérations' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
   });
 
   it('switches from the positions tab before opening the global create action', async () => {
@@ -629,7 +653,7 @@ describe('PortfolioAccountPage', () => {
 
     try {
       renderPage('Pacific/Auckland');
-      const loadingDate = screen.getAllByLabelText('Au').at(-1) as HTMLInputElement;
+      const loadingDate = screen.getAllByLabelText('Situation au').at(-1) as HTMLInputElement;
       expect(loadingDate.value).toBe('2026-04-01');
 
       resolveAccount?.(await ok(account));
@@ -659,8 +683,7 @@ describe('PortfolioAccountPage', () => {
         name: 'Date',
       }),
     ).toHaveLength(1);
-    expect(screen.getByRole('heading', { name: 'Évolution de la valeur' })).toBeTruthy();
-    expect(screen.getByTestId('value-history-skeleton')).toBeTruthy();
+    expect(screen.queryByTestId('value-history-skeleton')).toBeNull();
     resolve?.(await ok(account));
     expect(await loadedOperationsTable()).toBeTruthy();
     expect(screen.queryByTestId('operations-skeleton')).toBeNull();
@@ -715,7 +738,7 @@ describe('PortfolioAccountPage', () => {
       ).disabled,
     ).toBe(true);
     expect(screen.getByRole('link', { name: 'Supports' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Liquidités' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Liquidités' })).toBeNull();
     expect(
       screen.getByRole('link', { name: "Renseignez d'abord le contrat" }).getAttribute('href'),
     ).toContain('tab=contract');
@@ -723,40 +746,28 @@ describe('PortfolioAccountPage', () => {
     expect(await screen.findByRole('button', { name: 'Renseigner le contrat' })).toBeTruthy();
   });
 
-  it('holds the account itself in its last tab: identity, bank movements and a transfer to it', async () => {
-    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account&month=2026-03`);
+  it('shows identity without duplicate bank movements on Compte', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     renderPage();
-    const tab = await screen.findByRole('link', { name: 'Compte' });
-    expect(tab.getAttribute('aria-current')).toBe('page');
     expect(await screen.findByRole('heading', { level: 3, name: account.label })).toBeTruthy();
-    expect(await screen.findByRole('heading', { level: 3, name: 'Mouvements' })).toBeTruthy();
-    await waitFor(() =>
-      expect(api.listTransactions).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({ accountId: [accountId], from: '2026-03-01' }),
-        }),
-      ),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Nouveau virement' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
-    expect(
-      (within(dialog).getByLabelText('Compte de destination') as HTMLSelectElement).value,
-    ).toBe(accountId);
+    expect(screen.queryByRole('heading', { name: 'Mouvements' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Voir les règles' })).toBeTruthy();
   });
 
   it('reads a former contract link of a securities account as its account tab', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=contract`);
     renderPage();
-    const tab = await screen.findByRole('link', { name: 'Compte' });
+    await screen.findByRole('heading', { level: 3, name: account.label });
+    const tab = screen.getByRole('link', { name: 'Compte' });
     expect(tab.getAttribute('aria-current')).toBe('page');
     expect(screen.queryByRole('link', { name: 'Contrat' })).toBeNull();
   });
 
-  it('continues the summary with the since-opening returns, not the performance tab', async () => {
-    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
+  it('continues the account summary with the since-opening returns', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     renderPage();
     const summary = await screen.findByRole('region', { name: 'Indicateurs du portefeuille' });
-    expect(within(summary).getByRole('region', { name: 'Depuis l’ouverture' })).toBeTruthy();
+    expect(within(summary).getByRole('region', { name: 'Depuis le premier relevé' })).toBeTruthy();
     await waitFor(() =>
       expect(api.readPortfolioPerformance).toHaveBeenCalledWith(
         expect.objectContaining({ query: { scope: 'INCEPTION' } }),
@@ -800,6 +811,18 @@ describe('PortfolioAccountPage', () => {
     fireEvent.click(screen.getByLabelText('Afficher les opérations annulées'));
     await waitFor(() =>
       expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.includeVoided).toBe(true),
+    );
+  });
+
+  it('shows only the operations period, without a hidden situation-date limit', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=operations&asOf=2026-02-01`);
+    renderPage();
+    await loadedOperationsTable();
+    expect(screen.queryByLabelText('Situation au')).toBeNull();
+    expect(screen.getAllByLabelText('Au')).toHaveLength(1);
+    fireEvent.change(screen.getByLabelText('Au'), { target: { value: '2026-03-31' } });
+    await waitFor(() =>
+      expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.to).toBe('2026-03-31'),
     );
   });
 
@@ -935,6 +958,7 @@ describe('PortfolioAccountPage', () => {
 });
 
 it('composes insurance figures, history and performance instead of securities KPIs', async () => {
+  window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
   api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
   api.readLifeInsuranceContract.mockImplementation(() =>
     ok({
@@ -944,11 +968,11 @@ it('composes insurance figures, history and performance instead of securities KP
       euroFunds: [],
     }),
   );
-  window.history.replaceState({}, '', `/portfolios/${accountId}?tab=contract&asOf=2026-03-10`);
+  window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account&asOf=2026-03-10`);
   renderPage();
   await waitFor(() => expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull());
   expect(await screen.findByRole('heading', { name: 'Valeur du contrat' })).toBeTruthy();
-  expect(await screen.findByRole('heading', { name: 'Suivi fiscal (informatif)' })).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Suivi fiscal (informatif)' })).toBeNull();
   expect(screen.queryByRole('heading', { name: "Depuis l'ouverture" })).toBeNull();
   expect(screen.queryByRole('region', { name: 'Indicateurs du portefeuille' })).toBeNull();
   expect(api.readPortfolioValuationHistory).toHaveBeenCalled();
@@ -1024,13 +1048,16 @@ it.each(['quality', 'cumulative'] as const)(
     await waitFor(() =>
       expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull(),
     );
-    const info = screen.getByRole('button', { name: 'Expliquer : Versements cumulés' });
-    await waitFor(() => expect(info.matches(':disabled')).toBe(false));
-    info.focus();
-    fireEvent.click(info);
-    await screen.findByRole('dialog', { name: 'Versements cumulés' });
-    fireEvent.keyDown(document, { key: 'Escape' });
-    await waitFor(() => expect(document.activeElement).toBe(info));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('heading', {
+            name: kind === 'quality' ? 'Qualité des données' : 'Montants cumulés enregistrés',
+          })
+          .closest('section')
+          ?.getAttribute('aria-busy'),
+      ).not.toBe('true'),
+    );
     const section = screen
       .getByRole('heading', {
         name: kind === 'quality' ? 'Qualité des données' : 'Montants cumulés enregistrés',
@@ -1044,7 +1071,7 @@ it.each(['quality', 'cumulative'] as const)(
       fireEvent.click(disclosure.querySelector('summary')!);
       await waitFor(() => expect(disclosure.open).toBe(true));
     }
-    const link = within(section).getByRole('link', {
+    const link = await within(section).findByRole('link', {
       name: kind === 'quality' ? 'Opération 1' : /Opération du/,
     });
     link.focus();
@@ -1090,7 +1117,11 @@ it.each(['performance', 'operations', 'positions', 'valuations', 'contract'] as 
     );
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
     renderPage();
-    await screen.findByText(/9\s293,00/);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Nouvelle valorisation' }).matches(':disabled'),
+      ).toBe(false),
+    );
     const expected = {
       positions: 'Supports du contrat',
       valuations: 'Qualité des données',
@@ -1121,7 +1152,11 @@ it.each(['positions', 'valuations'] as const)(
     );
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
     renderPage();
-    await screen.findByRole('region', { name: 'Indicateurs du portefeuille' });
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Nouvelle valorisation' }).matches(':disabled'),
+      ).toBe(false),
+    );
     if (tab === 'positions') {
       expect(await screen.findByLabelText('Afficher les positions soldées')).toBeTruthy();
       expect(await screen.findByRole('button', { name: 'Classe d’actifs' })).toBeTruthy();

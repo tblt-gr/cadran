@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 
 export interface AuditFinding {
   /** The rule that failed: document-scroll, amount-overflow, touch-target or primary-cta. */
-  rule: 'document-scroll' | 'amount-overflow' | 'touch-target' | 'primary-cta';
+  rule: 'document-scroll' | 'amount-overflow' | 'touch-target' | 'primary-cta' | 'table-alignment';
   /** A short description of the offending element (tag, accessible name or text, size). */
   element: string;
 }
@@ -40,6 +40,14 @@ export async function auditLayout(
           el.closest('[aria-hidden="true"], [inert]') === null
         );
       };
+      for (const cell of root.querySelectorAll('table th, table td')) {
+        if (visible(cell) && !['left', 'start'].includes(getComputedStyle(cell).textAlign)) {
+          found.push({
+            rule: 'table-alignment',
+            element: `${cell.tagName.toLowerCase()}.${String(cell.className).split(' ')[0]}`,
+          });
+        }
+      }
       const viewport = document.documentElement.clientWidth;
 
       // 1. No horizontal scroll of the document.

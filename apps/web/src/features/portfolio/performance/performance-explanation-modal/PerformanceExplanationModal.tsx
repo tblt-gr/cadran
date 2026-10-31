@@ -13,7 +13,12 @@ import {
   type FigureKey,
 } from '@/features/portfolio/performance/performanceFigures';
 import { formulaText, gainFormulaText } from '@/features/portfolio/performance/performanceFormulas';
-import { describeReason } from '@/features/portfolio/performance/performanceReasons';
+import {
+  describeReason,
+  formatReasonDates,
+  listedDateLimit,
+  summarizeReason,
+} from '@/features/portfolio/performance/performanceReasons';
 import { QualityBadge } from '@/features/portfolio/performance/quality-badge/QualityBadge';
 import { ExplanationEntries } from './ExplanationEntries';
 import { ExplanationFigure } from '@/features/portfolio/explanation/ExplanationFigure';
@@ -80,9 +85,16 @@ export function PerformanceExplanationModal(
           <ul className={explanation.warnings}>
             {data.reasons.map((reason, index) => {
               const { sentence, action } = describeReason(reason, context);
+              const crowded = reason.dates.length > listedDateLimit;
               return (
                 <li key={`${reason.code}-${index}`}>
-                  <span>{sentence}</span>
+                  <span>{crowded ? summarizeReason(reason, context) : sentence}</span>
+                  {crowded ? (
+                    <details className={styles.dates}>
+                      <summary>{`Voir les ${reason.dates.length} dates`}</summary>
+                      <p>{formatReasonDates(reason.dates)}</p>
+                    </details>
+                  ) : null}
                   {action ? (
                     <a
                       className="text-action"

@@ -8111,6 +8111,7 @@ paths:
         - name: scope
           in: query
           required: true
+          description: INCEPTION covers the observed history from the earliest active complete valuation, excluding earlier flows.
           schema:
             type: string
             enum:
@@ -10026,11 +10027,19 @@ components:
           required:
             - from
             - to
+            - years
           properties:
             from:
               type: integer
             to:
               type: integer
+            years:
+              description: Years that contain at least one active operation, oldest first. A history with none keeps the current year.
+              type: array
+              minItems: 1
+              uniqueItems: true
+              items:
+                type: integer
         months:
           type: array
           minItems: 12

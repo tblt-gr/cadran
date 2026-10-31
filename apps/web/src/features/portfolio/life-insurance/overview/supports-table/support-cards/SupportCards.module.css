@@ -27,7 +27,7 @@
 }
 .support dd {
   overflow-wrap: anywhere;
-  text-align: right;
+  text-align: left;
 }
 .name {
   height: 1em;

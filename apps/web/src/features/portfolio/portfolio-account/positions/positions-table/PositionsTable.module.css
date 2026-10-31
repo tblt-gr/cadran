@@ -1,4 +1,5 @@
 .panel {
+  overflow: hidden;
   padding: var(--spacing-none);
 }
 .scroll {
@@ -34,7 +35,7 @@
   border-bottom: var(--border-none);
 }
 .number {
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
 }
 .instrument {

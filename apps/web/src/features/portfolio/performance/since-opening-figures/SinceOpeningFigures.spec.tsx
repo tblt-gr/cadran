@@ -23,7 +23,7 @@ function renderFigures(frozen = false, omit: ('gain' | 'moneyWeighted')[] = []) 
   );
 }
 
-const title = 'Depuis l’ouverture';
+const title = 'Depuis le premier relevé';
 const region = () => screen.getByRole('region', { name: title });
 const labels = () =>
   within(region())
@@ -73,16 +73,48 @@ describe('SinceOpeningFigures', () => {
     renderFigures();
     await loaded();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Choisir les indicateurs depuis l’ouverture' }),
+      screen.getByRole('button', { name: 'Choisir les indicateurs depuis le premier relevé' }),
     );
-    const dialog = screen.getByRole('dialog', { name: 'Indicateurs depuis l’ouverture' });
+    const dialog = screen.getByRole('dialog', { name: 'Indicateurs depuis le premier relevé' });
     fireEvent.click(within(dialog).getByRole('checkbox', { name: /Rendement des placements/ }));
     fireEvent.click(within(dialog).getByRole('checkbox', { name: /Gain total/ }));
-    expect(labels()).toEqual(['Rendement des placements (TWR)', 'Rendement personnel (MWR)']);
+    expect(labels()).toEqual(['Rendement des placements (TWR) 2026', 'Rendement personnel (MWR)']);
     cleanup();
     renderFigures();
     await waitFor(() =>
-      expect(labels()).toEqual(['Rendement des placements (TWR)', 'Rendement personnel (MWR)']),
+      expect(labels()).toEqual([
+        'Rendement des placements (TWR) 2026',
+        'Rendement personnel (MWR)',
+      ]),
+    );
+  });
+
+  it('shows the performance-tab year TWR when since-opening TWR is not calculable', async () => {
+    api.readPortfolioPerformance.mockImplementation((request: { query: { scope: string } }) => {
+      const fixture = performanceFixture();
+      if (request.query.scope === 'INCEPTION') {
+        fixture.timeWeighted = {
+          ...fixture.timeWeighted,
+          value: null,
+          quality: 'NOT_CALCULABLE',
+          reasons: [{ code: 'MISSING_FLOW_VALUATION', dates: ['2023-11-09'] }],
+        };
+      }
+      return ok(fixture);
+    });
+    renderFigures();
+    await loaded();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choisir les indicateurs depuis le premier relevé' }),
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: /Rendement des placements/ }));
+    expect(
+      await screen.findByRole('heading', { name: 'Rendement des placements (TWR) 2026' }),
+    ).toBeTruthy();
+    expect(await screen.findByText(/2,38/)).toBeTruthy();
+    expect(screen.queryByText('Non calculable')).toBeNull();
+    expect(api.readPortfolioPerformance).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { scope: 'YEAR', period: '2026' } }),
     );
   });
 
@@ -90,7 +122,7 @@ describe('SinceOpeningFigures', () => {
     renderFigures(false, ['gain']);
     await waitFor(() => expect(labels()).toEqual(['Rendement personnel (MWR)']));
     fireEvent.click(
-      screen.getByRole('button', { name: 'Choisir les indicateurs depuis l’ouverture' }),
+      screen.getByRole('button', { name: 'Choisir les indicateurs depuis le premier relevé' }),
     );
     expect(screen.queryByRole('checkbox', { name: /Gain total/ })).toBeNull();
   });
@@ -117,7 +149,7 @@ describe('SinceOpeningFigures', () => {
     api.readPortfolioPerformance.mockImplementationOnce(() => refused(500, {}));
     renderFigures();
     const alert = await within(region()).findByRole('alert');
-    expect(alert.textContent).toContain('La performance depuis l’ouverture est indisponible');
+    expect(alert.textContent).toContain('La performance depuis le premier relevé est indisponible');
     expect(labels()).toEqual([]);
     fireEvent.click(within(alert).getByRole('button', { name: 'Réessayer' }));
     await loaded();

@@ -58,12 +58,25 @@
 .table td {
   padding: var(--spacing-1) var(--spacing-2);
   border-bottom: var(--border-line-subtle);
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
 }
 .table th:first-child,
 .table td:first-child {
   text-align: left;
+}
+.dates {
+  margin: var(--spacing-none);
+}
+.dates summary {
+  width: fit-content;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.dates p {
+  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
 }
 .reason {
   display: grid;

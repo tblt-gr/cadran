@@ -113,7 +113,7 @@ export function annualFixture(
     year: 2026,
     methodVersion: 'PERF-1',
     costPolicy: 'NET_OF_FEES_AND_TAXES',
-    availableYears: { from: 2025, to: 2026 },
+    availableYears: { from: 2025, to: 2026, years: [2025, 2026] },
     months: months as PortfolioAnnualPerformance['months'],
     yearTotal: periodLine({
       from: '2025-12-31',

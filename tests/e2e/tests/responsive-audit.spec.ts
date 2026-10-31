@@ -34,6 +34,7 @@ function routes(): string[] {
     '/accounts',
     '/accounts/groups',
     `/accounts/${ids.accountId}`,
+    `/accounts/${ids.accountId}?tab=operations`,
     '/parameters/catalog',
     '/parameters/product-models',
     '/transactions',
@@ -51,6 +52,8 @@ function routes(): string[] {
     `/portfolios/${ids.portfolioId}`,
     `/portfolios/${ids.portfolioId}?tab=valuations`,
     `/portfolios/${ids.portfolioId}?tab=account`,
+    `/portfolios/${ids.portfolioId}?tab=positions`,
+    `/portfolios/${ids.portfolioId}?tab=operations`,
     '/parameters/profile',
     '/parameters/metric-policy',
   ];
@@ -96,6 +99,7 @@ const PATTERNS = [
   '/accounts',
   '/accounts/groups',
   '/accounts/:account',
+  '/accounts/:account?tab=operations',
   '/parameters/catalog',
   '/parameters/product-models',
   '/transactions',
@@ -113,6 +117,8 @@ const PATTERNS = [
   '/portfolios/:portfolio',
   '/portfolios/:portfolio?tab=valuations',
   '/portfolios/:portfolio?tab=account',
+  '/portfolios/:portfolio?tab=positions',
+  '/portfolios/:portfolio?tab=operations',
   '/parameters/profile',
   '/parameters/metric-policy',
 ];

@@ -4,6 +4,7 @@
   gap: var(--spacing-6);
 }
 .panel {
+  overflow: hidden;
   padding: var(--spacing-none);
 }
 .notice {

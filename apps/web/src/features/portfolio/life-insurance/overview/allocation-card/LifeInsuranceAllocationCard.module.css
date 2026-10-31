@@ -31,7 +31,7 @@
   padding: var(--spacing-3);
   border-bottom: var(--border-line-subtle);
   vertical-align: top;
-  text-align: right;
+  text-align: left;
   font-variant-numeric: tabular-nums;
 }
 .scroll th {

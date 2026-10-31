@@ -1,20 +1,13 @@
+import { useState } from 'react';
+import { AccountRulesModals } from '@/features/accounts/account-rules/AccountRulesModals';
 import type { Account } from '@cadran/api-client';
-import type { ReactNode } from 'react';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
-import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import { todayInBrowser } from '@/lib/businessDay';
 import styles from './PortfolioAccountHeader.module.css';
 
-/**
- * Institution and product line of a portfolio account, beside the page's own controls
- * (`children`), plus the two entry actions in the shell header: a new operation and a new
- * valuation. The account name is the shell title. Without `account` it is the loading state:
- * the actions stay real but disabled, only the account's own values are blocks.
- */
+/** Shared shell actions stay available while tabs change; pending account actions are disabled. */
 export function PortfolioAccountHeader({
   account,
   accountId,
@@ -22,7 +15,6 @@ export function PortfolioAccountHeader({
   onRecordValuation,
   contractRequired = false,
   operationBlocked = false,
-  children,
 }: {
   account?: Account;
   accountId: string;
@@ -30,13 +22,8 @@ export function PortfolioAccountHeader({
   onRecordValuation: () => void;
   contractRequired?: boolean;
   operationBlocked?: boolean;
-  children?: ReactNode;
 }) {
-  const products = useProductOptions(todayInBrowser());
-  const product = account?.productCode
-    ? products.items.find((item) => item.code === account.productCode)
-    : undefined;
-  const subtitle = [account?.institution, product?.displayName].filter(Boolean).join(' · ');
+  const [rulesOpen, setRulesOpen] = useState(false);
   const instrumentsHref = '/portfolios/instruments';
   const writable =
     account !== undefined && account.status === 'ACTIVE' && valuedByPortfolio(account);
@@ -44,7 +31,25 @@ export function PortfolioAccountHeader({
 
   return (
     <>
+      {rulesOpen && account ? (
+        <AccountRulesModals
+          account={account}
+          close={() => setRulesOpen(false)}
+          onOverrideRecorded={() => undefined}
+          onOverrideWithdrawn={() => undefined}
+        />
+      ) : null}
       <HeaderActions>
+        <button
+          aria-label="Nouvelle opération"
+          className={`primary-action ${styles.add}`}
+          disabled={!writable || contractRequired || operationBlocked}
+          onClick={onCreate}
+          type="button"
+        >
+          <Icon name="add" size={18} />
+          <span className={styles.addLabel}>Nouvelle opération</span>
+        </button>
         <button
           aria-label="Nouvelle valorisation"
           className={`secondary-action ${styles.add}`}
@@ -56,14 +61,14 @@ export function PortfolioAccountHeader({
           <span className={styles.addLabel}>Nouvelle valorisation</span>
         </button>
         <button
-          aria-label="Nouvelle opération"
-          className={`primary-action ${styles.add}`}
-          disabled={!writable || contractRequired || operationBlocked}
-          onClick={onCreate}
+          className="icon-button"
+          aria-label="Voir les règles"
+          title="Voir les règles"
+          disabled={!account}
+          onClick={() => setRulesOpen(true)}
           type="button"
         >
-          <Icon name="add" size={18} />
-          <span className={styles.addLabel}>Nouvelle opération</span>
+          <Icon name="sliders" />
         </button>
         <a
           aria-label="Gérer les instruments"
@@ -75,21 +80,11 @@ export function PortfolioAccountHeader({
           <Icon name="chart-line" />
         </a>
       </HeaderActions>
-      <div className={styles.meta}>
-        <div className={styles.identity}>
-          {!account ? (
-            <SkeletonBlock className={styles.subtitleBlock} />
-          ) : subtitle ? (
-            <p className={styles.subtitle}>{subtitle}</p>
-          ) : null}
-          {contractRequired ? (
-            <a href={contractHref} onClick={(event) => handleClientNavigation(event, contractHref)}>
-              Renseignez d'abord le contrat
-            </a>
-          ) : null}
-        </div>
-        {children}
-      </div>
+      {contractRequired ? (
+        <a href={contractHref} onClick={(event) => handleClientNavigation(event, contractHref)}>
+          Renseignez d'abord le contrat
+        </a>
+      ) : null}
     </>
   );
 }

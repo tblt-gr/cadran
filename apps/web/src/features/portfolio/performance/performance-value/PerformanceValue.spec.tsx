@@ -12,7 +12,35 @@ describe('PerformanceValue', () => {
   it('keeps the zero amount placeholder neutral', () => {
     expect(signed('-')).toEqual({ text: '-', tone: '' });
   });
-  it('shows a rate with an explicit sign and its quality badge', () => {
+  it('keeps rounded negative zero neutral', () => {
+    expect(signed('-0,00 €')).toEqual({ text: '0,00 €', tone: '' });
+    expect(signed('-0,01 €').tone).not.toBe('');
+  });
+
+  it('keeps the quality pill out of the figure', () => {
+    const fixture = performanceFixture();
+    const view = render(
+      <PerformanceValue
+        context={accountContext}
+        figure={fixture.timeWeighted}
+        label="TWR"
+        onExplain={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText('Exact')).toBeNull();
+    view.rerender(
+      <PerformanceValue
+        context={accountContext}
+        figure={{ ...fixture.modifiedDietz, quality: 'DEGRADED' }}
+        label="TWR"
+        onExplain={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText('Approximation')).toBeNull();
+    expect(screen.queryByText('Données à vérifier')).toBeNull();
+  });
+
+  it('shows a rate with an explicit sign', () => {
     const fixture = performanceFixture();
     render(
       <PerformanceValue
@@ -23,7 +51,6 @@ describe('PerformanceValue', () => {
       />,
     );
     expect(screen.getByText('+2,38 %')).toBeTruthy();
-    expect(screen.getByText('Exact')).toBeTruthy();
   });
 
   it('signs a rate below one percent', () => {
@@ -61,28 +88,6 @@ describe('PerformanceValue', () => {
     expect(screen.getByText(/^\+250,00/)).toBeTruthy();
   });
 
-  it('labels the approximation and the figure to check', () => {
-    const fixture = performanceFixture();
-    const view = render(
-      <PerformanceValue
-        context={accountContext}
-        figure={fixture.modifiedDietz}
-        label="Rendement (Modified Dietz)"
-        onExplain={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('Approximation')).toBeTruthy();
-    view.rerender(
-      <PerformanceValue
-        context={accountContext}
-        figure={{ ...fixture.modifiedDietz, quality: 'DEGRADED' }}
-        label="Rendement (Modified Dietz)"
-        onExplain={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('Données à vérifier')).toBeTruthy();
-  });
-
   it('shows a greyed dash with the reason readable by assistive technology', () => {
     const fixture = performanceFixture();
     render(
@@ -100,10 +105,11 @@ describe('PerformanceValue', () => {
     );
     expect(screen.getByText('Non calculable', { selector: '.sr-only' })).toBeTruthy();
     expect(
-      screen.getByText("Valorisation manquante le jour d'un flux : 25/03/2026.", {
+      screen.getByText('Relevés manquants aux dates de versement ou retrait.', {
         selector: '.sr-only',
       }),
     ).toBeTruthy();
+    expect(screen.queryByText(/25\/03\/2026/)).toBeNull();
     expect(screen.getByText('-', { selector: '[aria-hidden="true"]' })).toBeTruthy();
   });
 

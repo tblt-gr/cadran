@@ -18,6 +18,9 @@ interface ValuationRepository
     /** The latest active valuation strictly before a day, optionally restricted to known totals or an explicit completeness. */
     public function latestActiveBefore(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $day, bool $withTotalOnly = false, ?ValuationCompleteness $completeness = null): ?Valuation;
 
+    /** Earliest active COMPLETE observation on or before the requested day. */
+    public function firstActiveCompleteOnOrBefore(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $day): ?Valuation;
+
     public function add(Valuation $valuation): void;
 
     /** Persists the supersession marker only; false when the expected version is stale. */

@@ -60,8 +60,9 @@ it('uses the 12 month range by default and exposes exact dated amounts and fresh
     from: '2025-10-20',
     to: '2026-10-20',
   });
-  const hit = screen.getByRole('button', { name: /10\/10\/2026, / });
+  const hit = screen.getByRole('slider', { name: 'Historique du solde' });
   act(() => hit.focus());
+  fireEvent.keyDown(hit, { key: 'End' });
   expect(screen.getByRole('tooltip').textContent).toContain('123456789012345678901234');
   expect(screen.getByRole('tooltip').textContent).toContain('Dernier solde connu');
   expect(screen.getByRole('table').textContent).toContain('01/10/2026');
@@ -106,7 +107,7 @@ it('keeps the previous chart and flags the panel busy while a new range loads', 
     expect(container.querySelector('section')?.getAttribute('aria-busy')).toBe('true'),
   );
   expect(container.querySelector('[data-skeleton]')).toBeNull();
-  expect(screen.getByRole('button', { name: /10\/10\/2026, / })).toBeTruthy();
+  expect(screen.getByRole('slider', { name: 'Historique du solde' })).toBeTruthy();
 });
 it('keeps static chrome and disabled controls while loading', () => {
   api.readAccountValuationHistory.mockReturnValue(new Promise(() => {}));

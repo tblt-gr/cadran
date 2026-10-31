@@ -82,19 +82,29 @@
   border-top: var(--border-line-subtle);
   gap: var(--spacing-6) var(--spacing-4);
 }
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
 @media (min-width: 768px) {
   .lead {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
   }
-  .lead > .figure {
+  .sideTop {
+    align-self: start;
+  }
+  .side {
     align-items: flex-end;
     text-align: right;
   }
 }
 @media (min-width: 1024px) {
   .strip {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .strip > .figure + .figure {
     padding-left: var(--spacing-4);
@@ -102,6 +112,7 @@
   }
 }
 .pill {
+  align-self: flex-end;
   padding: var(--spacing-none);
   border: var(--border-none);
   background: var(--color-transparent);

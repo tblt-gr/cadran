@@ -14,10 +14,12 @@ import {
 import styles from './ContractFigures.module.css';
 export function ContractFigures({
   summary,
+  embedded = false,
   accountId,
   sourceReturnFocus,
 }: {
   summary: Summary | null;
+  embedded?: boolean;
   accountId: string;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
@@ -33,7 +35,7 @@ export function ContractFigures({
     : null;
   return (
     <section
-      className={`card ${styles.figures}`}
+      className={`${embedded ? '' : 'card'} ${styles.figures}`}
       aria-label="Indicateurs du contrat"
       aria-busy={!summary}
     >

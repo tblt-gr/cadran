@@ -6,13 +6,12 @@ import styles from './AccountIdentityCard.module.css';
 import skeletonStyles from './AccountIdentityCardSkeleton.module.css';
 
 /** Mirrors AccountIdentityCard element for element: only the account values are blocks. */
-export function AccountIdentityCardSkeleton() {
+export function AccountIdentityCardSkeleton({ portfolio = false }: { portfolio?: boolean }) {
   const { t } = useTranslation();
   return (
-    <div className={`card ${styles.card}`}>
+    <div className={`${portfolio ? styles.embedded : 'card'} ${styles.card}`}>
       <div className={styles.top}>
         <div className={styles.identity}>
-          <p>{t('accounts.detail.identity.title')}</p>
           <div className={styles.nameRow}>
             <SkeletonBlock className={skeletonStyles.name} />
           </div>
@@ -25,13 +24,12 @@ export function AccountIdentityCardSkeleton() {
             <SkeletonBlock className={skeletonStyles.line} />
           </span>
         </div>
-        <div className={styles.balancePanel}>
-          <span className={styles.balanceLabel}>{t('accounts.fields.balance')}</span>
-          <AccountValuationCell size="lg" valuation={null} />
-          <span className={styles.openedOn}>
-            <SkeletonBlock className={skeletonStyles.line} />
-          </span>
-        </div>
+        {!portfolio ? (
+          <div className={styles.balancePanel}>
+            <span className={styles.balanceLabel}>{t('accounts.fields.balance')}</span>
+            <AccountValuationCell size="lg" valuation={null} />
+          </div>
+        ) : null}
       </div>
     </div>
   );

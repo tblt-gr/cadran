@@ -1,3 +1,5 @@
+import { useAccountHeader } from '@/features/accounts/account-header/useAccountHeader';
+import { AccountNavigation, accountOperationsActive } from './AccountNavigation';
 import type { Account } from '@cadran/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -37,12 +39,19 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const today = workspaceToday(new Date(), useWorkspaceTimeZone());
+  const [operations, setOperations] = useState(accountOperationsActive);
+  useEffect(() => {
+    const update = () => setOperations(accountOperationsActive());
+    window.addEventListener('popstate', update);
+    return () => window.removeEventListener('popstate', update);
+  }, []);
   const [editor, setEditor] = useState<LedgerEditor>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [reconciling, setReconciling] = useState(false);
   const [saved, setSaved] = useState<Saved>(null);
 
   const account = useAccountDetail(accountId);
+  useAccountHeader(`/accounts/${accountId}`, account.isError ? undefined : account.data);
   useBreadcrumbAccount(
     `/accounts/${accountId}`,
     !account.isError && account.data?.id === accountId ? account.data.label : null,
@@ -65,7 +74,9 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   }
 
   if (account.isPending || redirect !== null) {
-    return <AccountDetailPageSkeleton status={t('accounts.detail.loading')} />;
+    return (
+      <AccountDetailPageSkeleton accountId={accountId} status={t('accounts.detail.loading')} />
+    );
   }
 
   const failure = account.error instanceof AccountRequestError ? account.error : null;
@@ -93,6 +104,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
 
   return (
     <div className={styles.page}>
+      <AccountNavigation accountId={accountId} operations={operations} />
       {account.isError && editor !== 'transfer' ? (
         <div className={styles.notice} role="alert">
           <p>{t('accounts.detail.refreshError')}</p>
@@ -120,8 +132,8 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
         <Toast onDismiss={() => setSaved(null)}>{t(`accounts.detail.toasts.${saved}`)}</Toast>
       ) : null}
 
-      <AccountIdentityCard account={current} />
-      {current.kind === 'SAVINGS' ? (
+      {!operations ? <AccountIdentityCard account={current} /> : null}
+      {!operations && (current.kind === 'SAVINGS' || current.kind === 'CURRENT') ? (
         <SavingsHistoryPanel accountId={accountId} today={today} />
       ) : null}
 
@@ -146,18 +158,21 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
         />
       ) : null}
 
-      <AccountLedger
-        account={current}
-        creatable={creatable}
-        editor={editor}
-        onEditorChange={setEditor}
-        onSaved={setSaved}
-        refreshError={
-          account.isError
-            ? { message: t('accounts.detail.refreshError'), retry: () => void account.refetch() }
-            : undefined
-        }
-      />
+      {operations || editor ? (
+        <AccountLedger
+          showMovements={operations}
+          account={current}
+          creatable={creatable}
+          editor={editor}
+          onEditorChange={setEditor}
+          onSaved={setSaved}
+          refreshError={
+            account.isError
+              ? { message: t('accounts.detail.refreshError'), retry: () => void account.refetch() }
+              : undefined
+          }
+        />
+      ) : null}
     </div>
   );
 }

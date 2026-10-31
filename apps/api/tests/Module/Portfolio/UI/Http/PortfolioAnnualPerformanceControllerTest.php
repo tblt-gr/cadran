@@ -75,7 +75,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
 
         $annual = $this->annual(2026);
 
-        self::assertSame(['PERF-1', 'NET_OF_FEES_AND_TAXES', ['from' => 2026, 'to' => 2026]], [$annual['methodVersion'], $annual['costPolicy'], $annual['availableYears']]);
+        self::assertSame(['PERF-1', 'NET_OF_FEES_AND_TAXES', ['from' => 2026, 'to' => 2026, 'years' => [2026]]], [$annual['methodVersion'], $annual['costPolicy'], $annual['availableYears']]);
         $months = self::lines($annual['months']);
         self::assertCount(12, $months);
         foreach (['2026-01', '2026-02', '2026-03', '2026-04'] as $index => $label) {
@@ -210,7 +210,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
     {
         $this->connection->executeStatement('UPDATE account_financial_accounts SET opened_on = ? WHERE id = ?', ['2024-06-15', self::ACCOUNT]);
 
-        self::assertSame(['from' => 2024, 'to' => 2026], $this->annual(2024)['availableYears']);
+        self::assertSame(['from' => 2024, 'to' => 2026, 'years' => [2026]], $this->annual(2024)['availableYears']);
         self::assertSame(['BEFORE_OPENING', 'NOT_CALCULABLE'], [self::lines($this->annual(2024)['months'])[4]['status'], self::lines($this->annual(2024)['months'])[5]['status']]);
         foreach (['2023', '2027', 'abc', '26', '2026-01', ''] as $year) {
             $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-performance/annual?year='.$year);
@@ -221,6 +221,15 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-performance/annual?year[]=2026');
         self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testAYearWithNoOperationIsLeftOutOfTheSelector(): void
+    {
+        $this->connection->executeStatement('UPDATE account_financial_accounts SET opened_on = ? WHERE id = ?', ['2024-06-15', self::ACCOUNT]);
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2024-07-01', 'grossAmount' => $this->eur('1000.00')]);
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-02-01', 'grossAmount' => $this->eur('100.00')]);
+
+        self::assertSame([2024, 2026], $this->annual(2026)['availableYears']['years']);
     }
 
     public function testAnAccountOverTheOperationBoundIsRefused(): void

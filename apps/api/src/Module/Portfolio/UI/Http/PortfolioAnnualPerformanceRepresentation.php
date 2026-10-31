@@ -20,7 +20,11 @@ final class PortfolioAnnualPerformanceRepresentation
             'year' => $annual->year,
             'methodVersion' => PerformanceMethod::VERSION,
             'costPolicy' => PortfolioCostPolicy::PERFORMANCE_BASIS,
-            'availableYears' => ['from' => $annual->firstYear, 'to' => $annual->lastYear],
+            'availableYears' => [
+                'from' => $annual->firstYear,
+                'to' => $annual->lastYear,
+                'years' => $annual->activeYears,
+            ],
             'months' => array_map(self::month(...), $annual->months),
             'yearTotal' => PortfolioPerformanceRepresentation::line($annual->yearTotal),
             'inception' => PortfolioPerformanceRepresentation::line($annual->inception),

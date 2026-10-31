@@ -51,7 +51,7 @@
 .tableScroll td {
   padding: var(--spacing-3);
   border-bottom: var(--border-width-thin) solid var(--border-subtle);
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
 }
 .tableScroll thead th {

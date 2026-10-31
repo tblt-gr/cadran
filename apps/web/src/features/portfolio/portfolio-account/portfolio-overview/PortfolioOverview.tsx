@@ -20,12 +20,14 @@ function SecuritiesOverview({
   accountId,
   asOf,
   frozen = false,
+  embedded = false,
   history,
   sourceReturnFocus,
 }: {
   accountId: string;
   asOf: string;
   frozen?: boolean;
+  embedded?: boolean;
   /** The value history card. */
   history: ReactNode;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
@@ -80,6 +82,7 @@ function SecuritiesOverview({
         </OperationsState>
       ) : (
         <PortfolioKpiGrid
+          embedded={embedded}
           asOf={asOf}
           qualifiers={qualifiers}
           summary={summary.data ?? null}
@@ -120,6 +123,7 @@ export function PortfolioOverview(
           accountId={props.accountId}
           asOf={props.asOf}
           frozen={props.frozen}
+          embedded={props.embedded}
           sourceReturnFocus={props.sourceReturnFocus}
         />
         <SinceOpeningFigures
@@ -127,7 +131,7 @@ export function PortfolioOverview(
           asOf={props.asOf}
           frozen={props.frozen}
           omit={['gain']}
-          standalone
+          standalone={!props.embedded}
         />
         {props.history}
       </>

@@ -58,11 +58,11 @@ describe('PerformanceTab', () => {
   it('shows the real chrome while loading then the year figures and months only', async () => {
     renderTab();
     expect(screen.getByTestId('performance-skeleton')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: '2026' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Année précédente' }).hasAttribute('disabled')).toBe(
-      true,
+    expect((screen.getByRole('combobox', { name: 'Année' }) as HTMLSelectElement).value).toBe(
+      '2026',
     );
-    expect(screen.queryByRole('heading', { name: 'Depuis l’ouverture' })).toBeNull();
+    expect(screen.getByRole('combobox', { name: 'Année' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.queryByRole('heading', { name: 'Depuis le premier relevé' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Évolution de la valeur 2026' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Rendement chaîné (base 100)' })).toBeNull();
     expect(screen.getByRole('columnheader', { name: 'Valeur début' })).toBeTruthy();
@@ -72,7 +72,7 @@ describe('PerformanceTab', () => {
       expect.objectContaining({ path: { accountId }, query: { year: '2026' } }),
     );
     expect(screen.getByRole('heading', { name: 'Année 2026' })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Depuis l’ouverture' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Depuis le premier relevé' })).toBeNull();
     expect(api.readPortfolioPerformance).not.toHaveBeenCalledWith(
       expect.objectContaining({ query: { scope: 'INCEPTION' } }),
     );
@@ -92,12 +92,11 @@ describe('PerformanceTab', () => {
   it('navigates between years, writes the URL and disables the buttons at the bounds', async () => {
     renderTab();
     await loaded();
-    const next = screen.getByRole('button', { name: 'Année suivante' });
-    const previous = screen.getByRole('button', { name: 'Année précédente' });
-    expect(next.hasAttribute('disabled')).toBe(true);
-    expect(previous.hasAttribute('disabled')).toBe(false);
-
-    fireEvent.click(previous);
+    const select = screen.getByRole('combobox', { name: 'Année' });
+    expect(Array.from((select as HTMLSelectElement).options).map((option) => option.value)).toEqual(
+      ['2026', '2025'],
+    );
+    fireEvent.change(select, { target: { value: '2025' } });
     expect(window.location.search).toContain('year=2025');
     expect(window.location.search).toContain('tab=performance');
     await waitFor(() =>
@@ -105,6 +104,30 @@ describe('PerformanceTab', () => {
         expect.objectContaining({ query: { year: '2025' } }),
       ),
     );
+  });
+
+  it('leaves a year that has no operation for the latest year that does', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=performance&year=2024`);
+    api.readPortfolioAnnualPerformance.mockImplementation(() =>
+      ok(
+        annualFixture({
+          availableYears: { from: 2024, to: 2026, years: [2025, 2026] },
+          year: 2024,
+        }),
+      ),
+    );
+    renderTab();
+    await waitFor(() =>
+      expect(api.readPortfolioAnnualPerformance).toHaveBeenCalledWith(
+        expect.objectContaining({ query: { year: '2026' } }),
+      ),
+    );
+    expect(window.location.search).toContain('year=2026');
+    expect(
+      Array.from(
+        (screen.getByRole('combobox', { name: 'Année' }) as HTMLSelectElement).options,
+      ).map((option) => option.value),
+    ).toEqual(['2026', '2025']);
   });
 
   it('shows the table of dashes with the empty-year notice when nothing is valued', async () => {

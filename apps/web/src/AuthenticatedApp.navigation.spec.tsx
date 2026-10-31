@@ -109,6 +109,32 @@ describe('AuthenticatedApp lazy navigation', () => {
     expect(window.location.pathname).toBe('/goals');
   });
 
+  it('returns to the top on a page change and stays put for a query change', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    window.history.replaceState({}, '', '/');
+    renderApp();
+    await screen.findByText('Contenu de la synthèse');
+    scrollTo.mockClear();
+
+    fireEvent.click(
+      within(screen.getByRole('navigation', { name: 'Navigation principale' })).getByRole('link', {
+        name: 'Objectifs',
+      }),
+    );
+    await act(async () => {
+      gates.goals.open();
+    });
+    await screen.findByText('Contenu des objectifs');
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+
+    scrollTo.mockClear();
+    window.history.pushState({}, '', '/goals?year=2026');
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
   it('keeps the current page while a back or forward navigation loads its chunk', async () => {
     window.history.replaceState({}, '', '/');
     renderApp();

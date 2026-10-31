@@ -7,6 +7,7 @@ import { AccountIdentityCard } from './AccountIdentityCard';
 
 const api = vi.hoisted(() => ({
   listAccountGroups: vi.fn(),
+  readAccountRules: vi.fn(),
   readProduct: vi.fn(),
   readProductModel: vi.fn(),
 }));
@@ -85,6 +86,7 @@ function renderCard(target: Account) {
 
 describe('AccountIdentityCard', () => {
   beforeEach(() => {
+    api.readAccountRules.mockImplementation(() => failure(404));
     api.listAccountGroups.mockImplementation(() =>
       success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
@@ -94,12 +96,40 @@ describe('AccountIdentityCard', () => {
     cleanup();
   });
 
-  it('shows the account label, kind, group and institution', () => {
+  it('shows the account name and masked identifier without repeating header metadata', () => {
     renderCard(account);
 
     expect(screen.getByRole('heading', { name: 'Livret A Banque X' })).toBeTruthy();
     expect(screen.getByText('Livret ou épargne • Aucun groupe')).toBeTruthy();
-    expect(screen.getByText('Banque X · ••4821')).toBeTruthy();
+    expect(screen.getByText('••4821')).toBeTruthy();
+    expect(screen.queryByText('Banque X')).toBeNull();
+    expect(screen.queryByText('Identité')).toBeNull();
+    expect(screen.queryByText(/Ouvert le/)).toBeNull();
+  });
+
+  it('keeps the contractual rate without showing a balance-based interest estimate', async () => {
+    api.readAccountRules.mockImplementation(() =>
+      success({
+        assetCode: 'EUR',
+        rates: [
+          {
+            kind: 'ANNUAL_RATE',
+            effectiveLayer: 'CATALOG',
+            catalog: {
+              guaranteed: true,
+              application: 'MARGINAL',
+              brackets: [{ percentage: '1.7', lowerBound: '0', upperBound: null }],
+            },
+            applied: { effectivePercentage: '1.7', interest: '123.45', unsettledReason: null },
+          },
+        ],
+      }),
+    );
+    renderCard(account);
+    expect(await screen.findByText(/1,70/)).toBeTruthy();
+    expect(screen.queryByText('Taux dû au titulaire')).toBeNull();
+    expect(screen.queryByText(/Sur le solde observé/)).toBeNull();
+    expect(screen.queryByText(/123,45/)).toBeNull();
   });
 
   it('shows no status badge for an active account, only for an inactive one', () => {

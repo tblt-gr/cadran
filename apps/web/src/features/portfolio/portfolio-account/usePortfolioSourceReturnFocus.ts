@@ -22,5 +22,23 @@ export function usePortfolioSourceReturnFocus(active: PortfolioTab, asOf: string
       link.focus();
     }
   }, [active, asOf]);
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      if (
+        ref.current &&
+        !ref.current.isConnected &&
+        !document.querySelector('[role="dialog"]') &&
+        document.activeElement === document.body
+      ) {
+        document
+          .querySelector<HTMLElement>(
+            'nav[aria-label="Sections du portefeuille"] [aria-current="page"]',
+          )
+          ?.focus();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   return ref;
 }

@@ -101,6 +101,29 @@ describe('AccountValuationCell', () => {
 });
 
 describe('derived balance provenance', () => {
+  it('omits the statement and movement line in the account header', () => {
+    render(
+      <AccountValuationCell
+        size="lg"
+        valuation={valuation({
+          basis: 'SNAPSHOT_PLUS_MOVEMENTS',
+          quality: 'CURRENT',
+          ageDays: 0,
+          derivation: {
+            anchorAsOf: '2026-09-30',
+            anchorAgeDays: 10,
+            movementCount: 53,
+            pendingCount: 0,
+          },
+        })}
+      />,
+    );
+    expect(screen.getByText(/231,10/)).toBeTruthy();
+    expect(screen.queryByText(/Au jour/)).toBeNull();
+    expect(screen.queryByText(/Relevé du/)).toBeNull();
+    expect(screen.queryByText(/mouvement/)).toBeNull();
+  });
+
   it.each([0, 1, 2])('describes the anchor and movements with %i pending', (pendingCount) => {
     const { container } = render(
       <AccountValuationCell
@@ -193,7 +216,8 @@ it.each([
   const { container, rerender } = render(<AccountValuationCell {...props} valuation={null} />);
   const loadingStructure = structure(container.firstElementChild!);
   const loadingSmall = container.querySelector('small');
-  expect(loadingSmall?.querySelector('[data-skeleton]')).toBeTruthy();
+  if (props.size === 'lg') expect(loadingSmall).toBeNull();
+  else expect(loadingSmall?.querySelector('[data-skeleton]')).toBeTruthy();
   if (props.ceiling) {
     const track = container.querySelector('span[aria-hidden="true"]:not([data-skeleton])');
     expect(track?.firstElementChild).toBeTruthy();

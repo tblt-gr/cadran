@@ -9,7 +9,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Rate, signed } from '@/features/portfolio/performance/performance-value/PerformanceValue';
 import type { FigureKey } from '@/features/portfolio/performance/performanceFigures';
 import {
-  describeReason,
+  summarizeReason,
   type ReasonContext,
 } from '@/features/portfolio/performance/performanceReasons';
 import { formatAmount } from '@/lib/decimal';
@@ -30,10 +30,7 @@ export interface LineColumn {
 function missing(reasons: PortfolioPerformanceReason[], context: LineContext) {
   const reason = reasons[0];
   return (
-    <EmptyValue
-      label="Non calculable"
-      reason={reason ? describeReason(reason, context).sentence : null}
-    />
+    <EmptyValue label="Non calculable" reason={reason ? summarizeReason(reason, context) : null} />
   );
 }
 

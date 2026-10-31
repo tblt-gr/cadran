@@ -5,7 +5,6 @@ import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
 import { RateBrackets } from '@/features/accounts/account-rules/rate-brackets/RateBrackets';
-import { RateMeasure } from '@/features/accounts/account-rules/rate-measure/RateMeasure';
 import { useAccountRules } from '@/features/accounts/account-rules/useAccountRules';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
 import { depositCeilingOf } from '@/lib/depositCeiling';
@@ -16,6 +15,7 @@ import styles from './AccountIdentityCard.module.css';
 
 interface AccountIdentityCardProps {
   account: Account;
+  portfolio?: boolean;
 }
 
 const STATUS_TONE = {
@@ -34,7 +34,7 @@ const STATUS_TONE = {
  * still resolves to the name it once had, and a read failure is stated
  * rather than silently blanked.
  */
-export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
+export function AccountIdentityCard({ account, portfolio = false }: AccountIdentityCardProps) {
   const { i18n, t } = useTranslation();
   const group = useAccountGroupLabel(account.primaryGroupId);
   const products = useProductOptions(account.valuation.requestedOn);
@@ -73,10 +73,9 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
           : group.label;
 
   return (
-    <div className={`card ${styles.card}`}>
+    <div className={`${portfolio ? styles.embedded : 'card'} ${styles.card}`}>
       <div className={styles.top}>
         <div className={styles.identity}>
-          <p>{t('accounts.detail.identity.title')}</p>
           <div className={styles.nameRow}>
             <h3>{account.label}</h3>
             {account.status === 'ACTIVE' ? null : (
@@ -85,49 +84,38 @@ export function AccountIdentityCard({ account }: AccountIdentityCardProps) {
               </StatusBadge>
             )}
           </div>
-          <span>
-            {[account.institution, account.maskedIdentifier && `••${account.maskedIdentifier}`]
-              .filter(Boolean)
-              .join(' · ') || t('accounts.detail.identity.noInstitution')}
-          </span>
+          {account.maskedIdentifier ? <span>{`••${account.maskedIdentifier}`}</span> : null}
           <span className={styles.meta}>
             {t(`accounts.kinds.${account.kind}`)} • <GroupMarker color={group.color} />
             {groupLabel}
           </span>
         </div>
 
-        <div className={styles.balancePanel}>
-          <span className={styles.balanceLabel}>{t('accounts.fields.balance')}</span>
-          <AccountValuationCell
-            ceiling={ceiling}
-            size="lg"
-            startingBalanceHint={account.valuationMode === 'TRANSACTIONS'}
-            valuation={account.valuation}
-          />
-          <span className={styles.openedOn}>
-            {t('accounts.detail.identity.openedOn', {
-              date: formatCalendarDay(account.openedOn, i18n.language),
-            })}
-          </span>
-          {headlineRate && headlineRateLayer && rulesData ? (
-            <div className={styles.rateStat}>
-              <span className={styles.balanceLabel}>
-                {t(`catalog.rules.kinds.${headlineRate.kind}`)}
-              </span>
-              <div>
-                <RateBrackets assetCode={rulesData.assetCode} rate={headlineRateLayer} />
+        {!portfolio ? (
+          <div className={styles.balancePanel}>
+            <span className={styles.balanceLabel}>{t('accounts.fields.balance')}</span>
+            <AccountValuationCell
+              ceiling={ceiling}
+              size="lg"
+              startingBalanceHint={account.valuationMode === 'TRANSACTIONS'}
+              valuation={account.valuation}
+            />
+            {headlineRate && headlineRateLayer && rulesData ? (
+              <div className={styles.rateStat}>
+                <span className={styles.balanceLabel}>
+                  {t(`catalog.rules.kinds.${headlineRate.kind}`)}
+                </span>
+                <div>
+                  <RateBrackets
+                    assetCode={rulesData.assetCode}
+                    rate={headlineRateLayer}
+                    variant="figure"
+                  />
+                </div>
               </div>
-              <div className={styles.rateMeasure}>
-                <RateMeasure
-                  applied={headlineRate.applied}
-                  assetCode={rulesData.assetCode}
-                  rate={headlineRateLayer}
-                  showApplied
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {account.closedOn || account.archivedAt ? (

@@ -4,15 +4,14 @@ import { activeTab, tabForKind } from './activeTab';
 import { PortfolioTabs } from './PortfolioTabs';
 afterEach(cleanup);
 describe('PortfolioTabs', () => {
-  it('orders the securities tabs from holdings to the account, without a contract tab', () => {
+  it('orders shared account tabs before investment views, without a contract tab', () => {
     render(<PortfolioTabs accountId="a" active="positions" kind="PORTFOLIO" />);
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
-      'Positions',
+      'Compte',
       'Opérations',
       'Valorisations',
-      'Espèces',
+      'Positions',
       'Performance',
-      'Compte',
     ]);
     expect(screen.getByRole('link', { name: 'Compte' }).getAttribute('href')).toBe(
       '/portfolios/a?tab=account',
@@ -25,16 +24,18 @@ describe('PortfolioTabs', () => {
       <PortfolioTabs accountId="a" active="contract" kind="INSURANCE_CONTRACT" asOf="2026-04-01" />,
     );
     expect(screen.getByRole('link', { name: 'Supports' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Liquidités' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Liquidités' })).toBeNull();
     const contract = screen.getByRole('link', { name: 'Contrat' });
     expect(contract.getAttribute('href')).toBe('/portfolios/a?tab=contract&asOf=2026-04-01');
     expect(contract.getAttribute('aria-current')).toBe('page');
     expect(screen.getAllByRole('link').at(-1)).toBe(contract);
-    expect(screen.queryByRole('link', { name: 'Compte' })).toBeNull();
+    expect(screen.getAllByRole('link')[0].textContent).toBe('Compte');
   });
-  it('opens Positions by default and for a former allocation link', () => {
+  it('opens Compte by default and keeps former allocation links', () => {
     window.history.replaceState({}, '', '/portfolios/a');
-    expect(activeTab()).toBe('positions');
+    expect(activeTab()).toBe('account');
+    window.history.replaceState({}, '', '/portfolios/a?tab=cash');
+    expect(activeTab()).toBe('operations');
     window.history.replaceState({}, '', '/portfolios/a?tab=allocation');
     expect(activeTab()).toBe('positions');
     window.history.replaceState({}, '', '/portfolios/a?tab=performance');
@@ -44,7 +45,7 @@ describe('PortfolioTabs', () => {
     window.history.replaceState({}, '', '/portfolios/a?tab=account');
     expect(activeTab()).toBe('account');
     expect(tabForKind('contract', 'PORTFOLIO')).toBe('account');
-    expect(tabForKind('account', 'INSURANCE_CONTRACT')).toBe('contract');
+    expect(tabForKind('account', 'INSURANCE_CONTRACT')).toBe('account');
     expect(tabForKind('cash', 'INSURANCE_CONTRACT')).toBe('cash');
   });
 });

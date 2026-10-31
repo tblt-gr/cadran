@@ -1,7 +1,6 @@
 .tabs {
   display: flex;
   min-height: var(--control-height);
-  border-bottom: var(--border-line-subtle);
   overflow-x: auto;
   gap: var(--spacing-6);
 }
@@ -31,5 +30,29 @@
 @media (prefers-reduced-motion: reduce) {
   .tabs a {
     transition-duration: var(--duration-reduced-motion);
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+.bar .tabs {
+  flex: 1;
+}
+.tools {
+  display: flex;
+  padding-bottom: var(--spacing-2);
+}
+
+@media (max-width: 42rem) {
+  .bar .tabs {
+    flex-basis: 100%;
+  }
+  .tools {
+    margin-left: var(--spacing-auto);
   }
 }

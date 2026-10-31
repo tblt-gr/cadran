@@ -62,8 +62,35 @@ final readonly class ReadPortfolioAnnualPerformance
 
         return new PortfolioAnnualPerformance(
             $account->id, $account->assetCode->toString(), $year, $firstYear, $lastYear,
+            $this->activeYears($history, $firstYear, $lastYear),
             $this->withIndex($months, $account, $year, $history), $yearTotal, $inception,
         );
+    }
+
+    /**
+     * A year with no active operation is absent from the selector. Several quiet months are
+     * enough to drop it. An account with no operation at all still offers the current year.
+     *
+     * @param list<PortfolioOperation> $history
+     *
+     * @return list<int>
+     */
+    private function activeYears(array $history, int $firstYear, int $lastYear): array
+    {
+        $years = [];
+        foreach ($history as $operation) {
+            $operationYear = (int) $operation->details->tradeDate->format('Y');
+            if ($operationYear >= $firstYear && $operationYear <= $lastYear) {
+                $years[$operationYear] = true;
+            }
+        }
+        if ([] === $years) {
+            $years[$lastYear] = true;
+        }
+        $list = array_keys($years);
+        sort($list);
+
+        return $list;
     }
 
     /** @param list<PortfolioOperation> $history */

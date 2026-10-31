@@ -14,6 +14,7 @@ use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
 use App\Module\Portfolio\Domain\LifeInsurance\ContractAllocation;
 use App\Module\Portfolio\Domain\LifeInsurance\EuroFundRateRepository;
 use App\Module\Portfolio\Domain\LifeInsurance\LifeInsuranceContractRepository;
+use App\Module\Portfolio\Domain\Performance\PerformanceHistoryStart;
 use App\Module\Portfolio\Domain\Performance\PerformancePeriod;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Portfolio\Domain\Valuation\PriceQuality;
@@ -102,7 +103,7 @@ final readonly class ReadLifeInsuranceSummary
 
         return ['asOf' => $asOf->format('Y-m-d'), 'assetCode' => $account->assetCode->toString(), 'contract' => $contract,
             'valuation' => $valuation, 'allocation' => ['status' => $status, 'items' => $items], 'cumulative' => $cumulative,
-            'gainSinceOpening' => ($this->performance)($workspace, $account, PerformancePeriod::of('INCEPTION', null, $asOf, $account->openedOn), $asOf, $history),
+            'gainSinceOpening' => ($this->performance)($workspace, $account, PerformancePeriod::of('INCEPTION', null, $asOf, $account->openedOn), $asOf, $history, PerformanceHistoryStart::OPENING),
             'supports' => $supportData['supports'] ?? [], 'taxYears' => $years,
             'contractAge' => null === $age ? null : ['taxStartOn' => $contract->taxStartOn->format('Y-m-d'), 'years' => $age->y, 'months' => $age->m],
             'taxEstimate' => ['status' => 'NO_RULE_SET', 'ruleSetId' => null], 'qualityIssues' => $issues];

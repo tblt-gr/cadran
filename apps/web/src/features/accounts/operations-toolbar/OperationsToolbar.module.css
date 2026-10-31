@@ -1,27 +1,30 @@
-.filters {
+.toolbar {
   display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--spacing-4);
   min-width: 0;
   margin: var(--spacing-none);
   padding: var(--spacing-none);
   border: var(--border-none);
-  flex-direction: column;
-  gap: var(--spacing-4);
+}
+.period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
 }
 .date {
   display: flex;
-  min-width: 0;
-  flex-direction: column;
+  align-items: center;
   gap: var(--spacing-2);
 }
-
 .date span {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
 }
-
 .date input {
-  width: 100%;
   height: var(--control-height);
   padding: var(--spacing-none) var(--spacing-3);
   border: var(--border-line-subtle);
@@ -30,24 +33,25 @@
   background: var(--bg-surface-1);
   font-family: var(--font-family-sans);
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-normal);
 }
-
+.instrument {
+  flex: 1;
+  min-width: min(100%, 14rem);
+}
 .toggle {
   display: inline-flex;
   align-items: center;
+  gap: var(--spacing-2);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
-  gap: var(--spacing-2);
-}
-.row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)) auto;
-  align-items: end;
-  gap: var(--spacing-4);
+  min-height: var(--control-height);
 }
 @media (max-width: 42rem) {
-  .row {
-    grid-template-columns: 1fr;
+  .instrument {
+    flex-basis: 100%;
   }
+}
+
+.actions {
+  display: contents;
 }

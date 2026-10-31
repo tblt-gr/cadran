@@ -30,7 +30,7 @@ function Row({
   };
   return (
     <section aria-labelledby={titleId} className={`card ${styles.row}`}>
-      <h3 id={titleId}>{title}</h3>
+      <h2 id={titleId}>{title}</h2>
       {failed ? (
         <OperationsState error title="La performance est indisponible">
           <button className="secondary-action" type="button" onClick={onRetry}>

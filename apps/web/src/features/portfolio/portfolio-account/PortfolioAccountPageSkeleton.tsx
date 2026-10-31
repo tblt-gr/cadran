@@ -32,41 +32,42 @@ export function PortfolioAccountPageSkeleton({
   const active = activeTab();
   return (
     <div className={styles.page}>
-      <PortfolioAccountHeader
-        accountId={accountId}
-        onCreate={() => undefined}
-        onRecordValuation={() => undefined}
-      >
-        <fieldset className={styles.frozenField} disabled>
-          <BusinessDateField
-            hint={null}
-            label="Au"
-            onChange={() => undefined}
-            today={today}
-            value={asOf}
-          />
-        </fieldset>
-      </PortfolioAccountHeader>
-      <PortfolioOverview
-        kind={active === 'contract' ? 'INSURANCE_CONTRACT' : undefined}
-        accountId={accountId}
-        asOf={asOf}
-        frozen
-        history={<ValueHistoryCardSkeleton />}
-      />
       <PortfolioTabs
         accountId={accountId}
         active={active}
         asOf={asOf}
         kind={active === 'contract' ? 'INSURANCE_CONTRACT' : undefined}
+        tools={
+          active !== 'operations' && active !== 'performance' ? (
+            <fieldset className={styles.frozenField} disabled>
+              <BusinessDateField
+                compact
+                hint={null}
+                label="Situation au"
+                onChange={() => undefined}
+                today={today}
+                value={asOf}
+              />
+            </fieldset>
+          ) : null
+        }
       />
+      <PortfolioAccountHeader
+        accountId={accountId}
+        onCreate={() => undefined}
+        onRecordValuation={() => undefined}
+      />
+      {active === 'account' ? (
+        <AccountTabSkeleton>
+          <PortfolioOverview embedded accountId={accountId} asOf={asOf} frozen history={null} />
+        </AccountTabSkeleton>
+      ) : null}
+      {active === 'account' ? <ValueHistoryCardSkeleton /> : null}
       {active === 'contract' ? (
         <AccountTabSkeleton>
           <ContractTabSkeleton />
         </AccountTabSkeleton>
-      ) : active === 'account' ? (
-        <AccountTabSkeleton />
-      ) : active === 'operations' ? (
+      ) : active === 'account' ? null : active === 'operations' ? (
         <div className={operationsStyles.tab}>
           <OperationFilters currencyCode="" disabled onChange={() => undefined} value={noFilters} />
           <OperationsTableSkeleton status={status} />
@@ -76,7 +77,7 @@ export function PortfolioAccountPageSkeleton({
       ) : active === 'valuations' ? (
         <ValuationsTabSkeleton status={status} />
       ) : active === 'performance' ? (
-        <PerformanceTabSkeleton year={performanceYear(asOf)} />
+        <PerformanceTabSkeleton accountId={accountId} year={performanceYear(asOf)} />
       ) : (
         <HoldingsTab accountId={accountId} asOf={asOf} frozen status={status} />
       )}

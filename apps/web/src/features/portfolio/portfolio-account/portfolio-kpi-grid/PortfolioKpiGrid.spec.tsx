@@ -39,29 +39,23 @@ describe('PortfolioKpiGrid', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Valeur totale' }));
     expect(explain).toHaveBeenCalledWith('TOTAL_VALUE');
   });
-  it('leads with the total value and dates only the indicators dated otherwise', () => {
+  it('leads with the total value and states an incomplete year once, under that total', () => {
     render(<PortfolioKpiGrid summary={summaryFixture()} asOf="2026-03-10" onExplain={vi.fn()} />);
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
     expect(headings[0]).toBe('Valeur totale');
     expect(headings).toContain('Versements nets 2026');
     expect(headings).toContain('Frais et taxes 2026');
-    expect(screen.getAllByText('Du 01/01/2026 au 10/03/2026')).toHaveLength(2);
-    expect(screen.queryByText('au 2026-03-10')).toBeNull();
+    expect(screen.getAllByText('Du 01/01/2026 au 10/03/2026')).toHaveLength(1);
+    expect(screen.queryByText(/Valorisation du/)).toBeNull();
+    expect(screen.queryByText(/Calculées au/)).toBeNull();
+    expect(screen.queryByText(/prix de revient/)).toBeNull();
   });
-  it('dates the cash with the valuation and says whether the statement gave it', () => {
+  it('omits the period when the figures already cover a full calendar year', () => {
     const summary = summaryFixture();
-    summary.explanations.CASH = {
-      ...summary.explanations.CASH,
-      quality: 'OBSERVED',
-      period: { from: '2026-01-01', to: '2026-03-10' },
-    };
-    const view = render(
-      <PortfolioKpiGrid summary={summary} asOf="2026-04-15" onExplain={vi.fn()} />,
-    );
-    expect(screen.getByText('Relevé du 10/03/2026')).toBeTruthy();
-    summary.explanations.CASH = { ...summary.explanations.CASH, quality: 'DERIVED' };
-    view.rerender(<PortfolioKpiGrid summary={summary} asOf="2026-04-15" onExplain={vi.fn()} />);
-    expect(screen.getByText('Calculées au 10/03/2026')).toBeTruthy();
+    summary.netDeposits = { ...summary.netDeposits, from: '2025-01-01', to: '2025-12-31' };
+    render(<PortfolioKpiGrid summary={summary} asOf="2025-12-31" onExplain={vi.fn()} />);
+    expect(screen.queryByText(/Du /)).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Versements nets 2025' })).toBeTruthy();
   });
   it('opens the points to review from the Rapprochement pill and drops it once reconciled', () => {
     const summary = summaryFixture();
@@ -86,7 +80,8 @@ describe('PortfolioKpiGrid', () => {
       <PortfolioKpiGrid summary={summaryFixture()} asOf="2026-03-10" onExplain={vi.fn()} />,
     );
     expect(screen.queryByRole('button', { name: /À vérifier/ })).toBeNull();
-    expect(screen.getByText('Rapproché')).toBeTruthy();
+    expect(screen.queryByText('Rapproché')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Rapprochement' })).toBeNull();
   });
   it('shows valuation qualifiers under the total value', () => {
     render(

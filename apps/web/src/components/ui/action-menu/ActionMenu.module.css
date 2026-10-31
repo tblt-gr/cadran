@@ -52,3 +52,15 @@
   color: var(--text-muted);
   cursor: not-allowed;
 }
+
+:global(td) .wrap {
+  justify-content: flex-start;
+}
+.textTrigger {
+  min-height: var(--control-height);
+}
+.check {
+  margin: var(--spacing-none);
+  pointer-events: none;
+  accent-color: var(--gold-300);
+}

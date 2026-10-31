@@ -4,6 +4,8 @@ import { Icon, type IconName } from '@/components/ui/icon/Icon';
 import styles from './ActionMenu.module.css';
 
 interface ActionMenuItem {
+  /** Checkable items keep the menu open while the selection changes. */
+  checked?: boolean;
   disabled?: boolean;
   icon: IconName;
   id: string;
@@ -15,6 +17,10 @@ interface ActionMenuItem {
 interface ActionMenuProps {
   /** Takes focus on mount: the caller's way to return focus here after a modal. */
   autoFocus?: boolean;
+  triggerText?: string;
+  triggerIcon?: IconName;
+  /** Framed icon: background and border, for a toolbar control rather than a row kebab. */
+  triggerVariant?: 'ghost' | 'framed';
   items: ActionMenuItem[];
   label: string;
   disabled?: boolean;
@@ -25,7 +31,16 @@ interface ActionMenuProps {
  * accessible name the former text buttons used, so a screen reader still hears
  * which row is about to change.
  */
-export function ActionMenu({ autoFocus = false, items, label, disabled = false }: ActionMenuProps) {
+export function ActionMenu({
+  autoFocus = false,
+  items,
+  label,
+  disabled = false,
+  triggerText,
+  triggerIcon = 'more',
+  triggerVariant = 'ghost',
+}: ActionMenuProps) {
+  const checkable = items.some((item) => item.checked !== undefined);
   const menuId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -58,6 +73,7 @@ export function ActionMenu({ autoFocus = false, items, label, disabled = false }
     }
 
     place();
+    if (checkable) menu.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
 
     function onPointerDown(event: PointerEvent) {
       const target = event.target;
@@ -82,7 +98,11 @@ export function ActionMenu({ autoFocus = false, items, label, disabled = false }
 
         return;
       }
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (checkable && event.key === 'Tab') {
+        setOpen(false);
+        trigger.current?.focus();
+      }
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
         const buttons = [
           ...(menu.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []),
         ];
@@ -92,7 +112,13 @@ export function ActionMenu({ autoFocus = false, items, label, disabled = false }
         event.preventDefault();
         const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
         const step = event.key === 'ArrowDown' ? 1 : -1;
-        buttons[(index + step + buttons.length) % buttons.length]?.focus();
+        const next =
+          event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? buttons.length - 1
+              : (index + step + buttons.length) % buttons.length;
+        buttons[next]?.focus();
       }
     }
 
@@ -111,7 +137,7 @@ export function ActionMenu({ autoFocus = false, items, label, disabled = false }
       window.removeEventListener('resize', onReposition);
       window.removeEventListener('scroll', onReposition, true);
     };
-  }, [open]);
+  }, [open, checkable]);
 
   return (
     <div className={styles.wrap}>
@@ -119,15 +145,25 @@ export function ActionMenu({ autoFocus = false, items, label, disabled = false }
         disabled={disabled}
         aria-controls={open ? menuId : undefined}
         aria-expanded={open}
-        aria-haspopup="true"
+        aria-haspopup={checkable ? 'menu' : true}
         aria-label={label}
-        className={`icon-ghost ${styles.trigger}`}
+        title={label}
+        className={
+          triggerText
+            ? `text-action ${styles.textTrigger}`
+            : triggerVariant === 'framed'
+              ? 'icon-button'
+              : triggerIcon === 'more'
+                ? `icon-ghost ${styles.trigger}`
+                : 'icon-ghost'
+        }
         data-autofocus={autoFocus || undefined}
         onClick={() => setOpen((current) => !current)}
         ref={trigger}
         type="button"
       >
-        <Icon name="more" size={20} />
+        <Icon name={triggerIcon} size={20} />
+        {triggerText ? <span>{triggerText}</span> : null}
       </button>
       {open
         ? createPortal(
@@ -135,7 +171,8 @@ export function ActionMenu({ autoFocus = false, items, label, disabled = false }
               className={styles.menu}
               id={menuId}
               ref={menu}
-              role="presentation"
+              role={checkable ? 'menu' : 'presentation'}
+              aria-label={checkable ? label : undefined}
               style={{
                 top: `${coords.top}px`,
                 right: `${coords.right}px`,
@@ -144,17 +181,32 @@ export function ActionMenu({ autoFocus = false, items, label, disabled = false }
               {items.map((item) => (
                 <button
                   aria-label={item.label}
+                  role={item.checked !== undefined ? 'menuitemcheckbox' : undefined}
+                  aria-checked={item.checked}
+                  tabIndex={item.checked !== undefined ? -1 : undefined}
                   className={styles.item}
                   disabled={item.disabled}
                   key={item.id}
                   onClick={() => {
-                    trigger.current?.focus();
+                    if (item.checked === undefined) trigger.current?.focus();
                     item.onSelect();
-                    setOpen(false);
+                    if (item.checked === undefined) setOpen(false);
                   }}
                   type="button"
                 >
-                  <Icon name={item.icon} size={16} />
+                  {item.checked !== undefined ? (
+                    <input
+                      className={styles.check}
+                      type="checkbox"
+                      checked={item.checked}
+                      disabled={item.disabled}
+                      readOnly
+                      tabIndex={-1}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Icon name={item.icon} size={16} />
+                  )}
                   <span>{item.text}</span>
                 </button>
               ))}

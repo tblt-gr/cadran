@@ -11,15 +11,15 @@ const known: readonly PortfolioTab[] = [
   'contract',
 ];
 
-/** The account tab is the contract tab of a life insurance, and the reverse. */
+/** Former securities contract links resolve to the account overview. */
 export function tabForKind(tab: PortfolioTab, kind: AccountKind): PortfolioTab {
-  if (tab !== 'account' && tab !== 'contract') return tab;
-  return kind === 'INSURANCE_CONTRACT' ? 'contract' : 'account';
+  return tab === 'contract' && kind !== 'INSURANCE_CONTRACT' ? 'account' : tab;
 }
 
-/** The tab named by `?tab=`; Positions is the default and also answers the former Répartition links. */
+/** Account is the default; former cash and allocation links keep a useful destination. */
 export function activeTab(): PortfolioTab {
   const tab = new URLSearchParams(window.location.search).get('tab');
+  if (tab === 'cash') return 'operations';
   if (tab === 'allocation') return 'positions';
-  return known.find((id) => id === tab) ?? 'positions';
+  return known.find((id) => id === tab) ?? 'account';
 }
