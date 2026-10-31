@@ -17,7 +17,7 @@
 .data th,
 .data td {
   padding: var(--spacing-1) var(--spacing-2);
-  text-align: right;
+  text-align: left;
 }
 .data th:first-child,
 .data td:first-child {

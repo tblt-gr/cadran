@@ -619,7 +619,6 @@
       }
     },
     "balances": {
-      "eyebrow": "Solde observé",
       "title": "Enregistrer un solde de « {{label}} »",
       "editing": "Correction du relevé du {{date}}. La date reste fixée : pour une autre date, enregistrez un nouveau relevé.",
       "cancelEditing": "Annuler la correction",
@@ -844,6 +843,8 @@
         "group": "Groupe patrimonial",
         "groupLoading": "Chargement du groupe…",
         "noGroup": "Aucun groupe",
+        "contributions": "Versements cumulés",
+        "contributionsExceeded": "Plafond dépassé",
         "groupUnavailable": "Le groupe rattaché à ce compte n’a pas pu être lu.",
         "lifecycle": "Cycle de vie",
         "openedOn": "Ouvert le {{date}}",
@@ -862,8 +863,6 @@
         "addTransaction": "Nouvelle transaction",
         "more": "Autres actions",
         "addTransfer": "Nouveau virement",
-        "openPortfolio": "Ouvrir le portefeuille",
-        "valuePortfolio": "Valoriser le portefeuille",
         "rules": "Voir les règles",
         "reconcile": "Rapprocher",
         "unavailable": {
@@ -893,7 +892,6 @@
       "table": "Soldes du compte par date",
       "showTable": "Voir le tableau",
       "held": "Dernier solde connu",
-      "description": "Chaque point est le dernier relevé actif à cette date, plus les mouvements comptabilisés après ce relevé.",
       "error": "L’historique du solde est indisponible.",
       "empty": "Aucun solde enregistré sur cette période.",
       "reasons": {
@@ -1581,22 +1579,22 @@
     },
     "kpi": {
       "TOTAL_VALUE": {
-        "formula": "Valeur totale = espèces + Σ (quantité × prix) de la valorisation retenue."
+        "formula": "Espèces + valeur des titres de la valorisation retenue (quantité × prix, ou total saisi)."
       },
       "UNREALIZED_GAIN": {
-        "formula": "Plus-value latente = valeur des titres − somme des prix de revient moyens connus de la valorisation complète."
+        "formula": "Valeur des titres détenus − leur prix de revient moyen, à la date de la valorisation retenue. Les gains déjà réalisés et les revenus n’y figurent pas."
       },
       "CASH": {
-        "formula": "Espèces = solde initial + entrées − sorties du registre espèces jusqu’à la date sélectionnée."
+        "formula": "Espèces du relevé de la valorisation retenue. Sans relevé, solde calculé à cette date : versements, ventes et revenus, moins achats, retraits, frais et taxes."
       },
       "NET_DEPOSITS": {
-        "formula": "Versements nets = versements − retraits du 1er janvier à la date sélectionnée."
+        "formula": "Versements − retraits depuis le 1er janvier."
       },
       "COSTS": {
-        "formula": "Frais et taxes = somme des frais + somme des taxes du 1er janvier à la date sélectionnée."
+        "formula": "Frais + taxes payés depuis le 1er janvier."
       },
       "RECONCILIATION": {
-        "formula": "Rapproché lorsque les alertes espèces, positions et valorisation sont absentes ; les flux externes non liés et les résidus d’arrondi restent informatifs."
+        "formula": "Rapproché quand aucune alerte ne porte sur les espèces, les positions ou la valorisation. Le détail des points à vérifier figure sous les indicateurs."
       }
     }
   },

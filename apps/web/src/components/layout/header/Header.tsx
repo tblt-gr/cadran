@@ -9,6 +9,7 @@ interface HeaderProps {
   /** Present when the label names a problem the user can open and fix. */
   onFreshnessClick?: () => void;
   title: string;
+  subtitle?: string;
 }
 
 export function Header({
@@ -17,6 +18,7 @@ export function Header({
   headerDate,
   onFreshnessClick,
   title,
+  subtitle,
 }: HeaderProps) {
   const setActionsSlot = useHeaderActionsSlot();
 
@@ -29,6 +31,7 @@ export function Header({
           </p>
         ) : null}
         <h1>{title}</h1>
+        {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
       </div>
       <div className={styles.actions}>
         {freshnessLabel && onFreshnessClick ? (

@@ -161,12 +161,15 @@ for (const kind of ['portfolio', 'insurance'] as const) {
       await expect(table).toBeVisible();
       expect(await table.getByRole('row').count()).toBeGreaterThanOrEqual(13);
     }
-    await page.goto(`${fixtures[kind]}?tab=allocation`);
+    await page.goto(`${fixtures[kind]}?tab=positions`);
     await settled(page);
     const disclosure = page.locator('summary').filter({ hasText: 'Toutes les lignes' });
     // Signed or non-calculable allocations expose the same table directly, without a donut.
     if (await disclosure.count()) await disclosure.click();
-    const table = page.getByRole('table', { name: /toutes les lignes/i });
+    // A contract splits its supports in its own table, beside the supports list.
+    const table = page.getByRole('table', {
+      name: kind === 'insurance' ? 'Répartition du contrat' : /toutes les lignes/i,
+    });
     await expect(table).toBeVisible();
     expect(await table.getByRole('row').count()).toBeGreaterThan(1);
   });

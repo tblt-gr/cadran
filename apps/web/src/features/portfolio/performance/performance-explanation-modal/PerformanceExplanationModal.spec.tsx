@@ -24,43 +24,40 @@ function open(
 }
 
 const headings = () => screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+const entries = () => screen.getByText('Détail du calcul').closest('details')!;
 
 describe('PerformanceExplanationModal', () => {
-  it('explains the total gain in the specified order', () => {
+  it('leads with the value and its period, then the calculation, details folded', () => {
     open('gain');
-    expect(screen.getByRole('dialog', { name: 'Expliquer : Gain total' })).toBeTruthy();
-    expect(headings()).toEqual([
-      'Méthode',
-      'Formule',
-      'Période',
-      'Entrées',
-      'Politique de coûts',
-      'Qualité',
-      'Sources',
-    ]);
+    const dialog = screen.getByRole('dialog', { name: 'Gain total' });
+    expect(headings()).toEqual(['Calcul']);
+    const text = dialog.textContent ?? '';
+    expect(text.indexOf('+250,00')).toBeLessThan(text.indexOf('Calcul'));
+    expect(screen.getByText('Du 01/01/2026 au 10/03/2026')).toBeTruthy();
     expect(
-      screen.getByText('Valeur finale moins valeur initiale moins les versements nets.'),
+      screen.getByText(
+        'Valeur finale moins valeur initiale moins les versements nets. Net de frais et de taxes.',
+      ),
     ).toBeTruthy();
-    expect(screen.getByText('Version PERF-1')).toBeTruthy();
-    expect(screen.getByText('Du 01/01/2026 au 10/03/2026, 68 jours')).toBeTruthy();
-    expect(screen.getByText('Net de frais et de taxes')).toBeTruthy();
+    expect(screen.getByText('Méthode version PERF-1')).toBeTruthy();
     expect(screen.getByTestId('formula').textContent).toContain('250,00');
-    expect(screen.getByText(/Réalisé/)).toBeTruthy();
+    expect(entries().open).toBe(false);
+    expect(within(entries()).getByText(/Réalisé/)).toBeTruthy();
+    expect(screen.getByText(/^Sources du calcul/).closest('details')?.open).toBe(false);
   });
 
   it('shows the anchors with their date, value and freshness', () => {
     open('gain');
-    const entries = screen.getByRole('region', { name: 'Entrées' });
-    expect(within(entries).getByText(/31\/12\/2025/)).toBeTruthy();
-    expect(within(entries).getByText(/70 jours/)).toBeTruthy();
-    expect(within(entries).getByText(/Prix anciens/)).toBeTruthy();
+    expect(within(entries()).getByText(/31\/12\/2025/)).toBeTruthy();
+    expect(within(entries()).getByText(/70 jours/)).toBeTruthy();
+    expect(within(entries()).getByText(/Prix anciens/)).toBeTruthy();
   });
 
   it('explains Modified Dietz as an approximation with its weights', () => {
     open('modifiedDietz');
     expect(
       screen.getByText(
-        'Approximation du rendement pondéré dans le temps : chaque flux est pondéré par la part de la période où il était investi.',
+        'Approximation du rendement pondéré dans le temps : chaque flux est pondéré par la part de la période où il était investi. Net de frais et de taxes.',
       ),
     ).toBeTruthy();
     expect(screen.getByText('Approximation')).toBeTruthy();
@@ -85,7 +82,7 @@ describe('PerformanceExplanationModal', () => {
     open('timeWeighted');
     expect(
       screen.getByText(
-        "Rendement des placements, neutre vis-à-vis des versements, calculé à partir d'une valorisation à chaque date de flux.",
+        "Rendement des placements, neutre vis-à-vis des versements, calculé à partir d'une valorisation à chaque date de flux. Net de frais et de taxes.",
       ),
     ).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Sous-périodes' })).toBeTruthy();
@@ -96,7 +93,7 @@ describe('PerformanceExplanationModal', () => {
     open('moneyWeighted');
     expect(
       screen.getByText(
-        'Taux annuel de votre argent, compte tenu des dates de vos versements et retraits.',
+        'Taux annuel de votre argent, compte tenu des dates de vos versements et retraits. Net de frais et de taxes.',
       ),
     ).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Flux investisseur' })).toBeTruthy();
@@ -128,14 +125,35 @@ describe('PerformanceExplanationModal', () => {
       { code: 'NOT_A_CODE' as never, dates: [] },
     ];
     open('timeWeighted', performance);
-    const quality = screen.getByRole('region', { name: 'Qualité' });
+    const quality = screen.getByRole('dialog');
     expect(
       within(quality).getByText("Valorisation manquante le jour d'un flux : 25/03/2026."),
     ).toBeTruthy();
     const link = within(quality).getByRole('link', { name: 'Enregistrer une valorisation' });
     expect(link.getAttribute('href')).toBe('/portfolios/account-1?tab=valuations');
     expect(within(quality).getByText('Motif non reconnu (NOT_A_CODE)')).toBeTruthy();
-    expect(within(quality).getByText('Non calculable')).toBeTruthy();
+    expect(within(quality).getAllByText('Non calculable').length).toBeGreaterThan(0);
+  });
+
+  it('folds a long date list behind the short reason', () => {
+    const performance = performanceFixture();
+    performance.timeWeighted.value = null;
+    performance.timeWeighted.quality = 'NOT_CALCULABLE';
+    performance.timeWeighted.reasons = [
+      {
+        code: 'MISSING_FLOW_VALUATION',
+        dates: ['2023-12-01', '2023-12-28', '2024-02-01', '2024-03-01'],
+      },
+    ];
+    open('timeWeighted', performance);
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByText('Relevés manquants aux dates de versement ou retrait.'),
+    ).toBeTruthy();
+    const dates = within(dialog).getByText(/01\/12\/2023, 28\/12\/2023/);
+    expect(dates.closest('details')?.hasAttribute('open')).toBe(false);
+    fireEvent.click(within(dialog).getByText('Voir les 4 dates'));
+    expect(dates.closest('details')?.hasAttribute('open')).toBe(true);
   });
 
   it('closes before following an action link', () => {

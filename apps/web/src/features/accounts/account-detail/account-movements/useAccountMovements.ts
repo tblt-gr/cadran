@@ -1,3 +1,4 @@
+import { monthBounds, type AccountMovementFilters } from './accountMovementFilters';
 import { listTransactions, type TransactionPage } from '@cadran/api-client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -9,44 +10,33 @@ import {
 
 const PAGE_SIZE = 50;
 
-/** Inclusive `[from, to]` bound for one calendar month, or both null when unset. */
-function monthBounds(month: string | null): { from?: string; to?: string } {
-  if (month === null || !/^\d{4}-\d{2}$/.test(month)) {
-    return {};
-  }
-
-  const [year, monthNumber] = month.split('-').map(Number) as [number, number];
-  const lastDay = new Date(year, monthNumber, 0).getDate();
-
-  return {
-    from: `${month}-01`,
-    to: `${month}-${String(lastDay).padStart(2, '0')}`,
-  };
-}
-
-/**
- * This account's own movements, newest first, cursor-paged and locked to the
- * account the page is about. Unlike the workspace-wide transactions screen,
- * there is no filter UI here that could widen the query: the only optional
- * input is the initial period a Budget link may have asked for, and even
- * that never replaces or removes the account boundary.
- */
-export function useAccountMovements(accountId: string, initialMonth: string | null) {
+/** Cursor-paged operations: period, type and state filters never replace the account boundary. */
+export function useAccountMovements(
+  accountId: string,
+  initialMonth: string | null,
+  selection?: AccountMovementFilters,
+) {
   const queryClient = useQueryClient();
   const [cursor, setCursor] = useState<string | null>(null);
-  const scope = `${accountId}:${initialMonth ?? ''}`;
+  const scope = JSON.stringify([accountId, initialMonth, selection]);
   const [previousScope, setPreviousScope] = useState(scope);
   const scopeChanged = previousScope !== scope;
   if (scopeChanged) {
     setPreviousScope(scope);
     setCursor(null);
   }
-  const { from, to } = monthBounds(initialMonth);
+  const bounds = selection ?? monthBounds(initialMonth);
+  const from = bounds.from || undefined;
+  const to = bounds.to || undefined;
+  const includeVoided = selection?.includeVoided || undefined;
+  const nature = selection?.nature.length ? selection.nature : undefined;
 
   const filters = {
     accountId: [accountId],
     from,
     to,
+    includeVoided,
+    nature,
     cursor: scopeChanged ? undefined : (cursor ?? undefined),
     pageSize: PAGE_SIZE,
   };
@@ -68,7 +58,9 @@ export function useAccountMovements(accountId: string, initialMonth: string | nu
       const previousFilters = previousQuery?.queryKey[2] as typeof filters | undefined;
       return previousFilters?.accountId[0] === accountId &&
         previousFilters.from === from &&
-        previousFilters.to === to
+        previousFilters.to === to &&
+        previousFilters.includeVoided === includeVoided &&
+        JSON.stringify(previousFilters.nature) === JSON.stringify(nature)
         ? previousData
         : undefined;
     },
@@ -125,7 +117,7 @@ export function useAccountMovements(accountId: string, initialMonth: string | nu
   }
 
   return {
-    bulkQuery: { accountId: [accountId], from, to },
+    bulkQuery: { accountId: [accountId], from, to, includeVoided, nature },
     displayedPage,
     items,
     loadMore,

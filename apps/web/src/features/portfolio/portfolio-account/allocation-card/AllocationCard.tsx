@@ -15,6 +15,10 @@ import {
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
 import type { AllocationBy } from '@/features/portfolio/usePortfolioOverview';
 import { reasonLabels } from '@/features/portfolio/portfolio-account/overviewLabels';
+import {
+  instrumentClasses,
+  instrumentRegions,
+} from '@/features/portfolio/instruments/instrument-form/instrumentOptions';
 import styles from './AllocationCard.module.css';
 const choices: { value: AllocationBy; label: string }[] = [
   { value: 'INSTRUMENT', label: 'Instrument' },
@@ -22,6 +26,11 @@ const choices: { value: AllocationBy; label: string }[] = [
   { value: 'REGION', label: 'Région' },
   { value: 'CURRENCY', label: 'Devise' },
 ];
+/** The server groups by code; classes and regions read with the names used on the instruments. */
+const groupNames: Partial<Record<AllocationBy, ReadonlyMap<string, string>>> = {
+  ASSET_CLASS: new Map(instrumentClasses),
+  REGION: new Map(instrumentRegions),
+};
 export function AllocationCard({
   allocation,
   title = 'Répartition',
@@ -40,7 +49,10 @@ export function AllocationCard({
   const money = (value: string | null) =>
     value === null ? 'Non calculable' : formatAmount(value, allocation!.assetCode, 'fr');
   const [tableOpen, setTableOpen] = useState(false);
-  const label = (key: string, text: string) => (key === 'UNSPECIFIED' ? 'Non renseignée' : text);
+  const label = (key: string, text: string) =>
+    key === 'UNSPECIFIED'
+      ? 'Non renseignée'
+      : ((allocation && groupNames[allocation.by]?.get(key)) ?? text);
   // A signed allocation stays useful in the table but cannot be represented by a donut.
   const signedShares =
     allocation &&
@@ -49,8 +61,9 @@ export function AllocationCard({
         item.share !== null &&
         (compareDecimals(item.share, '0') < 0 || compareDecimals(item.share, '1') > 0),
     );
+  const atCost = allocation?.basis === 'COST';
   // Without a chart the table is the only reading of the allocation, so it stays open.
-  const charted = !allocation || (!allocation.reason && !signedShares);
+  const charted = !allocation || (allocation.slices.length > 0 && !signedShares);
   const table = (
     <div
       className={styles.tableScroll}
@@ -105,6 +118,7 @@ export function AllocationCard({
           ) : (
             <span>aucune à cette date</span>
           )}
+          {atCost ? <span>· au prix de revient</span> : null}
         </div>
       </div>
       {showFallbackNotice && allocation ? (
@@ -122,40 +136,48 @@ export function AllocationCard({
       />
       {!allocation ? (
         <SkeletonBlock className={styles.plotSkeleton} />
-      ) : allocation.reason ? (
-        <p role="status">
+      ) : allocation.slices.length === 0 && !signedShares ? (
+        <p className={styles.note} role="status">
           {allocation.reason === 'PARTIAL_VALUATION'
             ? 'Valorisation partielle : la répartition n’est pas calculable'
-            : reasonLabels[allocation.reason]}
+            : reasonLabels[allocation.reason ?? 'NON_POSITIVE_TOTAL']}
         </p>
       ) : signedShares ? (
-        <p role="status">
+        <p className={styles.note} role="status">
           Graphique indisponible : la répartition contient des parts négatives ou supérieures à 100
           %. Consultez les valeurs signées du tableau.
         </p>
       ) : (
-        <div className={styles.plot}>
-          <DonutPlot
-            label="Répartition du portefeuille"
-            totalText={null}
-            slices={allocation.slices.map((item) => ({
-              key: item.key,
-              caption: label(item.key, item.label),
-              amountText: money(item.value),
-              size: decimalRatioForGeometry(item.share!, '1'),
-            }))}
-          />
-          <AllocationLegend
-            label="Légende de la répartition"
-            items={allocation.slices.map((item) => ({
-              key: item.key,
-              label: label(item.key, item.label),
-              amount: money(item.value),
-              share: formatRatioPercentage(item.share!, 'fr'),
-              barPercent: ratioToPercent(item.share!),
-            }))}
-          />
-        </div>
+        <>
+          {atCost ? (
+            <p className={styles.note}>
+              Valorisation saisie en total : la valeur de chaque ligne n’est pas connue, la
+              répartition suit le prix de revient des titres détenus.
+            </p>
+          ) : null}
+          <div className={styles.plot}>
+            <DonutPlot
+              label="Répartition du portefeuille"
+              totalText={null}
+              slices={allocation.slices.map((item) => ({
+                key: item.key,
+                caption: label(item.key, item.label),
+                amountText: money(item.value),
+                size: decimalRatioForGeometry(item.share!, '1'),
+              }))}
+            />
+            <AllocationLegend
+              label="Légende de la répartition"
+              items={allocation.slices.map((item) => ({
+                key: item.key,
+                label: label(item.key, item.label),
+                amount: money(item.value),
+                share: formatRatioPercentage(item.share!, 'fr'),
+                barPercent: ratioToPercent(item.share!),
+              }))}
+            />
+          </div>
+        </>
       )}
       {allocation && allocation.items.length === 0 ? null : charted ? (
         <Disclosure

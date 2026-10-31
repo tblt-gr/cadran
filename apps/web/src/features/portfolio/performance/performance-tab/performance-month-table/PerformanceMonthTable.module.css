@@ -9,7 +9,7 @@
 .table td {
   padding: var(--spacing-3) var(--spacing-4);
   border-bottom: var(--border-line-subtle);
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
 }
 /* Opaque and stacked above the scrolling cells so nothing shows through the sticky column. */
@@ -36,7 +36,7 @@
   font-weight: var(--font-weight-strong);
 }
 .table td > span {
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 .greyed {
   color: var(--text-muted);

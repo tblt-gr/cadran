@@ -51,6 +51,7 @@ export const routeCases = [
   '/accounts',
   '/accounts/groups',
   'account',
+  'account:operations',
   '/parameters/catalog',
   '/parameters/product-models',
   '/transactions',
@@ -72,9 +73,10 @@ export const routeCases = [
   '/settings/metric-policy',
   '/catalog',
   '/product-models',
-  ...['performance', 'cash', 'positions', 'operations', 'valuations', 'allocation'].flatMap(
-    (tab) => [`portfolio:${tab}`, `insurance:${tab}`],
-  ),
+  ...['account', 'operations', 'positions', 'valuations', 'performance'].flatMap((tab) => [
+    `portfolio:${tab}`,
+    `insurance:${tab}`,
+  ]),
   'insurance:contract',
 ];
 

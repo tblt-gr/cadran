@@ -112,7 +112,7 @@
 .table td {
   padding: var(--spacing-2);
   border-bottom: var(--border-line-subtle);
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
 }
 .table th:first-child {

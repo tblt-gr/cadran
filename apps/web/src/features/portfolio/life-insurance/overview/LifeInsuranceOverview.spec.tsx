@@ -67,7 +67,7 @@ describe('LifeInsuranceOverview', () => {
     await waitFor(() => expect(button.hasAttribute('disabled')).toBe(false));
     button.focus();
     fireEvent.click(button);
-    const dialog = screen.getByRole('dialog', { name: 'Expliquer : Versements cumulés' });
+    const dialog = screen.getByRole('dialog', { name: 'Versements cumulés' });
     expect(
       within(dialog)
         .getByRole('link', { name: /Opération du/ })

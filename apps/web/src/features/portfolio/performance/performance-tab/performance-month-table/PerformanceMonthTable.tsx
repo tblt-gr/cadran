@@ -22,11 +22,14 @@ export function PerformanceMonthTable({
   annual,
   year,
   onExplain,
+  selected,
 }: {
+  selected?: string[];
   annual: PortfolioAnnualPerformance | null;
   year?: number;
   onExplain: (target: ExplainTarget) => void;
 }) {
+  const columns = lineColumns.filter((column) => !selected || selected.includes(column.id));
   const shownYear = annual?.year ?? year;
   const base = {
     accountId: annual?.accountId ?? '',
@@ -48,7 +51,7 @@ export function PerformanceMonthTable({
         <thead>
           <tr>
             <th scope="col">Mois</th>
-            {lineColumns.map((column) => (
+            {columns.map((column) => (
               <th key={column.id} scope="col">
                 {column.label}
               </th>
@@ -61,7 +64,7 @@ export function PerformanceMonthTable({
               !('startValue' in line) ? (
                 <tr className={styles.greyed} data-status={line.status} key={line.month}>
                   <th scope="row">{monthName(line.month)}</th>
-                  {lineColumns.map((column) => (
+                  {columns.map((column) => (
                     <td key={column.id}>
                       <EmptyValue label={emptyMonthLabel[line.status]} />
                     </td>
@@ -72,7 +75,7 @@ export function PerformanceMonthTable({
                   <th scope="row">
                     <span title={anchorsTitle(line.from, line.to)}>{monthName(line.month)}</span>
                   </th>
-                  {lineColumns.map((column) => {
+                  {columns.map((column) => {
                     const content = column.render(line, monthContext);
                     return (
                       <td key={column.id}>
@@ -101,12 +104,12 @@ export function PerformanceMonthTable({
             )}
           </tbody>
         ) : (
-          <SkeletonTableRows columns={lineColumns.length + 1} rows={12} />
+          <SkeletonTableRows columns={columns.length + 1} rows={12} />
         )}
         <tfoot>
           <tr>
             <th scope="row">Année {shownYear}</th>
-            {lineColumns.map((column) => (
+            {columns.map((column) => (
               <td key={column.id}>
                 {!annual ? (
                   <SkeletonBlock className={styles.footSkeleton} />

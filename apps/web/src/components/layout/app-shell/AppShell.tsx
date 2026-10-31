@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header/Header';
 import {
   HeaderTitleProvider,
   useHeaderTitleValue,
+  useHeaderSubtitleValue,
 } from '@/components/layout/header/HeaderTitleContext';
 import { HeaderActionsProvider } from '@/components/layout/header/HeaderActionsContext';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav/MobileBottomNav';
@@ -59,6 +60,7 @@ function AppShellContent({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreButton = useRef<HTMLButtonElement>(null);
+  const headerSubtitle = useHeaderSubtitleValue(path);
   const headerOverride = useHeaderTitleValue(path);
   const title = headerOverride ?? t(getRouteTitleKey(path));
   const { handleNavigate, navigate } = useClientNavigation(setPath);
@@ -93,6 +95,7 @@ function AppShellContent({
           onFreshnessClick={onFreshnessClick}
           headerDate={headerDate}
           title={title}
+          subtitle={headerSubtitle}
         />
 
         <div className={`${styles.body}${contextPanel ? ` ${styles.bodyWithPanel}` : ''}`}>

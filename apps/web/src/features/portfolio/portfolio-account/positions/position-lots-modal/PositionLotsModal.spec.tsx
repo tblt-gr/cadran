@@ -87,7 +87,11 @@ describe('PositionLotsModal', () => {
 
     expect(screen.getByRole('dialog', { name: 'Lots : ETF Monde' })).toBeTruthy();
     expect(screen.getByText('Lots ouverts')).toBeTruthy();
-    expect(screen.getByText('Mouvements')).toBeTruthy();
+    expect(screen.getByText('Historique')).toBeTruthy();
+    expect(screen.getByText('Quantité détenue').nextElementSibling?.textContent).toBe('3');
+    expect(screen.getByText('Coût restant (FIFO)').nextElementSibling?.textContent).toContain(
+      '360,60',
+    );
     expect(screen.getByTestId('position-lots-skeleton')).toBeTruthy();
 
     resolve?.({ data: lots, response: new Response('{}', { status: 200 }) });
@@ -98,7 +102,7 @@ describe('PositionLotsModal', () => {
       '/portfolios/account-1?tab=operations&operation=buy-2',
     );
     expect(within(lotTable).getAllByText('Coût inconnu')).toHaveLength(2);
-    expect(screen.getAllByText('Coût inconnu')).toHaveLength(4);
+    expect(screen.getAllByText('Coût inconnu')).toHaveLength(3);
     expect(screen.queryByTestId('position-lots-skeleton')).toBeNull();
   });
 });

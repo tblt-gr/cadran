@@ -17,6 +17,7 @@ import styles from './AccountMovementsSection.module.css';
  * it on the page.
  */
 export function AccountMovementsSection({
+  showBulkToolbar = true,
   bulk = null,
   bulkMode = false,
   onBulkModeChange,
@@ -35,6 +36,7 @@ export function AccountMovementsSection({
   unauthorized,
 }: {
   /** Row selection for bulk edits; absent while the account's own data is not ready. */
+  showBulkToolbar?: boolean;
   bulk?: BulkSelection | null;
   bulkMode?: boolean;
   /** Absent hides the entry point of the bulk edit mode. */
@@ -57,25 +59,23 @@ export function AccountMovementsSection({
 
   return (
     <>
-      <div className={styles.movementsHeading}>
-        <h3 className={styles.movementsTitle} tabIndex={-1} data-transaction-focus-fallback>
-          {t('accounts.detail.movements.title')}
-        </h3>
-        {month !== null ? (
-          <p className={styles.periodNotice}>
-            {t('accounts.detail.movements.periodActive', {
-              month: formatCalendarMonth(`${month}-01`, language),
-            })}
-            <button className="secondary-action" onClick={onClearMonth} type="button">
-              {t('accounts.detail.movements.clearPeriod')}
-            </button>
-          </p>
-        ) : null}
-      </div>
+      <h3 className="sr-only" tabIndex={-1} data-transaction-focus-fallback>
+        {t('accounts.detail.movements.title')}
+      </h3>
+      {month !== null ? (
+        <p className={styles.periodNotice}>
+          {t('accounts.detail.movements.periodActive', {
+            month: formatCalendarMonth(`${month}-01`, language),
+          })}
+          <button className="secondary-action" onClick={onClearMonth} type="button">
+            {t('accounts.detail.movements.clearPeriod')}
+          </button>
+        </p>
+      ) : null}
 
       {transactions.isPending ? (
         <>
-          {onBulkModeChange ? (
+          {showBulkToolbar && onBulkModeChange ? (
             <BulkSelectionToolbar active={false} bulk={null} onToggleActive={() => {}} />
           ) : null}
           <TransactionDayList
@@ -100,7 +100,7 @@ export function AccountMovementsSection({
         />
       ) : (
         <>
-          {bulk && onBulkModeChange ? (
+          {showBulkToolbar && bulk && onBulkModeChange ? (
             <BulkSelectionToolbar
               active={bulkMode}
               bulk={bulk}

@@ -1,3 +1,4 @@
+import { SeriesCursor } from './series-cursor/SeriesCursor';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
@@ -42,6 +43,7 @@ interface CurveChartProps {
   timeAxisLabel: string;
   points: CurvePoint[];
   interpolation?: 'smooth' | 'step-after';
+  interaction?: 'points' | 'series';
 }
 
 function plotX(index: number, count: number): number {
@@ -120,6 +122,7 @@ export function CurveChart({
   timeAxisLabel,
   valueAxisLabel,
   interpolation = 'smooth',
+  interaction = 'points',
 }: CurveChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const dates =
@@ -240,24 +243,35 @@ export function CurveChart({
               />
             ))}
         </svg>
-        {placed.map((point) => (
-          <button
-            aria-label={points[point.index].hitLabel}
-            className={styles.hit}
-            data-chart-point
-            key={`hit-${point.index}`}
-            onBlur={() => setActiveIndex(null)}
-            onFocus={() => setActiveIndex(point.index)}
-            onMouseDown={(event) => event.preventDefault()}
-            onMouseEnter={() => setActiveIndex(point.index)}
-            style={{
-              left: `${(point.x / AREA.width) * 100}%`,
-              top: `${(point.y / AREA.height) * 100}%`,
-            }}
-            tabIndex={interpolation === 'step-after' ? 0 : -1}
-            type="button"
+        {interaction === 'series' ? (
+          <SeriesCursor
+            label={label}
+            labels={points.map((point) => point.hitLabel)}
+            placed={placed}
+            activeIndex={activeIndex}
+            onChange={setActiveIndex}
+            plotWidth={AREA.width}
           />
-        ))}
+        ) : (
+          placed.map((point) => (
+            <button
+              aria-label={points[point.index].hitLabel}
+              className={styles.hit}
+              data-chart-point
+              key={`hit-${point.index}`}
+              onBlur={() => setActiveIndex(null)}
+              onFocus={() => setActiveIndex(point.index)}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => setActiveIndex(point.index)}
+              style={{
+                left: `${(point.x / AREA.width) * 100}%`,
+                top: `${(point.y / AREA.height) * 100}%`,
+              }}
+              tabIndex={interpolation === 'step-after' ? 0 : -1}
+              type="button"
+            />
+          ))
+        )}
         {hover === null ? null : (
           <>
             <span

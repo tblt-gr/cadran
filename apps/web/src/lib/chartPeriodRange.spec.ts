@@ -9,7 +9,7 @@ import { workspaceToday } from './workspaceTime';
 
 describe('chartPeriodRange', () => {
   it('keeps one canonical order for any caller order or subset', () => {
-    expect(CHART_PERIOD_ORDER).toEqual(['ALL', 'LAST_12_MONTHS', 'LAST_24_MONTHS', 'YTD']);
+    expect(CHART_PERIOD_ORDER).toEqual(['ALL', 'LAST_24_MONTHS', 'LAST_12_MONTHS', 'YTD']);
     expect(sortChartPeriods(['YTD', 'LAST_24_MONTHS', 'ALL', 'LAST_12_MONTHS'])).toEqual(
       CHART_PERIOD_ORDER,
     );

@@ -1,20 +1,24 @@
 import type { Account } from '@cadran/api-client';
 import type { RefObject } from 'react';
 import { ContractTab } from '@/features/portfolio/life-insurance/contract-tab/ContractTab';
-import { LifeInsuranceAllocationTab } from '@/features/portfolio/life-insurance/report-tabs/LifeInsuranceAllocationTab';
 import { LifeInsuranceSupportsTab } from '@/features/portfolio/life-insurance/report-tabs/LifeInsuranceSupportsTab';
 import { LifeInsuranceValuationsTab } from '@/features/portfolio/life-insurance/report-tabs/LifeInsuranceValuationsTab';
-import { AllocationTab } from './allocation-tab/AllocationTab';
-import { PositionsTab } from './positions/PositionsTab';
 import { CashTab } from '@/features/portfolio/cash/CashTab';
 import { ValuationsTab } from '@/features/portfolio/valuations/ValuationsTab';
 import { PerformanceTab } from '@/features/portfolio/performance/performance-tab/PerformanceTab';
+import { AccountTab } from './account-tab/AccountTab';
+import { HoldingsTab } from './holdings-tab/HoldingsTab';
 import { OperationsTab } from './operations/OperationsTab';
 import type { PortfolioTab } from './portfolio-tabs/PortfolioTabs';
+
+/** The creation modals the page header opens: one at a time, on the tab that lists its result. */
+export type PortfolioCreation = 'operation' | 'valuation' | null;
+
 export function PortfolioAccountTabContent({
   account,
   active,
   asOf,
+  today,
   sourceReturnFocus,
   contractRequired,
   onAsOfChange,
@@ -25,51 +29,61 @@ export function PortfolioAccountTabContent({
   account: Account;
   active: PortfolioTab;
   asOf: string;
+  today: string;
   sourceReturnFocus: RefObject<HTMLElement | null>;
   contractRequired: boolean;
   onAsOfChange: (date: string) => void;
-  creating: boolean;
+  creating: PortfolioCreation;
   onCloseCreate: () => void;
   onCreate: () => void;
 }) {
   const insurance = account.kind === 'INSURANCE_CONTRACT';
   const reporting = { accountId: account.id, asOf, sourceReturnFocus };
-  if (active === 'contract' && insurance)
+  if (active === 'account' || active === 'contract')
     return (
-      <ContractTab
-        {...reporting}
-        assetCode={account.assetCode}
-        writable={account.status === 'ACTIVE'}
-      />
+      <AccountTab account={account} today={today}>
+        {insurance ? (
+          <ContractTab
+            {...reporting}
+            assetCode={account.assetCode}
+            writable={account.status === 'ACTIVE'}
+          />
+        ) : null}
+      </AccountTab>
     );
   if (active === 'positions')
     return insurance ? (
       <LifeInsuranceSupportsTab {...reporting} />
     ) : (
-      <PositionsTab accountId={account.id} asOf={asOf} />
+      <HoldingsTab accountId={account.id} asOf={asOf} />
     );
-  if (active === 'allocation')
+  if (active === 'valuations') {
+    const recording = {
+      recording: creating === 'valuation',
+      onRecordClose: onCloseCreate,
+    };
     return insurance ? (
-      <LifeInsuranceAllocationTab {...reporting} />
+      <LifeInsuranceValuationsTab {...reporting} {...recording} account={account} />
     ) : (
-      <AllocationTab accountId={account.id} asOf={asOf} />
+      <ValuationsTab
+        {...recording}
+        account={account}
+        asOf={asOf}
+        sourceReturnFocus={sourceReturnFocus}
+      />
     );
-  if (active === 'valuations')
-    return insurance ? (
-      <LifeInsuranceValuationsTab {...reporting} account={account} />
-    ) : (
-      <ValuationsTab account={account} asOf={asOf} sourceReturnFocus={sourceReturnFocus} />
-    );
+  }
   if (active === 'cash')
     return <CashTab accountId={account.id} asOf={asOf} onAsOfChange={onAsOfChange} />;
-  if (active === 'performance') return <PerformanceTab accountId={account.id} asOf={asOf} />;
+  if (active === 'performance')
+    return <PerformanceTab key={account.id} accountId={account.id} asOf={asOf} />;
   return (
     <OperationsTab
       account={account}
       contractRequired={contractRequired}
       asOf={asOf}
       sourceReturnFocus={sourceReturnFocus}
-      creating={creating}
+      creating={creating === 'operation'}
       onCloseCreate={onCloseCreate}
       onCreate={onCreate}
     />

@@ -63,6 +63,7 @@ export function performanceFixture(): PortfolioPerformance {
         unrealizedChange: '180.00',
         income: '30.00',
         fees: '-10.00',
+        feesPaid: '-10.00',
         taxes: '0.00',
         corporateActionCash: '0.00',
         capitalizedCosts: '5.00',

@@ -50,6 +50,14 @@ final readonly class ComputeModifiedDietz
         }
 
         [$first, $count] = self::span($account, $period, $data);
+        $initialMonth = null;
+        if (PerformanceScope::INCEPTION === $period->scope && AnchorKind::VALUATION === $start->kind) {
+            $initialMonth = $this->initialObservedMonth($workspace, $account, $first->format('Y-m'), $today, $data);
+            if (null === $initialMonth) {
+                $first = $first->modify('+1 month');
+                --$count;
+            }
+        }
         if ($count > ReturnChain::MAX_PERIODS) {
             return self::figure(null, [new PerformanceFinding(PerformanceReason::TOO_MANY_PERIODS), ...$data->warnings], [], null, 0, null, true);
         }
@@ -65,7 +73,12 @@ final readonly class ComputeModifiedDietz
         $warnings = $data->warnings;
         $floor = CalculatedDecimal::one()->negate();
         foreach ($labels as $label) {
-            $month = $this->month($workspace, $account, $label, $today, $data->history);
+            $month = PerformanceScope::INCEPTION === $period->scope && AnchorKind::VALUATION === $start->kind && $label === $start->date->format('Y-m')
+                ? $initialMonth
+                : $this->month($workspace, $account, $label, $today, $data->history);
+            if (null === $month) {
+                continue;
+            }
             $months[] = ['month' => $label, 'value' => self::display($month->rate), 'quality' => self::quality($month), 'findings' => [...$month->blocking, ...$month->warnings]];
             $warnings = [...$warnings, ...$month->warnings];
             if (null === $month->rate) {
@@ -85,6 +98,22 @@ final readonly class ComputeModifiedDietz
         }
 
         return self::figure(ReturnChain::chain($rates), self::merged($warnings), [], null, 0, $months, false);
+    }
+
+    /** The observation month contributes only when a later complete anchor exists in that month. */
+    private function initialObservedMonth(WorkspaceScope $workspace, Account $account, string $label, \DateTimeImmutable $today, PerformancePeriodData $data): ?ModifiedDietz
+    {
+        $period = PerformancePeriod::of(PerformanceScope::MONTH->value, $label, $today, $account->openedOn);
+        $month = $this->builder->build($workspace, $account, $period, $today, $data->history);
+        $start = $data->start ?? throw new \LogicException('An observed period has a start.');
+        $end = $month->end;
+        if (null === $end || $end->date <= $start->date) {
+            return null;
+        }
+        $operations = array_values(array_filter($data->operations, static fn (PortfolioOperation $operation): bool => $operation->details->tradeDate <= $end->date));
+        $result = $this->calculator->calculate($start, $end, $operations, $data->displayPrecision);
+
+        return new ModifiedDietz($result->rate, $result->averageCapital, $result->reason, $result->weights, $result->weightCount, $result->blocking, [...$month->warnings, ...$result->warnings]);
     }
 
     /** @param list<PortfolioOperation> $history */
@@ -112,7 +141,7 @@ final readonly class ComputeModifiedDietz
     {
         $start = $data->start ?? throw new \LogicException('A calculable period has a start.');
         $end = $data->end ?? throw new \LogicException('A calculable period has an end.');
-        $first = $period->firstDay ?? $start->date->modify('+1 day');
+        $first = $period->firstDay ?? $start->date;
         if (AnchorKind::OPENING === $start->kind && [] !== $data->history) {
             $first = max($first, $data->history[0]->details->tradeDate);
         }

@@ -19,7 +19,7 @@ export const flagLabel: Record<PortfolioValuationFlag, string> = {
 
 export const flagSentence: Record<PortfolioValuationFlag, string> = {
   STALE_PRICES: 'Au moins un prix date de plus de 5 jours avant la valorisation.',
-  CASH_DIFFERENCE: 'Les espèces constatées diffèrent des espèces calculées.',
+  CASH_DIFFERENCE: 'Les espèces du relevé diffèrent des espèces calculées.',
   OBSERVED_TOTAL_DIFFERENCE:
     'Le total du relevé s’écarte du total calculé au-delà de la tolérance.',
   POSITIONS_CHANGED:

@@ -2,6 +2,12 @@
   display: grid;
   gap: var(--spacing-4);
 }
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2) var(--spacing-3);
+}
 .panel h3,
 .panel h4,
 .balance,

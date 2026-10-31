@@ -1,30 +1,53 @@
+import { usePerformanceColumns } from './performance-columns/PerformanceColumns';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
-import { PerformanceIndexChart } from './performance-index-chart/PerformanceIndexChart';
-import { PerformanceValueChart } from './performance-value-chart/PerformanceValueChart';
 import { PerformanceMonthCards } from './performance-month-cards/PerformanceMonthCards';
 import { PerformanceMonthTable } from './performance-month-table/PerformanceMonthTable';
 import { PerformanceSummary } from './performance-summary/PerformanceSummary';
-import { YearNavigator } from './year-navigator/YearNavigator';
+import { PerformanceToolbar } from './performance-toolbar/PerformanceToolbar';
 import styles from './PerformanceTab.module.css';
 
 /** Cold-load layout of the Performance tab: the real chrome, every figure pending. */
-export function PerformanceTabSkeleton({ year }: { year: number }) {
+export function PerformanceTabSkeleton({
+  year,
+  selected,
+  accountId = '',
+}: {
+  year: number;
+  selected?: string[];
+  accountId?: string;
+}) {
+  const stored = usePerformanceColumns(accountId);
+  const visible = selected ?? stored.selected;
   const narrow = useMediaQuery('(max-width: 767px)');
   return (
     <div aria-busy="true" className={styles.tab} data-testid="performance-skeleton">
       <SkeletonStatus>Chargement de la performance…</SkeletonStatus>
-      <YearNavigator bounds={null} onChange={() => undefined} year={year} />
+      <PerformanceToolbar
+        bounds={null}
+        onYearChange={() => undefined}
+        year={year}
+        selected={visible}
+        onColumnsChange={() => undefined}
+      />
       <PerformanceSummary onExplain={() => undefined} year={year} yearPerformance={null} />
-      <PerformanceValueChart annual={null} year={year} />
       {narrow ? (
-        <PerformanceMonthCards annual={null} onExplain={() => undefined} year={year} />
+        <PerformanceMonthCards
+          selected={visible}
+          annual={null}
+          onExplain={() => undefined}
+          year={year}
+        />
       ) : (
         <section className={`card ${styles.panel}`}>
-          <PerformanceMonthTable annual={null} onExplain={() => undefined} year={year} />
+          <PerformanceMonthTable
+            selected={visible}
+            annual={null}
+            onExplain={() => undefined}
+            year={year}
+          />
         </section>
       )}
-      <PerformanceIndexChart annual={null} />
     </div>
   );
 }

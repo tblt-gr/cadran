@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeReason } from './performanceReasons';
+import { describeReason, formatReasonDates, summarizeReason } from './performanceReasons';
 
 const context = { accountId: 'account-1', assetCode: 'EUR', residual: '0.50' };
 
@@ -42,7 +42,7 @@ describe('describeReason', () => {
 
   it('reuses the valuation flag sentence for a warning', () => {
     expect(describeReason({ code: 'CASH_DIFFERENCE', dates: [] }, context).sentence).toBe(
-      'Les espèces constatées diffèrent des espèces calculées.',
+      'Les espèces du relevé diffèrent des espèces calculées.',
     );
   });
 
@@ -74,6 +74,17 @@ describe('describeReason', () => {
     ).toBe("Période en cours, calculée jusqu'au 10/03/2026.");
     expect(describeReason({ code: 'DECOMPOSITION_RESIDUAL', dates: [] }, context).sentence).toBe(
       'Écart de décomposition de 0,50\u00a0€.',
+    );
+  });
+
+  it('keeps a long date list out of the overview sentence', () => {
+    const dates = ['2023-12-01', '2023-12-28', '2024-02-01', '2024-03-01'];
+    expect(summarizeReason({ code: 'MISSING_FLOW_VALUATION', dates }, context)).toBe(
+      'Relevés manquants aux dates de versement ou retrait.',
+    );
+    expect(formatReasonDates(dates)).toBe('01/12/2023, 28/12/2023, 01/02/2024, 01/03/2024');
+    expect(summarizeReason({ code: 'NO_END_VALUATION', dates: [] }, context)).toBe(
+      'Aucune valorisation complète dans la période.',
     );
   });
 

@@ -10,7 +10,7 @@ export const figureKeys: readonly FigureKey[] = [
 export const figureLabels: Record<FigureKey, string> = {
   gain: 'Gain total',
   modifiedDietz: 'Rendement (Modified Dietz)',
-  timeWeighted: 'TWR exact',
+  timeWeighted: 'Rendement des placements (TWR)',
   moneyWeighted: 'Rendement personnel (MWR)',
 };
 

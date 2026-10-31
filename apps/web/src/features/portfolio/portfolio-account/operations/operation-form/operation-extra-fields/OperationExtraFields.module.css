@@ -1,0 +1,17 @@
+.extra {
+  display: grid;
+  gap: var(--spacing-4);
+}
+.extra > summary {
+  width: fit-content;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  cursor: pointer;
+}
+.extra > summary:focus-visible {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+}
+.extra[open] > summary {
+  margin-bottom: var(--spacing-4);
+}

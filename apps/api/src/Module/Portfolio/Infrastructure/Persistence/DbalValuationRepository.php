@@ -54,6 +54,17 @@ final readonly class DbalValuationRepository implements ValuationRepository
         return [] === $rows ? null : $this->withPositions($workspace, $rows)[0];
     }
 
+    public function firstActiveCompleteOnOrBefore(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $day): ?Valuation
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.ValuationRow::COLUMNS.' FROM portfolio_valuations WHERE workspace_id = :workspace_id AND account_id = :account_id'
+            .' AND superseded_at IS NULL AND completeness = :completeness AND valued_on <= :day ORDER BY valued_on ASC, id LIMIT 1',
+            ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'completeness' => ValuationCompleteness::COMPLETE->value, 'day' => $day->format('Y-m-d')],
+        );
+
+        return [] === $rows ? null : $this->withPositions($workspace, $rows)[0];
+    }
+
     public function add(Valuation $valuation): void
     {
         $this->connection->insert('portfolio_valuations', ['workspace_id' => $valuation->workspace->id, ...ValuationRow::columns($valuation)], ['withdrawn' => ParameterType::BOOLEAN]);

@@ -112,14 +112,14 @@ describe('ValueHistoryCard', () => {
     );
   });
 
-  it('offers Tout, 12, 24 and Depuis janvier in canonical order and resolves YTD from asOf', async () => {
+  it('offers Tout, 24, 12 and Depuis janvier in canonical order and resolves YTD from asOf', async () => {
     const { container } = renderCard();
     await loaded();
     const group = screen.getByRole('group', { name: 'Période' });
     expect(Array.from(group.querySelectorAll('button')).map((b) => b.textContent)).toEqual([
       'Tout',
-      '12 mois',
       '24 mois',
+      '12 mois',
       'Depuis janvier',
     ]);
     fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
@@ -245,7 +245,7 @@ describe('ValueHistoryCardSkeleton', () => {
   it('keeps the real title, a disabled period control and the table header', () => {
     render(<ValueHistoryCardSkeleton status="Chargement…" />);
     expect(screen.getByRole('heading', { name: 'Évolution de la valeur' })).toBeTruthy();
-    for (const name of ['Tout', '12 mois', '24 mois', 'Depuis janvier']) {
+    for (const name of ['Tout', '24 mois', '12 mois', 'Depuis janvier']) {
       expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
     }
     expect(screen.getByRole('columnheader', { name: 'Valeur totale' })).toBeTruthy();

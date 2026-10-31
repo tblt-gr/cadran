@@ -11,6 +11,7 @@ export function SavingsHistoryChart({ points }: { points: AccountValuationHistor
   return (
     <CurveChart
       interpolation="step-after"
+      interaction="series"
       label={t('accounts.history.title')}
       timeAxisLabel={t('accounts.history.date')}
       valueAxisLabel={t('accounts.history.balance')}

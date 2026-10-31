@@ -35,6 +35,7 @@ export function summaryFixture(): PortfolioOverviewSummary {
       value: '121.421',
       securitiesValue: '2471.421',
       costBasis: '2350',
+      performance: '0.051669',
       reason: null,
     },
     netDeposits: {
@@ -65,6 +66,7 @@ export function allocationFixture(): PortfolioOverviewAllocation {
     valuation: summaryFixture().valuation,
     total: '100',
     reason: null,
+    basis: 'MARKET',
     items: [
       { key: 'UNSPECIFIED', label: 'Non renseignée', value: '75', share: '0.75' },
       { key: 'CASH', label: 'Espèces', value: '25', share: '0.25' },

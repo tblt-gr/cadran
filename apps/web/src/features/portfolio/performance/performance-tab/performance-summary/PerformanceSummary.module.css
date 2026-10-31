@@ -4,7 +4,7 @@
   padding: var(--spacing-4);
   gap: var(--spacing-3);
 }
-.row h3 {
+.row h2 {
   margin: var(--spacing-none);
   font-size: var(--font-size-card-title);
 }

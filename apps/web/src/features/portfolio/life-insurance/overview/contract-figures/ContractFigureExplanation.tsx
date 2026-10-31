@@ -1,5 +1,4 @@
 import { Modal } from '@/components/ui/modal/Modal';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import {
   money,
@@ -7,6 +6,9 @@ import {
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
 import { figureLabels, type ContractFigure } from './contractFigureLabels';
+import { ExplanationFigure } from '@/features/portfolio/explanation/ExplanationFigure';
+import { ExplanationSources } from '@/features/portfolio/explanation/ExplanationSources';
+import explanation from '@/features/portfolio/explanation/Explanation.module.css';
 import styles from './ContractFigureExplanation.module.css';
 const formulas = {
   value:
@@ -19,11 +21,14 @@ const formulas = {
 };
 export function ContractFigureExplanation({
   figure,
+  value,
   summary,
   accountId,
   onClose,
 }: {
   figure: Exclude<ContractFigure, 'gain'>;
+  /** The value as the contract figures show it. */
+  value: string;
   summary: Summary;
   accountId: string;
   onClose: () => void;
@@ -62,81 +67,60 @@ export function ContractFigureExplanation({
               ['Net versé', cumulative.surrendersNetPaid],
             ]
           : [['Versements bruts', cumulative.premiums]];
+  const period =
+    figure === 'value'
+      ? valuation
+        ? `Valorisation du ${formatCalendarNumericDay(valuation.valuedOn)}`
+        : 'Aucune valorisation'
+      : `${summary.contract ? `Du ${formatCalendarNumericDay(summary.contract.subscribedOn)}` : 'Depuis la souscription'} au ${formatCalendarNumericDay(summary.asOf)}`;
+  const quality =
+    figure === 'value'
+      ? !valuation
+        ? 'Aucune valorisation'
+        : valuation.stale
+          ? `Valorisation ancienne (${valuation.ageDays} jours)`
+          : 'Valorisation complète'
+      : 'Montants enregistrés';
   return (
-    <Modal close={onClose} title={`Expliquer : ${figureLabels[figure]}`}>
-      <div className={styles.content}>
-        <section>
-          <h3>Formule</h3>
+    <Modal close={onClose} title={figureLabels[figure]}>
+      <div className={explanation.content}>
+        <ExplanationFigure
+          meta={
+            <>
+              <span>{period}</span>
+              <span aria-hidden="true">·</span>
+              <span>{quality}</span>
+            </>
+          }
+          value={value}
+        />
+        <section className={explanation.block}>
+          <h3>Calcul</h3>
           <p>
             {figure === 'value' && valuation?.detail === 'TOTAL'
               ? 'Total observé de la valorisation retenue. La répartition n’est pas détaillée.'
               : formulas[figure]}
           </p>
-        </section>
-        <section>
-          <h3>Périmètre et période</h3>
-          <p>
-            Ce contrat uniquement.{' '}
-            {figure === 'value'
-              ? valuation
-                ? `Valorisation du ${formatCalendarNumericDay(valuation.valuedOn)}.`
-                : 'Aucune valorisation.'
-              : `Depuis la souscription ${summary.contract ? `du ${formatCalendarNumericDay(summary.contract.subscribedOn)}` : ''} au ${formatCalendarNumericDay(summary.asOf)}.`}
-          </p>
-        </section>
-        <section>
-          <h3>Entrées enregistrées</h3>
-          <dl>
-            {facts.map(([label, value]) => (
+          <dl className={styles.facts}>
+            {facts.map(([label, fact]) => (
               <div key={label}>
                 <dt>{label}</dt>
-                <dd className="money">{amount(value)}</dd>
+                <dd className="money">{amount(fact)}</dd>
               </div>
             ))}
           </dl>
         </section>
-        <section>
-          <h3>Qualité</h3>
-          <p>
-            {figure === 'value'
-              ? !valuation
-                ? 'Aucune valorisation'
-                : valuation.stale
-                  ? `Valorisation ancienne (${valuation.ageDays} jours)`
-                  : 'Valorisation complète'
-              : 'Montants enregistrés, sans projection ni estimation.'}
-          </p>
-          {summary.qualityIssues.length ? (
-            <p>Consultez les points de qualité de la synthèse.</p>
-          ) : null}
-        </section>
-        <section>
-          <h3>Sources</h3>
-          {sources.length ? (
-            <ul>
-              {sources.map((source) => {
-                const href = sourceHref(accountId, summary.asOf, source.kind, source.id);
-                return (
-                  <li key={`${source.kind}-${source.id}`}>
-                    <a
-                      href={href}
-                      onClick={(event) => {
-                        onClose();
-                        handleClientNavigation(event, href);
-                      }}
-                    >
-                      {source.kind === 'OPERATION' ? 'Opération' : 'Valorisation'} du{' '}
-                      {formatCalendarNumericDay(source.date)}
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p>Aucune source à cette date.</p>
-          )}
-          {count > sources.length ? <p>{count - sources.length} autres sources</p> : null}
-        </section>
+        <ExplanationSources
+          hrefOf={(source) => sourceHref(accountId, summary.asOf, source.kind, source.id)}
+          more={count - sources.length}
+          onSource={(source) => {
+            onClose();
+            const href = sourceHref(accountId, summary.asOf, source.kind, source.id);
+            window.history.pushState({}, '', href);
+            window.dispatchEvent(new PopStateEvent('popstate'));
+          }}
+          sources={sources}
+        />
       </div>
     </Modal>
   );

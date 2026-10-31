@@ -6,6 +6,8 @@ import styles from './RateBrackets.module.css';
 interface RateBracketsProps {
   assetCode: string;
   rate: AccountRate;
+  /** `figure` matches a headline amount. The default stays the compact rules face. */
+  variant?: 'compact' | 'figure';
 }
 
 /**
@@ -16,13 +18,14 @@ interface RateBracketsProps {
  * slices and needs nothing new here, which is the reason a rate is never
  * transported as a bare percentage.
  */
-export function RateBrackets({ assetCode, rate }: RateBracketsProps) {
+export function RateBrackets({ assetCode, rate, variant = 'compact' }: RateBracketsProps) {
   const { i18n, t } = useTranslation();
+  const percentageClass = variant === 'figure' ? styles.figure : styles.percentage;
 
   const [only] = rate.brackets;
   if (rate.brackets.length === 1 && only !== undefined && only.upperBound === null) {
     return (
-      <span className={styles.single}>
+      <span className={variant === 'figure' ? styles.figure : styles.single}>
         {t('catalog.rules.percentValue', {
           value: formatPercentDecimal(only.percentage, i18n.language),
         })}
@@ -34,7 +37,7 @@ export function RateBrackets({ assetCode, rate }: RateBracketsProps) {
     <ol className={styles.brackets}>
       {rate.brackets.map((bracket) => (
         <li key={bracket.lowerBound}>
-          <span className={styles.percentage}>
+          <span className={percentageClass}>
             {t('catalog.rules.percentValue', {
               value: formatPercentDecimal(bracket.percentage, i18n.language),
             })}

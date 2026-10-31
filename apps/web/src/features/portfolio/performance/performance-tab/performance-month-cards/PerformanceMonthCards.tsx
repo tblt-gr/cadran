@@ -24,6 +24,7 @@ function Card({
   onExplain,
   target,
   emptyLabel,
+  selected,
 }: {
   id: string;
   title: string;
@@ -33,6 +34,7 @@ function Card({
   context: LineContext;
   onExplain: (target: ExplainTarget) => void;
   target: (figure: NonNullable<(typeof lineColumns)[number]['figure']>) => ExplainTarget;
+  selected?: string[];
   emptyLabel?: string;
 }) {
   return (
@@ -45,28 +47,30 @@ function Card({
         {title}
       </h3>
       <dl className={styles.figures}>
-        {lineColumns.map((column) => (
-          <div className={styles.figure} key={column.id}>
-            <dt>{column.label}</dt>
-            <dd>
-              {emptyLabel ? (
-                <EmptyValue label={emptyLabel} />
-              ) : !line ? (
-                <SkeletonBlock className={styles.skeleton} />
-              ) : column.figure ? (
-                <FigureCell
-                  figure={column.figure}
-                  onExplain={() => onExplain(target(column.figure!))}
-                  scope={title}
-                >
-                  {column.render(line, context)}
-                </FigureCell>
-              ) : (
-                column.render(line, context)
-              )}
-            </dd>
-          </div>
-        ))}
+        {lineColumns
+          .filter((column) => !selected || selected.includes(column.id))
+          .map((column) => (
+            <div className={styles.figure} key={column.id}>
+              <dt>{column.label}</dt>
+              <dd>
+                {emptyLabel ? (
+                  <EmptyValue label={emptyLabel} />
+                ) : !line ? (
+                  <SkeletonBlock className={styles.skeleton} />
+                ) : column.figure ? (
+                  <FigureCell
+                    figure={column.figure}
+                    onExplain={() => onExplain(target(column.figure!))}
+                    scope={title}
+                  >
+                    {column.render(line, context)}
+                  </FigureCell>
+                ) : (
+                  column.render(line, context)
+                )}
+              </dd>
+            </div>
+          ))}
       </dl>
     </article>
   );
@@ -75,9 +79,11 @@ function Card({
 /** The same figures as the month table, one card per month then the year, under 768 px. */
 export function PerformanceMonthCards({
   annual,
+  selected,
   year,
   onExplain,
 }: {
+  selected?: string[];
   annual: PortfolioAnnualPerformance | null;
   year?: number;
   onExplain: (target: ExplainTarget) => void;
@@ -104,6 +110,7 @@ export function PerformanceMonthCards({
             : undefined;
         return (
           <Card
+            selected={selected}
             context={{ ...base, kind: 'month' }}
             emptyLabel={empty}
             id={`performance-card-${line.month}`}
@@ -118,6 +125,7 @@ export function PerformanceMonthCards({
         );
       })}
       <Card
+        selected={selected}
         context={{ ...base, kind: 'year' }}
         id="performance-card-year"
         line={annual?.yearTotal ?? null}

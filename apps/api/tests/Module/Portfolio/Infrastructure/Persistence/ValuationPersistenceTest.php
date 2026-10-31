@@ -125,6 +125,18 @@ final class ValuationPersistenceTest extends KernelTestCase
         self::assertCount(1, $this->valuations->search(WorkspaceFixture::own(), PortfolioFixture::ACCOUNT, null, null, 1, 1));
     }
 
+    public function testFirstCompleteObservationIsScopedBoundedAndIgnoresReplacedRows(): void
+    {
+        $first = $this->valuation(self::V1, '2026-01-31');
+        $this->valuations->add($first);
+        $this->valuations->add($this->valuation(self::V2, '2026-02-28', snapshotId: '00000000-0000-7000-8000-000000000d02'));
+        self::assertNull($this->valuations->firstActiveCompleteOnOrBefore(WorkspaceFixture::other(), PortfolioFixture::ACCOUNT, self::day('2026-03-31')));
+        self::assertNull($this->valuations->firstActiveCompleteOnOrBefore(WorkspaceFixture::own(), PortfolioFixture::ACCOUNT, self::day('2026-01-30')));
+        self::assertSame(self::V1, $this->valuations->firstActiveCompleteOnOrBefore(WorkspaceFixture::own(), PortfolioFixture::ACCOUNT, self::day('2026-03-31'))?->id);
+        self::assertTrue($this->valuations->markSuperseded($first->supersededAt(new \DateTimeImmutable('2026-02-01'), false), 1));
+        self::assertSame(self::V2, $this->valuations->firstActiveCompleteOnOrBefore(WorkspaceFixture::own(), PortfolioFixture::ACCOUNT, self::day('2026-03-31'))?->id);
+    }
+
     public function testObservedPricesIgnoreLaterDatesAndNullPrices(): void
     {
         $this->valuations->add($this->valuation(self::V1, '2026-03-31'));

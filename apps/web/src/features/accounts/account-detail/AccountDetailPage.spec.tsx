@@ -169,7 +169,7 @@ function problem(status: number, type: string) {
   });
 }
 
-function renderPage(accountId = account.id, search = '', shell = false) {
+function renderPage(accountId = account.id, search = '?tab=operations', shell = false) {
   window.history.pushState({}, '', `/accounts/${accountId}${search}`);
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -196,10 +196,7 @@ async function loaded() {
 }
 
 describe('AccountDetailPage', () => {
-  it('publishes its account name without another query and keeps portfolio actions', async () => {
-    api.readAccount.mockImplementation(() =>
-      success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
-    );
+  it('publishes its account name without another query', async () => {
     renderPage(account.id, '?month=2026-03', true);
     const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
     await waitFor(() =>
@@ -210,14 +207,6 @@ describe('AccountDetailPage', () => {
       '/accounts',
     );
     expect(screen.queryByRole('link', { name: 'Retour aux comptes' })).toBeNull();
-    fireEvent.click(await screen.findByRole('button', { name: 'Autres actions' }));
-    expect(screen.getByRole('button', { name: 'Ouvrir le portefeuille' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Valoriser le portefeuille' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Valoriser le portefeuille' }));
-    expect(window.location.pathname).toBe(`/portfolios/${account.id}`);
-    expect(window.location.search).toBe('?tab=valuations');
-    window.history.replaceState({}, '', `/accounts/${account.id}?month=2026-03`);
-    expect(window.location.search).toBe('?month=2026-03');
   });
   beforeEach(() => {
     api.readAccountValuationHistory.mockResolvedValue({
@@ -241,6 +230,39 @@ describe('AccountDetailPage', () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('filters operations by date, type and voided status without widening the account scope', async () => {
+    renderPage();
+    await loaded();
+    fireEvent.change(screen.getByLabelText('Du'), { target: { value: '2026-03-01' } });
+    fireEvent.change(screen.getByLabelText('Au'), { target: { value: '2026-03-31' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Types d’opération Tous les types' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Dépense' }));
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+    fireEvent.click(screen.getByLabelText('Afficher les opérations annulées'));
+    await waitFor(() =>
+      expect(api.listTransactions).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            accountId: [account.id],
+            from: '2026-03-01',
+            to: '2026-03-31',
+            nature: ['EXPENSE'],
+            includeVoided: true,
+            cursor: undefined,
+          }),
+        }),
+      ),
+    );
+    expect(screen.queryByLabelText('Instrument')).toBeNull();
+  });
+
+  it('shows the step balance history for a current account', async () => {
+    api.readAccount.mockImplementation(() => success({ ...account, kind: 'CURRENT' }));
+    renderPage(account.id, '?tab=account');
+    expect(await screen.findByRole('heading', { name: 'Historique du solde' })).toBeTruthy();
+    await waitFor(() => expect(api.readAccountValuationHistory).toHaveBeenCalled());
   });
 
   it('inspects authoritative details and restores keyboard focus to the row', async () => {
@@ -796,7 +818,7 @@ describe('AccountDetailPage', () => {
   );
 
   it.each([401, 403, 404])('hides cached account data after refetch status %s', async (status) => {
-    const { queryClient } = renderPage();
+    const { queryClient } = renderPage(account.id, '?tab=account');
     await loaded();
     expect(screen.getAllByRole('heading', { name: account.label }).length).toBeGreaterThan(0);
     api.readAccount.mockImplementation(() => failure(status));
@@ -816,7 +838,7 @@ describe('AccountDetailPage', () => {
           resolveAccount = resolve;
         }),
     );
-    const { queryClient } = renderPage();
+    const { queryClient } = renderPage(account.id, '?tab=account');
 
     expect(screen.getByTestId('account-detail-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
@@ -832,47 +854,38 @@ describe('AccountDetailPage', () => {
   });
 
   it('opens the account named in Budget or Accounts and shows its identity and movements', async () => {
-    renderPage();
+    renderPage(account.id, '?tab=account');
 
     expect(
       await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' }),
     ).toBeTruthy();
-    expect(screen.getByText('Supermarché')).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', { name: 'Opérations' }));
+    expect(await screen.findByText('Supermarché')).toBeTruthy();
     expect(api.listTransactions).toHaveBeenCalledWith(
       expect.objectContaining({ query: expect.objectContaining({ accountId: [account.id] }) }),
     );
   });
 
-  it('links a portfolio-mode account to its portfolio page and no other account', async () => {
-    renderPage();
-    await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
-    expect(screen.queryByRole('button', { name: 'Autres actions' })).toBeNull();
-    cleanup();
-    api.readAccount.mockImplementation(() =>
-      success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
-    );
-    renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Autres actions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir le portefeuille' }));
-    expect(window.location.pathname).toBe(`/portfolios/${account.id}`);
-    window.history.replaceState({}, '', '/');
-  });
-
-  it('replaces Rapprocher by a valuation link for a portfolio-mode account only', async () => {
-    renderPage();
+  it('keeps its own actions for an account outside portfolio mode', async () => {
+    renderPage(account.id, '?tab=account');
     await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
     expect(screen.getByRole('button', { name: 'Rapprocher' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Valoriser le portefeuille' })).toBeNull();
-    cleanup();
+    expect(screen.getByRole('button', { name: 'Voir les règles' })).toBeTruthy();
+    expect(window.location.pathname).toBe(`/accounts/${account.id}`);
+  });
+
+  it('replaces a portfolio-mode account by the account tab of its portfolio, keeping the month', async () => {
     api.readAccount.mockImplementation(() =>
       success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
     );
-    renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Autres actions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Valoriser le portefeuille' }));
-    expect(window.location.search).toBe('?tab=valuations');
+    renderPage(account.id, '?month=2026-03');
+    const before = window.history.length;
+    await waitFor(() => expect(window.location.pathname).toBe(`/portfolios/${account.id}`));
+    expect(window.location.search).toBe('?tab=account&month=2026-03');
+    expect(window.history.length).toBe(before);
+    expect(screen.getByTestId('account-detail-skeleton')).toBeTruthy();
+    expect(api.listTransactions).not.toHaveBeenCalled();
     window.history.replaceState({}, '', '/');
-    expect(screen.queryByRole('button', { name: 'Rapprocher' })).toBeNull();
   });
 
   it('discloses no account data for an unknown or foreign-workspace identifier', async () => {
@@ -899,7 +912,7 @@ describe('AccountDetailPage', () => {
         archivedAt: '2026-09-20T10:00:00Z',
       }),
     );
-    renderPage();
+    renderPage(account.id, '?tab=account');
 
     expect(
       await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' }),
@@ -911,7 +924,7 @@ describe('AccountDetailPage', () => {
   });
 
   it('shows a missing-valuation state, not zero, when the account has no dated source', async () => {
-    renderPage();
+    renderPage(account.id, '?tab=account');
 
     await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
     expect(screen.getByText('Non calculable')).toBeTruthy();
@@ -1021,7 +1034,7 @@ describe('AccountDetailPage', () => {
     expect(screen.queryByText(/Période affichée/)).toBeNull();
   });
 
-  it('shows a stale-valuation state with its age and source, not a fresh figure', async () => {
+  it('keeps the balance in the header without the statement or age line', async () => {
     api.readAccount.mockImplementation(() =>
       success({
         ...account,
@@ -1039,10 +1052,12 @@ describe('AccountDetailPage', () => {
         },
       }),
     );
-    renderPage();
+    renderPage(account.id, '?tab=account');
 
-    expect(await screen.findByText(/Ancienne/)).toBeTruthy();
-    expect(screen.getByText(/14 jours/)).toBeTruthy();
+    expect(await screen.findByText(/231,10/)).toBeTruthy();
+    expect(screen.queryByText(/Ancienne/)).toBeNull();
+    expect(screen.queryByText(/14 jours/)).toBeNull();
+    expect(screen.queryByText(/Ouvert le/)).toBeNull();
   });
 
   it('hides the empty-movements create action for an account creation is unavailable on', async () => {
@@ -1057,10 +1072,11 @@ describe('AccountDetailPage', () => {
     api.listTransactions.mockImplementation(() =>
       success({ items: [], nextCursor: null, hasMore: false, pageSize: 50 }),
     );
-    renderPage();
+    renderPage(account.id, '?tab=account');
 
     await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
-    expect(screen.getByText('Aucune transaction')).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', { name: 'Opérations' }));
+    expect(await screen.findByText('Aucune transaction')).toBeTruthy();
     expect(
       screen.queryByRole('button', { name: 'Enregistrer la première transaction' }),
     ).toBeNull();
@@ -1122,7 +1138,7 @@ describe('AccountDetailPage', () => {
   });
 
   it('mounts savings history independently of the account identity read', async () => {
-    renderPage();
+    renderPage(account.id, '?tab=account');
     expect(await screen.findByRole('heading', { name: 'Historique du solde' })).toBeTruthy();
     expect(api.readAccountValuationHistory).toHaveBeenCalled();
   });

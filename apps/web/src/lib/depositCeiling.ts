@@ -18,15 +18,24 @@ export function depositCeilingOf(
 ): { assetCode: string; value: string } | null {
   if (account.productCode !== null) {
     const product = products.find((item) => item.code === account.productCode);
-    return amountCeiling(product?.rules);
+    return measuredOnBalance(product?.ceilingBasis) ? amountCeiling(product?.rules) : null;
   }
 
   if (account.productModelId !== null) {
     const model = models.find((item) => item.id === account.productModelId);
-    return amountCeiling(model?.rules);
+    return measuredOnBalance(model?.ceilingBasis) ? amountCeiling(model?.rules) : null;
   }
 
   return null;
+}
+
+/**
+ * A ceiling capped on cumulative contributions (a PEA) says nothing about the balance: drawing
+ * the balance against it would flag a plan that merely grew. Only balance-based ceilings are
+ * drawn here.
+ */
+function measuredOnBalance(basis: string | undefined): boolean {
+  return basis !== 'CONTRIBUTIONS' && basis !== 'COMBINED_CONTRIBUTIONS';
 }
 
 /** Pixel fill only. The printed pair stays the two backend display strings. */

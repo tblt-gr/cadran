@@ -23,6 +23,7 @@ final readonly class PresentAccountRules
         private AccountRepository $accounts,
         private ResolveAccountValuations $valuations,
         private ResolveAuthorNames $authors,
+        private ContributionTotalsReader $contributions,
     ) {
     }
 
@@ -32,7 +33,11 @@ final readonly class PresentAccountRules
         $account = $this->accounts->find($workspace, $rules->accountId) ?? throw new AccountNotFound();
         $valuation = $this->valuations->forAccounts($workspace, [$account], [$rules->asOf])[$rules->asOf->format('Y-m-d')][$account->id];
 
-        return new AccountRulePresentation($valuation, $this->authors->forIds(self::authorIds($rules)));
+        return new AccountRulePresentation(
+            $valuation,
+            $this->authors->forIds(self::authorIds($rules)),
+            $this->contributions->cumulative($workspace, $account->id, $rules->asOf),
+        );
     }
 
     /**

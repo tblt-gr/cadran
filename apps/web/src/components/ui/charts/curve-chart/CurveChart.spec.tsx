@@ -132,3 +132,25 @@ it('constrains only step axes while retaining every digit in accessible labels a
   );
   expect(container.querySelector('[data-interpolation="step-after"]')).toBeNull();
 });
+
+it('offers one dense-series target while preserving every computable date for the keyboard', () => {
+  render(
+    <CurveChart
+      label="Historique"
+      points={points}
+      timeAxisLabel="Dates"
+      valueAxisLabel="Solde"
+      interaction="series"
+      interpolation="step-after"
+    />,
+  );
+  const cursor = screen.getByRole('slider', { name: 'Historique' });
+  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  act(() => cursor.focus());
+  expect(cursor.getAttribute('aria-valuetext')).toBe('janv., 100 €');
+  fireEvent.keyDown(cursor, { key: 'ArrowRight' });
+  expect(cursor.getAttribute('aria-valuetext')).toBe('mars, 300 €');
+  expect(screen.getByRole('tooltip').textContent).toContain('300 €');
+  fireEvent.keyDown(cursor, { key: 'Home' });
+  expect(cursor.getAttribute('aria-valuetext')).toBe('janv., 100 €');
+});

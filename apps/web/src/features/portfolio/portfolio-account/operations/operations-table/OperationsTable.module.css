@@ -40,7 +40,7 @@
   border-bottom: var(--border-none);
 }
 .number {
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
 }
 .voided {

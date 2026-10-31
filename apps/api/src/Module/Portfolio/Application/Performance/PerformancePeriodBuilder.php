@@ -8,6 +8,7 @@ use App\Module\Accounts\Domain\Account;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Portfolio\Application\PortfolioValuationPresenter;
 use App\Module\Portfolio\Domain\Performance\PerformanceFinding;
+use App\Module\Portfolio\Domain\Performance\PerformanceHistoryStart;
 use App\Module\Portfolio\Domain\Performance\PerformancePeriod;
 use App\Module\Portfolio\Domain\Performance\PerformanceReason;
 use App\Module\Portfolio\Domain\Performance\PerformanceScope;
@@ -53,7 +54,7 @@ final readonly class PerformancePeriodBuilder
      * @param list<PortfolioOperation>|null $loadedHistory the account history already read and bounded for this request,
      *                                                     which a series of periods shares instead of reloading it
      */
-    public function build(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, ?array $loadedHistory = null): PerformancePeriodData
+    public function build(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, ?array $loadedHistory = null, PerformanceHistoryStart $historyStart = PerformanceHistoryStart::FIRST_OBSERVATION): PerformancePeriodData
     {
         $history = $loadedHistory ?? $this->history($workspace, $account);
         $precision = ($this->assets->findByCode($account->assetCode) ?? throw new \LogicException('An account asset is missing from the reference.'))->precision->display;
@@ -62,11 +63,18 @@ final readonly class PerformancePeriodBuilder
         $startValuation = null;
         $startOpening = null;
         if (PerformanceScope::INCEPTION === $period->scope) {
-            $first = $history[0] ?? null;
-            if (null !== $first && null === $this->valuations->latestActiveBefore($workspace, $account->id, $first->details->tradeDate)) {
-                $startOpening = PeriodAnchor::opening($first->details->tradeDate->modify('-1 day'));
+            if (PerformanceHistoryStart::OPENING === $historyStart) {
+                $first = $history[0] ?? null;
+                if (null !== $first && null === $this->valuations->latestActiveBefore($workspace, $account->id, $first->details->tradeDate)) {
+                    $startOpening = PeriodAnchor::opening($first->details->tradeDate->modify('-1 day'));
+                } else {
+                    $blocking[] = new PerformanceFinding(PerformanceReason::NO_START_VALUATION);
+                }
             } else {
-                $blocking[] = new PerformanceFinding(PerformanceReason::NO_START_VALUATION);
+                $startValuation = $this->valuations->firstActiveCompleteOnOrBefore($workspace, $account->id, $today);
+                if (null === $startValuation) {
+                    $blocking[] = new PerformanceFinding(PerformanceReason::NO_START_VALUATION);
+                }
             }
             $endMissing = [];
             [$endValuation, $endPartial] = $this->latest($workspace, $account->id, null, $today);

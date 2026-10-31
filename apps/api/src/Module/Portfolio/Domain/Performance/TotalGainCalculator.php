@@ -93,7 +93,7 @@ final class TotalGainCalculator
             return $unavailable;
         }
 
-        $realized = $income = $fees = $taxes = $corporateCash = $capitalized = CalculatedDecimal::zero();
+        $realized = $income = $fees = $taxes = $corporateCash = $capitalized = $feesPaid = CalculatedDecimal::zero();
         foreach ($operations as $operation) {
             $details = $operation->details;
             foreach ($details->legs as $leg) {
@@ -128,6 +128,7 @@ final class TotalGainCalculator
             }
             $operationFees = self::amount($details->fees);
             $operationTaxes = self::amount($details->taxes);
+            $feesPaid = $feesPaid->subtract($operationFees);
             if (OperationType::BUY === $details->type) {
                 $capitalized = $capitalized->add($operationFees)->add($operationTaxes);
                 continue;
@@ -149,7 +150,7 @@ final class TotalGainCalculator
         return [
             'decomposition' => new GainDecomposition(
                 DecompositionStatus::COMPLETE, null, $format($realized), $format($unrealizedChange), $format($income),
-                $format($fees), $format($taxes), $format($corporateCash), $format($capitalized), $format($residual),
+                $format($fees), $format($taxes), $format($corporateCash), $format($capitalized), $format($residual), $format($feesPaid),
             ),
             'warning' => $warning,
         ];

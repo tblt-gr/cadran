@@ -7,7 +7,7 @@
 
 .large {
   color: var(--text-primary);
-  font-size: var(--font-size-metric);
+  font-size: var(--font-size-brand);
   font-weight: var(--font-weight-medium);
   line-height: var(--line-height-tight);
 }
@@ -64,7 +64,7 @@
 }
 
 .large .skeletonFigure {
-  height: var(--font-size-metric);
+  height: var(--font-size-brand);
 }
 
 .skeletonProvenance {

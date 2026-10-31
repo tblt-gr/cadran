@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { BusinessDateField } from './BusinessDateField';
 
-describe('BusinessDateField', () => {
-  afterEach(cleanup);
+afterEach(cleanup);
 
+describe('BusinessDateField', () => {
   it('reports the chosen business date and restores today', () => {
     const onChange = vi.fn();
 
@@ -35,4 +35,19 @@ describe('BusinessDateField', () => {
     expect(onChange).toHaveBeenCalledWith('2026-09-02');
     expect(onChange).not.toHaveBeenCalledWith('');
   });
+});
+
+it('renders a compact inline date without a duplicate today action', () => {
+  render(
+    <BusinessDateField
+      compact
+      hint={null}
+      label="Situation au"
+      today="2026-10-31"
+      value="2026-10-30"
+      onChange={vi.fn()}
+    />,
+  );
+  expect(screen.getByLabelText('Situation au')).toBeTruthy();
+  expect(screen.queryByRole('button')).toBeNull();
 });

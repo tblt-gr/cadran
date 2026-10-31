@@ -57,7 +57,7 @@
   font-weight: var(--font-weight-bold);
 }
 .positions .number {
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
 }
 .links {

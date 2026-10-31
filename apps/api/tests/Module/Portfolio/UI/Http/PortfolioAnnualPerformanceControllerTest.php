@@ -75,7 +75,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
 
         $annual = $this->annual(2026);
 
-        self::assertSame(['PERF-1', 'NET_OF_FEES_AND_TAXES', ['from' => 2026, 'to' => 2026]], [$annual['methodVersion'], $annual['costPolicy'], $annual['availableYears']]);
+        self::assertSame(['PERF-1', 'NET_OF_FEES_AND_TAXES', ['from' => 2026, 'to' => 2026, 'years' => [2026]]], [$annual['methodVersion'], $annual['costPolicy'], $annual['availableYears']]);
         $months = self::lines($annual['months']);
         self::assertCount(12, $months);
         foreach (['2026-01', '2026-02', '2026-03', '2026-04'] as $index => $label) {
@@ -113,7 +113,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
         self::assertSame(['BEFORE_OPENING', 'CALCULATED', 'CALCULATED', 'CALCULATED', 'FUTURE'], [$months[0]['status'], $months[1]['status'], $months[2]['status'], $months[3]['status'], $months[4]['status']]);
         $calculated = array_slice($months, 1, 3);
         self::assertSame(['10798.00', '200.00'], [$year['deposits'], $year['withdrawals']]);
-        foreach (['gain', 'deposits', 'withdrawals', 'netFlows', 'realized', 'unrealizedChange', 'income', 'fees', 'taxes'] as $component) {
+        foreach (['gain', 'deposits', 'withdrawals', 'netFlows', 'realized', 'unrealizedChange', 'income', 'fees', 'feesPaid', 'taxes'] as $component) {
             self::assertNotNull($year[$component], $component);
             self::assertSame($year[$component], $this->sum(array_map(static fn (array $month): string => self::text($month[$component]), $calculated)), 'sum of '.$component);
         }
@@ -210,7 +210,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
     {
         $this->connection->executeStatement('UPDATE account_financial_accounts SET opened_on = ? WHERE id = ?', ['2024-06-15', self::ACCOUNT]);
 
-        self::assertSame(['from' => 2024, 'to' => 2026], $this->annual(2024)['availableYears']);
+        self::assertSame(['from' => 2024, 'to' => 2026, 'years' => [2026]], $this->annual(2024)['availableYears']);
         self::assertSame(['BEFORE_OPENING', 'NOT_CALCULABLE'], [self::lines($this->annual(2024)['months'])[4]['status'], self::lines($this->annual(2024)['months'])[5]['status']]);
         foreach (['2023', '2027', 'abc', '26', '2026-01', ''] as $year) {
             $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-performance/annual?year='.$year);
@@ -221,6 +221,15 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-performance/annual?year[]=2026');
         self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testAYearWithNoOperationIsLeftOutOfTheSelector(): void
+    {
+        $this->connection->executeStatement('UPDATE account_financial_accounts SET opened_on = ? WHERE id = ?', ['2024-06-15', self::ACCOUNT]);
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2024-07-01', 'grossAmount' => $this->eur('1000.00')]);
+        $this->record(['type' => 'DEPOSIT', 'tradeDate' => '2026-02-01', 'grossAmount' => $this->eur('100.00')]);
+
+        self::assertSame([2024, 2026], self::map($this->annual(2026)['availableYears'])['years']);
     }
 
     public function testAnAccountOverTheOperationBoundIsRefused(): void
@@ -281,7 +290,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
             'startValue' => $gain['startValue'], 'endValue' => $gain['endValue'], 'netFlows' => $gain['netFlows'],
             'gain' => $gain['value'],
             'realized' => $decomposition['realized'], 'unrealizedChange' => $decomposition['unrealizedChange'],
-            'income' => $decomposition['income'], 'fees' => $decomposition['fees'], 'taxes' => $decomposition['taxes'],
+            'income' => $decomposition['income'], 'fees' => $decomposition['fees'], 'feesPaid' => $decomposition['feesPaid'], 'taxes' => $decomposition['taxes'],
             'gainQuality' => $gain['quality'], 'gainReasons' => $gain['reasons'],
             'modifiedDietz' => $this->rate(self::map($single['modifiedDietz'])),
             'timeWeighted' => $this->rate(self::map($single['timeWeighted'])),

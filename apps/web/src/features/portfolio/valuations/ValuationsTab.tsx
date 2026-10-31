@@ -11,7 +11,6 @@ import { ValuationModal } from './valuation-modal/ValuationModal';
 import { ValuationsTable } from './valuations-table/ValuationsTable';
 import { WithdrawValuationModal } from './withdraw-valuation-dialog/WithdrawValuationModal';
 import { ValuationsTableSkeleton } from './ValuationsTableSkeleton';
-import { ValuationsToolbar } from './ValuationsToolbar';
 import { VALUATIONS_PER_PAGE, useValuations } from './useValuations';
 import styles from './ValuationsTab.module.css';
 
@@ -21,19 +20,26 @@ type Dialog =
   | { kind: 'withdraw'; valuation: PortfolioValuationSummary }
   | null;
 
-/** The Valorisations tab: dated valuations of the account and the record, replace and withdraw modals. */
 function requestedMonthEnd(): string | null {
   return parseMonthEnd(new URLSearchParams(window.location.search).get('monthEnd'));
 }
 
+/**
+ * The Valorisations tab: dated valuations of the account and the record, replace and withdraw
+ * modals. A new valuation is started from the page header (`recording`) or a due month end link.
+ */
 export function ValuationsTab({
   account,
   asOf,
   sourceReturnFocus,
+  recording = false,
+  onRecordClose,
 }: {
   account: Account;
   asOf?: string;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
+  recording?: boolean;
+  onRecordClose?: () => void;
 }) {
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);
@@ -48,6 +54,15 @@ export function ValuationsTab({
   const summary = usePortfolioSummary(account.id, asOf ?? today);
   const dueMonths = summary.isSuccess ? summary.data.dueMonths : null;
   const total = valuations.data?.total ?? 0;
+  // The oldest month end still owed is the likeliest statement to type; the date stays editable.
+  const oldestDue = dueMonths?.[0] ? lastDayOfMonth(dueMonths[0]) : null;
+  const suggestedDate = oldestDue !== null && oldestDue <= today ? oldestDue : today;
+  const record =
+    dialog?.kind === 'record' ? dialog : recording ? { kind: 'record' as const } : null;
+  const closeRecord = () => {
+    setDialog(null);
+    onRecordClose?.();
+  };
   const totalPages = Math.max(1, Math.ceil(total / VALUATIONS_PER_PAGE));
 
   useEffect(() => {
@@ -82,12 +97,6 @@ export function ValuationsTab({
 
   return (
     <div className={styles.tab}>
-      <ValuationsToolbar
-        disabled={account.status !== 'ACTIVE'}
-        dueMonths={dueMonths}
-        onCreate={() => setDialog({ kind: 'record' })}
-        onMonthEnd={(month) => setDialog({ kind: 'record', valuedOn: lastDayOfMonth(month) })}
-      />
       {stale ? (
         <p className={styles.notice} role="status">
           Cette valorisation a déjà été modifiée. La liste a été actualisée.
@@ -107,7 +116,7 @@ export function ValuationsTab({
         </OperationsState>
       ) : total === 0 ? (
         <OperationsState title="Aucune valorisation">
-          <p>Aucune valorisation. Enregistrez la valeur de vos titres à partir d’un relevé.</p>
+          <p>Saisissez la valeur du compte à partir d’un relevé avec Nouvelle valorisation.</p>
         </OperationsState>
       ) : (
         <ValuationsTable
@@ -140,22 +149,23 @@ export function ValuationsTab({
           </button>
         </nav>
       ) : null}
-      {dialog?.kind === 'record' || dialog?.kind === 'replace' ? (
+      {record || dialog?.kind === 'replace' ? (
         <ValuationModal
           account={account}
-          initialDate={dialog.kind === 'record' ? dialog.valuedOn : undefined}
-          onClose={() => setDialog(null)}
+          defaultDate={suggestedDate}
+          initialDate={record?.valuedOn}
+          onClose={closeRecord}
           onSaved={(saved) => {
-            setDialog(null);
+            closeRecord();
             setStale(false);
             setDetailId(saved.id);
           }}
           onStale={() => {
-            setDialog(null);
+            closeRecord();
             setStale(true);
           }}
           replacing={
-            dialog.kind === 'replace'
+            dialog?.kind === 'replace'
               ? { valuedOn: dialog.valuation.valuedOn, version: dialog.valuation.version }
               : undefined
           }

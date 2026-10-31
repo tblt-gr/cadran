@@ -132,7 +132,7 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
               : name === 'operation create' || name === 'insurance operation'
                 ? 'Nouvelle opération'
                 : name.startsWith('valuation') || name.startsWith('insurance valuation')
-                  ? 'Enregistrer une valorisation'
+                  ? 'Nouvelle valorisation'
                   : name === 'insurance contract'
                     ? 'Modifier'
                     : name === 'insurance fee'

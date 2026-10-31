@@ -72,7 +72,7 @@
   flex: 0 0 auto;
   font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: left;
 }
 .skeletonDate {
   width: calc(var(--spacing-12) * 1.5);

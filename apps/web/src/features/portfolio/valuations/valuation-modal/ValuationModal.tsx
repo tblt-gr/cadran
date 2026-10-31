@@ -37,6 +37,7 @@ function draftKey(draft: PortfolioValuationDraft): string {
  */
 export function ValuationModal({
   account,
+  defaultDate,
   onClose,
   onSaved,
   initialDate,
@@ -45,6 +46,8 @@ export function ValuationModal({
   today,
 }: {
   account: Pick<Account, 'id' | 'assetCode'>;
+  /** The date the first step proposes; today when absent. */
+  defaultDate?: string;
   onClose: () => void;
   /** Skips the date step: the draft opens at once on this date (a due month end). */
   initialDate?: string;
@@ -55,7 +58,9 @@ export function ValuationModal({
   today: string;
 }) {
   const client = useQueryClient();
-  const [valuedOn, setValuedOn] = useState(replacing?.valuedOn ?? initialDate ?? today);
+  const [valuedOn, setValuedOn] = useState(
+    replacing?.valuedOn ?? initialDate ?? defaultDate ?? today,
+  );
   const [confirmed, setConfirmed] = useState<string | null>(
     replacing?.valuedOn ?? initialDate ?? null,
   );
@@ -93,7 +98,9 @@ export function ValuationModal({
 
   const title = replacing
     ? `Remplacer la valorisation du ${formatCalendarNumericDay(replacing.valuedOn)}`
-    : 'Enregistrer une valorisation';
+    : confirmed === null
+      ? 'Nouvelle valorisation'
+      : `Valorisation du ${formatCalendarNumericDay(confirmed)}`;
 
   return (
     <Modal close={onClose} eyebrow="Portefeuille" title={title}>

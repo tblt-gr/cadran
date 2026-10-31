@@ -9,7 +9,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Rate, signed } from '@/features/portfolio/performance/performance-value/PerformanceValue';
 import type { FigureKey } from '@/features/portfolio/performance/performanceFigures';
 import {
-  describeReason,
+  summarizeReason,
   type ReasonContext,
 } from '@/features/portfolio/performance/performanceReasons';
 import { formatAmount } from '@/lib/decimal';
@@ -30,10 +30,7 @@ export interface LineColumn {
 function missing(reasons: PortfolioPerformanceReason[], context: LineContext) {
   const reason = reasons[0];
   return (
-    <EmptyValue
-      label="Non calculable"
-      reason={reason ? describeReason(reason, context).sentence : null}
-    />
+    <EmptyValue label="Non calculable" reason={reason ? summarizeReason(reason, context) : null} />
   );
 }
 
@@ -73,7 +70,7 @@ function moneyWeighted(figure: PortfolioAnnualMoneyWeighted, context: LineContex
   );
 }
 
-/** The thirteen figure columns after the month label, shared by the table and the cards. */
+/** The fourteen figure columns after the month label, shared by the table and the cards. */
 export const lineColumns: LineColumn[] = [
   {
     id: 'startValue',
@@ -96,6 +93,7 @@ export const lineColumns: LineColumn[] = [
   },
   { id: 'income', label: 'Revenus', render: amount((l) => l.income, { withSign: true }) },
   { id: 'fees', label: 'Frais', render: amount((l) => l.fees, { withSign: true }) },
+  { id: 'feesPaid', label: 'Frais payés', render: amount((l) => l.feesPaid, { withSign: true }) },
   { id: 'taxes', label: 'Taxes', render: amount((l) => l.taxes, { withSign: true }) },
   {
     id: 'modifiedDietz',

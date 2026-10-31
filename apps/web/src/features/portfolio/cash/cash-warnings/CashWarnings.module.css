@@ -1,9 +1,12 @@
-.panel {
+.pill {
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  background: var(--color-transparent);
+  cursor: pointer;
+}
+.content {
   display: grid;
   gap: var(--spacing-4);
-}
-.panel h3 {
-  margin: var(--spacing-none);
 }
 .list {
   display: grid;
@@ -13,18 +16,24 @@
   list-style: none;
 }
 .row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  display: grid;
   margin: var(--spacing-none);
-  gap: var(--spacing-3);
+  padding-left: var(--spacing-3);
+  border-left: var(--border-width-focus) solid var(--warning);
+  gap: var(--spacing-1);
+}
+.row > span:first-child {
+  color: var(--text-primary);
 }
 .sources {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: var(--spacing-3);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-1) var(--spacing-3);
 }
-
+.infos .row {
+  border-left-color: var(--border-strong);
+}
 .infos summary {
   cursor: pointer;
   color: var(--text-secondary);

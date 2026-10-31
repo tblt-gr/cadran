@@ -110,7 +110,7 @@
   color: var(--text-secondary);
   font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: left;
 }
 
 /* Movement text sits where the category label does, and its amount where the row amount does. */

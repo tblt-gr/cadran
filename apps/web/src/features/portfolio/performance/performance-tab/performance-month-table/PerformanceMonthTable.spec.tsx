@@ -17,6 +17,7 @@ const columns = [
   'Var. latente',
   'Revenus',
   'Frais',
+  'Frais payés',
   'Taxes',
   'Rendement (MD)',
   'TWR',
@@ -38,7 +39,7 @@ describe('PerformanceMonthTable', () => {
     },
   );
 
-  it('lists the fourteen columns, twelve months and the year footer', () => {
+  it('lists the fifteen columns, twelve months and the year footer', () => {
     render(<PerformanceMonthTable annual={annualFixture()} onExplain={() => undefined} />);
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
     expect(headers).toEqual(columns);
@@ -58,7 +59,7 @@ describe('PerformanceMonthTable', () => {
     const row = rowOf('avril');
     expect(row.getAttribute('data-status')).toBe('FUTURE');
     expect(within(row).queryAllByRole('button')).toHaveLength(0);
-    expect(within(row).getAllByText('-').length).toBe(13);
+    expect(within(row).getAllByText('-').length).toBe(14);
     expect(within(row).getAllByText('À venir').length).toBeGreaterThan(0);
   });
 

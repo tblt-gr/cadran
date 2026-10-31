@@ -49,3 +49,11 @@
     width: 100%;
   }
 }
+
+.field.compact {
+  flex-direction: row;
+  align-items: center;
+}
+.compact .controls {
+  flex-direction: row;
+}

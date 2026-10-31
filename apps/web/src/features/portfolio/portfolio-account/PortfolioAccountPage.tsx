@@ -1,7 +1,8 @@
 import { useLifeInsuranceContract } from '@/features/portfolio/life-insurance/useLifeInsuranceContract';
+import { AccountTab } from './account-tab/AccountTab';
 import { useEffect, useState } from 'react';
 import { usePortfolioSourceReturnFocus } from './usePortfolioSourceReturnFocus';
-import { PortfolioAccountTabContent } from './PortfolioAccountTabContent';
+import { PortfolioAccountTabContent, type PortfolioCreation } from './PortfolioAccountTabContent';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
@@ -11,25 +12,25 @@ import { ValueHistoryCard } from './value-history-card/ValueHistoryCard';
 import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { AccountRequestError } from '@/features/accounts/accountError';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
+import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
 import { NotPortfolioState } from './operations/NotPortfolioState';
 import { PortfolioAccountHeader } from './portfolio-account-header/PortfolioAccountHeader';
 import { PortfolioAccountPageSkeleton } from './PortfolioAccountPageSkeleton';
-import { activeTab } from './portfolio-tabs/activeTab';
+import { activeTab, tabForKind } from './portfolio-tabs/activeTab';
 import { PortfolioTabs, type PortfolioTab } from './portfolio-tabs/PortfolioTabs';
 import styles from './PortfolioAccountPage.module.css';
 import { useBreadcrumbAccount } from '@/components/layout/breadcrumb/BreadcrumbContext';
+import { useAccountHeader } from '@/features/accounts/account-header/useAccountHeader';
 
 /**
- * The portfolio page of one investment account. The tabs are Performance, Espèces, Positions, Opérations, Valorisations and Répartition;
- * every later portfolio capability adds its own tab to `PortfolioTabs`.
+ * Account navigation leads to an identity and summary panel, then the value history.
+ * Entry actions open their modal on the tab that lists the resulting record.
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const account = useAccountDetail(accountId);
-  useBreadcrumbAccount(
-    `/portfolios/${accountId}`,
-    !account.isError && account.data?.id === accountId ? account.data.label : null,
-    account.isPending,
-  );
+  const label = !account.isError && account.data?.id === accountId ? account.data.label : null;
+  useBreadcrumbAccount(`/portfolios/${accountId}`, label, account.isPending);
+  useAccountHeader(`/portfolios/${accountId}`, account.isError ? undefined : account.data);
   const insurance =
     account.data?.kind === 'INSURANCE_CONTRACT' && account.data?.valuationMode === 'PORTFOLIO';
   const contract = useLifeInsuranceContract(accountId, insurance);
@@ -45,7 +46,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
     window.history.pushState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<PortfolioCreation>(null);
   const [active, setActive] = useState<PortfolioTab>(() => activeTab());
   const sourceReturnFocus = usePortfolioSourceReturnFocus(active, asOf);
 
@@ -87,55 +88,83 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   }
 
   const current = account.data;
-  const eligible =
-    (current.kind === 'PORTFOLIO' || current.kind === 'INSURANCE_CONTRACT') &&
-    current.valuationMode === 'PORTFOLIO';
+  const eligible = valuedByPortfolio(current);
+  const shown = tabForKind(active, current.kind);
 
+  function openOn(tab: PortfolioTab, creation: PortfolioCreation) {
+    if (active !== tab) {
+      window.history.pushState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=${asOf}`);
+      setActive(tab);
+    }
+    setCreating(creation);
+  }
   function openCreate() {
     if (operationBlocked) return;
-    if (active !== 'operations') {
-      window.history.pushState({}, '', `/portfolios/${accountId}?tab=operations&asOf=${asOf}`);
-      setActive('operations');
-    }
-    setCreating(true);
+    openOn('operations', 'operation');
   }
 
   return (
     <div className={styles.page}>
+      <PortfolioTabs
+        accountId={accountId}
+        active={shown}
+        asOf={asOf}
+        kind={current.kind}
+        tools={
+          shown !== 'operations' && shown !== 'performance' ? (
+            <BusinessDateField
+              compact
+              hint={null}
+              label="Situation au"
+              onChange={changeDate}
+              today={today}
+              value={asOf}
+            />
+          ) : null
+        }
+      />
       <PortfolioAccountHeader
         account={current}
         accountId={accountId}
         onCreate={openCreate}
+        onRecordValuation={() => openOn('valuations', 'valuation')}
         contractRequired={contractRequired}
         operationBlocked={operationBlocked}
       />
-      {eligible ? <MonthEndValuationBanner accountId={accountId} asOf={asOf} /> : null}
-      <BusinessDateField hint={null} label="Au" onChange={changeDate} today={today} value={asOf} />
-      {eligible ? (
-        <PortfolioOverview
-          kind={current.kind}
-          accountId={accountId}
-          asOf={asOf}
-          history={<ValueHistoryCard accountId={accountId} asOf={asOf} />}
-          sourceReturnFocus={sourceReturnFocus}
-        />
+      {eligible && shown === 'account' ? (
+        <AccountTab account={current} today={today}>
+          <PortfolioOverview
+            embedded
+            kind={current.kind}
+            accountId={accountId}
+            asOf={asOf}
+            history={null}
+            sourceReturnFocus={sourceReturnFocus}
+          />
+        </AccountTab>
       ) : null}
-      <PortfolioTabs accountId={accountId} active={active} asOf={asOf} kind={current.kind} />
-      {eligible ? (
+      {eligible && shown === 'account' ? (
+        <MonthEndValuationBanner accountId={accountId} asOf={asOf} />
+      ) : null}
+      {eligible && shown === 'account' ? (
+        <ValueHistoryCard accountId={accountId} asOf={asOf} />
+      ) : null}
+      {eligible && shown !== 'account' ? (
         <PortfolioAccountTabContent
           account={current}
-          active={active}
+          active={shown}
           asOf={asOf}
+          today={today}
           sourceReturnFocus={sourceReturnFocus}
           contractRequired={operationBlocked}
           onAsOfChange={changeDate}
           creating={creating}
-          onCloseCreate={() => setCreating(false)}
+          onCloseCreate={() => setCreating(null)}
           onCreate={openCreate}
         />
-      ) : (
+      ) : !eligible ? (
         <NotPortfolioState accountId={accountId} />
-      )}
+      ) : null}
     </div>
   );
 }

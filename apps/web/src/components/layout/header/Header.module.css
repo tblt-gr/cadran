@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: space-between;
   min-height: var(--header-height);
-  padding: var(--spacing-none) var(--spacing-8);
+  padding: var(--spacing-none) var(--spacing-6);
   border-bottom: var(--border-none);
   gap: var(--spacing-6);
 }
@@ -86,7 +86,7 @@
     flex-wrap: wrap;
     align-items: flex-start;
     min-height: var(--header-height-mobile);
-    padding: var(--spacing-4);
+    padding: var(--spacing-4) var(--spacing-3);
   }
 
   .actions {
@@ -101,4 +101,10 @@
   .pageActions {
     gap: var(--spacing-2);
   }
+}
+
+.header .subtitle {
+  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
 }

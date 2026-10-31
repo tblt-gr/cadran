@@ -13,13 +13,24 @@ import {
   type FigureKey,
 } from '@/features/portfolio/performance/performanceFigures';
 import { formulaText, gainFormulaText } from '@/features/portfolio/performance/performanceFormulas';
-import { describeReason } from '@/features/portfolio/performance/performanceReasons';
+import {
+  describeReason,
+  formatReasonDates,
+  listedDateLimit,
+  summarizeReason,
+} from '@/features/portfolio/performance/performanceReasons';
 import { QualityBadge } from '@/features/portfolio/performance/quality-badge/QualityBadge';
 import { ExplanationEntries } from './ExplanationEntries';
-import { ExplanationSection } from './ExplanationSection';
+import { ExplanationFigure } from '@/features/portfolio/explanation/ExplanationFigure';
+import { ExplanationSources } from '@/features/portfolio/explanation/ExplanationSources';
+import explanation from '@/features/portfolio/explanation/Explanation.module.css';
+import { FigureValue } from '@/features/portfolio/performance/performance-value/PerformanceValue';
 import styles from './PerformanceExplanationModal.module.css';
 
-/** Method, formula, inputs, quality and sources of one figure, all from the response that gave its value. */
+/**
+ * One figure explained from the response that gave its value: the value first, how it is
+ * computed, what weakens it, then the detailed inputs and sources folded away.
+ */
 type CommonProps = { onClose: () => void; onSource: (source: PortfolioOverviewSource) => void };
 type GainSummary = { accountId: string; assetCode: string; gain: PortfolioGainFigure };
 export function PerformanceExplanationModal(
@@ -40,92 +51,83 @@ export function PerformanceExplanationModal(
     residual: (performance?.gain ?? gainSummary!.gain).decomposition.residual,
   };
   return (
-    <Modal close={onClose} title={`Expliquer : ${label}`}>
-      <div className={styles.content}>
-        <ExplanationSection title="Méthode">
-          <p>{label}</p>
-          <p>{methodSentences[figure]}</p>
-          <p className={styles.muted}>{`Version ${data.methodVersion}`}</p>
-        </ExplanationSection>
-        <ExplanationSection title="Formule">
+    <Modal close={onClose} title={label}>
+      <div className={explanation.content}>
+        <ExplanationFigure
+          meta={
+            <>
+              <span>
+                {data.from && data.to
+                  ? `Du ${formatCalendarNumericDay(data.from)} au ${formatCalendarNumericDay(data.to)}`
+                  : 'Période indisponible'}
+              </span>
+              <QualityBadge quality={data.quality} />
+            </>
+          }
+          value={
+            data.value === null ? (
+              'Non calculable'
+            ) : (
+              <FigureValue assetCode={context.assetCode} figure={data} />
+            )
+          }
+        />
+        <section className={explanation.block}>
+          <h3>Calcul</h3>
+          <p>{`${methodSentences[figure]} Net de frais et de taxes.`}</p>
           <p className={styles.formula} data-testid="formula">
             {performance
               ? formulaText(performance, figure)
               : gainFormulaText(gainSummary!.gain, gainSummary!.assetCode)}
           </p>
-        </ExplanationSection>
-        <ExplanationSection title="Période">
-          <p>
-            {data.from && data.to
-              ? `Du ${formatCalendarNumericDay(data.from)} au ${formatCalendarNumericDay(data.to)}, ${data.days} jours`
-              : 'Période indisponible'}
-          </p>
-        </ExplanationSection>
-        <ExplanationSection title="Entrées">
-          <>
+        </section>
+        {data.reasons.length ? (
+          <ul className={explanation.warnings}>
+            {data.reasons.map((reason, index) => {
+              const { sentence, action } = describeReason(reason, context);
+              const crowded = reason.dates.length > listedDateLimit;
+              return (
+                <li key={`${reason.code}-${index}`}>
+                  <span>{crowded ? summarizeReason(reason, context) : sentence}</span>
+                  {crowded ? (
+                    <details className={styles.dates}>
+                      <summary>{`Voir les ${reason.dates.length} dates`}</summary>
+                      <p>{formatReasonDates(reason.dates)}</p>
+                    </details>
+                  ) : null}
+                  {action ? (
+                    <a
+                      className="text-action"
+                      href={action.href}
+                      onClick={(event) => {
+                        onClose();
+                        handleClientNavigation(event, action.href);
+                      }}
+                    >
+                      {action.label}
+                    </a>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        <details className={explanation.sources}>
+          <summary>Détail du calcul</summary>
+          <div className={styles.entries}>
             {performance ? (
               <ExplanationEntries figure={figure} performance={performance} />
             ) : (
               <GainExplanationEntries gain={gainSummary!.gain} assetCode={gainSummary!.assetCode} />
             )}
-          </>
-        </ExplanationSection>
-        <ExplanationSection title="Politique de coûts">
-          <p>Net de frais et de taxes</p>
-        </ExplanationSection>
-        <ExplanationSection title="Qualité">
-          <div className={styles.reason}>
-            <div>
-              <QualityBadge quality={data.quality} />
-            </div>
-            {data.reasons.length ? (
-              <ul>
-                {data.reasons.map((reason, index) => {
-                  const { sentence, action } = describeReason(reason, context);
-                  return (
-                    <li key={`${reason.code}-${index}`}>
-                      <p>{sentence}</p>
-                      {action ? (
-                        <a
-                          className="secondary-action"
-                          href={action.href}
-                          onClick={(event) => {
-                            onClose();
-                            handleClientNavigation(event, action.href);
-                          }}
-                        >
-                          {action.label}
-                        </a>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
           </div>
-        </ExplanationSection>
-        <ExplanationSection title="Sources">
-          {data.sources.length ? (
-            <ul>
-              {data.sources.map((source) => (
-                <li key={`${source.kind}-${source.id}`}>
-                  <button
-                    className="secondary-action"
-                    onClick={() => onSource(source)}
-                    type="button"
-                  >
-                    {`${source.kind === 'OPERATION' ? 'Opération' : 'Valorisation'} du ${formatCalendarNumericDay(source.date)}`}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Aucune source.</p>
-          )}
-          {data.sourceCount > data.sources.length ? (
-            <p className={styles.muted}>{`+${data.sourceCount - data.sources.length} autres`}</p>
-          ) : null}
-        </ExplanationSection>
+        </details>
+        <ExplanationSources
+          more={data.sourceCount - data.sources.length}
+          onSource={onSource}
+          sources={data.sources}
+        />
+        <p className={explanation.footnote}>{`Méthode version ${data.methodVersion}`}</p>
       </div>
     </Modal>
   );

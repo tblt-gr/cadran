@@ -112,7 +112,6 @@ export function AccountsPageModals({
       {recording ? (
         <Modal
           close={closeRecording}
-          eyebrow={t('accounts.balances.eyebrow')}
           title={t('accounts.balances.title', { label: recording.label })}
         >
           <RecordBalanceForm

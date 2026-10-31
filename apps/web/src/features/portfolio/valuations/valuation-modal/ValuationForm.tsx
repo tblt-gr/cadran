@@ -36,6 +36,21 @@ export function ValuationForm({
   const built = buildValuationRequest(values, draft.valuedOn, assetCode, version);
   const errors = { ...(submitted ? built.errors : null), ...fieldErrors };
   const total = values.detail === 'TOTAL';
+  const derivedCash = formatAmount(
+    draft.derivedCash.value,
+    draft.derivedCash.assetCode,
+    i18n.language,
+  );
+  // One field in both modes: the statement cash, the computed one standing in when left empty.
+  const cashField = (
+    <DecimalInput
+      error={errors['/observedCash']}
+      hint={`Laissez vide pour retenir les espèces calculées : ${derivedCash}`}
+      label="Espèces du relevé"
+      onChange={(value) => set('observedCash', value)}
+      value={values.observedCash}
+    />
+  );
 
   function set<K extends keyof ValuationFormValues>(key: K, value: ValuationFormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -59,10 +74,6 @@ export function ValuationForm({
           remplacée et conservée dans l’historique.
         </p>
       ) : null}
-      <p className={styles.notice}>
-        Espèces calculées :{' '}
-        {formatAmount(draft.derivedCash.value, draft.derivedCash.assetCode, i18n.language)}
-      </p>
       <fieldset className={styles.segmented}>
         <legend>Mode de saisie</legend>
         {(
@@ -95,42 +106,35 @@ export function ValuationForm({
             onChange={(value) => set('totalValue', value)}
             value={values.totalValue}
           />
-          <DecimalInput
-            error={errors['/observedCash']}
-            label="Espèces constatées"
-            onChange={(value) => set('observedCash', value)}
-            value={values.observedCash}
-          />
+          {cashField}
         </div>
       ) : (
         <>
           {draft.positions.length === 0 ? (
             <p className={styles.notice}>Aucune position détenue à cette date.</p>
           ) : null}
-          {draft.positions.map((position, index) => (
-            <PositionPriceRow
-              errors={errors}
-              index={index}
-              key={position.instrument.id}
-              onChange={(row) =>
-                set(
-                  'rows',
-                  values.rows.map((current, at) => (at === index ? row : current)),
-                )
-              }
-              position={position}
-              value={values.rows[index]!}
-            />
-          ))}
+          <div className={styles.positions}>
+            {draft.positions.map((position, index) => (
+              <PositionPriceRow
+                errors={errors}
+                index={index}
+                key={position.instrument.id}
+                onChange={(row) =>
+                  set(
+                    'rows',
+                    values.rows.map((current, at) => (at === index ? row : current)),
+                  )
+                }
+                position={position}
+                value={values.rows[index]!}
+              />
+            ))}
+          </div>
           <div className={styles.fields}>
-            <DecimalInput
-              error={errors['/observedCash']}
-              label="Espèces constatées"
-              onChange={(value) => set('observedCash', value)}
-              value={values.observedCash}
-            />
+            {cashField}
             <DecimalInput
               error={errors['/observedTotal']}
+              hint="Facultatif : signale un écart avec le total calculé."
               label="Total du relevé"
               onChange={(value) => set('observedTotal', value)}
               value={values.observedTotal}

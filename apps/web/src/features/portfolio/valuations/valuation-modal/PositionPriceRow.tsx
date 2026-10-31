@@ -1,4 +1,5 @@
 import type { PortfolioValuationDraftPosition } from '@cadran/api-client';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCalendarNumericDay, formatDecimal } from '@/lib/decimal';
 import type { PriceRowValues } from '@/features/portfolio/valuations/valuationRequest';
@@ -15,7 +16,10 @@ function originHint(position: PortfolioValuationDraftPosition): string | null {
     : `Prix de l’achat du ${date}`;
 }
 
-/** One held instrument: read-only quantity, price prefilled from the draft, or declared unknown. */
+/**
+ * One held instrument on one aligned row: what is held (name, quantity, where the prefilled
+ * price comes from), then its price, the price date and the unknown-price escape.
+ */
 export function PositionPriceRow({
   errors,
   index,
@@ -30,19 +34,19 @@ export function PositionPriceRow({
   value: PriceRowValues;
 }) {
   const { i18n } = useTranslation();
+  const nameId = useId();
   const hint = originHint(position);
 
   return (
-    <fieldset className={styles.position}>
-      <legend>{position.instrument.name ?? position.instrument.id}</legend>
-      <div className={styles.field}>
-        <span>Quantité</span>
-        <strong>{formatDecimal(position.quantity, i18n.language)}</strong>
+    <div aria-labelledby={nameId} className={styles.position} role="group">
+      <div className={styles.instrument}>
+        <strong id={nameId}>{position.instrument.name ?? position.instrument.id}</strong>
+        <small>Quantité : {formatDecimal(position.quantity, i18n.language)}</small>
+        {hint ? <small>{hint}</small> : null}
       </div>
       <DecimalInput
         disabled={value.unknown}
         error={errors[`/prices/${index}/price`]}
-        hint={hint ?? undefined}
         label="Prix"
         onChange={(price) => onChange({ ...value, price })}
         value={value.unknown ? '' : value.price}
@@ -66,6 +70,6 @@ export function PositionPriceRow({
         />
         Prix inconnu
       </label>
-    </fieldset>
+    </div>
   );
 }

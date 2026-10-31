@@ -17,6 +17,7 @@ use App\Module\Portfolio\Domain\Performance\ModifiedDietzCalculator;
 use App\Module\Portfolio\Domain\Performance\MoneyWeightedReturnSolver;
 use App\Module\Portfolio\Domain\Performance\PerformanceAmount;
 use App\Module\Portfolio\Domain\Performance\PerformanceFinding;
+use App\Module\Portfolio\Domain\Performance\PerformanceHistoryStart;
 use App\Module\Portfolio\Domain\Performance\PerformanceMethod;
 use App\Module\Portfolio\Domain\Performance\PerformancePeriod;
 use App\Module\Portfolio\Domain\Performance\PerformanceQuality;
@@ -45,9 +46,9 @@ final readonly class ComputePortfolioPerformance
     }
 
     /** @param list<PortfolioOperation>|null $loadedHistory the account history read once by the caller for a series of periods */
-    public function __invoke(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, ?array $loadedHistory = null): PortfolioPerformance
+    public function __invoke(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, ?array $loadedHistory = null, PerformanceHistoryStart $historyStart = PerformanceHistoryStart::FIRST_OBSERVATION): PortfolioPerformance
     {
-        $data = $this->builder->build($workspace, $account, $period, $today, $loadedHistory);
+        $data = $this->builder->build($workspace, $account, $period, $today, $loadedHistory, $historyStart);
 
         $flows = [];
         $total = null;

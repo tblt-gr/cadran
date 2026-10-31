@@ -1,3 +1,4 @@
+import { usePerformanceColumns } from './performance-columns/PerformanceColumns';
 import type { PortfolioOverviewSource } from '@cadran/api-client';
 import { useEffect, useState } from 'react';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -8,19 +9,21 @@ import { OperationsState } from '@/features/portfolio/portfolio-account/operatio
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import type { ExplainTarget } from './explainTarget';
 import { MonthExplanation } from './MonthExplanation';
-import { PerformanceIndexChart } from './performance-index-chart/PerformanceIndexChart';
-import { PerformanceValueChart } from './performance-value-chart/PerformanceValueChart';
 import { PerformanceMonthCards } from './performance-month-cards/PerformanceMonthCards';
 import { PerformanceMonthTable } from './performance-month-table/PerformanceMonthTable';
 import { PerformanceSummary } from './performance-summary/PerformanceSummary';
 import { performanceYear } from './performanceYear';
 import { PerformanceTabSkeleton } from './PerformanceTabSkeleton';
 import { useAnnualPerformance } from './useAnnualPerformance';
-import { YearNavigator } from './year-navigator/YearNavigator';
+import { PerformanceToolbar } from './performance-toolbar/PerformanceToolbar';
 import styles from './PerformanceTab.module.css';
 
-/** The Performance tab: year navigator, year and since-opening figures, chained curve and month table. */
+/**
+ * The Performance tab, one year at a time: the year's figures, then each month. The since-opening
+ * returns sit in the page summary and the value curve in the page's value history.
+ */
 export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: string }) {
+  const columns = usePerformanceColumns(accountId);
   const [year, setYear] = useState(() => performanceYear(asOf));
   const [explaining, setExplaining] = useState<ExplainTarget | null>(null);
   const narrow = useMediaQuery('(max-width: 767px)');
@@ -32,6 +35,21 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
     window.addEventListener('popstate', update);
     return () => window.removeEventListener('popstate', update);
   }, [asOf]);
+
+  const offeredYears = annual.data?.availableYears.years;
+  useEffect(() => {
+    if (!offeredYears || offeredYears.includes(year)) return;
+    const next = offeredYears[offeredYears.length - 1];
+    if (next === undefined) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('year', String(next));
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+    setYear(next);
+  }, [offeredYears, year]);
 
   function changeYear(next: number) {
     const url = new URL(window.location.href);
@@ -78,7 +96,7 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
       </div>
     );
   }
-  if (!annual.data) return <PerformanceTabSkeleton year={year} />;
+  if (!annual.data) return <PerformanceTabSkeleton year={year} selected={columns.selected} />;
 
   const data = annual.data;
   const withoutValuation = data.yearTotal.startValue === null && data.yearTotal.endValue === null;
@@ -86,7 +104,13 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
 
   return (
     <div className={styles.tab}>
-      <YearNavigator bounds={data.availableYears} onChange={changeYear} year={year} />
+      <PerformanceToolbar
+        bounds={data.availableYears}
+        onYearChange={changeYear}
+        year={year}
+        selected={columns.selected}
+        onColumnsChange={columns.change}
+      />
       <PerformanceSummary
         failed={yearPerformance.isError}
         onExplain={setExplaining}
@@ -94,18 +118,24 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
         year={year}
         yearPerformance={yearPerformance.data ?? null}
       />
-      <PerformanceValueChart annual={data} year={year} />
       {withoutValuation ? (
         <p className={`card ${styles.notice}`}>Aucune valorisation pour cette année</p>
       ) : null}
       {narrow ? (
-        <PerformanceMonthCards annual={data} onExplain={setExplaining} />
+        <PerformanceMonthCards
+          selected={columns.selected}
+          annual={data}
+          onExplain={setExplaining}
+        />
       ) : (
         <section className={`card ${styles.panel}`}>
-          <PerformanceMonthTable annual={data} onExplain={setExplaining} />
+          <PerformanceMonthTable
+            selected={columns.selected}
+            annual={data}
+            onExplain={setExplaining}
+          />
         </section>
       )}
-      <PerformanceIndexChart annual={data} />
       {explaining?.kind === 'month' ? (
         <MonthExplanation
           accountId={accountId}

@@ -20,7 +20,6 @@ import styles from './OperationsTab.module.css';
 /** The Opérations tab: filters, table and the modify, detail and void modals. */
 export function OperationsTab({
   account,
-  asOf,
   sourceReturnFocus,
   creating,
   onCloseCreate,
@@ -42,11 +41,7 @@ export function OperationsTab({
   const [detailId, setDetailId] = useState<string | null>(() => operationFromLocation());
   const [stale, setStale] = useState(false);
   const [reordering, setReordering] = useState<PortfolioOperation | null>(null);
-  const operations = useOperations(
-    account.id,
-    { ...filters, to: asOf && (!filters.to || filters.to > asOf) ? asOf : filters.to },
-    page,
-  );
+  const operations = useOperations(account.id, filters, page);
   const items = operations.data?.items ?? [];
   const total = operations.data?.total ?? 0;
   const detail = useOperation(

@@ -1,0 +1,46 @@
+.figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-0-5);
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.value {
+  color: var(--text-primary);
+  font-size: var(--font-size-brand);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+}
+
+.track {
+  display: block;
+  width: 100%;
+  height: var(--spacing-1);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-2);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--gold-300);
+}
+
+.alert {
+  color: var(--negative);
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 42rem) {
+  .figure {
+    align-items: flex-start;
+  }
+}

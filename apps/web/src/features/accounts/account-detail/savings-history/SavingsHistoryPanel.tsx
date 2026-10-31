@@ -39,7 +39,6 @@ export function SavingsHistoryPanel({ accountId, today }: { accountId: string; t
           onChange={setPeriod}
         />
       </div>
-      <p className={styles.notice}>{t('accounts.history.description')}</p>
       {history.data?.truncated ? (
         <p className={styles.notice}>{t('accounts.history.truncated')}</p>
       ) : null}

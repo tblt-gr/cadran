@@ -66,7 +66,15 @@ function problem(status: number, body: Record<string, unknown>) {
 
 const reloadAfterWrite = vi.fn(() => Promise.resolve());
 
-function Harness({ hasMore = false, resetKey = 'a' }: { hasMore?: boolean; resetKey?: string }) {
+function Harness({
+  hasMore = false,
+  inline = false,
+  resetKey = 'a',
+}: {
+  hasMore?: boolean;
+  inline?: boolean;
+  resetKey?: string;
+}) {
   const items = [tx(FIRST, 'Carrefour'), tx(SECOND, 'Monoprix')];
   const [active, setActive] = useState(true);
   const bulk = useBulkSelection({
@@ -79,7 +87,12 @@ function Harness({ hasMore = false, resetKey = 'a' }: { hasMore?: boolean; reset
 
   return (
     <>
-      <BulkSelectionToolbar active={active} bulk={bulk} onToggleActive={() => setActive(!active)} />
+      <BulkSelectionToolbar
+        active={active}
+        bulk={bulk}
+        inline={inline}
+        onToggleActive={() => setActive(!active)}
+      />
       <TransactionDayList selection={active ? bulk.rowSelection : undefined} transactions={items} />
     </>
   );
@@ -162,6 +175,20 @@ describe('bulk selection', () => {
     update({ resetKey: 'b' });
 
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
+  });
+
+  it('puts selection and the category action on the line under the pen', () => {
+    renderHarness({ inline: true });
+    const pen = screen.getByRole('button', { name: 'Édition groupée' });
+    const action = screen.getByRole('button', { name: 'Changer la catégorie' });
+    const controls = action.closest('[data-bulk-controls]');
+    expect(controls).toBeTruthy();
+    expect(controls?.contains(pen)).toBe(false);
+    expect(
+      controls?.contains(
+        screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }),
+      ),
+    ).toBe(true);
   });
 
   it('keeps the category action disabled until something is selected', () => {

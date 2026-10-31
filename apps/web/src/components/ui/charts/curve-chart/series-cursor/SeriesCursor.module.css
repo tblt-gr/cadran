@@ -1,0 +1,10 @@
+.cursor {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+.cursor:focus-visible {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-inset);
+}

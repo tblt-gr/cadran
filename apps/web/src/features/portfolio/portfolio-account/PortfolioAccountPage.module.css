@@ -1,6 +1,7 @@
 .page {
   display: flex;
   flex-direction: column;
+  font-size: var(--font-size-body);
   gap: var(--spacing-6);
 }
 .frozenField {
@@ -27,4 +28,21 @@
   display: inline-flex;
   align-items: center;
   text-decoration: none;
+}
+/* The reading order of every table on the page, as in the budget tables: small muted column
+   headers, the row label at body size, its values one step smaller in the secondary tone.
+   :where() keeps it a default that a table's own module can still refine. */
+.page :where(thead th) {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+.page :where(tbody th) {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
+}
+.page :where(tbody td) {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
 }

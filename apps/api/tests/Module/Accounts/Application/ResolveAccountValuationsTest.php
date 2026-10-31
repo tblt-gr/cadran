@@ -121,7 +121,7 @@ final class ResolveAccountValuationsTest extends TestCase
         $worth = (new \App\Module\Accounts\Application\ResolveNetWorthContributions($accounts, $resolver, $timezone))->on($account->workspace, [$day]);
         $monthly = (new \App\Module\Accounts\Application\ReadMonthlyAccountFacts($accounts, $resolver, $timezone))($account->workspace, new \App\Module\Accounts\Domain\CalendarMonth(2026, 10), $day);
         $rules = \App\Module\Accounts\Domain\AccountRules::withoutProduct($account, $day, \App\Module\Accounts\Domain\AccountRuleOverrides::none());
-        $presentation = (new \App\Module\Accounts\Application\PresentAccountRules($caller, $accounts, $resolver, new \App\Module\Accounts\Application\ResolveAuthorNames($this->createStub(\App\Module\Identity\Application\AuthenticationUserRepository::class))))($rules);
+        $presentation = (new \App\Module\Accounts\Application\PresentAccountRules($caller, $accounts, $resolver, new \App\Module\Accounts\Application\ResolveAuthorNames($this->createStub(\App\Module\Identity\Application\AuthenticationUserRepository::class)), $this->createStub(\App\Module\Accounts\Application\ContributionTotalsReader::class)))($rules);
         self::assertSame('2708.30', $list->items[0]->valuation?->amount);
         self::assertSame('2708.30', $detail->valuation?->amount);
         self::assertSame('2708.30', $worth->on($day)[0]->amount?->value->toString());

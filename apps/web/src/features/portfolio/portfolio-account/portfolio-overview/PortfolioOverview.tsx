@@ -6,22 +6,27 @@ import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { usePortfolioSummary } from '@/features/portfolio/usePortfolioOverview';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
-import { SinceOpeningFigures } from '@/features/portfolio/performance/since-opening-figures/SinceOpeningFigures';
 import { PortfolioKpiGrid } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/PortfolioKpiGrid';
+import { kpiValueText } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/kpiValueText';
 import { PortfolioKpiExplanationModal } from '@/features/portfolio/portfolio-account/kpi-explanation-modal/PortfolioKpiExplanationModal';
 import type { KpiCode } from '@/features/portfolio/portfolio-account/overviewLabels';
 
-/** Summary first, then the value history. The allocation lives in its own tab. */
+/**
+ * Summary first, then the value history. The
+ * allocation lives with the positions and the year by year returns with the performance.
+ */
 function SecuritiesOverview({
   accountId,
   asOf,
   frozen = false,
+  embedded = false,
   history,
   sourceReturnFocus,
 }: {
   accountId: string;
   asOf: string;
   frozen?: boolean;
+  embedded?: boolean;
   /** The value history card. */
   history: ReactNode;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
@@ -76,8 +81,8 @@ function SecuritiesOverview({
         </OperationsState>
       ) : (
         <PortfolioKpiGrid
+          embedded={embedded}
           asOf={asOf}
-          footer={<SinceOpeningFigures accountId={accountId} asOf={asOf} frozen={frozen} />}
           qualifiers={qualifiers}
           summary={summary.data ?? null}
           onExplain={(code) => {
@@ -92,6 +97,7 @@ function SecuritiesOverview({
       {explaining && summary.data ? (
         <PortfolioKpiExplanationModal
           code={explaining}
+          value={kpiValueText(summary.data, explaining)}
           explanation={summary.data.explanations[explaining]}
           onClose={() => setExplaining(null)}
           onSource={(source) => {
@@ -114,16 +120,10 @@ export function PortfolioOverview(
           accountId={props.accountId}
           asOf={props.asOf}
           frozen={props.frozen}
+          embedded={props.embedded}
           sourceReturnFocus={props.sourceReturnFocus}
         />
         {props.history}
-        <section className="card">
-          <SinceOpeningFigures
-            accountId={props.accountId}
-            asOf={props.asOf}
-            frozen={props.frozen}
-          />
-        </section>
       </>
     );
   return <SecuritiesOverview {...props} />;

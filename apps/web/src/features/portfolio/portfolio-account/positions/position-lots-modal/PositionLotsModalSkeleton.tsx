@@ -1,8 +1,4 @@
-import {
-  SkeletonBlock,
-  SkeletonStatus,
-  SkeletonTableRows,
-} from '@/components/ui/skeleton/Skeleton';
+import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import styles from './PositionLotsModal.module.css';
 
 const lotHeaders = [
@@ -35,11 +31,7 @@ export function PositionLotsModalSkeleton() {
           <SkeletonTableRows columns={lotHeaders.length} rows={3} />
         </table>
       </div>
-      <div className={styles.fifoTotal}>
-        <span>Coût FIFO restant :</span>
-        <SkeletonBlock className={styles.totalSkeleton} />
-      </div>
-      <h3>Mouvements</h3>
+      <h3>Historique</h3>
       <div className={styles.scroll}>
         <table aria-label="Mouvements des lots" className={styles.table}>
           <thead>

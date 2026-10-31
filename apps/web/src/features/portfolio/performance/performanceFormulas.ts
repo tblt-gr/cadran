@@ -33,5 +33,10 @@ export function formulaText(performance: PortfolioPerformance, key: FigureKey): 
 export function gainFormulaText(gain: PortfolioGainFigure, assetCode: string): string {
   const money = (value: string | null) =>
     value === null ? '-' : formatAmount(value, assetCode, 'fr');
-  return `Gain = ${money(gain.inputs.endValue)} − ${money(gain.inputs.startValue)} − ${money(gain.inputs.netFlows)} = ${money(gain.value)}`;
+  // Since the opening there is no value before the first flow: the term is left out, not zeroed.
+  const start =
+    gain.inputs.startValue === null && gain.value !== null
+      ? ''
+      : ` − ${money(gain.inputs.startValue)}`;
+  return `Gain = ${money(gain.inputs.endValue)}${start} − ${money(gain.inputs.netFlows)} = ${money(gain.value)}`;
 }

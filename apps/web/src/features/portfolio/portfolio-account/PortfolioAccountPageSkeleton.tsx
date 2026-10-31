@@ -10,8 +10,8 @@ import { CashTabSkeleton } from '@/features/portfolio/cash/CashTabSkeleton';
 import { PerformanceTabSkeleton } from '@/features/portfolio/performance/performance-tab/PerformanceTabSkeleton';
 import { performanceYear } from '@/features/portfolio/performance/performance-tab/performanceYear';
 import { ValuationsTabSkeleton } from '@/features/portfolio/valuations/ValuationsTabSkeleton';
-import { AllocationTab } from './allocation-tab/AllocationTab';
-import { PositionsTabSkeleton } from './positions/PositionsTabSkeleton';
+import { AccountTabSkeleton } from './account-tab/AccountTabSkeleton';
+import { HoldingsTab } from './holdings-tab/HoldingsTab';
 import { PortfolioAccountHeader } from './portfolio-account-header/PortfolioAccountHeader';
 import { activeTab } from './portfolio-tabs/activeTab';
 import { PortfolioTabs } from './portfolio-tabs/PortfolioTabs';
@@ -32,32 +32,42 @@ export function PortfolioAccountPageSkeleton({
   const active = activeTab();
   return (
     <div className={styles.page}>
-      <PortfolioAccountHeader accountId={accountId} onCreate={() => undefined} />
-      <fieldset className={styles.frozenField} disabled>
-        <BusinessDateField
-          hint={null}
-          label="Au"
-          onChange={() => undefined}
-          today={today}
-          value={asOf}
-        />
-      </fieldset>
-      <PortfolioOverview
-        kind={active === 'contract' ? 'INSURANCE_CONTRACT' : undefined}
-        accountId={accountId}
-        asOf={asOf}
-        frozen
-        history={<ValueHistoryCardSkeleton />}
-      />
       <PortfolioTabs
         accountId={accountId}
         active={active}
         asOf={asOf}
         kind={active === 'contract' ? 'INSURANCE_CONTRACT' : undefined}
+        tools={
+          active !== 'operations' && active !== 'performance' ? (
+            <fieldset className={styles.frozenField} disabled>
+              <BusinessDateField
+                compact
+                hint={null}
+                label="Situation au"
+                onChange={() => undefined}
+                today={today}
+                value={asOf}
+              />
+            </fieldset>
+          ) : null
+        }
       />
+      <PortfolioAccountHeader
+        accountId={accountId}
+        onCreate={() => undefined}
+        onRecordValuation={() => undefined}
+      />
+      {active === 'account' ? (
+        <AccountTabSkeleton>
+          <PortfolioOverview embedded accountId={accountId} asOf={asOf} frozen history={null} />
+        </AccountTabSkeleton>
+      ) : null}
+      {active === 'account' ? <ValueHistoryCardSkeleton /> : null}
       {active === 'contract' ? (
-        <ContractTabSkeleton />
-      ) : active === 'operations' ? (
+        <AccountTabSkeleton>
+          <ContractTabSkeleton />
+        </AccountTabSkeleton>
+      ) : active === 'account' ? null : active === 'operations' ? (
         <div className={operationsStyles.tab}>
           <OperationFilters currencyCode="" disabled onChange={() => undefined} value={noFilters} />
           <OperationsTableSkeleton status={status} />
@@ -66,12 +76,10 @@ export function PortfolioAccountPageSkeleton({
         <CashTabSkeleton asOf={asOf} />
       ) : active === 'valuations' ? (
         <ValuationsTabSkeleton status={status} />
-      ) : active === 'allocation' ? (
-        <AllocationTab accountId={accountId} asOf={asOf} frozen />
-      ) : active === 'positions' ? (
-        <PositionsTabSkeleton status={status} />
+      ) : active === 'performance' ? (
+        <PerformanceTabSkeleton accountId={accountId} year={performanceYear(asOf)} />
       ) : (
-        <PerformanceTabSkeleton year={performanceYear(asOf)} />
+        <HoldingsTab accountId={accountId} asOf={asOf} frozen status={status} />
       )}
     </div>
   );

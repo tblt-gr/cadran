@@ -1,6 +1,14 @@
 import { getFoundationStatus } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
@@ -52,6 +60,15 @@ export function AuthenticatedApp() {
     [workspaceTimeZone, runningVersion],
   );
   const matched = matchAuthenticatedRoute(routes, path);
+  const scrolledPath = useRef(path);
+
+  // The document keeps its scroll across pushState, so a new page would open
+  // where the previous one left off. A query change on the same page does not.
+  useLayoutEffect(() => {
+    if (scrolledPath.current === path) return;
+    scrolledPath.current = path;
+    window.scrollTo(0, 0);
+  }, [path]);
 
   // A path change is a transition: React keeps the page on screen until the
   // next page's chunk is ready, so in-app navigation never flashes a fallback.

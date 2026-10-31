@@ -1,6 +1,7 @@
 import type { Account } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import {
@@ -40,6 +41,23 @@ const ok = <T,>(data: T, status = 200) =>
 const refused = (status: number, body: object) =>
   Promise.resolve({ error: body, response: new Response('{}', { status }) });
 
+/** Stands in for the page header, which owns the « Nouvelle valorisation » action. */
+function RecordingTab({ account }: { account: Account }) {
+  const [recording, setRecording] = useState(false);
+  return (
+    <>
+      <button onClick={() => setRecording(true)} type="button">
+        Nouvelle valorisation
+      </button>
+      <ValuationsTab
+        account={account}
+        onRecordClose={() => setRecording(false)}
+        recording={recording}
+      />
+    </>
+  );
+}
+
 function renderTab(overrides: Partial<Account> = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -55,7 +73,7 @@ function renderTab(overrides: Partial<Account> = {}) {
   api.getSession.mockImplementation(() => ok(session));
   const view = render(
     <QueryClientProvider client={client}>
-      <ValuationsTab account={{ ...account, ...overrides }} />
+      <RecordingTab account={{ ...account, ...overrides }} />
     </QueryClientProvider>,
   );
   return { ...view, client };
@@ -74,12 +92,12 @@ function changeValue(
 }
 
 async function openRecordModal() {
-  fireEvent.click(screen.getByRole('button', { name: 'Enregistrer une valorisation' }));
-  const dialog = await screen.findByRole('dialog', { name: 'Enregistrer une valorisation' });
+  fireEvent.click(screen.getByRole('button', { name: 'Nouvelle valorisation' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Nouvelle valorisation' });
   changeValue('Date de valorisation', '2026-03-10', dialog);
   fireEvent.click(within(dialog).getByRole('button', { name: 'Continuer' }));
   await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
-  await within(dialog).findByText(/Espèces calculées/);
+  await within(dialog).findByText(/retenir les espèces calculées/);
   return dialog;
 }
 
@@ -101,31 +119,26 @@ afterEach(() => {
 });
 
 describe('ValuationsTab month end', () => {
-  it('opens the draft of the chosen due month on its last day', async () => {
+  it('proposes the oldest due month end, then titles the draft with its date', async () => {
     withDue(['2026-01', '2026-02']);
     api.readPortfolioValuationDraft.mockImplementation(() =>
-      ok(draftFixture({ valuedOn: '2026-02-28', suggestedDetail: 'POSITIONS' })),
+      ok(draftFixture({ valuedOn: '2026-01-31', suggestedDetail: 'POSITIONS' })),
     );
     renderTab();
     await loaded();
+    await waitFor(() => expect(api.readPortfolioSummary).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle valorisation' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Nouvelle valorisation' });
     await waitFor(() =>
       expect(
-        (screen.getByRole('button', { name: 'Valoriser une fin de mois' }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(false),
+        (within(dialog).getByLabelText('Date de valorisation') as HTMLInputElement).value,
+      ).toBe('2026-01-31'),
     );
-    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
-      'Janvier 2026',
-      'Février 2026',
-    ]);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Mois à valoriser' }), {
-      target: { value: '2026-02' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Valoriser une fin de mois' }));
-    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Continuer' }));
     await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
-    await within(dialog).findByText(/Espèces calculées/);
-    expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-02-28');
+    await within(dialog).findByText(/retenir les espèces calculées/);
+    expect(screen.getByRole('dialog', { name: 'Valorisation du 31/01/2026' })).toBe(dialog);
+    expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-01-31');
     expect(
       (within(dialog).getByRole('radio', { name: 'Détail par ligne' }) as HTMLInputElement).checked,
     ).toBe(true);
@@ -137,7 +150,7 @@ describe('ValuationsTab month end', () => {
     renderTab();
     const dialog = await screen.findByRole('dialog');
     await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
-    await within(dialog).findByText(/Espèces calculées/);
+    await within(dialog).findByText(/retenir les espèces calculées/);
     expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-02-28');
     expect(
       (within(dialog).getByRole('radio', { name: 'Valeur totale' }) as HTMLInputElement).checked,
@@ -165,7 +178,6 @@ describe('ValuationsTab month end', () => {
 describe('ValuationsTab', () => {
   it('shows the real chrome while loading, then one row per valuation with its state', async () => {
     renderTab();
-    expect(screen.getByRole('button', { name: 'Enregistrer une valorisation' })).toBeTruthy();
     expect(screen.getByTestId('valuations-skeleton')).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Valeur totale' })).toBeTruthy();
 
@@ -221,7 +233,7 @@ describe('ValuationsTab', () => {
     await loaded();
     expect(
       screen.getByText(
-        'Aucune valorisation. Enregistrez la valeur de vos titres à partir d’un relevé.',
+        'Saisissez la valeur du compte à partir d’un relevé avec Nouvelle valorisation.',
       ),
     ).toBeTruthy();
   });
@@ -314,7 +326,7 @@ describe('ValuationsTab', () => {
       name: 'Remplacer la valorisation du 10/03/2026',
     });
     await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
-    await within(dialog).findByText(/Espèces calculées/);
+    await within(dialog).findByText(/retenir les espèces calculées/);
     changeValue('Valeur totale du compte', '3700', dialog);
     fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
     await waitFor(() => expect(api.recordPortfolioValuation).toHaveBeenCalled());
@@ -371,15 +383,6 @@ describe('ValuationsTab', () => {
       body: { version: 1 },
     });
   });
-
-  it('disables recording on an account that is not active', async () => {
-    renderTab({ status: 'CLOSED' });
-    await loaded();
-    expect(
-      (screen.getByRole('button', { name: 'Enregistrer une valorisation' }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-  });
 });
 
 describe('ValuationsTab robustness', () => {
@@ -391,7 +394,7 @@ describe('ValuationsTab robustness', () => {
       name: 'Remplacer la valorisation du 10/03/2026',
     });
     await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
-    await within(dialog).findByText(/Espèces calculées/);
+    await within(dialog).findByText(/retenir les espèces calculées/);
     return dialog;
   }
 

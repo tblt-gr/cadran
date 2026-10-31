@@ -20,7 +20,7 @@ const refusals: Record<string, string> = {
     'Les montants d’espèces sont trop grands pour être additionnés exactement.',
 };
 
-/** The Espèces tab: derived cash balance, period totals, warnings and running movements. */
+/** The Espèces tab: derived cash balance with its checks, period totals and running movements. */
 export function CashTab({
   accountId,
   asOf,
@@ -54,10 +54,6 @@ export function CashTab({
           if (asOf && next.to !== asOf) onAsOfChange?.(next.to);
         }}
       />
-      <p className={styles.note}>
-        Les montants sont saisis dans la devise du compte ; le multi-devises n’est pas pris en
-        charge.
-      </p>
       {cash.isError ? (
         <OperationsState
           error
@@ -74,8 +70,10 @@ export function CashTab({
           className={styles.tab}
           data-testid={cash.isPending ? 'cash-skeleton' : undefined}
         >
-          <CashSummary cash={cash.data ?? null} />
-          <CashWarnings accountId={accountId} cash={cash.data ?? null} />
+          <CashSummary
+            cash={cash.data ?? null}
+            checks={<CashWarnings accountId={accountId} cash={cash.data ?? null} />}
+          />
           <CashMovementsTable cash={cash.data ?? null} />
         </div>
       )}

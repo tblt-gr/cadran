@@ -5,12 +5,33 @@
 }
 .content h3,
 .note,
-.fifoTotal,
+.figures,
+.figures dd,
 .errorState p {
   margin: var(--spacing-none);
 }
 .note {
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+}
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--spacing-4);
+}
+.figures div {
+  display: grid;
+  gap: var(--spacing-1);
+}
+.figures dt {
   color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.figures dd {
+  color: var(--text-primary);
+  font-size: var(--font-size-kpi);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: var(--font-weight-strong);
 }
 .scroll {
   overflow-x: auto;
@@ -23,18 +44,10 @@
 .table th,
 .table td {
   padding: var(--spacing-2);
+  font-variant-numeric: tabular-nums lining-nums;
   border-bottom: var(--border-line-subtle);
   text-align: left;
   white-space: nowrap;
-}
-.fifoTotal {
-  display: flex;
-  align-items: center;
-  color: var(--text-secondary);
-  gap: var(--spacing-2);
-}
-.totalSkeleton {
-  width: calc(var(--spacing-8) * 2);
 }
 .errorState {
   display: flex;
