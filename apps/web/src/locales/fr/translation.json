@@ -3267,7 +3267,16 @@
           "missingCount_one": "1 valorisation manque.",
           "missingCount_other": "{{count}} valorisations manquent.",
           "staleCount_one": "1 valorisation est ancienne.",
-          "staleCount_other": "{{count}} valorisations sont anciennes."
+          "staleCount_other": "{{count}} valorisations sont anciennes.",
+          "staleList": {
+            "title": "Valorisations anciennes",
+            "empty": "Aucun compte à afficher pour cette période.",
+            "dateAndAge_one": "Valorisé le {{date}} ({{count}} jour)",
+            "dateAndAge_other": "Valorisé le {{date}} ({{count}} jours)",
+            "dateOnly": "Valorisé le {{date}}",
+            "ageOnly_one": "Valorisation vieille de {{count}} jour",
+            "ageOnly_other": "Valorisation vieille de {{count}} jours"
+          }
         },
         "totals": {
           "title": "Synthèse des flux",

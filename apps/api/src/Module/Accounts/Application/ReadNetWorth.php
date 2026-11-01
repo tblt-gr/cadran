@@ -95,10 +95,12 @@ final readonly class ReadNetWorth
                 $references,
                 $set->sourceAccountIds($comparedOn),
                 $set->sourceAccountIds($requestedOn),
+                StaleValuationView::listFor($set->accounts, $previousContributions),
             ),
             self::contributionViews($set, $current, $groups, $shares, $references),
             self::allocationViews($current, $previous, $groups, $lineages, $shareInputs, $previousShareInputs, $shares, $references),
             $references->for($current->asset),
+            StaleValuationView::listFor($set->accounts, $currentContributions),
         );
     }
 

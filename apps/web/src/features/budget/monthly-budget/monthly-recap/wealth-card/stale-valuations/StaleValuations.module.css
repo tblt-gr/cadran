@@ -1,0 +1,48 @@
+.trigger {
+  border: var(--border-none);
+  padding: var(--spacing-none);
+  background: var(--color-transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.trigger:hover,
+.trigger:focus-visible {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+.list {
+  display: grid;
+  gap: var(--spacing-3);
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+}
+.row {
+  display: grid;
+  gap: var(--spacing-1);
+  border-bottom: var(--border-line-strong);
+  padding-bottom: var(--spacing-3);
+}
+.row:last-child {
+  border-bottom: var(--border-none);
+}
+.account {
+  font-weight: var(--font-weight-strong);
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+.account:hover,
+.account:focus-visible {
+  text-decoration: underline;
+}
+.secondary {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.empty {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+}

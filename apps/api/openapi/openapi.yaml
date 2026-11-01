@@ -16231,6 +16231,8 @@ components:
         - staleValuationCount
         - previousSourceAccountIds
         - currentSourceAccountIds
+        - staleValuations
+        - previousStaleValuations
       properties:
         previous:
           oneOf:
@@ -16307,6 +16309,42 @@ components:
           type: array
           maxItems: 500
           items: { type: string, format: uuid }
+        staleValuations:
+          description: >-
+            Eligible accounts behind staleValuationCount, oldest valuation
+            first. The list size equals the count.
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/StaleValuation'
+        previousStaleValuations:
+          description: >-
+            Eligible accounts behind previousStaleValuationCount, oldest
+            valuation first. The list size equals the count.
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/StaleValuation'
+    StaleValuation:
+      type: object
+      additionalProperties: false
+      description: An eligible account whose usable valuation predates the day read.
+      required: [accountId, label, institution, kind, valuationMode, valuedOn, ageDays]
+      properties:
+        accountId: { type: string, format: uuid }
+        label: { type: string }
+        institution: { type: [string, 'null'] }
+        kind:
+          $ref: '#/components/schemas/AccountKind'
+        valuationMode:
+          $ref: '#/components/schemas/AccountValuationMode'
+        valuedOn:
+          description: Day of the valuation carried forward (ISO 8601).
+          type: [string, 'null']
+          format: date
+        ageDays:
+          type: [integer, 'null']
+          minimum: 0
     MonthlyRecap:
       description: >-
         The account, wealth and totals recap of one month. `previousAsOf` is

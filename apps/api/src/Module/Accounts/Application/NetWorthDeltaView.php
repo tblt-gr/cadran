@@ -25,8 +25,9 @@ final readonly class NetWorthDeltaView
     public const int RATE_DISPLAY_SCALE = 2;
 
     /**
-     * @param list<string> $previousSourceAccountIds
-     * @param list<string> $currentSourceAccountIds
+     * @param list<string>             $previousSourceAccountIds
+     * @param list<string>             $currentSourceAccountIds
+     * @param list<StaleValuationView> $previousStaleValuations
      */
     public function __construct(
         public string $comparedOn,
@@ -44,12 +45,14 @@ final readonly class NetWorthDeltaView
         public int $previousStaleValuationCount,
         public array $previousSourceAccountIds,
         public array $currentSourceAccountIds,
+        public array $previousStaleValuations = [],
     ) {
     }
 
     /**
-     * @param list<string> $previousSourceAccountIds
-     * @param list<string> $currentSourceAccountIds
+     * @param list<string>             $previousSourceAccountIds
+     * @param list<string>             $currentSourceAccountIds
+     * @param list<StaleValuationView> $previousStaleValuations
      */
     public static function fromDelta(
         NetWorthDelta $delta,
@@ -57,6 +60,7 @@ final readonly class NetWorthDeltaView
         NetWorthAssetReferences $references,
         array $previousSourceAccountIds,
         array $currentSourceAccountIds,
+        array $previousStaleValuations = [],
     ): self {
         return new self(
             comparedOn: $delta->comparedOn->format('Y-m-d'),
@@ -80,6 +84,7 @@ final readonly class NetWorthDeltaView
             previousStaleValuationCount: $previous->staleValuationCount,
             previousSourceAccountIds: $previousSourceAccountIds,
             currentSourceAccountIds: $currentSourceAccountIds,
+            previousStaleValuations: $previousStaleValuations,
         );
     }
 }

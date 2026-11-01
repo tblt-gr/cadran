@@ -7,6 +7,7 @@ namespace App\Module\Reporting\UI\Http;
 use App\Module\Accounts\Application\NetWorthAllocationView;
 use App\Module\Accounts\Application\NetWorthAmountView;
 use App\Module\Accounts\Application\ShareView;
+use App\Module\Accounts\Application\StaleValuationView;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Portfolio\Application\MonthlyPortfolioCostItem;
 use App\Module\Portfolio\Application\MonthlyPortfolioCosts;
@@ -139,6 +140,22 @@ final class MonthlyRecapRepresentation
             'staleValuationCount' => $netWorth->staleValuationCount,
             'previousSourceAccountIds' => $netWorth->previousSourceAccountIds,
             'currentSourceAccountIds' => $netWorth->currentSourceAccountIds,
+            'staleValuations' => array_map(self::staleValuation(...), $netWorth->staleValuations),
+            'previousStaleValuations' => array_map(self::staleValuation(...), $netWorth->previousStaleValuations),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function staleValuation(StaleValuationView $row): array
+    {
+        return [
+            'accountId' => $row->accountId,
+            'label' => $row->label,
+            'institution' => $row->institution,
+            'kind' => $row->kind,
+            'valuationMode' => $row->valuationMode,
+            'valuedOn' => $row->valuedOn,
+            'ageDays' => $row->ageDays,
         ];
     }
 

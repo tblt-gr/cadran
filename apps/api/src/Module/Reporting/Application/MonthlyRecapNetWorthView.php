@@ -6,6 +6,7 @@ namespace App\Module\Reporting\Application;
 
 use App\Module\Accounts\Application\NetWorthAmountView;
 use App\Module\Accounts\Application\NetWorthView;
+use App\Module\Accounts\Application\StaleValuationView;
 
 /**
  * The wealth card of one month: where the workspace stood at N−1, where it
@@ -19,8 +20,10 @@ use App\Module\Accounts\Application\NetWorthView;
 final readonly class MonthlyRecapNetWorthView
 {
     /**
-     * @param list<string> $previousSourceAccountIds
-     * @param list<string> $currentSourceAccountIds
+     * @param list<string>             $previousSourceAccountIds
+     * @param list<string>             $currentSourceAccountIds
+     * @param list<StaleValuationView> $staleValuations          behind staleValuationCount
+     * @param list<StaleValuationView> $previousStaleValuations  behind previousStaleValuationCount
      */
     public function __construct(
         public ?NetWorthAmountView $previous,
@@ -44,6 +47,8 @@ final readonly class MonthlyRecapNetWorthView
         public int $staleValuationCount,
         public array $previousSourceAccountIds,
         public array $currentSourceAccountIds,
+        public array $staleValuations = [],
+        public array $previousStaleValuations = [],
     ) {
     }
 
@@ -71,6 +76,8 @@ final readonly class MonthlyRecapNetWorthView
             staleValuationCount: $netWorth->staleValuationCount,
             previousSourceAccountIds: $netWorth->delta->previousSourceAccountIds,
             currentSourceAccountIds: $netWorth->delta->currentSourceAccountIds,
+            staleValuations: $netWorth->staleValuations,
+            previousStaleValuations: $netWorth->delta->previousStaleValuations,
         );
     }
 }

@@ -17,6 +17,7 @@ final readonly class NetWorthView
     /**
      * @param list<NetWorthContributionView> $contributions
      * @param list<NetWorthAllocationView>   $allocation
+     * @param list<StaleValuationView>       $staleValuations
      */
     public function __construct(
         public string $asOf,
@@ -31,12 +32,14 @@ final readonly class NetWorthView
         public NetWorthDeltaView $delta,
         public array $contributions,
         public array $allocation,
+        public array $staleValuations = [],
     ) {
     }
 
     /**
      * @param list<NetWorthContributionView> $contributions
      * @param list<NetWorthAllocationView>   $allocation
+     * @param list<StaleValuationView>       $staleValuations
      */
     public static function of(
         NetWorth $netWorth,
@@ -44,6 +47,7 @@ final readonly class NetWorthView
         array $contributions,
         array $allocation,
         ?Asset $reference,
+        array $staleValuations = [],
     ): self {
         return new self(
             asOf: $netWorth->asOf->format('Y-m-d'),
@@ -58,6 +62,7 @@ final readonly class NetWorthView
             delta: $delta,
             contributions: $contributions,
             allocation: $allocation,
+            staleValuations: $staleValuations,
         );
     }
 }
