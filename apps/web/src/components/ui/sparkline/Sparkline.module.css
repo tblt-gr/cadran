@@ -1,0 +1,30 @@
+.sparkline {
+  display: block;
+  flex: none;
+}
+
+.line {
+  stroke: var(--text-secondary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rising .line {
+  stroke: var(--positive);
+}
+
+.rising .dot {
+  fill: var(--positive);
+}
+
+.falling .line {
+  stroke: var(--negative);
+}
+
+.falling .dot {
+  fill: var(--negative);
+}
+
+.dot {
+  fill: var(--text-secondary);
+}

@@ -89,8 +89,11 @@ button.explain:hover:not(:disabled) {
   }
 }
 /* A link inside a figure is plain text until hovered or focused. */
+/* An exact zero reads as a lone hyphen: its link still keeps the touch minimum. */
 .table a,
 .card a {
+  display: inline-block;
+  min-width: var(--touch-target-min);
   text-decoration: none;
 }
 .table a:hover,

@@ -11,13 +11,22 @@ interface AccountNameCellProps {
   account: AccountOverviewRow | null;
   /** Identification color of the account primary group, for the sub-group line. */
   groupColor?: string | null;
+  /** The warning that the row is denominated in another asset than its group total. */
+  assetWarning?: string | null;
+  /** `institution · product · ••1234`, each part only when present. */
+  identity?: string | null;
 }
 
 /**
  * The same name and status slots serve loaded rows and their skeletons. A row listed under a
  * parent section also names its own sub-group, with that group's parent in smaller text.
  */
-export function AccountNameCell({ account, groupColor = null }: AccountNameCellProps) {
+export function AccountNameCell({
+  account,
+  assetWarning = null,
+  groupColor = null,
+  identity = null,
+}: AccountNameCellProps) {
   const { t } = useTranslation();
   const status = account?.isPrimary
     ? t('accounts.primary.badge')
@@ -46,6 +55,11 @@ export function AccountNameCell({ account, groupColor = null }: AccountNameCellP
           {account ? status : <SkeletonBlock className={styles.statusSkeleton} />}
         </StatusBadge>
       </span>
+      {account === null || identity ? (
+        <small className={styles.identity}>
+          {account ? identity : <SkeletonBlock className={styles.identitySkeleton} />}
+        </small>
+      ) : null}
       {account?.primaryGroupParentLabel ? (
         <span className={styles.subGroup}>
           <GroupMarker color={groupColor} />
@@ -53,6 +67,7 @@ export function AccountNameCell({ account, groupColor = null }: AccountNameCellP
           <small className={styles.parentLabel}>({account.primaryGroupParentLabel})</small>
         </span>
       ) : null}
+      {assetWarning ? <small className={styles.identity}>{assetWarning}</small> : null}
     </div>
   );
 }

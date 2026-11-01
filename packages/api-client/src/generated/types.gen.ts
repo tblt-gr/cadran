@@ -64,6 +64,7 @@ export type PortfolioValuationReminders = {
 };
 
 export type PortfolioOverviewAccountCard = {
+    returnTrend: PortfolioReturnTrend;
     /**
      * Unrealized gain of the latest complete valuation with its performance (gain over cost, 6 decimals, ratio 0.0732 = 7.32 %); every member is null when not calculable, never zero.
      */
@@ -90,6 +91,85 @@ export type PortfolioOverviewAccountCard = {
     latestValuation: PortfolioOverviewValuation | null;
     currentCash: string;
     positionCount: number;
+};
+
+/**
+ * Chained monthly Modified Dietz return of the 12 complete calendar months before the current workspace month. The chain starts at the later of the opening month and the month of the first operation; earlier months have a null index. A month without rate, or a growth factor at or below zero, breaks the chain from that month on.
+ */
+export type PortfolioReturnTrend = {
+    /**
+     * Base-100 index at each month end, two decimals, oldest first.
+     */
+    months: [
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        },
+        {
+            month: string;
+            index: string | null;
+        }
+    ];
+    /**
+     * First chained month, null when nothing chains.
+     */
+    from: string | null;
+    /**
+     * Last month of the window.
+     */
+    to: string;
+    /**
+     * Last unrounded index over 100 minus one, 6 decimals half-even (0.019494 = 1.9494 %); null unless the last month carries an index.
+     */
+    cumulativeReturn: string | null;
+    /**
+     * Why cumulativeReturn is null. TOO_MANY_OPERATIONS means the account history exceeds the performance read bound; every index is then null.
+     */
+    reason: null | 'NO_HISTORY' | 'MISSING_MONTH' | 'NON_POSITIVE_GROWTH_FACTOR' | 'TOO_MANY_OPERATIONS';
+    /**
+     * The month that broke the chain, for MISSING_MONTH and NON_POSITIVE_GROWTH_FACTOR.
+     */
+    reasonMonth: string | null;
 };
 
 export type PortfolioOverviewList = {
@@ -2139,6 +2219,32 @@ export type GroupCompositionAccount = {
     color: string;
     value: NetWorthAmount | null;
     share: NetWorthShare;
+};
+
+/**
+ * Why a pie of the whole net worth would mislead; the table stays available. Checked in the order listed.
+ */
+export type AccountOverviewCompositionChartReason = 'MISSING_VALUATION' | 'MIXED_ASSETS' | 'ZERO_TOTAL' | 'NEGATIVE_TOTAL' | 'NEGATIVE_COMPONENT';
+
+export type AccountOverviewCompositionAccount = {
+    id: string;
+    label: string;
+    institution: string | null;
+    primaryGroupId: string | null;
+    /**
+     * Effective color of the primary group, null for an ungrouped account.
+     */
+    color: string | null;
+    value: NetWorthAmount | null;
+    share: NetWorthShare;
+};
+
+export type AccountOverviewComposition = {
+    asOf: string;
+    total: NetWorthAmount | null;
+    totalReason: NetWorthReason | null;
+    chartReason: AccountOverviewCompositionChartReason | null;
+    accounts: Array<AccountOverviewCompositionAccount>;
 };
 
 export type AccountGroupComposition = {
@@ -9962,6 +10068,52 @@ export type CreateAccountResponses = {
 };
 
 export type CreateAccountResponse = CreateAccountResponses[keyof CreateAccountResponses];
+
+export type ReadAccountOverviewCompositionData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * ISO 8601 calendar day, today in the workspace when omitted.
+         */
+        asOf?: string;
+    };
+    url: '/api/v1/accounts/overview/composition';
+};
+
+export type ReadAccountOverviewCompositionErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * The workspace holds more than 1000 eligible accounts (`type: /problems/composition-too-large`), or more accounts or groups than one aggregate reads (`type: /problems/net-worth-scope-too-large`).
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadAccountOverviewCompositionError = ReadAccountOverviewCompositionErrors[keyof ReadAccountOverviewCompositionErrors];
+
+export type ReadAccountOverviewCompositionResponses = {
+    /**
+     * The composition of the net worth by account.
+     */
+    200: AccountOverviewComposition;
+};
+
+export type ReadAccountOverviewCompositionResponse = ReadAccountOverviewCompositionResponses[keyof ReadAccountOverviewCompositionResponses];
 
 export type ReadAccountOverviewData = {
     body?: never;

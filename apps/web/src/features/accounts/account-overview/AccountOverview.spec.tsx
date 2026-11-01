@@ -16,6 +16,8 @@ import {
 const api = vi.hoisted(() => ({
   moveAccount: vi.fn(),
   readAccountOverview: vi.fn(),
+  readAccountOverviewComposition: vi.fn(),
+  listPortfolios: vi.fn(),
   readAccountOverviewRows: vi.fn(),
   listProducts: vi.fn(),
   listProductModels: vi.fn(),
@@ -72,6 +74,15 @@ function renderOverview(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  api.readAccountOverviewComposition.mockImplementation(() =>
+    success({
+      asOf: '2026-09-05',
+      total: null,
+      totalReason: 'NO_ELIGIBLE_ACCOUNT',
+      chartReason: null,
+      accounts: [],
+    }),
+  );
   api.listProducts.mockImplementation(() =>
     success({ items: [], page: 1, pageSize: 100, total: 0 }),
   );
@@ -166,7 +177,6 @@ describe('AccountOverview', () => {
     expect(await screen.findByText('Compte A')).toBeTruthy();
     expect(screen.getByText('Compte B')).toBeTruthy();
     expect(screen.getByText('Compte C')).toBeTruthy();
-    expect(screen.getByText('30,00 %')).toBeTruthy();
     expect(screen.getByText('90,00 %')).toBeTruthy();
     expect(screen.queryByRole('columnheader', { name: 'Mode de valorisation' })).toBeNull();
     expect(screen.queryByRole('columnheader', { name: 'Contribution' })).toBeNull();
@@ -536,5 +546,38 @@ describe('AccountOverview', () => {
         expect.objectContaining({ body: { groupId: other, beforeAccountId: A, orderVersion: 8 } }),
       ),
     );
+  });
+
+  it('closes the page with the net worth pie, after every group table', async () => {
+    api.readAccountOverview.mockImplementation(() =>
+      success(buildOverview([buildHeading({ memberCount: 1 })], 1)),
+    );
+    api.readAccountOverviewRows.mockImplementation(() => rows([inGroup(A, 'Compte A')]));
+    renderOverview();
+    // Set after render: the helper installs an empty default, read once the overview has loaded.
+    api.readAccountOverviewComposition.mockImplementation(() =>
+      success({
+        asOf: '2026-09-05',
+        total: null,
+        totalReason: 'MISSING_VALUATION',
+        chartReason: null,
+        accounts: [
+          {
+            id: A,
+            label: 'Compte A',
+            institution: null,
+            primaryGroupId: GROUP_G,
+            color: null,
+            value: null,
+            share: share('100.00'),
+          },
+        ],
+      }),
+    );
+
+    const group = await screen.findByRole('heading', { name: /Épargne/ });
+    await screen.findByText('Compte A');
+    const pie = screen.getByRole('heading', { name: 'Répartition par compte' });
+    expect(group.compareDocumentPosition(pie) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

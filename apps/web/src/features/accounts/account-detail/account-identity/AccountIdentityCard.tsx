@@ -78,6 +78,12 @@ export function AccountIdentityCard({ account, portfolio = false }: AccountIdent
           ? t('accounts.detail.identity.groupUnavailable')
           : group.label;
 
+  // Same sources as the page header used to: the institution, then the catalogue product name.
+  const productName = products.items.find(
+    (product) => product.code === account.productCode,
+  )?.displayName;
+  const provenance = [account.institution, productName].filter(Boolean).join(' · ');
+
   return (
     <div className={`${portfolio ? styles.embedded : 'card'} ${styles.card}`}>
       <div className={styles.top}>
@@ -93,6 +99,7 @@ export function AccountIdentityCard({ account, portfolio = false }: AccountIdent
               </StatusBadge>
             )}
           </div>
+          {provenance ? <span className={styles.meta}>{provenance}</span> : null}
           <span className={styles.meta}>
             <GroupMarker color={group.color} />
             {groupLabel}

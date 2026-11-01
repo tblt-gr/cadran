@@ -15,9 +15,9 @@ const gates = vi.hoisted(() => {
   return {
     accounts: createGate(),
     goals: createGate(),
-    portfolios: createGate(),
     budget: createGate(),
     transactions: createGate(),
+    settings: createGate(),
   };
 });
 
@@ -34,6 +34,10 @@ vi.mock('@/features/transactions/TransactionsPage', async () => {
   await gates.transactions.opened;
   return { TransactionsPage: () => <p>Contenu des transactions</p> };
 });
+vi.mock('@/features/settings/ProfileSettingsPage', async () => {
+  await gates.settings.opened;
+  return { ProfileSettingsPage: () => <p>Contenu des paramètres</p> };
+});
 vi.mock('@/features/accounts/AccountsPage', async () => {
   await gates.accounts.opened;
   return { AccountsPage: () => <p>Contenu des comptes</p> };
@@ -41,10 +45,6 @@ vi.mock('@/features/accounts/AccountsPage', async () => {
 // A chunk that cannot be fetched, as after an upgrade removed it from the server.
 vi.mock('@/features/recurrences/RecurrencesPage', () => {
   throw new Error('Failed to fetch dynamically imported module');
-});
-vi.mock('@/features/portfolio/portfolios/PortfoliosPage', async () => {
-  await gates.portfolios.opened;
-  return { PortfoliosPage: () => <p>Contenu des portefeuilles</p> };
 });
 vi.mock('@/features/dashboard/DashboardPage', () => ({
   DashboardPage: () => <p>Contenu de la synthèse</p>,
@@ -200,13 +200,13 @@ describe('AuthenticatedApp lazy navigation', () => {
     const main = screen.getByRole('main');
     expect(main.getAttribute('aria-busy')).toBeNull();
 
-    fireEvent.click(sidebarLink('Investissements'));
+    fireEvent.click(sidebarLink('Paramètres'));
 
     await waitFor(() => expect(main.getAttribute('aria-busy')).toBe('true'));
     await act(async () => {
-      gates.portfolios.open();
+      gates.settings.open();
     });
-    await screen.findByText('Contenu des portefeuilles');
+    await screen.findByText('Contenu des paramètres');
     expect(main.getAttribute('aria-busy')).toBeNull();
   });
 

@@ -38,7 +38,8 @@ final readonly class AccountOverviewFigures
             throw new InvalidAccountOverviewQuery($exception->getMessage(), previous: $exception);
         }
 
-        $contributions = $this->contributions->on($workspace, [$day])->on($day);
+        $contributionSet = $this->contributions->on($workspace, [$day]);
+        $contributions = $contributionSet->on($day);
         $netWorth = NetWorthCalculator::compute($contributions, $day);
 
         $groups = $this->groups->list($workspace, true, ReadNetWorth::MAX_GROUPS + 1, 0);
@@ -64,6 +65,7 @@ final readonly class AccountOverviewFigures
             direct: $calculable ? ExclusiveGroupRollup::directTotals($included, $lineages) : [],
             ungroupedTotal: $calculable ? ExclusiveGroupRollup::ungroupedTotal($included) : null,
             contributions: $contributions,
+            accounts: $contributionSet->accounts,
         );
     }
 }

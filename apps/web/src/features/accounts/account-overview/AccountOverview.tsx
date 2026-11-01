@@ -4,6 +4,7 @@ import { AccountRequestError } from '@/features/accounts/accountError';
 import { AccountsPageSkeleton } from '@/features/accounts/AccountsPageSkeleton';
 import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import { AccountsState } from '@/features/accounts/accounts-state/AccountsState';
+import { NetWorthCompositionCard } from '@/features/accounts/net-worth-composition/NetWorthCompositionCard';
 import { AccountGroupTable } from './account-group-table/AccountGroupTable';
 import { useAccountOverview } from './useAccountOverview';
 import styles from './AccountOverview.module.css';
@@ -90,6 +91,7 @@ export function AccountOverview({
           {...rowActions}
         />
       ))}
+      <NetWorthCompositionCard asOf={asOf} />
     </div>
   );
 }

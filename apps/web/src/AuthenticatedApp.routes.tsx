@@ -73,10 +73,6 @@ const InstrumentsPage = lazyComponent(
   () => import('@/features/portfolio/instruments/InstrumentsPage'),
   'InstrumentsPage',
 );
-const PortfoliosPage = lazyComponent(
-  () => import('@/features/portfolio/portfolios/PortfoliosPage'),
-  'PortfoliosPage',
-);
 const PortfolioAccountPage = lazyComponent(
   () => import('@/features/portfolio/portfolio-account/PortfolioAccountPage'),
   'PortfolioAccountPage',
@@ -114,9 +110,11 @@ export function buildAuthenticatedRoutes(
 ): RouteDefinition[] {
   return [
     {
+      // The investments overview was merged into the accounts overview; bookmarks keep working.
       pattern: /^\/portfolios$/,
-      preload: PortfoliosPage.preload,
-      render: () => <PortfoliosPage />,
+      preload: AccountsPage.preload,
+      redirect: true,
+      render: () => <RouteRedirect to="/accounts" />,
     },
     {
       pattern: /^\/portfolios\/instruments$/,

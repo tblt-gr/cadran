@@ -28,7 +28,6 @@ describe('AppShell', () => {
     const expectedLabels = [
       'Synthèse',
       'Comptes',
-      'Investissements',
       'Budget',
       'Objectifs',
       'Transactions',
@@ -55,7 +54,7 @@ describe('AppShell', () => {
     expect(labels(mobile)).toEqual(['Synthèse', 'Comptes', 'Budget', 'Transactions']);
     fireEvent.click(within(mobile).getByRole('button', { name: 'Plus' }));
     const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
-    expect(labels(sheet)).toEqual(['Investissements', 'Objectifs', 'Paramètres']);
+    expect(labels(sheet)).toEqual(['Objectifs', 'Paramètres']);
   });
 
   it.each([
@@ -74,27 +73,13 @@ describe('AppShell', () => {
       within(sidebar)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
-    ).toEqual([
-      '/',
-      '/accounts',
-      '/portfolios',
-      '/budget',
-      '/goals',
-      '/transactions',
-      '/parameters/profile',
-    ]);
-    expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe(
-      'Investissements',
-    );
+    ).toEqual(['/', '/accounts', '/budget', '/goals', '/transactions', '/parameters/profile']);
+    expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
     const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
-    expect(within(mobile).getByRole('button', { name: 'Plus' }).getAttribute('aria-current')).toBe(
-      'page',
-    );
-    fireEvent.click(within(mobile).getByRole('button', { name: 'Plus' }));
-    const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
-    expect(within(sheet).getByRole('link', { current: 'page' }).textContent).toBe(
-      'Investissements',
-    );
+    expect(within(mobile).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
+    expect(
+      within(mobile).getByRole('button', { name: 'Plus' }).getAttribute('aria-current'),
+    ).toBeNull();
   });
 
   it('closes the complementary navigation and restores focus to its trigger', async () => {

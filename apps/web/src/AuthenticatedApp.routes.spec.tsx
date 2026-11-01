@@ -64,6 +64,14 @@ describe('AuthenticatedApp route table', () => {
     expect(matched?.match[1]).toBeUndefined();
   });
 
+  it('redirects the retired /portfolios overview to the accounts overview', () => {
+    const matched = matchAuthenticatedRoute(routes, '/portfolios');
+    expect(matched?.route.redirect).toBe(true);
+    expect((matched!.route.render(matched!.match) as ReactElement<{ to: string }>).props.to).toBe(
+      '/accounts',
+    );
+  });
+
   it('keeps /portfolios/instruments out of the portfolio account pattern', () => {
     const matched = matchAuthenticatedRoute(routes, '/portfolios/instruments');
     expect(matched?.match[1]).toBeUndefined();

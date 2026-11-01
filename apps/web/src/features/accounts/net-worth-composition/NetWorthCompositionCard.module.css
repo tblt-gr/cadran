@@ -1,0 +1,107 @@
+.card {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.title {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+
+.body {
+  display: grid;
+  align-items: start;
+  gap: var(--spacing-6);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.error {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-3);
+}
+
+.error p {
+  margin: var(--spacing-none);
+}
+
+.tableScroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.table thead th {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.table tbody th,
+.table tfoot th {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
+}
+
+.table tfoot th,
+.table tfoot td {
+  font-weight: var(--font-weight-bold);
+  border-bottom: var(--border-none);
+}
+
+.table th > span,
+.table th small {
+  display: block;
+}
+
+.table th .account {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.swatch {
+  display: block;
+  flex: none;
+  width: var(--spacing-3);
+  height: var(--spacing-3);
+}
+
+.table th small {
+  margin-left: calc(var(--spacing-3) + var(--spacing-2));
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.labelSkeleton {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-body);
+}
+
+.valueSkeleton {
+  display: inline-block;
+  width: calc(var(--spacing-12) * 1.25);
+  height: var(--font-size-body);
+}
+
+@media (min-width: 48rem) {
+  .body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  }
+}

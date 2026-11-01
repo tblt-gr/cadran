@@ -7,7 +7,9 @@ namespace App\Module\Portfolio\Application;
 use App\Module\Accounts\Application\ListPortfolioAccounts;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Portfolio\Application\Performance\PortfolioReturnTrend;
 use App\Module\Portfolio\Domain\Cash\CashLedger;
+use App\Module\Portfolio\Domain\Performance\ReturnTrend;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 
 final readonly class ListPortfolios
@@ -22,6 +24,8 @@ final readonly class ListPortfolios
         private PortfolioOperationRepository $operations,
         private ReconcilePortfolioPositions $positions,
         private PortfolioDueMonths $dueMonths,
+        private PortfolioAccountGate $gate,
+        private PortfolioReturnTrend $returnTrend,
     ) {
     }
 
@@ -54,9 +58,23 @@ final readonly class ListPortfolios
                 'currentCash' => CashLedger::replay([], $this->operations->activeForAccount($workspace, $account->id, $today))->closingBalance->toString(),
                 'positionCount' => $count, 'unrealizedGain' => ['value' => $gain['value'], 'costBasis' => $gain['costBasis'],
                     'performance' => PortfolioUnrealizedGain::performance($gain['value'], $gain['costBasis']), 'reason' => $gain['reason']],
-                'dueMonths' => $due[$account->id] ?? []];
+                'dueMonths' => $due[$account->id] ?? [],
+                'returnTrend' => self::trend(($this->returnTrend)($workspace, $this->gate->forRead($workspace, $account->id), $today))];
         }
 
         return ['items' => $items, 'total' => PortfolioTotal::of($figures), 'truncated' => count($accounts) > self::MAX_ACCOUNTS];
+    }
+
+    /** @return array<string, mixed> */
+    private static function trend(ReturnTrend $trend): array
+    {
+        return [
+            'months' => $trend->months,
+            'from' => $trend->from,
+            'to' => $trend->to,
+            'cumulativeReturn' => $trend->cumulativeReturn,
+            'reason' => $trend->reason?->value,
+            'reasonMonth' => $trend->reasonMonth,
+        ];
     }
 }
