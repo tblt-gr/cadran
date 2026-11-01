@@ -69,7 +69,7 @@ export function TransferForm({
         }
       : initial;
   });
-  const [consentTarget, setConsentTarget] = useState<string | null>(null);
+  const [depositDeclined, setDepositDeclined] = useState(false);
   const destination = accounts.find((account) => account.id === values.targetAccountId);
   const source = accounts.find((account) => account.id === values.sourceAccountId);
   const eligible =
@@ -79,8 +79,7 @@ export function TransferForm({
     source?.status === 'ACTIVE' &&
     source.id !== destination.id &&
     source.assetCode === destination.assetCode;
-  if (!eligible && consentTarget !== null) setConsentTarget(null);
-  const checked = eligible && consentTarget === destination.id;
+  const checked = eligible && !depositDeclined;
   const depositMessage =
     operationSaveMessage(depositError) ?? Object.values(operationFieldErrors(depositError))[0];
   const [showErrors, setShowErrors] = useState(false);
@@ -90,7 +89,7 @@ export function TransferForm({
   const targetAsset = accounts.find((account) => account.id === values.targetAccountId)?.assetCode;
 
   function set<K extends keyof TransferFormValues>(field: K, value: TransferFormValues[K]) {
-    if (field === 'targetAccountId' || field === 'sourceAccountId') setConsentTarget(null);
+    if (field === 'targetAccountId' || field === 'sourceAccountId') setDepositDeclined(false);
     setValues((current) => ({ ...current, [field]: value }));
   }
 
@@ -162,7 +161,7 @@ export function TransferForm({
           disabled={pending || transferCreated}
           invalid={showErrors && Boolean(errors.targetAccountId)}
           onDestinationChange={(id) => set('targetAccountId', id)}
-          onConsentChange={(consent) => setConsentTarget(consent ? values.targetAccountId : null)}
+          onConsentChange={(consent) => setDepositDeclined(!consent)}
         />
 
         <label>
