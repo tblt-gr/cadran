@@ -221,6 +221,60 @@ final class ReadNetWorthTest extends TestCase
         self::assertSame(1, $view->staleValuationCount);
     }
 
+    public function testStaleValuationsListTheAccountsBehindTheCountsOldestFirst(): void
+    {
+        $view = ($this->read(snapshots: [
+            $this->snapshot(self::CASH, '2026-07-20', '60000.00'),
+            $this->snapshot(self::LIVRET, '2026-07-01', '40000.00'),
+            $this->snapshot(self::LOAN, '2026-08-05', '20000.00'),
+            $this->snapshot(self::LOAN, '2026-09-05', '20000.00'),
+        ]))();
+
+        self::assertSame(2, $view->staleValuationCount);
+        self::assertCount($view->staleValuationCount, $view->staleValuations);
+        self::assertSame([self::LIVRET, self::CASH], array_map(static fn ($row): string => $row->accountId, $view->staleValuations));
+        self::assertSame('Livret A', $view->staleValuations[0]->label);
+        self::assertSame('2026-07-01', $view->staleValuations[0]->valuedOn);
+        self::assertSame(66, $view->staleValuations[0]->ageDays);
+        self::assertSame('TRANSACTIONS', $view->staleValuations[0]->valuationMode);
+
+        self::assertSame(2, $view->delta->previousStaleValuationCount);
+        self::assertCount($view->delta->previousStaleValuationCount, $view->delta->previousStaleValuations);
+        self::assertSame([self::LIVRET, self::CASH], array_map(static fn ($row): string => $row->accountId, $view->delta->previousStaleValuations));
+        self::assertSame(35, $view->delta->previousStaleValuations[0]->ageDays);
+    }
+
+    public function testAnotherWorkspaceSeesNoStaleValuation(): void
+    {
+        $view = ($this->read(caller: self::OTHER_WORKSPACE))();
+
+        self::assertSame([], $view->staleValuations);
+        self::assertSame([], $view->delta->previousStaleValuations);
+    }
+
+    public function testEachWorkspaceListsOnlyItsOwnStaleAccounts(): void
+    {
+        $otherCash = '00000000-0000-7000-8000-0000000000e1';
+        $accounts = [
+            $this->account(self::CASH, 'Compte A'),
+            $this->account($otherCash, 'Compte B', workspace: self::OTHER_WORKSPACE),
+        ];
+        $snapshots = [
+            $this->snapshot(self::CASH, '2026-07-20', '100.00'),
+            $this->snapshot($otherCash, '2026-07-01', '100.00', workspace: self::OTHER_WORKSPACE),
+        ];
+
+        $a = ($this->read($accounts, $snapshots))();
+        $b = ($this->read($accounts, $snapshots, caller: self::OTHER_WORKSPACE))();
+
+        self::assertSame([self::CASH], array_map(static fn ($row): string => $row->accountId, $a->staleValuations));
+        self::assertSame([$otherCash], array_map(static fn ($row): string => $row->accountId, $b->staleValuations));
+        self::assertSame([self::CASH], array_map(static fn ($row): string => $row->accountId, $a->delta->previousStaleValuations));
+        self::assertSame([$otherCash], array_map(static fn ($row): string => $row->accountId, $b->delta->previousStaleValuations));
+        self::assertCount($a->staleValuationCount, $a->staleValuations);
+        self::assertCount($b->staleValuationCount, $b->staleValuations);
+    }
+
     public function testAnAccountClosedBeforeTheDayNoLongerContributes(): void
     {
         $view = ($this->read(closedOn: '2026-08-31'))('2026-09-05');
@@ -327,6 +381,7 @@ final class ReadNetWorthTest extends TestCase
         bool $includeInNetWorth = true,
         ?string $closedOn = null,
         string $asset = 'EUR',
+        string $workspace = self::WORKSPACE,
     ): Account {
         // Later than any closing day a case sets, so the aggregate is what a
         // test exercises rather than the account lifecycle guard.
@@ -334,7 +389,7 @@ final class ReadNetWorthTest extends TestCase
 
         return new Account(
             id: $id,
-            workspace: WorkspaceScope::fromString(self::WORKSPACE),
+            workspace: WorkspaceScope::fromString($workspace),
             label: $label,
             assetCode: AssetCode::fromString($asset),
             kind: $kind,
@@ -360,10 +415,11 @@ final class ReadNetWorthTest extends TestCase
         string $asOf,
         string $amount,
         string $asset = 'EUR',
+        string $workspace = self::WORKSPACE,
     ): AccountBalanceSnapshot {
         return new AccountBalanceSnapshot(
             id: sprintf('00000000-0000-7000-8000-%s%s', substr($accountId, -6), substr(str_replace('-', '', $asOf), -6)),
-            workspace: WorkspaceScope::fromString(self::WORKSPACE),
+            workspace: WorkspaceScope::fromString($workspace),
             accountId: $accountId,
             asOf: new \DateTimeImmutable($asOf, new \DateTimeZone('UTC')),
             amount: new AssetAmount(DecimalValue::fromString($amount), AssetCode::fromString($asset)),

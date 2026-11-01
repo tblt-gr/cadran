@@ -187,10 +187,42 @@ final class MonthlyRecapControllerTest extends WebTestCase
         self::assertSame(3, $netWorth['previousStalestAgeDays']);
         self::assertSame(0, $netWorth['previousMissingValuationCount']);
         self::assertSame(1, $netWorth['previousStaleValuationCount']);
+        $previousStale = self::rows($netWorth['previousStaleValuations']);
+        self::assertCount($netWorth['previousStaleValuationCount'], $previousStale);
+        self::assertSame(self::CURRENT, self::fields($previousStale[0])['accountId']);
+        self::assertSame('Compte courant', self::fields($previousStale[0])['label']);
+        self::assertSame(3, self::fields($previousStale[0])['ageDays']);
+        self::assertSame([], $netWorth['staleValuations']);
         self::assertSame('CURRENT', $netWorth['quality']);
         self::assertSame(0, $netWorth['stalestAgeDays']);
         self::assertSame(0, $netWorth['missingValuationCount']);
         self::assertSame(0, $netWorth['staleValuationCount']);
+    }
+
+    public function testStaleCurrentValuationsListEachAccountBehindTheCountOldestFirst(): void
+    {
+        $this->signIn();
+        $this->group(self::GROUP_COURANT, 'Courant');
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Compte courant', 'CURRENT', self::GROUP_COURANT);
+        $this->account(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, 'Livret A', 'SAVINGS', self::GROUP_COURANT, institution: 'Banque Test');
+        $newer = $this->previousAsOf->modify('-3 days');
+        $older = $this->previousAsOf->modify('-10 days');
+        $this->snapshot(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, $newer, '100.00');
+        $this->snapshot(self::LIVRET_A, WorkspaceFixture::OWN_WORKSPACE, $older, '500.00');
+
+        $netWorth = self::fields($this->read()['netWorth']);
+        $rows = array_map(self::fields(...), self::rows($netWorth['staleValuations']));
+
+        self::assertSame(2, $netWorth['staleValuationCount']);
+        self::assertCount($netWorth['staleValuationCount'], $rows);
+        self::assertSame([self::LIVRET_A, self::CURRENT], array_column($rows, 'accountId'));
+        self::assertSame('Livret A', $rows[0]['label']);
+        self::assertSame('Banque Test', $rows[0]['institution']);
+        self::assertNull($rows[1]['institution']);
+        self::assertSame($older->format('Y-m-d'), $rows[0]['valuedOn']);
+        self::assertSame((int) $older->diff($this->currentAsOf)->days, $rows[0]['ageDays']);
+        self::assertSame('TRANSACTIONS', $rows[0]['valuationMode']);
+        self::assertSame('SAVINGS', $rows[0]['kind']);
     }
 
     public function testAMissingPreviousValuationPublishesItsOwnCountWithoutDegradingCurrentQuality(): void

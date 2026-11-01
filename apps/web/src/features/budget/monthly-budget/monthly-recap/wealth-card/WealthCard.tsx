@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatCalendarMonth, isZeroDecimal } from '@/lib/decimal';
 import { formatSharePercent } from '@/lib/formatSharePercent';
+import { StaleValuations } from './stale-valuations/StaleValuations';
 import styles from './WealthCard.module.css';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
@@ -137,8 +138,14 @@ export function WealthCard({ netWorth, provisional, previousAsOf, currentAsOf }:
                 count: netWorth.previousMissingValuationCount,
               })
             : null}
-          {netWorth.previousStaleValuationCount > 0
-            ? `${netWorth.previousMissingValuationCount > 0 ? ' ' : ''}${
+          {netWorth.previousMissingValuationCount > 0 && netWorth.previousStaleValuationCount > 0
+            ? ' '
+            : null}
+          {netWorth.previousStaleValuationCount > 0 ? (
+            <StaleValuations
+              period={previousAsOf ? monthLabel(previousAsOf, i18n.language) : null}
+              rows={netWorth.previousStaleValuations}
+              sentence={
                 netWorth.previousStalestAgeDays === null
                   ? t('budget.monthly.recap.wealth.previousStaleCount', {
                       count: netWorth.previousStaleValuationCount,
@@ -147,8 +154,9 @@ export function WealthCard({ netWorth, provisional, previousAsOf, currentAsOf }:
                       count: netWorth.previousStaleValuationCount,
                       days: netWorth.previousStalestAgeDays,
                     })
-              }`
-            : null}
+              }
+            />
+          ) : null}
         </p>
       ) : null}
       {netWorth && (netWorth.missingValuationCount > 0 || netWorth.staleValuationCount > 0) ? (
@@ -158,12 +166,16 @@ export function WealthCard({ netWorth, provisional, previousAsOf, currentAsOf }:
                 count: netWorth.missingValuationCount,
               })
             : null}
-          {netWorth.staleValuationCount > 0
-            ? `${netWorth.missingValuationCount > 0 ? ' ' : ''}${t(
-                'budget.monthly.recap.wealth.staleCount',
-                { count: netWorth.staleValuationCount },
-              )}`
-            : null}
+          {netWorth.missingValuationCount > 0 && netWorth.staleValuationCount > 0 ? ' ' : null}
+          {netWorth.staleValuationCount > 0 ? (
+            <StaleValuations
+              period={currentAsOf ? monthLabel(currentAsOf, i18n.language) : null}
+              rows={netWorth.staleValuations}
+              sentence={t('budget.monthly.recap.wealth.staleCount', {
+                count: netWorth.staleValuationCount,
+              })}
+            />
+          ) : null}
         </p>
       ) : null}
     </section>

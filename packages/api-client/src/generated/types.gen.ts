@@ -3297,6 +3297,30 @@ export type MonthlyRecapNetWorth = {
     staleValuationCount: number;
     previousSourceAccountIds: Array<string>;
     currentSourceAccountIds: Array<string>;
+    /**
+     * Eligible accounts behind staleValuationCount, oldest valuation first. The list size equals the count.
+     */
+    staleValuations: Array<StaleValuation>;
+    /**
+     * Eligible accounts behind previousStaleValuationCount, oldest valuation first. The list size equals the count.
+     */
+    previousStaleValuations: Array<StaleValuation>;
+};
+
+/**
+ * An eligible account whose usable valuation predates the day read.
+ */
+export type StaleValuation = {
+    accountId: string;
+    label: string;
+    institution: string | null;
+    kind: AccountKind;
+    valuationMode: AccountValuationMode;
+    /**
+     * Day of the valuation carried forward (ISO 8601).
+     */
+    valuedOn: string | null;
+    ageDays: number | null;
 };
 
 /**

@@ -221,6 +221,8 @@ const recap = {
     staleValuationCount: 0,
     previousSourceAccountIds: [accountId],
     currentSourceAccountIds: [],
+    staleValuations: [],
+    previousStaleValuations: [],
   },
   totals: {
     cashIncome: {
