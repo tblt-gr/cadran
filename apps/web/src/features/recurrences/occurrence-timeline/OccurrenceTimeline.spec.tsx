@@ -14,13 +14,20 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
 
 const recurrence = { id: 'r1', label: 'Loyer' } as unknown as Recurrence;
 
-function occurrence(id: string, periodClosed: boolean) {
+function occurrence(
+  id: string,
+  periodClosed: boolean,
+  generatedTransactionId: string | null = null,
+  status = 'EXPECTED',
+  matchedTransactionId: string | null = null,
+) {
   return {
     id,
     expectedOn: '2026-08-05',
     expectedAmount: { value: '-800.00', assetCode: 'EUR' },
-    status: 'EXPECTED',
-    matchedTransactionId: null,
+    status,
+    matchedTransactionId,
+    generatedTransactionId,
     periodClosed,
   };
 }
@@ -43,6 +50,28 @@ describe('OccurrenceTimeline', () => {
     );
 
     expect(await screen.findAllByText(/Mois clôturé/)).toHaveLength(1);
+  });
+
+  it('reads "Transaction en attente créée" only for a generated instalment not yet received', async () => {
+    api.listRecurrenceOccurrences.mockResolvedValue({
+      data: {
+        items: [
+          occurrence('o1', false, 'tx1'),
+          occurrence('o2', false, 'tx2', 'RECEIVED', 'tx2'),
+          occurrence('o3', false),
+        ],
+      },
+      response: { ok: true, status: 200 },
+    });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <OccurrenceTimeline close={() => {}} recurrence={recurrence} />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findAllByText('Transaction en attente créée')).toHaveLength(1);
+    expect(screen.getAllByText('Reçue').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Sans transaction')).toHaveLength(1);
   });
 
   it('keeps the table headers as text over a skeleton while the occurrences load', () => {

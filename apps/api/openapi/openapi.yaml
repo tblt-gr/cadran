@@ -6093,6 +6093,37 @@ paths:
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/recurrences/materialize:
+    post:
+      operationId: materializeRecurrences
+      x-cadran-idempotency: 'Every instalment has at most one generated transaction, so a replay creates and books nothing new.'
+      summary: Create the current month transactions of the auto-create recurrences
+      description: >-
+        For every active recurrence with autoCreate on, creates one transaction
+        per instalment dated in the current calendar month that has none yet
+        (pending when dated after today, booked otherwise) and books the
+        generated pending transactions that are due. Nothing is created for a
+        later month. An instalment in a closed period is skipped and counted.
+        Idempotent and bounded to 1000 recurrences and 500 instalments each.
+      tags: [Transactions]
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/CsrfToken' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmptyRequest' }
+      responses:
+        '200':
+          description: Materialisation counts.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MaterializeRecurrencesResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/recurrences/{id}:
     put:
       operationId: updateRecurrence
@@ -17419,7 +17450,28 @@ components:
         intervalKind: { $ref: '#/components/schemas/RecurrenceIntervalKind' }
         dayOfPeriod: { type: integer, minimum: 1, maximum: 31 }
         firstExpectedOn: { type: string, format: date }
+        autoCreate:
+          description: >-
+            Create this recurrence's transactions for the current calendar
+            month only, pending until their date and booked from it. Defaults
+            to false when omitted.
+          type: boolean
+        categoryId:
+          description: >-
+            Optional active category every generated transaction receives. It
+            must match the amount direction (expense for an exit, income for an
+            entry).
+          oneOf: [{ type: string, format: uuid }, { type: 'null' }]
+        note:
+          description: Optional note every generated transaction receives.
+          oneOf: [{ type: string, minLength: 1, maxLength: 500 }, { type: 'null' }]
+        paymentMethod:
+          description: Optional payment method every generated transaction receives.
+          oneOf: [{ $ref: '#/components/schemas/PaymentMethod' }, { type: 'null' }]
     UpdateRecurrenceRequest:
+      description: >-
+        A full replacement: omitted autoCreate, categoryId, note and paymentMethod
+        default to off or null, which switches automatic creation off.
       x-cadran-asset-scope: 'The amount is in the asset of the recurrence account, which cannot change; the response states it explicitly.'
       type: object
       additionalProperties: false
@@ -17436,6 +17488,32 @@ components:
         intervalKind: { $ref: '#/components/schemas/RecurrenceIntervalKind' }
         dayOfPeriod: { type: integer, minimum: 1, maximum: 31 }
         version: { type: integer, minimum: 1 }
+        firstExpectedOn:
+          description: >-
+            Optional later period start. Unmatched instalments between today and
+            this date are dropped and the schedule is generated from it. Null,
+            omitted, or a date up to today changes nothing; a date beyond the
+            twelve month horizon is refused. Matched, booked and touched rows are
+            never rewritten.
+          oneOf: [{ type: string, format: date }, { type: 'null' }]
+        autoCreate:
+          description: >-
+            Create this recurrence's transactions for the current calendar
+            month only, pending until their date and booked from it. Defaults
+            to false when omitted.
+          type: boolean
+        categoryId:
+          description: >-
+            Optional active category every generated transaction receives. It
+            must match the amount direction (expense for an exit, income for an
+            entry).
+          oneOf: [{ type: string, format: uuid }, { type: 'null' }]
+        note:
+          description: Optional note every generated transaction receives.
+          oneOf: [{ type: string, minLength: 1, maxLength: 500 }, { type: 'null' }]
+        paymentMethod:
+          description: Optional payment method every generated transaction receives.
+          oneOf: [{ $ref: '#/components/schemas/PaymentMethod' }, { type: 'null' }]
     Recurrence:
       description: A forecast schedule. Its expected occurrences are not booked transactions or included in totals.
       type: object
@@ -17456,6 +17534,10 @@ components:
           createdAt,
           updatedAt,
           archivedAt,
+          autoCreate,
+          categoryId,
+          note,
+          paymentMethod,
         ]
       properties:
         id: { type: string, format: uuid }
@@ -17474,6 +17556,13 @@ components:
         updatedAt: { type: string, format: date-time }
         archivedAt:
           oneOf: [{ type: string, format: date-time }, { type: 'null' }]
+        autoCreate: { type: boolean }
+        categoryId:
+          oneOf: [{ type: string, format: uuid }, { type: 'null' }]
+        note:
+          oneOf: [{ type: string, minLength: 1, maxLength: 500 }, { type: 'null' }]
+        paymentMethod:
+          oneOf: [{ $ref: '#/components/schemas/PaymentMethod' }, { type: 'null' }]
     RecurrencePage:
       type: object
       additionalProperties: false
@@ -17497,6 +17586,7 @@ components:
           status,
           matchedTransactionId,
           matchedAt,
+          generatedTransactionId,
           periodClosed,
         ]
       properties:
@@ -17510,6 +17600,9 @@ components:
           oneOf: [{ type: string, format: uuid }, { type: 'null' }]
         matchedAt:
           oneOf: [{ type: string, format: date-time }, { type: 'null' }]
+        generatedTransactionId:
+          description: The transaction the application created for this instalment, when the recurrence creates its own.
+          oneOf: [{ type: string, format: uuid }, { type: 'null' }]
         periodClosed:
           description: >-
             The instalment falls in a closed month. It stays waiting: a
@@ -17528,6 +17621,28 @@ components:
             items: { $ref: '#/components/schemas/RecurrenceOccurrence' },
           }
         total: { type: integer, minimum: 0, maximum: 1000 }
+    MaterializeRecurrencesResult:
+      description: Counts only; never an amount or a label.
+      type: object
+      additionalProperties: false
+      required:
+        [
+          recurrencesExamined,
+          transactionsCreated,
+          transactionsBooked,
+          skippedClosedPeriod,
+          skippedRefused,
+          monthStart,
+          monthEnd,
+        ]
+      properties:
+        recurrencesExamined: { type: integer, minimum: 0, maximum: 1000 }
+        transactionsCreated: { type: integer, minimum: 0 }
+        transactionsBooked: { type: integer, minimum: 0 }
+        skippedClosedPeriod: { type: integer, minimum: 0 }
+        skippedRefused: { type: integer, minimum: 0 }
+        monthStart: { type: string, format: date }
+        monthEnd: { type: string, format: date }
     RecurrenceHorizonReport:
       type: object
       additionalProperties: false
@@ -18179,11 +18294,13 @@ components:
         - VOIDED
         - REJECTED
     TransactionSource:
+      description: RECURRENCE marks a transaction the application created from an auto-create recurrence; it cannot be submitted.
       type: string
       enum:
         - MANUAL
         - IMPORT
         - PROVIDER
+        - RECURRENCE
     PaymentMethod:
       type: string
       enum:

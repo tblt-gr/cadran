@@ -21,6 +21,10 @@ final readonly class RecurrenceInput
         public string $intervalKind,
         public int $dayOfPeriod,
         public string $firstExpectedOn,
+        public bool $autoCreate = false,
+        public ?string $categoryId = null,
+        public ?string $note = null,
+        public ?string $paymentMethod = null,
     ) {
     }
 }

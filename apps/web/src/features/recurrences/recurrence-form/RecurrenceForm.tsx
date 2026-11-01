@@ -8,23 +8,20 @@ import type {
 } from '@cadran/api-client';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRecurrenceCategory } from '@/features/recurrences/useRecurrenceCategory';
 import { SignedAmountHint } from '@/components/ui/signed-amount-hint/SignedAmountHint';
 import { isCanonicalDecimal, isCanonicalUnsignedDecimal, isZeroDecimal } from '@/lib/decimal';
-import { toSignedAmount, toTypedAmount, type AmountDirection } from '@/lib/signedAmount';
+import { toSignedAmount } from '@/lib/signedAmount';
+import {
+  categoryTypeFor,
+  initialValues,
+  INTERVALS,
+  validDay,
+  withDirection,
+  type FormValues,
+} from './recurrenceFormValues';
+import { RecurrenceTransactionFields } from './RecurrenceTransactionFields';
 import styles from './RecurrenceForm.module.css';
-
-interface FormValues {
-  accountId: string;
-  amountTolerance: string;
-  counterparty: string;
-  /** Empty keeps the sign as typed; a chosen direction lets the amount be typed without it. */
-  direction: AmountDirection | '';
-  dayOfPeriod: string;
-  expectedAmount: string;
-  firstExpectedOn: string;
-  intervalKind: RecurrenceIntervalKind;
-  label: string;
-}
 
 interface RecurrenceFormProps {
   accounts: Account[];
@@ -33,58 +30,6 @@ interface RecurrenceFormProps {
   pending: boolean;
   recurrence?: Recurrence;
   submitError: string | null;
-}
-
-const INTERVALS: RecurrenceIntervalKind[] = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'];
-
-/** The direction an already signed amount implies; none for a blank or zero amount. */
-function directionOf(signed: string): AmountDirection | '' {
-  if (!isCanonicalDecimal(signed) || isZeroDecimal(signed)) return '';
-
-  return signed.startsWith('-') ? 'OUTFLOW' : 'INFLOW';
-}
-
-function initialValues(
-  accounts: Account[],
-  candidate?: RecurrenceCandidate,
-  recurrence?: Recurrence,
-): FormValues {
-  if (recurrence) {
-    const direction = directionOf(recurrence.expectedAmount.value);
-
-    return {
-      accountId: recurrence.accountId,
-      amountTolerance: recurrence.amountTolerance.value,
-      counterparty: recurrence.counterparty ?? '',
-      dayOfPeriod: String(recurrence.dayOfPeriod),
-      direction,
-      expectedAmount: toTypedAmount(recurrence.expectedAmount.value, direction || null),
-      firstExpectedOn: recurrence.nextExpectedOn,
-      intervalKind: recurrence.intervalKind,
-      label: recurrence.label,
-    };
-  }
-
-  const candidateDirection = directionOf(candidate?.medianAmount.value ?? '');
-
-  return {
-    accountId: candidate?.accountId ?? accounts[0]?.id ?? '',
-    amountTolerance: candidate?.tolerance.value ?? '0',
-    counterparty: candidate?.counterparty ?? '',
-    dayOfPeriod: '',
-    direction: candidateDirection,
-    expectedAmount: toTypedAmount(candidate?.medianAmount.value ?? '', candidateDirection || null),
-    firstExpectedOn: candidate?.lastSeenOn ?? '',
-    intervalKind: candidate?.intervalKind ?? 'MONTHLY',
-    label: candidate?.counterparty ?? '',
-  };
-}
-
-function validDay(value: string, interval: RecurrenceIntervalKind): boolean {
-  if (!/^[0-9]+$/.test(value)) return false;
-
-  const day = Number(value);
-  return interval === 'WEEKLY' ? day >= 1 && day <= 7 : day >= 1 && day <= 31;
 }
 
 /** Pure modal child: the schedule fields never create their own surface or focus trap. */
@@ -98,12 +43,13 @@ export function RecurrenceForm({
 }: RecurrenceFormProps) {
   const { t } = useTranslation();
   const amountHintId = useId();
+  const startHintId = useId();
   const [values, setValues] = useState(() => initialValues(accounts, candidate, recurrence));
   const [showErrors, setShowErrors] = useState(false);
   const editing = recurrence !== undefined;
   const direction = values.direction === '' ? null : values.direction;
   const expectedAmount = toSignedAmount(values.expectedAmount, direction);
-  const errors = {
+  const baseErrors = {
     accountId: values.accountId === '',
     amountTolerance: !isCanonicalUnsignedDecimal(values.amountTolerance),
     dayOfPeriod: !validDay(values.dayOfPeriod, values.intervalKind),
@@ -111,10 +57,24 @@ export function RecurrenceForm({
     firstExpectedOn: !/^\d{4}-\d{2}-\d{2}$/.test(values.firstExpectedOn),
     label: values.label.trim() === '' || values.label.trim().length > 80,
   };
+  // The sign typed in the amount decides when no direction is chosen, like the server does.
+  const effectiveDirection = direction ?? (expectedAmount.startsWith('-') ? 'OUTFLOW' : 'INFLOW');
+  const expectedCategoryType = categoryTypeFor(effectiveDirection);
+  const saved = useRecurrenceCategory(recurrence?.categoryId ?? null);
+  const categoryType = values.categoryType ?? (values.categoryId === saved?.id ? saved.type : null);
+  const errors = {
+    ...baseErrors,
+    categoryId:
+      values.categoryId !== '' && categoryType !== null && categoryType !== expectedCategoryType,
+  };
   const invalid = Object.values(errors).some(Boolean);
 
   function set<K extends keyof FormValues>(field: K, value: FormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
+  }
+
+  function changeDirection(next: FormValues['direction']) {
+    setValues((current) => withDirection(current, next, categoryType));
   }
 
   function submit(event: React.FormEvent) {
@@ -126,15 +86,19 @@ export function RecurrenceForm({
 
     const shared = {
       amountTolerance: values.amountTolerance,
+      autoCreate: values.autoCreate,
+      categoryId: values.categoryId === '' ? null : values.categoryId,
       counterparty: values.counterparty.trim() || null,
       dayOfPeriod: Number(values.dayOfPeriod),
       expectedAmount,
       intervalKind: values.intervalKind,
       label: values.label.trim(),
+      note: values.note.trim() === '' ? null : values.note.trim(),
+      paymentMethod: values.paymentMethod === '' ? null : values.paymentMethod,
     };
     onSubmit(
       editing
-        ? { ...shared, version: recurrence.version }
+        ? { ...shared, firstExpectedOn: values.firstExpectedOn, version: recurrence.version }
         : { ...shared, accountId: values.accountId, firstExpectedOn: values.firstExpectedOn },
     );
   }
@@ -187,7 +151,7 @@ export function RecurrenceForm({
         <label>
           <span>{t('recurrences.fields.direction')}</span>
           <select
-            onChange={(event) => set('direction', event.target.value as FormValues['direction'])}
+            onChange={(event) => changeDirection(event.target.value as FormValues['direction'])}
             value={values.direction}
           >
             <option value="">{t('recurrences.directions.unset')}</option>
@@ -259,10 +223,11 @@ export function RecurrenceForm({
             <small>{t('recurrences.validation.day')}</small>
           ) : null}
         </label>
-        {!editing ? (
+        <div className={styles.field}>
           <label>
             <span>{t('recurrences.fields.firstExpectedOn')}</span>
             <input
+              aria-describedby={editing ? startHintId : undefined}
               aria-invalid={showErrors && errors.firstExpectedOn ? true : undefined}
               onChange={(event) => set('firstExpectedOn', event.target.value)}
               type="date"
@@ -272,7 +237,34 @@ export function RecurrenceForm({
               <small>{t('recurrences.validation.date')}</small>
             ) : null}
           </label>
-        ) : null}
+          {editing ? (
+            <small className={styles.hint} id={startHintId}>
+              {t('recurrences.form.firstExpectedOnEditHint')}
+            </small>
+          ) : null}
+        </div>
+        <RecurrenceTransactionFields
+          autoCreate={values.autoCreate}
+          categoryError={showErrors && errors.categoryId}
+          categoryId={values.categoryId}
+          categoryType={expectedCategoryType}
+          note={values.note}
+          onCategoryChange={(categoryId, category) =>
+            setValues((current) => ({
+              ...current,
+              categoryId,
+              categoryLabel: category?.label ?? null,
+              categoryType: category?.type ?? null,
+            }))
+          }
+          onChange={set}
+          paymentMethod={values.paymentMethod}
+          selected={{
+            color: saved?.effectiveColor,
+            icon: saved?.effectiveIcon,
+            label: values.categoryLabel ?? saved?.label,
+          }}
+        />
       </div>
       <div className={styles.actions}>
         <button className="primary-action" disabled={pending} type="submit">

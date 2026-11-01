@@ -36,6 +36,9 @@ final class TransactionRecurrenceTest extends TestCase
         yield 'day zero of a month' => [['dayOfPeriod' => 0]];
         yield 'day beyond the month' => [['dayOfPeriod' => 32]];
         yield 'weekday beyond the week' => [['intervalKind' => RecurrenceIntervalKind::WEEKLY, 'dayOfPeriod' => 8]];
+        yield 'malformed category' => [['categoryId' => 'not-a-uuid']];
+        yield 'blank note' => [['note' => '']];
+        yield 'note beyond 500 characters' => [['note' => str_repeat('a', 501)]];
         yield 'version below one' => [['version' => 0]];
         yield 'updated before created' => [['updatedAt' => '2026-02-28T10:00:00+00:00']];
     }
@@ -93,6 +96,10 @@ final class TransactionRecurrenceTest extends TestCase
         \assert($values['intervalKind'] instanceof RecurrenceIntervalKind);
         \assert(is_int($values['dayOfPeriod']) && is_int($values['version']));
         $counterparty = $values['counterparty'];
+        $categoryId = $values['categoryId'] ?? null;
+        $note = $values['note'] ?? null;
+        \assert(null === $categoryId || is_string($categoryId));
+        \assert(null === $note || is_string($note));
         \assert(null === $counterparty || is_string($counterparty));
 
         return new TransactionRecurrence(
@@ -111,6 +118,9 @@ final class TransactionRecurrenceTest extends TestCase
             createdAt: new \DateTimeImmutable($values['createdAt']),
             updatedAt: new \DateTimeImmutable($values['updatedAt']),
             archivedAt: null,
+            autoCreate: true === ($values['autoCreate'] ?? false),
+            categoryId: $categoryId,
+            note: $note,
         );
     }
 }

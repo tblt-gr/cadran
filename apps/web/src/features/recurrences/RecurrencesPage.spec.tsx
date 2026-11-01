@@ -1,7 +1,7 @@
-import type { Account, Recurrence, RecurrenceCandidate } from '@cadran/api-client';
+import type { Account, Category, Recurrence, RecurrenceCandidate } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { RecurrencesPage } from './RecurrencesPage';
 
@@ -11,6 +11,7 @@ const api = vi.hoisted(() => ({
   detectRecurrenceCandidates: vi.fn(),
   dismissRecurrenceCandidate: vi.fn(),
   listAccounts: vi.fn(),
+  listCategories: vi.fn(),
   listRecurrenceOccurrences: vi.fn(),
   listRecurrences: vi.fn(),
   restoreRecurrence: vi.fn(),
@@ -101,6 +102,30 @@ const archivedRecurrence: Recurrence = {
   updatedAt: '2026-06-04T09:00:00+02:00',
   version: 2,
   archivedAt: '2026-06-05T09:00:00+02:00',
+  autoCreate: false,
+  categoryId: null,
+  note: null,
+  paymentMethod: null,
+};
+
+const housing = {
+  id: '00000000-0000-7000-8000-000000000021',
+  type: 'EXPENSE',
+  label: 'Logement',
+  archivedAt: null,
+  color: '#2E7D32',
+  effectiveColor: '#2E7D32',
+  effectiveIcon: null,
+  icon: null,
+} as unknown as Category;
+
+const autoRecurrence: Recurrence = {
+  ...archivedRecurrence,
+  archivedAt: null,
+  autoCreate: true,
+  categoryId: housing.id,
+  note: 'Loyer appartement',
+  paymentMethod: 'DIRECT_DEBIT',
 };
 
 function renderPage() {
@@ -116,6 +141,12 @@ function renderPage() {
 }
 
 describe('RecurrencesPage', () => {
+  beforeEach(() => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [housing], page: 1, pageSize: 100, total: 1 }),
+    );
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
@@ -356,5 +387,192 @@ describe('RecurrencesPage', () => {
     );
     expect(await screen.findByText('La récurrence a été restaurée.')).toBeTruthy();
     expect(await screen.findByRole('heading', { name: 'Aucune récurrence archivée' })).toBeTruthy();
+  });
+
+  it('offers the automatic creation unchecked by default with its month-only hint and sends it', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() =>
+      success({ items: [candidate], partial: false }),
+    );
+    api.listRecurrences.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.confirmRecurrence.mockImplementation(({ body }) =>
+      success({ id: 'recurrence', ...body }, 201),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    const auto = screen.getByRole('checkbox', {
+      name: 'Créer automatiquement les transactions',
+    }) as HTMLInputElement;
+    expect(auto.checked).toBe(false);
+    expect(auto.getAttribute('aria-describedby')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Seul le mois en cours est concerné : chaque échéance devient une transaction en attente, comptabilisée à sa date.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(auto);
+    fireEvent.change(screen.getByLabelText('Note'), { target: { value: ' Abonnement ' } });
+    fireEvent.change(screen.getByLabelText('Moyen de paiement'), {
+      target: { value: 'CARD' },
+    });
+    fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.confirmRecurrence).toHaveBeenCalledOnce());
+    expect(api.confirmRecurrence.mock.calls[0]?.[0].body).toMatchObject({
+      autoCreate: true,
+      categoryId: null,
+      note: 'Abonnement',
+      paymentMethod: 'CARD',
+    });
+  });
+
+  it('sends autoCreate off with no descriptive data when nothing is touched', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() =>
+      success({ items: [candidate], partial: false }),
+    );
+    api.listRecurrences.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.confirmRecurrence.mockImplementation(({ body }) =>
+      success({ id: 'recurrence', ...body }, 201),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.confirmRecurrence).toHaveBeenCalledOnce());
+    expect(api.confirmRecurrence.mock.calls[0]?.[0].body).toMatchObject({
+      autoCreate: false,
+      categoryId: null,
+      note: null,
+      paymentMethod: null,
+    });
+  });
+
+  it('prefills the automatic creation, note and payment method when editing and sends them', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() => success({ items: [], partial: false }));
+    api.listRecurrences.mockImplementation(({ query }) =>
+      query.includeArchived
+        ? success({ items: [], page: 1, pageSize: 100, total: 0 })
+        : success({ items: [autoRecurrence], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.updateRecurrence.mockImplementation(({ body }) => success({ ...autoRecurrence, ...body }));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Modifier' }));
+    expect(
+      (
+        screen.getByRole('checkbox', {
+          name: 'Créer automatiquement les transactions',
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    expect((screen.getByLabelText('Note') as HTMLInputElement).value).toBe('Loyer appartement');
+    expect((screen.getByLabelText('Moyen de paiement') as HTMLSelectElement).value).toBe(
+      'DIRECT_DEBIT',
+    );
+    expect((screen.getByLabelText('Première échéance') as HTMLInputElement).value).toBe(
+      autoRecurrence.nextExpectedOn,
+    );
+    expect(((await screen.findByLabelText('Catégorie')) as HTMLInputElement).value).toBe(
+      'Logement',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.updateRecurrence).toHaveBeenCalledOnce());
+    expect(api.updateRecurrence.mock.calls[0]?.[0].body).toMatchObject({
+      firstExpectedOn: autoRecurrence.nextExpectedOn,
+      autoCreate: true,
+      categoryId: housing.id,
+      note: 'Loyer appartement',
+      paymentMethod: 'DIRECT_DEBIT',
+      version: autoRecurrence.version,
+    });
+  });
+
+  it('clears a category that no longer matches the amount direction', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() => success({ items: [], partial: false }));
+    api.listRecurrences.mockImplementation(({ query }) =>
+      query.includeArchived
+        ? success({ items: [], page: 1, pageSize: 100, total: 0 })
+        : success({ items: [autoRecurrence], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.updateRecurrence.mockImplementation(({ body }) => success({ ...autoRecurrence, ...body }));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Modifier' }));
+    expect(((await screen.findByLabelText('Catégorie')) as HTMLInputElement).value).toBe(
+      'Logement',
+    );
+    fireEvent.change(screen.getByLabelText('Sens'), { target: { value: 'INFLOW' } });
+    await waitFor(() =>
+      expect((screen.getByLabelText('Catégorie') as HTMLInputElement).value).toBe(''),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.updateRecurrence).toHaveBeenCalledOnce());
+    expect(api.updateRecurrence.mock.calls[0]?.[0].body.categoryId).toBeNull();
+  });
+
+  it('shows the Automatique badge with the category on an automatic recurrence only', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() => success({ items: [], partial: false }));
+    api.listRecurrences.mockImplementation(({ query }) =>
+      query.includeArchived
+        ? success({ items: [], page: 1, pageSize: 100, total: 0 })
+        : success({
+            items: [autoRecurrence, { ...archivedRecurrence, id: 'plain', archivedAt: null }],
+            page: 1,
+            pageSize: 100,
+            total: 2,
+          }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    renderPage();
+
+    expect(await screen.findAllByText('Automatique')).toHaveLength(1);
+    expect(await screen.findByText('Logement')).toBeTruthy();
+  });
+
+  it('invalidates the ledger families after saving an automatic recurrence', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() => success({ items: [], partial: false }));
+    api.listRecurrences.mockImplementation(({ query }) =>
+      query.includeArchived
+        ? success({ items: [], page: 1, pageSize: 100, total: 0 })
+        : success({ items: [autoRecurrence], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.updateRecurrence.mockImplementation(({ body }) => success({ ...autoRecurrence, ...body }));
+    const { queryClient } = renderPage();
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.updateRecurrence).toHaveBeenCalledOnce());
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactions'] }));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['net-worth'] });
   });
 });

@@ -75,7 +75,12 @@ final readonly class CreateTransaction
             $now = $this->clock->now();
             ($this->assertPeriodOpen)($context->workspace, $draft->bookedOn);
             $today = $this->calendar->today();
-            $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
+            // An instalment dated later this month is created pending: that is the only future
+            // date the system writes, and never as a booked row.
+            $this->references->accountForNew(
+                $context->workspace, $input->accountId, $draft, $today, $now,
+                TransactionSource::RECURRENCE === $source && TransactionState::PENDING === $draft->state,
+            );
             $match = $input->reconcile
                 ? ($this->matchIncomingMovement)($context->workspace, $input->accountId, $input->sourceRef, $draft->amount, $draft->bookedOn)
                 : null;
@@ -130,7 +135,7 @@ final readonly class CreateTransaction
                 TransactionAuditEvents::ENTITY, $transaction->id,
                 AuditDiff::creation(TransactionAuditFingerprint::of($transaction)),
             ));
-            if ($input->automation) {
+            if ($input->automation && $input->matchRecurrence) {
                 ($this->matchRecurrence)($transaction);
             }
 

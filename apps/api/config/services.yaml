@@ -34,6 +34,9 @@ services:
   App\Module\Demo\Application\DemoActor:
     alias: App\Module\Demo\Infrastructure\TokenDemoActor
 
+  App\Module\Foundation\Application\ConsoleActor:
+    alias: App\Module\Identity\Infrastructure\Workspace\TokenConsoleActor
+
   App\Module\Demo\Application\SeedDemoData:
     arguments:
       $createGoal: '@App\Module\Budget\Application\Goals\CreateGoal'

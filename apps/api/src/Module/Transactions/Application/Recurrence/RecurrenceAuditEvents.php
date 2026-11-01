@@ -11,6 +11,7 @@ final readonly class RecurrenceAuditEvents
     public const string UPDATED = 'transaction_recurrence.updated';
     public const string ARCHIVED = 'transaction_recurrence.archived';
     public const string RESTORED = 'transaction_recurrence.restored';
+    public const string MATERIALIZED = 'transaction_recurrence.materialized';
     public const string CANDIDATE_ENTITY = 'recurrence_candidate';
     public const string CANDIDATE_DISMISSED = 'recurrence_candidate.dismissed';
     public const string CANDIDATE_RESTORED = 'recurrence_candidate.restored';

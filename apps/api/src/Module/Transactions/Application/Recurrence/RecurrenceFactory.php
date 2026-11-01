@@ -9,6 +9,10 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reference\Application\AssetCatalog;
 use App\Module\Reference\Domain\Asset;
+use App\Module\Transactions\Application\InvalidTransactionInput;
+use App\Module\Transactions\Application\TransactionNotFound;
+use App\Module\Transactions\Application\TransactionReferences;
+use App\Module\Transactions\Domain\PaymentMethod;
 use App\Module\Transactions\Domain\Recurrence\InvalidRecurrence;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceIntervalKind;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceSchedule;
@@ -23,8 +27,11 @@ use App\Module\Transactions\Domain\Recurrence\TransactionRecurrence;
  */
 final readonly class RecurrenceFactory
 {
-    public function __construct(private AccountRepository $accounts, private AssetCatalog $assets)
-    {
+    public function __construct(
+        private AccountRepository $accounts,
+        private AssetCatalog $assets,
+        private TransactionReferences $references,
+    ) {
     }
 
     public function create(string $id, WorkspaceScope $workspace, RecurrenceInput $input, \DateTimeImmutable $now): TransactionRecurrence
@@ -37,15 +44,18 @@ final readonly class RecurrenceFactory
             ?? throw new InvalidRecurrenceReference('The account asset is missing from the reference.');
         $interval = self::interval($input->intervalKind);
         $schedule = self::schedule($interval, $input->dayOfPeriod, self::day($input->firstExpectedOn));
+        $expectedAmount = self::amount($asset, $input->expectedAmount);
 
         return self::build(
             id: $id, workspace: $workspace, accountId: $input->accountId, label: $input->label,
             counterparty: $input->counterparty,
-            expectedAmount: self::amount($asset, $input->expectedAmount),
+            expectedAmount: $expectedAmount,
             amountTolerance: self::amount($asset, $input->amountTolerance),
             intervalKind: $interval, dayOfPeriod: $input->dayOfPeriod,
             nextExpectedOn: $schedule->first(), confirmedAt: $now, version: 1,
             createdAt: $now, updatedAt: $now, archivedAt: null,
+            autoCreate: $input->autoCreate, categoryId: $this->category($workspace, $input->categoryId, $expectedAmount),
+            note: $input->note, paymentMethod: self::paymentMethod($input->paymentMethod),
         );
     }
 
@@ -59,15 +69,19 @@ final readonly class RecurrenceFactory
         $asset = $this->assets->findByCode($current->expectedAmount->asset)
             ?? throw new InvalidRecurrenceReference('The recurrence asset is missing from the reference.');
 
+        $expectedAmount = self::amount($asset, $input->expectedAmount);
+
         return self::build(
             id: $current->id, workspace: $current->workspace, accountId: $current->accountId, label: $input->label,
             counterparty: $input->counterparty,
-            expectedAmount: self::amount($asset, $input->expectedAmount),
+            expectedAmount: $expectedAmount,
             amountTolerance: self::amount($asset, $input->amountTolerance),
             intervalKind: self::interval($input->intervalKind), dayOfPeriod: $input->dayOfPeriod,
             nextExpectedOn: $current->nextExpectedOn, confirmedAt: $current->confirmedAt,
             version: $current->version + 1, createdAt: $current->createdAt, updatedAt: $now,
             archivedAt: null,
+            autoCreate: $input->autoCreate, categoryId: $this->category($current->workspace, $input->categoryId, $expectedAmount, $current->categoryId === $input->categoryId),
+            note: $input->note, paymentMethod: self::paymentMethod($input->paymentMethod),
         );
     }
 
@@ -80,6 +94,8 @@ final readonly class RecurrenceFactory
             dayOfPeriod: $current->dayOfPeriod, nextExpectedOn: $current->nextExpectedOn,
             confirmedAt: $current->confirmedAt, version: $current->version + 1, createdAt: $current->createdAt,
             updatedAt: $now, archivedAt: $now,
+            autoCreate: $current->autoCreate, categoryId: $current->categoryId, note: $current->note,
+            paymentMethod: $current->paymentMethod,
         );
     }
 
@@ -92,6 +108,8 @@ final readonly class RecurrenceFactory
             dayOfPeriod: $current->dayOfPeriod, nextExpectedOn: $current->nextExpectedOn,
             confirmedAt: $current->confirmedAt, version: $current->version + 1, createdAt: $current->createdAt,
             updatedAt: $now, archivedAt: null,
+            autoCreate: $current->autoCreate, categoryId: $current->categoryId, note: $current->note,
+            paymentMethod: $current->paymentMethod,
         );
     }
 
@@ -112,6 +130,29 @@ final readonly class RecurrenceFactory
         }
 
         return $date;
+    }
+
+    /** Applies the transaction form's own category rule, so a stored category is always one an instalment can use. */
+    private function category(WorkspaceScope $workspace, ?string $categoryId, AssetAmount $amount, bool $keepsCurrent = false): ?string
+    {
+        if (null === $categoryId) {
+            return null;
+        }
+        try {
+            return $this->references->fittingCategory($workspace, $categoryId, $amount, $keepsCurrent)->id;
+        } catch (TransactionNotFound|InvalidTransactionInput $exception) {
+            throw new InvalidRecurrenceInput('A recurrence category is an active category matching the amount direction.', previous: $exception);
+        }
+    }
+
+    private static function paymentMethod(?string $literal): ?PaymentMethod
+    {
+        if (null === $literal) {
+            return null;
+        }
+
+        return PaymentMethod::tryFrom($literal)
+            ?? throw new InvalidRecurrenceInput('A recurrence payment method is one of the transaction payment methods.');
     }
 
     private static function interval(string $literal): RecurrenceIntervalKind
@@ -145,6 +186,10 @@ final readonly class RecurrenceFactory
         \DateTimeImmutable $createdAt,
         \DateTimeImmutable $updatedAt,
         ?\DateTimeImmutable $archivedAt,
+        bool $autoCreate,
+        ?string $categoryId,
+        ?string $note,
+        ?PaymentMethod $paymentMethod,
     ): TransactionRecurrence {
         try {
             return new TransactionRecurrence(
@@ -152,6 +197,7 @@ final readonly class RecurrenceFactory
                 expectedAmount: $expectedAmount, amountTolerance: $amountTolerance, intervalKind: $intervalKind,
                 dayOfPeriod: $dayOfPeriod, nextExpectedOn: $nextExpectedOn, confirmedAt: $confirmedAt,
                 version: $version, createdAt: $createdAt, updatedAt: $updatedAt, archivedAt: $archivedAt,
+                autoCreate: $autoCreate, categoryId: $categoryId, note: $note, paymentMethod: $paymentMethod,
             );
         } catch (InvalidRecurrence $exception) {
             throw new InvalidRecurrenceInput($exception->getMessage(), previous: $exception);

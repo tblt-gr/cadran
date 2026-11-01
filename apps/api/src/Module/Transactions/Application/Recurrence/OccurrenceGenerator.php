@@ -53,6 +53,20 @@ final readonly class OccurrenceGenerator
     }
 
     /**
+     * Generates every instalment missing between the last one written and the
+     * horizon, resuming after the last generated date. Safe to repeat.
+     */
+    public function extendToHorizon(TransactionRecurrence $recurrence, \DateTimeImmutable $today): int
+    {
+        $last = $this->lastExpectedOn($recurrence);
+        $from = null === $last ? $recurrence->nextExpectedOn : RecurrenceFactory::schedule(
+            $recurrence->intervalKind, $recurrence->dayOfPeriod, $last,
+        )->after($last);
+
+        return $this->extend($recurrence, $from, $today);
+    }
+
+    /**
      * Where the schedule now points: the earliest instalment still awaiting a
      * movement, or the next scheduled date beyond the last generated one when
      * every instalment has been settled. Deriving it rather than incrementing

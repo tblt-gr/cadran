@@ -85,6 +85,24 @@ describe('AuthenticatedApp lazy navigation', () => {
     window.history.replaceState({}, '', '/');
   });
 
+  it('asks to materialise the automatic recurrences once per load, not per route', async () => {
+    window.history.replaceState({}, '', '/');
+    renderApp();
+    await screen.findByText('Contenu de la synthèse');
+    window.history.pushState({}, '', '/recurrences');
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await waitFor(() => expect(screen.queryByText('Contenu de la synthèse')).toBeNull());
+
+    const fetched = vi
+      .mocked(fetch)
+      .mock.calls.map(([input]) => String((input as Request).url ?? input));
+    expect(fetched.filter((url) => url.endsWith('/api/v1/recurrences/materialize'))).toHaveLength(
+      1,
+    );
+  });
+
   it('keeps the current page on screen while the next page chunk is still loading', async () => {
     window.history.replaceState({}, '', '/');
     renderApp();

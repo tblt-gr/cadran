@@ -1,4 +1,4 @@
-.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
+.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup recurrences-materialize demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -59,6 +59,15 @@ down:
 migrate:
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) run --rm --no-deps app php apps/api/bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+# Creates the current month's transactions of every auto-create recurrence and
+# books the due ones (idempotent). Meant for a daily cron such as
+# `5 0 * * *  cd /path/to/cadran && make recurrences-materialize`; pass EMAIL=...
+# to target another owner than the provisioned one.
+recurrences-materialize: tools
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait db
+	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console --no-debug cadran:transactions:materialize-recurrences $(EMAIL)
 
 # Dev only: fill an empty workspace with a realistic multi-year ledger. Runs in the
 # tooling container (APP_ENV=dev) against the local database; pass EMAIL=... to

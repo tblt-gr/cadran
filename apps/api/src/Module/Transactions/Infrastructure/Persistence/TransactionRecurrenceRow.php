@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Transactions\Domain\PaymentMethod;
 use App\Module\Transactions\Domain\Recurrence\OccurrenceStatus;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceIntervalKind;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrence;
@@ -25,11 +26,12 @@ final readonly class TransactionRecurrenceRow
 {
     public const string COLUMNS = 'id, workspace_id, account_id, label, counterparty, expected_amount_value, '
         .'expected_amount_scale, asset_code, amount_tolerance_value, amount_tolerance_scale, interval_kind, '
-        .'day_of_period, next_expected_on, confirmed_at, version, created_at, updated_at, archived_at';
+        .'day_of_period, next_expected_on, confirmed_at, version, created_at, updated_at, archived_at, '
+        .'auto_create, category_id, note, payment_method';
 
     public const string OCCURRENCE_COLUMNS = 'o.id, o.workspace_id, o.recurrence_id, o.expected_on, '
         .'o.expected_amount_value, o.expected_amount_scale, o.amount_tolerance_value, o.amount_tolerance_scale, '
-        .'o.matched_transaction_id, o.matched_at, o.status, r.asset_code';
+        .'o.matched_transaction_id, o.matched_at, o.status, o.generated_transaction_id, o.generated_version, r.asset_code';
 
     /** @param array<string, mixed> $row */
     public static function hydrate(array $row, WorkspaceScope $workspace): TransactionRecurrence
@@ -39,6 +41,9 @@ final readonly class TransactionRecurrenceRow
         }
         $asset = AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null));
         $counterparty = $row['counterparty'] ?? null;
+        $category = $row['category_id'] ?? null;
+        $note = $row['note'] ?? null;
+        $method = $row['payment_method'] ?? null;
 
         return new TransactionRecurrence(
             id: TransactionRow::text($row['id'] ?? null),
@@ -56,6 +61,10 @@ final readonly class TransactionRecurrenceRow
             createdAt: new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)),
             updatedAt: new \DateTimeImmutable(TransactionRow::text($row['updated_at'] ?? null)),
             archivedAt: null === ($row['archived_at'] ?? null) ? null : new \DateTimeImmutable(TransactionRow::text($row['archived_at'])),
+            autoCreate: true === ($row['auto_create'] ?? false),
+            categoryId: null === $category ? null : TransactionRow::text($category),
+            note: null === $note ? null : TransactionRow::text($note),
+            paymentMethod: null === $method ? null : PaymentMethod::from(TransactionRow::text($method)),
         );
     }
 
@@ -73,6 +82,8 @@ final readonly class TransactionRecurrenceRow
         }
         $asset = AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null));
         $matched = $row['matched_transaction_id'] ?? null;
+        $generated = $row['generated_transaction_id'] ?? null;
+        $generatedVersion = $row['generated_version'] ?? null;
 
         return new TransactionRecurrenceOccurrence(
             TransactionRow::text($row['id'] ?? null),
@@ -84,6 +95,8 @@ final readonly class TransactionRecurrenceRow
             null === $matched ? null : TransactionRow::text($matched),
             null === ($row['matched_at'] ?? null) ? null : new \DateTimeImmutable(TransactionRow::text($row['matched_at'])),
             OccurrenceStatus::from(TransactionRow::text($row['status'] ?? null)),
+            null === $generated ? null : TransactionRow::text($generated),
+            null === $generatedVersion ? null : (int) TransactionRow::text($generatedVersion),
         );
     }
 
@@ -107,6 +120,10 @@ final readonly class TransactionRecurrenceRow
             'created_at' => $recurrence->createdAt->format('Y-m-d H:i:s.uP'),
             'updated_at' => $recurrence->updatedAt->format('Y-m-d H:i:s.uP'),
             'archived_at' => $recurrence->archivedAt?->format('Y-m-d H:i:s.uP'),
+            'auto_create' => $recurrence->autoCreate,
+            'category_id' => $recurrence->categoryId,
+            'note' => $recurrence->note,
+            'payment_method' => $recurrence->paymentMethod?->value,
         ];
     }
 
@@ -125,6 +142,8 @@ final readonly class TransactionRecurrenceRow
             'matched_transaction_id' => $occurrence->matchedTransactionId,
             'matched_at' => $occurrence->matchedAt?->format('Y-m-d H:i:s.uP'),
             'status' => $occurrence->status->value,
+            'generated_transaction_id' => $occurrence->generatedTransactionId,
+            'generated_version' => $occurrence->generatedVersion,
         ];
     }
 

@@ -61,7 +61,7 @@ final readonly class DbalTransactionRecurrenceOccurrenceRepository implements Tr
     public function deleteUnmatchedFrom(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $from): int
     {
         return (int) $this->connection->executeStatement(
-            'DELETE FROM transaction_recurrence_occurrences WHERE workspace_id = :workspace_id AND recurrence_id = :recurrence_id AND expected_on >= :from_date AND matched_transaction_id IS NULL',
+            'DELETE FROM transaction_recurrence_occurrences WHERE workspace_id = :workspace_id AND recurrence_id = :recurrence_id AND expected_on >= :from_date AND matched_transaction_id IS NULL AND generated_transaction_id IS NULL',
             ['workspace_id' => $workspace->id, 'recurrence_id' => $recurrenceId, 'from_date' => $from->format('Y-m-d')],
         );
     }
@@ -69,7 +69,7 @@ final readonly class DbalTransactionRecurrenceOccurrenceRepository implements Tr
     public function unmatchedNear(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT '.TransactionRecurrenceRow::OCCURRENCE_COLUMNS.' FROM transaction_recurrence_occurrences o JOIN transaction_recurrences r ON r.workspace_id = o.workspace_id AND r.id = o.recurrence_id WHERE o.workspace_id = :workspace_id AND r.workspace_id = :workspace_id AND r.account_id = :account_id AND r.archived_at IS NULL AND o.matched_transaction_id IS NULL AND o.expected_on >= :from_date AND o.expected_on <= :to_date ORDER BY o.expected_on, o.id',
+            'SELECT '.TransactionRecurrenceRow::OCCURRENCE_COLUMNS.' FROM transaction_recurrence_occurrences o JOIN transaction_recurrences r ON r.workspace_id = o.workspace_id AND r.id = o.recurrence_id WHERE o.workspace_id = :workspace_id AND r.workspace_id = :workspace_id AND r.account_id = :account_id AND r.archived_at IS NULL AND o.matched_transaction_id IS NULL AND o.generated_transaction_id IS NULL AND o.expected_on >= :from_date AND o.expected_on <= :to_date ORDER BY o.expected_on, o.id',
             [
                 'workspace_id' => $workspace->id, 'account_id' => $accountId,
                 'from_date' => $from->format('Y-m-d'), 'to_date' => $to->format('Y-m-d'),
@@ -109,6 +109,59 @@ final readonly class DbalTransactionRecurrenceOccurrenceRepository implements Tr
             'UPDATE transaction_recurrence_occurrences SET matched_transaction_id = NULL, matched_at = NULL, status = :status WHERE workspace_id = :workspace_id AND id = :id AND matched_transaction_id IS NOT NULL',
             ['workspace_id' => $workspace->id, 'id' => $occurrenceId, 'status' => OccurrenceStatus::EXPECTED->value],
         );
+    }
+
+    public function recordGenerated(WorkspaceScope $workspace, string $occurrenceId, string $transactionId, int $version): bool
+    {
+        return 1 === $this->connection->executeStatement(
+            'UPDATE transaction_recurrence_occurrences SET generated_transaction_id = :transaction_id, generated_version = :version WHERE workspace_id = :workspace_id AND id = :id AND generated_transaction_id IS NULL AND matched_transaction_id IS NULL',
+            ['workspace_id' => $workspace->id, 'id' => $occurrenceId, 'transaction_id' => $transactionId, 'version' => $version],
+            ['version' => ParameterType::INTEGER],
+        );
+    }
+
+    public function clearGenerated(WorkspaceScope $workspace, string $occurrenceId): bool
+    {
+        return 1 === $this->connection->executeStatement(
+            'UPDATE transaction_recurrence_occurrences SET generated_transaction_id = NULL, generated_version = NULL WHERE workspace_id = :workspace_id AND id = :id AND generated_transaction_id IS NOT NULL',
+            ['workspace_id' => $workspace->id, 'id' => $occurrenceId],
+        );
+    }
+
+    public function listUngenerated(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.TransactionRecurrenceRow::OCCURRENCE_COLUMNS." FROM transaction_recurrence_occurrences o JOIN transaction_recurrences r ON r.workspace_id = o.workspace_id AND r.id = o.recurrence_id WHERE o.workspace_id = :workspace_id AND r.workspace_id = :workspace_id AND o.recurrence_id = :recurrence_id AND o.status = 'EXPECTED' AND o.generated_transaction_id IS NULL AND o.matched_transaction_id IS NULL AND o.expected_on >= :from_date AND o.expected_on <= :to_date ORDER BY o.expected_on, o.id LIMIT :limit",
+            [
+                'workspace_id' => $workspace->id, 'recurrence_id' => $recurrenceId,
+                'from_date' => $from->format('Y-m-d'), 'to_date' => $to->format('Y-m-d'), 'limit' => $limit,
+            ],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(static fn (array $row): TransactionRecurrenceOccurrence => TransactionRecurrenceRow::hydrateOccurrence($row, $workspace), $rows);
+    }
+
+    public function listGeneratedPendingDue(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $today, int $limit): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.TransactionRecurrenceRow::OCCURRENCE_COLUMNS." FROM transaction_recurrence_occurrences o JOIN transaction_recurrences r ON r.workspace_id = o.workspace_id AND r.id = o.recurrence_id JOIN transaction_transactions t ON t.workspace_id = o.workspace_id AND t.id = o.generated_transaction_id WHERE o.workspace_id = :workspace_id AND r.workspace_id = :workspace_id AND t.workspace_id = :workspace_id AND o.recurrence_id = :recurrence_id AND o.matched_transaction_id IS NULL AND t.state = 'PENDING' AND t.booked_on <= :today ORDER BY o.expected_on, o.id LIMIT :limit",
+            ['workspace_id' => $workspace->id, 'recurrence_id' => $recurrenceId, 'today' => $today->format('Y-m-d'), 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(static fn (array $row): TransactionRecurrenceOccurrence => TransactionRecurrenceRow::hydrateOccurrence($row, $workspace), $rows);
+    }
+
+    public function listGeneratedFrom(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $from, int $limit): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.TransactionRecurrenceRow::OCCURRENCE_COLUMNS.' FROM transaction_recurrence_occurrences o JOIN transaction_recurrences r ON r.workspace_id = o.workspace_id AND r.id = o.recurrence_id WHERE o.workspace_id = :workspace_id AND r.workspace_id = :workspace_id AND o.recurrence_id = :recurrence_id AND o.generated_transaction_id IS NOT NULL AND o.expected_on >= :from_date ORDER BY o.expected_on, o.id LIMIT :limit',
+            ['workspace_id' => $workspace->id, 'recurrence_id' => $recurrenceId, 'from_date' => $from->format('Y-m-d'), 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(static fn (array $row): TransactionRecurrenceOccurrence => TransactionRecurrenceRow::hydrateOccurrence($row, $workspace), $rows);
     }
 
     public function earliestExpectedOn(WorkspaceScope $workspace, string $recurrenceId): ?\DateTimeImmutable

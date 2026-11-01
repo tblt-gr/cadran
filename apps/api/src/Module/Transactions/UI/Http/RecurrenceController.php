@@ -18,6 +18,7 @@ use App\Module\Transactions\Application\Recurrence\InvalidRecurrenceInput;
 use App\Module\Transactions\Application\Recurrence\InvalidRecurrenceReference;
 use App\Module\Transactions\Application\Recurrence\ListRecurrenceOccurrences;
 use App\Module\Transactions\Application\Recurrence\ListRecurrences;
+use App\Module\Transactions\Application\Recurrence\MaterializeRecurrenceOccurrences;
 use App\Module\Transactions\Application\Recurrence\RecurrenceEditInput;
 use App\Module\Transactions\Application\Recurrence\RecurrenceInput;
 use App\Module\Transactions\Application\Recurrence\RecurrenceNotFound;
@@ -38,6 +39,9 @@ final readonly class RecurrenceController
     private const array UPDATE_FIELDS = [
         'label', 'counterparty', 'expectedAmount', 'amountTolerance', 'intervalKind', 'dayOfPeriod', 'version',
     ];
+    /** Left out of a body, they keep their neutral default: a recurrence that does not create transactions. */
+    private const array AUTO_CREATE_FIELDS = ['autoCreate', 'categoryId', 'note', 'paymentMethod'];
+    private const array UPDATE_OPTIONAL_FIELDS = [...self::AUTO_CREATE_FIELDS, 'firstExpectedOn'];
 
     public function __construct(private TransactionHttpEnvelope $envelope, private IdempotentExecution $idempotentExecution)
     {
@@ -122,11 +126,13 @@ final readonly class RecurrenceController
             return $body;
         }
         try {
-            $payload = RecurrencePayload::of($body, self::CREATE_FIELDS);
+            $payload = RecurrencePayload::of($body, self::CREATE_FIELDS, self::AUTO_CREATE_FIELDS);
             $input = new RecurrenceInput(
                 $payload->identifier('accountId'), $payload->string('label'), $payload->nullableString('counterparty'),
                 $payload->string('expectedAmount'), $payload->string('amountTolerance'), $payload->string('intervalKind'),
                 $payload->integer('dayOfPeriod'), $payload->string('firstExpectedOn'),
+                $payload->boolean('autoCreate'), $payload->nullableIdentifier('categoryId'),
+                $payload->nullableString('note'), $payload->nullableString('paymentMethod'),
             );
             $result = $this->idempotentExecution->execute(
                 'recurrence.create',
@@ -166,6 +172,24 @@ final readonly class RecurrenceController
         }
     }
 
+    #[Route('/api/v1/recurrences/materialize', name: 'api_v1_recurrences_materialize', methods: ['POST'], priority: 10)]
+    public function materialize(Request $request, MaterializeRecurrenceOccurrences $materialize): Response
+    {
+        $body = $this->envelope->body($request);
+        if ($body instanceof Response) {
+            return $body;
+        }
+        try {
+            RecurrencePayload::of($body, []);
+
+            return $this->envelope->json($materialize()->toArray());
+        } catch (\UnexpectedValueException) {
+            return $this->problem(422, '/problems/recurrences.invalid');
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(403, '/problems/recurrences.forbidden');
+        }
+    }
+
     #[Route('/api/v1/recurrences/{id}', name: 'api_v1_recurrences_update', methods: ['PUT'])]
     public function update(string $id, Request $request, EditRecurrence $edit): Response
     {
@@ -177,11 +201,13 @@ final readonly class RecurrenceController
             return $body;
         }
         try {
-            $payload = RecurrencePayload::of($body, self::UPDATE_FIELDS);
+            $payload = RecurrencePayload::of($body, self::UPDATE_FIELDS, self::UPDATE_OPTIONAL_FIELDS);
             $view = $edit($id, new RecurrenceEditInput(
                 $payload->string('label'), $payload->nullableString('counterparty'), $payload->string('expectedAmount'),
                 $payload->string('amountTolerance'), $payload->string('intervalKind'), $payload->integer('dayOfPeriod'),
-                $payload->integer('version'),
+                $payload->integer('version'), $payload->boolean('autoCreate'), $payload->nullableIdentifier('categoryId'),
+                $payload->nullableString('note'), $payload->nullableString('paymentMethod'),
+                $payload->nullableString('firstExpectedOn'),
             ));
         } catch (RecurrenceNotFound) {
             return $this->problem(404, '/problems/recurrences.not_found');

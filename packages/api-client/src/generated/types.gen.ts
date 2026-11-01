@@ -3901,8 +3901,27 @@ export type CreateRecurrenceRequest = {
     intervalKind: RecurrenceIntervalKind;
     dayOfPeriod: number;
     firstExpectedOn: string;
+    /**
+     * Create this recurrence's transactions for the current calendar month only, pending until their date and booked from it. Defaults to false when omitted.
+     */
+    autoCreate?: boolean;
+    /**
+     * Optional active category every generated transaction receives. It must match the amount direction (expense for an exit, income for an entry).
+     */
+    categoryId?: string | null;
+    /**
+     * Optional note every generated transaction receives.
+     */
+    note?: string | null;
+    /**
+     * Optional payment method every generated transaction receives.
+     */
+    paymentMethod?: PaymentMethod | null;
 };
 
+/**
+ * A full replacement: omitted autoCreate, categoryId, note and paymentMethod default to off or null, which switches automatic creation off.
+ */
 export type UpdateRecurrenceRequest = {
     label: string;
     counterparty: string | null;
@@ -3914,6 +3933,26 @@ export type UpdateRecurrenceRequest = {
     intervalKind: RecurrenceIntervalKind;
     dayOfPeriod: number;
     version: number;
+    /**
+     * Optional later period start. Unmatched instalments between today and this date are dropped and the schedule is generated from it. Null, omitted, or a date up to today changes nothing; a date beyond the twelve month horizon is refused. Matched, booked and touched rows are never rewritten.
+     */
+    firstExpectedOn?: string | null;
+    /**
+     * Create this recurrence's transactions for the current calendar month only, pending until their date and booked from it. Defaults to false when omitted.
+     */
+    autoCreate?: boolean;
+    /**
+     * Optional active category every generated transaction receives. It must match the amount direction (expense for an exit, income for an entry).
+     */
+    categoryId?: string | null;
+    /**
+     * Optional note every generated transaction receives.
+     */
+    note?: string | null;
+    /**
+     * Optional payment method every generated transaction receives.
+     */
+    paymentMethod?: PaymentMethod | null;
 };
 
 /**
@@ -3934,6 +3973,10 @@ export type Recurrence = {
     createdAt: string;
     updatedAt: string;
     archivedAt: string | null;
+    autoCreate: boolean;
+    categoryId: string | null;
+    note: string | null;
+    paymentMethod: PaymentMethod | null;
 };
 
 export type RecurrencePage = {
@@ -3956,6 +3999,10 @@ export type RecurrenceOccurrence = {
     matchedTransactionId: string | null;
     matchedAt: string | null;
     /**
+     * The transaction the application created for this instalment, when the recurrence creates its own.
+     */
+    generatedTransactionId: string | null;
+    /**
      * The instalment falls in a closed month. It stays waiting: a recurrence never books into a closed period, and the movement that would settle it is refused like any other write.
      */
     periodClosed: boolean;
@@ -3964,6 +4011,19 @@ export type RecurrenceOccurrence = {
 export type RecurrenceOccurrencePage = {
     items: Array<RecurrenceOccurrence>;
     total: number;
+};
+
+/**
+ * Counts only; never an amount or a label.
+ */
+export type MaterializeRecurrencesResult = {
+    recurrencesExamined: number;
+    transactionsCreated: number;
+    transactionsBooked: number;
+    skippedClosedPeriod: number;
+    skippedRefused: number;
+    monthStart: string;
+    monthEnd: string;
 };
 
 export type RecurrenceHorizonReport = {
@@ -4258,7 +4318,10 @@ export type StandaloneTransactionNature = 'INCOME' | 'EXPENSE' | 'FEE' | 'ADJUST
 
 export type TransactionState = 'PENDING' | 'BOOKED' | 'VOIDED' | 'REJECTED';
 
-export type TransactionSource = 'MANUAL' | 'IMPORT' | 'PROVIDER';
+/**
+ * RECURRENCE marks a transaction the application created from an auto-create recurrence; it cannot be submitted.
+ */
+export type TransactionSource = 'MANUAL' | 'IMPORT' | 'PROVIDER' | 'RECURRENCE';
 
 export type PaymentMethod = 'CARD' | 'TRANSFER' | 'DIRECT_DEBIT' | 'CHECK' | 'CASH' | 'OTHER';
 
@@ -12575,6 +12638,53 @@ export type RefreshRecurrenceHorizonResponses = {
 };
 
 export type RefreshRecurrenceHorizonResponse = RefreshRecurrenceHorizonResponses[keyof RefreshRecurrenceHorizonResponses];
+
+export type MaterializeRecurrencesData = {
+    body: EmptyRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/recurrences/materialize';
+};
+
+export type MaterializeRecurrencesErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
+     */
+    403: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * The password does not satisfy the account password policy.
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type MaterializeRecurrencesError = MaterializeRecurrencesErrors[keyof MaterializeRecurrencesErrors];
+
+export type MaterializeRecurrencesResponses = {
+    /**
+     * Materialisation counts.
+     */
+    200: MaterializeRecurrencesResult;
+};
+
+export type MaterializeRecurrencesResponse = MaterializeRecurrencesResponses[keyof MaterializeRecurrencesResponses];
 
 export type UpdateRecurrenceData = {
     body: UpdateRecurrenceRequest;

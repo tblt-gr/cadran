@@ -45,6 +45,11 @@ final readonly class CreateTransactionInput
          * claim it.
          */
         public bool $automation = true,
+        /**
+         * False for a row a recurrence creates itself: the instalment it was
+         * created for is linked explicitly, never guessed by the matcher.
+         */
+        public bool $matchRecurrence = true,
     ) {
     }
 }

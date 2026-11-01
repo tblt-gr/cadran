@@ -168,7 +168,9 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
                   <td data-label={t('recurrences.occurrences.match')}>
                     {occurrence.matchedTransactionId
                       ? t('recurrences.occurrences.matched')
-                      : t('recurrences.occurrences.unmatched')}
+                      : occurrence.generatedTransactionId
+                        ? t('recurrences.occurrences.generated')
+                        : t('recurrences.occurrences.unmatched')}
                   </td>
                 </tr>
               ))}
