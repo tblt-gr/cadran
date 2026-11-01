@@ -122,13 +122,7 @@ describe('TransactionsPage', () => {
     vi.clearAllMocks();
   });
 
-  it('keeps the shared transfer modal open until the opted-in deposit succeeds', async () => {
-    let finishDeposit!: (value: unknown) => void;
-    api.recordPortfolioOperation.mockReturnValue(
-      new Promise((resolve) => {
-        finishDeposit = resolve;
-      }),
-    );
+  it('closes the shared transfer modal once a transfer into a portfolio is saved, with no client-side deposit', async () => {
     const destination = {
       ...account,
       id: 'portfolio',
@@ -161,13 +155,11 @@ describe('TransactionsPage', () => {
       target: { value: 'Investissement mensuel' },
     });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
-    await waitFor(() => expect(api.recordPortfolioOperation).toHaveBeenCalledOnce());
-    expect(screen.getByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();
-    expect(api.createTransfer).toHaveBeenCalledOnce();
-    finishDeposit({ response: { ok: true }, data: {} });
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
     );
+    expect(api.createTransfer).toHaveBeenCalledOnce();
+    expect(api.recordPortfolioOperation).not.toHaveBeenCalled();
   });
 
   it('replaces its sole cold-load status and keeps transactions during a refetch', async () => {

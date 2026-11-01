@@ -1,15 +1,10 @@
 import type { Account, CreateTransferRequest } from '@cadran/api-client';
 import { useId, useState } from 'react';
 import { TransferAdditionalFields } from './TransferAdditionalFields';
-import { TransferDestination } from './TransferDestination';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
 import { workspaceToday } from '@/lib/workspaceTime';
-import {
-  operationFieldErrors,
-  operationSaveMessage,
-} from '@/features/portfolio/portfolio-account/operations/operationError';
 import {
   initialTransferValues,
   isCrossAssetTransfer,
@@ -23,10 +18,7 @@ import formStyles from '@/features/transactions/transaction-form/TransactionForm
 interface TransferFormProps {
   accounts: Account[];
   defaults?: TransferFormDefaults;
-  onSubmit: (body: CreateTransferRequest, createDeposit: boolean) => void;
-  onRetryDeposit: () => void;
-  transferCreated: boolean;
-  depositError: unknown;
+  onSubmit: (body: CreateTransferRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
 }
@@ -45,9 +37,6 @@ export function TransferForm({
   accounts,
   defaults,
   onSubmit,
-  onRetryDeposit,
-  transferCreated,
-  depositError,
   pending,
   submitError,
 }: TransferFormProps) {
@@ -69,19 +58,15 @@ export function TransferForm({
         }
       : initial;
   });
-  const [depositDeclined, setDepositDeclined] = useState(false);
   const destination = accounts.find((account) => account.id === values.targetAccountId);
   const source = accounts.find((account) => account.id === values.sourceAccountId);
-  const eligible =
-    destination?.kind === 'PORTFOLIO' &&
-    destination.valuationMode === 'PORTFOLIO' &&
-    destination.status === 'ACTIVE' &&
-    source?.status === 'ACTIVE' &&
-    source.id !== destination.id &&
-    source.assetCode === destination.assetCode;
-  const checked = eligible && !depositDeclined;
-  const depositMessage =
-    operationSaveMessage(depositError) ?? Object.values(operationFieldErrors(depositError))[0];
+  // The server records the matching deposit or withdrawal on a securities portfolio and refreshes its valuation.
+  const followsPortfolio = [source, destination].some(
+    (account) =>
+      account?.kind === 'PORTFOLIO' &&
+      account.valuationMode === 'PORTFOLIO' &&
+      account.status === 'ACTIVE',
+  );
   const [showErrors, setShowErrors] = useState(false);
   const errors = validateTransferValues(values, accounts, today);
   const crossAsset = isCrossAssetTransfer(values, accounts);
@@ -89,23 +74,18 @@ export function TransferForm({
   const targetAsset = accounts.find((account) => account.id === values.targetAccountId)?.assetCode;
 
   function set<K extends keyof TransferFormValues>(field: K, value: TransferFormValues[K]) {
-    if (field === 'targetAccountId' || field === 'sourceAccountId') setDepositDeclined(false);
     setValues((current) => ({ ...current, [field]: value }));
   }
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (pending) return;
-    if (transferCreated) {
-      onRetryDeposit();
-      return;
-    }
     if (Object.keys(errors).length > 0) {
       setShowErrors(true);
       return;
     }
 
-    onSubmit(transferRequest(values, accounts), checked);
+    onSubmit(transferRequest(values, accounts));
   }
 
   return (
@@ -118,19 +98,14 @@ export function TransferForm({
         />
       ) : null}
 
-      {transferCreated && depositError ? (
-        <div className={formStyles.alert} role="alert">
-          <p>{t('transactions.transfer.depositPartial')}</p>
-          <p>{depositMessage}</p>
-        </div>
-      ) : null}
       <p>{t('transactions.transfer.notice')}</p>
+      {followsPortfolio ? <p>{t('transactions.transfer.portfolioNotice')}</p> : null}
 
       <div className={formStyles.fields}>
         <label>
           <span>{t('transactions.transfer.fields.sourceAccount')}</span>
           <select
-            disabled={pending || transferCreated}
+            disabled={pending}
             aria-describedby={
               showErrors && errors.sourceAccountId ? `${errorId}-sourceAccountId` : undefined
             }
@@ -153,21 +128,35 @@ export function TransferForm({
           ) : null}
         </label>
 
-        <TransferDestination
-          accounts={accounts}
-          targetAccountId={values.targetAccountId}
-          eligible={eligible}
-          checked={checked}
-          disabled={pending || transferCreated}
-          invalid={showErrors && Boolean(errors.targetAccountId)}
-          onDestinationChange={(id) => set('targetAccountId', id)}
-          onConsentChange={(consent) => setDepositDeclined(!consent)}
-        />
+        <label>
+          <span>{t('transactions.transfer.fields.targetAccount')}</span>
+          <select
+            disabled={pending}
+            aria-describedby={
+              showErrors && errors.targetAccountId ? `${errorId}-targetAccountId` : undefined
+            }
+            aria-invalid={showErrors && errors.targetAccountId ? true : undefined}
+            onChange={(event) => set('targetAccountId', event.target.value)}
+            value={values.targetAccountId}
+          >
+            <option value="">{t('transactions.transfer.fields.selectAccount')}</option>
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.label}
+              </option>
+            ))}
+          </select>
+          {showErrors && errors.targetAccountId ? (
+            <small id={`${errorId}-targetAccountId`}>
+              {t('transactions.transfer.validation.targetAccount')}
+            </small>
+          ) : null}
+        </label>
 
         <label>
           <span>{withAssetCode(t('transactions.transfer.fields.sourceAmount'), sourceAsset)}</span>
           <input
-            disabled={pending || transferCreated}
+            disabled={pending}
             aria-describedby={
               showErrors && errors.sourceAmountValue ? `${errorId}-sourceAmountValue` : undefined
             }
@@ -191,7 +180,7 @@ export function TransferForm({
               {withAssetCode(t('transactions.transfer.fields.targetAmount'), targetAsset)}
             </span>
             <input
-              disabled={pending || transferCreated}
+              disabled={pending}
               aria-describedby={
                 showErrors && errors.targetAmountValue ? `${errorId}-targetAmountValue` : undefined
               }
@@ -213,7 +202,7 @@ export function TransferForm({
         <label>
           <span>{t('transactions.transfer.fields.bookedOn')}</span>
           <input
-            disabled={pending || transferCreated}
+            disabled={pending}
             aria-describedby={showErrors && errors.bookedOn ? `${errorId}-bookedOn` : undefined}
             aria-invalid={showErrors && errors.bookedOn ? true : undefined}
             onChange={(event) => set('bookedOn', event.target.value)}
@@ -231,7 +220,7 @@ export function TransferForm({
           values={values}
           errors={errors}
           showErrors={showErrors}
-          disabled={pending || transferCreated}
+          disabled={pending}
           sourceAsset={sourceAsset}
           set={set}
         />
@@ -239,13 +228,7 @@ export function TransferForm({
 
       <div className={formStyles.actions}>
         <button className="primary-action" disabled={pending} type="submit">
-          {t(
-            pending
-              ? 'transactions.transfer.saving'
-              : transferCreated
-                ? 'transactions.transfer.retryDeposit'
-                : 'transactions.transfer.save',
-          )}
+          {t(pending ? 'transactions.transfer.saving' : 'transactions.transfer.save')}
         </button>
       </div>
     </form>

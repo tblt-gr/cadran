@@ -22,15 +22,7 @@ it('associates invalid transfer controls with their own error text', () => {
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <TransferForm
-        accounts={accounts}
-        onSubmit={vi.fn()}
-        onRetryDeposit={vi.fn()}
-        transferCreated={false}
-        depositError={null}
-        pending={false}
-        submitError={null}
-      />
+      <TransferForm accounts={accounts} onSubmit={vi.fn()} pending={false} submitError={null} />
     </QueryClientProvider>,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Créer le virement' }));
@@ -86,15 +78,7 @@ function validTransfer() {
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <TransferForm
-        accounts={accounts}
-        onSubmit={onSubmit}
-        onRetryDeposit={vi.fn()}
-        transferCreated={false}
-        depositError={null}
-        pending={false}
-        submitError={null}
-      />
+      <TransferForm accounts={accounts} onSubmit={onSubmit} pending={false} submitError={null} />
     </QueryClientProvider>,
   );
   fireEvent.change(screen.getByLabelText('Montant (EUR)'), { target: { value: '25.00' } });

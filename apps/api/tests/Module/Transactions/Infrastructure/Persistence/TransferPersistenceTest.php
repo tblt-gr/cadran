@@ -14,6 +14,7 @@ use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Application\WorkspaceContext;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Identity\Infrastructure\Persistence\DbalTransactionManager;
 use App\Module\Identity\Infrastructure\Workspace\DbalWorkspaceTimezoneReader;
 use App\Module\Reference\Infrastructure\Persistence\DbalAssetCatalog;
@@ -23,6 +24,7 @@ use App\Module\Transactions\Application\PresentTransaction;
 use App\Module\Transactions\Application\PresentTransfer;
 use App\Module\Transactions\Application\TransferInputParser;
 use App\Module\Transactions\Application\TransferLegFactory;
+use App\Module\Transactions\Application\TransferPortfolioSync;
 use App\Module\Transactions\Application\TransferReferences;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -89,6 +91,11 @@ final class TransferPersistenceTest extends KernelTestCase
             clock: $clock,
             calendar: new WorkspaceCalendar($clock, $caller, new DbalWorkspaceTimezoneReader($this->connection)),
             assertPeriodOpen: new AssertPeriodOpen(new DbalPeriodClosureRepository($this->connection)),
+            portfolioSync: new class implements TransferPortfolioSync {
+                public function __invoke(WorkspaceScope $workspace, Transaction $source, Transaction $target): void
+                {
+                }
+            },
         );
 
         try {
@@ -307,33 +314,33 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
     {
     }
 
-    public function find(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $id): ?Transaction
+    public function find(WorkspaceScope $workspace, string $id): ?Transaction
     {
         return $this->inner->find($workspace, $id);
     }
 
-    public function findMany(\App\Module\Foundation\Domain\WorkspaceScope $workspace, array $ids): array
+    public function findMany(WorkspaceScope $workspace, array $ids): array
     {
         return $this->inner->findMany($workspace, $ids);
     }
 
-    public function findForUpdate(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $id): ?Transaction
+    public function findForUpdate(WorkspaceScope $workspace, string $id): ?Transaction
     {
         return $this->inner->findForUpdate($workspace, $id);
     }
 
-    public function findManyForUpdate(\App\Module\Foundation\Domain\WorkspaceScope $workspace, array $ids): array
+    public function findManyForUpdate(WorkspaceScope $workspace, array $ids): array
     {
         return $this->inner->findManyForUpdate($workspace, $ids);
     }
 
-    public function countMatching(\App\Module\Foundation\Domain\WorkspaceScope $workspace, \App\Module\Transactions\Domain\TransactionFilters $filters): int
+    public function countMatching(WorkspaceScope $workspace, \App\Module\Transactions\Domain\TransactionFilters $filters): int
     {
         return $this->inner->countMatching($workspace, $filters);
     }
 
     public function search(
-        \App\Module\Foundation\Domain\WorkspaceScope $workspace,
+        WorkspaceScope $workspace,
         \App\Module\Transactions\Domain\TransactionFilters $filters,
         int $limit,
         ?\App\Module\Transactions\Domain\TransactionPosition $after,
@@ -341,38 +348,38 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
         return $this->inner->search($workspace, $filters, $limit, $after);
     }
 
-    public function watermark(\App\Module\Foundation\Domain\WorkspaceScope $workspace): ?\App\Module\Transactions\Domain\TransactionWatermark
+    public function watermark(WorkspaceScope $workspace): ?\App\Module\Transactions\Domain\TransactionWatermark
     {
         return $this->inner->watermark($workspace);
     }
 
-    public function sumBookedMovements(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    public function sumBookedMovements(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
         return $this->inner->sumBookedMovements($workspace, $accountId, $from, $to);
     }
 
-    public function listPendingInPeriod(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array
+    public function listPendingInPeriod(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array
     {
         return $this->inner->listPendingInPeriod($workspace, $accountId, $from, $to, $limit);
     }
 
-    public function countPendingInPeriod(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to): int
+    public function countPendingInPeriod(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from, \DateTimeImmutable $to): int
     {
         return $this->inner->countPendingInPeriod($workspace, $accountId, $from, $to);
     }
 
-    public function countPendingInWorkspace(\App\Module\Foundation\Domain\WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int
+    public function countPendingInWorkspace(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int
     {
         return $this->inner->countPendingInWorkspace($workspace, $from, $to);
     }
 
-    public function findBySourceRef(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
+    public function findBySourceRef(WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
     {
         return $this->inner->findBySourceRef($workspace, $accountId, $sourceRef, $lock);
     }
 
     public function listPendingByAccount(
-        \App\Module\Foundation\Domain\WorkspaceScope $workspace,
+        WorkspaceScope $workspace,
         string $accountId,
         \App\Module\Foundation\Domain\AssetAmount $amount,
         \DateTimeImmutable $bookedOn,
@@ -393,7 +400,7 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
     }
 
     public function listForCategorization(
-        \App\Module\Foundation\Domain\WorkspaceScope $workspace,
+        WorkspaceScope $workspace,
         \DateTimeImmutable $from,
         \DateTimeImmutable $to,
         int $limit,

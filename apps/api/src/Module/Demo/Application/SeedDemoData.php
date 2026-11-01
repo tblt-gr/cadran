@@ -180,7 +180,7 @@ final readonly class SeedDemoData
                 if ('invest' === $target) {
                     $index = $investmentMonth++;
                     $this->portfolio->investMonthly(
-                        $accounts['invest'], $transfer->target->id, $first->modify('+'.($day - 1).' days')->format('Y-m-d'), $cents, $index,
+                        $accounts['invest'], $first->modify('+'.($day - 1).' days')->format('Y-m-d'), $cents, $index,
                     );
                     if (!$isOpen && $closed === $closedTotal - 1) {
                         $this->portfolio->value($accounts['invest'], $first->modify('+6 days'), $balances['invest'] + $cents, 'TOTAL');
@@ -236,7 +236,7 @@ final readonly class SeedDemoData
      */
     private function unlinkedTransfer(array $accounts, \DateTimeImmutable $day, array $balances): array
     {
-        $this->createTransfer->__invoke(new CreateTransferInput(
+        $transfer = $this->createTransfer->__invoke(new CreateTransferInput(
             sourceAccountId: $accounts['current'],
             targetAccountId: $accounts['invest'],
             sourceAmount: ['value' => DemoCents::format(self::UNLINKED_TRANSFER_CENTS), 'assetCode' => self::ASSET],
@@ -248,6 +248,7 @@ final readonly class SeedDemoData
             note: null,
             fee: null,
         ));
+        $this->portfolio->leaveUnlinked($transfer->target->id);
         $balances['current'] -= self::UNLINKED_TRANSFER_CENTS;
         $balances['invest'] += self::UNLINKED_TRANSFER_CENTS;
 

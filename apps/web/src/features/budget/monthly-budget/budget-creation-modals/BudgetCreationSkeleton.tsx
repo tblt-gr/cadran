@@ -35,12 +35,9 @@ export function BudgetCreationSkeleton({
             <TransferForm
               accounts={[]}
               defaults={{ bookedOn, targetAccountId: draft.row.id }}
-              depositError={null}
-              onRetryDeposit={noop}
               onSubmit={noop}
               pending={false}
               submitError={null}
-              transferCreated={false}
             />
           ) : (
             <TransactionForm

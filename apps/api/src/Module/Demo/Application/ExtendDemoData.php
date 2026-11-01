@@ -111,7 +111,7 @@ final readonly class ExtendDemoData
             ));
             if ('invest' === $target) {
                 $this->portfolio->resume(self::RANDOM_SEED, $monthIndex);
-                $this->portfolio->investMonthly($accounts['invest'], $transfer->target->id, $date, $cents, $monthIndex);
+                $this->portfolio->investMonthly($accounts['invest'], $date, $cents, $monthIndex);
             }
             ++$transfers;
         }

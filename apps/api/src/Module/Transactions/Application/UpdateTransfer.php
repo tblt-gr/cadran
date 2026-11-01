@@ -39,6 +39,7 @@ final readonly class UpdateTransfer
         private ClockInterface $clock,
         private WorkspaceCalendar $calendar,
         private AssertPeriodOpen $assertPeriodOpen,
+        private TransferPortfolioSync $portfolioSync,
     ) {
     }
 
@@ -154,6 +155,8 @@ final readonly class UpdateTransfer
                     TransferAuditFingerprint::of($edited, $crossAsset, $draft->state),
                 ),
             ));
+
+            ($this->portfolioSync)($context->workspace, $editedSource, $editedTarget);
 
             return $this->presentTransfer->one($edited);
         });

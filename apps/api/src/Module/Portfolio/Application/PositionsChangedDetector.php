@@ -40,6 +40,14 @@ final readonly class PositionsChangedDetector
         return $changed;
     }
 
+    /** Whether the account holds, at the end of $day, other quantities than the ones frozen with the valuation. */
+    public function changedOn(WorkspaceScope $workspace, string $accountId, Valuation $valuation, \DateTimeImmutable $day): bool
+    {
+        $current = $this->reconcile->quantitiesAt($workspace, $accountId, [$day])[$day->format('Y-m-d')] ?? null;
+
+        return null === $current || self::differs($valuation, $current);
+    }
+
     /** @param array<string, CalculatedDecimal> $current non-zero replayed quantities by instrument */
     private static function differs(Valuation $valuation, array $current): bool
     {

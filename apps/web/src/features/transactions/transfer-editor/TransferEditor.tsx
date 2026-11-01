@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
 import { TransferForm, type TransferFormDefaults } from './TransferForm';
-import { useLinkedTransferDeposit } from './useLinkedTransferDeposit';
+import { useTransferSubmit } from './useTransferSubmit';
 import formStyles from '@/features/transactions/transaction-form/TransactionForm.module.css';
 
 interface TransferEditorProps {
@@ -28,12 +28,12 @@ export function TransferEditor({
   refreshError,
 }: TransferEditorProps) {
   const { t } = useTranslation();
-  const deposit = useLinkedTransferDeposit({ onSubmit, onSaved });
+  const transfer = useTransferSubmit({ onSubmit, onSaved });
 
   return (
     <Modal
       close={() => {
-        if (!deposit.pending && !pending) close();
+        if (!transfer.pending && !pending) close();
       }}
       eyebrow={t('transactions.transfer.eyebrow')}
       title={t('transactions.transfer.title')}
@@ -49,11 +49,8 @@ export function TransferEditor({
       <TransferForm
         accounts={accounts}
         defaults={defaults}
-        onSubmit={(body, createDeposit) => void deposit.submit(body, createDeposit)}
-        onRetryDeposit={() => void deposit.submit(undefined, true)}
-        pending={pending || deposit.pending}
-        transferCreated={deposit.transferCreated}
-        depositError={deposit.depositError}
+        onSubmit={(body) => void transfer.submit(body)}
+        pending={pending || transfer.pending}
         submitError={submitError}
       />
     </Modal>

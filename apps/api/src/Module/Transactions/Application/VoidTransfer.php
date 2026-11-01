@@ -27,6 +27,7 @@ final readonly class VoidTransfer
         private PresentTransfer $presentTransfer,
         private ClockInterface $clock,
         private AssertPeriodOpen $assertPeriodOpen,
+        private TransferPortfolioSync $portfolioSync,
     ) {
     }
 
@@ -57,6 +58,7 @@ final readonly class VoidTransfer
             $voidedLegs = [];
             $sourceLegBefore = null;
             $sourceLegAfter = null;
+            $targetLegAfter = null;
             foreach ($legIds as $legId) {
                 $leg = $this->transactions->findForUpdate($context->workspace, $legId);
                 if (null === $leg) {
@@ -76,9 +78,12 @@ final readonly class VoidTransfer
                     $sourceLegBefore = $leg;
                     $sourceLegAfter = $voidedLeg;
                 }
+                if ($legId === $current->targetTransactionId) {
+                    $targetLegAfter = $voidedLeg;
+                }
             }
-            if (null === $sourceLegBefore || null === $sourceLegAfter) {
-                throw new \UnexpectedValueException('A transfer is missing its source leg.');
+            if (null === $sourceLegBefore || null === $sourceLegAfter || null === $targetLegAfter) {
+                throw new \UnexpectedValueException('A transfer is missing one of its legs.');
             }
 
             if (!$this->transfers->update($voided, $current->version)) {
@@ -101,6 +106,8 @@ final readonly class VoidTransfer
                     TransferAuditFingerprint::of($voided, $crossAsset, $sourceLegAfter->state),
                 ),
             ));
+
+            ($this->portfolioSync)($context->workspace, $sourceLegAfter, $targetLegAfter);
 
             return $this->presentTransfer->one($voided);
         });
