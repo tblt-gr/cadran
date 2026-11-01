@@ -25,6 +25,7 @@ final readonly class OccurrenceView
             'status' => OccurrenceEffectiveStatus::of($occurrence, $today)->value,
             'matchedTransactionId' => $occurrence->matchedTransactionId,
             'matchedAt' => $occurrence->matchedAt?->format(DATE_ATOM),
+            'generatedTransactionId' => $occurrence->generatedTransactionId,
             // A closed month cannot be booked into: the instalment stays
             // waiting, and this is how a reader learns why.
             'periodClosed' => $periodClosed,

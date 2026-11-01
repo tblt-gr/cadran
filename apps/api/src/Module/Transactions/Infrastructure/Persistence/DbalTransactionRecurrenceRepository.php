@@ -15,6 +15,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 final readonly class DbalTransactionRecurrenceRepository implements TransactionRecurrenceRepository
 {
     private const string TABLE = 'transaction_recurrences';
+    private const array COLUMN_TYPES = ['auto_create' => ParameterType::BOOLEAN];
 
     public function __construct(private Connection $connection)
     {
@@ -62,6 +63,17 @@ final readonly class DbalTransactionRecurrenceRepository implements TransactionR
         return array_map(static fn (array $row): TransactionRecurrence => TransactionRecurrenceRow::hydrate($row, $workspace), $rows);
     }
 
+    public function activeAutoCreating(WorkspaceScope $workspace, int $limit): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.TransactionRecurrenceRow::COLUMNS.' FROM transaction_recurrences WHERE workspace_id = :workspace_id AND archived_at IS NULL AND auto_create ORDER BY next_expected_on, id LIMIT :limit',
+            ['workspace_id' => $workspace->id, 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(static fn (array $row): TransactionRecurrence => TransactionRecurrenceRow::hydrate($row, $workspace), $rows);
+    }
+
     public function activeForAccount(WorkspaceScope $workspace, string $accountId): array
     {
         $rows = $this->connection->fetchAllAssociative(
@@ -78,7 +90,7 @@ final readonly class DbalTransactionRecurrenceRepository implements TransactionR
             'id' => $recurrence->id,
             'workspace_id' => $recurrence->workspace->id,
             ...TransactionRecurrenceRow::columns($recurrence),
-        ]);
+        ], self::COLUMN_TYPES);
     }
 
     public function update(TransactionRecurrence $recurrence, int $expectedVersion): bool
@@ -87,6 +99,7 @@ final readonly class DbalTransactionRecurrenceRepository implements TransactionR
             self::TABLE,
             TransactionRecurrenceRow::columns($recurrence),
             ['workspace_id' => $recurrence->workspace->id, 'id' => $recurrence->id, 'version' => $expectedVersion],
+            self::COLUMN_TYPES,
         );
     }
 

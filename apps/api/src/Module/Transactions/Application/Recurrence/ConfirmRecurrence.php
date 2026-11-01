@@ -29,6 +29,7 @@ final readonly class ConfirmRecurrence
         private TransactionBoundary $boundary,
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
+        private MaterializeRecurrenceOccurrences $materialize,
     ) {
     }
 
@@ -41,14 +42,18 @@ final readonly class ConfirmRecurrence
             $now = $this->calendar->now();
             $recurrence = $this->factory->create($this->ids->generate(), $context->workspace, $input, $now);
             $this->recurrences->add($recurrence);
-            $this->generator->extend($recurrence, $recurrence->nextExpectedOn, $this->calendar->today());
+            $today = $this->calendar->today();
+            $this->generator->extend($recurrence, $recurrence->nextExpectedOn, $today);
+            if ($recurrence->autoCreate) {
+                $this->materialize->forRecurrence($context, $recurrence, $today);
+            }
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, RecurrenceAuditEvents::CONFIRMED,
                 RecurrenceAuditEvents::ENTITY, $recurrence->id,
-                AuditDiff::creation(['intervalKind' => $recurrence->intervalKind->value, 'dayOfPeriod' => $recurrence->dayOfPeriod]),
+                AuditDiff::creation(['intervalKind' => $recurrence->intervalKind->value, 'dayOfPeriod' => $recurrence->dayOfPeriod, 'autoCreate' => $recurrence->autoCreate]),
             ));
 
-            return RecurrenceView::from($recurrence);
+            return RecurrenceView::from($this->recurrences->find($context->workspace, $recurrence->id) ?? $recurrence);
         });
     }
 }

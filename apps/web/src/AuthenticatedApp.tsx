@@ -18,6 +18,7 @@ import { useDashboardHeader } from '@/features/dashboard/net-worth/useDashboardH
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { RouteLoadErrorState } from '@/features/foundation/RouteLoadErrorState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
+import { useMaterializeRecurrences } from '@/features/recurrences/useMaterializeRecurrences';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { getRouteTitleKey } from '@/lib/navigation';
 import { DashboardPageFallback } from '@/features/dashboard/DashboardPageFallback';
@@ -39,6 +40,7 @@ export function AuthenticatedApp() {
   // to an authenticated, workspace-bound user, so this read is a cache hit:
   // no extra request and no loading state to handle here.
   const workspaceTimeZone = useWorkspaceTimeZone();
+  useMaterializeRecurrences();
   const status = useQuery({
     queryKey: ['foundation-status'],
     queryFn: async ({ signal }) => {

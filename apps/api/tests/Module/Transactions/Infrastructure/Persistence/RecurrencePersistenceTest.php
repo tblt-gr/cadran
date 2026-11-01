@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Transactions\Domain\PaymentMethod;
 use App\Module\Transactions\Domain\Recurrence\OccurrenceStatus;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceDismissalRepository;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceIntervalKind;
@@ -304,6 +305,78 @@ final class RecurrencePersistenceTest extends KernelTestCase
         self::assertSame($this->id(11), $this->dismissals->findId(WorkspaceFixture::own(), self::FINGERPRINT));
     }
 
+    public function testTheGeneratedLinkIsRecordedOnceAndOnlyWhileNothingSettledTheInstalment(): void
+    {
+        $this->recurrences->add($this->recurrence());
+        $this->occurrences->addAll([$this->occurrence(1, '2026-03-31'), $this->occurrence(2, '2026-04-30')]);
+        $this->addTransaction(901, WorkspaceFixture::own(), self::OWN_ACCOUNT, '2026-03-31', '-14.99');
+        $this->addTransaction(902, WorkspaceFixture::own(), self::OWN_ACCOUNT, '2026-03-31', '-14.99');
+
+        self::assertTrue($this->occurrences->recordGenerated(WorkspaceFixture::own(), $this->id(1), $this->id(901), 1));
+        self::assertFalse($this->occurrences->recordGenerated(WorkspaceFixture::own(), $this->id(1), $this->id(902), 1));
+        self::assertTrue($this->occurrences->claim(WorkspaceFixture::own(), $this->id(2), $this->id(902), $this->moment()));
+        self::assertFalse($this->occurrences->recordGenerated(WorkspaceFixture::own(), $this->id(2), $this->id(901), 1));
+        self::assertFalse($this->occurrences->recordGenerated(WorkspaceFixture::other(), $this->id(1), $this->id(901), 1));
+
+        $linked = $this->occurrences->listGeneratedFrom(WorkspaceFixture::own(), self::OWN_RECURRENCE, self::day('2026-03-01'), 50);
+        self::assertSame([$this->id(1)], array_map(static fn (TransactionRecurrenceOccurrence $o): string => $o->id, $linked));
+        self::assertSame($this->id(901), $linked[0]->generatedTransactionId);
+        self::assertSame(1, $linked[0]->generatedVersion);
+        self::assertTrue($this->occurrences->clearGenerated(WorkspaceFixture::own(), $this->id(1)));
+        self::assertFalse($this->occurrences->clearGenerated(WorkspaceFixture::own(), $this->id(1)));
+    }
+
+    public function testALinkedInstalmentIsInvisibleToMatchingAndToTheUnmatchedDeletion(): void
+    {
+        $this->recurrences->add($this->recurrence());
+        $this->occurrences->addAll([$this->occurrence(1, '2026-03-31'), $this->occurrence(2, '2026-04-30')]);
+        $this->addTransaction(901, WorkspaceFixture::own(), self::OWN_ACCOUNT, '2026-03-31', '-14.99');
+        $this->occurrences->recordGenerated(WorkspaceFixture::own(), $this->id(1), $this->id(901), 1);
+
+        $near = $this->occurrences->unmatchedNear(WorkspaceFixture::own(), self::OWN_ACCOUNT, self::day('2026-03-01'), self::day('2026-05-31'));
+        self::assertSame([$this->id(2)], array_map(static fn (TransactionRecurrenceOccurrence $o): string => $o->id, $near));
+        self::assertSame(1, $this->occurrences->deleteUnmatchedFrom(WorkspaceFixture::own(), self::OWN_RECURRENCE, self::day('2026-03-01')));
+        self::assertCount(1, $this->occurrences->listForRecurrence(WorkspaceFixture::own(), self::OWN_RECURRENCE, self::day('2026-01-01'), self::day('2027-01-01'), 50));
+    }
+
+    public function testUngeneratedAndDueListsAreBoundedToTheirWorkspaceAndState(): void
+    {
+        $this->recurrences->add($this->recurrence());
+        $this->occurrences->addAll([$this->occurrence(1, '2026-03-31'), $this->occurrence(2, '2026-04-30')]);
+        $this->addTransaction(901, WorkspaceFixture::own(), self::OWN_ACCOUNT, '2026-03-31', '-14.99', TransactionState::PENDING);
+        $this->occurrences->recordGenerated(WorkspaceFixture::own(), $this->id(1), $this->id(901), 1);
+
+        $ungenerated = $this->occurrences->listUngenerated(WorkspaceFixture::own(), self::OWN_RECURRENCE, self::day('2026-03-01'), self::day('2026-04-30'), 50);
+        self::assertSame([$this->id(2)], array_map(static fn (TransactionRecurrenceOccurrence $o): string => $o->id, $ungenerated));
+        self::assertSame([], $this->occurrences->listUngenerated(WorkspaceFixture::other(), self::OWN_RECURRENCE, self::day('2026-03-01'), self::day('2026-04-30'), 50));
+
+        self::assertSame([], $this->occurrences->listGeneratedPendingDue(WorkspaceFixture::own(), self::OWN_RECURRENCE, self::day('2026-03-30'), 50));
+        $due = $this->occurrences->listGeneratedPendingDue(WorkspaceFixture::own(), self::OWN_RECURRENCE, self::day('2026-03-31'), 50);
+        self::assertSame([$this->id(1)], array_map(static fn (TransactionRecurrenceOccurrence $o): string => $o->id, $due));
+        self::assertSame([], $this->occurrences->listGeneratedPendingDue(WorkspaceFixture::other(), self::OWN_RECURRENCE, self::day('2026-03-31'), 50));
+    }
+
+    public function testTheAutoCreateSettingAndItsInheritedDataRoundTrip(): void
+    {
+        $this->recurrences->add(new TransactionRecurrence(
+            id: self::OWN_RECURRENCE, workspace: WorkspaceFixture::own(), accountId: self::OWN_ACCOUNT,
+            label: 'Loyer', counterparty: null, expectedAmount: self::amount('-850.10'), amountTolerance: self::amount('0.00'),
+            intervalKind: RecurrenceIntervalKind::MONTHLY, dayOfPeriod: 5, nextExpectedOn: self::day('2026-11-05'),
+            confirmedAt: $this->moment(), version: 1, createdAt: $this->moment(), updatedAt: $this->moment(), archivedAt: null,
+            autoCreate: true, categoryId: null, note: 'Loyer appartement', paymentMethod: PaymentMethod::DIRECT_DEBIT,
+        ));
+
+        $stored = $this->recurrences->find(WorkspaceFixture::own(), self::OWN_RECURRENCE);
+
+        self::assertNotNull($stored);
+        self::assertTrue($stored->autoCreate);
+        self::assertSame('Loyer appartement', $stored->note);
+        self::assertSame(PaymentMethod::DIRECT_DEBIT, $stored->paymentMethod);
+        self::assertSame('-850.10', $stored->expectedAmount->value->toString());
+        self::assertCount(1, $this->recurrences->activeAutoCreating(WorkspaceFixture::own(), 50));
+        self::assertSame([], $this->recurrences->activeAutoCreating(WorkspaceFixture::other(), 50));
+    }
+
     private function recurrence(
         string $id = self::OWN_RECURRENCE,
         ?WorkspaceScope $workspace = null,
@@ -344,12 +417,12 @@ final class RecurrencePersistenceTest extends KernelTestCase
         );
     }
 
-    private function addTransaction(int $index, WorkspaceScope $workspace, string $accountId, string $bookedOn, string $amount): void
+    private function addTransaction(int $index, WorkspaceScope $workspace, string $accountId, string $bookedOn, string $amount, TransactionState $state = TransactionState::BOOKED): void
     {
         $this->transactions->add(new Transaction(
             id: $this->id($index), workspace: $workspace, accountId: $accountId,
             amount: self::amount($amount), originalAmount: null, exchangeRate: null,
-            state: TransactionState::BOOKED, nature: TransactionNature::EXPENSE,
+            state: $state, nature: TransactionNature::EXPENSE,
             source: TransactionSource::MANUAL, sourceRef: null, bookedOn: self::day($bookedOn),
             valueOn: null, authorizedOn: null, rawLabel: 'CB NETFLIX', counterparty: 'Netflix', note: null,
             paymentMethod: null, mcc: null, maskedCard: null, bankReference: null, splits: [],

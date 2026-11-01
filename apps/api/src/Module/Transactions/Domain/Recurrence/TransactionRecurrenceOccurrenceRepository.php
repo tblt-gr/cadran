@@ -25,7 +25,7 @@ interface TransactionRecurrenceOccurrenceRepository
     /** @return list<string> the ISO days already generated on or after `$from`, in order */
     public function scheduledDatesFrom(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $from): array;
 
-    /** Drops the unmatched instalments expected on or after `$from`; matched and past ones are immutable. */
+    /** Drops the unmatched instalments expected on or after `$from`; matched, generated and past ones are immutable. */
     public function deleteUnmatchedFrom(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $from): int;
 
     /**
@@ -43,6 +43,39 @@ interface TransactionRecurrenceOccurrenceRepository
 
     /** Returns a settled instalment to the expected set; false when it was not settled. */
     public function release(WorkspaceScope $workspace, string $occurrenceId): bool;
+
+    /**
+     * Records the transaction generated for an instalment; false when the
+     * instalment already carries a link or was already settled by a movement.
+     */
+    public function recordGenerated(WorkspaceScope $workspace, string $occurrenceId, string $transactionId, int $version): bool;
+
+    /** Forgets the generated link of an instalment; false when it carried none. */
+    public function clearGenerated(WorkspaceScope $workspace, string $occurrenceId): bool;
+
+    /**
+     * The expected instalments of one recurrence dated inside a window that
+     * neither carry a generated link nor were settled.
+     *
+     * @return list<TransactionRecurrenceOccurrence>
+     */
+    public function listUngenerated(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array;
+
+    /**
+     * The instalments of one recurrence whose generated transaction is still
+     * pending and booked on or before `$today`.
+     *
+     * @return list<TransactionRecurrenceOccurrence>
+     */
+    public function listGeneratedPendingDue(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $today, int $limit): array;
+
+    /**
+     * The instalments of one recurrence dated on or after `$from` that carry a
+     * generated link, whatever the state of the transaction.
+     *
+     * @return list<TransactionRecurrenceOccurrence>
+     */
+    public function listGeneratedFrom(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $from, int $limit): array;
 
     /** The earliest instalment still awaiting a movement, if any. */
     public function earliestExpectedOn(WorkspaceScope $workspace, string $recurrenceId): ?\DateTimeImmutable;

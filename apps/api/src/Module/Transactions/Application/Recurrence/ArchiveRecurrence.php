@@ -25,6 +25,7 @@ final readonly class ArchiveRecurrence
         private TransactionBoundary $boundary,
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
+        private DiscardGeneratedTransactions $discard,
     ) {
     }
 
@@ -45,6 +46,7 @@ final readonly class ArchiveRecurrence
             if (!$this->recurrences->update($archived, $current->version)) {
                 throw new StaleRecurrence();
             }
+            ($this->discard)($context, $current, $this->calendar->today());
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, RecurrenceAuditEvents::ARCHIVED,
                 RecurrenceAuditEvents::ENTITY, $id, AuditDiff::change(['archived' => false], ['archived' => true]),

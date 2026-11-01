@@ -16,7 +16,9 @@ use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRepository;
+use App\Module\Transactions\Domain\TransactionSource;
 use App\Module\Transactions\Domain\TransactionSplit;
+use App\Module\Transactions\Domain\TransactionState;
 use App\Module\Transactions\Domain\TransferRepository;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -90,7 +92,13 @@ final readonly class UpdateTransaction
             }
             $now = $this->clock->now();
             $today = $this->calendar->today();
-            $this->references->accountForExisting($context->workspace, $current->accountId, $draft, $today);
+            // A pending row a recurrence created may sit later in the month, and may be rejected there;
+            // it can never be booked in the future.
+            $this->references->accountForExisting(
+                $context->workspace, $current->accountId, $draft, $today,
+                TransactionSource::RECURRENCE === $current->source && TransactionState::PENDING === $current->state
+                    && in_array($draft->state, [TransactionState::PENDING, TransactionState::REJECTED], true),
+            );
             if (null === $input->splits && count($current->splits) > 1) {
                 // The categoryId shorthand always replaces the whole allocation with
                 // at most one row; a transaction that already carries several would

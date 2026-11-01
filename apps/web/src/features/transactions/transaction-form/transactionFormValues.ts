@@ -168,7 +168,14 @@ export function validateTransactionValues(
     }
   }
 
-  if (!ISO_DAY.test(values.bookedOn) || values.bookedOn > today) {
+  // A recurrence's pending row is dated in the future by design: it may keep that date while it
+  // stays pending or is rejected, but booking it early stays refused, like the server does.
+  const futureAllowed =
+    transaction?.source === 'RECURRENCE' &&
+    transaction.state === 'PENDING' &&
+    (values.state === 'PENDING' || values.state === 'REJECTED');
+
+  if (!ISO_DAY.test(values.bookedOn) || (values.bookedOn > today && !futureAllowed)) {
     errors.bookedOn = true;
   } else if (account !== undefined && values.bookedOn < account.openedOn) {
     errors.bookedOn = true;

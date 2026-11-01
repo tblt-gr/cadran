@@ -28,6 +28,8 @@ final readonly class TransactionRecurrenceOccurrence
         public ?string $matchedTransactionId,
         public ?\DateTimeImmutable $matchedAt,
         public OccurrenceStatus $status,
+        public ?string $generatedTransactionId = null,
+        public ?int $generatedVersion = null,
     ) {
         RecurrenceIdentity::identifier($id, 'occurrence identifier');
         RecurrenceIdentity::identifier($recurrenceId, 'occurrence recurrence');
@@ -35,6 +37,12 @@ final readonly class TransactionRecurrenceOccurrence
             RecurrenceIdentity::identifier($matchedTransactionId, 'occurrence matched transaction');
         }
         RecurrenceIdentity::expectation($expectedAmount, $amountTolerance);
+        if (null !== $generatedTransactionId) {
+            RecurrenceIdentity::identifier($generatedTransactionId, 'occurrence generated transaction');
+        }
+        if ((null === $generatedTransactionId) !== (null === $generatedVersion) || (null !== $generatedVersion && $generatedVersion < 1)) {
+            throw new InvalidRecurrence('A generated link names both the transaction and the version it was created at.');
+        }
         $received = OccurrenceStatus::RECEIVED === $status;
         if ($received !== (null !== $matchedTransactionId) || $received !== (null !== $matchedAt)) {
             throw new InvalidRecurrence('An occurrence is received exactly when it names the transaction it matched and when.');
