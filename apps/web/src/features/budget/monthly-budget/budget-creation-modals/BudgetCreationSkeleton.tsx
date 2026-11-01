@@ -34,7 +34,7 @@ export function BudgetCreationSkeleton({
           {draft.kind === 'account' ? (
             <TransferForm
               accounts={[]}
-              defaults={{ bookedOn, requireSourceChoice: true, targetAccountId: draft.row.id }}
+              defaults={{ bookedOn, targetAccountId: draft.row.id }}
               depositError={null}
               onRetryDeposit={noop}
               onSubmit={noop}

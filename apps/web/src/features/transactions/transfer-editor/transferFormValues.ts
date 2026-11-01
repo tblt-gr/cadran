@@ -21,10 +21,11 @@ const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export function initialTransferValues(accounts: Account[], today: string): TransferFormValues {
   const active = accounts.filter((account) => account.status === 'ACTIVE');
+  const source = active.find((account) => account.isPrimary) ?? active[0];
 
   return {
-    sourceAccountId: active[0]?.id ?? '',
-    targetAccountId: active.find((account) => account.id !== active[0]?.id)?.id ?? '',
+    sourceAccountId: source?.id ?? '',
+    targetAccountId: active.find((account) => account.id !== source?.id)?.id ?? '',
     sourceAmountValue: '',
     targetAmountValue: '',
     bookedOn: today,

@@ -109,7 +109,7 @@ export function BudgetCreationModals({
       <TransferEditor
         accounts={accounts.data}
         close={close}
-        defaults={{ bookedOn, requireSourceChoice: true, targetAccountId: draft.row.id }}
+        defaults={{ bookedOn, targetAccountId: draft.row.id }}
         onSubmit={(body) => transfer.mutateAsync(body)}
         onSaved={close}
         pending={transfer.isPending}

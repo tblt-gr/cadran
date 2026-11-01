@@ -31,6 +31,16 @@ const chfTarget = {
   status: 'ACTIVE',
 } as Account;
 
+describe('initialTransferValues', () => {
+  it('uses the active primary account as the default source', () => {
+    const primary = { ...target, isPrimary: true } as Account;
+    const initial = initialTransferValues([source, primary], '2026-09-08');
+
+    expect(initial.sourceAccountId).toBe('account-target');
+    expect(initial.targetAccountId).toBe('account-source');
+  });
+});
+
 function values(overrides: Partial<ReturnType<typeof initialTransferValues>> = {}) {
   return {
     ...initialTransferValues([source, target], '2026-09-08'),

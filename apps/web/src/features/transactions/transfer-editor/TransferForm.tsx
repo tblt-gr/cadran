@@ -33,7 +33,6 @@ interface TransferFormProps {
 
 export interface TransferFormDefaults {
   bookedOn: string;
-  requireSourceChoice: boolean;
   targetAccountId: string;
 }
 
@@ -59,11 +58,13 @@ export function TransferForm({
   const [values, setValues] = useState(() => {
     const initial = initialTransferValues(accounts, defaults?.bookedOn ?? today);
 
+    const primary = accounts.find((account) => account.isPrimary && account.status === 'ACTIVE');
+
     return defaults
       ? {
           ...initial,
           bookedOn: defaults.bookedOn,
-          sourceAccountId: defaults.requireSourceChoice ? '' : initial.sourceAccountId,
+          sourceAccountId: primary && primary.id !== defaults.targetAccountId ? primary.id : '',
           targetAccountId: defaults.targetAccountId,
         }
       : initial;
