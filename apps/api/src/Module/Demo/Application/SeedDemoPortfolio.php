@@ -13,6 +13,7 @@ use App\Module\Portfolio\Application\PriceInput;
 use App\Module\Portfolio\Application\RecordPortfolioOperation;
 use App\Module\Portfolio\Application\RecordPortfolioValuation;
 use App\Module\Portfolio\Application\ValuationInput;
+use App\Module\Portfolio\Application\VoidOperationLinkedToTransaction;
 use App\Module\Portfolio\Application\VoidPortfolioOperation;
 
 /**
@@ -45,6 +46,7 @@ final class SeedDemoPortfolio
         private readonly RecordPortfolioOperation $record,
         private readonly CorrectPortfolioOperation $correct,
         private readonly VoidPortfolioOperation $void,
+        private readonly VoidOperationLinkedToTransaction $voidLinked,
         private readonly ListInstruments $listInstruments,
         private readonly RecordPortfolioValuation $recordValuation,
         private readonly BuildValuationDraft $draft,
@@ -73,11 +75,16 @@ final class SeedDemoPortfolio
         }
     }
 
-    /** The monthly transfer is mirrored by a linked deposit and invested in the world ETF the same day. */
-    public function investMonthly(string $accountId, string $legId, string $day, int $cents, int $monthIndex): void
+    /** A transfer leg the owner chose not to book as a deposit: the operation its transfer recorded is voided. */
+    public function leaveUnlinked(string $legId): void
+    {
+        ($this->voidLinked)($legId, 'Versement non suivi');
+    }
+
+    /** The monthly transfer already recorded its linked deposit; its cash is invested in the world ETF the same day. */
+    public function investMonthly(string $accountId, string $day, int $cents, int $monthIndex): void
     {
         $this->price = max(1, $this->price + intdiv($this->price * $this->random->between(-20, 30), 1000));
-        $this->deposit($accountId, $day, $cents, $legId);
         $quantity = intdiv($cents * 100_000_000, $this->price);
         $this->buy($accountId, $day, self::ETF, $quantity, $this->price, 'Investissement mensuel');
 
@@ -100,19 +107,28 @@ final class SeedDemoPortfolio
     public function value(string $accountId, \DateTimeImmutable $day, int $totalCents, string $mode): void
     {
         if ('TOTAL' === $mode) {
-            ($this->recordValuation)($accountId, new ValuationInput(
+            $this->recordValuationOf($accountId, $day, new ValuationInput(
                 $day->format('Y-m-d'), 'TOTAL', self::amount(DemoCents::format($totalCents)), null, null, null, null, null,
             ));
 
             return;
         }
-        ($this->recordValuation)($accountId, $this->positionsValuation($accountId, $day, 'POSITIONS_STALE' === $mode ? 'stale' : 'current'));
+        $this->recordValuationOf($accountId, $day, $this->positionsValuation($accountId, $day, 'POSITIONS_STALE' === $mode ? 'stale' : 'current'));
+    }
+
+    /** A transfer already refreshed the valuation of a day: the seeded one supersedes it, as an owner's would. */
+    private function recordValuationOf(string $accountId, \DateTimeImmutable $day, ValuationInput $input): void
+    {
+        $version = $this->draft->__invoke($accountId, $day->format('Y-m-d'))->currentValuationVersion;
+        ($this->recordValuation)($accountId, new ValuationInput(
+            $input->valuedOn, $input->detail, $input->totalValue, $input->prices, $input->observedCash, $input->observedTotal, $input->note, $version,
+        ));
     }
 
     /** The open month holds one partial valuation: a line left without a price shows no total and publishes nothing. */
     public function valueOpenMonth(string $accountId, \DateTimeImmutable $today): void
     {
-        ($this->recordValuation)($accountId, $this->positionsValuation($accountId, $today, 'partial'));
+        $this->recordValuationOf($accountId, $today, $this->positionsValuation($accountId, $today, 'partial'));
     }
 
     /** @param 'current'|'stale'|'partial' $pricing */

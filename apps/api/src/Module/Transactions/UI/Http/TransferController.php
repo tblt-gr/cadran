@@ -18,6 +18,7 @@ use App\Module\Transactions\Application\ReadTransfer;
 use App\Module\Transactions\Application\StaleTransferVersion;
 use App\Module\Transactions\Application\TransferConflict;
 use App\Module\Transactions\Application\TransferNotFound;
+use App\Module\Transactions\Application\TransferPortfolioSyncRefused;
 use App\Module\Transactions\Application\UpdateTransfer;
 use App\Module\Transactions\Application\UpdateTransferInput;
 use App\Module\Transactions\Application\VoidTransfer;
@@ -82,6 +83,8 @@ final readonly class TransferController
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transfer');
         } catch (TransferNotFound) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
+        } catch (TransferPortfolioSyncRefused $exception) {
+            return $this->envelope->problemWithExtensions(Response::HTTP_CONFLICT, 'api.problem.transfer_portfolio_sync_refused', ['reason' => $exception->reason], TransactionHttpEnvelope::TYPE_CONFLICT);
         } catch (TransferConflict) {
             return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
         } catch (WorkspaceAccessDenied) {
@@ -143,6 +146,8 @@ final readonly class TransferController
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
         } catch (StaleTransferVersion) {
             return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_stale_version', TransactionHttpEnvelope::TYPE_STALE_VERSION);
+        } catch (TransferPortfolioSyncRefused $exception) {
+            return $this->envelope->problemWithExtensions(Response::HTTP_CONFLICT, 'api.problem.transfer_portfolio_sync_refused', ['reason' => $exception->reason], TransactionHttpEnvelope::TYPE_CONFLICT);
         } catch (TransferConflict) {
             return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
         } catch (WorkspaceAccessDenied) {
@@ -172,6 +177,8 @@ final readonly class TransferController
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
         } catch (StaleTransferVersion) {
             return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_stale_version', TransactionHttpEnvelope::TYPE_STALE_VERSION);
+        } catch (TransferPortfolioSyncRefused $exception) {
+            return $this->envelope->problemWithExtensions(Response::HTTP_CONFLICT, 'api.problem.transfer_portfolio_sync_refused', ['reason' => $exception->reason], TransactionHttpEnvelope::TYPE_CONFLICT);
         } catch (TransferConflict) {
             return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
         } catch (WorkspaceAccessDenied) {

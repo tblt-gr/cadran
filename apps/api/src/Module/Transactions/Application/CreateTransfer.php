@@ -38,6 +38,7 @@ final readonly class CreateTransfer
         private ClockInterface $clock,
         private WorkspaceCalendar $calendar,
         private AssertPeriodOpen $assertPeriodOpen,
+        private TransferPortfolioSync $portfolioSync,
     ) {
     }
 
@@ -118,6 +119,8 @@ final readonly class CreateTransfer
                 TransferAuditEvents::ENTITY, $transfer->id,
                 AuditDiff::creation(TransferAuditFingerprint::of($transfer, $plan->crossAsset, $state)),
             ));
+
+            ($this->portfolioSync)($context->workspace, $sourceTransaction, $targetTransaction);
 
             // Re-read rather than present the in-memory value: NUMERIC(50,24)
             // round-trips the rate through the same trimming as each leg's own

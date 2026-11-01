@@ -2343,10 +2343,7 @@
       },
       "save": "Créer le virement",
       "saving": "Enregistrement…",
-      "depositLabel": "Créer le versement sur le compte de réception",
-      "depositHint": "Le virement seul n’alimente pas les espèces du portefeuille.",
-      "depositPartial": "Le virement est enregistré. Le versement reste à enregistrer : réessayez uniquement le versement.",
-      "retryDeposit": "Réessayer le versement"
+      "portfolioNotice": "Le versement ou le retrait correspondant est enregistré automatiquement sur le compte d’investissement, et sa valorisation suit lorsqu’elle peut être recalculée."
     },
     "workflow": {
       "inspect": "Consulter",

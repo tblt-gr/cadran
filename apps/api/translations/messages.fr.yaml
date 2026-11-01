@@ -708,6 +708,9 @@ api:
     transfer_conflict:
       title: 'Conflit de virement'
       detail: "Ce virement n'accepte plus l'opération demandée, ou une ressource liée a changé entre-temps."
+    transfer_portfolio_sync_refused:
+      title: 'Opération de portefeuille refusée'
+      detail: "Le compte d'investissement refuse l'opération que ce virement implique. Le virement n'a pas été enregistré."
     transfer_not_found:
       title: 'Virement introuvable'
       detail: 'Aucun virement ne porte cet identifiant dans cet espace de travail.'

@@ -685,13 +685,7 @@ describe('AccountDetailPage', () => {
     ).toBe(true);
   });
 
-  it('keeps the shared transfer modal open until the opted-in deposit succeeds', async () => {
-    let finishDeposit!: (value: unknown) => void;
-    api.recordPortfolioOperation.mockReturnValue(
-      new Promise((resolve) => {
-        finishDeposit = resolve;
-      }),
-    );
+  it('closes the shared transfer modal once a transfer into a portfolio is saved, with no client-side deposit', async () => {
     const destination = {
       ...otherAccount,
       kind: 'PORTFOLIO' as const,
@@ -728,13 +722,11 @@ describe('AccountDetailPage', () => {
       target: { value: 'Investissement mensuel' },
     });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
-    await waitFor(() => expect(api.recordPortfolioOperation).toHaveBeenCalledOnce());
-    expect(screen.getByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();
-    expect(api.createTransfer).toHaveBeenCalledOnce();
-    finishDeposit({ response: { ok: true }, data: {} });
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
     );
+    expect(api.createTransfer).toHaveBeenCalledOnce();
+    expect(api.recordPortfolioOperation).not.toHaveBeenCalled();
   });
 
   it.each(['server', 'network'])(
@@ -769,12 +761,6 @@ describe('AccountDetailPage', () => {
           201,
         ),
       );
-      api.recordPortfolioOperation
-        .mockResolvedValueOnce({
-          response: { ok: false, status: 409 },
-          error: { code: 'portfolio_operation_conflict' },
-        })
-        .mockResolvedValueOnce({ response: { ok: true }, data: {} });
       renderPage();
       await loaded();
       fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
@@ -792,19 +778,11 @@ describe('AccountDetailPage', () => {
         target: { value: 'Investissement mensuel' },
       });
       fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
-      await within(dialog).findByText(
-        'Actualisation du compte impossible. Les dernières données disponibles restent affichées.',
-      );
-      await within(dialog).findByRole('button', { name: 'Réessayer le versement' });
-      expect((within(dialog).getByLabelText('Montant (EUR)') as HTMLInputElement).disabled).toBe(
-        true,
-      );
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Réessayer le versement' }));
       await waitFor(() =>
         expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
       );
       expect(api.createTransfer).toHaveBeenCalledOnce();
-      expect(api.recordPortfolioOperation).toHaveBeenCalledTimes(2);
+      expect(api.recordPortfolioOperation).not.toHaveBeenCalled();
       expect(
         await screen.findByText(
           'Actualisation du compte impossible. Les dernières données disponibles restent affichées.',
