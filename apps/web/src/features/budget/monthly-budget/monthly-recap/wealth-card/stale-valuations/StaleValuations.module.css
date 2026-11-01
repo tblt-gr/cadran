@@ -5,12 +5,13 @@
   color: inherit;
   font: inherit;
   text-align: left;
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
 }
 .trigger:hover,
 .trigger:focus-visible {
   color: var(--text-primary);
+  text-decoration: none;
 }
 .list {
   display: grid;
@@ -31,6 +32,11 @@
 .account {
   font-weight: var(--font-weight-strong);
   overflow-wrap: anywhere;
+  text-decoration: none;
+}
+.account:hover,
+.account:focus-visible {
+  text-decoration: none;
 }
 .secondary {
   color: var(--text-secondary);
