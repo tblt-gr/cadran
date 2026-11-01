@@ -36,6 +36,12 @@ export function Sparkline({ label, points }: SparklineProps) {
   const run = leadingRun(points);
   if (run.length < 2) return null;
 
+  const direction =
+    run[run.length - 1]! > run[0]!
+      ? styles.rising
+      : run[run.length - 1]! < run[0]!
+        ? styles.falling
+        : '';
   const min = Math.min(...run);
   const max = Math.max(...run);
   const span = max - min;
@@ -55,7 +61,7 @@ export function Sparkline({ label, points }: SparklineProps) {
   return (
     <svg
       aria-label={label}
-      className={styles.sparkline}
+      className={`${styles.sparkline} ${direction}`}
       height={SPARKLINE_HEIGHT}
       role="img"
       viewBox={`0 0 ${SPARKLINE_WIDTH} ${SPARKLINE_HEIGHT}`}

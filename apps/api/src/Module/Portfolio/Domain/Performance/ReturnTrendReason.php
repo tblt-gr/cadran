@@ -15,4 +15,7 @@ enum ReturnTrendReason: string
 
     /** A growth factor at or below zero: the chain is not defined past a total loss. */
     case NON_POSITIVE_GROWTH_FACTOR = 'NON_POSITIVE_GROWTH_FACTOR';
+
+    /** The history of the account exceeds the performance read bound, so no month is computed. */
+    case TOO_MANY_OPERATIONS = 'TOO_MANY_OPERATIONS';
 }

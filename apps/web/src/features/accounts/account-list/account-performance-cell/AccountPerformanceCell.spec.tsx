@@ -28,21 +28,22 @@ describe('AccountPerformanceCell', () => {
     expect(screen.getByRole('img', { name: 'Sans objet' })).toBeTruthy();
   });
 
-  it('shows the unrealized gain, the sparkline and the since-start caption of worked example 1', () => {
+  it('shows the gain with its performance and the sparkline, without repeating the 12-month return', () => {
     render(<AccountPerformanceCell account={investment} portfolio={ready(accountCardFixture())} />);
 
     expect(screen.getByText(/\+219,50/)).toBeTruthy();
-    expect(screen.getByText(/\+7,32\s?%/)).toBeTruthy();
-    expect(
-      screen.getByRole('img', {
-        name: 'Rendement mensuel chaîné de juillet 2026 à septembre 2026 : +1,95 %',
-      }),
-    ).toBeTruthy();
-    const caption = screen.getByRole('link', { name: '+1,95 % depuis juillet 2026' });
-    expect(caption.getAttribute('href')).toBe('/portfolios/account-1?tab=performance');
+    expect(screen.getByText('(+7,32 %)')).toBeTruthy();
+    const sparkline = screen.getByRole('img', {
+      name: 'Rendement mensuel chaîné de juillet 2026 à septembre 2026 : +1,95 %',
+    });
+    expect(sparkline.closest('a')!.getAttribute('href')).toBe(
+      '/portfolios/account-1?tab=performance',
+    );
+    expect(screen.queryByText(/depuis juillet 2026/)).toBeNull();
+    expect(screen.queryByText(/sur 12 mois/)).toBeNull();
   });
 
-  it('writes a full-window caption and a minus sign for a loss', () => {
+  it('keeps the minus sign of a loss in the sparkline name', () => {
     const indexes = Array.from({ length: 12 }, (_, month) => (100 - month).toFixed(2));
     const trend = trendFixture(indexes, { from: '2025-10', cumulativeReturn: '-0.04' });
     render(
@@ -52,7 +53,7 @@ describe('AccountPerformanceCell', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: '−4,00 % sur 12 mois' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: /: −4,00 %$/ })).toBeTruthy();
   });
 
   it('states why the 12-month return is not computable, never zero', () => {
@@ -103,6 +104,24 @@ describe('AccountPerformanceCell', () => {
     expect(
       screen.getByText('Rendement 12 mois non calculable : perte totale en mars 2026'),
     ).toBeTruthy();
+  });
+
+  it('states that a history too large to compute has no 12-month return', () => {
+    render(
+      <AccountPerformanceCell
+        account={investment}
+        portfolio={ready(
+          accountCardFixture({
+            returnTrend: trendFixture([], { reason: 'TOO_MANY_OPERATIONS' }),
+          }),
+        )}
+      />,
+    );
+
+    expect(
+      screen.getByText('Rendement 12 mois non disponible : historique trop volumineux'),
+    ).toBeTruthy();
+    expect(screen.queryByText(/pas encore d’historique/)).toBeNull();
   });
 
   it('says the gain is not computable without a valuation', () => {

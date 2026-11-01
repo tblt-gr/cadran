@@ -1,5 +1,6 @@
 .secondary:hover {
   border-color: var(--text-secondary);
+  text-decoration: none;
 }
 
 .secondary[aria-pressed='true'] {

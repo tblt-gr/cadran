@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import type { ReactNode } from 'react';
 import { Icon, type IconName } from '@/components/ui/icon/Icon';
 import type { GroupingMode } from './groupingMode';
 
@@ -7,8 +6,6 @@ interface GroupingModeToggleProps {
   className?: string;
   disabled?: boolean;
   icon?: IconName;
-  /** Visible text next to the icon, for toolbars of labelled actions. */
-  visibleLabel?: ReactNode;
   mode: GroupingMode;
   onChange: (mode: GroupingMode) => void;
 }
@@ -18,7 +15,6 @@ export function GroupingModeToggle({
   className = 'icon-ghost',
   disabled = false,
   icon = 'layers',
-  visibleLabel,
   mode,
   onChange,
 }: GroupingModeToggleProps) {
@@ -35,8 +31,7 @@ export function GroupingModeToggle({
       title={label}
       type="button"
     >
-      <Icon name={icon} size={visibleLabel ? undefined : 16} />
-      {visibleLabel}
+      <Icon name={icon} size={16} />
     </button>
   );
 }

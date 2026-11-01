@@ -81,30 +81,26 @@ export function AccountPerformanceCell({ account, portfolio }: AccountPerformanc
       <div className={styles.trend}>
         {rate !== null && trend.from !== null ? (
           <>
-            <Sparkline
-              label={t('accounts.performance.sparkline', {
-                from: monthYear(trend.from, locale),
-                rate,
-                to: monthYear(trend.to, locale),
-              })}
-              points={trend.months.map((month) => ({ label: month.month, value: month.index }))}
-            />
             <Link href={performanceHref}>
-              {trend.from === trend.months[0].month
-                ? t('accounts.performance.captionWindow', { rate })
-                : t('accounts.performance.captionSince', {
-                    rate,
-                    since: monthYear(trend.from, locale),
-                  })}
+              <Sparkline
+                label={t('accounts.performance.sparkline', {
+                  from: monthYear(trend.from, locale),
+                  rate,
+                  to: monthYear(trend.to, locale),
+                })}
+                points={trend.months.map((month) => ({ label: month.month, value: month.index }))}
+              />
             </Link>
           </>
         ) : (
           <Link href={performanceHref}>
-            {trend.reason === 'MISSING_MONTH' || trend.reason === 'NON_POSITIVE_GROWTH_FACTOR'
-              ? t(`accounts.performance.reasons.${trend.reason}`, {
-                  month: monthYear(trend.reasonMonth ?? trend.to, locale),
-                })
-              : t('accounts.performance.reasons.NO_HISTORY')}
+            {trend.reason === 'TOO_MANY_OPERATIONS'
+              ? t('accounts.performance.reasons.TOO_MANY_OPERATIONS')
+              : trend.reason === 'MISSING_MONTH' || trend.reason === 'NON_POSITIVE_GROWTH_FACTOR'
+                ? t(`accounts.performance.reasons.${trend.reason}`, {
+                    month: monthYear(trend.reasonMonth ?? trend.to, locale),
+                  })
+                : t('accounts.performance.reasons.NO_HISTORY')}
           </Link>
         )}
       </div>

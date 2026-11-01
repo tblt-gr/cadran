@@ -118,15 +118,15 @@ export function AccountList({
           <caption className="sr-only">{label}</caption>
           <colgroup>
             <col />
-            <col className={styles.balanceColumn} />
             {showsPerformance ? <col className={styles.performanceColumn} /> : null}
+            <col className={styles.balanceColumn} />
             <col className={styles.actionsColumn} />
           </colgroup>
           <thead>
             <tr>
               <th scope="col">{t('accounts.fields.label')}</th>
-              <th scope="col">{t('accounts.fields.balance')}</th>
               {showsPerformance ? <th scope="col">{t('accounts.performance.column')}</th> : null}
+              <th scope="col">{t('accounts.fields.balance')}</th>
               <th scope="col">
                 <span className="sr-only">{t('accounts.list.actions')}</span>
               </th>
@@ -185,17 +185,6 @@ export function AccountList({
                           identity={identity}
                         />
                       </th>
-                      <td data-label={t('accounts.fields.balance')}>
-                        <AccountValuationCell
-                          ceiling={
-                            asOf === undefined
-                              ? null
-                              : depositCeilingOf(account, products.items, models.items)
-                          }
-                          startingBalanceHint={account.valuationMode === 'TRANSACTIONS'}
-                          valuation={account.valuation}
-                        />
-                      </td>
                       {showsPerformance ? (
                         <td data-label={t('accounts.performance.column')}>
                           <AccountPerformanceCell
@@ -204,6 +193,18 @@ export function AccountList({
                           />
                         </td>
                       ) : null}
+                      <td data-label={t('accounts.fields.balance')}>
+                        <AccountValuationCell
+                          ceiling={
+                            asOf === undefined
+                              ? null
+                              : depositCeilingOf(account, products.items, models.items)
+                          }
+                          provenance={!valuedByPortfolio(account)}
+                          startingBalanceHint={account.valuationMode === 'TRANSACTIONS'}
+                          valuation={account.valuation}
+                        />
+                      </td>
                       <td data-label={t('accounts.list.actions')}>
                         <div className={styles.rowActions}>
                           {reordering ? (

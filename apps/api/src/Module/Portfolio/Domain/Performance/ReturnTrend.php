@@ -51,6 +51,20 @@ final readonly class ReturnTrend
     }
 
     /**
+     * A trend that cannot be computed at all: the window stays, every index is null.
+     *
+     * @param list<string> $months the window, oldest first
+     */
+    public static function unavailable(array $months, ReturnTrendReason $reason): self
+    {
+        if (self::MONTHS !== count($months)) {
+            throw new \InvalidArgumentException('A return trend reads exactly twelve months.');
+        }
+
+        return new self(self::months($months, array_fill(0, self::MONTHS, null)), null, $months[self::MONTHS - 1], null, $reason, null);
+    }
+
+    /**
      * @param list<string>  $months     the window, oldest first
      * @param list<?string> $rates      the unrounded monthly rate of each month, null where it has none
      * @param int           $firstIndex position of the chain start in the window; below zero starts at the first month, at or beyond the window length means no history

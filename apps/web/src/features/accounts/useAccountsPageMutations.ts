@@ -38,15 +38,21 @@ export function useAccountsPageMutations({
 }) {
   const queryClient = useQueryClient();
 
+  // The accounts overview joins the portfolios list by account id: refresh both together.
+  function invalidateAccountLists() {
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+      queryClient.invalidateQueries({ queryKey: ['account'] }),
+      queryClient.invalidateQueries({ queryKey: ['portfolios', 'overview'] }),
+    ]);
+  }
+
   async function refreshOnStaleState(error: unknown) {
     if (
       error instanceof AccountRequestError &&
       (error.kind === 'stale' || error.kind === 'archived')
     ) {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
-        queryClient.invalidateQueries({ queryKey: ['account'] }),
-      ]);
+      await invalidateAccountLists();
     }
   }
 
@@ -74,10 +80,7 @@ export function useAccountsPageMutations({
     onSuccess: async () => {
       closeEditor();
       notify('saved');
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
-        queryClient.invalidateQueries({ queryKey: ['account'] }),
-      ]);
+      await invalidateAccountLists();
     },
   });
 
@@ -99,10 +102,7 @@ export function useAccountsPageMutations({
     onSuccess: async () => {
       closeArchive();
       notify('archived');
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
-        queryClient.invalidateQueries({ queryKey: ['account'] }),
-      ]);
+      await invalidateAccountLists();
     },
   });
 
@@ -128,6 +128,7 @@ export function useAccountsPageMutations({
       notify('recorded');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['portfolios', 'overview'] }),
         invalidateAccountBalances(queryClient),
       ]);
     },

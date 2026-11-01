@@ -15,11 +15,6 @@
   gap: var(--spacing-2);
 }
 
-.trend a {
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-}
-
 .gainSkeleton {
   display: block;
   width: calc(var(--spacing-12) * 2);

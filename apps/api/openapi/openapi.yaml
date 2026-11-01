@@ -8802,13 +8802,14 @@ components:
           type: [string, 'null']
           pattern: '^-?[0-9]+\.[0-9]{6}$'
         reason:
-          description: Why cumulativeReturn is null.
+          description: Why cumulativeReturn is null. TOO_MANY_OPERATIONS means the account history exceeds the performance read bound; every index is then null.
           type: [string, 'null']
           enum:
             - null
             - NO_HISTORY
             - MISSING_MONTH
             - NON_POSITIVE_GROWTH_FACTOR
+            - TOO_MANY_OPERATIONS
         reasonMonth:
           description: The month that broke the chain, for MISSING_MONTH and NON_POSITIVE_GROWTH_FACTOR.
           type: [string, 'null']

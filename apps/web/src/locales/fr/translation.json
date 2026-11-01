@@ -354,12 +354,11 @@
       "truncated": "Performance non affichée : limite de 50 comptes atteinte",
       "retry": "Réessayer",
       "notice": "Les performances des investissements sont indisponibles.",
-      "captionWindow": "{{rate}} sur 12 mois",
-      "captionSince": "{{rate}} depuis {{since}}",
       "sparkline": "Rendement mensuel chaîné de {{from}} à {{to}} : {{rate}}",
       "dueMonth": "Fin {{month}} à saisir",
       "reasons": {
         "NO_HISTORY": "Rendement 12 mois : pas encore d’historique",
+        "TOO_MANY_OPERATIONS": "Rendement 12 mois non disponible : historique trop volumineux",
         "MISSING_MONTH": "Rendement 12 mois non calculable : {{month}} sans valorisation",
         "NON_POSITIVE_GROWTH_FACTOR": "Rendement 12 mois non calculable : perte totale en {{month}}"
       }
@@ -422,10 +421,7 @@
     "addFirst": "Créer le premier compte",
     "manageGroups": "Gérer les groupes",
     "actions": {
-      "groups": "Groupes",
-      "subGroups": "Sous-groupes",
-      "reorder": "Réorganiser",
-      "done": "Terminer"
+      "groups": "Groupes"
     },
     "reorder": {
       "start": "Réorganiser les comptes",

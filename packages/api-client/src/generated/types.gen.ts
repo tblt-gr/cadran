@@ -163,9 +163,9 @@ export type PortfolioReturnTrend = {
      */
     cumulativeReturn: string | null;
     /**
-     * Why cumulativeReturn is null.
+     * Why cumulativeReturn is null. TOO_MANY_OPERATIONS means the account history exceeds the performance read bound; every index is then null.
      */
-    reason: null | 'NO_HISTORY' | 'MISSING_MONTH' | 'NON_POSITIVE_GROWTH_FACTOR';
+    reason: null | 'NO_HISTORY' | 'MISSING_MONTH' | 'NON_POSITIVE_GROWTH_FACTOR' | 'TOO_MANY_OPERATIONS';
     /**
      * The month that broke the chain, for MISSING_MONTH and NON_POSITIVE_GROWTH_FACTOR.
      */

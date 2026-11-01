@@ -8,6 +8,8 @@ import chartStyles from '@/features/accounts/group-composition/GroupComposition.
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { formatAmount } from '@/lib/decimal';
 import { lazyComponent } from '@/lib/lazyComponent';
+import { ColorSwatch } from './ColorSwatch';
+import { shadeWithinGroups } from './sliceColors';
 import styles from './NetWorthCompositionCard.module.css';
 
 // Keeps the donut out of the accounts route chunk: the table and the figures render first.
@@ -27,11 +29,20 @@ const PLACEHOLDER_ROWS = 3;
 export function NetWorthCompositionView({ composition }: NetWorthCompositionViewProps) {
   const { i18n, t } = useTranslation();
   const headingId = useId();
+  const colors =
+    composition === null
+      ? []
+      : shadeWithinGroups(
+          composition.accounts.map((account) => ({
+            color: account.color,
+            groupId: account.primaryGroupId,
+          })),
+        );
   const entries =
     composition === null
       ? null
-      : composition.accounts.map((account) => ({
-          color: account.color,
+      : composition.accounts.map((account, index) => ({
+          color: colors[index] ?? null,
           institution: account.institution,
           key: account.id,
           label: account.label,
@@ -78,7 +89,12 @@ export function NetWorthCompositionView({ composition }: NetWorthCompositionView
                 ? Array.from({ length: PLACEHOLDER_ROWS }, (_, row) => (
                     <tr key={row}>
                       <th scope="row">
-                        <SkeletonBlock className={styles.labelSkeleton} />
+                        <span className={styles.account}>
+                          <SkeletonBlock className={styles.swatch} />
+                          <span>
+                            <SkeletonBlock className={styles.labelSkeleton} />
+                          </span>
+                        </span>
                       </th>
                       <td>
                         <SkeletonBlock className={styles.valueSkeleton} />
@@ -88,13 +104,16 @@ export function NetWorthCompositionView({ composition }: NetWorthCompositionView
                       </td>
                     </tr>
                   ))
-                : composition.accounts.map((account) => {
+                : composition.accounts.map((account, index) => {
                     const shown =
                       account.value === null ? null : (account.value.display ?? account.value);
                     return (
                       <tr key={account.id}>
                         <th scope="row">
-                          <span>{account.label}</span>
+                          <span className={styles.account}>
+                            <ColorSwatch color={colors[index] ?? null} />
+                            <span>{account.label}</span>
+                          </span>
                           {account.institution ? <small>{account.institution}</small> : null}
                         </th>
                         <td className="money" data-visual-mask>

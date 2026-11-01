@@ -547,4 +547,37 @@ describe('AccountOverview', () => {
       ),
     );
   });
+
+  it('closes the page with the net worth pie, after every group table', async () => {
+    api.readAccountOverview.mockImplementation(() =>
+      success(buildOverview([buildHeading({ memberCount: 1 })], 1)),
+    );
+    api.readAccountOverviewRows.mockImplementation(() => rows([inGroup(A, 'Compte A')]));
+    renderOverview();
+    // Set after render: the helper installs an empty default, read once the overview has loaded.
+    api.readAccountOverviewComposition.mockImplementation(() =>
+      success({
+        asOf: '2026-09-05',
+        total: null,
+        totalReason: 'MISSING_VALUATION',
+        chartReason: null,
+        accounts: [
+          {
+            id: A,
+            label: 'Compte A',
+            institution: null,
+            primaryGroupId: GROUP_G,
+            color: null,
+            value: null,
+            share: share('100.00'),
+          },
+        ],
+      }),
+    );
+
+    const group = await screen.findByRole('heading', { name: /Épargne/ });
+    await screen.findByText('Compte A');
+    const pie = screen.getByRole('heading', { name: 'Répartition par compte' });
+    expect(group.compareDocumentPosition(pie) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

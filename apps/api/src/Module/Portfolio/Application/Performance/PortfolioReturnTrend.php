@@ -9,6 +9,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Portfolio\Domain\Performance\PerformancePeriod;
 use App\Module\Portfolio\Domain\Performance\PerformanceScope;
 use App\Module\Portfolio\Domain\Performance\ReturnTrend;
+use App\Module\Portfolio\Domain\Performance\ReturnTrendReason;
 
 /**
  * The chained monthly return of the twelve complete months before the current one.
@@ -28,7 +29,12 @@ final readonly class PortfolioReturnTrend
     public function __invoke(WorkspaceScope $workspace, Account $account, \DateTimeImmutable $today): ReturnTrend
     {
         $window = ReturnTrend::windowBefore($today);
-        $history = $this->builder->history($workspace, $account);
+        try {
+            $history = $this->builder->history($workspace, $account);
+        } catch (PerformanceRangeTooDense) {
+            // One heavy account must not take the whole list down: only its own trend is unavailable.
+            return ReturnTrend::unavailable($window, ReturnTrendReason::TOO_MANY_OPERATIONS);
+        }
         if ([] === $history) {
             return ReturnTrend::compute($window, array_fill(0, ReturnTrend::MONTHS, null), ReturnTrend::MONTHS);
         }

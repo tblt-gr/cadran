@@ -95,6 +95,20 @@ final class ReturnTrendTest extends TestCase
     }
 
     #[Test]
+    public function anUnavailableTrendKeepsTheWindowAndNamesItsReason(): void
+    {
+        $trend = ReturnTrend::unavailable(self::WINDOW, ReturnTrendReason::TOO_MANY_OPERATIONS);
+
+        self::assertSame(array_fill(0, 12, null), $this->indexes($trend));
+        self::assertSame('2025-10', $trend->months[0]['month']);
+        self::assertSame('2026-09', $trend->to);
+        self::assertNull($trend->from);
+        self::assertNull($trend->cumulativeReturn);
+        self::assertSame(ReturnTrendReason::TOO_MANY_OPERATIONS, $trend->reason);
+        self::assertNull($trend->reasonMonth);
+    }
+
+    #[Test]
     public function aStartAfterTheWindowIsNoHistory(): void
     {
         $trend = ReturnTrend::compute(self::WINDOW, array_fill(0, 12, null), 12);

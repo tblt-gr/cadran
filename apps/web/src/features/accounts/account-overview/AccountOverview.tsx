@@ -78,7 +78,6 @@ export function AccountOverview({
 
   return (
     <div className={styles.overview}>
-      <NetWorthCompositionCard asOf={asOf} />
       {shown.map((group) => (
         <AccountGroupTable
           asOf={asOf}
@@ -92,6 +91,7 @@ export function AccountOverview({
           {...rowActions}
         />
       ))}
+      <NetWorthCompositionCard asOf={asOf} />
     </div>
   );
 }

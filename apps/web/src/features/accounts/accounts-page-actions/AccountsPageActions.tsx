@@ -57,26 +57,16 @@ export function AccountsPageActions({
           <Icon name="folder" />
           <span className={styles.secondaryLabel}>{t('accounts.actions.groups')}</span>
         </a>
-        <GroupingModeToggle
-          className={`secondary-action ${styles.secondary}`}
-          mode={grouping}
-          onChange={onGroupingChange}
-          visibleLabel={
-            <span className={styles.secondaryLabel}>{t('accounts.actions.subGroups')}</span>
-          }
-        />
+        <GroupingModeToggle className="icon-button" mode={grouping} onChange={onGroupingChange} />
         <button
           aria-label={reorderLabel}
           aria-pressed={reordering}
-          className={`secondary-action ${styles.secondary}`}
+          className="icon-button"
           onClick={onToggleReordering}
           title={reorderLabel}
           type="button"
         >
           <Icon name={reordering ? 'check-circle' : 'reorder'} />
-          <span className={styles.secondaryLabel}>
-            {t(reordering ? 'accounts.actions.done' : 'accounts.actions.reorder')}
-          </span>
         </button>
       </HeaderActions>
       <AccountFilters

@@ -10,6 +10,8 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 interface AccountValuationCellProps {
   ceiling?: { assetCode: string; value: string } | null;
   size?: 'md' | 'lg';
+  /** Hidden for an investment account: its freshness is stated on the portfolio page. */
+  provenance?: boolean;
   startingBalanceHint?: boolean;
   valuation: AccountValuation | null;
 }
@@ -24,12 +26,13 @@ interface AccountValuationCellProps {
 export function AccountValuationCell({
   ceiling = null,
   size = 'md',
+  provenance = true,
   valuation,
   startingBalanceHint = false,
 }: AccountValuationCellProps) {
   const { i18n, t } = useTranslation();
   const cellClassName = size === 'lg' ? `${styles.cell} ${styles.large}` : styles.cell;
-  const showProvenance = size !== 'lg';
+  const showProvenance = size !== 'lg' && provenance;
 
   if (valuation === null) {
     return (

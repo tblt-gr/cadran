@@ -9,7 +9,7 @@ import overviewStyles from './account-overview/AccountOverview.module.css';
 
 const noop = () => undefined;
 
-/** Mirrors AccountOverview element for element: the composition card then one table, whose values are pending. */
+/** Mirrors AccountOverview element for element: one table then the composition card, whose values are pending. */
 export function AccountsPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   const headingId = useId();
@@ -17,7 +17,6 @@ export function AccountsPageSkeleton({ status }: { status: string }) {
   return (
     <div aria-busy="true" className={overviewStyles.overview} data-testid="accounts-page-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
-      <NetWorthCompositionView composition={null} />
       <section aria-labelledby={headingId} className={groupStyles.group}>
         <AccountGroupHeading group={null} headingId={headingId} />
         <AccountList
@@ -31,6 +30,7 @@ export function AccountsPageSkeleton({ status }: { status: string }) {
           onRules={noop}
         />
       </section>
+      <NetWorthCompositionView composition={null} />
     </div>
   );
 }

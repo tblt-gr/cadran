@@ -71,12 +71,26 @@
   font-size: var(--font-size-label);
 }
 
-.table th span,
+.table th > span,
 .table th small {
   display: block;
 }
 
+.table th .account {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.swatch {
+  display: block;
+  flex: none;
+  width: var(--spacing-3);
+  height: var(--spacing-3);
+}
+
 .table th small {
+  margin-left: calc(var(--spacing-3) + var(--spacing-2));
   color: var(--text-muted);
   font-size: var(--font-size-xs);
 }

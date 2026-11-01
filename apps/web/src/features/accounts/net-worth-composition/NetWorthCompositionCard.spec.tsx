@@ -91,6 +91,32 @@ describe('NetWorthCompositionCard', () => {
     ).toBeTruthy();
   });
 
+  it('gives every account a swatch, shaded apart inside a shared group, beside its label', async () => {
+    const same = { primaryGroupId: 'g1', color: '#7B96F4' };
+    api.readAccountOverviewComposition.mockReturnValue(
+      success(
+        workedComposition({
+          accounts: [
+            compositionAccount({ id: 'a1', label: 'PEA Bourse', ...same }),
+            compositionAccount({ id: 'a2', label: 'Compte titres', ...same }),
+          ],
+        }),
+      ),
+    );
+    renderCard();
+
+    await screen.findByText('PEA Bourse');
+    const rows = within(screen.getByRole('table', { name: 'Répartition par compte' })).getAllByRole(
+      'row',
+    );
+    const fill = (row: HTMLElement) =>
+      row.querySelector('[data-swatch] circle')!.getAttribute('fill');
+    expect(fill(rows[1]!)).toMatch(/^#[0-9A-F]{6}$/);
+    expect(fill(rows[1]!)).not.toBe(fill(rows[2]!));
+    expect(within(rows[1]!).getByText('PEA Bourse')).toBeTruthy();
+    expect(rows[1]!.querySelector('[data-swatch]')!.getAttribute('aria-hidden')).toBe('true');
+  });
+
   it.each([
     ['MISSING_VALUATION', "Le graphique n'est pas affiché : une valorisation manque."],
     ['MIXED_ASSETS', "Le graphique n'est pas affiché : les comptes mélangent plusieurs unités."],

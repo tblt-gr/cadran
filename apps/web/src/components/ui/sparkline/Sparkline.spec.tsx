@@ -54,4 +54,15 @@ describe('Sparkline', () => {
     const ys = commands.map((command) => command.trim().split(' ')[2]);
     expect(new Set(ys).size).toBe(1);
   });
+
+  it('marks a rising run and a falling run for the stroke colour, a flat run for neither', () => {
+    const rising = render(<Sparkline label="x" points={points(['100.00', '101.00'])} />);
+    expect(rising.container.querySelector('svg')!.getAttribute('class')).toContain('rising');
+    const falling = render(<Sparkline label="x" points={points(['101.00', '100.00'])} />);
+    expect(falling.container.querySelector('svg')!.getAttribute('class')).toContain('falling');
+    const flat = render(<Sparkline label="x" points={points(['100.00', '100.00'])} />);
+    const flatClass = flat.container.querySelector('svg')!.getAttribute('class')!;
+    expect(flatClass).not.toContain('rising');
+    expect(flatClass).not.toContain('falling');
+  });
 });

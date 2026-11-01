@@ -46,7 +46,7 @@ export function UnrealizedGain({
       {performance === null ? (
         <EmptyValue label="Performance non calculable" />
       ) : (
-        <span>{signed(formatRatioPercentage(performance, 'fr'), performance)}</span>
+        <span>({signed(formatRatioPercentage(performance, 'fr'), performance)})</span>
       )}
     </span>
   );

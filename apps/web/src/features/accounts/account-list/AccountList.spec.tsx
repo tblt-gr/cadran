@@ -92,17 +92,16 @@ describe('AccountList', () => {
     expect(api.listPortfolios).not.toHaveBeenCalled();
   });
 
-  it('adds a Performance column after the balance, with a quiet dash on other rows', async () => {
+  it('puts the Performance column right before the balance, which stays last, with a quiet dash on other rows', async () => {
     api.listPortfolios.mockReturnValue(success(list([accountCardFixture({ accountId: 'p1' })])));
     renderList([livret, pea]);
 
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers.indexOf('Performance')).toBe(headers.indexOf('Solde observé') + 1);
+    expect(headers.indexOf('Performance')).toBe(headers.indexOf('Solde observé') - 1);
+    expect(headers.indexOf('Solde observé')).toBe(headers.length - 2);
     const peaRow = screen.getByRole('row', { name: /Mon PEA/ });
     await waitFor(() =>
-      expect(
-        within(peaRow).getByRole('link', { name: '+1,95 % depuis juillet 2026' }),
-      ).toBeTruthy(),
+      expect(within(peaRow).getByRole('img', { name: /: \+1,95 %$/ })).toBeTruthy(),
     );
     expect(
       within(screen.getByRole('row', { name: /Livret A/ })).getByRole('img', {
