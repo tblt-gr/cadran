@@ -7,6 +7,8 @@ import { AccountIdentityCard } from './AccountIdentityCard';
 
 const api = vi.hoisted(() => ({
   listAccountGroups: vi.fn(),
+  listProducts: vi.fn(),
+  listProductModels: vi.fn(),
   readAccountRules: vi.fn(),
   readProduct: vi.fn(),
   readProductModel: vi.fn(),
@@ -90,21 +92,65 @@ describe('AccountIdentityCard', () => {
     api.listAccountGroups.mockImplementation(() =>
       success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
+    api.listProducts.mockImplementation(() =>
+      success({
+        items: [{ code: 'FR_LIVRET_A', displayName: 'Livret A' }],
+        page: 1,
+        pageSize: 100,
+        total: 1,
+      }),
+    );
+    api.listProductModels.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
+    );
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it('shows the account name and masked identifier without repeating header metadata', () => {
+  it('shows the account name and masked identifier', () => {
     renderCard(account);
 
     expect(screen.getByRole('heading', { name: 'Livret A Banque X' })).toBeTruthy();
     expect(screen.getByText('Aucun groupe')).toBeTruthy();
     expect(screen.getByText('••4821')).toBeTruthy();
-    expect(screen.queryByText('Banque X')).toBeNull();
     expect(screen.queryByText('Identité')).toBeNull();
     expect(screen.queryByText(/Ouvert le/)).toBeNull();
+  });
+
+  it('writes one line with the institution and the product above the group', async () => {
+    renderCard({ ...account, productCode: 'FR_LIVRET_A' });
+
+    const line = await screen.findByText('Banque X · Livret A');
+    const group = screen.getByText('Aucun groupe');
+    expect(Boolean(line.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
+    expect(screen.queryByText('Établissement')).toBeNull();
+    expect(screen.queryByText('Type de produit')).toBeNull();
+  });
+
+  it('keeps only the parts that are present and no line when both are absent', async () => {
+    const { unmount } = renderCard({ ...account, productCode: 'FR_LIVRET_A', institution: null });
+    expect(await screen.findByText('Livret A')).toBeTruthy();
+    unmount();
+
+    renderCard({ ...account, institution: null });
+    await vi.waitFor(() => expect(api.listProducts).toHaveBeenCalled());
+    expect(screen.queryByText(/·/)).toBeNull();
+    expect(screen.queryByText('Banque X')).toBeNull();
+  });
+
+  it('writes the same line on a portfolio page', async () => {
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AccountIdentityCard account={{ ...account, productCode: 'FR_LIVRET_A' }} portfolio />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Banque X · Livret A')).toBeTruthy();
   });
 
   it('keeps the contractual rate without showing a balance-based interest estimate', async () => {

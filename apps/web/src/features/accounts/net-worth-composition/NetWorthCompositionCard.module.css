@@ -38,7 +38,7 @@
 
 .table th,
 .table td {
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-4);
   border-bottom: var(--border-line-subtle);
   text-align: left;
   vertical-align: middle;
@@ -46,11 +46,9 @@
 }
 
 .table thead th {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
 }
 
 .table tbody th,
@@ -64,11 +62,6 @@
 .table tfoot td {
   font-weight: var(--font-weight-bold);
   border-bottom: var(--border-none);
-}
-
-.table td {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
 }
 
 .table th > span,

@@ -19,7 +19,18 @@ export function useLiveAccount(account: Account | null): Account | null {
     if (account === null) {
       return undefined;
     }
-    return queryClient.getQueryCache().subscribe(() => refresh());
+    // Only a data update of an overview rows query can change the row. Reacting to every cache
+    // event (observer added, options updated) re-renders the page, whose query hooks then emit
+    // those events again: a feedback loop that never settles while a modal is open.
+    return queryClient.getQueryCache().subscribe((event) => {
+      if (
+        event.type === 'updated' &&
+        event.query.queryKey[0] === 'accounts' &&
+        event.query.queryKey[1] === 'overview-rows'
+      ) {
+        refresh();
+      }
+    });
   }, [account, queryClient]);
 
   if (account === null) {

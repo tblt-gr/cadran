@@ -16,6 +16,7 @@ const api = vi.hoisted(() => ({
   listAccountRuleOverrides: vi.fn(),
   readAccountRules: vi.fn(),
   listPortfolios: vi.fn(),
+  listAccountBalances: vi.fn(),
   readAccountOverview: vi.fn(),
   readAccountOverviewComposition: vi.fn(),
   readAccountOverviewRows: vi.fn(),
@@ -1468,8 +1469,8 @@ describe('AccountsPage', () => {
     renderPage();
 
     expect(await screen.findByText(/231,10/)).toBeTruthy();
-    expect(screen.getByText(/Ancienne/)).toBeTruthy();
-    expect(screen.getByText(/2 jours/)).toBeTruthy();
+    // The freshness line is kept off the list rows: it lives on the account page.
+    expect(screen.queryByText(/Ancienne/)).toBeNull();
     await waitFor(() => {
       expect(screen.getByRole('table').textContent).toContain('950');
     });
@@ -1557,5 +1558,66 @@ describe('AccountsPage', () => {
       amount: '138.19',
       version: null,
     });
+  });
+
+  it('records a balance with the snapshots accordion open', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({
+        items: [{ ...account, valuation: staleValuation }],
+        page: 1,
+        pageSize: 50,
+        total: 1,
+      }),
+    );
+    api.listAccountBalances.mockImplementation(() =>
+      success({
+        items: [
+          {
+            id: 'snap-1',
+            accountId: account.id,
+            asOf: '2026-10-01',
+            amount: { value: '100.00', assetCode: 'EUR' },
+            source: 'MANUAL',
+            reconciliationStatus: 'UNRECONCILED',
+            comment: null,
+            active: true,
+            version: 1,
+            recordedAt: '2026-10-01T12:00:00+00:00',
+            supersededAt: null,
+          },
+        ],
+        page: 1,
+        pageSize: 100,
+        total: 1,
+      }),
+    );
+    api.recordAccountBalance.mockImplementation(({ body }) =>
+      success({
+        id: 'snap-2',
+        accountId: account.id,
+        asOf: body.asOf,
+        amount: { value: body.amount, assetCode: 'EUR' },
+        source: 'MANUAL',
+        reconciliationStatus: 'UNRECONCILED',
+        comment: null,
+        active: true,
+        version: 1,
+        recordedAt: '2026-10-21T12:00:00+00:00',
+        supersededAt: null,
+      }),
+    );
+    renderPage();
+
+    await openAccountActions('Livret A Banque X');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Enregistrer un solde sur Livret A Banque X' }),
+    );
+    fireEvent.click(screen.getByText('Relevés enregistrés'));
+    expect(await screen.findByText('01/10/2026')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Montant observé'), { target: { value: '138.19' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le solde' }));
+
+    expect(await screen.findByText('Le solde observé a été enregistré.')).toBeTruthy();
+    expect(screen.queryByText('Page indisponible')).toBeNull();
   });
 });

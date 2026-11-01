@@ -10,7 +10,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 interface AccountValuationCellProps {
   ceiling?: { assetCode: string; value: string } | null;
   size?: 'md' | 'lg';
-  /** Hidden for an investment account: its freshness is stated on the portfolio page. */
+  /** Hidden in the accounts list: freshness is stated on the account page. */
   provenance?: boolean;
   startingBalanceHint?: boolean;
   valuation: AccountValuation | null;

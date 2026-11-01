@@ -16,6 +16,9 @@ export function AccountIdentityCardSkeleton({ portfolio = false }: { portfolio?:
             <SkeletonBlock className={skeletonStyles.name} />
           </div>
           <span className={styles.meta}>
+            <SkeletonBlock className={skeletonStyles.line} />
+          </span>
+          <span className={styles.meta}>
             <GroupMarker color={null} pending />
             <SkeletonBlock className={skeletonStyles.line} />
           </span>

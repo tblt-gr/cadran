@@ -6,6 +6,7 @@
 
 .gain {
   margin: var(--spacing-none);
+  font-weight: var(--font-weight-strong);
 }
 
 .trend {

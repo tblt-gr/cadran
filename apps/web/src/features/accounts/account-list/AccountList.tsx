@@ -140,7 +140,7 @@ export function AccountList({
                       <AccountNameCell account={null} />
                     </th>
                     <td data-label={t('accounts.fields.balance')}>
-                      <AccountValuationCell valuation={null} />
+                      <AccountValuationCell provenance={false} valuation={null} />
                     </td>
                     <td data-label={t('accounts.list.actions')}>
                       <div className={styles.rowActions}>
@@ -200,7 +200,7 @@ export function AccountList({
                               ? null
                               : depositCeilingOf(account, products.items, models.items)
                           }
-                          provenance={!valuedByPortfolio(account)}
+                          provenance={false}
                           startingBalanceHint={account.valuationMode === 'TRANSACTIONS'}
                           valuation={account.valuation}
                         />

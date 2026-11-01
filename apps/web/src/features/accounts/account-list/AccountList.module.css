@@ -1,4 +1,5 @@
 .panel {
+  padding: var(--spacing-none);
   overflow: hidden;
 }
 
@@ -33,7 +34,7 @@
 
 .panel th,
 .panel td {
-  padding: var(--spacing-3) var(--spacing-4);
+  padding: var(--spacing-4);
   border-bottom: var(--border-line-subtle);
   text-align: left;
   vertical-align: middle;
@@ -41,11 +42,9 @@
 }
 
 .panel thead th {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
 }
 
 .panel tbody th {
@@ -67,9 +66,8 @@
   font-weight: var(--font-weight-normal);
 }
 
-.panel td {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
+.panel tbody td {
+  font-size: var(--font-size-body);
 }
 
 .panel tbody tr:last-child th,
@@ -170,10 +168,8 @@
   .panel tbody th::before,
   .panel tbody td::before {
     content: attr(data-label);
-    color: var(--text-muted);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--letter-spacing-card);
-    text-transform: uppercase;
+    color: var(--text-secondary);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
   }
 }
