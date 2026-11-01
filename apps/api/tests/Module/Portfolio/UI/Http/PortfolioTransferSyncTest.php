@@ -46,6 +46,7 @@ final class PortfolioTransferSyncTest extends WebTestCase
         $portfolio->account();
         $portfolio->account(self::CURRENT, label: 'Compte courant', kind: 'CURRENT', valuationMode: 'TRANSACTIONS');
         $portfolio->account(self::OTHER_CURRENT, label: 'Livret', kind: 'CURRENT', valuationMode: 'TRANSACTIONS');
+        $portfolio->instrument(PortfolioFixture::ETF, name: 'ETF Monde', isin: 'IE00B4L5Y983');
 
         $this->client->request('GET', '/api/v1/session');
         $csrf = $this->client->getCookieJar()->get(SignedCsrfToken::COOKIE_NAME);
@@ -131,6 +132,62 @@ final class PortfolioTransferSyncTest extends WebTestCase
         self::assertSame('1000', $this->latestTotal());
     }
 
+    public function testNoValuationIsPublishedWhenSecuritiesWereBoughtAfterTheLastValuation(): void
+    {
+        $this->recordTotal('2026-03-05', '1000.00');
+        $this->recordOperation(['type' => 'DEPOSIT', 'tradeDate' => '2026-03-06', 'grossAmount' => $this->eur('400.00')]);
+        $this->recordOperation([
+            'type' => 'BUY', 'tradeDate' => '2026-03-08', 'instrumentId' => PortfolioFixture::ETF,
+            'quantity' => '4', 'unitPrice' => '100', 'grossAmount' => $this->eur('400.00'),
+        ]);
+
+        $this->createTransfer(self::CURRENT, self::PORTFOLIO, '100.00', '2026-03-10');
+
+        self::assertSame('100', $this->cashBalance());
+        self::assertSame('1000', $this->latestTotal());
+    }
+
+    public function testAnObservedCashGapOfTheLastValuationIsKept(): void
+    {
+        $this->send('POST', '/api/v1/accounts/'.self::PORTFOLIO.'/portfolio-valuations', [
+            'valuedOn' => '2026-03-05', 'detail' => 'TOTAL', 'totalValue' => $this->eur('1000.00'), 'observedCash' => $this->eur('200.00'),
+        ]);
+        self::assertResponseStatusCodeSame(201, (string) $this->client->getResponse()->getContent());
+
+        $this->createTransfer(self::CURRENT, self::PORTFOLIO, '100.00', '2026-03-10');
+
+        self::assertSame('1100', $this->latestTotal());
+        self::assertSame('OBSERVED', $this->connection->fetchOne(
+            'SELECT cash_source FROM portfolio_valuations WHERE account_id = :account AND superseded_at IS NULL ORDER BY valued_on DESC, recorded_at DESC LIMIT 1',
+            ['account' => self::PORTFOLIO],
+        ));
+    }
+
+    public function testAnArchivedPortfolioRefusesTheChangesItCannotSynchronize(): void
+    {
+        $transfer = $this->createTransfer(self::CURRENT, self::PORTFOLIO, '500.00', '2026-03-10');
+        $this->connection->executeStatement('UPDATE account_financial_accounts SET archived_at = now() WHERE id = :id', ['id' => self::PORTFOLIO]);
+        $id = $this->string($transfer['id']);
+        $body = [
+            'sourceAccountId' => self::CURRENT, 'targetAccountId' => self::PORTFOLIO, 'state' => 'BOOKED',
+            'bookedOn' => '2026-03-12', 'valueOn' => null, 'label' => 'Virement PEA', 'note' => null, 'fee' => null,
+            'version' => $transfer['version'],
+        ];
+
+        $this->send('PUT', '/api/v1/transfers/'.$id, $body);
+        self::assertResponseStatusCodeSame(409, (string) $this->client->getResponse()->getContent());
+        $this->send('POST', '/api/v1/transfers/'.$id.'/void', ['version' => $transfer['version']]);
+        self::assertResponseStatusCodeSame(409, (string) $this->client->getResponse()->getContent());
+
+        $operations = $this->activeOperations();
+        self::assertCount(1, $operations);
+        self::assertSame('2026-03-10', $operations[0]['trade_date']);
+        self::assertSame(0, $this->connection->fetchOne('SELECT count(*) FROM transaction_transfers WHERE id = :id AND voided_at IS NOT NULL', ['id' => $id]));
+
+        $this->send('PUT', '/api/v1/transfers/'.$id, ['bookedOn' => '2026-03-10', 'label' => 'Nouveau libellé'] + $body);
+        self::assertResponseIsSuccessful((string) $this->client->getResponse()->getContent());
+    }
+
     public function testATransferBetweenCurrentAccountsTouchesNoPortfolio(): void
     {
         $this->createTransfer(self::CURRENT, self::OTHER_CURRENT, '500.00', '2026-03-10');
@@ -157,6 +214,19 @@ final class PortfolioTransferSyncTest extends WebTestCase
             'valuedOn' => $valuedOn, 'detail' => 'TOTAL', 'totalValue' => ['value' => $total, 'assetCode' => 'EUR'],
         ]);
         self::assertResponseStatusCodeSame(201, (string) $this->client->getResponse()->getContent());
+    }
+
+    /** @param array<string, mixed> $body */
+    private function recordOperation(array $body): void
+    {
+        $this->send('POST', '/api/v1/accounts/'.self::PORTFOLIO.'/portfolio-operations', $body);
+        self::assertResponseStatusCodeSame(201, (string) $this->client->getResponse()->getContent());
+    }
+
+    /** @return array{value: string, assetCode: string} */
+    private function eur(string $value): array
+    {
+        return ['value' => $value, 'assetCode' => 'EUR'];
     }
 
     /** @return list<array<string, mixed>> */

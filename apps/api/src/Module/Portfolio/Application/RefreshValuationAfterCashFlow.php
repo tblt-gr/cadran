@@ -8,6 +8,7 @@ use App\Module\Accounts\Domain\Account;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Portfolio\Domain\Valuation\CashSource;
 use App\Module\Portfolio\Domain\Valuation\Valuation;
 use App\Module\Portfolio\Domain\Valuation\ValuationCompleteness;
 use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
@@ -37,12 +38,19 @@ final readonly class RefreshValuationAfterCashFlow
         $today = $this->calendar->today();
         $current = $this->valuations->findActive($workspace, $account->id, $today);
         $base = $current ?? $this->valuations->latestActiveBefore($workspace, $account->id, $today);
-        if (null === $base || !self::usable($base) || ($this->positionsChanged->changedAmong($workspace, $account->id, [$base])[$base->id] ?? true)) {
+        // The securities are carried forward only while today's holdings are the ones the valuation froze, and
+        // a statement total of the owner is not something a cash flow can restate.
+        if (null === $base || !self::usable($base) || null !== $base->observedTotal || $this->positionsChanged->changedOn($workspace, $account->id, $base, $today)) {
             return;
         }
         $securities = $base->securitiesValue ?? throw new \LogicException('A complete valuation states its securities.');
-        $total = ExactDecimal::add($securities, $this->holdings->derivedCash($workspace, $account->id, $today));
-        if (null !== $current && null !== $current->totalValue && 0 === $current->totalValue->compareTo($total) && null === $current->observedTotal) {
+        $derivedCash = $this->holdings->derivedCash($workspace, $account->id, $today);
+        // An observed cash differing from the derived one is a statement the operations cannot replay: its gap is kept.
+        $observedCash = CashSource::OBSERVED === $base->cashSource
+            ? ExactDecimal::add($derivedCash, ExactDecimal::subtract($base->cash, $base->derivedCash))
+            : null;
+        $total = ExactDecimal::add($securities, $observedCash ?? $derivedCash);
+        if (null !== $current && null !== $current->totalValue && 0 === $current->totalValue->compareTo($total) && $current->cashSource === $base->cashSource) {
             return;
         }
 
@@ -51,7 +59,7 @@ final readonly class RefreshValuationAfterCashFlow
             detail: 'TOTAL',
             totalValue: new AmountInput($total->toString(), $account->assetCode->toString()),
             prices: null,
-            observedCash: null,
+            observedCash: null === $observedCash ? null : new AmountInput($observedCash->toString(), $account->assetCode->toString()),
             observedTotal: null,
             note: self::NOTE,
             version: $current?->version,

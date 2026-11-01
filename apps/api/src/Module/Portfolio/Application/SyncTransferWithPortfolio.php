@@ -48,7 +48,7 @@ final readonly class SyncTransferWithPortfolio implements TransferPortfolioSync
         }
         foreach ([$source, $target] as $leg) {
             $account = $this->accounts->find($workspace, $leg->accountId);
-            if (null === $account || !self::isSecuritiesPortfolio($account)) {
+            if (null === $account || !self::followsPortfolio($account)) {
                 continue;
             }
             try {
@@ -77,7 +77,8 @@ final readonly class SyncTransferWithPortfolio implements TransferPortfolioSync
         $operation = null === $linkedId ? null : $this->operations->find($workspace, $linkedId);
 
         if (null === $operation) {
-            if (!$wanted) {
+            // A closed or archived portfolio takes no new operation: its older transfers stay editable as they were.
+            if (!$wanted || !self::isActive($account)) {
                 return false;
             }
             ($this->record)($account->id, self::input($leg));
@@ -97,12 +98,14 @@ final readonly class SyncTransferWithPortfolio implements TransferPortfolioSync
         return true;
     }
 
-    private static function isSecuritiesPortfolio(Account $account): bool
+    private static function followsPortfolio(Account $account): bool
     {
-        return AccountKind::PORTFOLIO === $account->kind
-            && AccountValuationMode::PORTFOLIO === $account->valuationMode
-            && null === $account->archivedAt
-            && !$account->isClosed();
+        return AccountKind::PORTFOLIO === $account->kind && AccountValuationMode::PORTFOLIO === $account->valuationMode;
+    }
+
+    private static function isActive(Account $account): bool
+    {
+        return null === $account->archivedAt && !$account->isClosed();
     }
 
     private static function input(Transaction $leg): OperationInput
