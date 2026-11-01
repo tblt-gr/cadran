@@ -67,7 +67,7 @@ keyboardJourneys();
 test('budget variance names its positive and negative signs with the server status', async ({
   page,
 }) => {
-  await page.goto(fixtures.plan);
+  await page.goto(fixtures.spendingPlan);
   await settled(page);
   const row = page
     .getByRole('row')
