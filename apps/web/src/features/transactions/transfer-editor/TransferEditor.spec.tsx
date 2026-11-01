@@ -65,12 +65,12 @@ function setup(target: Account = portfolio, accounts = [source, target]) {
   );
   return { onSubmit, onSaved, client, ...view };
 }
-function submit(checked = true) {
+function submit(declined = false) {
   fireEvent.change(screen.getByLabelText('Montant (EUR)'), { target: { value: '1500.00' } });
   fireEvent.change(screen.getByLabelText('Libellé'), {
     target: { value: 'Investissement mensuel' },
   });
-  if (checked) fireEvent.click(screen.getByLabelText(label));
+  if (declined) fireEvent.click(screen.getByLabelText(label));
   fireEvent.click(screen.getByRole('button', { name: 'Créer le virement' }));
 }
 describe('TransferEditor linked deposit', () => {
@@ -85,17 +85,17 @@ describe('TransferEditor linked deposit', () => {
     setup({ ...portfolio, ...overrides } as Account);
     expect(screen.queryByLabelText(label)).toBeNull();
   });
-  it('defaults off and never records an unchecked deposit', async () => {
+  it('defaults on and never records a declined deposit', async () => {
     const { onSaved } = setup();
-    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(false);
-    submit(false);
+    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(true);
+    submit(true);
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
     expect(api.recordPortfolioOperation).not.toHaveBeenCalled();
   });
   it('never infers consent from a failed refresh after an unchecked transfer', async () => {
     const { onSaved, client } = setup();
     vi.spyOn(client, 'invalidateQueries').mockRejectedValue(new Error('Read failed'));
-    submit(false);
+    submit(true);
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
     expect(api.recordPortfolioOperation).not.toHaveBeenCalled();
   });
@@ -195,13 +195,13 @@ describe('TransferEditor linked deposit', () => {
       api.recordPortfolioOperation.mock.calls[1]![0].headers['Idempotency-Key'],
     );
   });
-  it('starts unchecked again when the editor is reopened', () => {
+  it('starts checked again when the editor is reopened', () => {
     const first = setup();
     fireEvent.click(screen.getByLabelText(label));
-    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(false);
     first.unmount();
     setup();
-    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(true);
   });
   it('refreshes account, budget, net worth and portfolio reads after partial success', async () => {
     api.recordPortfolioOperation.mockResolvedValue({
@@ -225,7 +225,7 @@ describe('TransferEditor linked deposit', () => {
     await screen.findByRole('alert');
     for (const key of keys) expect(client.getQueryState([key])?.isInvalidated).toBe(true);
   });
-  it('resets consent when destination changes or source loses eligibility', () => {
+  it('restores the default consent when destination changes or source loses eligibility', () => {
     const other = { ...portfolio, id: 'other', label: 'PEA' };
     setup(portfolio, [source, portfolio, other, { ...source, id: 'chf', assetCode: 'CHF' }]);
     const checkbox = screen.getByLabelText(label) as HTMLInputElement;
@@ -235,11 +235,11 @@ describe('TransferEditor linked deposit', () => {
     fireEvent.change(screen.getByLabelText('Compte de destination'), {
       target: { value: other.id },
     });
-    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByLabelText(label));
     fireEvent.change(screen.getByLabelText('Compte source'), { target: { value: 'chf' } });
     expect(screen.queryByLabelText(label)).toBeNull();
     fireEvent.change(screen.getByLabelText('Compte source'), { target: { value: source.id } });
-    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText(label) as HTMLInputElement).checked).toBe(true);
   });
 });

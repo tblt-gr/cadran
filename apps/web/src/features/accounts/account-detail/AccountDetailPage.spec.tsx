@@ -727,7 +727,6 @@ describe('AccountDetailPage', () => {
     fireEvent.change(within(dialog).getByLabelText('Libellé'), {
       target: { value: 'Investissement mensuel' },
     });
-    fireEvent.click(within(dialog).getByLabelText('Créer le versement sur le compte de réception'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
     await waitFor(() => expect(api.recordPortfolioOperation).toHaveBeenCalledOnce());
     expect(screen.getByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();
@@ -792,9 +791,6 @@ describe('AccountDetailPage', () => {
       fireEvent.change(within(dialog).getByLabelText('Libellé'), {
         target: { value: 'Investissement mensuel' },
       });
-      fireEvent.click(
-        within(dialog).getByLabelText('Créer le versement sur le compte de réception'),
-      );
       fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
       await within(dialog).findByText(
         'Actualisation du compte impossible. Les dernières données disponibles restent affichées.',
