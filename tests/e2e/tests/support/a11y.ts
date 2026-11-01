@@ -41,8 +41,8 @@ export async function resolveFixtures(page: Page): Promise<AuditFixtures> {
       /^\/budget\/plans\/[0-9a-f-]{36}$/,
       new RegExp(`^${currentMonth}$`),
     ),
-    portfolio: await link('/portfolios', /^\/portfolios\/[0-9a-f-]{36}$/, /Compte-titres/),
-    insurance: await link('/portfolios', /^\/portfolios\/[0-9a-f-]{36}$/, /Assurance/i),
+    portfolio: await link('/accounts', /^\/portfolios\/[0-9a-f-]{36}$/, /Compte-titres/),
+    insurance: await link('/accounts', /^\/portfolios\/[0-9a-f-]{36}$/, /Assurance/i),
   };
 }
 
@@ -65,7 +65,6 @@ export const routeCases = [
   'annual',
   'multi-year',
   '/goals',
-  '/portfolios',
   '/portfolios/instruments',
   '/parameters/profile',
   '/parameters/metric-policy',

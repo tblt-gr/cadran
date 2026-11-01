@@ -92,9 +92,9 @@ export function ClosePeriodForm({
               {condition === 'MISSING_PORTFOLIO_VALUATION' ? (
                 <a
                   className={styles.link}
-                  href="/portfolios"
+                  href="/accounts"
                   onClick={(event) => {
-                    if (handleClientNavigation(event, '/portfolios')) onNavigate?.();
+                    if (handleClientNavigation(event, '/accounts')) onNavigate?.();
                   }}
                 >
                   {t('closures.conditions.MISSING_PORTFOLIO_VALUATION.link')}

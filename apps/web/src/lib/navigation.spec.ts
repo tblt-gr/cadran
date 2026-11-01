@@ -6,7 +6,6 @@ describe('navigationItems', () => {
     expect(navigationItems.map((item) => item.href)).toEqual([
       '/',
       '/accounts',
-      '/portfolios',
       '/budget',
       '/goals',
       '/transactions',
@@ -19,7 +18,6 @@ describe('navigationItems', () => {
       '/transactions',
     ]);
     expect(navigationItems.filter((item) => !item.mobile).map((item) => item.href)).toEqual([
-      '/portfolios',
       '/goals',
       '/parameters/profile',
     ]);
@@ -28,9 +26,9 @@ describe('navigationItems', () => {
   it.each([
     ['/accounts/account-id', '/accounts'],
     ['/accounts/groups', '/accounts'],
-    ['/portfolios/portfolio-id', '/portfolios'],
-    ['/portfolios/instruments', '/portfolios'],
-    ['/life-insurance/contract-id', '/portfolios'],
+    ['/portfolios/portfolio-id', '/accounts'],
+    ['/portfolios/instruments', '/accounts'],
+    ['/life-insurance/contract-id', '/accounts'],
     ['/budget/plans/plan-id', '/budget'],
     ['/budget/2026', '/budget'],
     ['/budget/2026/10', '/budget'],

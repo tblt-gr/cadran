@@ -2,7 +2,7 @@ import type { AccountGroupComposition, NetWorthAmount, NetWorthShare } from '@ca
 
 /** One slice and table row, whichever view it comes from. */
 export interface CompositionEntry {
-  color: string;
+  color: string | null;
   institution: string | null;
   key: string;
   label: string;

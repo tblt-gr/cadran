@@ -16,6 +16,8 @@ import {
 const api = vi.hoisted(() => ({
   moveAccount: vi.fn(),
   readAccountOverview: vi.fn(),
+  readAccountOverviewComposition: vi.fn(),
+  listPortfolios: vi.fn(),
   readAccountOverviewRows: vi.fn(),
   listProducts: vi.fn(),
   listProductModels: vi.fn(),
@@ -72,6 +74,15 @@ function renderOverview(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  api.readAccountOverviewComposition.mockImplementation(() =>
+    success({
+      asOf: '2026-09-05',
+      total: null,
+      totalReason: 'NO_ELIGIBLE_ACCOUNT',
+      chartReason: null,
+      accounts: [],
+    }),
+  );
   api.listProducts.mockImplementation(() =>
     success({ items: [], page: 1, pageSize: 100, total: 0 }),
   );
@@ -166,7 +177,6 @@ describe('AccountOverview', () => {
     expect(await screen.findByText('Compte A')).toBeTruthy();
     expect(screen.getByText('Compte B')).toBeTruthy();
     expect(screen.getByText('Compte C')).toBeTruthy();
-    expect(screen.getByText('30,00 %')).toBeTruthy();
     expect(screen.getByText('90,00 %')).toBeTruthy();
     expect(screen.queryByRole('columnheader', { name: 'Mode de valorisation' })).toBeNull();
     expect(screen.queryByRole('columnheader', { name: 'Contribution' })).toBeNull();

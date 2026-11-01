@@ -239,9 +239,9 @@ describe('PeriodClosurePanel', () => {
       }),
     ).toBeTruthy();
     const link = within(dialog).getByRole('link', { name: 'Voir les portefeuilles' });
-    expect(link.getAttribute('href')).toBe('/portfolios');
+    expect(link.getAttribute('href')).toBe('/accounts');
     fireEvent.click(link);
-    expect(window.location.pathname).toBe('/portfolios');
+    expect(window.location.pathname).toBe('/accounts');
     expect(close).toHaveBeenCalled();
 
     fireEvent.click(within(dialog).getByRole('checkbox'));

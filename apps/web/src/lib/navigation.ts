@@ -21,14 +21,13 @@ export const navigationItems: NavigationItem[] = [
     href: '/accounts',
     icon: 'accounts',
     labelKey: 'navigation.accounts',
-    match: (path) => path === '/accounts' || /^\/accounts\/[^/]+$/.test(path),
+    // Investment accounts and the instruments reference are reached from the accounts overview.
+    match: (path) =>
+      path === '/accounts' ||
+      /^\/accounts\/[^/]+$/.test(path) ||
+      path.startsWith('/portfolios/') ||
+      /^\/life-insurance\/[^/]+$/.test(path),
     mobile: true,
-  },
-  {
-    href: '/portfolios',
-    icon: 'investments',
-    labelKey: 'navigation.investments',
-    match: (path) => path.startsWith('/portfolios') || /^\/life-insurance\/[^/]+$/.test(path),
   },
   {
     href: '/budget',

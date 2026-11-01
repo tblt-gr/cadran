@@ -1,0 +1,14 @@
+.sparkline {
+  display: block;
+  flex: none;
+}
+
+.line {
+  stroke: var(--text-secondary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dot {
+  fill: var(--text-secondary);
+}

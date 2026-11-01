@@ -10,8 +10,8 @@ test.describe('portfolio operation', () => {
     const cents = String(1 + Math.floor(Math.random() * 98)).padStart(2, '0');
 
     await page.goto('/');
-    await navigateTo(page, 'Investissements');
-    await page.getByRole('heading', { level: 3, name: 'Compte-titres' }).getByRole('link').click();
+    await navigateTo(page, 'Comptes');
+    await page.getByRole('link', { name: 'Compte-titres', exact: true }).click();
     await settled(page);
 
     await page

@@ -24,7 +24,11 @@ export function GroupCompositionPanel({ composition, view }: GroupCompositionPan
   return (
     <div className={styles.panel}>
       <GroupCompositionChart
-        chartReason={composition?.chartReason ?? null}
+        reasonText={
+          composition?.chartReason
+            ? t(`accounts.composition.chartReasons.${composition.chartReason}`)
+            : null
+        }
         entries={entries}
         label={t('accounts.composition.chart', { label: composition?.label ?? '' })}
         total={composition?.total ?? null}

@@ -41,3 +41,17 @@
   font-family: inherit;
   font-size: inherit;
 }
+
+.labelCell .identity {
+  flex-basis: 100%;
+  margin-top: var(--spacing-none);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+}
+
+.identitySkeleton {
+  width: calc(var(--spacing-12) * 3);
+  max-width: 100%;
+  height: var(--font-size-xs);
+}

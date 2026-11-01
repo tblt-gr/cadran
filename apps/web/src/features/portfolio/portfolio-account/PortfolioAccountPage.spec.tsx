@@ -147,8 +147,8 @@ describe('portfolio shell breadcrumb', () => {
     const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
     const current = await within(nav).findByText(account.label);
     expect(current.getAttribute('aria-current')).toBe('page');
-    expect(within(nav).getByRole('link', { name: 'Investissements' }).getAttribute('href')).toBe(
-      '/portfolios',
+    expect(within(nav).getByRole('link', { name: 'Comptes' }).getAttribute('href')).toBe(
+      '/accounts',
     );
     expect(screen.getByRole('heading', { level: 1, name: account.label })).toBeTruthy();
     expect(api.readAccount).toHaveBeenCalledTimes(1);
@@ -179,8 +179,8 @@ describe('portfolio shell breadcrumb', () => {
   it('renders the real static hierarchy under FrozenQueries without fetching', () => {
     renderPage('Europe/Paris', true, true);
     const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
-    expect(within(nav).getByRole('link', { name: 'Investissements' }).getAttribute('href')).toBe(
-      '/portfolios',
+    expect(within(nav).getByRole('link', { name: 'Comptes' }).getAttribute('href')).toBe(
+      '/accounts',
     );
     expect(within(nav).getByText('Chargement du compte').getAttribute('aria-busy')).toBe('true');
     expect(screen.getAllByRole('status')).toHaveLength(1);

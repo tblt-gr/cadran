@@ -1,0 +1,39 @@
+.cell {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-2);
+}
+
+.gain {
+  margin: var(--spacing-none);
+}
+
+.trend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.trend a {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.gainSkeleton {
+  display: block;
+  width: calc(var(--spacing-12) * 2);
+  height: var(--font-size-body);
+}
+
+.sparklineSkeleton {
+  display: block;
+  width: 6rem;
+  height: 1.75rem;
+}
+
+.captionSkeleton {
+  display: block;
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-xs);
+}

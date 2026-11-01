@@ -1,6 +1,6 @@
 import type { Account, Product, ProductModel } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AccountsPage } from './AccountsPage';
@@ -15,7 +15,9 @@ const api = vi.hoisted(() => ({
   listProducts: vi.fn(),
   listAccountRuleOverrides: vi.fn(),
   readAccountRules: vi.fn(),
+  listPortfolios: vi.fn(),
   readAccountOverview: vi.fn(),
+  readAccountOverviewComposition: vi.fn(),
   readAccountOverviewRows: vi.fn(),
   readNetWorth: vi.fn(),
   recordAccountBalance: vi.fn(),
@@ -372,6 +374,15 @@ describe('AccountsPage', () => {
   beforeEach(() => {
     window.localStorage.removeItem('cadran.accounts.grouping');
     installOverview();
+    api.readAccountOverviewComposition.mockImplementation(() =>
+      success({
+        asOf: '2026-09-05',
+        total: null,
+        totalReason: 'NO_ELIGIBLE_ACCOUNT',
+        chartReason: null,
+        accounts: [],
+      }),
+    );
     // Editing resolves the model an account follows before offering a kind, so
     // every edit path answers the catalogue read.
     api.readProduct.mockImplementation(() => success(livretA));
@@ -1342,25 +1353,89 @@ describe('AccountsPage', () => {
     expect(screen.queryByText('0,00')).toBeNull();
   });
 
-  it('prints the share of eligible net worth carried by the account row', async () => {
+  it('leaves the share to the net worth pie instead of a column on the account row', async () => {
     api.listAccounts.mockImplementation(() =>
       success({
-        items: [
-          {
-            ...account,
-            valuation: staleValuation,
-            share: { ratio: '0.482', percent: '48.2', percentDisplay: '48.20', reason: null },
-          },
-        ],
+        items: [{ ...account, valuation: staleValuation }],
         page: 1,
         pageSize: 50,
         total: 1,
       }),
     );
+    api.readAccountOverviewComposition.mockImplementation(() =>
+      success({
+        asOf: '2026-09-05',
+        total: {
+          value: '231.10',
+          assetCode: 'EUR',
+          display: { value: '231.10', assetCode: 'EUR' },
+          belowDisplayStep: false,
+        },
+        totalReason: null,
+        chartReason: null,
+        accounts: [
+          {
+            id: account.id,
+            label: account.label,
+            institution: 'Banque X',
+            primaryGroupId: account.primaryGroupId,
+            color: '#B87333',
+            value: {
+              value: '231.10',
+              assetCode: 'EUR',
+              display: { value: '231.10', assetCode: 'EUR' },
+              belowDisplayStep: false,
+            },
+            share: { ratio: '0.482', percent: '48.2', percentDisplay: '48.20', reason: null },
+          },
+        ],
+      }),
+    );
     renderPage();
 
     expect(await screen.findByText('48,20 %')).toBeTruthy();
+    expect(api.readAccountOverviewComposition).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { asOf: '2026-09-05' } }),
+    );
     expect(api.readNetWorth).not.toHaveBeenCalled();
+  });
+
+  it('reads no portfolios without an investment account', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
+    );
+    renderPage();
+
+    await screen.findByText(account.label);
+    expect(api.listPortfolios).not.toHaveBeenCalled();
+    expect(screen.queryByText('Performance')).toBeNull();
+  });
+
+  it('keeps the page usable and offers one retry when the portfolios cannot be read', async () => {
+    const investment = {
+      ...account,
+      id: 'p-1',
+      label: 'Mon PEA',
+      kind: 'PORTFOLIO',
+      valuationMode: 'PORTFOLIO',
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account, investment], page: 1, pageSize: 50, total: 2 }),
+    );
+    api.listPortfolios.mockImplementation(() => problem(500, '/problems/unavailable'));
+    renderPage();
+
+    expect(await screen.findByText('Performance indisponible')).toBeTruthy();
+    expect(screen.getByText('Mon PEA')).toBeTruthy();
+    expect(api.listPortfolios).toHaveBeenCalledTimes(1);
+    const notice = screen.getByRole('alert');
+    api.listPortfolios.mockImplementation(() =>
+      success({ items: [], truncated: false, total: {} }),
+    );
+    fireEvent.click(within(notice).getByRole('button', { name: 'Réessayer' }));
+
+    await waitFor(() => expect(api.listPortfolios).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 
   it('shows a carried-forward balance as stale and records a manual replacement', async () => {

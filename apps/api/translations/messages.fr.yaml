@@ -540,6 +540,9 @@ api:
     composition_too_large:
       title: 'Répartition trop large'
       detail: "Ce groupe contient plus de 1000 comptes dans son arborescence, plus qu'une répartition n'en lit en une fois."
+    overview_composition_too_large:
+      title: 'Répartition trop large'
+      detail: "Cet espace contient plus de 1000 comptes éligibles, plus qu'une répartition n'en lit en une fois."
     net_worth_forbidden:
       title: 'Patrimoine inaccessible'
       detail: "Cette session n'est rattachée à aucun espace de travail."

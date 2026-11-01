@@ -12,16 +12,12 @@
   table-layout: fixed;
 }
 
-.identityColumn {
-  width: 24%;
-}
-
 .balanceColumn {
   width: 28%;
 }
 
-.shareColumn {
-  width: 9rem;
+.performanceColumn {
+  width: 24%;
 }
 
 .actionsColumn {
@@ -79,11 +75,6 @@
 .panel tbody tr:last-child th,
 .panel tbody tr:last-child td {
   border-bottom: var(--border-none);
-}
-
-.shareSkeleton {
-  width: calc(var(--spacing-12) + var(--spacing-4));
-  height: var(--spacing-4);
 }
 
 .panel tbody td > span,

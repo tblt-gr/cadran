@@ -8,9 +8,14 @@ import { AccountValuationCell } from '@/features/accounts/account-valuation-cell
 import { useAccountGroupIdentities } from '@/features/accounts/useAccountGroupIdentities';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
-import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
+import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
+import { usePortfolios } from '@/features/portfolio/usePortfolioOverview';
 import { depositCeilingOf } from '@/lib/depositCeiling';
 import { AccountNameCell } from '@/features/accounts/account-list/account-name-cell/AccountNameCell';
+import {
+  AccountPerformanceCell,
+  type PortfolioJoin,
+} from './account-performance-cell/AccountPerformanceCell';
 import styles from './AccountList.module.css';
 
 interface AccountListProps {
@@ -55,6 +60,9 @@ export function AccountList({
   const models = useTemplateOptions();
   const nestsSubGroups = accounts?.some((account) => account.primaryGroupParentLabel !== null);
   const groupIdentities = useAccountGroupIdentities(nestsSubGroups === true);
+  const showsPerformance = accounts?.some(valuedByPortfolio) === true;
+  // One shared read per page: observers of the same key join a single request.
+  const portfolios = usePortfolios(showsPerformance);
   const pendingFocus = useRef<{ id: string; direction: 'up' | 'down' } | null>(null);
   const order = accounts?.map((account) => account.id).join('|');
 
@@ -83,6 +91,17 @@ export function AccountList({
     );
   }
 
+  function portfolioFor(account: AccountOverviewRow): PortfolioJoin {
+    if (!showsPerformance) return { status: 'none' };
+    if (portfolios.isError) return { status: 'error' };
+    if (portfolios.data === undefined) return { status: 'pending' };
+    return {
+      status: 'ready',
+      item: portfolios.data.items.find((item) => item.accountId === account.id),
+      truncated: portfolios.data.truncated,
+    };
+  }
+
   function move(
     account: AccountOverviewRow,
     direction: 'up' | 'down',
@@ -99,17 +118,15 @@ export function AccountList({
           <caption className="sr-only">{label}</caption>
           <colgroup>
             <col />
-            <col className={styles.identityColumn} />
             <col className={styles.balanceColumn} />
-            <col className={styles.shareColumn} />
+            {showsPerformance ? <col className={styles.performanceColumn} /> : null}
             <col className={styles.actionsColumn} />
           </colgroup>
           <thead>
             <tr>
               <th scope="col">{t('accounts.fields.label')}</th>
-              <th scope="col">{t('accounts.overview.columnIdentity')}</th>
               <th scope="col">{t('accounts.fields.balance')}</th>
-              <th scope="col">{t('accounts.fields.share')}</th>
+              {showsPerformance ? <th scope="col">{t('accounts.performance.column')}</th> : null}
               <th scope="col">
                 <span className="sr-only">{t('accounts.list.actions')}</span>
               </th>
@@ -122,14 +139,8 @@ export function AccountList({
                     <th data-label={t('accounts.fields.label')} scope="row">
                       <AccountNameCell account={null} />
                     </th>
-                    <td data-label={t('accounts.overview.columnIdentity')}>
-                      <SkeletonBlock />
-                    </td>
                     <td data-label={t('accounts.fields.balance')}>
                       <AccountValuationCell valuation={null} />
-                    </td>
-                    <td data-label={t('accounts.fields.share')}>
-                      <SkeletonBlock className={styles.shareSkeleton} />
                     </td>
                     <td data-label={t('accounts.list.actions')}>
                       <div className={styles.rowActions}>
@@ -151,6 +162,7 @@ export function AccountList({
                     !last && sameGroup(next) && !(hasMore && index === accounts.length - 2);
                   const identity = [
                     account.institution,
+                    productName(account),
                     account.maskedIdentifier && `••${account.maskedIdentifier}`,
                   ]
                     .filter(Boolean)
@@ -161,21 +173,18 @@ export function AccountList({
                       <th data-label={t('accounts.fields.label')} scope="row">
                         <AccountNameCell
                           account={account}
+                          assetWarning={
+                            groupAssetCode !== null && account.assetCode !== groupAssetCode
+                              ? t('accounts.overview.assetWarning', { asset: account.assetCode })
+                              : null
+                          }
                           groupColor={
                             groupIdentities.data?.get(account.primaryGroupId ?? '')
                               ?.resolvedColor ?? null
                           }
+                          identity={identity}
                         />
                       </th>
-                      <td data-label={t('accounts.overview.columnIdentity')}>
-                        <span>{productName(account)}</span>
-                        {identity ? <small>{identity}</small> : null}
-                        {groupAssetCode !== null && account.assetCode !== groupAssetCode ? (
-                          <small>
-                            {t('accounts.overview.assetWarning', { asset: account.assetCode })}
-                          </small>
-                        ) : null}
-                      </td>
                       <td data-label={t('accounts.fields.balance')}>
                         <AccountValuationCell
                           ceiling={
@@ -187,9 +196,14 @@ export function AccountList({
                           valuation={account.valuation}
                         />
                       </td>
-                      <td data-label={t('accounts.fields.share')}>
-                        <ShareCell share={account.share} />
-                      </td>
+                      {showsPerformance ? (
+                        <td data-label={t('accounts.performance.column')}>
+                          <AccountPerformanceCell
+                            account={account}
+                            portfolio={portfolioFor(account)}
+                          />
+                        </td>
+                      ) : null}
                       <td data-label={t('accounts.list.actions')}>
                         <div className={styles.rowActions}>
                           {reordering ? (

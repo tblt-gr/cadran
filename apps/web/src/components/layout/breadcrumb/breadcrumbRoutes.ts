@@ -30,14 +30,12 @@ export function breadcrumbItems(
   const categories = item('routes.categories', '/transactions/categories');
   const budget = item('navigation.budget', '/budget');
   const plans = item('routes.budgetPlans', '/budget/plans');
-  const investments = item('navigation.investments', '/portfolios');
   const settings = item('navigation.settings', '/parameters/profile');
   const staticRoutes: Record<string, BreadcrumbItem[]> = {
     '/': [],
     '/accounts': [accounts],
     '/accounts/groups': [accounts, item('navigation.accountGroups')],
-    '/portfolios': [investments],
-    '/portfolios/instruments': [investments, item('routes.instruments')],
+    '/portfolios/instruments': [accounts, item('routes.instruments')],
     '/transactions': [transactions],
     '/transactions/recurrences': [transactions, item('routes.recurrences')],
     '/transactions/categories': [transactions, categories],
@@ -68,9 +66,7 @@ export function breadcrumbItems(
         href: `/accounts/${accountRoute[2]}`,
         pending: account?.pending !== false,
       };
-      // A portfolio is reached from Investissements, so it hangs there rather than under Comptes.
-      trail =
-        accountRoute[1] === 'portfolios' ? [investments, accountItem] : [accounts, accountItem];
+      trail = [accounts, accountItem];
     } else if (/^\/budget\/plans\/[^/]+$/.test(path)) {
       trail = [budget, plans, item('routes.budgetPlan')];
     } else if (/^\/budget\/\d{4}\/\d{2}$/.test(path)) {

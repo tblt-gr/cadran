@@ -24,8 +24,7 @@ describe('global breadcrumb', () => {
     ['/', ['Accueil']],
     ['/accounts', ['Accueil', 'Comptes']],
     ['/accounts/groups', ['Accueil', 'Comptes', 'Groupes de comptes']],
-    ['/portfolios', ['Accueil', 'Investissements']],
-    ['/portfolios/instruments', ['Accueil', 'Investissements', 'Instruments']],
+    ['/portfolios/instruments', ['Accueil', 'Comptes', 'Instruments']],
     ['/transactions', ['Accueil', 'Transactions']],
     ['/transactions/recurrences', ['Accueil', 'Transactions', 'Récurrences']],
     ['/transactions/categories', ['Accueil', 'Transactions', 'Catégories']],
@@ -66,7 +65,7 @@ describe('global breadcrumb', () => {
     expect(within(nav).getByRole('list').tagName).toBe('OL');
   });
 
-  it('hangs a portfolio under Investissements and keeps its name as the current page', () => {
+  it('hangs a portfolio under Comptes and keeps its name as the current page', () => {
     const navigate = vi.fn();
     render(
       <AppShell path="/portfolios/first" setPath={navigate}>
@@ -78,11 +77,11 @@ describe('global breadcrumb', () => {
       within(nav)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
-    ).toEqual(['/', '/portfolios']);
+    ).toEqual(['/', '/accounts']);
     expect(within(nav).getByText('PEA personnel').getAttribute('aria-current')).toBe('page');
-    const parent = within(nav).getByRole('link', { name: 'Investissements' });
+    const parent = within(nav).getByRole('link', { name: 'Comptes' });
     fireEvent.click(parent);
-    expect(navigate).toHaveBeenCalledWith('/portfolios');
+    expect(navigate).toHaveBeenCalledWith('/accounts');
     expect(nav.querySelectorAll('[aria-hidden="true"]').length).toBe(2);
   });
 
@@ -102,7 +101,7 @@ describe('global breadcrumb', () => {
     const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
     expect(within(nav).queryByText('Secret account')).toBeNull();
     expect(within(nav).getByRole('link', { name: 'Accueil' })).toBeTruthy();
-    expect(within(nav).getByRole('link', { name: 'Investissements' })).toBeTruthy();
+    expect(within(nav).getByRole('link', { name: 'Comptes' })).toBeTruthy();
     expect(within(nav).getByText('Chargement du compte').getAttribute('aria-busy')).toBe('true');
     rerender(view('/portfolios/second', '/portfolios/second', null));
     expect(within(nav).getByText('Compte').getAttribute('aria-current')).toBe('page');

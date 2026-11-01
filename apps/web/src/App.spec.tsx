@@ -211,7 +211,7 @@ describe('App', () => {
     ['/budget/plans', 'Plans budgétaires'],
     ['/accounts', 'Comptes'],
     ['/accounts/demo', 'Détail du compte'],
-    ['/portfolios', 'Investissements'],
+    ['/portfolios/demo', 'Portefeuille'],
     ['/life-insurance/demo', 'Assurance-vie'],
     ['/budget/2026', 'Rapport 2026'],
     ['/goals', 'Objectifs'],

@@ -31,7 +31,7 @@ it.each([360, 1280])(
         <tbody>
           <tr>
             <th data-label="Libellé" scope="row">
-              <AccountNameCell account={value} />
+              <AccountNameCell account={value} identity={value ? 'Banque X · Épargne' : null} />
             </th>
           </tr>
         </tbody>

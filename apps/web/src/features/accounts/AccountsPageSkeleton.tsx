@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useTranslation } from 'react-i18next';
+import { NetWorthCompositionView } from './net-worth-composition/NetWorthCompositionView';
 import { AccountList } from './account-list/AccountList';
 import { AccountGroupHeading } from './account-overview/account-group-table/AccountGroupHeading';
 import groupStyles from './account-overview/account-group-table/AccountGroupTable.module.css';
@@ -8,7 +9,7 @@ import overviewStyles from './account-overview/AccountOverview.module.css';
 
 const noop = () => undefined;
 
-/** Mirrors AccountOverview element for element: one table whose values are pending. */
+/** Mirrors AccountOverview element for element: the composition card then one table, whose values are pending. */
 export function AccountsPageSkeleton({ status }: { status: string }) {
   const { t } = useTranslation();
   const headingId = useId();
@@ -16,6 +17,7 @@ export function AccountsPageSkeleton({ status }: { status: string }) {
   return (
     <div aria-busy="true" className={overviewStyles.overview} data-testid="accounts-page-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
+      <NetWorthCompositionView composition={null} />
       <section aria-labelledby={headingId} className={groupStyles.group}>
         <AccountGroupHeading group={null} headingId={headingId} />
         <AccountList

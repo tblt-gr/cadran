@@ -47,7 +47,6 @@ function routes(): string[] {
     `/budget/${now.getFullYear()}`,
     `/budget/${now.getFullYear()}?view=multi`,
     '/goals',
-    '/portfolios',
     '/portfolios/instruments',
     `/portfolios/${ids.portfolioId}`,
     `/portfolios/${ids.portfolioId}?tab=valuations`,
@@ -88,9 +87,9 @@ test.beforeAll(async ({ browser }) => {
   ids.planId = (
     await firstHref(browser, '/budget/plans', /^\/budget\/plans\/[0-9a-f-]{36}$/)
   ).split('/')[3];
-  ids.portfolioId = (
-    await firstHref(browser, '/portfolios', /^\/portfolios\/[0-9a-f-]{36}$/)
-  ).split('/')[2];
+  ids.portfolioId = (await firstHref(browser, '/accounts', /^\/portfolios\/[0-9a-f-]{36}$/)).split(
+    '/',
+  )[2];
 });
 
 // Playwright needs the test list before beforeAll runs, so the dynamic routes are matched by pattern.
@@ -112,7 +111,6 @@ const PATTERNS = [
   '/budget/:year',
   '/budget/:year?view=multi',
   '/goals',
-  '/portfolios',
   '/portfolios/instruments',
   '/portfolios/:portfolio',
   '/portfolios/:portfolio?tab=valuations',
@@ -169,6 +167,45 @@ test.describe('responsive audit', () => {
       });
     }
   });
+});
+
+/**
+ * The accounts overview now carries the investment rows and the net worth pie: with a portfolio
+ * account in the demo ledger, the pie card is present and the page never scrolls sideways.
+ */
+test.describe('accounts overview with investments', () => {
+  for (const viewport of [WIDTHS[0], WIDTHS[2]]) {
+    test(`shows the net worth pie without horizontal overflow at ${viewport.width}`, async ({
+      browser,
+    }) => {
+      const context = await browser.newContext({
+        baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+        ignoreHTTPSErrors: true,
+        storageState: ownerStorageState,
+        viewport: { width: viewport.width, height: viewport.height },
+        hasTouch: viewport.touch,
+        isMobile: viewport.touch,
+        locale: 'fr-FR',
+        timezoneId: 'Europe/Paris',
+      });
+      try {
+        const page = await context.newPage();
+        await page.goto('/accounts');
+        await settled(page);
+
+        await expect(page.locator('a[href^="/portfolios/"]').first()).toBeVisible();
+        await expect(
+          page.getByRole('heading', { level: 2, name: 'Répartition par compte' }),
+        ).toBeVisible();
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow, 'no horizontal page scroll').toBeLessThanOrEqual(0);
+      } finally {
+        await context.close();
+      }
+    });
+  }
 });
 
 /**

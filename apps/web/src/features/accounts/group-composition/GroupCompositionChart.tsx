@@ -1,4 +1,4 @@
-import type { GroupCompositionChartReason, NetWorthAmount } from '@cadran/api-client';
+import type { NetWorthAmount } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { DonutChart, type DonutSlice } from '@/components/ui/charts/donut-chart/DonutChart';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -11,8 +11,8 @@ import type { CompositionEntry } from './compositionEntries';
 import styles from './GroupComposition.module.css';
 
 interface GroupCompositionChartProps {
-  /** Why a pie would mislead; the table below stays available. */
-  chartReason: GroupCompositionChartReason | null;
+  /** Why a pie would mislead, already translated; the table below stays available. */
+  reasonText: string | null;
   /** Null while the composition is being read: only the drawing is a block. */
   entries: CompositionEntry[] | null;
   label: string;
@@ -27,16 +27,16 @@ function amountText(amount: NetWorthAmount | null, locale: string): string | nul
 
 /** Donut sized from the server ratio, or the text reason the pie is withheld. */
 export function GroupCompositionChart({
-  chartReason,
+  reasonText,
   entries,
   label,
   total,
 }: GroupCompositionChartProps) {
-  const { i18n, t } = useTranslation();
+  const { i18n } = useTranslation();
   const { ref, size } = useBoxSize();
 
-  if (entries !== null && chartReason !== null) {
-    return <p className={styles.reason}>{t(`accounts.composition.chartReasons.${chartReason}`)}</p>;
+  if (entries !== null && reasonText !== null) {
+    return <p className={styles.reason}>{reasonText}</p>;
   }
 
   const slices: DonutSlice[] = (entries ?? []).flatMap((entry) => {

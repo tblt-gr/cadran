@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountGroup;
 use App\Module\Accounts\Domain\GroupLineage;
 use App\Module\Accounts\Domain\NetWorth;
@@ -25,6 +26,7 @@ final readonly class OverviewFigures
      * @param array<string, DecimalValue> $rollup        signed exclusive total per group, empty when the aggregate is not calculable
      * @param array<string, DecimalValue> $direct        signed total of each group's own accounts, empty when the aggregate is not calculable
      * @param list<NetWorthContribution>  $contributions
+     * @param list<Account>               $accounts      the accounts behind the contributions, in the same read
      */
     public function __construct(
         public \DateTimeImmutable $day,
@@ -36,6 +38,7 @@ final readonly class OverviewFigures
         public array $direct,
         public ?DecimalValue $ungroupedTotal,
         public array $contributions,
+        public array $accounts = [],
     ) {
     }
 
