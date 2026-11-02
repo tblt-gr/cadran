@@ -1,5 +1,5 @@
 import { useAccountHeader } from '@/features/accounts/account-header/useAccountHeader';
-import { AccountNavigation, accountOperationsActive } from './AccountNavigation';
+import { AccountNavigation, activeAccountTab } from './AccountNavigation';
 import type { Account } from '@cadran/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -13,6 +13,7 @@ import { portfolioAccountHref, valuedByPortfolio } from '@/features/portfolio/po
 import { AccountDetailActions } from './account-detail-actions/AccountDetailActions';
 import { AccountIdentityCard } from './account-identity/AccountIdentityCard';
 import { AccountLedger, type LedgerEditor } from './account-ledger/AccountLedger';
+import { BalanceTab } from './balance-tab/BalanceTab';
 import { SavingsHistoryPanel } from './savings-history/SavingsHistoryPanel';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
@@ -39,9 +40,9 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const today = workspaceToday(new Date(), useWorkspaceTimeZone());
-  const [operations, setOperations] = useState(accountOperationsActive);
+  const [tab, setTab] = useState(activeAccountTab);
   useEffect(() => {
-    const update = () => setOperations(accountOperationsActive());
+    const update = () => setTab(activeAccountTab());
     window.addEventListener('popstate', update);
     return () => window.removeEventListener('popstate', update);
   }, []);
@@ -100,11 +101,12 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   }
 
   const current: Account = account.data;
+  const operations = tab === 'operations';
   const creatable = current.status === 'ACTIVE' && !account.isError;
 
   return (
     <div className={styles.page}>
-      <AccountNavigation accountId={accountId} operations={operations} />
+      <AccountNavigation accountId={accountId} tab={tab} />
       {account.isError && editor !== 'transfer' ? (
         <div className={styles.notice} role="alert">
           <p>{t('accounts.detail.refreshError')}</p>
@@ -132,10 +134,12 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
         <Toast onDismiss={() => setSaved(null)}>{t(`accounts.detail.toasts.${saved}`)}</Toast>
       ) : null}
 
-      {!operations ? <AccountIdentityCard account={current} /> : null}
-      {!operations && (current.kind === 'SAVINGS' || current.kind === 'CURRENT') ? (
+      {tab === 'account' ? <AccountIdentityCard account={current} /> : null}
+      {tab === 'account' && (current.kind === 'SAVINGS' || current.kind === 'CURRENT') ? (
         <SavingsHistoryPanel accountId={accountId} today={today} />
       ) : null}
+
+      {tab === 'balance' ? <BalanceTab account={current} /> : null}
 
       {rulesOpen ? (
         <AccountRulesModals

@@ -1,30 +1,33 @@
 import { TabsNav } from '@/components/ui/tabs-nav/TabsNav';
 
-export function accountOperationsActive() {
+export type AccountTab = 'account' | 'balance' | 'operations';
+
+export function activeAccountTab(): AccountTab {
   const params = new URLSearchParams(window.location.search);
-  return params.get('tab') === 'operations' || params.has('month');
+  if (params.get('tab') === 'operations' || params.has('month')) return 'operations';
+  return params.get('tab') === 'balance' ? 'balance' : 'account';
 }
 
-export function AccountNavigation({
-  accountId,
-  operations,
-}: {
-  accountId: string;
-  operations: boolean;
-}) {
+export function AccountNavigation({ accountId, tab }: { accountId: string; tab: AccountTab }) {
   return (
     <TabsNav
       items={[
         {
           id: 'account',
           label: 'Compte',
-          active: !operations,
+          active: tab === 'account',
           href: `/accounts/${accountId}?tab=account`,
+        },
+        {
+          id: 'balance',
+          label: 'Solde',
+          active: tab === 'balance',
+          href: `/accounts/${accountId}?tab=balance`,
         },
         {
           id: 'operations',
           label: 'Opérations',
-          active: operations,
+          active: tab === 'operations',
           href: `/accounts/${accountId}?tab=operations`,
         },
       ]}

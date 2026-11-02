@@ -19,6 +19,8 @@ const MAX_COMMENT = 200;
 interface RecordBalanceFormProps {
   account: Account;
   valuation: AccountValuation;
+  /** Opens already in correction mode on this snapshot, for a correction started from a list. */
+  initialEditing?: AccountBalanceSnapshot;
   onCancel: () => void;
   /** Called once a listed snapshot has been amended in place. */
   onCorrected: () => void;
@@ -39,6 +41,7 @@ interface RecordBalanceFormProps {
 export function RecordBalanceForm({
   account,
   valuation,
+  initialEditing,
   onCancel: _onCancel,
   onCorrected,
   onSubmit,
@@ -46,12 +49,14 @@ export function RecordBalanceForm({
   submitError,
 }: RecordBalanceFormProps) {
   const { t } = useTranslation();
-  const [asOf, setAsOf] = useState(valuation.requestedOn);
-  const [amount, setAmount] = useState(valuation.amount?.value ?? '');
-  const [comment, setComment] = useState('');
+  const [asOf, setAsOf] = useState(initialEditing?.asOf ?? valuation.requestedOn);
+  const [amount, setAmount] = useState(
+    initialEditing?.amount.value ?? valuation.amount?.value ?? '',
+  );
+  const [comment, setComment] = useState(initialEditing?.comment ?? '');
   const [showErrors, setShowErrors] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
-  const [editing, setEditing] = useState<AccountBalanceSnapshot | null>(null);
+  const [editing, setEditing] = useState<AccountBalanceSnapshot | null>(initialEditing ?? null);
   const correct = useCorrectBalance(account.id);
   const editingRef = useRef<HTMLDivElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);

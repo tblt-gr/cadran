@@ -1,7 +1,8 @@
 import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
 import { AccountOperationFilters } from './account-operation-filters/AccountOperationFilters';
 import { emptyMovementFilters, monthBounds } from './account-movements/accountMovementFilters';
-import { AccountNavigation, accountOperationsActive } from './AccountNavigation';
+import { AccountNavigation, activeAccountTab } from './AccountNavigation';
+import { BalanceTabSkeleton } from './balance-tab/BalanceTabSkeleton';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { AccountDetailActionsSkeleton } from './account-detail-actions/AccountDetailActions';
 import { AccountIdentityCardSkeleton } from './account-identity/AccountIdentityCardSkeleton';
@@ -16,12 +17,14 @@ export function AccountDetailPageSkeleton({
   status: string;
   accountId?: string;
 }) {
+  const tab = activeAccountTab();
+
   return (
     <div aria-busy="true" className={styles.page} data-testid="account-detail-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
-      <AccountNavigation accountId={accountId} operations={accountOperationsActive()} />
+      <AccountNavigation accountId={accountId} tab={tab} />
       <AccountDetailActionsSkeleton />
-      {accountOperationsActive() ? (
+      {tab === 'operations' ? (
         <>
           <AccountOperationFilters
             disabled
@@ -39,6 +42,8 @@ export function AccountDetailPageSkeleton({
             month={new URLSearchParams(window.location.search).get('month')}
           />
         </>
+      ) : tab === 'balance' ? (
+        <BalanceTabSkeleton />
       ) : (
         <AccountIdentityCardSkeleton />
       )}
