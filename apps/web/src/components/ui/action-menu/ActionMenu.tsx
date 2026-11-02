@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Icon, type IconName } from '@/components/ui/icon/Icon';
 import styles from './ActionMenu.module.css';
 
-interface ActionMenuItem {
+export interface ActionMenuItem {
   /** Checkable items keep the menu open while the selection changes. */
   checked?: boolean;
   disabled?: boolean;

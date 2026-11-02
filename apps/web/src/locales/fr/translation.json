@@ -583,6 +583,9 @@
       "reconcileOfAccount": "Rapprocher le compte {{label}}",
       "recordBalance": "Enregistrer un solde",
       "recordBalanceOfAccount": "Enregistrer un solde sur {{label}}",
+      "transferOfAccount": "Nouveau virement depuis {{label}}",
+      "valuationOfAccount": "Nouvelle valorisation de {{label}}",
+      "instrumentsOfAccount": "Gérer les instruments depuis {{label}}",
       "openActions": "Actions du compte {{label}}"
     },
     "reconciliation": {
@@ -900,11 +903,11 @@
       "actionsMenu": {
         "open": "Actions du compte {{label}}",
         "openPending": "Actions du compte",
-        "addTransfer": "Nouveau virement",
+        "transfer": "Nouveau virement",
         "recordBalance": "Enregistrer un solde",
         "reconcile": "Rapprocher",
         "rules": "Voir les règles",
-        "recordValuation": "Nouvelle valorisation",
+        "valuation": "Nouvelle valorisation",
         "instruments": "Gérer les instruments",
         "edit": "Modifier",
         "archive": "Archiver",

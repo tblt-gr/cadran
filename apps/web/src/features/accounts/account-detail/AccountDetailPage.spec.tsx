@@ -991,6 +991,13 @@ describe('AccountDetailPage', () => {
     }
   });
 
+  it('opens the transfer modal on arrival with ?action=transfer, once', async () => {
+    renderPage(account.id, '?tab=account&action=transfer');
+
+    expect(await screen.findByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();
+    expect(window.location.search).not.toContain('action=');
+  });
+
   it('opens the shared edit modal from the menu', async () => {
     renderPage(account.id, '?tab=account');
     await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });

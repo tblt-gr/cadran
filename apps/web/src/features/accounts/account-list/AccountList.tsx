@@ -8,6 +8,12 @@ import { AccountValuationCell } from '@/features/accounts/account-valuation-cell
 import { useAccountGroupIdentities } from '@/features/accounts/useAccountGroupIdentities';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
+import {
+  accountActionHref,
+  accountMenuItems,
+  INSTRUMENTS_HREF,
+} from '@/features/accounts/account-actions-menu/accountMenuItems';
+import { navigateFromPage } from '@/hooks/use-client-navigation';
 import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
 import { usePortfolios } from '@/features/portfolio/usePortfolioOverview';
 import { depositCeilingOf } from '@/lib/depositCeiling';
@@ -238,58 +244,44 @@ export function AccountList({
                             </>
                           ) : null}
                           <ActionMenu
-                            items={[
-                              {
-                                disabled:
-                                  !account.editable || account.valuationMode === 'PORTFOLIO',
-                                icon: 'balance',
-                                id: 'recordBalance',
-                                label: t('accounts.list.recordBalanceOfAccount', {
+                            items={accountMenuItems({
+                              account,
+                              handlers: {
+                                onAddTransfer: () =>
+                                  navigateFromPage(accountActionHref(account, 'transfer')),
+                                onArchive: () => onArchive(account),
+                                onEdit: () => onEdit(account),
+                                onInstruments: () => navigateFromPage(INSTRUMENTS_HREF),
+                                onReconcile: () => onReconcile(account),
+                                onRecordBalance: () => onRecordBalance(account),
+                                onRecordValuation: () =>
+                                  navigateFromPage(accountActionHref(account, 'valuation')),
+                                onRules: () => onRules(account),
+                              },
+                              names: {
+                                archive: t('accounts.list.archiveAccount', {
                                   label: account.label,
                                 }),
-                                onSelect: () => onRecordBalance(account),
-                                text: t('accounts.list.recordBalance'),
-                              },
-                              {
-                                disabled:
-                                  !account.editable ||
-                                  account.valuationMode === 'PORTFOLIO' ||
-                                  account.valuation.snapshotId === null ||
-                                  account.valuation.reconciliationStatus !== 'UNRECONCILED',
-                                icon: 'check-circle',
-                                id: 'reconcile',
-                                label: t('accounts.list.reconcileOfAccount', {
+                                edit: t('accounts.list.editAccount', { label: account.label }),
+                                instruments: t('accounts.list.instrumentsOfAccount', {
                                   label: account.label,
                                 }),
-                                onSelect: () => onReconcile(account),
-                                text: t('accounts.list.reconcile'),
+                                reconcile: t('accounts.list.reconcileOfAccount', {
+                                  label: account.label,
+                                }),
+                                recordBalance: t('accounts.list.recordBalanceOfAccount', {
+                                  label: account.label,
+                                }),
+                                rules: t('accounts.list.rulesOfAccount', { label: account.label }),
+                                transfer: t('accounts.list.transferOfAccount', {
+                                  label: account.label,
+                                }),
+                                valuation: t('accounts.list.valuationOfAccount', {
+                                  label: account.label,
+                                }),
                               },
-                              {
-                                // Reading the rules changes nothing, so an archived or closed
-                                // account still answers for the dates it was open.
-                                icon: 'sliders',
-                                id: 'rules',
-                                label: t('accounts.list.rulesOfAccount', { label: account.label }),
-                                onSelect: () => onRules(account),
-                                text: t('accounts.list.rules'),
-                              },
-                              {
-                                disabled: !account.editable,
-                                icon: 'edit',
-                                id: 'edit',
-                                label: t('accounts.list.editAccount', { label: account.label }),
-                                onSelect: () => onEdit(account),
-                                text: t('accounts.list.edit'),
-                              },
-                              {
-                                disabled: !account.editable,
-                                icon: 'archive',
-                                id: 'archive',
-                                label: t('accounts.list.archiveAccount', { label: account.label }),
-                                onSelect: () => onArchive(account),
-                                text: t('accounts.list.archive'),
-                              },
-                            ]}
+                              t,
+                            })}
                             label={t('accounts.list.openActions', { label: account.label })}
                           />
                         </div>

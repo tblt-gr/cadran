@@ -632,6 +632,31 @@ describe('PortfolioAccountPage', () => {
     expect(await screen.findByText('Le compte a été archivé.')).toBeTruthy();
   });
 
+  it('offers no transfer or reconcile on an account the portfolio page does not track', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
+    api.readAccount.mockImplementation(() =>
+      ok({ ...account, kind: 'CURRENT', valuationMode: 'BALANCE' }),
+    );
+    renderPage();
+
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: /^Actions du compte/ }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    expect(menuItem('Voir les règles')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Nouveau virement/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Rapprocher/ })).toBeNull();
+  });
+
+  it('opens a new valuation on arrival with ?action=valuation, once', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account&action=valuation`);
+    renderPage();
+
+    expect(await screen.findByRole('dialog', { name: 'Nouvelle valorisation' })).toBeTruthy();
+    expect(window.location.search).not.toContain('action=');
+  });
+
   it('answers a former allocation link with Positions and retries a failed allocation', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=allocation`);
     api.readPortfolioAllocation.mockImplementationOnce(() => problem(500, {}));

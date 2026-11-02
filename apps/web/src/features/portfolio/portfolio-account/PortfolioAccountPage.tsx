@@ -1,4 +1,5 @@
 import { useLifeInsuranceContract } from '@/features/portfolio/life-insurance/useLifeInsuranceContract';
+import { useArrivalAction } from '@/features/accounts/account-actions-menu/useArrivalAction';
 import { AccountTab } from './account-tab/AccountTab';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -61,6 +62,19 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
     return () => window.removeEventListener('popstate', updateTab);
   }, [today]);
 
+  function openOn(tab: PortfolioTab, creation: PortfolioCreation) {
+    if (active !== tab) {
+      window.history.pushState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=${asOf}`);
+      setActive(tab);
+    }
+    setCreating(creation);
+  }
+  useArrivalAction('valuation', account.data?.id === accountId, () => {
+    const loaded = account.data;
+    if (loaded && loaded.status === 'ACTIVE' && loaded.editable && valuedByPortfolio(loaded))
+      openOn('valuations', 'valuation');
+  });
+
   if (account.isPending) {
     return (
       <PortfolioAccountPageSkeleton
@@ -93,13 +107,6 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const eligible = valuedByPortfolio(current);
   const shown = tabForKind(active, current.kind);
 
-  function openOn(tab: PortfolioTab, creation: PortfolioCreation) {
-    if (active !== tab) {
-      window.history.pushState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=${asOf}`);
-      setActive(tab);
-    }
-    setCreating(creation);
-  }
   function openCreate() {
     if (operationBlocked) return;
     openOn('operations', 'operation');
