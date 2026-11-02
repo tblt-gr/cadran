@@ -59,6 +59,8 @@ final class MonthlyLedgerRepresentation
             'total' => self::metric($row->total),
             'movementCount' => $row->movementCount,
             'hasMovements' => $row->hasMovements,
+            'pendingAmount' => null === $row->pendingAmount || null === $row->pendingAssetCode ? null : ['value' => $row->pendingAmount, 'assetCode' => $row->pendingAssetCode],
+            'pendingCount' => $row->pendingCount,
         ];
     }
 
@@ -73,6 +75,8 @@ final class MonthlyLedgerRepresentation
             'total' => self::metric($row->total),
             'movementCount' => $row->movementCount,
             'hasMovements' => $row->hasMovements,
+            'pendingAmount' => null === $row->pendingAmount || null === $row->pendingAssetCode ? null : ['value' => $row->pendingAmount, 'assetCode' => $row->pendingAssetCode],
+            'pendingCount' => $row->pendingCount,
         ];
     }
 

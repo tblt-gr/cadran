@@ -51,6 +51,27 @@
   color: var(--text-muted);
 }
 
+.rowPending .identity,
+.rowPending .amount > :not(.pendingLine) {
+  opacity: var(--opacity-pending);
+}
+
+/* The pending amount is dimmed, its badge is not: the state must not rest on dimming alone. */
+.pendingLine {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: var(--spacing-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  gap: var(--spacing-2);
+}
+
+.pendingLine > [data-visual-mask],
+.pendingLine > span:last-child {
+  opacity: var(--opacity-pending);
+}
+
 .toggle:hover,
 .add:hover:not(:disabled) {
   background: var(--bg-surface-2);

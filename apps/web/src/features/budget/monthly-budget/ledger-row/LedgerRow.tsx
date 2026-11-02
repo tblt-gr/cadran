@@ -3,6 +3,7 @@ import type { TFunction } from 'i18next';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
+import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
@@ -43,6 +44,9 @@ export function LedgerRow({
   const detailsId = useId();
   const category = kind === 'account' ? null : (row as MonthlyLedgerCategoryRow);
   const amount = renderAmount(row, kind, language, t);
+  // Pending movements are listed for information: they open the detail but feed no sum.
+  const explainable = row.hasMovements || row.pendingCount > 0;
+  const pendingOnly = !row.hasMovements && row.pendingCount > 0;
   const color = canonicalCategoryColor(category?.color);
   const addDisabled = !actionsAllowed || addUnavailable;
   const disabledReason = !actionsAllowed
@@ -82,17 +86,42 @@ export function LedgerRow({
           <span className={styles.marker}>{t('budget.monthly.archived')}</span>
         ) : null}
       </span>
-      <span className={styles.amount}>{amount}</span>
+      <span className={styles.amount}>
+        {amount}
+        {row.pendingCount > 0 ? (
+          <span className={styles.pendingLine}>
+            <StatusBadge tone="neutral">{t('budget.monthly.pendingBadge')}</StatusBadge>
+            {row.pendingAmount !== null ? (
+              <MoneyValue
+                value={formatAmount(
+                  toSignedAmount(row.pendingAmount.value, kind === 'expense' ? 'OUTFLOW' : null),
+                  row.pendingAmount.assetCode,
+                  language,
+                )}
+              />
+            ) : (
+              <EmptyValue label={t('budget.monthly.pendingNotCalculable')} />
+            )}
+          </span>
+        ) : null}
+      </span>
     </>
   );
 
   return (
     <li
-      className={row.hasMovements ? styles.row : `${styles.row} ${styles.rowEmpty}`}
+      className={
+        pendingOnly
+          ? `${styles.row} ${styles.rowPending}`
+          : explainable
+            ? styles.row
+            : `${styles.row} ${styles.rowEmpty}`
+      }
+      data-pending={row.pendingCount > 0 || undefined}
       style={color === null ? undefined : { borderInlineStartColor: color }}
     >
       <div className={styles.summary}>
-        {row.hasMovements ? (
+        {explainable ? (
           <button
             aria-controls={detailsId}
             aria-expanded={expanded}
@@ -128,7 +157,7 @@ export function LedgerRow({
         </span>
       ) : null}
 
-      {expanded && row.hasMovements ? (
+      {expanded && explainable ? (
         <div className={styles.details} id={detailsId}>
           <MovementDetails
             axis={axis}

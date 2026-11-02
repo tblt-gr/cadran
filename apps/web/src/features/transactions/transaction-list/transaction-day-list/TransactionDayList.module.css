@@ -42,9 +42,12 @@
   row-gap: var(--spacing-1);
 }
 
+/* Every cell but the state badge, which must stay fully readable to carry the meaning. */
 .pending .primary,
-.pending .amount [data-sign] {
-  color: var(--text-muted);
+.pending .amount,
+.pending .category,
+.pending .account {
+  opacity: var(--opacity-pending);
 }
 
 .selectable {

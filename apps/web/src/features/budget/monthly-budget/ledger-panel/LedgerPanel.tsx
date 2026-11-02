@@ -52,7 +52,9 @@ export function LedgerPanel({
   const titleId = `monthly-ledger-${kind}`;
   const [showEmptyAccounts, changeShowEmptyAccounts] = usePersistedToggle(EMPTY_ACCOUNTS_KEY);
   const visibleRows =
-    kind === 'account' && !showEmptyAccounts ? rows.filter((row) => row.hasMovements) : rows;
+    kind === 'account' && !showEmptyAccounts
+      ? rows.filter((row) => row.hasMovements || row.pendingCount > 0)
+      : rows;
 
   return (
     <section aria-labelledby={titleId} className={styles.panel}>

@@ -154,6 +154,12 @@ describe('TransactionDayList', () => {
     expect(pending.getAttribute('data-state')).toBe('PENDING');
     expect(pending.className).toContain('pending');
     expect(within(pending).getByText('En attente')).toBeTruthy();
+    // Every cell the pending style dims is a descendant of the row; the badge is in none of them.
+    for (const dimmed of ['primary', 'amount', 'category', 'account']) {
+      const cell = pending.querySelector(`[class*="${dimmed}"]`);
+      expect(cell, dimmed).toBeTruthy();
+      expect(cell?.contains(within(pending).getByText('En attente'))).toBe(false);
+    }
     expect(booked.className).not.toContain('pending');
     expect(within(booked).queryByText('En attente')).toBeNull();
   });

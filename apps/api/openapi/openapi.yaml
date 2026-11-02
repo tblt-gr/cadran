@@ -15629,7 +15629,19 @@ components:
       type: object
       additionalProperties: false
       required:
-        [id, label, icon, color, budgetIncluded, archived, total, movementCount, hasMovements]
+        [
+          id,
+          label,
+          icon,
+          color,
+          budgetIncluded,
+          archived,
+          total,
+          movementCount,
+          hasMovements,
+          pendingAmount,
+          pendingCount,
+        ]
       properties:
         id: { type: string, format: uuid }
         label: { type: string, minLength: 1, maxLength: 80 }
@@ -15647,10 +15659,27 @@ components:
         total: { $ref: '#/components/schemas/MonthlyLedgerMetric' }
         movementCount: { type: integer, minimum: 0, maximum: 500 }
         hasMovements: { type: boolean }
+        pendingAmount:
+          description: >-
+            Exact sum of the scheduled (pending) movements, in the same sign convention as total. Null when
+            none, or when they mix assets. Informational: never part of total, a gap, net worth or a KPI.
+          oneOf: [{ $ref: '#/components/schemas/DecimalAmount' }, { type: 'null' }]
+        pendingCount: { type: integer, minimum: 0, maximum: 500 }
     MonthlyLedgerAccountRow:
       type: object
       additionalProperties: false
-      required: [id, label, assetCode, kind, total, movementCount, hasMovements]
+      required:
+        [
+          id,
+          label,
+          assetCode,
+          kind,
+          total,
+          movementCount,
+          hasMovements,
+          pendingAmount,
+          pendingCount,
+        ]
       properties:
         id: { type: string, format: uuid }
         label: { type: string, minLength: 1, maxLength: 100 }
@@ -15661,6 +15690,12 @@ components:
         total: { $ref: '#/components/schemas/MonthlyLedgerMetric' }
         movementCount: { type: integer, minimum: 0, maximum: 500 }
         hasMovements: { type: boolean }
+        pendingAmount:
+          description: >-
+            Exact sum of the scheduled (pending) movements, in the same sign convention as total. Null when
+            none, or when they mix assets. Informational: never part of total, a gap, net worth or a KPI.
+          oneOf: [{ $ref: '#/components/schemas/DecimalAmount' }, { type: 'null' }]
+        pendingCount: { type: integer, minimum: 0, maximum: 500 }
     MonthlyBounds:
       type: object
       additionalProperties: false

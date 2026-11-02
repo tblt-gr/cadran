@@ -15,6 +15,7 @@ use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Application\CallerWorkspace;
 use App\Module\Foundation\Application\WorkspaceTimezoneReader;
+use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Reporting\Domain\MonthlyLedgerCalculator;
 use App\Module\Reporting\Domain\MonthlyLedgerEntry;
 use App\Module\Reporting\Domain\MonthlyLedgerTotal;
@@ -50,20 +51,27 @@ final readonly class ReadMonthlyLedger
         }
 
         $entries = MonthlyLedgerFacts::entries($transactions->booked);
-        $incomeRows = self::categoryRows($categories, $entries, 'INCOME', null);
-        $expenseRows = self::categoryRows($categories, $entries, 'EXPENSE', $axis?->value);
+        $pendingEntries = MonthlyLedgerFacts::entries($transactions->pending);
+        $incomeRows = self::categoryRows($categories, $entries, $pendingEntries, 'INCOME', null);
+        $expenseRows = self::categoryRows($categories, $entries, $pendingEntries, 'EXPENSE', $axis?->value);
         $transferSources = MonthlyLedgerFacts::transferSourcesByAccount($transfers);
+        $pendingTransferSources = MonthlyLedgerFacts::transferSourcesByAccount($transfers, pending: true);
         $accountRows = [];
         foreach ($accounts->accounts as $account) {
             $total = MonthlyLedgerCalculator::total($transferSources[$account->id] ?? [], invert: false);
+            $pendingSources = $pendingTransferSources[$account->id] ?? [];
+            $pending = MonthlyLedgerCalculator::total($pendingSources, invert: false);
             $accountRows[] = new MonthlyLedgerAccountRowView(
                 $account->id,
                 $account->label,
                 $account->assetCode,
                 $account->kind,
-                self::metric($total),
+                self::metric(self::realised($total, $pending)),
                 $total->movementCount,
                 $total->hasMovements,
+                $pending->value?->toString(),
+                $pending->asset?->toString(),
+                count($pendingSources),
             );
         }
 
@@ -115,10 +123,11 @@ final readonly class ReadMonthlyLedger
     /**
      * @param list<BudgetCategoryFact> $categories
      * @param list<MonthlyLedgerEntry> $entries
+     * @param list<MonthlyLedgerEntry> $pendingEntries
      *
      * @return list<MonthlyLedgerCategoryRowView>
      */
-    private static function categoryRows(array $categories, array $entries, string $type, ?string $axis): array
+    private static function categoryRows(array $categories, array $entries, array $pendingEntries, string $type, ?string $axis): array
     {
         $rows = [];
         foreach ($categories as $category) {
@@ -126,10 +135,12 @@ final readonly class ReadMonthlyLedger
                 continue;
             }
             $sources = MonthlyLedgerCalculator::categorySources($entries, $type, $category->id, $axis);
-            if (null !== $category->archivedAt && [] === $sources) {
+            $pendingSources = MonthlyLedgerCalculator::categorySources($pendingEntries, $type, $category->id, $axis);
+            if (null !== $category->archivedAt && [] === $sources && [] === $pendingSources) {
                 continue;
             }
             $total = MonthlyLedgerCalculator::total($sources, 'EXPENSE' === $type);
+            $pending = MonthlyLedgerCalculator::total($pendingSources, 'EXPENSE' === $type);
             $rows[] = new MonthlyLedgerCategoryRowView(
                 $category->id,
                 $category->label,
@@ -137,13 +148,29 @@ final readonly class ReadMonthlyLedger
                 $category->color,
                 $category->budgetIncluded,
                 null !== $category->archivedAt,
-                self::metric($total),
+                self::metric(self::realised($total, $pending)),
                 $total->movementCount,
                 $total->hasMovements,
+                $pending->value?->toString(),
+                $pending->asset?->toString(),
+                count($pendingSources),
             );
         }
 
         return $rows;
+    }
+
+    /**
+     * Nothing booked but something scheduled is a computable zero, not an unknown: the figure is exact
+     * and only the pending amount (reported next to it) moves the row.
+     */
+    private static function realised(MonthlyLedgerTotal $booked, MonthlyLedgerTotal $pending): MonthlyLedgerTotal
+    {
+        if (null !== $booked->value || null === $pending->value || null === $pending->asset || $booked->hasMovements) {
+            return $booked;
+        }
+
+        return new MonthlyLedgerTotal(ExactDecimal::subtract($pending->value, $pending->value), $pending->asset, null, 0, false);
     }
 
     private static function metric(MonthlyLedgerTotal $total): MonthlyMetricView

@@ -16,6 +16,8 @@ function row(
     id,
     label: id,
     movementCount: 1,
+    pendingAmount: null,
+    pendingCount: 0,
     total: { assetCode: value === null ? null : 'EUR', reason: null, value },
     ...overrides,
   };

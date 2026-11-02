@@ -3029,6 +3029,11 @@ export type MonthlyLedgerCategoryRow = {
     total: MonthlyLedgerMetric;
     movementCount: number;
     hasMovements: boolean;
+    /**
+     * Exact sum of the scheduled (pending) movements, in the same sign convention as total. Null when none, or when they mix assets. Informational: never part of total, a gap, net worth or a KPI.
+     */
+    pendingAmount: DecimalAmount | null;
+    pendingCount: number;
 };
 
 export type MonthlyLedgerAccountRow = {
@@ -3039,6 +3044,11 @@ export type MonthlyLedgerAccountRow = {
     total: MonthlyLedgerMetric;
     movementCount: number;
     hasMovements: boolean;
+    /**
+     * Exact sum of the scheduled (pending) movements, in the same sign convention as total. Null when none, or when they mix assets. Informational: never part of total, a gap, net worth or a KPI.
+     */
+    pendingAmount: DecimalAmount | null;
+    pendingCount: number;
 };
 
 export type MonthlyBounds = {
