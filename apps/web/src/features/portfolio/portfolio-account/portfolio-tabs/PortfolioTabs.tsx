@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { AccountKind } from '@cadran/api-client';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { TabsNav } from '@/components/ui/tabs-nav/TabsNav';
 import styles from './PortfolioTabs.module.css';
 
 export type PortfolioTab =
@@ -45,21 +45,17 @@ export function PortfolioTabs({
       : tabs;
   return (
     <div className={styles.bar}>
-      <nav aria-label="Sections du portefeuille" className={styles.tabs}>
-        {accountTabs.map((tab) => {
-          const href = `/portfolios/${accountId}?tab=${tab.id}${asOf ? `&asOf=${asOf}` : ''}`;
-          return (
-            <a
-              aria-current={tab.id === active ? 'page' : undefined}
-              href={href}
-              key={tab.id}
-              onClick={(event) => handleClientNavigation(event, href)}
-            >
-              {tab.label}
-            </a>
-          );
-        })}
-      </nav>
+      <div className={styles.nav}>
+        <TabsNav
+          items={accountTabs.map((tab) => ({
+            id: tab.id,
+            label: tab.label,
+            active: tab.id === active,
+            href: `/portfolios/${accountId}?tab=${tab.id}${asOf ? `&asOf=${asOf}` : ''}`,
+          }))}
+          label="Sections du portefeuille"
+        />
+      </div>
       {tools ? <div className={styles.tools}>{tools}</div> : null}
     </div>
   );

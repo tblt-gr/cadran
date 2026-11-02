@@ -1,5 +1,4 @@
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import styles from '@/features/portfolio/portfolio-account/portfolio-tabs/PortfolioTabs.module.css';
+import { TabsNav } from '@/components/ui/tabs-nav/TabsNav';
 
 export function accountOperationsActive() {
   const params = new URLSearchParams(window.location.search);
@@ -14,25 +13,22 @@ export function AccountNavigation({
   operations: boolean;
 }) {
   return (
-    <div className={styles.bar}>
-      <nav aria-label="Sections du compte" className={styles.tabs}>
-        {[
-          { id: 'account', label: 'Compte' },
-          { id: 'operations', label: 'Opérations' },
-        ].map((tab) => {
-          const href = `/accounts/${accountId}?tab=${tab.id}`;
-          return (
-            <a
-              key={tab.id}
-              href={href}
-              aria-current={(operations ? 'operations' : 'account') === tab.id ? 'page' : undefined}
-              onClick={(event) => handleClientNavigation(event, href)}
-            >
-              {tab.label}
-            </a>
-          );
-        })}
-      </nav>
-    </div>
+    <TabsNav
+      items={[
+        {
+          id: 'account',
+          label: 'Compte',
+          active: !operations,
+          href: `/accounts/${accountId}?tab=account`,
+        },
+        {
+          id: 'operations',
+          label: 'Opérations',
+          active: operations,
+          href: `/accounts/${accountId}?tab=operations`,
+        },
+      ]}
+      label="Sections du compte"
+    />
   );
 }
