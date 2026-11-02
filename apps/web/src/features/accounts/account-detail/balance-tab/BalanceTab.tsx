@@ -25,7 +25,7 @@ export function BalanceTab({ account }: { account: Account }) {
   const empty = items !== null && items.length === 0;
   const record = (
     <button
-      className="primary-action"
+      className="secondary-action"
       disabled={!recordable}
       onClick={() => setDialog({})}
       type="button"
