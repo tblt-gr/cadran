@@ -42,11 +42,10 @@ export function LedgerRow({
   const [expanded, setExpanded] = useState(false);
   const detailsId = useId();
   const category = kind === 'account' ? null : (row as MonthlyLedgerCategoryRow);
-  const amount = renderAmount(row, kind, language, t);
   // Pending movements are listed for information: they open the detail but feed no sum.
   const explainable = row.hasMovements || row.pendingCount > 0;
-  const pendingLabel = t('budget.monthly.pendingBadge').toLowerCase();
   const pendingOnly = !row.hasMovements && row.pendingCount > 0;
+  const amount = renderAmount(row, pendingOnly, kind, language, t);
   const color = canonicalCategoryColor(category?.color);
   const addDisabled = !actionsAllowed || addUnavailable;
   const disabledReason = !actionsAllowed
@@ -68,6 +67,9 @@ export function LedgerRow({
           <span className={styles.labelText} title={row.label}>
             {row.label}
           </span>
+          {pendingOnly ? (
+            <span className={styles.pendingMarker}>({t('budget.monthly.pendingMarker')})</span>
+          ) : null}
           {row.movementCount > 1 ? (
             <>
               <span aria-hidden="true" className={styles.meta}>
@@ -86,32 +88,7 @@ export function LedgerRow({
           <span className={styles.marker}>{t('budget.monthly.archived')}</span>
         ) : null}
       </span>
-      <span className={styles.amount}>
-        {pendingOnly ? null : amount}
-        {row.pendingCount > 0 ? (
-          <span
-            className={
-              pendingOnly ? styles.pendingAmount : `${styles.pendingAmount} ${styles.inline}`
-            }
-            title={pendingLabel}
-          >
-            <span className="sr-only">{pendingLabel} : </span>
-            <span aria-hidden="true">(</span>
-            {row.pendingAmount !== null ? (
-              <MoneyValue
-                value={formatAmount(
-                  toSignedAmount(row.pendingAmount.value, kind === 'expense' ? 'OUTFLOW' : null),
-                  row.pendingAmount.assetCode,
-                  language,
-                )}
-              />
-            ) : (
-              <EmptyValue label={t('budget.monthly.pendingNotCalculable')} />
-            )}
-            <span aria-hidden="true">)</span>
-          </span>
-        ) : null}
-      </span>
+      <span className={styles.amount}>{amount}</span>
     </>
   );
 
@@ -181,10 +158,31 @@ export function LedgerRow({
   );
 }
 
-function renderAmount(row: LedgerRowData, kind: LedgerKind, language: string, t: TFunction) {
+/** A pending-only row shows its pending amount as any amount; a mixed row shows the realised one. */
+function renderAmount(
+  row: LedgerRowData,
+  pendingOnly: boolean,
+  kind: LedgerKind,
+  language: string,
+  t: TFunction,
+) {
+  const direction = kind === 'expense' ? 'OUTFLOW' : null;
+  if (pendingOnly) {
+    return row.pendingAmount === null ? (
+      <EmptyValue label={t('budget.monthly.pendingNotCalculable')} />
+    ) : (
+      <MoneyValue
+        value={formatAmount(
+          toSignedAmount(row.pendingAmount.value, direction),
+          row.pendingAmount.assetCode,
+          language,
+        )}
+      />
+    );
+  }
   if (!row.hasMovements) return <EmptyValue label={t('budget.monthly.noMovement')} />;
   if (row.total.value !== null && row.total.assetCode !== null) {
-    const value = toSignedAmount(row.total.value, kind === 'expense' ? 'OUTFLOW' : null);
+    const value = toSignedAmount(row.total.value, direction);
     return <MoneyValue value={formatAmount(value, row.total.assetCode, language)} />;
   }
   return t('budget.monthly.mixedAssets');

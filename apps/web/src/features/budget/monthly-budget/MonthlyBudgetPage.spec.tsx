@@ -584,7 +584,7 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
 
     expect(await screen.findByText('Voyages')).toBeTruthy();
-    expect(screen.getByText(/en attente :/)).toBeTruthy();
+    expect(screen.getByText('(en attente)')).toBeTruthy();
     expect(screen.queryByText('En attente')).toBeNull();
     expect(screen.getByRole('button', { name: 'Afficher les mouvements de Voyages' })).toBeTruthy();
   });

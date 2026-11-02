@@ -3166,7 +3166,7 @@
       "pending_one": "{{count}} transaction en attente",
       "pending_other": "{{count}} transactions en attente",
       "noMovement": "Aucun mouvement",
-      "pendingBadge": "En attente",
+      "pendingMarker": "en attente",
       "pendingNotCalculable": "Montant en attente non calculable",
       "showEmptyAccounts": "Afficher les comptes sans mouvement",
       "hideEmptyAccounts": "Masquer les comptes sans mouvement",
