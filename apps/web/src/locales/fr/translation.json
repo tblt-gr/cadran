@@ -1934,7 +1934,7 @@
       "title": "Chiffres du mois",
       "loading": "Chargement des préférences d’interface…",
       "includeUpcoming": {
-        "label": "Inclure l’à venir dans les chiffres du mois en cours",
+        "label": "Inclure les transactions à venir dans les chiffres du mois en cours",
         "help": "Quand c’est activé, les transactions planifiées du mois en cours comptent dans le budget, les revenus, les dépenses et l’excédent, avec la mention « (à venir) ». Le patrimoine et les soldes ne changent pas."
       },
       "notice": {

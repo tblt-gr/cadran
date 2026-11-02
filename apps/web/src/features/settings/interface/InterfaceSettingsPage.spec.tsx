@@ -48,14 +48,20 @@ function renderPage() {
 async function loadedCheckbox() {
   await waitFor(() =>
     expect(
-      (screen.getByRole('checkbox', { name: /Inclure l’à venir/ }) as HTMLInputElement).disabled,
+      (
+        screen.getByRole('checkbox', {
+          name: /Inclure les transactions à venir/,
+        }) as HTMLInputElement
+      ).disabled,
     ).toBe(false),
   );
-  return screen.getByRole('checkbox', { name: /Inclure l’à venir/ });
+  return screen.getByRole('checkbox', { name: /Inclure les transactions à venir/ });
 }
 
 function isChecked() {
-  return (screen.getByRole('checkbox', { name: /Inclure l’à venir/ }) as HTMLInputElement).checked;
+  return (
+    screen.getByRole('checkbox', { name: /Inclure les transactions à venir/ }) as HTMLInputElement
+  ).checked;
 }
 
 afterEach(() => {
@@ -133,7 +139,11 @@ describe('InterfaceSettingsPage', () => {
     const skeleton = screen.getByTestId('interface-settings-skeleton');
     expect(skeleton.getAttribute('aria-busy')).toBe('true');
     expect(
-      (screen.getByRole('checkbox', { name: /Inclure l’à venir/ }) as HTMLInputElement).disabled,
+      (
+        screen.getByRole('checkbox', {
+          name: /Inclure les transactions à venir/,
+        }) as HTMLInputElement
+      ).disabled,
     ).toBe(true);
     const tabs = screen.getAllByRole('link').map((link) => link.textContent);
     expect(tabs).toEqual([
