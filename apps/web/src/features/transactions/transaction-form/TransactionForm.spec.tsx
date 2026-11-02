@@ -1,6 +1,6 @@
 import type { Account } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { TransactionForm } from './TransactionForm';
@@ -63,8 +63,46 @@ describe('TransactionForm planned dates', () => {
     setDate('2026-11-20');
 
     expect(screen.getByText(HINT)).toBeTruthy();
-    expect(stateSelect().disabled).toBe(true);
     expect(stateSelect().value).toBe('PENDING');
+    const booked = within(stateSelect()).getByRole('option', {
+      name: 'Comptabilisée',
+    }) as HTMLOptionElement;
+    expect(booked.disabled).toBe(true);
+  });
+
+  it('keeps rejection available on an existing planned row', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TransactionForm
+          accounts={[account]}
+          onSubmit={vi.fn()}
+          pending={false}
+          submitError={null}
+          transaction={
+            {
+              id: 'tx-1',
+              accountId: 'account-1',
+              state: 'PENDING',
+              autoBook: true,
+              splits: [],
+              source: 'MANUAL',
+              bookedOn: '2026-11-20',
+              valueOn: '2026-11-20',
+              amount: { value: '-29.99', assetCode: 'EUR' },
+              assetCode: 'EUR',
+              label: 'Internet',
+              nature: 'EXPENSE',
+              version: 1,
+            } as never
+          }
+        />
+      </QueryClientProvider>,
+    );
+    const reject = within(stateSelect()).getByRole('option', {
+      name: 'Rejetée',
+    }) as HTMLOptionElement;
+    expect(stateSelect().disabled).toBe(false);
+    expect(reject.disabled).toBe(false);
   });
 
   it('restores the user choice when the date returns to today', () => {

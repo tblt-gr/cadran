@@ -86,14 +86,16 @@ export function AdvancedTransactionFields({
                   : undefined
             }
             aria-label={t('transactions.fields.state')}
-            disabled={stateLockedHint !== null || statePlanned}
+            disabled={stateLockedHint !== null}
             onChange={(event) =>
               onChange('state', event.target.value as TransactionFormValues['state'])
             }
             value={values.state}
           >
             <option value="PENDING">{t('transactions.states.PENDING')}</option>
-            <option value="BOOKED">{t('transactions.states.BOOKED')}</option>
+            <option disabled={statePlanned} value="BOOKED">
+              {t('transactions.states.BOOKED')}
+            </option>
             {rejectable ? (
               <option value="REJECTED">{t('transactions.states.REJECTED')}</option>
             ) : null}
