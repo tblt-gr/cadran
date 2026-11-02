@@ -137,4 +137,24 @@ describe('TransactionDayList', () => {
 
     expect(screen.getByText('Annulée')).toBeTruthy();
   });
+
+  it('mutes a pending row and keeps its state badge, leaving booked rows unchanged', () => {
+    render(
+      <TransactionDayList
+        accounts={accounts}
+        transactions={[
+          tx('p', '2026-09-11', '-10.00', { state: 'PENDING' }),
+          tx('b', '2026-09-11', '-20.00'),
+        ]}
+      />,
+    );
+
+    const pending = screen.getByText('Libellé p').closest('li')!;
+    const booked = screen.getByText('Libellé b').closest('li')!;
+    expect(pending.getAttribute('data-state')).toBe('PENDING');
+    expect(pending.className).toContain('pending');
+    expect(within(pending).getByText('En attente')).toBeTruthy();
+    expect(booked.className).not.toContain('pending');
+    expect(within(booked).queryByText('En attente')).toBeNull();
+  });
 });

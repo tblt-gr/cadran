@@ -15749,6 +15749,7 @@ components:
           direction,
           counterpartAccountId,
           counterpartAccountLabel,
+          pending,
         ]
       properties:
         id: { type: string, format: uuid }
@@ -15768,6 +15769,11 @@ components:
         counterpartAccountLabel:
           type: [string, 'null']
           maxLength: 100
+        pending:
+          type: boolean
+          description: >-
+            True for a pending movement, listed for information only. It is
+            never part of any sum, count, gap, net worth or KPI of the month.
     MonthlyLedgerMovementPage:
       type: object
       additionalProperties: false

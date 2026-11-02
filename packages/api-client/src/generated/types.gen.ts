@@ -3083,6 +3083,10 @@ export type MonthlyLedgerMovement = {
     direction: 'IN' | 'OUT' | null;
     counterpartAccountId: string | null;
     counterpartAccountLabel: string | null;
+    /**
+     * True for a pending movement, listed for information only. It is never part of any sum, count, gap, net worth or KPI of the month.
+     */
+    pending: boolean;
 };
 
 export type MonthlyLedgerMovementPage = {

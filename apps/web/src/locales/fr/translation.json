@@ -3191,6 +3191,7 @@
         "loadingMore": "Chargement…",
         "in": "Entrée depuis {{account}}",
         "out": "Sortie vers {{account}}",
+        "pending": "En attente",
         "edit": "Modifier le mouvement {{label}} du {{date}}, {{amount}}",
         "editLoading": "Chargement du mouvement…",
         "editError": "Impossible de charger ce mouvement."

@@ -89,6 +89,7 @@ final class MonthlyLedgerRepresentation
             'direction' => $movement->direction,
             'counterpartAccountId' => $movement->counterpartAccountId,
             'counterpartAccountLabel' => $movement->counterpartAccountLabel,
+            'pending' => $movement->pending,
         ];
     }
 

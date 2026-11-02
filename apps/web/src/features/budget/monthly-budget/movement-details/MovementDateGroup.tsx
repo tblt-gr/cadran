@@ -1,6 +1,7 @@
 import type { MonthlyLedgerMovement } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import type { LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
 import { formatAmount, formatCalendarDay, formatCalendarDayMonth } from '@/lib/decimal';
@@ -51,11 +52,15 @@ export function MovementDateGroup({
             movement === null
               ? null
               : formatAmount(movement.amount.value, movement.amount.assetCode, language);
+          const pending = movement?.pending === true;
           const content = (
             <div className={styles.movementLine}>
               <strong title={label ?? undefined}>
                 {label ?? <SkeletonBlock className={styles.skeletonLabel} />}
               </strong>
+              {pending ? (
+                <StatusBadge tone="neutral">{t('budget.monthly.movements.pending')}</StatusBadge>
+              ) : null}
               <MoneyValue skeletonClassName={styles.skeletonAmount} value={amount} />
             </div>
           );
@@ -67,7 +72,7 @@ export function MovementDateGroup({
             kind !== 'account' &&
             (movement === null || transactionId != null);
           return (
-            <li key={movement?.id ?? index}>
+            <li data-pending={pending || undefined} key={movement?.id ?? index}>
               {actionable ? (
                 <button
                   aria-label={
@@ -79,7 +84,7 @@ export function MovementDateGroup({
                           label,
                         })
                   }
-                  className={`${styles.movement} ${styles.movementAction}`}
+                  className={`${styles.movement} ${styles.movementAction}${pending ? ` ${styles.pending}` : ''}`}
                   disabled={movement === null}
                   onClick={
                     movement === null
@@ -93,7 +98,9 @@ export function MovementDateGroup({
                   {content}
                 </button>
               ) : (
-                <div className={styles.movement}>{content}</div>
+                <div className={pending ? `${styles.movement} ${styles.pending}` : styles.movement}>
+                  {content}
+                </div>
               )}
             </li>
           );

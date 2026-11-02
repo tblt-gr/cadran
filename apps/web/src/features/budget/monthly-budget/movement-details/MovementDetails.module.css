@@ -97,3 +97,9 @@
 .dayMovements > li {
   min-width: 0;
 }
+
+/* A pending movement is listed for information only: muted, with its badge carrying the meaning. */
+.pending strong,
+.pending [data-visual-mask] {
+  color: var(--text-muted);
+}

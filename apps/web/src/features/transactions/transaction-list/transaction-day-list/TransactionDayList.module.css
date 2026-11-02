@@ -42,6 +42,11 @@
   row-gap: var(--spacing-1);
 }
 
+.pending .primary,
+.pending .amount [data-sign] {
+  color: var(--text-muted);
+}
+
 .selectable {
   grid-template-areas:
     'select primary amount actions'
