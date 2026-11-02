@@ -32,8 +32,8 @@ for (const width of [1440, 360]) {
     });
     const accountNav = page.getByRole('navigation', { name: 'Sections du compte' });
     await expect(accountNav.getByRole('link').first()).toHaveText('Compte');
-    await expect(accountNav.getByRole('link').nth(1)).toHaveText('Solde');
-    await expect(accountNav.getByRole('link').nth(2)).toHaveText('Opérations');
+    await expect(accountNav.getByRole('link').nth(1)).toHaveText('Opérations');
+    await expect(accountNav.getByRole('link').nth(2)).toHaveText('Solde');
     await expect(page.getByRole('heading', { name: 'Mouvements', exact: true })).toHaveCount(0);
     await accountNav.getByRole('link', { name: 'Opérations' }).click();
     await settled(page);

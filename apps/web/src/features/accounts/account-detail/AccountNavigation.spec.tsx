@@ -9,13 +9,13 @@ afterEach(() => {
 });
 
 describe('AccountNavigation', () => {
-  it('links the account, balance and operations tabs in order and marks the active one', () => {
+  it('links the account, operations and balance tabs in order and marks the active one', () => {
     render(<AccountNavigation accountId="a1" tab="operations" />);
     expect(screen.getByRole('navigation', { name: 'Sections du compte' })).toBeTruthy();
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
       'Compte',
-      'Solde',
       'Opérations',
+      'Solde',
     ]);
     expect(screen.getByRole('link', { name: 'Solde' }).getAttribute('href')).toBe(
       '/accounts/a1?tab=balance',

@@ -19,16 +19,16 @@ export function AccountNavigation({ accountId, tab }: { accountId: string; tab: 
           href: `/accounts/${accountId}?tab=account`,
         },
         {
-          id: 'balance',
-          label: 'Solde',
-          active: tab === 'balance',
-          href: `/accounts/${accountId}?tab=balance`,
-        },
-        {
           id: 'operations',
           label: 'Opérations',
           active: tab === 'operations',
           href: `/accounts/${accountId}?tab=operations`,
+        },
+        {
+          id: 'balance',
+          label: 'Solde',
+          active: tab === 'balance',
+          href: `/accounts/${accountId}?tab=balance`,
         },
       ]}
       label="Sections du compte"

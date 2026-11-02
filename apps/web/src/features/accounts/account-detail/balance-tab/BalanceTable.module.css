@@ -45,6 +45,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Same height for pending rows, rows with an action menu and rows without one. */
+.panel [data-skeleton] {
+  min-width: var(--spacing-12);
+  min-height: var(--spacing-6);
+}
+
+@media (min-width: 48rem) {
+  .panel tbody tr {
+    height: calc(var(--control-height) + 2 * var(--spacing-3) + var(--border-width-thin));
+  }
+}
+
 .greyed > * {
   color: var(--text-muted);
 }
