@@ -70,6 +70,7 @@ describe('MovementDetails loading structure', () => {
       direction: null,
       counterpartAccountId: null,
       counterpartAccountLabel: null,
+      pending: false,
     });
     const result = (items: ReturnType<typeof movement>[], hasMore: boolean) => ({
       data: { items, hasMore, nextCursor: hasMore ? 'next' : null },
@@ -129,4 +130,54 @@ describe('MovementDetails loading structure', () => {
     expect(within(list).getAllByRole('button')).toHaveLength(4);
     expect(api.readMovements.mock.calls[1]?.[0].query.cursor).toBe('next');
   });
+
+  it.each(['expense', 'income', 'account'] as const)(
+    'greys a pending %s movement with a visible badge and keeps booked rows unchanged',
+    async (kind) => {
+      const row = (id: string, pending: boolean) => ({
+        id,
+        transactionId: `tx-${id}`,
+        transferId: null,
+        bookedOn: '2026-10-20',
+        label: `Libellé ${id}`,
+        amount: { value: '-50.00', assetCode: 'EUR' },
+        direction: null,
+        counterpartAccountId: null,
+        counterpartAccountLabel: null,
+        pending,
+      });
+      api.readMovements.mockResolvedValueOnce({
+        data: {
+          items: [row('booked', false), row('waiting', true)],
+          hasMore: false,
+          nextCursor: null,
+        },
+        response: new Response('{}', { status: 200 }),
+      });
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+      render(
+        <QueryClientProvider client={client}>
+          <MovementDetails
+            axis={null}
+            editable
+            kind={kind}
+            language="fr"
+            month="2026-10"
+            rowId="row-1"
+            onEditTransaction={vi.fn()}
+          />
+        </QueryClientProvider>,
+      );
+
+      const waiting = (await screen.findByText('Libellé waiting')).closest('li')!;
+      const booked = screen.getByText('Libellé booked').closest('li')!;
+      expect(waiting.getAttribute('data-pending')).toBe('true');
+      expect(within(waiting).getByText('(en attente)')).toBeTruthy();
+      expect(waiting.querySelector('[data-visual-mask]')?.textContent).toMatch(/50,00/);
+      expect(waiting.firstElementChild?.className).toContain('pending');
+      expect(booked.hasAttribute('data-pending')).toBe(false);
+      expect(within(booked).queryByText('(en attente)')).toBeNull();
+      expect(booked.firstElementChild?.className).not.toContain('pending');
+    },
+  );
 });

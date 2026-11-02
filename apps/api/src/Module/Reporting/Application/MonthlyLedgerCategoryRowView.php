@@ -16,6 +16,10 @@ final readonly class MonthlyLedgerCategoryRowView
         public MonthlyMetricView $total,
         public int $movementCount,
         public bool $hasMovements,
+        /** Scheduled movements, shown as if they had happened; never part of the realised total. */
+        public ?string $pendingAmount = null,
+        public ?string $pendingAssetCode = null,
+        public int $pendingCount = 0,
     ) {
     }
 }

@@ -81,6 +81,8 @@ const ledger = {
       total: { value: '0', assetCode: 'EUR', reason: null },
       movementCount: 1,
       hasMovements: true,
+      pendingAmount: null,
+      pendingCount: 0,
     },
   ],
   expenseCategories: [
@@ -94,6 +96,8 @@ const ledger = {
       total: { value: null, assetCode: null, reason: 'NO_MOVEMENTS' as const },
       movementCount: 0,
       hasMovements: false,
+      pendingAmount: null,
+      pendingCount: 0,
     },
   ],
   accounts: [
@@ -105,6 +109,8 @@ const ledger = {
       total: { value: '-25.00', assetCode: 'EUR', reason: null },
       movementCount: 2,
       hasMovements: true,
+      pendingAmount: null,
+      pendingCount: 0,
     },
     {
       id: emptyAccountId,
@@ -114,6 +120,8 @@ const ledger = {
       total: { value: null, assetCode: null, reason: 'NO_MOVEMENTS' as const },
       movementCount: 0,
       hasMovements: false,
+      pendingAmount: null,
+      pendingCount: 0,
     },
   ],
 };
@@ -555,6 +563,29 @@ describe('MonthlyBudgetPage', () => {
     expect(screen.queryByText('Voyages')).toBeNull();
     expect(screen.queryByText('Hors budget')).toBeNull();
     expect(screen.getByText('2 transactions en attente')).toBeTruthy();
+  });
+
+  it('lists an expense category holding only pending movements, greyed and expandable', async () => {
+    api.readMonthlyLedger.mockReturnValue(
+      ok({
+        ...ledger,
+        expenseCategories: [
+          {
+            ...ledger.expenseCategories[0]!,
+            total: { value: '0.00', assetCode: 'EUR', reason: null },
+            movementCount: 0,
+            hasMovements: false,
+            pendingAmount: { value: '-25.00', assetCode: 'EUR' },
+            pendingCount: 1,
+          },
+        ],
+      }),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Voyages')).toBeTruthy();
+    expect(screen.queryByText('(en attente)')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Afficher les mouvements de Voyages' })).toBeTruthy();
   });
 
   it('shows the backend-owned totals in the ledger panel headers', async () => {

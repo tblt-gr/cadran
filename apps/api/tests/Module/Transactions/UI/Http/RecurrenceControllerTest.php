@@ -27,11 +27,11 @@ final class RecurrenceControllerTest extends WebTestCase
     private const array RECURRENCE_KEYS = [
         'id', 'accountId', 'label', 'counterparty', 'expectedAmount', 'amountTolerance',
         'intervalKind', 'dayOfPeriod', 'nextExpectedOn', 'confirmedAt', 'version',
-        'createdAt', 'updatedAt', 'archivedAt',
+        'createdAt', 'updatedAt', 'archivedAt', 'autoCreate', 'categoryId', 'note', 'paymentMethod',
     ];
     private const array OCCURRENCE_KEYS = [
         'id', 'recurrenceId', 'expectedOn', 'expectedAmount', 'amountTolerance', 'status',
-        'matchedTransactionId', 'matchedAt', 'periodClosed',
+        'matchedTransactionId', 'matchedAt', 'generatedTransactionId', 'periodClosed',
     ];
     private const array CANDIDATE_KEYS = [
         'fingerprint', 'accountId', 'counterparty', 'intervalKind', 'medianAmount', 'tolerance',

@@ -73,14 +73,16 @@ export function useRecurrenceMutations({
       if (!result.response?.ok || !result.data) throw recurrenceRequestError(result);
       return result.data;
     },
-    onSuccess: async () => {
+    onSuccess: async (saved) => {
       submission.release();
       onSaved();
       setNotice(t('recurrences.toasts.saved'));
       await queryClient.invalidateQueries({ queryKey: ['recurrences'] });
-      if (!editor || editor === 'create' || !('id' in editor)) {
+      // Saving an automatic recurrence materialises its month on the server: the ledger moved.
+      if (saved.autoCreate || !editor || editor === 'create' || !('id' in editor)) {
         await invalidateAccountBalances(queryClient);
       }
+      if (saved.autoCreate) await queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
   });
 

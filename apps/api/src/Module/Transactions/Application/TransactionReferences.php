@@ -34,6 +34,7 @@ final readonly class TransactionReferences
         TransactionDraft $draft,
         \DateTimeImmutable $today,
         \DateTimeImmutable $now,
+        bool $allowFutureDate = false,
     ): Account {
         $account = $this->accounts->findForUpdate($workspace, $accountId);
         if (null === $account) {
@@ -42,7 +43,7 @@ final readonly class TransactionReferences
         if (null !== $account->archivedAt || $account->isClosed()) {
             throw new InvalidTransactionInput('A new transaction requires an active account.');
         }
-        $this->assertAccountAndDates($account, $draft, $today);
+        $this->assertAccountAndDates($account, $draft, $today, $allowFutureDate);
 
         $used = $account->markUsed($now);
         if ($used !== $account && !$this->accounts->update($used, $account->version)) {
@@ -57,12 +58,13 @@ final readonly class TransactionReferences
         string $accountId,
         TransactionDraft $draft,
         \DateTimeImmutable $today,
+        bool $allowFutureDate = false,
     ): Account {
         $account = $this->accounts->find($workspace, $accountId);
         if (null === $account) {
             throw new TransactionNotFound();
         }
-        $this->assertAccountAndDates($account, $draft, $today);
+        $this->assertAccountAndDates($account, $draft, $today, $allowFutureDate);
 
         return $account;
     }
@@ -78,18 +80,8 @@ final readonly class TransactionReferences
         if (null === $categoryId) {
             return null;
         }
-        $category = $this->categories->findForUpdate($workspace, $categoryId);
-        if (null === $category) {
-            throw new TransactionNotFound();
-        }
         $keepsExistingCategory = $existing?->categoryId === $categoryId;
-        if (null !== $category->archivedAt && !$keepsExistingCategory) {
-            throw new InvalidTransactionInput('A transaction category must be active.');
-        }
-        $expectedType = $draft->amount->value->isNegative() ? CategoryType::EXPENSE : CategoryType::INCOME;
-        if ($category->type !== $expectedType) {
-            throw new InvalidTransactionInput('The category type must match the transaction amount sign.');
-        }
+        $category = $this->fittingCategory($workspace, $categoryId, $draft->amount, $keepsExistingCategory);
 
         $this->markCategoryUsed($category, $now, $keepsExistingCategory);
 
@@ -108,6 +100,32 @@ final readonly class TransactionReferences
             origin: $keepsExistingCategory ? $existing->origin : \App\Module\Transactions\Domain\CategorizationOrigin::MANUAL,
             ruleId: $keepsExistingCategory ? $existing->ruleId : null,
         );
+    }
+
+    /**
+     * The category an amount may be filed under: it exists in the workspace, is
+     * active (unless the caller keeps one it already holds) and is of the type
+     * matching the amount sign. A recurrence applies the very same rule when it
+     * is saved, so a category it would later be refused for never gets stored.
+     *
+     * @throws TransactionNotFound
+     * @throws InvalidTransactionInput
+     */
+    public function fittingCategory(WorkspaceScope $workspace, string $categoryId, AssetAmount $amount, bool $keepsExistingCategory = false): Category
+    {
+        $category = $this->categories->findForUpdate($workspace, $categoryId);
+        if (null === $category) {
+            throw new TransactionNotFound();
+        }
+        if (null !== $category->archivedAt && !$keepsExistingCategory) {
+            throw new InvalidTransactionInput('A transaction category must be active.');
+        }
+        $expectedType = $amount->value->isNegative() ? CategoryType::EXPENSE : CategoryType::INCOME;
+        if ($category->type !== $expectedType) {
+            throw new InvalidTransactionInput('The category type must match the transaction amount sign.');
+        }
+
+        return $category;
     }
 
     /**
@@ -247,7 +265,7 @@ final readonly class TransactionReferences
         }
     }
 
-    private function assertAccountAndDates(Account $account, TransactionDraft $draft, \DateTimeImmutable $today): void
+    private function assertAccountAndDates(Account $account, TransactionDraft $draft, \DateTimeImmutable $today, bool $allowFutureDate = false): void
     {
         if (AccountValuationMode::PORTFOLIO === $account->valuationMode
             && in_array($draft->nature, [TransactionNature::INCOME, TransactionNature::EXPENSE, TransactionNature::REFUND, TransactionNature::FEE], true)) {
@@ -256,7 +274,7 @@ final readonly class TransactionReferences
         if ($account->assetCode->toString() !== $draft->amount->asset->toString()) {
             throw new InvalidTransactionInput('The transaction asset must match its account asset.');
         }
-        if ($draft->bookedOn < $account->openedOn || $draft->bookedOn > $today) {
+        if ($draft->bookedOn < $account->openedOn || ($draft->bookedOn > $today && !$allowFutureDate)) {
             throw new InvalidTransactionInput('The booked date is outside the account and workspace bounds.');
         }
     }

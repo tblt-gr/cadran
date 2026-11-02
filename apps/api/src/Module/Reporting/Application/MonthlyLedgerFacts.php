@@ -41,6 +41,12 @@ final class MonthlyLedgerFacts
         return MonthlyLedgerCalculator::validTransfer(self::transfer($pair));
     }
 
+    /** A scheduled transfer: listed for information, never part of a booked total. */
+    public static function pendingTransfer(MonthlyTransferPairFact $pair): bool
+    {
+        return !$pair->voided && 'PENDING' === $pair->sourceState && self::wellFormedTransfer($pair);
+    }
+
     public static function wellFormedTransfer(MonthlyTransferPairFact $pair): bool
     {
         return MonthlyLedgerCalculator::wellFormedTransfer(self::transfer($pair));
@@ -71,11 +77,11 @@ final class MonthlyLedgerFacts
      *
      * @return array<string, list<MonthlyLedgerSource>>
      */
-    public static function transferSourcesByAccount(array $pairs): array
+    public static function transferSourcesByAccount(array $pairs, bool $pending = false): array
     {
         $sources = [];
         foreach ($pairs as $pair) {
-            if (!self::validTransfer($pair)) {
+            if (!($pending ? self::pendingTransfer($pair) : self::validTransfer($pair))) {
                 continue;
             }
             assert(null !== $pair->sourceAccountId && null !== $pair->targetAccountId);

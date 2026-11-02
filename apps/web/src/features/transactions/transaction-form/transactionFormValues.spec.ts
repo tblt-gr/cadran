@@ -396,4 +396,47 @@ describe('transactionFormValues', () => {
       ).toBe('9.00');
     });
   });
+  describe('future date on a recurrence row', () => {
+    const generated = {
+      ...transaction,
+      source: 'RECURRENCE' as const,
+      state: 'PENDING' as const,
+      bookedOn: '2026-09-20',
+    } as Transaction;
+
+    it('accepts a note edit and a rejection while the row stays pending or rejected', () => {
+      const values = initialTransactionValues(generated, [account], '2026-09-08');
+
+      expect(validateTransactionValues(values, [account], '2026-09-08', generated)).toEqual({});
+      expect(
+        validateTransactionValues(
+          { ...values, state: 'REJECTED' },
+          [account],
+          '2026-09-08',
+          generated,
+        ),
+      ).toEqual({});
+    });
+
+    it('still refuses booking it early or dating another pending row in the future', () => {
+      const values = initialTransactionValues(generated, [account], '2026-09-08');
+
+      expect(
+        validateTransactionValues(
+          { ...values, state: 'BOOKED' },
+          [account],
+          '2026-09-08',
+          generated,
+        ),
+      ).toMatchObject({ bookedOn: true });
+      const manual = { ...generated, source: 'MANUAL' as const } as Transaction;
+      expect(validateTransactionValues(values, [account], '2026-09-08', manual)).toMatchObject({
+        bookedOn: true,
+      });
+      const booked = { ...generated, state: 'BOOKED' as const } as Transaction;
+      expect(
+        validateTransactionValues({ ...values, state: 'PENDING' }, [account], '2026-09-08', booked),
+      ).toMatchObject({ bookedOn: true });
+    });
+  });
 });

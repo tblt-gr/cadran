@@ -27,6 +27,10 @@ final readonly class RecurrenceView
             'createdAt' => $recurrence->createdAt->format(DATE_ATOM),
             'updatedAt' => $recurrence->updatedAt->format(DATE_ATOM),
             'archivedAt' => $recurrence->archivedAt?->format(DATE_ATOM),
+            'autoCreate' => $recurrence->autoCreate,
+            'categoryId' => $recurrence->categoryId,
+            'note' => $recurrence->note,
+            'paymentMethod' => $recurrence->paymentMethod?->value,
         ];
     }
 

@@ -33,6 +33,7 @@ final readonly class RestoreRecurrence
         private TransactionBoundary $boundary,
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
+        private MaterializeRecurrenceOccurrences $materialize,
     ) {
     }
 
@@ -57,6 +58,9 @@ final readonly class RestoreRecurrence
             $this->occurrences->deleteUnmatchedFrom($context->workspace, $id, $today);
             $this->generator->extend($restored, $today, $today);
             $this->recurrences->advanceNextExpectedOn($context->workspace, $id, $this->generator->pointer($restored, $today));
+            if ($restored->autoCreate) {
+                $this->materialize->forRecurrence($context, $restored, $today);
+            }
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, RecurrenceAuditEvents::RESTORED,
                 RecurrenceAuditEvents::ENTITY, $id, AuditDiff::change(['archived' => true], ['archived' => false]),

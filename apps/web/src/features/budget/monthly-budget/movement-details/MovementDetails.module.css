@@ -97,3 +97,17 @@
 .dayMovements > li {
   min-width: 0;
 }
+
+/* A pending movement is listed for information only: muted by colour (never opacity, which would
+   pull the text under AA contrast) and marked in plain text after its label. */
+.pending strong,
+.pending [data-visual-mask],
+.pendingMarker {
+  color: var(--text-pending);
+}
+
+.pendingMarker {
+  flex: 0 0 auto;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}

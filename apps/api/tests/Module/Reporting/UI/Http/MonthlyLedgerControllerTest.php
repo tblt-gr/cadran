@@ -96,6 +96,9 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         self::assertSame('40.00', self::fields($food['total'] ?? null)['value']);
         self::assertSame(2, $food['movementCount']);
         self::assertTrue($food['hasMovements']);
+        self::assertSame(['value' => '99.00', 'assetCode' => 'EUR'], $food['pendingAmount']);
+        self::assertSame(1, $food['pendingCount']);
+        self::assertNull(self::row($ledger, 'expenseCategories', self::TRANSPORT)['pendingAmount']);
         self::assertSame('#AA5500', $food['color']);
         // A category without its own color is drawn with its nearest ancestor's.
         self::assertSame('#AA5500', self::row($ledger, 'expenseCategories', self::FOOD_CHILD)['color']);
@@ -118,11 +121,15 @@ final class MonthlyLedgerControllerTest extends WebTestCase
 
         $detail = $this->read('/api/v1/reports/monthly/ledger/expense/'.self::FOOD.'/movements?month=2026-09&axis=ESSENTIAL');
         $detailItems = self::rows($detail, 'items');
-        self::assertSame(['20.00', '-60.00'], array_map(
+        // The pending row is listed, marked, as if it had happened; the totals above ignore it.
+        self::assertSame(['-99.00', '20.00', '-60.00'], array_map(
             static fn (array $item): mixed => self::fields($item['amount'] ?? null)['value'],
             $detailItems,
         ));
-        self::assertSame(['00000000-0000-7000-8000-000000000103', '00000000-0000-7000-8000-000000000102'], array_column($detailItems, 'transactionId'));
+        self::assertSame([
+            '00000000-0000-7000-8000-000000000104', '00000000-0000-7000-8000-000000000103', '00000000-0000-7000-8000-000000000102',
+        ], array_column($detailItems, 'transactionId'));
+        self::assertSame([true, false, false], array_column($detailItems, 'pending'));
 
         $accountDetail = $this->read('/api/v1/reports/monthly/ledger/account/'.self::CURRENT.'/movements?month=2026-09');
         $accountItems = self::rows($accountDetail, 'items');
@@ -138,6 +145,78 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
         $this->client->request('GET', '/api/v1/reports/monthly/ledger/account/'.self::OTHER_ACCOUNT.'/movements?month=2026-09');
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testPendingMovementsAreListedMarkedWithoutChangingAnyTotal(): void
+    {
+        $this->signIn();
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->account(self::SAVINGS, WorkspaceFixture::OWN_WORKSPACE, 'Épargne', 'SAVINGS');
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Secret', 'CURRENT');
+        $this->category(self::FOOD, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Alimentation', true, null, null);
+        $this->category(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, 'EXPENSE', 'Secret', true, null, null);
+        $this->transaction('01', self::CURRENT, '-60.10', 'EXPENSE', splits: [[self::FOOD, '-60.10', []]]);
+        $this->transaction('02', self::CURRENT, '-850.00', 'EXPENSE', state: 'PENDING', bookedOn: '2026-09-28', splits: [[self::FOOD, '-850.00', []]]);
+        $this->transaction('03', self::CURRENT, '-7.00', 'EXPENSE', state: 'VOIDED', splits: [[self::FOOD, '-7.00', []]]);
+        $this->transaction('05', self::CURRENT, '-8.00', 'EXPENSE', state: 'REJECTED', splits: [[self::FOOD, '-8.00', []]]);
+        $this->transaction('09', self::OTHER_ACCOUNT, '-5.00', 'EXPENSE', state: 'PENDING', workspace: WorkspaceFixture::OTHER_WORKSPACE, splits: [[self::OTHER_CATEGORY, '-5.00', []]]);
+        $this->transfer('a', self::CURRENT, self::SAVINGS, '300.00', 'PENDING');
+
+        $ledger = $this->read('/api/v1/reports/monthly/ledger?month=2026-09');
+        $food = self::row($ledger, 'expenseCategories', self::FOOD);
+        self::assertSame('60.10', self::fields($food['total'] ?? null)['value']);
+        self::assertSame(1, $food['movementCount']);
+        self::assertSame(['value' => '0.00', 'assetCode' => 'EUR', 'reason' => null], array_intersect_key(
+            self::fields(self::row($ledger, 'accounts', self::SAVINGS)['total'] ?? null),
+            ['value' => 1, 'assetCode' => 1, 'reason' => 1],
+        ));
+        self::assertSame(['value' => '300.00', 'assetCode' => 'EUR'], self::row($ledger, 'accounts', self::SAVINGS)['pendingAmount']);
+        self::assertSame(['value' => '-300.00', 'assetCode' => 'EUR'], self::row($ledger, 'accounts', self::CURRENT)['pendingAmount']);
+        self::assertSame(1, self::row($ledger, 'accounts', self::CURRENT)['pendingCount']);
+        self::assertSame(['value' => '850.00', 'assetCode' => 'EUR'], $food['pendingAmount']);
+
+        $items = self::rows($this->read('/api/v1/reports/monthly/ledger/expense/'.self::FOOD.'/movements?month=2026-09'), 'items');
+        self::assertSame(['-850.00', '-60.10'], array_map(static fn (array $item): mixed => self::fields($item['amount'] ?? null)['value'], $items));
+        self::assertSame([true, false], array_column($items, 'pending'));
+
+        $account = self::rows($this->read('/api/v1/reports/monthly/ledger/account/'.self::CURRENT.'/movements?month=2026-09'), 'items');
+        self::assertCount(1, $account);
+        self::assertTrue($account[0]['pending']);
+        self::assertSame('-300.00', self::fields($account[0]['amount'] ?? null)['value']);
+        self::assertStringNotContainsString('-5.00', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testACategoryWithOnlyPendingMovementsHasARowWithAZeroRealisedAmount(): void
+    {
+        $this->signIn();
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Secret', 'CURRENT');
+        $this->category(self::SALARY, WorkspaceFixture::OWN_WORKSPACE, 'INCOME', 'Salaire', true, null, null);
+        $this->category(self::FOOD, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Logement', true, null, null);
+        $this->category(self::EMPTY, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Vide', true, null, null);
+        $this->category(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, 'EXPENSE', 'Voisin', true, null, null);
+        $this->transaction('01', self::CURRENT, '-850.10', 'EXPENSE', state: 'PENDING', bookedOn: '2026-09-30', splits: [[self::FOOD, '-850.10', []]]);
+        $this->transaction('02', self::CURRENT, '1200.00', 'INCOME', state: 'PENDING', bookedOn: '2026-09-29', splits: [[self::SALARY, '1200.00', []]]);
+        $this->transaction('09', self::OTHER_ACCOUNT, '-5.00', 'EXPENSE', state: 'PENDING', workspace: WorkspaceFixture::OTHER_WORKSPACE, splits: [[self::OTHER_CATEGORY, '-5.00', []]]);
+
+        $ledger = $this->read('/api/v1/reports/monthly/ledger?month=2026-09');
+
+        $rent = self::row($ledger, 'expenseCategories', self::FOOD);
+        $total = self::fields($rent['total'] ?? null);
+        self::assertSame(['0.00', 'EUR', null], [$total['value'], $total['assetCode'], $total['reason']]);
+        self::assertSame(0, $rent['movementCount']);
+        self::assertFalse($rent['hasMovements']);
+        self::assertSame(['value' => '850.10', 'assetCode' => 'EUR'], $rent['pendingAmount']);
+        self::assertSame(1, $rent['pendingCount']);
+        $salary = self::row($ledger, 'incomeCategories', self::SALARY);
+        self::assertSame('0.00', self::fields($salary['total'] ?? null)['value']);
+        self::assertSame(['value' => '1200.00', 'assetCode' => 'EUR'], $salary['pendingAmount']);
+        $empty = self::row($ledger, 'expenseCategories', self::EMPTY);
+        self::assertNull(self::fields($empty['total'] ?? null)['value']);
+        self::assertSame('NO_MOVEMENTS', self::fields($empty['total'] ?? null)['reason']);
+        self::assertNull($empty['pendingAmount']);
+        self::assertSame(0, $empty['pendingCount']);
+        self::assertStringNotContainsString('Voisin', (string) $this->client->getResponse()->getContent());
     }
 
     public function testMovementPagingIsStableBoundedAndCursorBoundToItsQuery(): void
@@ -277,6 +356,7 @@ final class MonthlyLedgerControllerTest extends WebTestCase
                 'amount_value' => $amount, 'amount_scale' => 2, 'state' => $state, 'nature' => $nature,
                 'source' => 'MANUAL', 'booked_on' => $bookedOn, 'raw_label' => 'Ledger '.$suffix,
                 'version' => 1, 'created_at' => $bookedOn.' 12:00:00+00', 'updated_at' => $bookedOn.' 12:00:00+00',
+                'voided_at' => 'VOIDED' === $state ? $bookedOn.' 12:00:00+00' : null,
             ]);
             foreach ($splits as $index => [$category, $splitAmount, $axes]) {
                 $this->connection->insert('transaction_splits', [
@@ -290,10 +370,10 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         });
     }
 
-    private function transfer(string $suffix, string $source, string $target, string $amount): void
+    private function transfer(string $suffix, string $source, string $target, string $amount, string $state = 'BOOKED'): void
     {
-        $this->transaction($suffix.'1', $source, '-'.$amount, 'TRANSFER');
-        $this->transaction($suffix.'2', $target, $amount, 'TRANSFER');
+        $this->transaction($suffix.'1', $source, '-'.$amount, 'TRANSFER', $state);
+        $this->transaction($suffix.'2', $target, $amount, 'TRANSFER', $state);
         $this->connection->insert('transaction_transfers', [
             'id' => '00000000-0000-7000-8000-0000000004'.$suffix.'3',
             'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,

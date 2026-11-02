@@ -241,7 +241,7 @@ final class OpenApiConventionsContractTest extends TestCase
         if (in_array($property, ['from', 'to', 'status'], true)) {
             return true;
         }
-        $allowed = ['count', 'total', 'version', 'versions', 'year', 'month', 'months', 'precision', 'rank', 'order', 'sequence', 'priority', 'position', 'depth', 'level', 'size', 'page', 'day', 'days', 'sign', 'matched', 'examined', 'changed', 'change', 'skipped', 'generated', 'index', 'length', 'decimals', 'digits', 'maximum', 'minimum'];
+        $allowed = ['count', 'total', 'version', 'versions', 'year', 'month', 'months', 'precision', 'rank', 'order', 'sequence', 'priority', 'position', 'depth', 'level', 'size', 'page', 'day', 'days', 'sign', 'matched', 'examined', 'created', 'booked', 'changed', 'change', 'skipped', 'generated', 'index', 'length', 'decimals', 'digits', 'maximum', 'minimum'];
 
         return [] !== array_intersect(self::words($property), $allowed);
     }

@@ -17,6 +17,8 @@ final readonly class MonthlyLedgerMovementView
         public ?string $direction = null,
         public ?string $counterpartAccountId = null,
         public ?string $counterpartAccountLabel = null,
+        /** A pending movement is listed for information only: it enters no sum, count or KPI. */
+        public bool $pending = false,
     ) {
     }
 }

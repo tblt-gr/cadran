@@ -116,6 +116,20 @@ final class TransactionTest extends TestCase
         self::assertSame(2, $edited->version);
     }
 
+    public function testARecurrenceTransactionLabelIsEditableLikeAManualOne(): void
+    {
+        $edited = $this->transaction('-850.00', TransactionNature::EXPENSE, TransactionSource::RECURRENCE)->edit(
+            amount: $this->amount('-850.00'), nature: TransactionNature::EXPENSE, state: TransactionState::BOOKED,
+            bookedOn: new \DateTimeImmutable('2026-03-15'), valueOn: null, authorizedOn: null,
+            rawLabel: 'Loyer novembre', counterparty: null, note: null, paymentMethod: null, mcc: null,
+            maskedCard: null, bankReference: null, splits: [],
+            updatedAt: new \DateTimeImmutable('2026-03-16T10:00:00+00:00'),
+            lastEditorId: WorkspaceFixture::OWNER_ID,
+        );
+
+        self::assertSame('Loyer novembre', $edited->rawLabel);
+    }
+
     public function testAUserLabelAcceptsExactlyTheMaximumLength(): void
     {
         $label = str_repeat('é', Transaction::MAX_RAW_LABEL_LENGTH);

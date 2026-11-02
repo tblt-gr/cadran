@@ -116,14 +116,7 @@ final readonly class ReadMonthlyLedgerMovements
             throw new MonthlyLedgerRowNotFound('The ledger category does not exist in this workspace.');
         }
         $transactions = ($this->transactions)($workspace, $month);
-        $sources = MonthlyLedgerCalculator::categorySources(
-            MonthlyLedgerFacts::entries($transactions->booked),
-            $expectedType,
-            $id,
-            $axis,
-        );
-
-        return array_map(static fn (MonthlyLedgerSource $source): MonthlyLedgerMovementView => new MonthlyLedgerMovementView(
+        $view = static fn (bool $pending): \Closure => static fn (MonthlyLedgerSource $source): MonthlyLedgerMovementView => new MonthlyLedgerMovementView(
             $source->id,
             $source->transactionId,
             null,
@@ -131,7 +124,32 @@ final readonly class ReadMonthlyLedgerMovements
             $source->label,
             $source->amount->toString(),
             $source->asset->toString(),
-        ), $sources);
+            pending: $pending,
+        );
+        $booked = array_map($view(false), MonthlyLedgerCalculator::categorySources(
+            MonthlyLedgerFacts::entries($transactions->booked),
+            $expectedType,
+            $id,
+            $axis,
+        ));
+        // Pending rows are shown as if they had happened, but only here: every total and count is
+        // computed from the booked facts alone.
+        $pending = array_map($view(true), MonthlyLedgerCalculator::categorySources(
+            MonthlyLedgerFacts::entries($transactions->pending),
+            $expectedType,
+            $id,
+            $axis,
+        ));
+        $items = [...$booked, ...$pending];
+        usort($items, static fn (MonthlyLedgerMovementView $left, MonthlyLedgerMovementView $right): int => [
+            $right->bookedOn,
+            $right->id,
+        ] <=> [
+            $left->bookedOn,
+            $left->id,
+        ]);
+
+        return $items;
     }
 
     /** @return list<MonthlyLedgerMovementView> */
@@ -151,7 +169,8 @@ final readonly class ReadMonthlyLedgerMovements
 
         $items = [];
         foreach (($this->transfers)($workspace, $month) as $pair) {
-            if (!MonthlyLedgerFacts::validTransfer($pair)) {
+            $pending = !$pair->voided && 'PENDING' === $pair->sourceState && MonthlyLedgerFacts::wellFormedTransfer($pair);
+            if (!$pending && !MonthlyLedgerFacts::validTransfer($pair)) {
                 continue;
             }
             assert(null !== $pair->sourceAccountId && null !== $pair->targetAccountId);
@@ -171,6 +190,7 @@ final readonly class ReadMonthlyLedgerMovements
                     'OUT',
                     $pair->targetAccountId,
                     $labels[$pair->targetAccountId] ?? null,
+                    $pending,
                 );
             } elseif ($pair->targetAccountId === $id) {
                 $items[] = new MonthlyLedgerMovementView(
@@ -184,6 +204,7 @@ final readonly class ReadMonthlyLedgerMovements
                     'IN',
                     $pair->sourceAccountId,
                     $labels[$pair->sourceAccountId] ?? null,
+                    $pending,
                 );
             }
         }

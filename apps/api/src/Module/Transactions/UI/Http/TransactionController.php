@@ -69,6 +69,10 @@ final readonly class TransactionController
             $body += ['source' => TransactionSource::MANUAL->value, 'sourceRef' => null, 'reconcile' => false];
             $payload = TransactionPayload::of($body, self::CREATE_FIELDS);
             $source = $payload->string('source');
+            if (TransactionSource::RECURRENCE->value === $source) {
+                // Only a recurrence creates this source, through its own use case.
+                throw new \UnexpectedValueException('A client cannot create a recurrence-sourced transaction.');
+            }
             $result = $this->idempotentExecution->execute(
                 'transaction.create',
                 $this->envelope->idempotency($request, in_array($source, [TransactionSource::IMPORT->value, TransactionSource::PROVIDER->value], true)),

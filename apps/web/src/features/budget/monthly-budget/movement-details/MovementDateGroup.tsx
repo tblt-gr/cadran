@@ -51,11 +51,18 @@ export function MovementDateGroup({
             movement === null
               ? null
               : formatAmount(movement.amount.value, movement.amount.assetCode, language);
+          const pending = movement?.pending === true;
           const content = (
             <div className={styles.movementLine}>
               <strong title={label ?? undefined}>
                 {label ?? <SkeletonBlock className={styles.skeletonLabel} />}
               </strong>
+              {pending ? (
+                <span className={styles.pendingMarker}>
+                  ({t('budget.monthly.movements.pending')})
+                </span>
+              ) : null}
+
               <MoneyValue skeletonClassName={styles.skeletonAmount} value={amount} />
             </div>
           );
@@ -67,7 +74,7 @@ export function MovementDateGroup({
             kind !== 'account' &&
             (movement === null || transactionId != null);
           return (
-            <li key={movement?.id ?? index}>
+            <li data-pending={pending || undefined} key={movement?.id ?? index}>
               {actionable ? (
                 <button
                   aria-label={
@@ -79,7 +86,7 @@ export function MovementDateGroup({
                           label,
                         })
                   }
-                  className={`${styles.movement} ${styles.movementAction}`}
+                  className={`${styles.movement} ${styles.movementAction}${pending ? ` ${styles.pending}` : ''}`}
                   disabled={movement === null}
                   onClick={
                     movement === null
@@ -93,7 +100,9 @@ export function MovementDateGroup({
                   {content}
                 </button>
               ) : (
-                <div className={styles.movement}>{content}</div>
+                <div className={pending ? `${styles.movement} ${styles.pending}` : styles.movement}>
+                  {content}
+                </div>
               )}
             </li>
           );

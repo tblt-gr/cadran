@@ -19,6 +19,12 @@ final readonly class RecurrenceEditInput
         public string $intervalKind,
         public int $dayOfPeriod,
         public int $version,
+        public bool $autoCreate = false,
+        public ?string $categoryId = null,
+        public ?string $note = null,
+        public ?string $paymentMethod = null,
+        /** A later period start: instalments before it are dropped. Null, or a date up to today, changes nothing. */
+        public ?string $firstExpectedOn = null,
     ) {
     }
 }

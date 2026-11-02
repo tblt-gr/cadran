@@ -23,6 +23,11 @@ interface LedgerPanelsProps {
   onEditTransaction: (transactionId: string) => void;
 }
 
+/** A row with only pending movements is still worth opening, though it holds no booked amount. */
+function listed(row: { hasMovements: boolean; pendingCount: number }): boolean {
+  return row.hasMovements || row.pendingCount > 0;
+}
+
 export function LedgerPanels({
   activeAccountIds,
   axis,
@@ -50,9 +55,9 @@ export function LedgerPanels({
   };
   // A category with no movement this month has nothing to explain; accounts stay listed
   // because an account without a transfer is still a valid transfer target.
-  const incomeRows = data.incomeCategories.filter((row) => row.hasMovements);
+  const incomeRows = data.incomeCategories.filter(listed);
   const expenseRows = data.expenseCategories
-    .filter((row) => row.hasMovements)
+    .filter(listed)
     .sort(
       (left, right) =>
         compareDecimalString(left.total.value, right.total.value, 'desc') ||
@@ -60,7 +65,7 @@ export function LedgerPanels({
     );
   const accountRows = [...data.accounts].sort(
     (left, right) =>
-      Number(right.hasMovements) - Number(left.hasMovements) ||
+      Number(listed(right)) - Number(listed(left)) ||
       left.label.localeCompare(right.label, language),
   );
 

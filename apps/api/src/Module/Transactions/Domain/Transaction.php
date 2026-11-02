@@ -119,7 +119,7 @@ final readonly class Transaction
         if ($amount->asset->toString() !== $this->amount->asset->toString()) {
             throw new InvalidTransaction('A transaction asset cannot change.');
         }
-        if (TransactionSource::MANUAL !== $this->source && $rawLabel !== $this->rawLabel) {
+        if (in_array($this->source, [TransactionSource::IMPORT, TransactionSource::PROVIDER], true) && $rawLabel !== $this->rawLabel) {
             throw new InvalidTransaction('An external transaction raw label cannot change.');
         }
         if ($state !== $this->state

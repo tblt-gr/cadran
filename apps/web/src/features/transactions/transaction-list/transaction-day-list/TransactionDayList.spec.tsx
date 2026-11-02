@@ -137,4 +137,30 @@ describe('TransactionDayList', () => {
 
     expect(screen.getByText('Annulée')).toBeTruthy();
   });
+
+  it('mutes a pending row and keeps its state badge, leaving booked rows unchanged', () => {
+    render(
+      <TransactionDayList
+        accounts={accounts}
+        transactions={[
+          tx('p', '2026-09-11', '-10.00', { state: 'PENDING' }),
+          tx('b', '2026-09-11', '-20.00'),
+        ]}
+      />,
+    );
+
+    const pending = screen.getByText('Libellé p').closest('li')!;
+    const booked = screen.getByText('Libellé b').closest('li')!;
+    expect(pending.getAttribute('data-state')).toBe('PENDING');
+    expect(pending.className).toContain('pending');
+    expect(within(pending).getByText('En attente')).toBeTruthy();
+    // Every cell the pending style dims is a descendant of the row; the badge is in none of them.
+    for (const dimmed of ['primary', 'amount', 'category', 'account']) {
+      const cell = pending.querySelector(`[class*="${dimmed}"]`);
+      expect(cell, dimmed).toBeTruthy();
+      expect(cell?.contains(within(pending).getByText('En attente'))).toBe(false);
+    }
+    expect(booked.className).not.toContain('pending');
+    expect(within(booked).queryByText('En attente')).toBeNull();
+  });
 });

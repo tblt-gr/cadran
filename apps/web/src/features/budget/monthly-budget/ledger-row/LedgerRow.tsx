@@ -42,7 +42,10 @@ export function LedgerRow({
   const [expanded, setExpanded] = useState(false);
   const detailsId = useId();
   const category = kind === 'account' ? null : (row as MonthlyLedgerCategoryRow);
-  const amount = renderAmount(row, kind, language, t);
+  // Pending movements are listed for information: they open the detail but feed no sum.
+  const explainable = row.hasMovements || row.pendingCount > 0;
+  const pendingOnly = !row.hasMovements && row.pendingCount > 0;
+  const amount = renderAmount(row, pendingOnly, kind, language, t);
   const color = canonicalCategoryColor(category?.color);
   const addDisabled = !actionsAllowed || addUnavailable;
   const disabledReason = !actionsAllowed
@@ -88,11 +91,18 @@ export function LedgerRow({
 
   return (
     <li
-      className={row.hasMovements ? styles.row : `${styles.row} ${styles.rowEmpty}`}
+      className={
+        pendingOnly
+          ? `${styles.row} ${styles.rowPending}`
+          : explainable
+            ? styles.row
+            : `${styles.row} ${styles.rowEmpty}`
+      }
+      data-pending={row.pendingCount > 0 || undefined}
       style={color === null ? undefined : { borderInlineStartColor: color }}
     >
       <div className={styles.summary}>
-        {row.hasMovements ? (
+        {explainable ? (
           <button
             aria-controls={detailsId}
             aria-expanded={expanded}
@@ -128,7 +138,7 @@ export function LedgerRow({
         </span>
       ) : null}
 
-      {expanded && row.hasMovements ? (
+      {expanded && explainable ? (
         <div className={styles.details} id={detailsId}>
           <MovementDetails
             axis={axis}
@@ -145,10 +155,31 @@ export function LedgerRow({
   );
 }
 
-function renderAmount(row: LedgerRowData, kind: LedgerKind, language: string, t: TFunction) {
+/** A pending-only row shows its pending amount as any amount; a mixed row shows the realised one. */
+function renderAmount(
+  row: LedgerRowData,
+  pendingOnly: boolean,
+  kind: LedgerKind,
+  language: string,
+  t: TFunction,
+) {
+  const direction = kind === 'expense' ? 'OUTFLOW' : null;
+  if (pendingOnly) {
+    return row.pendingAmount === null ? (
+      <EmptyValue label={t('budget.monthly.pendingNotCalculable')} />
+    ) : (
+      <MoneyValue
+        value={formatAmount(
+          toSignedAmount(row.pendingAmount.value, direction),
+          row.pendingAmount.assetCode,
+          language,
+        )}
+      />
+    );
+  }
   if (!row.hasMovements) return <EmptyValue label={t('budget.monthly.noMovement')} />;
   if (row.total.value !== null && row.total.assetCode !== null) {
-    const value = toSignedAmount(row.total.value, kind === 'expense' ? 'OUTFLOW' : null);
+    const value = toSignedAmount(row.total.value, direction);
     return <MoneyValue value={formatAmount(value, row.total.assetCode, language)} />;
   }
   return t('budget.monthly.mixedAssets');

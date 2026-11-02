@@ -33,11 +33,7 @@ final readonly class RefreshOccurrenceHorizon
             $recurrences = $this->recurrences->activeInOrder($workspace, self::MAX_RECURRENCES);
             $generated = 0;
             foreach ($recurrences as $recurrence) {
-                $last = $this->generator->lastExpectedOn($recurrence);
-                $from = null === $last ? $recurrence->nextExpectedOn : RecurrenceFactory::schedule(
-                    $recurrence->intervalKind, $recurrence->dayOfPeriod, $last,
-                )->after($last);
-                $generated += $this->generator->extend($recurrence, $from, $today);
+                $generated += $this->generator->extendToHorizon($recurrence, $today);
             }
 
             return [

@@ -25,6 +25,9 @@ interface TransactionRecurrenceRepository
     /** @return list<TransactionRecurrence> the live recurrences, in schedule order and bounded by the caller */
     public function activeInOrder(WorkspaceScope $workspace, int $limit): array;
 
+    /** @return list<TransactionRecurrence> the live recurrences that create their own transactions, bounded by the caller */
+    public function activeAutoCreating(WorkspaceScope $workspace, int $limit): array;
+
     /** @return list<TransactionRecurrence> the live recurrences of one account, in schedule order */
     public function activeForAccount(WorkspaceScope $workspace, string $accountId): array;
 

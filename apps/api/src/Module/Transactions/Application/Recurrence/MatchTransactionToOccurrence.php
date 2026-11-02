@@ -26,6 +26,11 @@ final readonly class MatchTransactionToOccurrence
     {
         $affected = [];
         $existing = $this->occurrences->findByMatchedTransaction($transaction->workspace, $transaction->id);
+        // The instalment a recurrence created this very row for stays settled by it through every
+        // edit: it is never re-matched by tolerance, so releasing it would strand it as LATE.
+        if (null !== $existing && $existing->generatedTransactionId === $transaction->id && $this->eligible($transaction)) {
+            return;
+        }
         if (null !== $existing) {
             $recurrence = $this->recurrences->find($transaction->workspace, $existing->recurrenceId);
             $this->occurrences->release($transaction->workspace, $existing->id);

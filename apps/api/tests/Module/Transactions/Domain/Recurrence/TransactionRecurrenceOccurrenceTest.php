@@ -47,6 +47,21 @@ final class TransactionRecurrenceOccurrenceTest extends TestCase
         self::assertNull($occurrence->matchedAt);
     }
 
+    public function testAGeneratedLinkNamesBothTheTransactionAndTheVersion(): void
+    {
+        $linked = self::occurrence(['generatedTransactionId' => self::TRANSACTION, 'generatedVersion' => 1]);
+
+        self::assertSame(self::TRANSACTION, $linked->generatedTransactionId);
+        self::assertSame(1, $linked->generatedVersion);
+        self::assertSame(OccurrenceStatus::EXPECTED, $linked->status);
+    }
+
+    public function testAHalfGeneratedLinkIsRefused(): void
+    {
+        $this->expectException(InvalidRecurrence::class);
+        self::occurrence(['generatedTransactionId' => self::TRANSACTION]);
+    }
+
     public function testAReceivedOccurrenceNamesTheTransactionItMatched(): void
     {
         $occurrence = self::occurrence([
@@ -90,6 +105,10 @@ final class TransactionRecurrenceOccurrenceTest extends TestCase
         \assert($values['status'] instanceof OccurrenceStatus);
         $matchedTransactionId = $values['matchedTransactionId'];
         $matchedAt = $values['matchedAt'];
+        $generatedTransactionId = $values['generatedTransactionId'] ?? null;
+        $generatedVersion = $values['generatedVersion'] ?? null;
+        \assert(null === $generatedTransactionId || is_string($generatedTransactionId));
+        \assert(null === $generatedVersion || is_int($generatedVersion));
         \assert(null === $matchedTransactionId || is_string($matchedTransactionId));
         \assert(null === $matchedAt || is_string($matchedAt));
 
@@ -103,6 +122,8 @@ final class TransactionRecurrenceOccurrenceTest extends TestCase
             matchedTransactionId: $matchedTransactionId,
             matchedAt: null === $matchedAt ? null : new \DateTimeImmutable($matchedAt),
             status: $values['status'],
+            generatedTransactionId: $generatedTransactionId,
+            generatedVersion: $generatedVersion,
         );
     }
 }

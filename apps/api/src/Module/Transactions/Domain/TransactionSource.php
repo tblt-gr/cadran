@@ -9,4 +9,5 @@ enum TransactionSource: string
     case MANUAL = 'MANUAL';
     case IMPORT = 'IMPORT';
     case PROVIDER = 'PROVIDER';
+    case RECURRENCE = 'RECURRENCE';
 }

@@ -51,6 +51,12 @@
   color: var(--text-muted);
 }
 
+/* Muted by colour, never by opacity: opacity would pull the text under AA contrast. */
+.rowPending .name,
+.rowPending .amount {
+  color: var(--text-pending);
+}
+
 .toggle:hover,
 .add:hover:not(:disabled) {
   background: var(--bg-surface-2);

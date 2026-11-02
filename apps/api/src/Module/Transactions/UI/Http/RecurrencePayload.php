@@ -15,8 +15,9 @@ final readonly class RecurrencePayload
     /**
      * @param array<mixed> $body
      * @param list<string> $expectedFields
+     * @param list<string> $optionalFields fields that may be left out of the body
      */
-    public static function of(array $body, array $expectedFields): self
+    public static function of(array $body, array $expectedFields, array $optionalFields = []): self
     {
         if ([] !== $expectedFields && array_is_list($body)) {
             throw new \UnexpectedValueException('A recurrence body must be an object.');
@@ -29,9 +30,10 @@ final readonly class RecurrencePayload
             $fields[$key] = $value;
         }
         $submitted = array_keys($fields);
-        sort($submitted);
+        $required = array_values(array_diff($submitted, $optionalFields));
+        sort($required);
         sort($expectedFields);
-        if ($submitted !== $expectedFields) {
+        if ($required !== $expectedFields || [] !== array_diff($submitted, [...$expectedFields, ...$optionalFields])) {
             throw new \UnexpectedValueException('A recurrence body carries exactly its declared fields.');
         }
 
@@ -43,6 +45,16 @@ final readonly class RecurrencePayload
         $value = $this->fields[$field] ?? null;
         if (!is_string($value)) {
             throw new \UnexpectedValueException(sprintf('%s must be a string.', $field));
+        }
+
+        return $value;
+    }
+
+    public function boolean(string $field): bool
+    {
+        $value = $this->fields[$field] ?? false;
+        if (!is_bool($value)) {
+            throw new \UnexpectedValueException(sprintf('%s must be a boolean.', $field));
         }
 
         return $value;
@@ -66,6 +78,11 @@ final readonly class RecurrencePayload
         }
 
         return $value;
+    }
+
+    public function nullableIdentifier(string $field): ?string
+    {
+        return null === ($this->fields[$field] ?? null) ? null : $this->identifier($field);
     }
 
     public function integer(string $field): int

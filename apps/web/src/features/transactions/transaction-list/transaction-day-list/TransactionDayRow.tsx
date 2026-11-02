@@ -30,10 +30,17 @@ interface TransactionDayRowProps {
 /** One compact movement. The columns of the former table live in the detail modal. */
 export function TransactionDayRow({ accounts, selection, transaction }: TransactionDayRowProps) {
   const { t } = useTranslation();
+  // Muted, never hidden: the state badge keeps the cue that colour alone would not carry.
+  const pending = transaction?.state === 'PENDING';
   const account = accounts?.find((candidate) => candidate.id === transaction?.accountId);
 
   return (
-    <li className={selection ? `${styles.row} ${styles.selectable}` : styles.row}>
+    <li
+      className={[styles.row, selection ? styles.selectable : '', pending ? styles.pending : '']
+        .filter(Boolean)
+        .join(' ')}
+      data-state={transaction?.state}
+    >
       {selection ? (
         <label className={styles.select}>
           <input
