@@ -3,7 +3,6 @@ import type { TFunction } from 'i18next';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
-import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
@@ -46,6 +45,7 @@ export function LedgerRow({
   const amount = renderAmount(row, kind, language, t);
   // Pending movements are listed for information: they open the detail but feed no sum.
   const explainable = row.hasMovements || row.pendingCount > 0;
+  const pendingLabel = t('budget.monthly.pendingBadge').toLowerCase();
   const pendingOnly = !row.hasMovements && row.pendingCount > 0;
   const color = canonicalCategoryColor(category?.color);
   const addDisabled = !actionsAllowed || addUnavailable;
@@ -87,10 +87,16 @@ export function LedgerRow({
         ) : null}
       </span>
       <span className={styles.amount}>
-        {amount}
+        {pendingOnly ? null : amount}
         {row.pendingCount > 0 ? (
-          <span className={styles.pendingLine}>
-            <StatusBadge tone="neutral">{t('budget.monthly.pendingBadge')}</StatusBadge>
+          <span
+            className={
+              pendingOnly ? styles.pendingAmount : `${styles.pendingAmount} ${styles.inline}`
+            }
+            title={pendingLabel}
+          >
+            <span className="sr-only">{pendingLabel} : </span>
+            <span aria-hidden="true">(</span>
             {row.pendingAmount !== null ? (
               <MoneyValue
                 value={formatAmount(
@@ -102,6 +108,7 @@ export function LedgerRow({
             ) : (
               <EmptyValue label={t('budget.monthly.pendingNotCalculable')} />
             )}
+            <span aria-hidden="true">)</span>
           </span>
         ) : null}
       </span>

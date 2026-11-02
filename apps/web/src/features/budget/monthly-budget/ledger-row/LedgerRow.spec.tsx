@@ -55,19 +55,20 @@ describe('LedgerRow pending movements', () => {
   it('shows nothing pending and keeps the row unchanged without pending movements', () => {
     const item = renderRow(category());
 
-    expect(within(item).queryByText('En attente')).toBeNull();
+    expect(within(item).queryByText(/en attente/i)).toBeNull();
     expect(item.hasAttribute('data-pending')).toBe(false);
     expect(item.className).not.toContain('rowPending');
   });
 
-  it('shows the pending amount and badge under the realised amount of a mixed row', () => {
+  it('shows the pending amount inline after the realised amount of a mixed row', () => {
     const item = renderRow(
       category({ pendingAmount: { value: '-12.50', assetCode: 'EUR' }, pendingCount: 1 }),
     );
 
-    expect(within(item).getByText('En attente')).toBeTruthy();
-    expect(item.textContent).toMatch(/30,00/);
-    expect(item.textContent).toMatch(/12,50/);
+    // Inline and parenthesised, with a spoken cue; no badge deforms the row.
+    expect(within(item).getByText(/en attente :/)).toBeTruthy();
+    expect(item.textContent).toMatch(/30,00.*\(.*12,50.*\)/);
+    expect(item.querySelector('[title="en attente"]')).toBeTruthy();
     expect(item.getAttribute('data-pending')).toBe('true');
     expect(item.className).not.toContain('rowPending');
   });
@@ -85,8 +86,10 @@ describe('LedgerRow pending movements', () => {
 
     expect(item.className).toContain('rowPending');
     expect(item.className).not.toContain('rowEmpty');
-    expect(within(item).getByText('En attente')).toBeTruthy();
-    expect(item.textContent).toMatch(/40,00/);
+    expect(item.textContent).toMatch(/\(.*40,00.*\)/);
+    // The parenthesised pending amount replaces the lone dash.
+    expect(item.textContent).not.toMatch(/^Courses-/);
+    expect(item.querySelector('.sr-only')?.textContent).toContain('en attente');
     fireEvent.click(within(item).getByRole('button', { name: /Afficher les mouvements/ }));
     expect(api.readMovements).toHaveBeenCalledOnce();
   });
@@ -94,7 +97,7 @@ describe('LedgerRow pending movements', () => {
   it('shows a non-calculable dash when pending amounts are of mixed assets', () => {
     const item = renderRow(category({ pendingAmount: null, pendingCount: 2 }));
 
-    expect(within(item).getByText('En attente')).toBeTruthy();
+    expect(item.textContent).toMatch(/\(.*-.*\)/);
     expect(within(item).getByText('Montant en attente non calculable')).toBeTruthy();
   });
 

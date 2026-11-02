@@ -51,25 +51,20 @@
   color: var(--text-muted);
 }
 
-.rowPending .identity,
-.rowPending .amount > :not(.pendingLine) {
+.rowPending .identity {
   opacity: var(--opacity-pending);
 }
 
-/* The pending amount is dimmed, its badge is not: the state must not rest on dimming alone. */
-.pendingLine {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-top: var(--spacing-1);
+/* Small and dimmed, on the realised amount's own line: a pending row keeps the height of any row. */
+.pendingAmount {
   color: var(--text-muted);
   font-size: var(--font-size-xs);
-  gap: var(--spacing-2);
+  opacity: var(--opacity-pending);
+  white-space: nowrap;
 }
 
-.pendingLine > [data-visual-mask],
-.pendingLine > span:last-child {
-  opacity: var(--opacity-pending);
+.inline {
+  margin-inline-start: var(--spacing-1);
 }
 
 .toggle:hover,
