@@ -19,6 +19,11 @@ describe('PortfolioTabs', () => {
     expect(screen.queryByRole('link', { name: 'Répartition' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Contrat' })).toBeNull();
   });
+  it('renders through the shared strip with an accessible navigation name', () => {
+    render(<PortfolioTabs accountId="a" active="operations" kind="PORTFOLIO" />);
+    const nav = screen.getByRole('navigation', { name: 'Sections du portefeuille' });
+    expect(nav.querySelector('[aria-current="page"]')?.textContent).toBe('Opérations');
+  });
   it('uses insurance labels and appends the contract tab, preserving the date', () => {
     render(
       <PortfolioTabs accountId="a" active="contract" kind="INSURANCE_CONTRACT" asOf="2026-04-01" />,

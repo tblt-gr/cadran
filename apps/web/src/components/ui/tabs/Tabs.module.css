@@ -31,8 +31,18 @@
     border-color var(--duration-fast) var(--ease-out);
 }
 
-.tab:hover {
-  color: var(--text-primary);
+/* The global `a:hover` underline outranks `.tab`; tabs are marked by their rule, not underlined. */
+.tab:hover,
+.tab:focus-visible {
+  text-decoration: none;
+}
+
+/* Hover previews the active look, only where a pointer really hovers. */
+@media (hover: hover) {
+  .tab:not([aria-disabled='true']):hover {
+    border-bottom-color: var(--gold-300);
+    color: var(--gold-300);
+  }
 }
 
 .tab[aria-selected='true'] {
